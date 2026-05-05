@@ -108,9 +108,9 @@ export const problemStatementUpdatedSignal = wf.defineSignal<
 export const agreementUpdatedSignal = wf.defineSignal<
   [AgreementUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.agreementUpdated);
-export const designUpdatedSignal = wf.defineSignal<[DesignUpdatedSignalPayload]>(
-  CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated,
-);
+export const designUpdatedSignal = wf.defineSignal<
+  [DesignUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated);
 export const acceptanceCriteriaSetSignal = wf.defineSignal<
   [AcceptanceCriteriaSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);

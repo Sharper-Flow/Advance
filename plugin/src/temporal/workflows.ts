@@ -3,6 +3,7 @@ import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
   CHANGE_WORKFLOW_UPDATE_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
+  CHANGE_WORKFLOW_SIGNAL_NAMES,
   resolveHistoryThresholds,
   type ChangeWorkflowState,
   type ChangeWorkflowBootstrapState,
@@ -18,6 +19,32 @@ import {
 import {
   addChangeWisdom,
   addTaskToChangeState,
+  applyAcceptanceCriteriaSetToState,
+  applyAgreementUpdatedToState,
+  applyArchiveRequestedToState,
+  applyChangeCancelledToState,
+  applyConformanceLockedToState,
+  applyConformanceOverriddenToState,
+  applyConformanceVerdictToState,
+  applyDesignUpdatedToState,
+  applyGateAwaitingApprovalToState,
+  applyGateCompletedToState,
+  applyGateInProgressToState,
+  applyGateReenteredToState,
+  applyGateStuckToState,
+  applyProblemStatementUpdatedToState,
+  applyProposalUpdatedToState,
+  applyReflectionRecordedToState,
+  applyTaskAddedToState,
+  applyTaskAssignedToState,
+  applyTaskBlockedToState,
+  applyTaskCancelledToState,
+  applyTaskCompletedToState,
+  applyTaskRemovedToState,
+  applyTaskUpdatedToState,
+  applyWisdomAddedToState,
+  applyWorktreeCreatedToState,
+  applyWorktreeDeletedToState,
   archiveChangeInChangeState,
   cancelTaskInChangeState,
   closeChangeInChangeState,
@@ -83,6 +110,84 @@ const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.task);
+const proposalUpdatedSignal = wf.defineSignal<
+  [import("../types").ProposalUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.proposalUpdated);
+const problemStatementUpdatedSignal = wf.defineSignal<
+  [import("../types").ProblemStatementUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.problemStatementUpdated);
+const agreementUpdatedSignal = wf.defineSignal<
+  [import("../types").AgreementUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.agreementUpdated);
+const designUpdatedSignal = wf.defineSignal<
+  [import("../types").DesignUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated);
+const acceptanceCriteriaSetSignal = wf.defineSignal<
+  [import("../types").AcceptanceCriteriaSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);
+const taskAddedSignal = wf.defineSignal<
+  [import("../types").TaskAddedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskAdded);
+const taskUpdatedSignal = wf.defineSignal<
+  [import("../types").TaskUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskUpdated);
+const taskRemovedSignal = wf.defineSignal<
+  [import("../types").TaskRemovedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskRemoved);
+const taskAssignedSignal = wf.defineSignal<
+  [import("../types").TaskAssignedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskAssigned);
+const taskCompletedSignal = wf.defineSignal<
+  [import("../types").TaskCompletedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+const taskBlockedSignal = wf.defineSignal<
+  [import("../types").TaskBlockedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskBlocked);
+const taskCancelledSignal = wf.defineSignal<
+  [import("../types").TaskCancelledSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCancelled);
+const gateInProgressSignal = wf.defineSignal<
+  [import("../types").GateInProgressSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateInProgress);
+const gateAwaitingApprovalSignal = wf.defineSignal<
+  [import("../types").GateAwaitingApprovalSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateAwaitingApproval);
+const gateStuckSignal = wf.defineSignal<
+  [import("../types").GateStuckSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateStuck);
+const gateCompletedSignal = wf.defineSignal<
+  [import("../types").GateCompletedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateCompleted);
+const gateReenteredSignal = wf.defineSignal<
+  [import("../types").GateReenteredSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.gateReentered);
+const wisdomAddedSignal = wf.defineSignal<
+  [import("../types").WisdomAddedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.wisdomAdded);
+const reflectionRecordedSignal = wf.defineSignal<
+  [import("../types").ReflectionRecordedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.reflectionRecorded);
+const worktreeCreatedSignal = wf.defineSignal<
+  [import("../types").WorktreeCreatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeCreated);
+const worktreeDeletedSignal = wf.defineSignal<
+  [import("../types").WorktreeDeletedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+const conformanceLockedSignal = wf.defineSignal<
+  [import("../types").ConformanceLockedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);
+const conformanceVerdictSignal = wf.defineSignal<
+  [import("../types").ConformanceVerdictSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceVerdict);
+const conformanceOverriddenSignal = wf.defineSignal<
+  [import("../types").ConformanceOverriddenSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceOverridden);
+const archiveRequestedSignal = wf.defineSignal<
+  [import("../types").ArchiveRequestedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested);
+const changeCancelledSignal = wf.defineSignal<
+  [import("../types").ChangeCancelledSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
 const addTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [
@@ -294,7 +399,11 @@ const updateSessionActivityUpdate = wf.defineUpdate<
 function safeUpdateHandler<Args extends unknown[], R>(
   updateName: string,
   handler: (...args: Args) => R,
-): (...args: Args) => R {
+  // Signals ignore handler return values, while updates preserve them. The
+  // `any` return keeps this wrapper usable for both Temporal overloads during
+  // the signal migration without adding a duplicate error-normalization helper.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): (...args: Args) => any {
   return (...args: Args) => {
     try {
       return handler(...args);
@@ -344,6 +453,35 @@ export async function changeWorkflow(
     if (input.seedState.fast_follow_of) {
       state.fast_follow_of = input.seedState.fast_follow_of;
     }
+    if (input.seedState.affectedProjects) {
+      state.affectedProjects = input.seedState.affectedProjects;
+    }
+    if (input.seedState.affectedPaths) {
+      state.affectedPaths = input.seedState.affectedPaths;
+    }
+    if (input.seedState.lastSignalAt) {
+      state.lastSignalAt = input.seedState.lastSignalAt;
+    }
+    if (typeof input.seedState.pendingCheckpoint !== "undefined") {
+      state.pendingCheckpoint = input.seedState.pendingCheckpoint;
+    }
+    if (typeof input.seedState.terminated !== "undefined") {
+      state.terminated = input.seedState.terminated;
+    }
+    if (input.seedState.acceptanceCriteria) {
+      state.acceptanceCriteria = input.seedState.acceptanceCriteria;
+    }
+    if (input.seedState.documents) state.documents = input.seedState.documents;
+    if (input.seedState.reflections) {
+      state.reflections = input.seedState.reflections;
+    }
+    if (input.seedState.worktrees) state.worktrees = input.seedState.worktrees;
+    if (input.seedState.conformance) {
+      state.conformance = input.seedState.conformance;
+    }
+    if (input.seedState.archiveRequest) {
+      state.archiveRequest = input.seedState.archiveRequest;
+    }
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
@@ -358,6 +496,162 @@ export async function changeWorkflow(
   wf.setHandler(changeReadyQuery, () => getReadyTasksFromChangeState(state));
   wf.setHandler(changeTaskQuery, (taskId: string) =>
     getTaskFromChangeState(state, taskId),
+  );
+  wf.setHandler(
+    proposalUpdatedSignal,
+    safeUpdateHandler("proposalUpdated", (payload) =>
+      applyProposalUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    problemStatementUpdatedSignal,
+    safeUpdateHandler("problemStatementUpdated", (payload) =>
+      applyProblemStatementUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    agreementUpdatedSignal,
+    safeUpdateHandler("agreementUpdated", (payload) =>
+      applyAgreementUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    designUpdatedSignal,
+    safeUpdateHandler("designUpdated", (payload) =>
+      applyDesignUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    acceptanceCriteriaSetSignal,
+    safeUpdateHandler("acceptanceCriteriaSet", (payload) =>
+      applyAcceptanceCriteriaSetToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskAddedSignal,
+    safeUpdateHandler("taskAdded", (payload) =>
+      applyTaskAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskUpdatedSignal,
+    safeUpdateHandler("taskUpdated", (payload) =>
+      applyTaskUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskRemovedSignal,
+    safeUpdateHandler("taskRemoved", (payload) =>
+      applyTaskRemovedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskAssignedSignal,
+    safeUpdateHandler("taskAssigned", (payload) =>
+      applyTaskAssignedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskCompletedSignal,
+    safeUpdateHandler("taskCompleted", (payload) =>
+      applyTaskCompletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskBlockedSignal,
+    safeUpdateHandler("taskBlocked", (payload) =>
+      applyTaskBlockedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    taskCancelledSignal,
+    safeUpdateHandler("taskCancelled", (payload) =>
+      applyTaskCancelledToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    gateInProgressSignal,
+    safeUpdateHandler("gateInProgress", (payload) =>
+      applyGateInProgressToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    gateAwaitingApprovalSignal,
+    safeUpdateHandler("gateAwaitingApproval", (payload) =>
+      applyGateAwaitingApprovalToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    gateStuckSignal,
+    safeUpdateHandler("gateStuck", (payload) =>
+      applyGateStuckToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    gateCompletedSignal,
+    safeUpdateHandler("gateCompleted", (payload) =>
+      applyGateCompletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    gateReenteredSignal,
+    safeUpdateHandler("gateReentered", (payload) =>
+      applyGateReenteredToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    wisdomAddedSignal,
+    safeUpdateHandler("wisdomAdded", (payload) =>
+      applyWisdomAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    reflectionRecordedSignal,
+    safeUpdateHandler("reflectionRecorded", (payload) =>
+      applyReflectionRecordedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeCreatedSignal,
+    safeUpdateHandler("worktreeCreated", (payload) =>
+      applyWorktreeCreatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeDeletedSignal,
+    safeUpdateHandler("worktreeDeleted", (payload) =>
+      applyWorktreeDeletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    conformanceLockedSignal,
+    safeUpdateHandler("conformanceLocked", (payload) =>
+      applyConformanceLockedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    conformanceVerdictSignal,
+    safeUpdateHandler("conformanceVerdict", (payload) =>
+      applyConformanceVerdictToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    conformanceOverriddenSignal,
+    safeUpdateHandler("conformanceOverridden", (payload) =>
+      applyConformanceOverriddenToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    archiveRequestedSignal,
+    safeUpdateHandler("archiveRequested", (payload) =>
+      applyArchiveRequestedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    changeCancelledSignal,
+    safeUpdateHandler("changeCancelled", (payload) =>
+      applyChangeCancelledToState(state, payload),
+    ),
   );
   wf.setHandler(
     addTaskUpdate,
@@ -728,6 +1022,17 @@ export async function changeWorkflow(
       reentry_history: state.reentry_history,
       artifacts: state.artifacts,
       fast_follow_of: state.fast_follow_of,
+      affectedProjects: state.affectedProjects,
+      affectedPaths: state.affectedPaths,
+      lastSignalAt: state.lastSignalAt,
+      pendingCheckpoint: state.pendingCheckpoint,
+      terminated: state.terminated,
+      acceptanceCriteria: state.acceptanceCriteria,
+      documents: state.documents,
+      reflections: state.reflections,
+      worktrees: state.worktrees,
+      conformance: state.conformance,
+      archiveRequest: state.archiveRequest,
     },
   };
   await wf.continueAsNew<typeof changeWorkflow>(seed);

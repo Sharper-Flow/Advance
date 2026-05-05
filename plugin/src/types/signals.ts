@@ -53,7 +53,9 @@ export const TaskAddedSignalPayloadSchema = z.object({
   task: TaskSchema,
   addedAt: IsoTimestampSchema,
 });
-export type TaskAddedSignalPayload = z.infer<typeof TaskAddedSignalPayloadSchema>;
+export type TaskAddedSignalPayload = z.infer<
+  typeof TaskAddedSignalPayloadSchema
+>;
 
 export const TaskUpdatedSignalPayloadSchema = z.object({
   taskId: z.string(),

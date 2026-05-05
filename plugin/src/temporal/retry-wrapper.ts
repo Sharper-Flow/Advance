@@ -59,10 +59,18 @@ export function collectErrorText(error: unknown): string {
 
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
   const text = collectErrorText(error);
-  if (/ECONNREFUSED|Unavailable|Channel has been shut down|timeout|deadline/i.test(text)) {
+  if (
+    /ECONNREFUSED|Unavailable|Channel has been shut down|timeout|deadline/i.test(
+      text,
+    )
+  ) {
     return "transient";
   }
-  if (/not[_ ]found|NOT_FOUND|not registered|already started|already exists/i.test(text)) {
+  if (
+    /not[_ ]found|NOT_FOUND|not registered|already started|already exists/i.test(
+      text,
+    )
+  ) {
     return "fallback";
   }
   return "fatal";
@@ -154,13 +162,19 @@ export async function withTemporalRetry<T>(
       telemetry.lastAttempts = attempt;
       return result;
     } catch (error) {
-      telemetry.lastError = error instanceof Error ? error.message : String(error);
+      telemetry.lastError =
+        error instanceof Error ? error.message : String(error);
       telemetry.lastAttempts = attempt;
-      if (classifyTemporalError(error) !== "transient" || attempt >= maxAttempts) {
+      if (
+        classifyTemporalError(error) !== "transient" ||
+        attempt >= maxAttempts
+      ) {
         throw error;
       }
       await options.onTransientFailure?.();
-      await new Promise((resolve) => setTimeout(resolve, delayMs(attempt, options)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, delayMs(attempt, options)),
+      );
     }
   }
 }

@@ -107,16 +107,16 @@ export const GateCompletionSchema = z.object({
   completed_at: z.string().optional(),
   /** Who completed the gate (user, agent, migration) */
   completed_by: z.string().optional(),
-    /** Key decisions or context captured at gate completion */
-    notes: z.string().optional(),
-    /** Evidence shown while waiting for user approval */
-    approval_evidence: z.string().optional(),
-    /** Human-readable reason when gate is stuck */
-    stuck_reason: z.string().optional(),
-    /** ISO8601 timestamp when current non-pending state began */
-    started_at: z.string().optional(),
-    /** Who triggered or owns the current gate state */
-    triggered_by: z.string().optional(),
+  /** Key decisions or context captured at gate completion */
+  notes: z.string().optional(),
+  /** Evidence shown while waiting for user approval */
+  approval_evidence: z.string().optional(),
+  /** Human-readable reason when gate is stuck */
+  stuck_reason: z.string().optional(),
+  /** ISO8601 timestamp when current non-pending state began */
+  started_at: z.string().optional(),
+  /** Who triggered or owns the current gate state */
+  triggered_by: z.string().optional(),
   /** Original gate ID before migration (audit trail for gate renames) */
   migrated_from: z.string().optional(),
   /** Additional old gate completions absorbed into this gate during migration */

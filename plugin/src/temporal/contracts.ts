@@ -1,8 +1,4 @@
-import type {
-  ChangeClosure,
-  FastFollowOf,
-  Gates,
-} from "../types";
+import type { ChangeClosure, FastFollowOf, Gates } from "../types";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
@@ -180,6 +176,12 @@ export interface ChangeWorkflowInput {
       | "lastSignalAt"
       | "pendingCheckpoint"
       | "terminated"
+      | "acceptanceCriteria"
+      | "documents"
+      | "reflections"
+      | "worktrees"
+      | "conformance"
+      | "archiveRequest"
     >
   >;
 }
@@ -214,6 +216,43 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     problemStatement?: string;
     agreement?: string;
     design?: string;
+  };
+  reflections?: unknown[];
+  worktrees?: Record<
+    string,
+    {
+      branch: string;
+      path?: string;
+      baseRef?: string;
+      headSha?: string;
+      status: "created" | "deleted";
+      createdAt?: string;
+      deletedAt?: string;
+      deleteReason?: string;
+    }
+  >;
+  conformance?: {
+    lockedSpecs?: string[];
+    lockedAt?: string;
+    lastVerdict?: {
+      verdict: import("../types").ConformanceVerdict;
+      runId: string;
+      failed?: Array<
+        { rq_id: string; summary: string } & Record<string, unknown>
+      >;
+      recordedAt: string;
+    };
+    overrides?: Array<{
+      user: string;
+      reason: string;
+      reVerifyDeadline: string;
+      overriddenAt: string;
+    }>;
+  };
+  archiveRequest?: {
+    approvalEvidence: string;
+    requestedBy: string;
+    requestedAt: string;
   };
   /**
    * Closure metadata set when the workflow records a terminal close. Stored

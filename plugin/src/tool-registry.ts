@@ -556,7 +556,6 @@ export function createToolMap(
       "adv_session_show",
       store,
     ),
-
   };
 }
 

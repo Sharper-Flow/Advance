@@ -296,5 +296,4 @@ export const agendaTools = {
       return formatToolOutput({ success: true, item });
     },
   },
-
 };

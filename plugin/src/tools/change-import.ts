@@ -17,7 +17,6 @@ import {
   ensureChangeWorkflowStarted,
   type WorkflowHandleLike,
 } from "../temporal/migration";
-import type { ChangeWorkflowState } from "../temporal/contracts";
 import { getService } from "../temporal/service";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store";

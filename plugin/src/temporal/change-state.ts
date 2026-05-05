@@ -1,11 +1,37 @@
 import type {
+  AcceptanceCriteriaSetSignalPayload,
+  AgreementUpdatedSignalPayload,
+  ArchiveRequestedSignalPayload,
   Cancellation,
+  ChangeCancelledSignalPayload,
   ChangeClosure,
+  ConformanceLockedSignalPayload,
+  ConformanceOverriddenSignalPayload,
+  ConformanceVerdictSignalPayload,
+  DesignUpdatedSignalPayload,
   ErrorRecovery,
   GateId,
+  GateAwaitingApprovalSignalPayload,
+  GateCompletedSignalPayload,
+  GateInProgressSignalPayload,
+  GateReenteredSignalPayload,
+  GateStuckSignalPayload,
+  ProblemStatementUpdatedSignalPayload,
+  ProposalUpdatedSignalPayload,
+  ReflectionRecordedSignalPayload,
   Task,
+  TaskAddedSignalPayload,
+  TaskAssignedSignalPayload,
+  TaskBlockedSignalPayload,
+  TaskCancelledSignalPayload,
+  TaskCompletedSignalPayload,
+  TaskRemovedSignalPayload,
+  TaskUpdatedSignalPayload,
   TddReclassification,
+  WisdomAddedSignalPayload,
   WisdomType,
+  WorktreeCreatedSignalPayload,
+  WorktreeDeletedSignalPayload,
 } from "../types";
 import { canCompleteGate, createDefaultGates, GATE_ORDER } from "../types";
 import type {
@@ -70,7 +96,361 @@ export function createChangeWorkflowState(input: {
     gates: createDefaultGates(),
     reentry_history: [],
     artifacts: {},
+    documents: {},
+    reflections: [],
+    worktrees: {},
+    conformance: { lockedSpecs: [], overrides: [] },
   };
+}
+
+function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
+  state.lastSignalAt = at;
+}
+
+function getMutableTask(state: ChangeWorkflowState, taskId: string): Task {
+  return getTaskOrThrow(state, taskId);
+}
+
+export function applyProposalUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: ProposalUpdatedSignalPayload,
+): ChangeWorkflowState {
+  state.documents = { ...(state.documents ?? {}), proposal: payload.text };
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyProblemStatementUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: ProblemStatementUpdatedSignalPayload,
+): ChangeWorkflowState {
+  state.documents = {
+    ...(state.documents ?? {}),
+    problemStatement: payload.text,
+  };
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyAgreementUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: AgreementUpdatedSignalPayload,
+): ChangeWorkflowState {
+  state.documents = { ...(state.documents ?? {}), agreement: payload.text };
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyDesignUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: DesignUpdatedSignalPayload,
+): ChangeWorkflowState {
+  state.documents = { ...(state.documents ?? {}), design: payload.text };
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyAcceptanceCriteriaSetToState(
+  state: ChangeWorkflowState,
+  payload: AcceptanceCriteriaSetSignalPayload,
+): ChangeWorkflowState {
+  state.acceptanceCriteria = [...payload.criteria];
+  setLastSignalAt(state, payload.setAt);
+  return state;
+}
+
+export function applyTaskAddedToState(
+  state: ChangeWorkflowState,
+  payload: TaskAddedSignalPayload,
+): ChangeWorkflowState {
+  const existingIndex = state.tasks.findIndex(
+    (task) => task.id === payload.task.id,
+  );
+  if (existingIndex >= 0) {
+    state.tasks[existingIndex] = payload.task;
+  } else {
+    state.tasks.push(payload.task);
+  }
+  setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+export function applyTaskUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: TaskUpdatedSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  Object.assign(task, payload.partial);
+  (task as Task & { updatedAt?: string }).updatedAt = payload.updatedAt;
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyTaskRemovedToState(
+  state: ChangeWorkflowState,
+  payload: TaskRemovedSignalPayload,
+): ChangeWorkflowState {
+  state.tasks = state.tasks.filter((task) => task.id !== payload.taskId);
+  setLastSignalAt(state, payload.removedAt);
+  return state;
+}
+
+export function applyTaskAssignedToState(
+  state: ChangeWorkflowState,
+  payload: TaskAssignedSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  task.status = "in_progress";
+  task.assignedTo = payload.sessionId;
+  task.started_at = task.started_at ?? payload.assignedAt;
+  setLastSignalAt(state, payload.assignedAt);
+  return state;
+}
+
+export function applyTaskCompletedToState(
+  state: ChangeWorkflowState,
+  payload: TaskCompletedSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  task.status = "done";
+  task.verification = payload.verification;
+  task.summary = payload.summary;
+  task.implementation_summary = payload.summary;
+  task.filesTouched = [...payload.filesTouched];
+  task.touched_files = [...payload.filesTouched];
+  task.checkpointSha = payload.checkpointSha;
+  task.completedAt = payload.completedAt;
+  task.completed_at = payload.completedAt;
+  setLastSignalAt(state, payload.completedAt);
+  return state;
+}
+
+export function applyTaskBlockedToState(
+  state: ChangeWorkflowState,
+  payload: TaskBlockedSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  task.status = "blocked";
+  task.blockReason = payload.reason;
+  task.attempts = [...payload.attempts];
+  setLastSignalAt(state, payload.blockedAt);
+  return state;
+}
+
+export function applyTaskCancelledToState(
+  state: ChangeWorkflowState,
+  payload: TaskCancelledSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  task.status = "cancelled";
+  task.cancelApproval = payload.approvalEvidence;
+  task.cancelledAt = payload.cancelledAt;
+  task.completed_at = payload.cancelledAt;
+  task.cancellation = {
+    reason: payload.reason,
+    approved_by_user: true,
+    approval_evidence: payload.approvalEvidence,
+    approved_at: payload.cancelledAt,
+  };
+  setLastSignalAt(state, payload.cancelledAt);
+  return state;
+}
+
+export function applyGateInProgressToState(
+  state: ChangeWorkflowState,
+  payload: GateInProgressSignalPayload,
+): ChangeWorkflowState {
+  state.gates[payload.gateId] = {
+    ...state.gates[payload.gateId],
+    status: "in_progress",
+    started_at: payload.triggeredAt,
+    triggered_by: payload.triggeredBy,
+  };
+  setLastSignalAt(state, payload.triggeredAt);
+  return state;
+}
+
+export function applyGateAwaitingApprovalToState(
+  state: ChangeWorkflowState,
+  payload: GateAwaitingApprovalSignalPayload,
+): ChangeWorkflowState {
+  state.gates[payload.gateId] = {
+    ...state.gates[payload.gateId],
+    status: "awaiting_approval",
+    approval_evidence: payload.evidence,
+    started_at: payload.triggeredAt,
+  };
+  setLastSignalAt(state, payload.triggeredAt);
+  return state;
+}
+
+export function applyGateStuckToState(
+  state: ChangeWorkflowState,
+  payload: GateStuckSignalPayload,
+): ChangeWorkflowState {
+  state.gates[payload.gateId] = {
+    ...state.gates[payload.gateId],
+    status: "stuck",
+    stuck_reason: payload.reason,
+    started_at: payload.triggeredAt,
+  };
+  setLastSignalAt(state, payload.triggeredAt);
+  return state;
+}
+
+export function applyGateCompletedToState(
+  state: ChangeWorkflowState,
+  payload: GateCompletedSignalPayload,
+): ChangeWorkflowState {
+  state.gates[payload.gateId] = {
+    ...state.gates[payload.gateId],
+    status: "done",
+    completed_at: payload.completedAt,
+    completed_by: payload.completedBy,
+    approval_evidence: payload.approvalEvidence,
+  };
+  setLastSignalAt(state, payload.completedAt);
+  return state;
+}
+
+export function applyGateReenteredToState(
+  state: ChangeWorkflowState,
+  payload: GateReenteredSignalPayload,
+): ChangeWorkflowState {
+  reopenFromGateInChangeState(state, payload.fromGateId, {
+    now: payload.reenteredAt,
+    reason: payload.reason,
+    scopeDelta: payload.scopeDelta,
+    reopenedBy: payload.reenteredBy,
+  });
+  setLastSignalAt(state, payload.reenteredAt);
+  return state;
+}
+
+export function applyWisdomAddedToState(
+  state: ChangeWorkflowState,
+  payload: WisdomAddedSignalPayload,
+): ChangeWorkflowState {
+  state.wisdom.push(payload.entry);
+  setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+export function applyReflectionRecordedToState(
+  state: ChangeWorkflowState,
+  payload: ReflectionRecordedSignalPayload,
+): ChangeWorkflowState {
+  state.reflections = [...(state.reflections ?? []), payload.report];
+  setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
+export function applyWorktreeCreatedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeCreatedSignalPayload,
+): ChangeWorkflowState {
+  state.worktrees = {
+    ...(state.worktrees ?? {}),
+    [payload.branch]: { ...payload, status: "created" },
+  };
+  setLastSignalAt(state, payload.createdAt);
+  return state;
+}
+
+export function applyWorktreeDeletedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeDeletedSignalPayload,
+): ChangeWorkflowState {
+  state.worktrees = {
+    ...(state.worktrees ?? {}),
+    [payload.branch]: {
+      ...(state.worktrees?.[payload.branch] ?? { branch: payload.branch }),
+      status: "deleted",
+      deletedAt: payload.deletedAt,
+      deleteReason: payload.reason,
+    },
+  };
+  setLastSignalAt(state, payload.deletedAt);
+  return state;
+}
+
+export function applyConformanceLockedToState(
+  state: ChangeWorkflowState,
+  payload: ConformanceLockedSignalPayload,
+): ChangeWorkflowState {
+  state.conformance = {
+    ...(state.conformance ?? {}),
+    lockedSpecs: [...payload.specs],
+    lockedAt: payload.lockedAt,
+    overrides: state.conformance?.overrides ?? [],
+  };
+  setLastSignalAt(state, payload.lockedAt);
+  return state;
+}
+
+export function applyConformanceVerdictToState(
+  state: ChangeWorkflowState,
+  payload: ConformanceVerdictSignalPayload,
+): ChangeWorkflowState {
+  state.conformance = {
+    ...(state.conformance ?? { overrides: [] }),
+    lastVerdict: {
+      verdict: payload.verdict,
+      runId: payload.runId,
+      failed: payload.failed,
+      recordedAt: payload.recordedAt,
+    },
+  };
+  setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
+export function applyConformanceOverriddenToState(
+  state: ChangeWorkflowState,
+  payload: ConformanceOverriddenSignalPayload,
+): ChangeWorkflowState {
+  state.conformance = {
+    ...(state.conformance ?? {}),
+    overrides: [
+      ...(state.conformance?.overrides ?? []),
+      {
+        user: payload.user,
+        reason: payload.reason,
+        reVerifyDeadline: payload.reVerifyDeadline,
+        overriddenAt: payload.overriddenAt,
+      },
+    ],
+  };
+  setLastSignalAt(state, payload.overriddenAt);
+  return state;
+}
+
+export function applyArchiveRequestedToState(
+  state: ChangeWorkflowState,
+  payload: ArchiveRequestedSignalPayload,
+): ChangeWorkflowState {
+  state.status = "archived";
+  state.terminated = true;
+  state.archiveRequest = payload;
+  setLastSignalAt(state, payload.requestedAt);
+  return state;
+}
+
+export function applyChangeCancelledToState(
+  state: ChangeWorkflowState,
+  payload: ChangeCancelledSignalPayload,
+): ChangeWorkflowState {
+  state.status = "closed";
+  state.terminated = true;
+  state.closure = {
+    reason: payload.supersededBy ? "superseded" : "cancelled",
+    approved_by_user: true,
+    approval_evidence: payload.approvalEvidence,
+    approved_at: payload.cancelledAt,
+    superseded_by: payload.supersededBy,
+  };
+  setLastSignalAt(state, payload.cancelledAt);
+  return state;
 }
 
 export function addTaskToChangeState(

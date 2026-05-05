@@ -515,12 +515,12 @@ export async function restartCurrentProjectTemporalWorker(
   const runtime = await ensureTemporalRuntime(projectId);
 
   const workerProbe = probeTemporalWorkerRuntime();
-  let worker: InProcessWorker | undefined;
+  const workerRef: { current?: InProcessWorker } = {};
   const onWorkerExhausted = async (): Promise<void> => {
-    await handleWorkerExhausted(projectStateDir, worker);
+    await handleWorkerExhausted(projectStateDir, workerRef.current);
   };
 
-  worker = workerProbe.supported
+  const worker = workerProbe.supported
     ? await createInProcessWorker({
         address: runtime.address,
         namespace: runtime.namespace,
@@ -535,6 +535,7 @@ export async function restartCurrentProjectTemporalWorker(
         projectId,
         onWorkerExhausted,
       });
+  workerRef.current = worker;
   registerInProcessTemporalWorker(worker);
   return {
     projectId,

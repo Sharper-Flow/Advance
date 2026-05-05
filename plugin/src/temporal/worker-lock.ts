@@ -34,7 +34,10 @@ export async function acquireWorkerLock(
   projectStateDir: string,
   options: AcquireWorkerLockOptions = {},
 ): Promise<WorkerLockResult> {
-  const lockPath = join(projectStateDir, options.lockFilename ?? WORKER_LOCK_FILENAME);
+  const lockPath = join(
+    projectStateDir,
+    options.lockFilename ?? WORKER_LOCK_FILENAME,
+  );
   const pid = options.pid ?? process.pid;
   const contents: WorkerLockContents = {
     pid,
@@ -50,8 +53,13 @@ export async function acquireWorkerLock(
     } finally {
       await handle.close();
     }
-    return { owned: true, ownerPid: pid, workerId: contents.worker_id, lockPath };
-  } catch (error) {
+    return {
+      owned: true,
+      ownerPid: pid,
+      workerId: contents.worker_id,
+      lockPath,
+    };
+  } catch {
     const existing = await readLockContents(lockPath).catch(() => null);
     return {
       owned: false,
@@ -67,7 +75,10 @@ export async function releaseWorkerLock(
   projectStateDir: string,
   options: ReleaseWorkerLockOptions = {},
 ): Promise<void> {
-  const lockPath = join(projectStateDir, options.lockFilename ?? WORKER_LOCK_FILENAME);
+  const lockPath = join(
+    projectStateDir,
+    options.lockFilename ?? WORKER_LOCK_FILENAME,
+  );
   await rm(lockPath, { force: true }).catch(() => undefined);
 }
 

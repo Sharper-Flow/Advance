@@ -1,6 +1,14 @@
-import { getRegisteredTemporalWorkerQueues, getTemporalWorkerAliveness } from "../plugin-init";
+import {
+  getRegisteredTemporalWorkerQueues,
+  getTemporalWorkerAliveness,
+} from "../plugin-init";
 import { getTemporalAddress } from "./client";
-import { getTemporalOpTelemetry, getTemporalRetryTelemetry, getLastWorkerRunError, type OpTelemetry } from "./retry-wrapper";
+import {
+  getTemporalOpTelemetry,
+  getTemporalRetryTelemetry,
+  getLastWorkerRunError,
+  type OpTelemetry,
+} from "./retry-wrapper";
 import { canReachTemporalAddress } from "./runtime-manager";
 
 export interface StaleQueue {
@@ -32,7 +40,10 @@ export interface TemporalHealth {
   } | null;
 }
 
-let overrideTelemetry: { lastOpAt: string | null; lastError: string | null } | null = null;
+let overrideTelemetry: {
+  lastOpAt: string | null;
+  lastError: string | null;
+} | null = null;
 
 export function setTemporalHealthProbeState(input: {
   lastOpAt: string | null;
@@ -49,7 +60,9 @@ export async function probeStaleQueues(): Promise<StaleQueue[]> {
   return [];
 }
 
-export async function getTemporalHealth(_projectId?: string): Promise<TemporalHealth> {
+export async function getTemporalHealth(
+  _projectId?: string,
+): Promise<TemporalHealth> {
   const address = getTemporalAddress(process.env);
   const server_alive = await canReachTemporalAddress(address, 250).catch(
     () => false,

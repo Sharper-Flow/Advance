@@ -327,7 +327,11 @@ describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK bound
     const store = await createLegacyStore(await createTempDir());
     await store.init();
     try {
-      const map = createToolMap(store, await createTempDir(), store.paths.agenda);
+      const map = createToolMap(
+        store,
+        await createTempDir(),
+        store.paths.agenda,
+      );
       for (const name of ADV_TOOL_NAMES) {
         const tool = (map as Record<string, { args: unknown }>)[name];
         expect(tool, `tool "${name}" should exist`).toBeDefined();
