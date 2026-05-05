@@ -22,6 +22,10 @@ import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
 import type { ErrorRecovery } from "../types";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { fireSignal, getChangeHandle } from "./_adapters";
+import { taskCompletedSignal } from "../temporal/messages";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -264,6 +268,58 @@ async function bridgeErrorClass(
   }
 }
 
+async function resolveChangeId(
+  store: Store,
+  taskId: string,
+): Promise<string | null> {
+  const result = await store.tasks.show(taskId);
+  return result?.changeId ?? null;
+}
+
+async function getHandleForChangeId(
+  store: Store,
+  changeId: string,
+): Promise<ReturnType<typeof getChangeHandle>> {
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("Temporal service not available");
+  }
+  const projectId = await getProjectId(store.paths.root);
+  if (!projectId) {
+    throw new Error("Could not resolve project ID");
+  }
+  return getChangeHandle(bundle.client, projectId, changeId);
+}
+
+async function fireTaskCompletedFromCheckpoint(
+  store: Store,
+  taskId: string,
+  sha: string,
+  verification: string,
+  touchedFiles: string[],
+): Promise<void> {
+  try {
+    const changeId = await resolveChangeId(store, taskId);
+    if (!changeId) return;
+    const handle = await getHandleForChangeId(store, changeId);
+    await fireSignal(handle, taskCompletedSignal, {
+      taskId,
+      verification,
+      summary: "Task checkpoint completed",
+      filesTouched: touchedFiles,
+      checkpointSha: sha,
+      completedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    if (ADV_DEBUG) {
+      console.warn(
+        "[checkpoint] taskCompletedSignal fire failed (non-fatal):",
+        err,
+      );
+    }
+  }
+}
+
 // ─── Tool definition ────────────────────────────────────────────────────────
 
 export const checkpointTools = {
@@ -474,6 +530,16 @@ export const checkpointTools = {
 
       if (statusOutput.trim() === "") {
         // Clean tree — idempotent, no commit needed
+        // For complete mode, fire taskCompletedSignal so the task is marked done
+        if (mode === "complete") {
+          await fireTaskCompletedFromCheckpoint(
+            store,
+            args.taskId,
+            actualHeadSha,
+            args.verification ?? "Clean tree checkpoint",
+            [],
+          );
+        }
         return formatToolOutput({
           status: "clean",
           sha: actualHeadSha,
@@ -568,26 +634,15 @@ export const checkpointTools = {
           touchedFiles = [];
         }
 
-        // Persist touched_files to task via store
-        try {
-          const currentTask = await store.tasks.get(args.taskId);
-          if (currentTask) {
-            await store.tasks.update(
-              args.taskId,
-              currentTask.status,
-              undefined,
-              undefined,
-              undefined,
-              touchedFiles,
-            );
-          }
-        } catch (persistErr) {
-          if (ADV_DEBUG) {
-            console.warn(
-              "[checkpoint] touched_files persist failed (non-fatal):",
-              persistErr,
-            );
-          }
+        // For complete mode, fire taskCompletedSignal to mark task done
+        if (mode === "complete") {
+          await fireTaskCompletedFromCheckpoint(
+            store,
+            args.taskId,
+            sha.trim(),
+            args.verification ?? "Checkpoint committed",
+            touchedFiles,
+          );
         }
 
         return formatToolOutput({

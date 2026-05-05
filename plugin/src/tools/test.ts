@@ -105,15 +105,12 @@ const runCommand = async (
 export const testTools = {
   adv_run_test: {
     description:
-      "Run a test command, capture the exit code, and record durable TDD evidence for a task.",
+      "Run a test command, capture the exit code, and return the result.",
     args: {
       taskId: z.string().describe("Task ID to record evidence for"),
       command: z
         .string()
         .describe("The exact shell command to run (e.g. 'npm test')"),
-      phase: z
-        .enum(["red", "green"])
-        .describe("TDD phase (red=failing test, green=passing test)"),
       workdir: z
         .string()
         .optional()
@@ -140,7 +137,6 @@ export const testTools = {
       args: {
         taskId: string;
         command: string;
-        phase: "red" | "green";
         workdir?: string;
         timeoutMs?: number;
         target_path?: string;
@@ -218,7 +214,6 @@ export const testTools = {
       return formatToolOutput({
         success: true,
         exitCode,
-        phase: args.phase,
         output: truncatedOutput,
         command: args.command,
         timedOut,

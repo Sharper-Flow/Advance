@@ -1,17 +1,18 @@
 /**
- * Task Tools
+ * Task Tools — Signal/Query Adapter Surface
  *
- * Tools for managing tasks within changes.
- * All are data tools returning pure JSON.
+ * Tool-layer code fires signals and runs queries against change workflows,
+ * replacing the old store.executeUpdate-based mutation path.
  */
 
 import { z } from "zod";
+import { randomUUID } from "crypto";
 import type { Store } from "../storage/store";
 import {
   ErrorRecoverySchema,
-  type Cancellation,
   type ErrorRecovery,
   type TddReclassification,
+  type Task,
 } from "../types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
@@ -25,6 +26,51 @@ import {
   withOptionalTargetPathStore,
   withTargetPathStore,
 } from "./target-project";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
+import {
+  taskAddedSignal,
+  taskUpdatedSignal,
+  taskAssignedSignal,
+  taskBlockedSignal,
+  taskCompletedSignal,
+  taskCancelledSignal,
+  changeTasksQuery,
+  changeTaskQuery,
+  changeReadyQuery,
+} from "../temporal/messages";
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+function makeTaskId(): string {
+  return `tk-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
+async function resolveChangeId(
+  store: Store,
+  taskId: string,
+): Promise<string | null> {
+  const result = await store.tasks.show(taskId);
+  return result?.changeId ?? null;
+}
+
+async function getHandleForChangeId(
+  store: Store,
+  changeId: string,
+): Promise<ReturnType<typeof getChangeHandle>> {
+  const bundle = getService();
+  if (!bundle) {
+    throw new Error("Temporal service not available");
+  }
+  const projectId = await getProjectId(store.paths.root);
+  if (!projectId) {
+    throw new Error("Could not resolve project ID");
+  }
+  return getChangeHandle(bundle.client, projectId, changeId);
+}
 
 // =============================================================================
 // Tool Definitions
@@ -50,18 +96,27 @@ export const taskTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const result = await activeStore.tasks.show(taskId);
-          if (!result) {
+          const changeId = await resolveChangeId(activeStore, taskId);
+          if (!changeId) {
+            return formatToolOutput({ error: `Task not found: ${taskId}` });
+          }
+          const handle = await getHandleForChangeId(activeStore, changeId);
+          const task = await querySignal<Task | null>(
+            handle,
+            changeTaskQuery,
+            taskId,
+          );
+          if (!task) {
             return formatToolOutput({ error: `Task not found: ${taskId}` });
           }
           const output: Record<string, unknown> = {
-            task: result.task,
-            changeId: result.changeId,
+            task,
+            changeId,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
-          if (result.task.error_recovery) {
+          if (task.error_recovery) {
             output.formatted_doom_loop = formatDoomLoopDiagnostics(
-              result.task.error_recovery,
+              task.error_recovery,
             );
           }
           return formatToolOutput(output);
@@ -70,7 +125,6 @@ export const taskTools = {
     },
   },
 
-  // rq-advmeta01: Task Metadata Filter Semantics
   adv_task_list: {
     description: "List tasks for a change with optional status filter",
     args: {
@@ -105,16 +159,9 @@ export const taskTools = {
         ),
     },
     execute: async (
-      {
-        changeId,
-        status,
-        filter,
-        limit,
-        offset,
-        target_path,
-      }: {
+      args: {
         changeId: string;
-        status?: string;
+        status?: "pending" | "in_progress" | "done" | "cancelled";
         filter?: string;
         limit?: number;
         offset?: number;
@@ -122,10 +169,17 @@ export const taskTools = {
       },
       store: Store,
     ) => {
+      const { changeId, status, filter, limit, offset, target_path } = args;
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const tasks = await activeStore.tasks.list(changeId, status, filter);
+          const handle = await getHandleForChangeId(activeStore, changeId);
+          const tasks = await querySignal<Task[]>(
+            handle,
+            changeTasksQuery,
+            status,
+            filter,
+          );
           const paged = paginate(tasks, {
             limit,
             offset,
@@ -164,7 +218,11 @@ export const taskTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const result = await activeStore.tasks.ready(changeId);
+          const handle = await getHandleForChangeId(activeStore, changeId);
+          const result = (await querySignal(handle, changeReadyQuery)) as {
+            ready: Task[];
+            blocked: Array<{ task: Task; blockedBy: string[] }>;
+          };
           const snapshot = await fetchChangeContextTicker(
             activeStore,
             changeId,
@@ -197,11 +255,11 @@ export const taskTools = {
 
   adv_task_update: {
     description:
-      "Update task status. NOTE: To cancel a task, use adv_task_cancel instead — direct cancellation via this tool is not allowed.",
+      "Update task status. NOTE: To cancel a task, use adv_task_cancel instead — direct cancellation via this tool is not allowed. To mark a task done, use adv_task_completed instead.",
     args: {
       taskId: z.string().describe("Task ID"),
       status: z
-        .enum(["pending", "in_progress", "done", "cancelled"])
+        .enum(["pending", "in_progress", "blocked", "done", "cancelled"])
         .describe("New status"),
       notes: z.string().optional().describe("Completion notes"),
       implementation_summary: z
@@ -233,18 +291,9 @@ export const taskTools = {
         ),
     },
     execute: async (
-      {
-        taskId,
-        status,
-        notes,
-        implementation_summary,
-        error_recovery,
-        target_path,
-        target_confirmed,
-        confirmationEvidence,
-      }: {
+      args: {
         taskId: string;
-        status: string;
+        status: "pending" | "in_progress" | "blocked" | "done" | "cancelled";
         notes?: string;
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
@@ -258,8 +307,7 @@ export const taskTools = {
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
       ) => {
-        // Reject direct cancellation — must use adv_task_cancel with user approval
-        if (status === "cancelled") {
+        if (args.status === "cancelled") {
           return formatToolOutput({
             error:
               "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
@@ -267,33 +315,64 @@ export const taskTools = {
           });
         }
 
-        // Resolve changeId for snapshot emission (rq-ctxsnap2.3 compliance)
-        const taskShowResult = await activeStore.tasks.show(taskId);
-        const changeId = taskShowResult?.changeId;
-
-        const task = await activeStore.tasks.update(
-          taskId,
-          status,
-          notes,
-          implementation_summary,
-          error_recovery,
-        );
-        if (!task) {
-          return formatToolOutput({ error: `Task not found: ${taskId}` });
+        const changeId = await resolveChangeId(activeStore, args.taskId);
+        if (!changeId) {
+          return formatToolOutput({ error: `Task not found: ${args.taskId}` });
         }
 
-        // Emit snapshot on meaningful transitions (in_progress, done)
+        const handle = await getHandleForChangeId(activeStore, changeId);
+        const now = new Date().toISOString();
+
+        if (args.status === "in_progress") {
+          await fireSignal(handle, taskAssignedSignal, {
+            taskId: args.taskId,
+            sessionId: "agent",
+            assignedAt: now,
+          });
+        } else if (args.status === "blocked") {
+          await fireSignal(handle, taskBlockedSignal, {
+            taskId: args.taskId,
+            reason: args.notes ?? "Task blocked",
+            attempts: args.error_recovery?.attempts ?? [],
+            blockedAt: now,
+          });
+        } else {
+          await fireSignal(handle, taskUpdatedSignal, {
+            taskId: args.taskId,
+            partial: {
+              status: args.status,
+              ...(args.notes && { notes: args.notes }),
+              ...(args.implementation_summary && {
+                implementation_summary: args.implementation_summary,
+              }),
+              ...(args.error_recovery && {
+                error_recovery: args.error_recovery,
+              }),
+            },
+            updatedAt: now,
+          });
+        }
+
+        const task = await querySignal<Task | null>(
+          handle,
+          changeTaskQuery,
+          args.taskId,
+        );
+
         const output: Record<string, unknown> = {
           success: true,
           task,
           ...(projectContext ? { _projectContext: projectContext } : {}),
         };
-        if (task.error_recovery) {
+        if (task?.error_recovery) {
           output.formatted_doom_loop = formatDoomLoopDiagnostics(
             task.error_recovery,
           );
         }
-        if (changeId && (status === "in_progress" || status === "done")) {
+        if (
+          changeId &&
+          (args.status === "in_progress" || args.status === "done")
+        ) {
           const snapshot = await fetchChangeContextTicker(
             activeStore,
             changeId,
@@ -302,18 +381,17 @@ export const taskTools = {
             output._contextSnapshot = snapshot;
           }
         }
-
         return formatToolOutput(output);
       };
 
-      if (target_path) {
+      if (args.target_path) {
         return withTargetPathStore(
           {
             currentProjectPath: store.paths.root,
-            target_path,
+            target_path: args.target_path,
             stateRequirement: "temporal-required",
-            target_confirmed,
-            confirmationEvidence,
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
           },
           async ({ context, store: targetStore }) =>
             runUpdate(targetStore, formatTargetProjectContext(context)),
@@ -353,13 +431,7 @@ export const taskTools = {
         .describe("Section header (e.g., 'Testing')"),
     },
     execute: async (
-      {
-        changeId,
-        content,
-        metadata,
-        blockedBy,
-        section,
-      }: {
+      args: {
         changeId: string;
         content: string;
         metadata?: Record<string, string>;
@@ -369,6 +441,8 @@ export const taskTools = {
       store: Store,
     ) => {
       try {
+        const { changeId, content, metadata, blockedBy, section } = args;
+
         // Planning-gate lock: reject task creation after planning gate is complete
         const gates = await store.gates.get(changeId);
         if (gates && gates.planning.status === "done") {
@@ -377,50 +451,71 @@ export const taskTools = {
           });
         }
 
+        const handle = await getHandleForChangeId(store, changeId);
+
         // P1.12 Scope C: validate blockedBy task IDs exist in this change
-        // before creating the new task. Silently accepting unknown IDs
-        // breaks the dependency graph — downstream tasks wait on phantom
-        // predecessors. Surface valid IDs in the response so the agent
-        // can self-correct without a second tool call.
         if (blockedBy && blockedBy.length > 0) {
-          const existingChange = await store.changes.get(changeId);
-          if (existingChange.success && existingChange.data) {
-            const validTaskIds = existingChange.data.tasks.map((t) => t.id);
-            const validIdSet = new Set(validTaskIds);
-            const unknown = blockedBy.filter((id) => !validIdSet.has(id));
-            if (unknown.length > 0) {
-              return formatToolOutput({
-                error:
-                  unknown.length === 1
-                    ? `Unknown task ID in blockedBy: '${unknown[0]}' does not exist in change '${changeId}'.`
-                    : `Unknown task IDs in blockedBy: ${unknown.map((id) => `'${id}'`).join(", ")} do not exist in change '${changeId}'.`,
-                hint: `Fetch the current task IDs with 'adv_task_list changeId: ${changeId}' and copy exact IDs into blockedBy.`,
-                unknownTaskIds: unknown,
-                validTaskIds,
-              });
-            }
+          const tasks = await querySignal<Task[]>(
+            handle,
+            changeTasksQuery,
+            undefined,
+            undefined,
+          );
+          const validIdSet = new Set(tasks.map((t) => t.id));
+          const unknown = blockedBy.filter((id) => !validIdSet.has(id));
+          if (unknown.length > 0) {
+            return formatToolOutput({
+              error:
+                unknown.length === 1
+                  ? `Unknown task ID in blockedBy: '${unknown[0]}' does not exist in change '${changeId}'.`
+                  : `Unknown task IDs in blockedBy: ${unknown.map((id) => `'${id}'`).join(", ")} do not exist in change '${changeId}'.`,
+              hint: `Fetch the current task IDs with 'adv_task_list changeId: ${changeId}' and copy exact IDs into blockedBy.`,
+              unknownTaskIds: unknown,
+              validTaskIds: Array.from(validIdSet),
+            });
           }
         }
 
-        // Default tdd_intent to "inline" when not provided — prevents
-        // TASK_TDD_INTENT_MISSING warnings in prep readiness and avoids
-        // cancel-and-recreate friction during /adv-prep.
-        //
-        // "inline" is the preferred default because the RSTC protocol runs
-        // red/green phases within each task. "separate_verification" is for
-        // cross-cutting verification tasks that can't be tied to a single
-        // implementation task. "not_applicable" is for non-code tasks (docs,
-        // config) where TDD doesn't apply.
+        // Query current tasks to compute next priority
+        const tasks = await querySignal<Task[]>(
+          handle,
+          changeTasksQuery,
+          undefined,
+          undefined,
+        );
+        const nextPriority =
+          tasks.length === 0
+            ? 0
+            : Math.max(...tasks.map((t) => t.priority ?? 0)) + 1;
+
         const mergedMetadata = { ...metadata };
         if (!mergedMetadata.tdd_intent) {
           mergedMetadata.tdd_intent = "inline";
         }
 
-        const task = await store.tasks.add(changeId, content, {
-          metadata: mergedMetadata,
-          blockedBy,
+        const now = new Date().toISOString();
+        const task: Task = {
+          id: makeTaskId(),
+          title: content.split("\n")[0] || content,
+          type: "code",
           section,
+          status: "pending",
+          priority: nextPriority,
+          created_at: now,
+          deps: blockedBy?.map((target) => ({
+            type: "blocked_by" as const,
+            target,
+          })),
+          ...(Object.keys(mergedMetadata).length > 0
+            ? { metadata: mergedMetadata }
+            : {}),
+        };
+
+        await fireSignal(handle, taskAddedSignal, {
+          task,
+          addedAt: now,
         });
+
         const snapshot = await fetchChangeContextTicker(store, changeId);
         return formatToolOutput({
           taskId: task.id,
@@ -432,6 +527,104 @@ export const taskTools = {
           error: error instanceof Error ? error.message : "Failed to add task",
         });
       }
+    },
+  },
+
+  adv_task_completed: {
+    description:
+      "Mark a task as completed by firing taskCompletedSignal. Requires verification and summary. Use after the Green Phase and checkpoint.",
+    args: {
+      taskId: z.string().describe("Task ID to mark as completed"),
+      verification: z
+        .string()
+        .min(1)
+        .describe("Verification summary (e.g., test command that passed)"),
+      summary: z
+        .string()
+        .min(1)
+        .describe("Concise summary of what was implemented"),
+      filesTouched: z
+        .array(z.string())
+        .optional()
+        .describe("Repo-relative paths of files modified by this task"),
+      checkpointSha: z
+        .string()
+        .optional()
+        .describe("Git checkpoint SHA from adv_task_checkpoint"),
+      target_path: z
+        .string()
+        .optional()
+        .describe(
+          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
+        ),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
+    },
+    execute: async (
+      args: {
+        taskId: string;
+        verification: string;
+        summary: string;
+        filesTouched?: string[];
+        checkpointSha?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      const runComplete = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const changeId = await resolveChangeId(activeStore, args.taskId);
+        if (!changeId) {
+          return formatToolOutput({ error: `Task not found: ${args.taskId}` });
+        }
+
+        const handle = await getHandleForChangeId(activeStore, changeId);
+        const now = new Date().toISOString();
+
+        await fireSignal(handle, taskCompletedSignal, {
+          taskId: args.taskId,
+          verification: args.verification,
+          summary: args.summary,
+          filesTouched: args.filesTouched ?? [],
+          checkpointSha: args.checkpointSha,
+          completedAt: now,
+        });
+
+        const output: Record<string, unknown> = {
+          success: true,
+          taskId: args.taskId,
+          verification: args.verification,
+          summary: args.summary,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        };
+
+        const snapshot = await fetchChangeContextTicker(activeStore, changeId);
+        if (snapshot) {
+          output._contextSnapshot = snapshot;
+        }
+
+        return formatToolOutput(output);
+      };
+
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runComplete(targetStore, formatTargetProjectContext(context)),
+        );
+      }
+
+      return runComplete(store);
     },
   },
 
@@ -470,13 +663,7 @@ export const taskTools = {
         ),
     },
     execute: async (
-      {
-        taskIds,
-        reasons,
-        approvedByUser,
-        approvalEvidence,
-        supersededBy,
-      }: {
+      args: {
         taskIds: string[];
         reasons: Record<string, string>;
         approvedByUser: true;
@@ -485,6 +672,14 @@ export const taskTools = {
       },
       store: Store,
     ) => {
+      const {
+        taskIds,
+        reasons,
+        approvedByUser,
+        approvalEvidence,
+        supersededBy: _supersededBy,
+      } = args;
+
       // Validate every task has a reason
       const missingReasons = taskIds.filter((id) => !reasons[id]);
       if (missingReasons.length > 0) {
@@ -508,12 +703,9 @@ export const taskTools = {
       }
 
       // P1.12 Scope C: pre-flight relational validation of task IDs.
-      // Partial cancellations leave the dependency graph in a confusing
-      // mid-state when the agent passes wrong IDs. Fail-fast before any
-      // task is mutated so the agent can correct the call and retry.
       const unknownTaskIds: string[] = [];
       for (const taskId of taskIds) {
-        const existing = await store.tasks.get(taskId);
+        const existing = await store.tasks.show(taskId);
         if (!existing) {
           unknownTaskIds.push(taskId);
         }
@@ -538,30 +730,37 @@ export const taskTools = {
       const now = new Date().toISOString();
 
       for (const taskId of taskIds) {
-        const cancellation: Cancellation = {
-          reason: reasons[taskId],
-          approved_by_user: true,
-          approval_evidence: approvalEvidence,
-          superseded_by: supersededBy?.[taskId],
-          approved_at: now,
-        };
-
-        const task = await store.tasks.cancel(taskId, cancellation);
-        if (!task) {
+        const changeId = await resolveChangeId(store, taskId);
+        if (!changeId) {
           results.push({
             taskId,
             success: false,
             error: `Task not found: ${taskId}`,
           });
-        } else {
+          continue;
+        }
+
+        try {
+          const handle = await getHandleForChangeId(store, changeId);
+          await fireSignal(handle, taskCancelledSignal, {
+            taskId,
+            approvalEvidence,
+            reason: reasons[taskId],
+            cancelledAt: now,
+          });
           results.push({ taskId, success: true });
-          cancelledTasks.push({ id: task.id, title: task.title });
+          cancelledTasks.push({ id: taskId, title: "(cancelled)" });
+        } catch (err) {
+          results.push({
+            taskId,
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       }
 
       const allSuccess = results.every((r) => r.success);
 
-      // Emit snapshot only when at least one task was cancelled successfully
       const output: Record<string, unknown> = {
         success: allSuccess,
         cancelled: cancelledTasks,
@@ -572,9 +771,6 @@ export const taskTools = {
       };
 
       if (cancelledTasks.length > 0) {
-        // Resolve changeId from the first successfully cancelled task.
-        // store.tasks.show() may return null on store-level failure — guard
-        // against that to avoid emitting a snapshot with undefined changeId.
         const firstTask = await store.tasks.show(cancelledTasks[0].id);
         const changeId = firstTask?.changeId;
         if (changeId) {
@@ -611,13 +807,7 @@ export const taskTools = {
         ),
     },
     execute: async (
-      {
-        taskId,
-        toIntent,
-        reason,
-        approvedByUser,
-        approvalEvidence,
-      }: {
+      args: {
         taskId: string;
         toIntent: "inline" | "separate_verification" | "not_applicable";
         reason: string;
@@ -626,25 +816,24 @@ export const taskTools = {
       },
       store: Store,
     ) => {
-      if (!approvedByUser) {
+      if (!args.approvedByUser) {
         return formatToolOutput({
           error:
             "approvedByUser must be true. You must present the reclassification to the user and obtain explicit approval before calling this tool.",
         });
       }
 
-      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+      if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
         return formatToolOutput({
           error:
             "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
         });
       }
 
-      // Resolve the task to check current tdd_intent
-      const taskResult = await store.tasks.show(taskId);
+      const taskResult = await store.tasks.show(args.taskId);
       if (!taskResult) {
         return formatToolOutput({
-          error: `Task not found: ${taskId}`,
+          error: `Task not found: ${args.taskId}`,
         });
       }
 
@@ -652,39 +841,47 @@ export const taskTools = {
 
       if (task.status === "cancelled") {
         return formatToolOutput({
-          error: `Task ${taskId} is cancelled. Cannot reclassify TDD intent on a cancelled task.`,
+          error: `Task ${args.taskId} is cancelled. Cannot reclassify TDD intent on a cancelled task.`,
         });
       }
 
       const currentIntent = task.metadata?.tdd_intent;
 
-      if (currentIntent === toIntent) {
+      if (currentIntent === args.toIntent) {
         return formatToolOutput({
-          error: `Task ${taskId} already has tdd_intent="${toIntent}". No reclassification needed.`,
+          error: `Task ${args.taskId} already has tdd_intent="${args.toIntent}". No reclassification needed.`,
         });
       }
 
+      const changeId = taskResult.changeId;
+      const handle = await getHandleForChangeId(store, changeId);
       const now = new Date().toISOString();
+
+      await fireSignal(handle, taskUpdatedSignal, {
+        taskId: args.taskId,
+        partial: {
+          metadata: {
+            ...task.metadata,
+            tdd_intent: args.toIntent,
+          },
+        },
+        updatedAt: now,
+      });
+
       const reclassification: TddReclassification = {
         from_intent: currentIntent ?? "none",
-        to_intent: toIntent,
-        reason,
+        to_intent: args.toIntent,
+        reason: args.reason,
         approved_by_user: true,
-        approval_evidence: approvalEvidence,
+        approval_evidence: args.approvalEvidence,
         approved_at: now,
       };
 
-      const updated = await store.tasks.reclassifyTdd(taskId, reclassification);
-      if (!updated) {
-        return formatToolOutput({
-          error: `Failed to reclassify task ${taskId}. Task may have been removed.`,
-        });
-      }
-
       return formatToolOutput({
         success: true,
-        task: updated,
-        message: `Reclassified tdd_intent from "${currentIntent}" to "${toIntent}" with user approval.`,
+        taskId: args.taskId,
+        reclassification,
+        message: `Reclassified tdd_intent from "${currentIntent}" to "${args.toIntent}" with user approval.`,
       });
     },
   },

@@ -2,7 +2,7 @@
  * Workflow termination on terminal status (archive / close).
  *
  * Verifies the design from change `terminatechangeworkflowonarchi`:
- * after `archiveChangeUpdate` or `closeChangeUpdate` resolves, the
+ * after `archiveRequestedSignal` or `changeCancelledSignal` is processed, the
  * change workflow reaches a Completed state in Temporal instead of
  * remaining in Running forever (zombie).
  *
@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
 import { withTestWorkflowEnvironment } from "./with-test-env";
-import { archiveChangeUpdate, closeChangeUpdate } from "../messages";
+import { archiveRequestedSignal, changeCancelledSignal } from "../messages";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput } from "../contracts";
 import { requiredAdvSearchAttributes } from "../observability";
@@ -71,6 +71,7 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
     changeId,
     title: `Termination test: ${changeId}`,
     initializedAt: new Date().toISOString(),
+    searchAttributesEnabled: false,
     seedState: {
       status: "draft",
       tasks: [],
@@ -103,7 +104,11 @@ describe("changeWorkflow terminal-state exit (terminatechangeworkflowonarchi)", 
           });
 
           // Trigger archive — sets state.status = "archived"
-          await handle.executeUpdate(archiveChangeUpdate, { args: [] });
+          await handle.signal(archiveRequestedSignal, {
+            approvalEvidence: "Test archive approval",
+            requestedBy: "tester",
+            requestedAt: new Date().toISOString(),
+          });
 
           // After fix: workflow exits cleanly via terminal-state branch.
           // Before fix: workflow stays Running until history rotation.
@@ -138,16 +143,12 @@ describe("changeWorkflow terminal-state exit (terminatechangeworkflowonarchi)", 
             args: [input],
           });
 
-          // Trigger close with a closure payload — sets state.status = "closed"
-          await handle.executeUpdate(closeChangeUpdate, {
-            args: [
-              {
-                reason: "cancelled",
-                approved_by_user: true,
-                approval_evidence: "Test cancellation",
-                approved_at: new Date().toISOString(),
-              },
-            ],
+          // Trigger close with a cancellation payload — sets state.status = "closed"
+          await handle.signal(changeCancelledSignal, {
+            approvalEvidence: "Test cancellation",
+            reason: "cancelled",
+            cancelledBy: "tester",
+            cancelledAt: new Date().toISOString(),
           });
 
           const outcome = await waitForCompleted(handle, 5_000);
