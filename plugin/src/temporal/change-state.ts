@@ -92,6 +92,7 @@ export function createChangeWorkflowState(input: {
     initializedAt: input.createdAt,
     createdAt: input.createdAt,
     tasks: [],
+    deltas: {},
     wisdom: [],
     gates: createDefaultGates(),
     reentry_history: [],

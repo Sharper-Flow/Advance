@@ -48,7 +48,7 @@ export function mapTemporalChangeStateToChange(
     status: state.status,
     created_at: state.createdAt,
     tasks: state.tasks,
-    deltas: {},
+    deltas: state.deltas,
     wisdom: state.wisdom,
     gates: state.gates,
     reentry_history: state.reentry_history,

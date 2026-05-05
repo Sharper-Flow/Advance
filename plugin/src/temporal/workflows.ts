@@ -102,9 +102,20 @@ interface ChangeProjectionActivities {
     state: ChangeWorkflowState;
     projectedAt: string;
   }): Promise<WriteChangeProjectionActivityResult>;
+  archiveChangeActivity(input: {
+    state: ChangeWorkflowState;
+    projects: Array<{ projectPath: string }>;
+    status: "archived" | "cancelled";
+    archivedAt: string;
+    approvalEvidence: string;
+    approvedBy: string;
+  }): Promise<
+    | { ok: true; changeId: string; projects: unknown[] }
+    | { ok: false; error: string; phase: string }
+  >;
 }
 
-const { writeChangeProjection } =
+const { archiveChangeActivity, writeChangeProjection } =
   wf.proxyActivities<ChangeProjectionActivities>({
     startToCloseTimeout: "10 seconds",
     retry: { maximumAttempts: 3 },
@@ -568,6 +579,7 @@ export async function changeWorkflow(
     title: input.title,
     initializedAt: input.initializedAt,
     projectionChangesDir: input.projectionChangesDir,
+    archiveProjects: input.archiveProjects,
   };
   const state = createChangeWorkflowState({
     changeId: input.changeId,
@@ -579,6 +591,7 @@ export async function changeWorkflow(
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
+    if (input.seedState.deltas) state.deltas = input.seedState.deltas;
     if (input.seedState.wisdom) state.wisdom = input.seedState.wisdom;
     if (input.seedState.gates) state.gates = input.seedState.gates;
     if (input.seedState.reentry_history) {
@@ -699,6 +712,54 @@ export async function changeWorkflow(
         error: err instanceof Error ? err.message : String(err),
       });
     });
+  };
+
+  const runArchiveActivity = async (
+    payload: import("../types").ArchiveRequestedSignalPayload,
+  ): Promise<boolean> => {
+    if (!input.archiveProjects || input.archiveProjects.length === 0)
+      return true;
+    const result = await archiveChangeActivity({
+      state: snapshotState(),
+      projects: input.archiveProjects,
+      status: "archived",
+      archivedAt: payload.requestedAt,
+      approvalEvidence: payload.approvalEvidence,
+      approvedBy: payload.requestedBy,
+    });
+    if (!result.ok) {
+      wf.log.warn("archive-activity-failed", {
+        changeId: state.changeId,
+        phase: result.phase,
+        error: result.error,
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const runCancelArchiveActivity = async (
+    payload: import("../types").ChangeCancelledSignalPayload,
+  ): Promise<boolean> => {
+    if (!input.archiveProjects || input.archiveProjects.length === 0)
+      return true;
+    const result = await archiveChangeActivity({
+      state: snapshotState(),
+      projects: input.archiveProjects,
+      status: "cancelled",
+      archivedAt: payload.cancelledAt,
+      approvalEvidence: payload.approvalEvidence,
+      approvedBy: payload.cancelledBy,
+    });
+    if (!result.ok) {
+      wf.log.warn("cancel-archive-activity-failed", {
+        changeId: state.changeId,
+        phase: result.phase,
+        error: result.error,
+      });
+      return false;
+    }
+    return true;
   };
 
   const signalMutation = <Payload>(
@@ -869,14 +930,19 @@ export async function changeWorkflow(
       const previousTerminated = state.terminated;
       applyArchiveRequestedToState(state, payload);
       upsertSignalSearchAttributes("archiveRequested");
-      const projected = await projectChangeState("archiveRequested");
-      if (!projected) {
+      const archived = await runArchiveActivity(payload);
+      const projected = archived
+        ? await projectChangeState("archiveRequested")
+        : false;
+      if (!projected || !archived) {
         state.status = previousStatus;
         if (typeof previousTerminated === "undefined") delete state.terminated;
         else state.terminated = previousTerminated;
         applyGateStuckToState(state, {
           gateId: "release",
-          reason: "Projection write failed before archive completion",
+          reason: archived
+            ? "Projection write failed before archive completion"
+            : "Archive activity failed before workflow completion",
           triggeredAt: payload.requestedAt,
         });
         upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
@@ -891,8 +957,11 @@ export async function changeWorkflow(
       const previousClosure = state.closure;
       applyChangeCancelledToState(state, payload);
       upsertSignalSearchAttributes("changeCancelled");
-      const projected = await projectChangeState("changeCancelled");
-      if (!projected) {
+      const archived = await runCancelArchiveActivity(payload);
+      const projected = archived
+        ? await projectChangeState("changeCancelled")
+        : false;
+      if (!projected || !archived) {
         state.status = previousStatus;
         if (typeof previousTerminated === "undefined") delete state.terminated;
         else state.terminated = previousTerminated;
@@ -1264,9 +1333,11 @@ export async function changeWorkflow(
     title,
     searchAttributesEnabled: input.searchAttributesEnabled,
     projectionChangesDir: input.projectionChangesDir,
+    archiveProjects: input.archiveProjects,
     seedState: {
       status: state.status,
       tasks: state.tasks,
+      deltas: state.deltas,
       wisdom: state.wisdom,
       gates: state.gates,
       reentry_history: state.reentry_history,

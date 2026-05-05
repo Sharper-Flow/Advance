@@ -367,9 +367,11 @@ export function createTemporalStoreBackend(
         title: change.title,
         initializedAt: change.created_at,
         projectionChangesDir: legacy.paths.changes,
+        archiveProjects: [{ projectPath: legacy.paths.root }],
         seedState: {
           status: change.status,
           tasks: change.tasks ?? [],
+          deltas: change.deltas ?? {},
           wisdom: change.wisdom ?? [],
           gates: change.gates ?? createDefaultGates(),
           reentry_history: change.reentry_history ?? [],

@@ -98,6 +98,7 @@ export async function ensureChangeWorkflowStarted(
         ChangeWorkflowState,
         | "status"
         | "tasks"
+        | "deltas"
         | "wisdom"
         | "gates"
         | "reentry_history"
@@ -115,6 +116,7 @@ export async function ensureChangeWorkflowStarted(
           ChangeWorkflowState,
           | "status"
           | "tasks"
+          | "deltas"
           | "wisdom"
           | "gates"
           | "reentry_history"
@@ -159,6 +161,7 @@ export async function reImportChangeState(
     change: Change;
     initializedAt?: string;
     projectionChangesDir?: string;
+    archiveProjects?: Array<{ projectPath: string }>;
   },
 ): Promise<WorkflowHandleLike> {
   return ensureChangeWorkflowStarted(client, {
@@ -167,9 +170,11 @@ export async function reImportChangeState(
     title: input.change.title,
     initializedAt: input.initializedAt ?? input.change.created_at,
     projectionChangesDir: input.projectionChangesDir,
+    archiveProjects: input.archiveProjects,
     seedState: {
       status: input.change.status,
       tasks: input.change.tasks,
+      deltas: input.change.deltas,
       wisdom: input.change.wisdom,
       gates: input.change.gates,
       reentry_history: input.change.reentry_history,

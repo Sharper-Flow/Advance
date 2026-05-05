@@ -167,11 +167,14 @@ export interface ChangeWorkflowInput {
    * projection disabled for legacy/test workflows that do not need disk I/O.
    */
   projectionChangesDir?: string;
+  /** In-repo project roots that receive durable archive artifacts. */
+  archiveProjects?: Array<{ projectPath: string }>;
   seedState?: Partial<
     Pick<
       ChangeWorkflowState,
       | "status"
       | "tasks"
+      | "deltas"
       | "wisdom"
       | "gates"
       | "reentry_history"
@@ -199,6 +202,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   status: import("../types").ChangeStatus;
   createdAt: string;
   tasks: import("../types").Task[];
+  deltas: import("../types").Change["deltas"];
   wisdom: import("../types").WisdomEntry[];
   gates: Gates;
   reentry_history?: import("../types").ReentryHistoryEntry[];

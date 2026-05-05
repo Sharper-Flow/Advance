@@ -28,6 +28,10 @@ import { listProjectWisdom } from "../storage/project-wisdom";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { AgendaItemSchema, WisdomTypeSchema } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
+import { renderBriefSummary } from "../utils/archive-summary";
+import { applySpecDelta } from "../utils/spec-deltas";
+import { appendWisdom } from "../utils/wisdom-append";
+import { execGit } from "../utils/git";
 import {
   rebuildProjectWorkflowState,
   reImportChangeState,
@@ -390,6 +394,168 @@ export async function deleteActiveProjection(
 }
 
 // =============================================================================
+// Archive activity (durable trinity)
+// =============================================================================
+
+export interface ArchiveProjectInput {
+  projectPath: string;
+}
+
+export interface ArchiveChangeActivityInput {
+  state: ChangeWorkflowState;
+  projects: ArchiveProjectInput[];
+  status: "archived" | "cancelled";
+  archivedAt: string;
+  approvalEvidence: string;
+  approvedBy: string;
+}
+
+export type ArchiveChangeActivityResult =
+  | {
+      ok: true;
+      changeId: string;
+      projects: Array<{
+        projectPath: string;
+        summaryPath: string;
+        commitSha: string | null;
+      }>;
+    }
+  | { ok: false; error: string; phase: "preflight" | "write" | "commit" };
+
+async function ensureCleanWorktree(projectPath: string): Promise<void> {
+  const status = await execGit(["status", "--porcelain"], projectPath);
+  if (status.trim()) {
+    throw new Error(`Worktree is not clean: ${projectPath}`);
+  }
+}
+
+async function getOptionalGitValue(
+  projectPath: string,
+  args: string[],
+  fallback: string,
+): Promise<string> {
+  try {
+    const value = await execGit(args, projectPath);
+    return value.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function commitDurableTrinity(
+  projectPath: string,
+  changeId: string,
+): Promise<string | null> {
+  await execGit(["add", ".adv"], projectPath);
+  const status = await execGit(["status", "--porcelain"], projectPath);
+  if (!status.trim()) return null;
+  await execGit(
+    ["commit", "-m", `archive(${changeId}): durable trinity`],
+    projectPath,
+  );
+  return (await execGit(["rev-parse", "HEAD"], projectPath)).trim();
+}
+
+export async function archiveChangeActivity(
+  input: ArchiveChangeActivityInput,
+): Promise<ArchiveChangeActivityResult> {
+  if (input.projects.length === 0) {
+    return { ok: false, phase: "preflight", error: "No projects to archive" };
+  }
+
+  try {
+    for (const project of input.projects) {
+      await ensureCleanWorktree(project.projectPath);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, phase: "preflight", error: message };
+  }
+
+  const archivedProjects: Exclude<
+    ArchiveChangeActivityResult,
+    { ok: false }
+  >["projects"] = [];
+
+  for (const project of input.projects) {
+    const summaryPath = join(
+      project.projectPath,
+      ".adv",
+      "archive",
+      `${input.state.changeId}.md`,
+    );
+    try {
+      const branch = await getOptionalGitValue(
+        project.projectPath,
+        ["branch", "--show-current"],
+        `change/${input.state.changeId}`,
+      );
+      const headSha = await getOptionalGitValue(
+        project.projectPath,
+        ["rev-parse", "HEAD"],
+        "pending",
+      );
+      if (input.status === "archived") {
+        for (const [capability, deltas] of Object.entries(
+          input.state.deltas ?? {},
+        )) {
+          if (deltas.length === 0) continue;
+          const result = await applySpecDelta(
+            project.projectPath,
+            capability,
+            deltas,
+          );
+          if (!result.ok) {
+            return {
+              ok: false,
+              phase: "write",
+              error: `Spec delta failed for ${capability}: ${result.error}`,
+            };
+          }
+        }
+      }
+      await appendWisdom(project.projectPath, input.state.wisdom ?? []);
+      await atomicWriteFile(
+        summaryPath,
+        renderBriefSummary({
+          state: input.state,
+          status: input.status,
+          archivedAt: input.archivedAt,
+          branch,
+          mergeSha: headSha,
+          approvalEvidence: input.approvalEvidence,
+          approvedBy: input.approvedBy,
+        }),
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, phase: "write", error: message };
+    }
+
+    try {
+      const commitSha = await commitDurableTrinity(
+        project.projectPath,
+        input.state.changeId,
+      );
+      archivedProjects.push({
+        projectPath: project.projectPath,
+        summaryPath,
+        commitSha,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { ok: false, phase: "commit", error: message };
+    }
+  }
+
+  return {
+    ok: true,
+    changeId: input.state.changeId,
+    projects: archivedProjects,
+  };
+}
+
+// =============================================================================
 // repairChangeActivity (P2.6)
 // =============================================================================
 
@@ -541,6 +707,7 @@ export async function repairChangeActivity(
       projectId,
       change: changeResult.data,
       projectionChangesDir: paths.changes,
+      archiveProjects: [{ projectPath: paths.root }],
     });
   } catch (err) {
     return repairFailure({

@@ -89,9 +89,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           title: created.data.title,
           initializedAt: created.data.created_at,
           projectionChangesDir: legacy.paths.changes,
+          archiveProjects: [{ projectPath: legacy.paths.root }],
           seedState: {
             status: created.data.status,
             tasks: created.data.tasks,
+            deltas: created.data.deltas,
             wisdom: created.data.wisdom,
             gates: created.data.gates,
             reentry_history: created.data.reentry_history,
