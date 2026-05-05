@@ -161,6 +161,12 @@ export interface ChangeWorkflowInput {
    * registered on the server to prevent workflow task failures.
    */
   searchAttributesEnabled?: boolean;
+  /**
+   * External mutable-state changes directory where signal-driven workflows
+   * project their downstream JSON cache (`{changeId}.json`). Undefined keeps
+   * projection disabled for legacy/test workflows that do not need disk I/O.
+   */
+  projectionChangesDir?: string;
   seedState?: Partial<
     Pick<
       ChangeWorkflowState,

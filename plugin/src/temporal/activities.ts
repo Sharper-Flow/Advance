@@ -17,7 +17,7 @@
  * layer decides retry vs surface vs fail.
  */
 
-import { mkdir, readFile, stat } from "fs/promises";
+import { mkdir, readFile, stat, unlink } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
 import { z } from "zod";
 
@@ -27,6 +27,7 @@ import { loadAgenda } from "../storage/agenda";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { AgendaItemSchema, WisdomTypeSchema } from "../types";
+import type { ChangeWorkflowState } from "./contracts";
 import {
   rebuildProjectWorkflowState,
   reImportChangeState,
@@ -306,6 +307,89 @@ export async function crossRepoArtifactActivity(
 }
 
 // =============================================================================
+// Change projection activities (signal-driven workflow disk cache)
+// =============================================================================
+
+export interface WriteChangeProjectionInput {
+  /** External mutable-state changes dir: `$stateRoot/{projectId}/changes`. */
+  projectionChangesDir: string;
+  /** Full in-memory workflow state to expose to external readers. */
+  state: ChangeWorkflowState;
+  /** Deterministic workflow timestamp for idempotent payload rendering. */
+  projectedAt: string;
+}
+
+export type WriteChangeProjectionResult =
+  | { ok: true; path: string }
+  | { ok: false; error: string; path?: undefined };
+
+export interface DeleteActiveProjectionInput {
+  projectionChangesDir: string;
+  changeId: string;
+}
+
+export type DeleteActiveProjectionResult =
+  | { ok: true; path: string; deleted: boolean }
+  | { ok: false; error: string; path?: undefined; deleted?: undefined };
+
+function projectionPath(
+  projectionChangesDir: string,
+  changeId: string,
+): string {
+  return join(projectionChangesDir, `${changeId}.json`);
+}
+
+/**
+ * Write the external-reader projection for a signal-driven change workflow.
+ *
+ * Workflow history remains authoritative; this JSON file is a downstream cache
+ * for humans, conformance CI, and migration tooling. Shape is intentionally
+ * wrapper-first (`schemaVersion: 2`) so future projection changes can evolve
+ * without pretending this is the workflow state contract itself.
+ */
+export async function writeChangeProjection(
+  input: WriteChangeProjectionInput,
+): Promise<WriteChangeProjectionResult> {
+  const path = projectionPath(input.projectionChangesDir, input.state.changeId);
+  try {
+    await atomicWriteFile(
+      path,
+      `${JSON.stringify(
+        {
+          schemaVersion: 2,
+          projectId: input.state.projectId,
+          changeId: input.state.changeId,
+          projectedAt: input.projectedAt,
+          state: input.state,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    return { ok: true, path };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Projection write failed: ${message}` };
+  }
+}
+
+/** Remove the active projection after archive promotion consumes it. */
+export async function deleteActiveProjection(
+  input: DeleteActiveProjectionInput,
+): Promise<DeleteActiveProjectionResult> {
+  const path = projectionPath(input.projectionChangesDir, input.changeId);
+  try {
+    await unlink(path);
+    return { ok: true, path, deleted: true };
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return { ok: true, path, deleted: false };
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `Projection delete failed: ${message}` };
+  }
+}
+
+// =============================================================================
 // repairChangeActivity (P2.6)
 // =============================================================================
 
@@ -456,6 +540,7 @@ export async function repairChangeActivity(
     await reImportChangeState(client, {
       projectId,
       change: changeResult.data,
+      projectionChangesDir: paths.changes,
     });
   } catch (err) {
     return repairFailure({

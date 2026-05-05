@@ -158,6 +158,7 @@ export async function reImportChangeState(
     projectId: string;
     change: Change;
     initializedAt?: string;
+    projectionChangesDir?: string;
   },
 ): Promise<WorkflowHandleLike> {
   return ensureChangeWorkflowStarted(client, {
@@ -165,6 +166,7 @@ export async function reImportChangeState(
     changeId: input.change.id,
     title: input.change.title,
     initializedAt: input.initializedAt ?? input.change.created_at,
+    projectionChangesDir: input.projectionChangesDir,
     seedState: {
       status: input.change.status,
       tasks: input.change.tasks,

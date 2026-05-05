@@ -92,6 +92,24 @@ import {
   type UpdateWorktreeRecordPayload,
 } from "./project-state";
 
+type WriteChangeProjectionActivityResult =
+  | { ok: true; path: string }
+  | { ok: false; error: string; path?: undefined };
+
+interface ChangeProjectionActivities {
+  writeChangeProjection(input: {
+    projectionChangesDir: string;
+    state: ChangeWorkflowState;
+    projectedAt: string;
+  }): Promise<WriteChangeProjectionActivityResult>;
+}
+
+const { writeChangeProjection } =
+  wf.proxyActivities<ChangeProjectionActivities>({
+    startToCloseTimeout: "10 seconds",
+    retry: { maximumAttempts: 3 },
+  });
+
 const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
   CHANGE_WORKFLOW_QUERY_NAMES.bootstrap,
 );
@@ -549,6 +567,7 @@ export async function changeWorkflow(
     changeId: input.changeId,
     title: input.title,
     initializedAt: input.initializedAt,
+    projectionChangesDir: input.projectionChangesDir,
   };
   const state = createChangeWorkflowState({
     changeId: input.changeId,
@@ -626,23 +645,71 @@ export async function changeWorkflow(
     getTaskFromChangeState(state, taskId),
   );
 
+  const projectionChangesDir = input.projectionChangesDir?.trim();
+  const snapshotState = (): ChangeWorkflowState =>
+    JSON.parse(JSON.stringify(state)) as ChangeWorkflowState;
+
+  const upsertSignalSearchAttributes = (signalName: string): void => {
+    if (input.searchAttributesEnabled === false) return;
+    try {
+      applyAndUpsertSearchAttributes(state);
+    } catch (saErr) {
+      wf.log.warn("search-attribute-upsert-failed", {
+        op: `${signalName}Signal`,
+        changeId: state.changeId,
+        error: saErr instanceof Error ? saErr.message : String(saErr),
+      });
+    }
+  };
+
+  const projectChangeState = async (signalName: string): Promise<boolean> => {
+    if (!projectionChangesDir) return true;
+    let result: WriteChangeProjectionActivityResult;
+    try {
+      result = await writeChangeProjection({
+        projectionChangesDir,
+        state: snapshotState(),
+        projectedAt: state.lastSignalAt ?? workflowNow(),
+      });
+    } catch (err) {
+      wf.log.warn("change-projection-failed", {
+        op: `${signalName}Signal`,
+        changeId: state.changeId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return false;
+    }
+    if (!result.ok) {
+      wf.log.warn("change-projection-failed", {
+        op: `${signalName}Signal`,
+        changeId: state.changeId,
+        error: result.error,
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const scheduleChangeProjection = (signalName: string): void => {
+    if (!projectionChangesDir) return;
+    void projectChangeState(signalName).catch((err) => {
+      wf.log.warn("change-projection-failed", {
+        op: `${signalName}Signal`,
+        changeId: state.changeId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  };
+
   const signalMutation = <Payload>(
     signalName: string,
     handler: (payload: Payload) => ChangeWorkflowState,
+    options?: { projectAfter?: boolean },
   ): ((payload: Payload) => void) =>
     safeUpdateHandler(signalName, (payload: Payload) => {
       handler(payload);
-      if (input.searchAttributesEnabled !== false) {
-        try {
-          applyAndUpsertSearchAttributes(state);
-        } catch (saErr) {
-          wf.log.warn("search-attribute-upsert-failed", {
-            op: `${signalName}Signal`,
-            changeId: state.changeId,
-            error: saErr instanceof Error ? saErr.message : String(saErr),
-          });
-        }
-      }
+      upsertSignalSearchAttributes(signalName);
+      if (options?.projectAfter) scheduleChangeProjection(signalName);
     });
 
   wf.setHandler(
@@ -725,20 +792,26 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     gateAwaitingApprovalSignal,
-    signalMutation("gateAwaitingApproval", (payload) =>
-      applyGateAwaitingApprovalToState(state, payload),
+    signalMutation(
+      "gateAwaitingApproval",
+      (payload) => applyGateAwaitingApprovalToState(state, payload),
+      { projectAfter: true },
     ),
   );
   wf.setHandler(
     gateStuckSignal,
-    signalMutation("gateStuck", (payload) =>
-      applyGateStuckToState(state, payload),
+    signalMutation(
+      "gateStuck",
+      (payload) => applyGateStuckToState(state, payload),
+      { projectAfter: true },
     ),
   );
   wf.setHandler(
     gateCompletedSignal,
-    signalMutation("gateCompleted", (payload) =>
-      applyGateCompletedToState(state, payload),
+    signalMutation(
+      "gateCompleted",
+      (payload) => applyGateCompletedToState(state, payload),
+      { projectAfter: true },
     ),
   );
   wf.setHandler(
@@ -791,15 +864,43 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveRequestedSignal,
-    signalMutation("archiveRequested", (payload) =>
-      applyArchiveRequestedToState(state, payload),
-    ),
+    safeUpdateHandler("archiveRequested", async (payload) => {
+      const previousStatus = state.status;
+      const previousTerminated = state.terminated;
+      applyArchiveRequestedToState(state, payload);
+      upsertSignalSearchAttributes("archiveRequested");
+      const projected = await projectChangeState("archiveRequested");
+      if (!projected) {
+        state.status = previousStatus;
+        if (typeof previousTerminated === "undefined") delete state.terminated;
+        else state.terminated = previousTerminated;
+        applyGateStuckToState(state, {
+          gateId: "release",
+          reason: "Projection write failed before archive completion",
+          triggeredAt: payload.requestedAt,
+        });
+        upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
+      }
+    }),
   );
   wf.setHandler(
     changeCancelledSignal,
-    signalMutation("changeCancelled", (payload) =>
-      applyChangeCancelledToState(state, payload),
-    ),
+    safeUpdateHandler("changeCancelled", async (payload) => {
+      const previousStatus = state.status;
+      const previousTerminated = state.terminated;
+      const previousClosure = state.closure;
+      applyChangeCancelledToState(state, payload);
+      upsertSignalSearchAttributes("changeCancelled");
+      const projected = await projectChangeState("changeCancelled");
+      if (!projected) {
+        state.status = previousStatus;
+        if (typeof previousTerminated === "undefined") delete state.terminated;
+        else state.terminated = previousTerminated;
+        if (typeof previousClosure === "undefined") delete state.closure;
+        else state.closure = previousClosure;
+        upsertSignalSearchAttributes("changeCancelledProjectionFailure");
+      }
+    }),
   );
   wf.setHandler(
     addTaskUpdate,
@@ -1162,6 +1263,7 @@ export async function changeWorkflow(
     initializedAt,
     title,
     searchAttributesEnabled: input.searchAttributesEnabled,
+    projectionChangesDir: input.projectionChangesDir,
     seedState: {
       status: state.status,
       tasks: state.tasks,

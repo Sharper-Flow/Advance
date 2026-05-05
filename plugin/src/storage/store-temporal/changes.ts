@@ -88,6 +88,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           changeId: created.data.id,
           title: created.data.title,
           initializedAt: created.data.created_at,
+          projectionChangesDir: legacy.paths.changes,
           seedState: {
             status: created.data.status,
             tasks: created.data.tasks,

@@ -366,6 +366,7 @@ export function createTemporalStoreBackend(
         changeId: change.id,
         title: change.title,
         initializedAt: change.created_at,
+        projectionChangesDir: legacy.paths.changes,
         seedState: {
           status: change.status,
           tasks: change.tasks ?? [],
