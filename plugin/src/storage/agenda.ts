@@ -247,7 +247,6 @@ export const addAgendaItem = async (
     category: options?.category,
     blocked_by: options?.blocked_by,
     created_at: new Date().toISOString(),
-    tdd_phase: "none",
   };
 
   // Acquire lock to prevent interleaved appends from concurrent worktrees

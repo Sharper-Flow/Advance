@@ -2,14 +2,13 @@
  * Agenda Tools
  *
  * MCP tools for lightweight task management without full spec ceremony.
- * Agenda MCP surface is intentionally small: list/add/start/complete/cancel/prioritize/evidence.
+ * Agenda MCP surface is intentionally small: list/add/start/complete/cancel/prioritize.
  */
 
 import { z } from "zod";
 import {
   loadAgenda,
   addAgendaItem,
-  updateAgendaItem,
   startAgendaItem,
   completeAgendaItem,
   cancelAgendaItem,
@@ -20,9 +19,7 @@ import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import {
   AgendaPrioritySchema,
   AgendaStatusSchema,
-  getTddComplianceStatus,
   isLogicTask,
-  type TddPhaseEvidence,
   getIncompleteGates,
   allGatesSatisfied,
 } from "../types";
@@ -74,7 +71,6 @@ export const agendaTools = {
           status: i.status,
           category: i.category,
           blocked_by: i.blocked_by,
-          tdd_phase: i.tdd_phase,
         })),
       });
     },
@@ -244,32 +240,10 @@ export const agendaTools = {
         }
       }
 
-      const compliance = getTddComplianceStatus({
-        ...existing,
-        id: existing.id,
-        title: existing.title,
-        type: "code" as const,
-        status: "done",
-        priority: 0,
-        created_at: existing.created_at,
-        tdd_phase: existing.tdd_phase,
-        tdd_evidence: existing.tdd_evidence,
-      });
-
-      if (compliance === "missing") {
-        return formatToolOutput({
-          warning: "TDD evidence missing for logic-heavy task",
-          item: existing,
-          compliance,
-          recommendation:
-            "Record TDD evidence with adv_agenda_evidence or complete with --force",
-        });
-      }
-
       const item = await completeAgendaItem(projectDir, itemId, notes, {
         agendaPath,
       });
-      return formatToolOutput({ success: true, item, compliance });
+      return formatToolOutput({ success: true, item });
     },
   },
 
@@ -323,83 +297,4 @@ export const agendaTools = {
     },
   },
 
-  adv_agenda_evidence: {
-    description:
-      "Record TDD evidence for an agenda item (red/green phase proof).",
-    args: {
-      itemId: z.string().describe("Agenda item ID"),
-      phase: z.enum(["red", "green"]).describe("TDD phase"),
-      testFile: z.string().optional().describe("Test file path"),
-      command: z.string().optional().describe("Test command run"),
-      output: z
-        .string()
-        .optional()
-        .describe("Test output (will be truncated to 500 chars)"),
-      exitCode: z
-        .number()
-        .optional()
-        .describe("Exit code (0=pass, non-zero=fail)"),
-    },
-    execute: async (
-      {
-        itemId,
-        phase,
-        testFile,
-        command,
-        output,
-        exitCode,
-      }: {
-        itemId: string;
-        phase: "red" | "green";
-        testFile?: string;
-        command?: string;
-        output?: string;
-        exitCode?: number;
-      },
-      projectDir: string,
-      agendaPath?: string,
-    ) => {
-      const { items } = await loadAgenda(projectDir, { agendaPath });
-      const existing = items.find((i) => i.id === itemId);
-
-      if (!existing) {
-        return formatToolOutput({ error: `Agenda item not found: ${itemId}` });
-      }
-
-      const evidence: TddPhaseEvidence = {
-        test_file: testFile,
-        command,
-        output_snippet: output?.slice(0, 500),
-        exit_code: exitCode,
-        recorded_at: new Date().toISOString(),
-      };
-
-      const tddEvidence = existing.tdd_evidence ?? {};
-      tddEvidence[phase] = evidence;
-
-      let tddPhase: "none" | "red" | "green" | "refactor" | "complete" =
-        existing.tdd_phase;
-      if (phase === "red") {
-        tddPhase = "red";
-      } else if (phase === "green") {
-        tddPhase = tddEvidence.red?.recorded_at ? "complete" : "green";
-      }
-
-      const updated = await updateAgendaItem(
-        projectDir,
-        itemId,
-        {
-          tdd_evidence: tddEvidence,
-          tdd_phase: tddPhase,
-        },
-        { agendaPath },
-      );
-
-      return formatToolOutput({
-        success: true,
-        item: updated,
-        message: `Recorded ${phase} phase evidence`,
-      });
-    },
-  },
 };

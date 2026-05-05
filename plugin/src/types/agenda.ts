@@ -2,11 +2,10 @@
  * Agenda Domain Types
  *
  * Lightweight task contracts (without full spec ceremony).
- * Imports TddPhase + TddEvidence schemas from ./tasks and Gates schema from ./gates.
+ * Imports Gates schema from ./gates.
  */
 
 import { z } from "zod";
-import { TddPhaseSchema, TddEvidenceSchema } from "./tasks";
 import { GatesSchema } from "./gates";
 
 // =============================================================================
@@ -68,10 +67,6 @@ export const AgendaItemSchema = z
     completed_at: z.string().optional(),
     /** Completion notes or evidence */
     completion_notes: z.string().optional(),
-    /** TDD phase if applicable */
-    tdd_phase: TddPhaseSchema.default("none"),
-    /** TDD evidence if recorded */
-    tdd_evidence: TddEvidenceSchema.optional(),
     /** 7-gate quality checklist (optional, backwards compatible with migration) */
     gates: GatesSchema.optional(),
     /** Linked GitHub issue URLs (optional, backwards compatible) */

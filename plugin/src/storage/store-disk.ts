@@ -41,10 +41,6 @@ import type {
   ChangeStatus,
   Spec,
   Task,
-  TaskRunEvent,
-  TaskRunState,
-  TddPhase,
-  TddPhaseEvidence,
   TddReclassification,
   Cancellation,
   WisdomEntry,
@@ -76,11 +72,6 @@ import {
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
-import {
-  applyTaskEvidencePolicy,
-  recordTaskRunEventInChangeState,
-} from "../temporal/change-state";
-import type { ChangeWorkflowState } from "../temporal/contracts";
 
 /**
  * Disk-only `Store` implementation.
@@ -649,7 +640,6 @@ export async function createDiskStore(
           status: "pending",
           priority: 0,
           created_at: new Date().toISOString(),
-          tdd_phase: "none" as TddPhase,
           ...(options?.section ? { section: options.section } : {}),
           ...(options?.metadata ? { metadata: options.metadata } : {}),
           ...(options?.blockedBy
@@ -682,90 +672,6 @@ export async function createDiskStore(
           if (!result.success || !result.data) continue;
           const task = result.data.tasks.find((t) => t.id === taskId);
           if (task) return { task, changeId: id };
-        }
-        return null;
-      },
-      getRun: async (taskId) => {
-        const ids = await listChangeDirs(paths.changes);
-        for (const id of ids) {
-          const result = await loadChange(paths.changes, id);
-          if (!result.success || !result.data) continue;
-          const change = result.data as Change & {
-            task_runs?: Record<string, TaskRunState>;
-          };
-          if (change.tasks.some((t) => t.id === taskId)) {
-            return change.task_runs?.[taskId] ?? null;
-          }
-        }
-        return null;
-      },
-      listRuns: async (changeId) => {
-        const result = await loadChange(paths.changes, changeId);
-        if (!result.success || !result.data) return [];
-        const change = result.data as Change & {
-          task_runs?: Record<string, TaskRunState>;
-        };
-        return Object.values(change.task_runs ?? {});
-      },
-      recordRunEvent: async (taskId, event: TaskRunEvent) => {
-        const ids = await listChangeDirs(paths.changes);
-        for (const id of ids) {
-          const result = await loadChange(paths.changes, id);
-          if (!result.success || !result.data) continue;
-          if (!result.data.tasks.some((t) => t.id === taskId)) continue;
-          const state = result.data as Change & ChangeWorkflowState;
-          state.projectId = state.projectId ?? "";
-          state.changeId = state.changeId ?? id;
-          state.initializedAt = state.initializedAt ?? state.created_at;
-          state.createdAt = state.createdAt ?? state.created_at;
-          state.artifacts = state.artifacts ?? {};
-          const recorded = recordTaskRunEventInChangeState(
-            state,
-            taskId,
-            event,
-          );
-          await saveChange(paths.changes, state as unknown as Change);
-          return recorded;
-        }
-        return null;
-      },
-      recordEvidence: async (
-        taskId,
-        phase: "red" | "green",
-        evidence: TddPhaseEvidence,
-        options?: { correctionReason?: string },
-      ) => {
-        const ids = await listChangeDirs(paths.changes);
-        for (const id of ids) {
-          const result = await loadChange(paths.changes, id);
-          if (!result.success || !result.data) continue;
-          const task = result.data.tasks.find((t) => t.id === taskId);
-          if (!task) continue;
-          const evidenceWithTimestamp = {
-            ...evidence,
-            recorded_at: evidence.recorded_at ?? new Date().toISOString(),
-          };
-          const policy = applyTaskEvidencePolicy(
-            task,
-            phase,
-            evidenceWithTimestamp,
-            options,
-          );
-          await saveChange(paths.changes, result.data);
-          return { task, ...policy };
-        }
-        return null;
-      },
-      setPhase: async (taskId, phase) => {
-        const ids = await listChangeDirs(paths.changes);
-        for (const id of ids) {
-          const result = await loadChange(paths.changes, id);
-          if (!result.success || !result.data) continue;
-          const task = result.data.tasks.find((t) => t.id === taskId);
-          if (!task) continue;
-          task.tdd_phase = phase;
-          await saveChange(paths.changes, result.data);
-          return task;
         }
         return null;
       },

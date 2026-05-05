@@ -19,14 +19,10 @@ import type {
   ProjectStatus,
   ChangeRecency,
   RecencyBand,
-  TddPhase,
-  TddPhaseEvidence,
   WisdomEntry,
   WisdomType,
   Cancellation,
   TddReclassification,
-  TaskRunEvent,
-  TaskRunState,
   Gates,
   GateId,
   BulkCloseResult,
@@ -43,13 +39,6 @@ export interface WisdomSearchResult {
   scope: string;
   change_id?: string;
   highlight?: string;
-}
-
-export interface TaskEvidenceRecordResult {
-  task: Task;
-  duplicate: boolean;
-  corrected: boolean;
-  correctionReason?: string;
 }
 
 export interface Store {
@@ -150,23 +139,6 @@ export interface Store {
     ) => Promise<Task>;
     get: (taskId: string) => Promise<Task | null>;
     show: (taskId: string) => Promise<{ task: Task; changeId: string } | null>;
-    getRun: (taskId: string) => Promise<TaskRunState | null>;
-    listRuns: (changeId: string) => Promise<TaskRunState[]>;
-    recordRunEvent: (
-      taskId: string,
-      event: TaskRunEvent,
-      /**
-       * Returns duplicate=true when the idempotency key was already seen; the
-       * event is ignored and the current run state is returned unchanged.
-       */
-    ) => Promise<{ duplicate: boolean; run: TaskRunState } | null>;
-    recordEvidence: (
-      taskId: string,
-      phase: "red" | "green",
-      evidence: TddPhaseEvidence,
-      options?: { correctionReason?: string },
-    ) => Promise<TaskEvidenceRecordResult | null>;
-    setPhase: (taskId: string, phase: TddPhase) => Promise<Task | null>;
     cancel: (
       taskId: string,
       cancellation: Cancellation,

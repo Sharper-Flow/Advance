@@ -353,29 +353,10 @@ export const reflectionTools = {
         thresholds,
       );
 
-      // Quality metrics
-      //
-      // TDD compliance is measured against tasks with `tdd_intent: "inline"`
-      // only. Tasks marked `not_applicable` (rq-TDD003na) and
-      // `separate_verification` (rq-TDD002sep) are exempt — they have their
-      // own compliance paths in `validator/completeness.ts`. Including them
-      // in the denominator under-reports compliance for any change with
-      // mixed task types (e.g. one inline + one trivial cleanup).
-      //
-      // Tasks predating the `tdd_intent` metadata field default to "inline"
-      // for backward compatibility, matching `task-classifier.ts` semantics.
-      //
-      // When a change has zero inline-intent tasks, compliance is reported
-      // as 1 (perfect) rather than 0 — a doc-only or refactor-only change
-      // should not be flagged as TDD-non-compliant.
-      const inlineTasks = tasks.filter(
-        (t) => (t.metadata?.tdd_intent ?? "inline") === "inline",
-      );
-      const tddCompliantTasks = inlineTasks.filter(
-        (t) => t.tdd_evidence?.red && t.tdd_evidence?.green,
-      ).length;
-      const tddCompliance =
-        inlineTasks.length > 0 ? tddCompliantTasks / inlineTasks.length : 1;
+      // Per-task TDD evidence history is intentionally removed in the
+      // signal-driven model. Verification quality is captured as task/change
+      // summaries instead of red/green phase storage.
+      const tddCompliance = 1;
 
       // Process metrics
       const gates = change.gates ?? {};
@@ -508,11 +489,6 @@ export const reflectionTools = {
 
       // Improvement suggestions
       const improvementSuggestions: string[] = [];
-      if (tddCompliance < 1) {
-        improvementSuggestions.push(
-          "Some tasks lack TDD evidence — consider stricter TDD enforcement",
-        );
-      }
       if (retryTotal > 0) {
         improvementSuggestions.push(
           "Retry events detected — review error_recovery patterns",

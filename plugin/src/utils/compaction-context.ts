@@ -1,5 +1,4 @@
 // rq-compactionFidelity01 — compaction context must use buildChangeContextSnapshot
-// rq-staleLedger01 — stale ledger references surface explicitly via formatResumeHint
 /**
  * Compaction Context Builder
  *
@@ -11,28 +10,13 @@
  *   1. `buildChangeContextSnapshot(...)` for change/gate/task summary
  *      (AC2 — fidelity parity with steady-state live context).
  *   2. A specs summary block (existing logic, retained).
- *   3. A resume-hint block derived from the in-progress task's
- *      durable run ledger (`store.tasks.getRun(taskId)`).
- *
- * Stale-ledger detection (AC7): when the ledger references a task whose
- * current status is `cancelled` or `done`, the resume hint is replaced
- * with an explicit warning so the agent does not silently resume a
- * superseded task.
- *
  * Pure module: no IO, no store calls. Caller assembles inputs by
  * consulting the store and passes them in.
  */
 
 import { buildChangeContextSnapshot, type GateInfo } from "./context-snapshot";
 
-// ─── Local types (subset of TaskRunState / Task) ────────────────────────────
-
-export interface CompactionTaskRunLike {
-  taskId: string;
-  phase: string;
-  requiredNextAction: string;
-  resumeHint: string;
-}
+// ─── Local types ────────────────────────────────────────────────────────────
 
 export interface CompactionTaskLike {
   id: string;
@@ -59,7 +43,6 @@ export interface BuildCompactionContextInput {
   tasks: CompactionTaskLike[];
   gates?: Record<string, GateInfo>;
   workdir?: string;
-  inProgressTaskRun: CompactionTaskRunLike | null;
   specs: CompactionSpecLike[];
   /** Optional byte budget; output is truncated past this limit. */
   maxBytes?: number;
@@ -69,7 +52,7 @@ export interface BuildCompactionContextInput {
 
 /** Default max byte budget for the combined compaction block. Sized to
  *  fit comfortably under common provider context-window limits while
- *  preserving the snapshot, resume hint, and a specs summary. */
+ *  preserving the snapshot and a specs summary. */
 export const DEFAULT_COMPACTION_MAX_BYTES = 16_000;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -85,38 +68,6 @@ function formatSpecsSummary(specs: CompactionSpecLike[]): string | null {
     "=========================",
   ].filter(Boolean);
   return lines.join("\n");
-}
-
-/** Format the resume-hint block from the in-progress task's run ledger.
- *  Implements AC7 stale-ledger detection: when the referenced task is
- *  cancelled or done, the hint is replaced with an explicit warning. */
-export function formatResumeHint(
-  taskRun: CompactionTaskRunLike | null,
-  tasks: CompactionTaskLike[],
-): string | null {
-  if (!taskRun) return null;
-
-  const referencedTask = tasks.find((t) => t.id === taskRun.taskId);
-  if (
-    referencedTask &&
-    (referencedTask.status === "cancelled" || referencedTask.status === "done")
-  ) {
-    return [
-      "=== ADV RESUME HINT ===",
-      `⚠ Last ledger reference (task ${taskRun.taskId}) was ${referencedTask.status} before resume.`,
-      `Re-evaluate from current ready queue via adv_change_show include:{readyTasks:true}.`,
-      "========================",
-    ].join("\n");
-  }
-
-  return [
-    "=== ADV RESUME HINT ===",
-    `Task: ${taskRun.taskId}`,
-    `Phase: ${taskRun.phase}`,
-    `Next action: ${taskRun.requiredNextAction}`,
-    `Hint: ${taskRun.resumeHint}`,
-    "========================",
-  ].join("\n");
 }
 
 /** Truncate `text` to `maxBytes` UTF-8 length, appending an explicit
@@ -135,8 +86,6 @@ function applyByteBudget(text: string, maxBytes: number): string {
  * Order:
  *   1. Change context snapshot (gate row, task counts, current task)
  *   2. Specs summary (when specs exist)
- *   3. Resume hint (when an in-progress task ledger exists, with
- *      stale-ledger detection per AC7)
  *
  * Sections are joined with `\n\n`. The final string is truncated to
  * `maxBytes` (default 16_000).
@@ -163,11 +112,6 @@ export function buildCompactionContext(
   // 2. Specs summary — retained from previous compaction logic.
   const specs = formatSpecsSummary(input.specs);
   if (specs) sections.push(specs);
-
-  // 3. Resume hint — replaces ad-hoc ADV TASK CONTEXT block. Includes
-  //    AC7 stale-ledger detection.
-  const resumeHint = formatResumeHint(input.inProgressTaskRun, input.tasks);
-  if (resumeHint) sections.push(resumeHint);
 
   const combined = sections.join("\n\n");
   return applyByteBudget(

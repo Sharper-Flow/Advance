@@ -24,15 +24,10 @@ import {
   completeGateInChangeState,
   createChangeWorkflowState,
   getTaskFromChangeState,
-  getTaskRunFromChangeState,
   getReadyTasksFromChangeState,
-  listTaskRunsFromChangeState,
   listTasksFromChangeState,
-  recordTaskEvidenceResultInChangeState,
-  recordTaskRunEventInChangeState,
   reclassifyTaskTddInChangeState,
   reopenFromGateInChangeState,
-  setTaskPhaseInChangeState,
   updateArtifactMetadataInChangeState,
   updateTaskInChangeState,
 } from "./change-state";
@@ -88,14 +83,6 @@ const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.task);
-const changeTaskRunQuery = wf.defineQuery<
-  NonNullable<ChangeWorkflowState["task_runs"]>[string] | null,
-  [string]
->(CHANGE_WORKFLOW_QUERY_NAMES.taskRun);
-const changeTaskRunsQuery = wf.defineQuery<
-  NonNullable<ChangeWorkflowState["task_runs"]>[string][]
->(CHANGE_WORKFLOW_QUERY_NAMES.taskRuns);
-
 const addTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [
@@ -121,31 +108,6 @@ const updateTaskUpdate = wf.defineUpdate<
     },
   ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
-const recordTaskEvidenceUpdate = wf.defineUpdate<
-  {
-    task: ChangeWorkflowState["tasks"][number];
-    duplicate: boolean;
-    corrected: boolean;
-    correctionReason?: string;
-  },
-  [
-    string,
-    "red" | "green",
-    import("../types").TddPhaseEvidence,
-    { correctionReason?: string } | undefined,
-  ]
->(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence);
-const recordTaskRunEventUpdate = wf.defineUpdate<
-  {
-    duplicate: boolean;
-    run: NonNullable<ChangeWorkflowState["task_runs"]>[string];
-  },
-  [string, import("../types").TaskRunEvent]
->(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskRunEvent);
-const setTaskPhaseUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, import("../types").TddPhase]
->(CHANGE_WORKFLOW_UPDATE_NAMES.setTaskPhase);
 const cancelTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [string, import("../types").Cancellation]
@@ -311,9 +273,7 @@ const updateSessionActivityUpdate = wf.defineUpdate<
  * **Why this exists:** Temporal Update handlers that throw a plain
  * `Error` mark the workflow task as failed. The workflow then loops
  * trying to replay the same input, fails again, and becomes
- * permanently unqueryable. A single bad input — e.g., an invalid
- * task-run state transition (see `recordTaskRunEventInChangeState`) —
- * could brick an entire change.
+ * permanently unqueryable. A single bad input could brick an entire change.
  *
  * `wf.ApplicationFailure` is the Temporal-native way to signal
  * "this update failed for a domain reason, do not retry, surface to
@@ -381,7 +341,6 @@ export async function changeWorkflow(
       state.reentry_history = input.seedState.reentry_history;
     }
     if (input.seedState.artifacts) state.artifacts = input.seedState.artifacts;
-    if (input.seedState.task_runs) state.task_runs = input.seedState.task_runs;
     if (input.seedState.fast_follow_of) {
       state.fast_follow_of = input.seedState.fast_follow_of;
     }
@@ -400,10 +359,6 @@ export async function changeWorkflow(
   wf.setHandler(changeTaskQuery, (taskId: string) =>
     getTaskFromChangeState(state, taskId),
   );
-  wf.setHandler(changeTaskRunQuery, (taskId: string) =>
-    getTaskRunFromChangeState(state, taskId),
-  );
-  wf.setHandler(changeTaskRunsQuery, () => listTaskRunsFromChangeState(state));
   wf.setHandler(
     addTaskUpdate,
     safeUpdateHandler(
@@ -466,79 +421,6 @@ export async function changeWorkflow(
           changeId: state.changeId,
           taskId,
           status: update.status,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    recordTaskEvidenceUpdate,
-    safeUpdateHandler(
-      "recordTaskEvidence",
-      (
-        taskId: string,
-        phase: "red" | "green",
-        evidence: import("../types").TddPhaseEvidence,
-        options?: { correctionReason?: string },
-      ) => {
-        wf.log.info("op:start", {
-          op: "recordTaskEvidenceUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = recordTaskEvidenceResultInChangeState(
-          state,
-          taskId,
-          phase,
-          evidence,
-          options,
-        );
-        wf.log.info("op:end", {
-          op: "recordTaskEvidenceUpdate",
-          changeId: state.changeId,
-          taskId,
-          phase,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    recordTaskRunEventUpdate,
-    safeUpdateHandler(
-      "recordTaskRunEvent",
-      (taskId: string, event: import("../types").TaskRunEvent) => {
-        wf.log.info("op:start", {
-          op: "recordTaskRunEventUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = recordTaskRunEventInChangeState(state, taskId, event);
-        wf.log.info("op:end", {
-          op: "recordTaskRunEventUpdate",
-          changeId: state.changeId,
-          taskId,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    setTaskPhaseUpdate,
-    safeUpdateHandler(
-      "setTaskPhase",
-      (taskId: string, phase: import("../types").TddPhase) => {
-        wf.log.info("op:start", {
-          op: "setTaskPhaseUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = setTaskPhaseInChangeState(state, taskId, phase);
-        wf.log.info("op:end", {
-          op: "setTaskPhaseUpdate",
-          changeId: state.changeId,
-          taskId,
-          phase,
         });
         return result;
       },

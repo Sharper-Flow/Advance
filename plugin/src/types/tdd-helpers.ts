@@ -1,12 +1,8 @@
 /**
  * TDD Helpers Domain Module
  *
- * Patterns + classification helpers for TDD enforcement.
- * Imports Task and TddEvidence types from ./tasks.
+ * Patterns + classification helpers for TDD intent routing.
  */
-
-import type { Task } from "./tasks";
-import type { TddEvidence } from "./tasks";
 
 // =============================================================================
 // TDD Detection Patterns
@@ -86,86 +82,6 @@ export const isLogicTask = (title: string): boolean => {
  */
 export const isTrivialTask = (title: string): boolean => {
   return TDD_TRIVIAL_PATTERNS.some((p) => p.test(title));
-};
-
-/**
- * Check if a task has complete TDD evidence (both red and green phases).
- */
-export const hasCompleteTddEvidence = (task: Task): boolean => {
-  if (!task.tdd_evidence) return false;
-
-  // If explicitly skipped with reason, that counts as complete
-  if (task.tdd_evidence.skipped && task.tdd_evidence.skip_reason) {
-    return true;
-  }
-
-  // Otherwise need both red and green phases
-  const hasRed = !!task.tdd_evidence.red?.recorded_at;
-  const hasGreen = !!task.tdd_evidence.green?.recorded_at;
-
-  return hasRed && hasGreen;
-};
-
-/**
- * Get TDD compliance status for a task.
- */
-export const getTddComplianceStatus = (
-  task: Task,
-): "compliant" | "missing" | "not_required" => {
-  // Trivial tasks don't require TDD
-  if (isTrivialTask(task.title)) {
-    return "not_required";
-  }
-
-  // Explicitly skipped with reason
-  if (task.tdd_evidence?.skipped && task.tdd_evidence.skip_reason) {
-    return "compliant";
-  }
-
-  // Logic tasks require evidence
-  if (isLogicTask(task.title)) {
-    return hasCompleteTddEvidence(task) ? "compliant" : "missing";
-  }
-
-  // Default: not required for non-matching tasks
-  return "not_required";
-};
-
-/**
- * Strip TDD evidence to minimal proof for archive storage.
- * Keeps exit_code, recorded_at, and test_file (audit value).
- * Removes command and output_snippet (bulk of the bloat).
- * Preserves skipped/skip_reason unchanged.
- */
-export const stripTddEvidence = (evidence: TddEvidence): TddEvidence => {
-  const result: TddEvidence = {};
-
-  if (evidence.red) {
-    result.red = {
-      exit_code: evidence.red.exit_code,
-      recorded_at: evidence.red.recorded_at,
-      ...(evidence.red.test_file ? { test_file: evidence.red.test_file } : {}),
-    };
-  }
-
-  if (evidence.green) {
-    result.green = {
-      exit_code: evidence.green.exit_code,
-      recorded_at: evidence.green.recorded_at,
-      ...(evidence.green.test_file
-        ? { test_file: evidence.green.test_file }
-        : {}),
-    };
-  }
-
-  if (evidence.skipped !== undefined) {
-    result.skipped = evidence.skipped;
-  }
-  if (evidence.skip_reason !== undefined) {
-    result.skip_reason = evidence.skip_reason;
-  }
-
-  return result;
 };
 
 /**

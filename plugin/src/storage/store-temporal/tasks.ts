@@ -1,17 +1,12 @@
 import type { Store } from "../store-types";
-import type { Task, TddPhase, TddReclassification } from "../../types";
+import type { Task, TddReclassification } from "../../types";
 import {
   addTaskUpdate,
   updateTaskUpdate,
   cancelTaskUpdate,
-  recordTaskEvidenceUpdate,
-  recordTaskRunEventUpdate,
-  setTaskPhaseUpdate,
   reclassifyTaskTddUpdate,
   changeTasksQuery,
   changeTaskQuery,
-  changeTaskRunQuery,
-  changeTaskRunsQuery,
   changeStateQuery,
 } from "../../temporal/messages";
 import { getReadyTasksFromChangeState } from "../../temporal/change-state";
@@ -131,68 +126,6 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       );
       if (!task) return null;
       return { task: task as Task, changeId };
-    },
-    getRun: async (taskId) => {
-      const changeId = await resolveChangeId(taskId);
-      if (!changeId) return null;
-      return (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(
-          changeTaskRunQuery,
-          taskId,
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["getRun"]>>;
-    },
-    listRuns: async (changeId) => {
-      return (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(
-          changeTaskRunsQuery,
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["listRuns"]>>;
-    },
-    recordRunEvent: async (taskId, event) => {
-      const changeId = await resolveChangeId(taskId);
-      if (!changeId) return null;
-      invalidateChange(changeId);
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          recordTaskRunEventUpdate,
-          {
-            args: [taskId, event],
-          },
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["recordRunEvent"]>>;
-      await dualWriteAfterMutation(changeId);
-      return result;
-    },
-    recordEvidence: async (taskId, phase, evidence, options) => {
-      const changeId = await resolveChangeId(taskId);
-      if (!changeId) return null;
-      invalidateChange(changeId);
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          recordTaskEvidenceUpdate,
-          {
-            args: [taskId, phase, evidence, options],
-          },
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["recordEvidence"]>>;
-      await dualWriteAfterMutation(changeId);
-      return result;
-    },
-    setPhase: async (taskId, phase: TddPhase) => {
-      const changeId = await resolveChangeId(taskId);
-      if (!changeId) return null;
-      invalidateChange(changeId);
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          setTaskPhaseUpdate,
-          {
-            args: [taskId, phase],
-          },
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["setPhase"]>>;
-      await dualWriteAfterMutation(changeId);
-      return result;
     },
     cancel: async (taskId, cancellation) => {
       const changeId = await resolveChangeId(taskId);

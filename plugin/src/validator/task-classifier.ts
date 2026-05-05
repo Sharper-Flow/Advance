@@ -6,8 +6,7 @@
  *
  * Detection order:
  *   1. metadata.tdd_intent (if valid) — authoritative
- *   2. tdd_evidence.skipped — task already opted out
- *   3. Title heuristics — legacy fallback
+ *   2. Title heuristics — legacy fallback
  *
  * This module is the single source of truth for TDD intent classification.
  * All validators (prep-readiness, completeness, gate checks) MUST use this
@@ -65,7 +64,7 @@ export function isImplTask(title: string): boolean {
  * @returns The resolved TDD intent for the task
  */
 export function classifyTddIntent(
-  task: Pick<Task, "title" | "metadata" | "tdd_evidence">,
+  task: Pick<Task, "title" | "metadata">,
 ): TddIntent {
   // 1. Check metadata.tdd_intent first (authoritative when valid)
   const metadataIntent = task.metadata?.tdd_intent;
@@ -73,12 +72,7 @@ export function classifyTddIntent(
     return metadataIntent as TddIntent;
   }
 
-  // 2. Check if TDD was explicitly skipped — treat as not_applicable
-  if (task.tdd_evidence?.skipped) {
-    return "not_applicable";
-  }
-
-  // 3. Fall back to title heuristics
+  // 2. Fall back to title heuristics
   const title = task.title;
 
   // Trivial tasks (docs, config, chores) → not_applicable
@@ -105,7 +99,7 @@ export function classifyTddIntent(
  * contract.
  */
 export function requiresTddEvidence(
-  task: Pick<Task, "title" | "metadata" | "tdd_evidence">,
+  task: Pick<Task, "title" | "metadata">,
 ): boolean {
   const intent = classifyTddIntent(task);
 
@@ -120,17 +114,11 @@ export function requiresTddEvidence(
  * Metadata-aware TDD compliance used by validators and task tools.
  */
 export function getTaskTddCompliance(
-  task: Pick<Task, "title" | "metadata" | "tdd_evidence">,
+  task: Pick<Task, "title" | "metadata">,
 ): "compliant" | "missing" | "not_required" {
-  if (task.tdd_evidence?.skipped && task.tdd_evidence.skip_reason) {
-    return "compliant";
-  }
-
   if (!requiresTddEvidence(task)) {
     return "not_required";
   }
 
-  const hasRed = !!task.tdd_evidence?.red?.recorded_at;
-  const hasGreen = !!task.tdd_evidence?.green?.recorded_at;
-  return hasRed && hasGreen ? "compliant" : "missing";
+  return "missing";
 }

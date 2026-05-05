@@ -153,7 +153,6 @@ export function addAgendaItemToProjectState(
     category: input.category,
     blocked_by: input.blocked_by,
     created_at: deps.now,
-    tdd_phase: "none",
   };
 
   state.agenda.push(item);

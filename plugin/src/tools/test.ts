@@ -2,9 +2,6 @@ import { z } from "zod";
 import { exec } from "child_process";
 import { promisify } from "util";
 import type { Store } from "../storage/store";
-import { truncateOutput } from "../types";
-import { validateEvidenceSemantics } from "../validator/evidence";
-import { createLogger } from "../utils/debug-log";
 import { formatToolOutput } from "../utils/tool-output";
 import {
   appendTargetProjectContextOutput,
@@ -12,7 +9,6 @@ import {
 } from "./target-project";
 
 const execAsync = promisify(exec);
-const logger = createLogger("adv_run_test");
 
 /**
  * Default bounded-execution limits for `adv_run_test`.
@@ -27,17 +23,6 @@ const logger = createLogger("adv_run_test");
  */
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
-export const TASK_RUN_IDEMPOTENCY_OUTPUT_PREVIEW_CHARS = 64;
-
-interface TaskRunRecordOutput {
-  phase: string;
-  requiredNextAction: string;
-  /**
-   * True when the task-run ledger already saw this idempotency key. Duplicate
-   * events are ignored and the returned phase is the existing run state.
-   */
-  duplicate: boolean;
-}
 
 interface ExecBounds {
   timeoutMs?: number;
@@ -230,101 +215,12 @@ export const testTools = {
           truncatedOutput.substring(0, maxOutputLen) + "... (truncated)";
       }
 
-      // Validate exit-code semantics before recording
-      const validation = validateEvidenceSemantics(args.phase, exitCode);
-      if (!validation.valid) {
-        return formatToolOutput({
-          error: `Evidence rejected: ${validation.reason}`,
-          phase: args.phase,
-          exitCode,
-          output: truncatedOutput,
-          command: args.command,
-          timedOut,
-          maxBufferExceeded,
-          ...(timedOut && { timeoutMs: effective.timeoutMs }),
-        });
-      }
-
-      const evidence = {
-        recorded_at: new Date().toISOString(),
-        test_file: args.command,
-        command: args.command,
-        exit_code: exitCode,
-        output_snippet: truncateOutput(truncatedOutput),
-      };
-
-      const evidenceResult = await store.tasks.recordEvidence(
-        args.taskId,
-        args.phase,
-        evidence,
-      );
-
-      if (args.phase === "red") {
-        try {
-          let run = await store.tasks.getRun(args.taskId);
-          if (!run || run.phase === "not_started") {
-            await store.tasks.recordRunEvent(args.taskId, {
-              idempotencyKey: `${args.taskId}:auto-start:${evidence.recorded_at}`,
-              type: "start",
-              recordedAt: evidence.recorded_at,
-              payload: { workdir: cwd },
-            });
-            run = await store.tasks.getRun(args.taskId);
-          }
-          if (run?.phase === "started") {
-            await store.tasks.recordRunEvent(args.taskId, {
-              idempotencyKey: `${args.taskId}:auto-baseline:${evidence.recorded_at}`,
-              type: "baseline",
-              recordedAt: evidence.recorded_at,
-              payload: { branch: "unknown", headSha: "unknown", workdir: cwd },
-            });
-          }
-        } catch (error) {
-          // Ledger bootstrap is additive. Preserve evidence behavior if
-          // the backing store rejects optional task-run bookkeeping.
-          logger.debug(`task-run bootstrap skipped: ${error}`);
-        }
-      }
-
-      let taskRun: TaskRunRecordOutput | undefined;
-      let ledgerSkippedWarning: string | undefined;
-      try {
-        const recorded = await store.tasks.recordRunEvent(args.taskId, {
-          idempotencyKey: `${args.taskId}:${args.phase}:${args.command}:${exitCode}:${truncatedOutput.slice(0, TASK_RUN_IDEMPOTENCY_OUTPUT_PREVIEW_CHARS)}`,
-          type: args.phase === "red" ? "red_evidence" : "green_evidence",
-          recordedAt: evidence.recorded_at,
-          payload: {
-            test_file: args.command,
-            command: args.command,
-            exit_code: exitCode,
-            output_snippet: truncateOutput(truncatedOutput),
-          },
-        });
-        if (recorded) {
-          taskRun = {
-            phase: recorded.run.phase,
-            requiredNextAction: recorded.run.requiredNextAction,
-            duplicate: recorded.duplicate,
-          };
-        }
-      } catch (error) {
-        // Ledger recording is additive. Preserve existing evidence behavior
-        // for legacy/no-ledger callers; apply flow records task-run state in
-        // the normal baseline -> red -> green order.
-        // GH #30: surface the skip so agents know the ledger was not updated.
-        logger.debug(`task-run evidence event skipped: ${error}`);
-        ledgerSkippedWarning = `Task-run ledger not updated: ${error instanceof Error ? error.message : String(error)}. Test evidence recorded at task level; durable ledger is stale. Run adv_task_run_status to check current ledger state.`;
-      }
-
       return formatToolOutput({
         success: true,
         exitCode,
         phase: args.phase,
-        recordedPhase: evidenceResult?.task.tdd_phase,
         output: truncatedOutput,
         command: args.command,
-        ...(taskRun ? { taskRun } : {}),
-        ...(ledgerSkippedWarning ? { ledgerSkippedWarning } : {}),
         timedOut,
         maxBufferExceeded,
         ...(timedOut && { timeoutMs: effective.timeoutMs }),

@@ -40,7 +40,7 @@ function parseToolOutput<T>(rawOutput: unknown): T | null {
   return null;
 }
 
-const LONG_RUNNING_TOOLS = new Set(["adv_run_test", "adv_task_evidence"]);
+const LONG_RUNNING_TOOLS = new Set(["adv_run_test"]);
 
 export function isLongRunningTool(toolName: string): boolean {
   return LONG_RUNNING_TOOLS.has(toolName);

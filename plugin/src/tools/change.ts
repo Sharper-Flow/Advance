@@ -1110,24 +1110,8 @@ export const changeTools = {
               }
             }
 
-            // Ledger — durable run state for the in-progress task. When
-            // none exists, attaches `null` so callers can detect "no
-            // ledger" without re-issuing the call.
             if (include.ledger) {
-              try {
-                const inProgress = change.tasks.find(
-                  (t) => t.status === "in_progress",
-                );
-                if (inProgress) {
-                  const run = await activeStore.tasks.getRun(inProgress.id);
-                  output._ledger = run ?? null;
-                } else {
-                  output._ledger = null;
-                }
-              } catch (e) {
-                output._ledgerError =
-                  e instanceof Error ? e.message : String(e);
-              }
+              output._ledger = null;
             }
 
             // Ready tasks — unblocked queue, sliced to top-N. Avoids the

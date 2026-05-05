@@ -1,8 +1,8 @@
 /**
  * Tasks Domain Types
  *
- * TaskStatus, Cancellation, TddReclassification, TDD Phase/Evidence,
- * Error Recovery, Durable Task-Run Lifecycle, TaskType, Task.
+ * TaskStatus, Cancellation, TddReclassification,
+ * Error Recovery, TaskType, Task.
  */
 
 import { z } from "zod";
@@ -69,66 +69,6 @@ export const TddReclassificationSchema = z.object({
 export type TddReclassification = z.infer<typeof TddReclassificationSchema>;
 
 // =============================================================================
-// TDD Phase & Evidence
-// =============================================================================
-
-/**
- * TDD phase for a task.
- * - none: Not a TDD task (docs, config, etc.)
- * - red: Writing failing test
- * - green: Implementing to make test pass
- * - refactor: Refactoring with passing tests
- * - complete: TDD cycle finished with evidence
- */
-export const TddPhaseSchema = z.enum([
-  "none",
-  "red",
-  "green",
-  "refactor",
-  "complete",
-]);
-
-export type TddPhase = z.infer<typeof TddPhaseSchema>;
-
-/**
- * Evidence for a single TDD phase (red or green).
- * Captures the test run details for audit and verification.
- */
-export const TddPhaseEvidenceSchema = z.object({
-  /** Test file or test name that was run */
-  test_file: z.string().optional(),
-  /** Command used to run the test */
-  command: z.string().optional(),
-  /** First 80 chars of test output (truncated for storage) */
-  output_snippet: z.string().optional(),
-  /** Exit code from test runner (0 = pass, non-zero = fail) */
-  exit_code: z.number().optional(),
-  /** ISO8601 timestamp when evidence was recorded */
-  recorded_at: z.string().optional(),
-  /** Rationale required when replacing conflicting same-phase fallback evidence */
-  correction_reason: z.string().optional(),
-});
-
-export type TddPhaseEvidence = z.infer<typeof TddPhaseEvidenceSchema>;
-
-/**
- * Complete TDD evidence for a task.
- * Tracks both red (failing) and green (passing) phases.
- */
-export const TddEvidenceSchema = z.object({
-  /** Red phase: test written and failing */
-  red: TddPhaseEvidenceSchema.optional(),
-  /** Green phase: implementation makes test pass */
-  green: TddPhaseEvidenceSchema.optional(),
-  /** Whether TDD was skipped with rationale */
-  skipped: z.boolean().optional(),
-  /** Rationale for skipping TDD (e.g., "trivial: docs change") */
-  skip_reason: z.string().optional(),
-});
-
-export type TddEvidence = z.infer<typeof TddEvidenceSchema>;
-
-// =============================================================================
 // Error Recovery
 // =============================================================================
 
@@ -182,112 +122,6 @@ export const ErrorRecoverySchema = z.object({
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 
 // =============================================================================
-// Durable Task-Run Lifecycle
-// =============================================================================
-
-export const TaskRunPhaseSchema = z.enum([
-  "not_started",
-  "started",
-  "baseline_captured",
-  "awaiting_red",
-  "red_recorded",
-  "awaiting_green",
-  "green_recorded",
-  "verified",
-  "awaiting_checkpoint",
-  "checkpointed",
-  "done",
-  "blocked",
-  "failed",
-]);
-
-export type TaskRunPhase = z.infer<typeof TaskRunPhaseSchema>;
-
-export const TaskRunRequiredNextActionSchema = z.enum([
-  "start_task",
-  "capture_baseline",
-  "record_red_evidence",
-  "record_green_evidence",
-  "run_incremental_verification",
-  "checkpoint_task",
-  "mark_done",
-  "resolve_blocker",
-  "none",
-]);
-
-export type TaskRunRequiredNextAction = z.infer<
-  typeof TaskRunRequiredNextActionSchema
->;
-
-export const TaskRunEventTypeSchema = z.enum([
-  "start",
-  "baseline",
-  "red_evidence",
-  "green_evidence",
-  "verification",
-  "checkpoint",
-  "complete",
-  "failure",
-  "blocker",
-]);
-
-export type TaskRunEventType = z.infer<typeof TaskRunEventTypeSchema>;
-
-export const TaskRunEventSchema = z.object({
-  idempotencyKey: z.string().min(1),
-  type: TaskRunEventTypeSchema,
-  recordedAt: z.string(),
-  payload: z.record(z.string(), z.unknown()).default({}),
-});
-
-export type TaskRunEvent = z.infer<typeof TaskRunEventSchema>;
-
-export const TaskRunStateSchema = z.object({
-  taskId: z.string(),
-  runId: z.string(),
-  phase: TaskRunPhaseSchema,
-  startedAt: z.string().optional(),
-  updatedAt: z.string(),
-  resumeHint: z.string(),
-  requiredNextAction: TaskRunRequiredNextActionSchema,
-  baseline: z
-    .object({
-      branch: z.string(),
-      headSha: z.string(),
-      workdir: z.string(),
-      capturedAt: z.string(),
-    })
-    .optional(),
-  evidence: z
-    .object({
-      red: TddPhaseEvidenceSchema.optional(),
-      green: TddPhaseEvidenceSchema.optional(),
-    })
-    .optional(),
-  verification: z
-    .object({
-      summary: z.string(),
-      recordedAt: z.string(),
-    })
-    .optional(),
-  checkpoint: z
-    .object({
-      status: z.enum(["clean", "committed"]),
-      sha: z.string().optional(),
-      branch: z.string().optional(),
-      gitRoot: z.string().optional(),
-      message: z.string().optional(),
-      recordedAt: z.string(),
-    })
-    .optional(),
-  attempts: z.array(AttemptSchema).optional(),
-  seenIdempotencyKeys: z.array(z.string()).default([]),
-  events: z.array(TaskRunEventSchema).default([]),
-});
-
-export type TaskRunState = z.infer<typeof TaskRunStateSchema>;
-
-// =============================================================================
 // Task
 // =============================================================================
 
@@ -321,10 +155,6 @@ export const TaskSchema = z
     completed_by: z.string().nullable().optional(),
     /** Structured summary of what was done and how — persisted at task completion */
     implementation_summary: z.string().optional(),
-    /** Current TDD phase for this task */
-    tdd_phase: TddPhaseSchema.default("none"),
-    /** TDD evidence (red/green phase recordings) */
-    tdd_evidence: TddEvidenceSchema.optional(),
     /** Target repository ID for cross-repo tasks (matches related_repos[].id in project config) */
     target_repo: z.string().optional(),
     /** Absolute path to the target repo directory (resolved from related_repos or explicit) */

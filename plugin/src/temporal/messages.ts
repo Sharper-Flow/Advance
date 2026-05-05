@@ -19,8 +19,6 @@ import * as wf from "@temporalio/workflow";
 import type {
   ChangeClosure,
   GateId,
-  TddPhase,
-  TddPhaseEvidence,
   TddReclassification,
   WisdomType,
 } from "../types";
@@ -42,7 +40,6 @@ import {
   PROJECT_WORKFLOW_QUERY_NAMES,
   PROJECT_WORKFLOW_UPDATE_NAMES,
 } from "./contracts";
-import type { TaskRunEvent } from "../types";
 
 export const changeBootstrapQuery =
   wf.defineQuery<ChangeWorkflowBootstrapState>(
@@ -65,14 +62,6 @@ export const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.task);
-export const changeTaskRunQuery = wf.defineQuery<
-  NonNullable<ChangeWorkflowState["task_runs"]>[string] | null,
-  [string]
->(CHANGE_WORKFLOW_QUERY_NAMES.taskRun);
-export const changeTaskRunsQuery = wf.defineQuery<
-  NonNullable<ChangeWorkflowState["task_runs"]>[string][]
->(CHANGE_WORKFLOW_QUERY_NAMES.taskRuns);
-
 export const addTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [
@@ -98,31 +87,6 @@ export const updateTaskUpdate = wf.defineUpdate<
     },
   ]
 >(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
-export const recordTaskEvidenceUpdate = wf.defineUpdate<
-  {
-    task: ChangeWorkflowState["tasks"][number];
-    duplicate: boolean;
-    corrected: boolean;
-    correctionReason?: string;
-  },
-  [
-    string,
-    "red" | "green",
-    TddPhaseEvidence,
-    { correctionReason?: string } | undefined,
-  ]
->(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskEvidence);
-export const recordTaskRunEventUpdate = wf.defineUpdate<
-  {
-    duplicate: boolean;
-    run: NonNullable<ChangeWorkflowState["task_runs"]>[string];
-  },
-  [string, TaskRunEvent]
->(CHANGE_WORKFLOW_UPDATE_NAMES.recordTaskRunEvent);
-export const setTaskPhaseUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, TddPhase]
->(CHANGE_WORKFLOW_UPDATE_NAMES.setTaskPhase);
 export const cancelTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [string, import("../types").Cancellation]

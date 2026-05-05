@@ -223,11 +223,6 @@ export function createToolMap(
 
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
-    adv_task_run_status: bindTool(
-      taskTools.adv_task_run_status,
-      "adv_task_run_status",
-      store,
-    ),
     adv_task_list: bindTool(taskTools.adv_task_list, "adv_task_list", store),
     adv_task_ready: bindTool(taskTools.adv_task_ready, "adv_task_ready", store),
     adv_task_update: bindTool(
@@ -236,12 +231,6 @@ export function createToolMap(
       store,
     ),
     adv_task_add: bindTool(taskTools.adv_task_add, "adv_task_add", store),
-    adv_task_evidence: bindTool(
-      taskTools.adv_task_evidence,
-      "adv_task_evidence",
-      store,
-    ),
-    adv_task_tdd: bindTool(taskTools.adv_task_tdd, "adv_task_tdd", store),
 
     // Task cancel — needs Record<string,string> type coercion
     adv_task_cancel: registerTool(
@@ -351,12 +340,6 @@ export function createToolMap(
     adv_agenda_prioritize: bindToolSimple(
       agendaTools.adv_agenda_prioritize,
       "adv_agenda_prioritize",
-      directory,
-      agendaPath,
-    ),
-    adv_agenda_evidence: bindToolSimple(
-      agendaTools.adv_agenda_evidence,
-      "adv_agenda_evidence",
       directory,
       agendaPath,
     ),
@@ -649,13 +632,10 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_diagnose",
   "adv_change_import",
   "adv_task_show",
-  "adv_task_run_status",
   "adv_task_list",
   "adv_task_ready",
   "adv_task_update",
   "adv_task_add",
-  "adv_task_evidence",
-  "adv_task_tdd",
   "adv_task_cancel",
   "adv_task_reclassify_tdd",
   "adv_wisdom_add",
@@ -669,7 +649,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_agenda_complete",
   "adv_agenda_cancel",
   "adv_agenda_prioritize",
-  "adv_agenda_evidence",
   "adv_project_context",
   "adv_project_metadata",
   "adv_gate_status",

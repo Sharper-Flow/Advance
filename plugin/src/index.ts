@@ -855,18 +855,6 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           debugLog(`Error loading specs for compaction: ${e}`);
         }
 
-        // Resolve in-progress task ledger if any.
-        const inProgressTask = tasks.find((t) => t.status === "in_progress");
-        let inProgressTaskRun: Awaited<ReturnType<typeof store.tasks.getRun>> =
-          null;
-        if (inProgressTask) {
-          try {
-            inProgressTaskRun = await store.tasks.getRun(inProgressTask.id);
-          } catch (e) {
-            debugLog(`Error loading task run for compaction: ${e}`);
-          }
-        }
-
         const block = buildCompactionContext({
           change: { id: changeId, title: changeTitle },
           tasks: tasks.map((t) => ({
@@ -878,14 +866,6 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
           })),
           gates: gates ?? undefined,
           workdir: directory,
-          inProgressTaskRun: inProgressTaskRun
-            ? {
-                taskId: inProgressTaskRun.taskId,
-                phase: inProgressTaskRun.phase,
-                requiredNextAction: inProgressTaskRun.requiredNextAction,
-                resumeHint: inProgressTaskRun.resumeHint,
-              }
-            : null,
           specs,
         });
 
