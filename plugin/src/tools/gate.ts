@@ -30,6 +30,10 @@ import {
   withOptionalTargetPathStore,
   withTargetPathStore,
 } from "./target-project";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { fireSignal, getChangeHandle } from "./_adapters";
+import { gateCompletedSignal } from "../temporal/messages";
 
 function getContextMismatchFields(error: Error): {
   owningProjectId?: unknown;
@@ -75,28 +79,6 @@ async function completeGateAndBuildResponse({
       ...(notes ? { notes } : {}),
     },
   };
-
-  try {
-    await store.gates.complete(changeId, gateId, notes);
-  } catch (saveError) {
-    const err = saveError as Error;
-    const base: Record<string, unknown> = {
-      error: `Failed to complete gate: ${err.message}`,
-      changeId,
-      gateId,
-      hint: "Gate state was not persisted. Retry the operation.",
-    };
-    // Preserve structured fields from AdvProjectContextMismatch errors
-    if (err.name === "AdvProjectContextMismatch") {
-      const context = getContextMismatchFields(err);
-      base.errorClass = "AdvProjectContextMismatch";
-      base.owningProjectId = context.owningProjectId;
-      base.currentProjectId = context.currentProjectId;
-      base.hint =
-        "This change belongs to a different project context. Open the change in its owning project, or verify linked-project configuration.";
-    }
-    return formatToolOutput(base);
-  }
 
   const changeDir = join(store.paths.changes, changeId);
   const { content: proposalText } = await loadProposalWithFallback(
@@ -219,6 +201,31 @@ async function handlePlanningGateCompletion({
       };
     }
   }
+
+  // Signal-driven mutation: fire gateCompletedSignal after all validations pass
+  const bundle = getService();
+  if (!bundle) {
+    return formatToolOutput({
+      error: "Temporal service not available",
+      changeId,
+      gateId,
+    });
+  }
+  const projectId = await getProjectId(store.paths.root);
+  if (!projectId) {
+    return formatToolOutput({
+      error: "Could not resolve project ID",
+      changeId,
+      gateId,
+    });
+  }
+  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  await fireSignal(handle, gateCompletedSignal, {
+    gateId,
+    completedBy,
+    completedAt: new Date().toISOString(),
+    approvalEvidence: notes,
+  });
 
   return completeGateAndBuildResponse({
     store,
@@ -460,6 +467,31 @@ export const gateTools = {
           }
           // All tasks done/cancelled (or empty list) — fall through
         }
+
+        // Signal-driven mutation: fire gateCompletedSignal after sequence/task checks pass
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+            changeId,
+            gateId,
+          });
+        }
+        const projectId = await getProjectId(activeStore.paths.root);
+        if (!projectId) {
+          return formatToolOutput({
+            error: "Could not resolve project ID",
+            changeId,
+            gateId,
+          });
+        }
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        await fireSignal(handle, gateCompletedSignal, {
+          gateId,
+          completedBy,
+          completedAt: new Date().toISOString(),
+          approvalEvidence: notes,
+        });
 
         return completeGateAndBuildResponse({
           store: activeStore,

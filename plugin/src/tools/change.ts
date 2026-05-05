@@ -68,6 +68,12 @@ import {
   withTargetPathStore,
 } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
+import { getService } from "../temporal/service";
+import { fireSignal, getChangeHandle } from "./_adapters";
+import {
+  changeCancelledSignal,
+  gateReenteredSignal,
+} from "../temporal/messages";
 
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -1540,7 +1546,7 @@ export const changeTools = {
       {
         changeId,
         reason,
-        approvedByUser,
+        approvedByUser: _approvedByUser,
         approvalEvidence,
         supersededBy,
       }: {
@@ -1566,18 +1572,38 @@ export const changeTools = {
         return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
-      try {
-        const change = await store.changes.close(changeId, {
-          reason,
-          approved_by_user: approvedByUser,
-          approval_evidence: approvalEvidence,
-          superseded_by: supersededBy,
-          approved_at: new Date().toISOString(),
+      // Tool-layer enforcement: cancellation requires explicit approval evidence
+      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+        return formatToolOutput({
+          error: "approvalEvidence is required for change close",
+          changeId,
+          hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
         });
+      }
 
-        if (!change) {
-          return formatToolOutput({ error: `Change not found: ${changeId}` });
+      try {
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+            changeId,
+          });
         }
+        const projectId = await getProjectId(store.paths.root);
+        if (!projectId) {
+          return formatToolOutput({
+            error: "Could not resolve project ID",
+            changeId,
+          });
+        }
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        await fireSignal(handle, changeCancelledSignal, {
+          approvalEvidence,
+          reason,
+          supersededBy,
+          cancelledBy: "agent",
+          cancelledAt: new Date().toISOString(),
+        });
 
         // Remove source `changes/<id>/` directory after successful close.
         // Best-effort: failure surfaces as a warning but does NOT flip success
@@ -1593,7 +1619,6 @@ export const changeTools = {
 
         return formatToolOutput({
           success: true,
-          change,
           message: cleanupWarning
             ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
             : `Closed change ${changeId} as ${reason}.`,
@@ -1634,7 +1659,7 @@ export const changeTools = {
       {
         selector,
         reason,
-        approvedByUser,
+        approvedByUser: _approvedByUser,
         approvalEvidence,
         supersededBy,
       }: {
@@ -1676,48 +1701,86 @@ export const changeTools = {
       }
 
       try {
-        const result = await store.changes.closeBatch(selection.changeIds, {
-          reason,
-          approved_by_user: approvedByUser,
-          approval_evidence: approvalEvidence,
-          superseded_by: supersededBy,
-          approved_at: new Date().toISOString(),
-        });
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+          });
+        }
+        const projectId = await getProjectId(store.paths.root);
+        if (!projectId) {
+          return formatToolOutput({
+            error: "Could not resolve project ID",
+          });
+        }
+
+        const results: {
+          changeId: string;
+          success: boolean;
+          error?: string;
+        }[] = [];
+        let closed = 0;
+
+        for (const id of selection.changeIds) {
+          try {
+            const handle = getChangeHandle(bundle.client, projectId, id);
+            await fireSignal(handle, changeCancelledSignal, {
+              approvalEvidence,
+              reason,
+              supersededBy,
+              cancelledBy: "agent",
+              cancelledAt: new Date().toISOString(),
+            });
+            results.push({ changeId: id, success: true });
+            closed++;
+          } catch (err) {
+            results.push({
+              changeId: id,
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
 
         // D3: Compose with sweepClosedChangesFromDisk for unified per-id
-        // disk-removal reporting. Only run when closeBatch succeeded overall
+        // disk-removal reporting. Only run when close succeeded overall
         // — partial workflow-close failures preserve source dirs as the
         // rollback / recovery path. (rq-bulkCloseDiskSweep01)
         let diskRemoved: string[] = [];
         let diskFailed: Array<{ id: string; error: string }> = [];
-        if (result.success && store.paths?.changes) {
-          const successfulIds = result.results
-            .filter((r) => r.success)
-            .map((r) => r.changeId);
+        const successfulIds = results
+          .filter((r) => r.success)
+          .map((r) => r.changeId);
+        if (successfulIds.length > 0 && store.paths?.changes) {
           const sweep = await sweepClosedChangesFromDisk(
             successfulIds,
             store.paths.changes,
           );
           diskRemoved = sweep.removed;
           diskFailed = sweep.failed;
-          if (diskFailed.length > 0) {
-            const warnings = diskFailed
-              .map(
-                (f) =>
-                  `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
-              )
-              .join(" ");
-            result.message += ` ${warnings}`;
-          }
+        }
+
+        const allSuccess = closed === selection.changeIds.length;
+        let message = allSuccess
+          ? `Successfully closed ${closed} change(s).`
+          : `Closed ${closed} of ${selection.changeIds.length} change(s). See results for details.`;
+        if (diskFailed.length > 0) {
+          const warnings = diskFailed
+            .map(
+              (f) =>
+                `Source cleanup warning: failed to remove changes/${f.id}: ${f.error}`,
+            )
+            .join(" ");
+          message += ` ${warnings}`;
         }
 
         return formatToolOutput({
-          success: result.success,
-          closed: result.closed,
-          results: result.results,
+          success: allSuccess,
+          closed,
+          results,
           diskRemoved,
           diskFailed,
-          message: result.message,
+          message,
         });
       } catch (error) {
         const contextMismatch = extractContextMismatch(error);
@@ -2128,7 +2191,7 @@ export const changeTools = {
         fromGate,
         reason,
         scopeDelta,
-        approvalEvidence,
+        approvalEvidence: _approvalEvidence,
       }: {
         changeId: string;
         fromGate: GateId;
@@ -2139,7 +2202,6 @@ export const changeTools = {
       },
       store: Store,
     ) => {
-      const normalizedApprovalEvidence = approvalEvidence?.trim() || undefined;
       const result = await store.changes.get(changeId);
       if (!result.success) {
         return formatToolOutput({ error: result.error });
@@ -2163,14 +2225,28 @@ export const changeTools = {
       }
 
       try {
-        await store.gates.reopenFrom(
-          changeId,
-          fromGate,
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+            changeId,
+          });
+        }
+        const projectId = await getProjectId(store.paths.root);
+        if (!projectId) {
+          return formatToolOutput({
+            error: "Could not resolve project ID",
+            changeId,
+          });
+        }
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        await fireSignal(handle, gateReenteredSignal, {
+          fromGateId: fromGate,
           reason,
           scopeDelta,
-          undefined,
-          normalizedApprovalEvidence,
-        );
+          reenteredBy: "agent",
+          reenteredAt: new Date().toISOString(),
+        });
         return buildReentryResult(store, changeId, fromGate);
       } catch (error) {
         return formatToolOutput({
