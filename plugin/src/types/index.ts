@@ -194,7 +194,6 @@ export type {
   SpecListResponse,
   ChangeListResponse,
   TaskReadyResponse,
-  RecencyBand,
   ChangeRecency,
   ProjectStatus,
 } from "./responses";

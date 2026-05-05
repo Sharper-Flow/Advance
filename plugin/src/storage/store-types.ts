@@ -1,7 +1,7 @@
 /**
  * Store Types
  *
- * Exported Store interface, SearchResult, and recency utility functions.
+ * Exported Store interface, SearchResult, and activity helpers.
  * Extracted from store.ts to keep the composition root under 300 lines.
  */
 
@@ -18,7 +18,6 @@ import type {
   TaskReadyResponse,
   ProjectStatus,
   ChangeRecency,
-  RecencyBand,
   WisdomEntry,
   WisdomType,
   Cancellation,
@@ -197,19 +196,6 @@ export interface SearchResult {
   match: string;
 }
 
-// =============================================================================
-// Recency Helpers
-// =============================================================================
-
-const RECENCY_HOT_THRESHOLD_MIN = 60;
-const RECENCY_STALE_THRESHOLD_MIN = 180;
-
-export function classifyRecency(minutesSince: number): RecencyBand {
-  if (minutesSince <= RECENCY_HOT_THRESHOLD_MIN) return "hot";
-  if (minutesSince >= RECENCY_STALE_THRESHOLD_MIN) return "stale";
-  return "warm";
-}
-
 export function computeLastActivity(change: Change): string {
   let latest = change.created_at;
   const consider = (ts: string | null | undefined) => {
@@ -256,7 +242,6 @@ export function buildChangeRecency(
     taskCount: tasks.total,
     lastActivityAt,
     minutesSinceActivity,
-    recency: classifyRecency(minutesSinceActivity),
     parent_change_id: change.fast_follow_of?.parent_change_id,
   };
 }

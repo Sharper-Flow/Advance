@@ -2,7 +2,7 @@
  * Tool Response Types Domain
  *
  * SpecListResponse, ChangeListResponse, TaskReadyResponse,
- * RecencyBand, ChangeRecency, ProjectStatus.
+ * ChangeRecency, ProjectStatus.
  */
 
 import type { Task } from "./tasks";
@@ -58,24 +58,8 @@ interface _ArchiveResult {
   archivePath: string;
 }
 
-// =============================================================================
-// Recency Bands (for /adv-status)
-// =============================================================================
-
 /**
- * Recency classification for active changes.
- * Used by /adv-status to surface which changes are likely in-flight
- * vs abandoned/stale and need pickup.
- *
- * Thresholds:
- * - "hot":  <= 60 minutes since last activity (likely another agent working)
- * - "warm": > 60 minutes and < 180 minutes (recently active, may need attention)
- * - "stale": >= 180 minutes since last activity (needs pickup / was abandoned)
- */
-export type RecencyBand = "hot" | "warm" | "stale";
-
-/**
- * Per-change recency summary included in ProjectStatus.
+ * Per-change activity summary included in ProjectStatus.
  * Computed from the most recent timestamp across tasks, gates, and change metadata.
  */
 export interface ChangeRecency {
@@ -92,8 +76,6 @@ export interface ChangeRecency {
   lastActivityAt: string;
   /** Minutes elapsed since lastActivityAt (at time of status generation) */
   minutesSinceActivity: number;
-  /** Recency classification */
-  recency: RecencyBand;
   /** Parent change ID when this change is a same-project fast-follow */
   parent_change_id?: string;
 }

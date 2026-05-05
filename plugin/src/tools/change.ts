@@ -27,7 +27,6 @@ import {
 } from "../types";
 import type { Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
-import { classifyRecency } from "../storage/store-types";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
 import { validateChange } from "../validator";
@@ -783,10 +782,6 @@ export const changeTools = {
         .describe(
           'Sort order: "recency" (most recent first), "stalest" (oldest first), "default" (created_at desc)',
         ),
-      excludeRecencyBands: z
-        .array(z.enum(["hot", "warm", "stale"]))
-        .optional()
-        .describe("Exclude changes in these recency bands"),
       limit: z
         .number()
         .optional()
@@ -808,7 +803,6 @@ export const changeTools = {
         includeArchived,
         includeClosed,
         sort,
-        excludeRecencyBands,
         limit,
         offset,
         target_path,
@@ -817,7 +811,6 @@ export const changeTools = {
         includeArchived?: boolean;
         includeClosed?: boolean;
         sort?: "recency" | "stalest" | "default";
-        excludeRecencyBands?: ("hot" | "warm" | "stale")[];
         limit?: number;
         offset?: number;
         target_path?: string;
@@ -833,9 +826,9 @@ export const changeTools = {
             includeClosed,
           });
 
-          // Enrich with recency data from the store-computed last activity.
+          // Enrich with last-activity data from the store-computed timestamp.
           const now = new Date();
-          const withRecency = result.changes.map((change) => {
+          const withLastActivity = result.changes.map((change) => {
             const lastActivityAt = new Date(change.lastActivityAt);
             const minutesSince = Math.max(
               0,
@@ -845,22 +838,16 @@ export const changeTools = {
               ...change,
               lastActivity: change.lastActivityAt,
               lastActivityAgeMinutes: minutesSince,
-              recencyBand: classifyRecency(minutesSince),
               ...(change.fast_follow_of
                 ? { parent_change_id: change.fast_follow_of.parent_change_id }
                 : {}),
             };
           });
 
-          // Filter by recency band before pagination
-          let filtered = withRecency;
+          let filtered = withLastActivity;
           if (status === "in-flight") {
             const inFlightStatuses = new Set(["draft", "pending", "active"]);
             filtered = filtered.filter((c) => inFlightStatuses.has(c.status));
-          }
-          if (excludeRecencyBands && excludeRecencyBands.length > 0) {
-            const excludeSet = new Set(excludeRecencyBands);
-            filtered = filtered.filter((c) => !excludeSet.has(c.recencyBand));
           }
 
           // Sort: stalest (asc by lastActivity) or recency (desc by lastActivity)
@@ -1700,7 +1687,7 @@ export const changeTools = {
         // D3: Compose with sweepClosedChangesFromDisk for unified per-id
         // disk-removal reporting. Only run when closeBatch succeeded overall
         // — partial workflow-close failures preserve source dirs as the
-        // rollback / orphan-sweep recovery path. (rq-bulkCloseDiskSweep01)
+        // rollback / recovery path. (rq-bulkCloseDiskSweep01)
         let diskRemoved: string[] = [];
         let diskFailed: Array<{ id: string; error: string }> = [];
         if (result.success && store.paths?.changes) {

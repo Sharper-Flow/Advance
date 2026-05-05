@@ -22,7 +22,6 @@ import { createDiskStore } from "./store-disk";
 export {
   type Store,
   type SearchResult,
-  classifyRecency,
   computeLastActivity,
   buildChangeRecency,
 } from "./store-types";

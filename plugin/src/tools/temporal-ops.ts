@@ -12,7 +12,6 @@ import { initStateDb, listSessions } from "./worktree/state";
 import { isPidAlive } from "./session/index";
 import { repairChangeActivity } from "../temporal/activities";
 import { getTemporalHealth } from "../temporal/health-probe";
-import { sweepProject } from "../temporal/orphan-sweep";
 import {
   buildProjectTaskQueue,
   buildChangeWorkflowId,
@@ -172,7 +171,7 @@ function recommendTemporalRecovery(input: {
     return "run adv_temporal_worker_restart (worker process only); if diagnose is unchanged, inspect stale worker lock/project workflow before retrying";
   }
   if (!queueServiceable && input.health.stale_queues.length > 0)
-    return "run adv_orphan_sweep dry-run";
+    return "restart the Temporal worker and inspect stale queue diagnostics";
   if (input.projectWorkflowReachable === false)
     return "restart OpenCode session to trigger project workflow auto-bootstrap, or run adv_temporal_diagnose for detailed health check";
   if (input.changeWorkflowReachable === false) return "run adv_workflow_repair";
@@ -659,127 +658,6 @@ export const temporalOpsTools = {
       }
 
       return runReconnect(store);
-    },
-  },
-
-  adv_orphan_sweep: {
-    description:
-      "Detect and optionally re-seed disk-backed change workflows missing from Temporal. Dry-run is default; execute mode requires explicit user approval.",
-    args: {
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe(
-          "When true or omitted, detect orphans without re-seeding. With dryRun: true, this tool is read-only and safe to invoke without approval.",
-        ),
-      approvedByUser: z
-        .boolean()
-        .optional()
-        .describe("Required true when dryRun is false"),
-      approvalEvidence: z
-        .string()
-        .optional()
-        .describe("How the user explicitly approved execute mode"),
-      target_path: z
-        .string()
-        .optional()
-        .describe(
-          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
-        ),
-      target_confirmed: z
-        .literal(true)
-        .optional()
-        .describe(
-          "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
-        ),
-      confirmationEvidence: z
-        .string()
-        .optional()
-        .describe(
-          "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
-        ),
-    },
-    execute: async (
-      args: {
-        dryRun?: boolean;
-        approvedByUser?: boolean;
-        approvalEvidence?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const dryRun = args.dryRun ?? true;
-
-      const runSweep = async (
-        activeStore: Store,
-        projectContext?: TargetProjectOutputContext,
-      ) => {
-        if (!activeStore.paths.external) {
-          return formatToolOutput({
-            success: false,
-            error:
-              "Orphan sweep requires external state paths; current store is running in legacy in-repo mode.",
-          });
-        }
-        if (!dryRun) {
-          if (!args.approvedByUser || !args.approvalEvidence?.trim()) {
-            return formatToolOutput({
-              success: false,
-              error:
-                "Explicit user approval is required to execute orphan sweep re-seeding. Re-run with dryRun:true to preview only.",
-            });
-          }
-        }
-
-        const bundle = getService();
-        if (!bundle) {
-          return formatToolOutput({
-            success: false,
-            error:
-              "Temporal service layer not initialized — cannot run orphan sweep",
-          });
-        }
-
-        const projectId = basename(activeStore.paths.external);
-        const result = await sweepProject({
-          projectId,
-          changesDir: activeStore.paths.changes,
-          client: bundle.client as unknown as Parameters<
-            typeof sweepProject
-          >[0]["client"],
-          dryRun,
-        });
-
-        return formatToolOutput({
-          success: true,
-          dryRun,
-          projectId,
-          approvalEvidence: dryRun ? undefined : args.approvalEvidence?.trim(),
-          result,
-          message: dryRun
-            ? `Orphan sweep dry-run found ${result.orphans.length} missing change workflows`
-            : `Orphan sweep re-seeded ${result.reseeded.length} change workflows`,
-          ...(projectContext ? { _projectContext: projectContext } : {}),
-        });
-      };
-
-      if (args.target_path) {
-        return withTargetPathStore(
-          {
-            currentProjectPath: store.paths.root,
-            target_path: args.target_path,
-            stateRequirement: "temporal-required",
-            target_confirmed: args.target_confirmed,
-            confirmationEvidence: args.confirmationEvidence,
-          },
-          async ({ context, store: targetStore }) =>
-            runSweep(targetStore, formatTargetProjectContext(context)),
-        );
-      }
-
-      return runSweep(store);
     },
   },
 

@@ -23,7 +23,6 @@ import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
 import { changeTools } from "./tools/change";
-import { changeDiagnoseTools } from "./tools/change-diagnose";
 import { taskTools } from "./tools/task";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
@@ -33,9 +32,7 @@ import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
-import { archiveSweepTools } from "./tools/archive-sweep";
 import { migrateCleanupTools } from "./tools/migrate-cleanup";
-import { archivePurgeTools } from "./tools/archive-purge";
 import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -43,7 +40,6 @@ import { conformanceTools } from "./tools/conformance";
 import { changeImportTools } from "./tools/change-import";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
-import { meshScanTools } from "./tools/mesh-scan";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
@@ -210,11 +206,6 @@ export function createToolMap(
       "adv_change_reenter",
       store,
     ),
-    adv_change_diagnose: bindTool(
-      changeDiagnoseTools.adv_change_diagnose,
-      "adv_change_diagnose",
-      store,
-    ),
     adv_change_import: bindTool(
       changeImportTools.adv_change_import,
       "adv_change_import",
@@ -374,24 +365,9 @@ export function createToolMap(
       "adv_temporal_reconnect",
       store,
     ),
-    adv_orphan_sweep: bindTool(
-      temporalOpsTools.adv_orphan_sweep,
-      "adv_orphan_sweep",
-      store,
-    ),
-    adv_archive_sweep_orphans: bindTool(
-      archiveSweepTools.adv_archive_sweep_orphans,
-      "adv_archive_sweep_orphans",
-      store,
-    ),
     adv_migrate_cleanup: bindTool(
       migrateCleanupTools.adv_migrate_cleanup,
       "adv_migrate_cleanup",
-      store,
-    ),
-    adv_archive_purge: bindTool(
-      archivePurgeTools.adv_archive_purge,
-      "adv_archive_purge",
       store,
     ),
     // adv_temporal_worker_restart — rq-toolTimeoutOverride01.2.
@@ -413,28 +389,6 @@ export function createToolMap(
         "adv_temporal_worker_restart",
         undefined,
         { timeoutMs: 15_000 },
-      ),
-    ),
-    // adv_workflow_repair — KD-6 timeout override (rq-toolTimeoutOverride01).
-    // Outer safety-net timeout must exceed the inner state-rebuild budget:
-    // this tool rebuilds the project workflow from legacy snapshots and re-
-    // imports change state, which legitimately exceeds the 10s default on
-    // mature projects. 30s gives headroom for typical state sizes; bumps
-    // beyond that signal a deeper problem (use adv_status to inspect).
-    adv_workflow_repair: registerTool(
-      temporalOpsTools.adv_workflow_repair.description,
-      temporalOpsTools.adv_workflow_repair.args,
-      safeExecute(
-        async (args) =>
-          temporalOpsTools.adv_workflow_repair.execute(
-            args as Parameters<
-              typeof temporalOpsTools.adv_workflow_repair.execute
-            >[0],
-            store,
-          ),
-        "adv_workflow_repair",
-        undefined,
-        { timeoutMs: 30_000 },
       ),
     ),
 
@@ -603,12 +557,6 @@ export function createToolMap(
       store,
     ),
 
-    // Mesh Scan Tool
-    adv_mesh_scan: bindTool(
-      meshScanTools.adv_mesh_scan,
-      "adv_mesh_scan",
-      store,
-    ),
   };
 }
 
@@ -629,7 +577,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_update_issues",
   "adv_change_reenter",
-  "adv_change_diagnose",
   "adv_change_import",
   "adv_task_show",
   "adv_task_list",
@@ -657,12 +604,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_temporal_diagnose",
   "adv_temporal_register_search_attributes",
   "adv_temporal_reconnect",
-  "adv_orphan_sweep",
-  "adv_archive_sweep_orphans",
   "adv_migrate_cleanup",
-  "adv_archive_purge",
   "adv_temporal_worker_restart",
-  "adv_workflow_repair",
   "adv_task_checkpoint",
   "adv_reflect",
   "adv_conformance",
@@ -673,7 +616,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_worktree_triage",
   "adv_session_list",
   "adv_session_show",
-  "adv_mesh_scan",
   // Backward-compat aliases (KD-8 phase 2)
   "worktree_create",
   "worktree_delete",
@@ -704,7 +646,7 @@ export function createDegradedToolMap(
         "Run `pnpm --filter @goost/advance build` from the repo root (or `pnpm build` in plugin/) to ensure plugin/dist/ is current",
         "Check ~/.config/opencode/opencode.json — the .plugin array must point to the built plugin directory",
         "If project.json is present, verify it is valid JSON and matches the ADV ProjectConfig schema",
-        "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for malformed change/spec JSON; repair the artifact or run the orphan-sweep recovery utility, then restart OpenCode",
+        "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for malformed change/spec JSON; repair the artifact, then restart OpenCode",
         "Set ADV_DEBUG=1 in your shell and restart OpenCode to capture init errors in $OPEN_CHAD_CACHE_DIR/adv-debug.log",
       ],
     },
