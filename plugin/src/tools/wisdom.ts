@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { nanoid } from "nanoid";
 import type { Store } from "../storage/store";
 import { WisdomTypeSchema } from "../types";
 import {
@@ -17,11 +18,16 @@ import {
 import {
   addProjectWisdomUpdate,
   projectWisdomQuery,
+  wisdomAddedSignal,
+  changeStateQuery,
 } from "../temporal/messages";
 import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import { formatToolOutput } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
 
 function toJsonlProjectWisdomEntry(entry: {
   id: string;
@@ -43,6 +49,17 @@ function toJsonlProjectWisdomEntry(entry: {
     tags: entry.tags,
     invalidated_by: entry.invalidatedBy,
   };
+}
+
+async function getChangeHandleForChangeId(
+  store: Store,
+  changeId: string,
+): Promise<ReturnType<typeof getChangeHandle> | null> {
+  const bundle = getService();
+  if (!bundle) return null;
+  const projectId = await getProjectId(store.paths.root);
+  if (!projectId) return null;
+  return getChangeHandle(bundle.client, projectId, changeId);
 }
 
 // =============================================================================
@@ -88,12 +105,25 @@ export const wisdomTools = {
       store: Store,
     ) => {
       try {
-        const entry = await store.wisdom.add(
-          changeId,
+        const entry = {
+          id: `ws-${nanoid(6)}`,
           type,
           content,
-          sourceTask,
-        );
+          source_task: sourceTask,
+          recorded_at: new Date().toISOString(),
+        };
+
+        // Signal-driven: fire wisdomAddedSignal to change workflow
+        const handle = await getChangeHandleForChangeId(store, changeId);
+        if (handle) {
+          await fireSignal(handle, wisdomAddedSignal, {
+            entry,
+            addedAt: entry.recorded_at,
+          });
+        } else {
+          // Fallback to disk store when Temporal is unavailable
+          await store.wisdom.add(changeId, type, content, sourceTask);
+        }
 
         let promoted: unknown | undefined;
         let promoteWarning: string | undefined;
@@ -284,12 +314,30 @@ export const wisdomTools = {
           // Cross-change aggregation — route through store.wisdom.listAll
           wisdom = await store.wisdom.listAll({ type: wisdomType });
         } else {
-          // Change-specific path (existing behavior)
-          let entries = await store.wisdom.list(changeId);
-          if (wisdomType) {
-            entries = entries.filter((e) => e.type === wisdomType);
+          // Change-specific path: query workflow state, fallback to disk
+          const handle = await getChangeHandleForChangeId(store, changeId);
+          if (handle) {
+            const state = await querySignal<{
+              wisdom: Array<{
+                id: string;
+                type: string;
+                content: string;
+                source_task?: string;
+                recorded_at: string;
+              }>;
+            }>(handle, changeStateQuery);
+            let entries = state.wisdom ?? [];
+            if (wisdomType) {
+              entries = entries.filter((e) => e.type === wisdomType);
+            }
+            wisdom = entries;
+          } else {
+            let entries = await store.wisdom.list(changeId);
+            if (wisdomType) {
+              entries = entries.filter((e) => e.type === wisdomType);
+            }
+            wisdom = entries;
           }
-          wisdom = entries;
         }
 
         // Calculate summary by type
@@ -326,10 +374,56 @@ export const wisdomTools = {
     },
     execute: async ({ maxEntries }: { maxEntries?: number }, store: Store) => {
       try {
-        const entries = await listProjectWisdom(store.paths.root, {
-          maxEntries,
-          wisdomPath: store.paths.wisdom,
-        });
+        let entries: Array<{
+          id: string;
+          type: string;
+          content: string;
+          source_change?: string;
+          source_task?: string;
+          promoted_at?: string;
+        }> = [];
+
+        // Try project workflow query first
+        const bundle = getService();
+        const projectId = bundle ? await getProjectId(store.paths.root) : null;
+        if (bundle && projectId) {
+          try {
+            const projectHandle = bundle.client.workflow.getHandle(
+              `adv/project/${projectId}`,
+            ) as ReturnType<typeof getChangeHandle>;
+            const result = (await querySignal<unknown[]>(
+              projectHandle,
+              projectWisdomQuery,
+              undefined,
+            )) as Array<{
+              id: string;
+              type: string;
+              content: string;
+              sourceChange?: string;
+              sourceTask?: string;
+              promotedAt?: string;
+            }>;
+            entries = result.map((e) => ({
+              id: e.id,
+              type: e.type,
+              content: e.content,
+              source_change: e.sourceChange,
+              source_task: e.sourceTask,
+              promoted_at: e.promotedAt,
+            }));
+          } catch {
+            // Fall through to disk read
+          }
+        }
+
+        if (entries.length === 0) {
+          entries = await listProjectWisdom(store.paths.root, {
+            maxEntries,
+            wisdomPath: store.paths.wisdom,
+          });
+        } else if (maxEntries) {
+          entries = entries.slice(0, maxEntries);
+        }
 
         // Build byType summary — mirrors adv_wisdom_list shape (KD1)
         const byType: Record<string, number> = {};

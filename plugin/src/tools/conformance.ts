@@ -37,6 +37,15 @@ import {
   resolveSiblingConformanceRoot,
 } from "../storage/conformance";
 import { type ConformanceState } from "../types";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { fireSignal, getChangeHandle } from "./_adapters";
+import {
+  conformanceLockedSignal,
+  conformanceOverriddenSignal,
+  conformanceVerdictSignal,
+} from "../temporal/messages";
+import { appendDebugLog } from "../utils/debug-log";
 
 // =============================================================================
 // Action Schemas
@@ -90,6 +99,37 @@ function makeError(message: string): string {
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+async function getChangeHandleForProjectDir(
+  projectDir: string,
+  changeId: string,
+): Promise<ReturnType<typeof getChangeHandle> | null> {
+  const bundle = getService();
+  if (!bundle) return null;
+  const projectId = await getProjectId(projectDir);
+  if (!projectId) return null;
+  return getChangeHandle(bundle.client, projectId, changeId);
+}
+
+async function fireConformanceSignal(
+  projectDir: string,
+  changeId: string | undefined,
+  signal: unknown,
+  payload: unknown,
+): Promise<void> {
+  if (!changeId) return;
+  try {
+    const handle = await getChangeHandleForProjectDir(projectDir, changeId);
+    if (handle) {
+      await fireSignal(handle, signal, payload);
+    }
+  } catch (err) {
+    appendDebugLog(
+      "conformance",
+      `conformance signal failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
 
 // =============================================================================
@@ -167,6 +207,18 @@ async function actionLock(
     locked_at_archive: args.change_id,
   });
   await saveConformanceState(externalRoot, next);
+
+  // Signal-driven: notify change workflow that spec was locked
+  await fireConformanceSignal(
+    projectDir,
+    args.change_id,
+    conformanceLockedSignal,
+    {
+      specs: [args.spec],
+      lockedAt: nowIso(),
+    },
+  );
+
   return formatToolOutput({
     success: true,
     spec: args.spec,
@@ -189,14 +241,14 @@ async function actionUnlock(
   if (!state.specs[args.spec]) {
     return makeError(`spec "${args.spec}" is not tracked`);
   }
-  // Append audit override entry (rq-confLock01.3)
+  // TODO: No dedicated conformanceUnlockedSignal in current signal set.
+  // Unlock stays on the local conformance storage path.
   const audited = appendOverride(state, args.spec, {
     user: args.user,
     reason: args.reason,
     re_verify_deadline: args.re_verify_deadline,
     applied_at: nowIso(),
   });
-  // Flip locked → false
   const next = upsertSpecEntry(audited, args.spec, { locked: false });
   await saveConformanceState(externalRoot, next);
   return formatToolOutput({
@@ -229,6 +281,23 @@ async function actionOverride(
     applied_at: nowIso(),
   });
   await saveConformanceState(externalRoot, next);
+
+  // Signal-driven: notify the change workflow that locked this spec
+  const changeId = state.specs[args.spec]?.locked_at_archive;
+  if (changeId) {
+    await fireConformanceSignal(
+      projectDir,
+      changeId,
+      conformanceOverriddenSignal,
+      {
+        user: args.user,
+        reason: args.reason,
+        reVerifyDeadline: args.re_verify_deadline,
+        overriddenAt: nowIso(),
+      },
+    );
+  }
+
   return formatToolOutput({
     success: true,
     spec: args.spec,
@@ -276,11 +345,26 @@ async function actionRun(
   const runId = `cr-${nanoid(8)}`;
   const ranAt = nowIso();
 
-  // Persist last_verdict on the spec entry (rq-confVerdict01)
   const next = upsertSpecEntry(state, args.spec, {
     last_verdict: { verdict, run_id: runId, ran_at: ranAt },
   });
   await saveConformanceState(externalRoot, next);
+
+  // Signal-driven: notify the change workflow that locked this spec
+  const changeId = entry.locked_at_archive;
+  if (changeId) {
+    await fireConformanceSignal(
+      projectDir,
+      changeId,
+      conformanceVerdictSignal,
+      {
+        verdict,
+        runId,
+        failed: parsed.failed,
+        recordedAt: ranAt,
+      },
+    );
+  }
 
   return formatToolOutput({
     verdict,

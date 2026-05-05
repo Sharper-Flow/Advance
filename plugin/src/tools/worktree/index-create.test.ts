@@ -25,6 +25,7 @@ const workflowQuery = vi.hoisted(() =>
     change_summaries: {},
   })),
 );
+const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
 
 // Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
 vi.mock("../project-workflow-helper", () => ({
@@ -37,10 +38,26 @@ vi.mock("../project-workflow-helper", () => ({
   })),
 }));
 
-// Mock debug-log to capture audit trail.
-vi.mock("../../utils/debug-log", () => ({
-  appendDebugLog: vi.fn(),
+// Mock temporal/service so fireWorktreeSignal can reach a handle.
+vi.mock("../../temporal/service", () => ({
+  getService: vi.fn(() => ({
+    connection: { close: vi.fn() },
+    client: {
+      workflow: {
+        getHandle: vi.fn(() => ({ signal: workflowSignal })),
+      },
+    },
+  })),
 }));
+
+// Mock debug-log to capture audit trail.
+vi.mock("../../utils/debug-log", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../utils/debug-log")>();
+  return {
+    ...actual,
+    appendDebugLog: vi.fn(),
+  };
+});
 
 // Mock hooks module — preserve HookFailedError, replace runHooksWithSafety.
 vi.mock("./hooks", async (importOriginal) => {
@@ -61,6 +78,7 @@ import { runHooksWithSafety } from "./hooks";
 import {
   addWorktreeSessionUpdate,
   updateWorktreeRecordUpdate,
+  worktreeCreatedSignal,
 } from "../../temporal/messages";
 import { getWorktreePath } from "./state";
 
@@ -295,6 +313,16 @@ describe.skipIf(!isLinux)(
               changeId: "feature",
             }),
           ],
+        }),
+      );
+      expect(workflowSignal).toHaveBeenCalledWith(
+        worktreeCreatedSignal,
+        expect.objectContaining({
+          branch: "change/feature",
+          path: expect.any(String),
+          baseRef: "trunk",
+          headSha: expect.any(String),
+          createdAt: expect.any(String),
         }),
       );
 

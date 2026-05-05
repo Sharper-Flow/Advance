@@ -1,5 +1,4 @@
-import { basename, join } from "path";
-import { readFile } from "fs/promises";
+import { basename } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import {
@@ -8,22 +7,16 @@ import {
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
-import { initStateDb, listSessions } from "./worktree/state";
-import { isPidAlive } from "./session/index";
 import { repairChangeActivity } from "../temporal/activities";
 import { getTemporalHealth } from "../temporal/health-probe";
 import {
   buildProjectTaskQueue,
   buildChangeWorkflowId,
-  buildProjectWorkflowId,
 } from "../temporal/client";
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
 import { formatToolOutput } from "../utils/tool-output";
-import {
-  formatWorkerLockHealth,
-  formatWorkerRunError,
-} from "../utils/tool-formatters";
+
 import {
   classifyQueueServiceability,
   probeTaskQueuePollers,
@@ -36,149 +29,11 @@ import {
   withTargetPathStore,
 } from "./target-project";
 
-type WorkflowReachability =
-  | { reachable: true; error?: undefined }
-  | { reachable: false; error: string };
-
 type SuspectWorkerLockReason =
   | "suspect_live_legacy_lock"
   | "suspect_live_unserviceable_lock";
 
 type RestartFailureReason = SuspectWorkerLockReason | "worker_restart_failed";
-
-/**
- * T23: count alive peer sessions from session_registry.
- *
- * Returns 0 when the project workflow is not reachable (best-effort —
- * unavailability is reported separately via `project_workflow_present`).
- */
-async function countAlivePeerSessions(
-  store: Store,
-  workflowPresent: boolean,
-): Promise<number> {
-  if (!workflowPresent) return 0;
-  try {
-    const projectRoot = store.paths.root ?? process.cwd();
-    const access = await initStateDb(projectRoot);
-    const sessions = await listSessions(access);
-    let alive = 0;
-    for (const session of sessions) {
-      if (isPidAlive(session.pid)) alive += 1;
-    }
-    return alive;
-  } catch {
-    return 0;
-  }
-}
-
-/**
- * T23: read worker.lock holder PID at query time. Per Q3 LBP decision,
- * this is computed at query time (not stored in workflow state) — single
- * source of truth, no replay-determinism risk.
- *
- * Returns null when the lock file is absent, malformed, or unreadable.
- */
-async function readWorkerLockHolderPid(store: Store): Promise<number | null> {
-  if (!store.paths.external) return null;
-  try {
-    const lockPath = join(store.paths.external, "worker.lock");
-    const raw = await readFile(lockPath, "utf8");
-    const parsed = JSON.parse(raw) as { pid?: unknown };
-    return typeof parsed.pid === "number" ? parsed.pid : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Checks whether Temporal can describe a workflow ID through the current STSL
- * connection. Returns a structured unreachable result instead of throwing so
- * `adv_temporal_diagnose` can report recovery guidance without crashing.
- */
-async function describeWorkflowReachability(
-  bundle: ReturnType<typeof getService>,
-  workflowId: string,
-): Promise<WorkflowReachability> {
-  const describeWorkflowExecution = (
-    bundle?.connection as unknown as {
-      workflowService?: {
-        describeWorkflowExecution?: (req: {
-          namespace: string;
-          execution: { workflowId: string };
-        }) => Promise<unknown>;
-      };
-    }
-  )?.workflowService?.describeWorkflowExecution;
-
-  if (!bundle || typeof describeWorkflowExecution !== "function") {
-    return {
-      reachable: false,
-      error: "Temporal workflow describe unavailable",
-    };
-  }
-
-  try {
-    await describeWorkflowExecution({
-      namespace: bundle.namespace,
-      execution: { workflowId },
-    });
-    return { reachable: true };
-  } catch (err) {
-    return {
-      reachable: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
-/**
- * Orders recovery recommendations from root-cause prerequisites to narrower
- * workflow repairs. The returned string is operator-facing guidance surfaced by
- * `adv_temporal_diagnose`.
- */
-function recommendTemporalRecovery(input: {
-  health: Awaited<ReturnType<typeof getTemporalHealth>>;
-  queueServiceability?: QueueServiceability | null;
-  stslInitialized: boolean;
-  searchAttributesOk: boolean;
-  searchAttributesVerificationStatus: "verified" | "unverified";
-  projectWorkflowReachable: boolean | null;
-  changeWorkflowReachable: boolean | null;
-}): string {
-  if (!input.health.server_alive) return "restore Temporal server";
-  if (!input.stslInitialized) return "restart OpenCode or initialize STSL";
-  if (!input.searchAttributesOk) {
-    if (input.searchAttributesVerificationStatus === "unverified") {
-      return "run adv_temporal_register_search_attributes with approval; if verification remains unverified, run adv_temporal_reconnect or adv_temporal_worker_restart (worker process only), then retry blocked Temporal tool; restart OpenCode for plugin tool-code drift";
-    }
-    return "run adv_temporal_register_search_attributes";
-  }
-  const queueServiceable = input.queueServiceability?.status === "serviceable";
-  const suspectLockReason = classifySuspectWorkerLock({
-    health: input.health,
-    queueServiceability: input.queueServiceability ?? null,
-  });
-  if (suspectLockReason === "suspect_live_legacy_lock") {
-    return "suspect live legacy v1 worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run blind restart/reclaim loops";
-  }
-  if (suspectLockReason === "suspect_live_unserviceable_lock") {
-    return "suspect live unserviceable worker.lock — explicit approval is required to reclaim it, or restart the owning OpenCode session; do not run STSL reconnect or blind restart/reclaim loops";
-  }
-  if (
-    !queueServiceable &&
-    (!input.health.worker_process_alive || !input.health.worker_alive)
-  ) {
-    return "run adv_temporal_worker_restart (worker process only); if diagnose is unchanged, inspect stale worker lock/project workflow before retrying";
-  }
-  if (!queueServiceable && input.health.stale_queues.length > 0)
-    return "restart the Temporal worker and inspect stale queue diagnostics";
-  if (input.projectWorkflowReachable === false)
-    return "restart OpenCode session to trigger project workflow auto-bootstrap, or run adv_temporal_diagnose for detailed health check";
-  if (input.changeWorkflowReachable === false) return "run adv_workflow_repair";
-  if (input.health.last_error)
-    return "inspect last_error and retry blocked tool";
-  return "none";
-}
 
 function recommendPostRegistrationAction(input: {
   ok: boolean;
@@ -242,13 +97,6 @@ function diagnosticsShowAliveQueue(
       )
     );
   });
-}
-
-function deriveLocalOwnershipFromHealth(
-  health: TemporalHealthSnapshot,
-): "owned" | "peer" | "unknown" {
-  if (!health.worker_lock) return "unknown";
-  return health.worker_lock.holder_pid === process.pid ? "owned" : "peer";
 }
 
 function classifySuspectWorkerLock(input: {
@@ -386,124 +234,43 @@ export const temporalOpsTools = {
         ),
     },
     execute: async (args: { changeId?: string }, store: Store) => {
+      // Thin diagnostic: server-reachable + worker-alive only (T13 simplification)
       const projectId = store.paths.external
         ? basename(store.paths.external)
         : undefined;
       const health = await getTemporalHealth(projectId);
       const bundle = getService();
-      const expectedQueue = projectId ? buildProjectTaskQueue(projectId) : null;
-      const queueSnapshot = expectedQueue
-        ? await buildRestartServiceabilitySnapshot({
-            projectId: projectId!,
-            expectedQueue,
-            localOwnership: deriveLocalOwnershipFromHealth(health),
-            health,
-            bundle,
-          })
-        : null;
-      const diagnoseReason =
-        queueSnapshot === null
-          ? undefined
-          : classifySuspectWorkerLock({
-              health,
-              queueServiceability: queueSnapshot.serviceability,
-            });
-      const searchAttributes = bundle
-        ? await checkAdvSearchAttributes(bundle.connection, bundle.namespace)
-        : {
-            ok: false,
-            verificationStatus: "unverified" as const,
-            present: [],
-            missing: [],
-            wrongType: [],
-            error: "Temporal service layer not initialized",
+      const serverReachable = health.server_alive;
+      const workerAlive = health.worker_alive;
+
+      let changeWorkflow: { reachable: boolean; error?: string } | null = null;
+      if (projectId && args.changeId && bundle) {
+        try {
+          const handle = bundle.client.workflow.getHandle(
+            buildChangeWorkflowId(projectId, args.changeId),
+          );
+          await handle.query("bootstrap");
+          changeWorkflow = { reachable: true };
+        } catch (err) {
+          changeWorkflow = {
+            reachable: false,
+            error: err instanceof Error ? err.message : String(err),
           };
-
-      const projectWorkflow = projectId
-        ? await describeWorkflowReachability(
-            bundle,
-            buildProjectWorkflowId(projectId),
-          )
-        : { reachable: false as const, error: "No projectId resolved" };
-
-      const changeWorkflow =
-        projectId && args.changeId
-          ? {
-              changeId: args.changeId,
-              ...(await describeWorkflowReachability(
-                bundle,
-                buildChangeWorkflowId(projectId, args.changeId),
-              )),
-            }
-          : null;
-
-      const recommendedNextAction = recommendTemporalRecovery({
-        health,
-        queueServiceability: queueSnapshot?.serviceability ?? null,
-        stslInitialized: bundle !== null,
-        searchAttributesOk: searchAttributes.ok,
-        searchAttributesVerificationStatus: searchAttributes.verificationStatus,
-        projectWorkflowReachable: projectWorkflow.reachable,
-        changeWorkflowReachable: changeWorkflow?.reachable ?? null,
-      });
-
-      // Compute searchAttributesStatus from the searchAttributes check result
-      let searchAttributesStatus: "ok" | "degraded" | "missing";
-      if (!searchAttributes.ok) {
-        if (searchAttributes.error || !bundle) {
-          searchAttributesStatus = "missing";
-        } else if (
-          searchAttributes.missing.length > 0 ||
-          searchAttributes.wrongType.length > 0
-        ) {
-          searchAttributesStatus = "degraded";
-        } else {
-          searchAttributesStatus = "missing";
         }
-      } else {
-        searchAttributesStatus = "ok";
       }
 
-      // T23 extensions: peer_sessions count + worker_lock_holder_pid +
-      // project_workflow_present.
-      const peer_sessions = await countAlivePeerSessions(
-        store,
-        projectWorkflow.reachable,
-      );
-      const worker_lock_holder_pid = await readWorkerLockHolderPid(store);
-      const project_workflow_present = projectWorkflow.reachable;
-      const worker_lock = formatWorkerLockHealth(health.worker_lock);
-      const last_worker_run_error = formatWorkerRunError(
-        health.last_worker_run_error,
-      );
+      const recommendedNextAction = !serverReachable
+        ? "Temporal server is unreachable — check that the Temporal service is running"
+        : !workerAlive
+          ? "Temporal worker is not alive — run adv_temporal_restart to restart the worker"
+          : "Temporal is healthy";
 
       return formatToolOutput({
         success: true,
-        projectId,
-        stsl: {
-          initialized: bundle !== null,
-          namespace: bundle?.namespace ?? null,
-          address: bundle?.address ?? null,
-          reconnectCount: health.reconnect_count,
-        },
-        temporalHealth: health,
-        ...(expectedQueue ? { expectedQueue } : {}),
-        ...(queueSnapshot
-          ? {
-              queue_serviceability: queueSnapshot.serviceability,
-              workerDiagnostics: queueSnapshot.workerDiagnostics,
-            }
-          : {}),
-        ...(diagnoseReason ? { reason: diagnoseReason } : {}),
-        searchAttributes,
-        searchAttributesStatus,
-        projectWorkflow,
-        changeWorkflow,
-        peer_sessions,
-        worker_lock_holder_pid,
-        project_workflow_present,
-        ...(worker_lock ? { worker_lock } : {}),
-        ...(last_worker_run_error ? { last_worker_run_error } : {}),
+        serverReachable,
+        workerAlive,
+        stslInitialized: bundle !== null,
+        ...(changeWorkflow ? { changeWorkflow } : {}),
         recommendedNextAction,
       });
     },

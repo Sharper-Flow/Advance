@@ -16,6 +16,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
 
+const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
+
 // Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
 vi.mock("../project-workflow-helper", () => ({
   getBoundedProjectWorkflowAccess: vi.fn(async () => ({
@@ -32,10 +34,26 @@ vi.mock("../project-workflow-helper", () => ({
   })),
 }));
 
-// Mock debug-log to capture audit trail.
-vi.mock("../../utils/debug-log", () => ({
-  appendDebugLog: vi.fn(),
+// Mock temporal/service so fireWorktreeSignal can reach a handle.
+vi.mock("../../temporal/service", () => ({
+  getService: vi.fn(() => ({
+    connection: { close: vi.fn() },
+    client: {
+      workflow: {
+        getHandle: vi.fn(() => ({ signal: workflowSignal })),
+      },
+    },
+  })),
 }));
+
+// Mock debug-log to capture audit trail.
+vi.mock("../../utils/debug-log", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../utils/debug-log")>();
+  return {
+    ...actual,
+    appendDebugLog: vi.fn(),
+  };
+});
 
 // Mock hooks module — preserve HookFailedError, replace runHooksWithSafety.
 vi.mock("./hooks", async (importOriginal) => {
@@ -54,6 +72,7 @@ import {
 
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
+import { worktreeDeletedSignal } from "../../temporal/messages";
 
 const isLinux = process.platform === "linux";
 
@@ -194,7 +213,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
   });
 
   it("clean delete succeeds — removes worktree and calls removeSession", async () => {
-    const branch = "feature/clean";
+    const branch = "change/clean";
     const wtPath = addWorktree(repoRoot, branch);
 
     const deps = createMockDeps(repoRoot, wtPath);
@@ -206,13 +225,22 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       path: wtPath,
     });
 
+    expect(workflowSignal).toHaveBeenCalledWith(
+      worktreeDeletedSignal,
+      expect.objectContaining({
+        branch: "change/clean",
+        reason: "integration_complete",
+        deletedAt: expect.any(String),
+      }),
+    );
+
     // Worktree should be gone
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
   });
 
   it("force-with-approval — removes worktree with uncommitted changes and logs audit", async () => {
-    const branch = "feature/force";
+    const branch = "change/force";
     const wtPath = addWorktree(repoRoot, branch);
 
     writeFileSync(join(wtPath, "uncommitted.txt"), "do not lose");
@@ -230,6 +258,15 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(appendDebugLog).toHaveBeenCalledWith(
       "worktree-delete",
       expect.stringContaining("force-removing"),
+    );
+
+    expect(workflowSignal).toHaveBeenCalledWith(
+      worktreeDeletedSignal,
+      expect.objectContaining({
+        branch: "change/force",
+        reason: "force_delete",
+        deletedAt: expect.any(String),
+      }),
     );
 
     // Worktree should be gone

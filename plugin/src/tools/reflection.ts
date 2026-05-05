@@ -17,6 +17,10 @@ import { GATE_ORDER } from "../types";
 import { computePerGateDurations, classifyTier } from "./investment";
 import { atomicWriteFile } from "../utils/fs";
 import { appendDebugLog } from "../utils/debug-log";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { fireSignal, getChangeHandle } from "./_adapters";
+import { reflectionRecordedSignal } from "../temporal/messages";
 
 // =============================================================================
 // Secrets Sanitization
@@ -562,6 +566,26 @@ export const reflectionTools = {
 
       // Best-effort: write human-readable markdown to archive dir
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
+
+      // Signal-driven: notify change workflow that reflection was recorded
+      try {
+        const bundle = getService();
+        if (bundle) {
+          const projectId = await getProjectId(store.paths.root);
+          if (projectId) {
+            const handle = getChangeHandle(bundle.client, projectId, change.id);
+            await fireSignal(handle, reflectionRecordedSignal, {
+              report: persisted,
+              recordedAt: new Date().toISOString(),
+            });
+          }
+        }
+      } catch (err) {
+        appendDebugLog(
+          "reflection",
+          `reflectionRecordedSignal failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
 
       return formatToolOutput({
         reflection: persisted,

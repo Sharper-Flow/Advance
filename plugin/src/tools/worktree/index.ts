@@ -89,6 +89,12 @@ import {
   getExternalRoot,
   getWorktreeBase,
 } from "../../utils/project-id";
+import { getService } from "../../temporal/service";
+import { fireSignal, getChangeHandle } from "../_adapters";
+import {
+  worktreeCreatedSignal,
+  worktreeDeletedSignal,
+} from "../../temporal/messages";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -98,6 +104,28 @@ const DB_RETRY_DELAY_MS = 100;
 
 /** Maximum depth to traverse session parent chain */
 const MAX_SESSION_CHAIN_DEPTH = 10;
+
+async function fireWorktreeSignal(
+  projectDir: string,
+  changeId: string | undefined,
+  signal: unknown,
+  payload: unknown,
+): Promise<void> {
+  if (!changeId) return;
+  try {
+    const bundle = getService();
+    if (!bundle) return;
+    const projectId = await getProjectIdRaw(projectDir);
+    if (!projectId) return;
+    const handle = getChangeHandle(bundle.client, projectId, changeId);
+    await fireSignal(handle, signal, payload);
+  } catch (err) {
+    appendDebugLog(
+      "worktree",
+      `worktree signal failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
 
 /** Automatic pending-delete retry cap; manual worktree_cleanup can retry after remediation. */
 const MAX_PENDING_DELETE_ATTEMPTS = 5;
@@ -975,6 +1003,21 @@ export async function advWorktreeCreate(
       }
     }
 
+    // Signal-driven: notify change workflow that worktree was created
+    const createdChangeId = inferChangeIdFromBranch(branch);
+    await fireWorktreeSignal(
+      repoRoot,
+      createdChangeId ?? undefined,
+      worktreeCreatedSignal,
+      {
+        branch,
+        path: worktreePath,
+        baseRef: resolvedBase,
+        headSha,
+        createdAt: new Date().toISOString(),
+      },
+    );
+
     return {
       ok: true,
       branch,
@@ -1382,6 +1425,19 @@ export async function advWorktreeDelete(
       `[worktree] Skipped empty-parent cleanup for ${worktreePath}: ${String(err)}`,
     );
   }
+
+  // Signal-driven: notify change workflow that worktree was deleted
+  const deletedChangeId = inferChangeIdFromBranch(branch);
+  await fireWorktreeSignal(
+    deps.projectRoot,
+    deletedChangeId ?? undefined,
+    worktreeDeletedSignal,
+    {
+      branch,
+      reason: opts.force ? "force_delete" : "integration_complete",
+      deletedAt: new Date().toISOString(),
+    },
+  );
 
   // 8. Return success
   return { ok: true as const, branch, path: worktreePath };

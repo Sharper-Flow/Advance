@@ -5,7 +5,7 @@
  * unlock, override, run. Uses temp directories for isolation.
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "path";
 import { mkdir, mkdtemp, rm, writeFile, access } from "fs/promises";
 import { existsSync } from "fs";
@@ -13,6 +13,41 @@ import { tmpdir } from "os";
 
 import { conformanceTools } from "./conformance";
 import { loadConformanceState } from "../storage/conformance";
+
+const mocks = vi.hoisted(() => {
+  const signal = vi.fn(async () => {});
+  return {
+    signal,
+    getService: vi.fn(() => ({
+      connection: { close: vi.fn(async () => {}) },
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => ({ signal })),
+        },
+      },
+    })),
+  };
+});
+
+vi.mock("../temporal/service", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/service")>(
+    "../temporal/service",
+  );
+  return {
+    ...actual,
+    getService: mocks.getService,
+  };
+});
+
+vi.mock("../utils/project-id", async () => {
+  const actual = await vi.importActual<typeof import("../utils/project-id")>(
+    "../utils/project-id",
+  );
+  return {
+    ...actual,
+    getProjectId: vi.fn(async () => "proj123"),
+  };
+});
 
 let tempDir: string;
 let projectDir: string;
@@ -24,6 +59,7 @@ beforeEach(async () => {
   externalRoot = join(tempDir, "external");
   await mkdir(projectDir, { recursive: true });
   await mkdir(externalRoot, { recursive: true });
+  vi.clearAllMocks();
 });
 
 afterEach(async () => {
@@ -150,7 +186,7 @@ describe("adv_conformance action: init", () => {
 });
 
 describe("adv_conformance action: lock", () => {
-  test("locks an existing spec entry", async () => {
+  test("locks an existing spec entry and fires conformanceLockedSignal", async () => {
     await tool.execute({ action: "init" }, projectDir, externalRoot);
     // Seed a spec entry
     const state = await loadConformanceState(externalRoot, projectDir);
@@ -178,6 +214,14 @@ describe("adv_conformance action: lock", () => {
     expect(updated.specs["my-spec"]?.locked).toBe(true);
     expect(updated.specs["my-spec"]?.locked_at_archive).toBe("myChange");
     expect(typeof updated.specs["my-spec"]?.locked_at).toBe("string");
+
+    // Signal-driven: conformanceLockedSignal fired
+    expect(mocks.signal).toHaveBeenCalledTimes(1);
+    const signalCall = mocks.signal.mock.calls[0];
+    expect(signalCall[0].name).toBe("adv.change.conformanceLocked");
+    expect(signalCall[1]).toMatchObject({
+      specs: ["my-spec"],
+    });
   });
 
   test("rejects lock on missing spec", async () => {
@@ -194,6 +238,7 @@ describe("adv_conformance action: lock", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toMatch(/spec/i);
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 });
 
@@ -230,11 +275,54 @@ describe("adv_conformance action: unlock", () => {
     expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
     expect(updated.specs["my-spec"]?.overrides[0]?.user).toBe("jrede");
     expect(updated.specs["my-spec"]?.overrides[0]?.reason).toMatch(/amend/);
+    // No unlock signal in current set — stays local
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 });
 
 describe("adv_conformance action: override", () => {
-  test("records an override entry without changing lock state", async () => {
+  test("records an override entry and fires conformanceOverriddenSignal when changeId is known", async () => {
+    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    const state = await loadConformanceState(externalRoot, projectDir);
+    state.specs["my-spec"] = {
+      conformance_required: true,
+      locked: true,
+      locked_at_archive: "originalChange",
+      overrides: [],
+    };
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(state),
+    );
+    const result = await tool.execute(
+      {
+        action: "override",
+        spec: "my-spec",
+        user: "jrede",
+        reason: "CI cluster outage 2026-05-15",
+        re_verify_deadline: "2026-05-22T00:00:00Z",
+      },
+      projectDir,
+      externalRoot,
+    );
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    const updated = await loadConformanceState(externalRoot, projectDir);
+    expect(updated.specs["my-spec"]?.locked).toBe(true); // unchanged
+    expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
+    expect(updated.specs["my-spec"]?.overrides[0]?.reason).toMatch(/outage/);
+
+    // Signal-driven: conformanceOverriddenSignal fired to the change that locked the spec
+    expect(mocks.signal).toHaveBeenCalledTimes(1);
+    const signalCall = mocks.signal.mock.calls[0];
+    expect(signalCall[0].name).toBe("adv.change.conformanceOverridden");
+    expect(signalCall[1]).toMatchObject({
+      user: "jrede",
+      reason: "CI cluster outage 2026-05-15",
+    });
+  });
+
+  test("records override without signal when locked_at_archive is absent", async () => {
     await tool.execute({ action: "init" }, projectDir, externalRoot);
     const state = await loadConformanceState(externalRoot, projectDir);
     state.specs["my-spec"] = {
@@ -259,10 +347,7 @@ describe("adv_conformance action: override", () => {
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    const updated = await loadConformanceState(externalRoot, projectDir);
-    expect(updated.specs["my-spec"]?.locked).toBe(true); // unchanged
-    expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
-    expect(updated.specs["my-spec"]?.overrides[0]?.reason).toMatch(/outage/);
+    expect(mocks.signal).not.toHaveBeenCalled();
   });
 
   test("rejects override missing required audit fields", async () => {
@@ -284,7 +369,7 @@ describe("adv_conformance action: override", () => {
 });
 
 describe("adv_conformance action: run", () => {
-  test("returns DRIFT verdict when CI artifact reports failed AC labels", async () => {
+  test("returns DRIFT verdict and fires conformanceVerdictSignal when changeId is known", async () => {
     await tool.execute({ action: "init" }, projectDir, externalRoot);
     await seedRequiredSpec();
     // Seed a CI artifact at the documented path
@@ -298,6 +383,14 @@ describe("adv_conformance action: run", () => {
         ],
       }),
     );
+    // Set locked_at_archive so signal routing works
+    const preState = await loadConformanceState(externalRoot, projectDir);
+    preState.specs["advance-workflow"].locked_at_archive = "testChange";
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(preState),
+    );
+
     const result = await tool.execute(
       {
         action: "run",
@@ -312,6 +405,17 @@ describe("adv_conformance action: run", () => {
     expect(parsed.failed).toHaveLength(1);
     expect(parsed.failed[0].rq_id).toBe("rq-confLock01");
     expect(typeof parsed.run_id).toBe("string");
+
+    // Signal-driven: conformanceVerdictSignal fired
+    expect(mocks.signal).toHaveBeenCalledTimes(1);
+    const signalCall = mocks.signal.mock.calls[0];
+    expect(signalCall[0].name).toBe("adv.change.conformanceVerdict");
+    expect(signalCall[1]).toMatchObject({
+      verdict: "DRIFT",
+      failed: [
+        { rq_id: "rq-confLock01", summary: "lock state did not persist" },
+      ],
+    });
   });
 
   test("returns PASS verdict when artifact has empty failed array", async () => {
