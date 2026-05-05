@@ -1,5 +1,6 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
   CHANGE_WORKFLOW_UPDATE_NAMES,
@@ -624,159 +625,179 @@ export async function changeWorkflow(
   wf.setHandler(changeTaskQuery, (taskId: string) =>
     getTaskFromChangeState(state, taskId),
   );
+
+  const signalMutation = <Payload>(
+    signalName: string,
+    handler: (payload: Payload) => ChangeWorkflowState,
+  ): ((payload: Payload) => void) =>
+    safeUpdateHandler(signalName, (payload: Payload) => {
+      handler(payload);
+      if (input.searchAttributesEnabled !== false) {
+        try {
+          applyAndUpsertSearchAttributes(state);
+        } catch (saErr) {
+          wf.log.warn("search-attribute-upsert-failed", {
+            op: `${signalName}Signal`,
+            changeId: state.changeId,
+            error: saErr instanceof Error ? saErr.message : String(saErr),
+          });
+        }
+      }
+    });
+
   wf.setHandler(
     proposalUpdatedSignal,
-    safeUpdateHandler("proposalUpdated", (payload) =>
+    signalMutation("proposalUpdated", (payload) =>
       applyProposalUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(
     problemStatementUpdatedSignal,
-    safeUpdateHandler("problemStatementUpdated", (payload) =>
+    signalMutation("problemStatementUpdated", (payload) =>
       applyProblemStatementUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(
     agreementUpdatedSignal,
-    safeUpdateHandler("agreementUpdated", (payload) =>
+    signalMutation("agreementUpdated", (payload) =>
       applyAgreementUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(
     designUpdatedSignal,
-    safeUpdateHandler("designUpdated", (payload) =>
+    signalMutation("designUpdated", (payload) =>
       applyDesignUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(
     acceptanceCriteriaSetSignal,
-    safeUpdateHandler("acceptanceCriteriaSet", (payload) =>
+    signalMutation("acceptanceCriteriaSet", (payload) =>
       applyAcceptanceCriteriaSetToState(state, payload),
     ),
   );
   wf.setHandler(
     taskAddedSignal,
-    safeUpdateHandler("taskAdded", (payload) =>
+    signalMutation("taskAdded", (payload) =>
       applyTaskAddedToState(state, payload),
     ),
   );
   wf.setHandler(
     taskUpdatedSignal,
-    safeUpdateHandler("taskUpdated", (payload) =>
+    signalMutation("taskUpdated", (payload) =>
       applyTaskUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(
     taskRemovedSignal,
-    safeUpdateHandler("taskRemoved", (payload) =>
+    signalMutation("taskRemoved", (payload) =>
       applyTaskRemovedToState(state, payload),
     ),
   );
   wf.setHandler(
     taskAssignedSignal,
-    safeUpdateHandler("taskAssigned", (payload) =>
+    signalMutation("taskAssigned", (payload) =>
       applyTaskAssignedToState(state, payload),
     ),
   );
   wf.setHandler(
     taskCompletedSignal,
-    safeUpdateHandler("taskCompleted", (payload) =>
+    signalMutation("taskCompleted", (payload) =>
       applyTaskCompletedToState(state, payload),
     ),
   );
   wf.setHandler(
     taskBlockedSignal,
-    safeUpdateHandler("taskBlocked", (payload) =>
+    signalMutation("taskBlocked", (payload) =>
       applyTaskBlockedToState(state, payload),
     ),
   );
   wf.setHandler(
     taskCancelledSignal,
-    safeUpdateHandler("taskCancelled", (payload) =>
+    signalMutation("taskCancelled", (payload) =>
       applyTaskCancelledToState(state, payload),
     ),
   );
   wf.setHandler(
     gateInProgressSignal,
-    safeUpdateHandler("gateInProgress", (payload) =>
+    signalMutation("gateInProgress", (payload) =>
       applyGateInProgressToState(state, payload),
     ),
   );
   wf.setHandler(
     gateAwaitingApprovalSignal,
-    safeUpdateHandler("gateAwaitingApproval", (payload) =>
+    signalMutation("gateAwaitingApproval", (payload) =>
       applyGateAwaitingApprovalToState(state, payload),
     ),
   );
   wf.setHandler(
     gateStuckSignal,
-    safeUpdateHandler("gateStuck", (payload) =>
+    signalMutation("gateStuck", (payload) =>
       applyGateStuckToState(state, payload),
     ),
   );
   wf.setHandler(
     gateCompletedSignal,
-    safeUpdateHandler("gateCompleted", (payload) =>
+    signalMutation("gateCompleted", (payload) =>
       applyGateCompletedToState(state, payload),
     ),
   );
   wf.setHandler(
     gateReenteredSignal,
-    safeUpdateHandler("gateReentered", (payload) =>
+    signalMutation("gateReentered", (payload) =>
       applyGateReenteredToState(state, payload),
     ),
   );
   wf.setHandler(
     wisdomAddedSignal,
-    safeUpdateHandler("wisdomAdded", (payload) =>
+    signalMutation("wisdomAdded", (payload) =>
       applyWisdomAddedToState(state, payload),
     ),
   );
   wf.setHandler(
     reflectionRecordedSignal,
-    safeUpdateHandler("reflectionRecorded", (payload) =>
+    signalMutation("reflectionRecorded", (payload) =>
       applyReflectionRecordedToState(state, payload),
     ),
   );
   wf.setHandler(
     worktreeCreatedSignal,
-    safeUpdateHandler("worktreeCreated", (payload) =>
+    signalMutation("worktreeCreated", (payload) =>
       applyWorktreeCreatedToState(state, payload),
     ),
   );
   wf.setHandler(
     worktreeDeletedSignal,
-    safeUpdateHandler("worktreeDeleted", (payload) =>
+    signalMutation("worktreeDeleted", (payload) =>
       applyWorktreeDeletedToState(state, payload),
     ),
   );
   wf.setHandler(
     conformanceLockedSignal,
-    safeUpdateHandler("conformanceLocked", (payload) =>
+    signalMutation("conformanceLocked", (payload) =>
       applyConformanceLockedToState(state, payload),
     ),
   );
   wf.setHandler(
     conformanceVerdictSignal,
-    safeUpdateHandler("conformanceVerdict", (payload) =>
+    signalMutation("conformanceVerdict", (payload) =>
       applyConformanceVerdictToState(state, payload),
     ),
   );
   wf.setHandler(
     conformanceOverriddenSignal,
-    safeUpdateHandler("conformanceOverridden", (payload) =>
+    signalMutation("conformanceOverridden", (payload) =>
       applyConformanceOverriddenToState(state, payload),
     ),
   );
   wf.setHandler(
     archiveRequestedSignal,
-    safeUpdateHandler("archiveRequested", (payload) =>
+    signalMutation("archiveRequested", (payload) =>
       applyArchiveRequestedToState(state, payload),
     ),
   );
   wf.setHandler(
     changeCancelledSignal,
-    safeUpdateHandler("changeCancelled", (payload) =>
+    signalMutation("changeCancelled", (payload) =>
       applyChangeCancelledToState(state, payload),
     ),
   );
