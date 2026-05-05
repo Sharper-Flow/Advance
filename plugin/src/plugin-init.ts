@@ -19,10 +19,6 @@ import {
   createInProcessWorker,
   type InProcessWorker,
 } from "./temporal/in-process-worker";
-import {
-  startHeartbeatWriter,
-  type HeartbeatWriter,
-} from "./temporal/heartbeat-writer";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   ensureTemporalRuntime,
@@ -36,7 +32,6 @@ import {
 } from "./temporal/health-monitor";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 import { cleanup as cleanupTerminal } from "./events";
 import {
@@ -45,16 +40,6 @@ import {
   createLogger,
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
-import {
-  acquireWorkerLock,
-  HEARTBEAT_INTERVAL_MS,
-  isV2Lock,
-  readLockContents,
-  releaseWorkerLock,
-  STALE_HEARTBEAT_MS,
-  WORKER_LOCK_FILENAME,
-  type WorkerLockReclaimAudit,
-} from "./temporal/worker-lock";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 import { ensureProjectWorkflowStarted } from "./temporal/migration";
 
@@ -144,27 +129,11 @@ export async function tryInitStore(
         supported: workerProbe.supported,
       });
 
-      // C2 / rq-workerSingleton01: file-lock coordination so only one
-      // plugin instance per project_id spawns a worker. Subsequent
-      // instances participate as Temporal clients only.
-      // ADV_FORCE_IN_PROCESS_WORKER=1 bypasses the singleton (legacy
-      // per-session behavior); used by tests and as the rollback path.
-      const forceInProcess = process.env.ADV_FORCE_IN_PROCESS_WORKER === "1";
+      // Signal-driven workflows allow multiple local workers to share the
+      // project queue. No peer lock / heartbeat coordination is needed here.
       const projectStateDir = externalRoot ?? getExternalRoot(projectId);
       const expectedQueue = buildProjectTaskQueue(projectId);
-      const lock = forceInProcess
-        ? null
-        : await acquireWorkerLock(projectStateDir);
-      const shouldSpawnWorker = forceInProcess || lock?.owned === true;
-
-      if (lock && !lock.owned) {
-        debugLog(
-          `worker.lock held by pid=${lock.ownerPid} — skipping worker spawn, joining as Temporal client only`,
-        );
-        profilePluginInit("worker_singleton_yield", {
-          owner_pid: lock.ownerPid,
-        });
-      }
+      const shouldSpawnWorker = true;
 
       if (shouldSpawnWorker) {
         let spawnedWorker: InProcessWorker | undefined;
@@ -231,21 +200,6 @@ export async function tryInitStore(
       });
       if (worker) {
         registerInProcessTemporalWorker(worker);
-        if (lock?.owned === true && !forceInProcess) {
-          const heartbeatWriter = startHeartbeatWriter({
-            projectStateDir,
-            workerId: lock.workerId,
-            expectedQueue,
-            intervalMs: HEARTBEAT_INTERVAL_MS,
-            isLocalWorkerServiceable: () =>
-              worker ? isWorkerServingQueue(worker, expectedQueue) : false,
-          });
-          registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
-          // Register lock release on worker shutdown — release happens
-          // before worker.shutdown() so a fresh start can reclaim if
-          // shutdown stalls.
-          registerOwnedWorkerLock(projectStateDir);
-        }
       }
     }
 
@@ -336,43 +290,7 @@ export async function tryInitStore(
 
 const inProcessTemporalWorkers = new Set<InProcessWorker>();
 
-/**
- * Project state directories whose worker.lock is owned by THIS plugin
- * instance. Released during shutdown drain so subsequent plugin starts
- * can reclaim. Stale-PID detection on next start is the recovery path
- * if release is skipped (hard exit, etc).
- */
-const ownedWorkerLockDirs = new Set<string>();
-const ownedWorkerHeartbeatWriters = new Map<string, HeartbeatWriter>();
 const exhaustedWorkerDirs = new Set<string>();
-
-export function registerOwnedWorkerLock(projectStateDir: string): void {
-  exhaustedWorkerDirs.delete(projectStateDir);
-  ownedWorkerLockDirs.add(projectStateDir);
-}
-
-export function registerOwnedWorkerHeartbeatWriter(
-  projectStateDir: string,
-  writer: HeartbeatWriter,
-): void {
-  exhaustedWorkerDirs.delete(projectStateDir);
-  ownedWorkerHeartbeatWriters.set(projectStateDir, writer);
-}
-
-async function stopOwnedWorkerHeartbeatWriter(
-  projectStateDir: string,
-): Promise<void> {
-  const writer = ownedWorkerHeartbeatWriters.get(projectStateDir);
-  if (!writer) return;
-  ownedWorkerHeartbeatWriters.delete(projectStateDir);
-  try {
-    await writer.stop();
-  } catch (e) {
-    debugLog(
-      `Error stopping worker heartbeat writer in ${projectStateDir}: ${e}`,
-    );
-  }
-}
 
 async function handleWorkerExhausted(
   projectStateDir: string,
@@ -380,19 +298,6 @@ async function handleWorkerExhausted(
 ): Promise<void> {
   if (exhaustedWorkerDirs.has(projectStateDir)) return;
   exhaustedWorkerDirs.add(projectStateDir);
-
-  await stopOwnedWorkerHeartbeatWriter(projectStateDir);
-
-  const ownedLock = ownedWorkerLockDirs.delete(projectStateDir);
-  if (ownedLock) {
-    try {
-      await releaseWorkerLock(projectStateDir);
-    } catch (e) {
-      debugLog(
-        `Error releasing exhausted worker.lock in ${projectStateDir}: ${e}`,
-      );
-    }
-  }
 
   recordWorkerRunFailure("<all>", new Error("worker exhausted"));
   if (worker) inProcessTemporalWorkers.delete(worker);
@@ -462,21 +367,6 @@ export function getTemporalWorkerDiagnostics(): TemporalWorkerDiagnostics[] {
   });
 }
 
-function isWorkerServingQueue(
-  worker: InProcessWorker,
-  expectedQueue: string,
-): boolean {
-  const failedQueues = new Set(worker.failedQueues ?? []);
-  if (
-    !worker.queues.includes(expectedQueue) ||
-    failedQueues.has(expectedQueue)
-  ) {
-    return false;
-  }
-  const candidate = worker as InProcessWorker & { isAlive?: () => boolean };
-  return typeof candidate.isAlive === "function" ? candidate.isAlive() : true;
-}
-
 export async function ensureProjectTemporalQueue(
   projectId: string,
 ): Promise<void> {
@@ -485,28 +375,12 @@ export async function ensureProjectTemporalQueue(
 
   const workers = [...inProcessTemporalWorkers];
   if (workers.length === 0) {
-    if (await hasFreshPeerWorkerLock(projectId)) return;
     throw new Error(
       `Temporal worker not ready for target project queue ${queue}: no registered worker`,
     );
   }
 
   await Promise.all(workers.map((worker) => worker.registerQueue(queue)));
-}
-
-async function hasFreshPeerWorkerLock(projectId: string): Promise<boolean> {
-  try {
-    const lock = await readLockContents(
-      join(getExternalRoot(projectId), WORKER_LOCK_FILENAME),
-    );
-    if (!lock || !isV2Lock(lock)) return false;
-    const heartbeatMs = Date.parse(lock.last_heartbeat);
-    if (!Number.isFinite(heartbeatMs)) return false;
-    const ageMs = Date.now() - heartbeatMs;
-    return ageMs >= 0 && ageMs < STALE_HEARTBEAT_MS;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -543,29 +417,6 @@ export function getTemporalWorkerAliveness(): boolean {
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
-  // Stop heartbeat writers BEFORE releasing worker.lock. Otherwise a
-  // timer can fire after release and hit the identity guard with a noisy
-  // rejected heartbeat write. Release still happens before worker shutdown
-  // so a fresh start can reclaim quickly if our shutdown stalls. Release is
-  // best-effort; stale-PID detection on next start is the authoritative
-  // recovery path. (rq-workerSingleton01.3)
-  const heartbeatDirs = [...ownedWorkerHeartbeatWriters.keys()];
-  const lockDirs = [...ownedWorkerLockDirs];
-  ownedWorkerLockDirs.clear();
-  await Promise.all(
-    heartbeatDirs.map(async (dir) => {
-      await stopOwnedWorkerHeartbeatWriter(dir);
-    }),
-  );
-  await Promise.all(
-    lockDirs.map(async (dir) => {
-      try {
-        await releaseWorkerLock(dir);
-      } catch (e) {
-        debugLog(`Error releasing worker.lock in ${dir}: ${e}`);
-      }
-    }),
-  );
   await Promise.all(
     workers.map(async (worker) => {
       try {
@@ -639,7 +490,6 @@ export interface RestartCurrentProjectTemporalWorkerResult {
   projectId: string;
   queues: string[];
   expectedQueue: string;
-  reclaim?: WorkerLockReclaimAudit;
 }
 
 export async function restartCurrentProjectTemporalWorker(
@@ -663,28 +513,6 @@ export async function restartCurrentProjectTemporalWorker(
   await drainInProcessTemporalWorkers();
   const projectStateDir = getExternalRoot(projectId);
   const runtime = await ensureTemporalRuntime(projectId);
-  const lock = await acquireWorkerLock(projectStateDir, {
-    ...(options.approvedLockReclaim
-      ? {
-          approvedLiveLegacyReclaim: {
-            expectedQueue,
-            approvalEvidence: options.approvalEvidence!.trim(),
-          },
-        }
-      : {}),
-  });
-  if (!lock.owned) {
-    throw Object.assign(
-      new Error(
-        `Cannot restart Temporal worker: worker.lock held by pid=${lock.ownerPid}`,
-      ),
-      {
-        code: "WORKER_LOCK_HELD",
-        ownerPid: lock.ownerPid,
-        lockPath: lock.lockPath,
-      },
-    );
-  }
 
   const workerProbe = probeTemporalWorkerRuntime();
   let worker: InProcessWorker | undefined;
@@ -692,50 +520,27 @@ export async function restartCurrentProjectTemporalWorker(
     await handleWorkerExhausted(projectStateDir, worker);
   };
 
-  try {
-    worker = workerProbe.supported
-      ? await createInProcessWorker({
-          address: runtime.address,
-          namespace: runtime.namespace,
-          queues: [expectedQueue],
-          onWorkerExhausted,
-        })
-      : await createOutOfProcessWorker({
-          address: runtime.address,
-          namespace: runtime.namespace,
-          queues: [expectedQueue],
-          workerScript: resolveWorkerScriptPath(),
-          projectId,
-          onWorkerExhausted,
-        });
-    registerInProcessTemporalWorker(worker);
-    const heartbeatWriter = startHeartbeatWriter({
-      projectStateDir,
-      workerId: lock.workerId,
-      expectedQueue,
-      intervalMs: HEARTBEAT_INTERVAL_MS,
-      onWorkerExhausted,
-      isLocalWorkerServiceable: () =>
-        worker ? isWorkerServingQueue(worker, expectedQueue) : false,
-    });
-    registerOwnedWorkerHeartbeatWriter(projectStateDir, heartbeatWriter);
-    registerOwnedWorkerLock(projectStateDir);
-    return {
-      projectId,
-      queues: [...worker.queues],
-      expectedQueue,
-      ...(lock.reclaimed ? { reclaim: lock.reclaimed } : {}),
-    };
-  } catch (err) {
-    try {
-      await releaseWorkerLock(projectStateDir);
-    } catch (releaseErr) {
-      debugLog(
-        `Error releasing worker.lock after restart failure in ${projectStateDir}: ${releaseErr}`,
-      );
-    }
-    throw err;
-  }
+  worker = workerProbe.supported
+    ? await createInProcessWorker({
+        address: runtime.address,
+        namespace: runtime.namespace,
+        queues: [expectedQueue],
+        onWorkerExhausted,
+      })
+    : await createOutOfProcessWorker({
+        address: runtime.address,
+        namespace: runtime.namespace,
+        queues: [expectedQueue],
+        workerScript: resolveWorkerScriptPath(),
+        projectId,
+        onWorkerExhausted,
+      });
+  registerInProcessTemporalWorker(worker);
+  return {
+    projectId,
+    queues: [...worker.queues],
+    expectedQueue,
+  };
 }
 
 export interface ShutdownHandlers {

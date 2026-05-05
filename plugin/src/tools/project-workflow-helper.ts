@@ -20,7 +20,6 @@ import {
   probeTaskQueuePollers,
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
-import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
 import { ensureProjectWorkflowStarted } from "../temporal/migration";
 import { createLogger } from "../utils/debug-log";
 
@@ -385,12 +384,5 @@ function classifySuspectWorkerLock(input: {
     return undefined;
   }
   if (lock.schema_version === 1) return "suspect_live_legacy_lock";
-  if (
-    lock.schema_version === 2 &&
-    (lock.heartbeat_age_ms === null ||
-      lock.heartbeat_age_ms <= STALE_HEARTBEAT_MS)
-  ) {
-    return "suspect_live_unserviceable_lock";
-  }
   return undefined;
 }

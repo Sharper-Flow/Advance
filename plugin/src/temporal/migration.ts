@@ -7,10 +7,6 @@
  *   - `ensureProjectWorkflowStarted` / `ensureChangeWorkflowStarted` are
  *     idempotent: if the target workflow is already running, the existing
  *     handle is returned instead of attempting a duplicate start.
- *   - `migrateProjectState` writes only **terminal** ledger entries
- *     (`status: "done"` on success, `status: "failed"` on error). It does
- *     not emit an intermediate `pending` entry so there is no stale window
- *     to reconcile.
  *   - `reImportChangeState` seeds a ChangeWorkflow from an existing
  *     `Change` payload (typically the legacy JSON backend's view) so a
  *     workflow can resume from historical state.
@@ -28,7 +24,6 @@ import {
   buildProjectWorkflowId,
 } from "./client";
 import type {
-  ArtifactMetadata,
   ChangeWorkflowInput,
   ChangeWorkflowState,
   MigrationLedgerEntry,
@@ -36,20 +31,11 @@ import type {
   ProjectWorkflowInput,
   ProjectWorkflowState,
 } from "./contracts";
-import {
-  changeStateQuery,
-  projectStateQuery,
-  recordMigrationEntryUpdate,
-} from "./messages";
 import { buildTemporalSearchAttributes } from "./observability";
 import { changeWorkflow, projectWorkflow } from "./workflows";
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
-  executeUpdate: (
-    definition: unknown,
-    options: { args?: unknown[] },
-  ) => Promise<unknown>;
 }
 
 export interface WorkflowClientLike {
@@ -116,7 +102,6 @@ export async function ensureChangeWorkflowStarted(
         | "gates"
         | "reentry_history"
         | "artifacts"
-        | "task_runs"
       >
     >;
   },
@@ -134,7 +119,6 @@ export async function ensureChangeWorkflowStarted(
           | "gates"
           | "reentry_history"
           | "artifacts"
-          | "task_runs"
         >
       >;
     },
@@ -168,47 +152,6 @@ export async function ensureChangeWorkflowStarted(
   }
 }
 
-export async function migrateProjectState(
-  client: { workflow: WorkflowClientLike },
-  input: ProjectWorkflowInput & {
-    agenda?: ProjectWorkflowState["agenda"];
-    projectWisdom?: ProjectWisdomEntry[];
-    migrationLedger?: MigrationLedgerEntry[];
-  },
-  ledger: {
-    key: string;
-    source: MigrationLedgerEntry["source"];
-    detail?: string;
-  },
-): Promise<WorkflowHandleLike> {
-  const handle = await ensureProjectWorkflowStarted(client, input);
-  try {
-    const done: MigrationLedgerEntry = {
-      key: ledger.key,
-      source: ledger.source,
-      status: "done",
-      recordedAt: new Date().toISOString(),
-      detail: ledger.detail,
-    };
-    await handle.executeUpdate(recordMigrationEntryUpdate, { args: [done] });
-    return handle;
-  } catch (error) {
-    const failed: MigrationLedgerEntry = {
-      key: ledger.key,
-      source: ledger.source,
-      status: "failed",
-      recordedAt: new Date().toISOString(),
-      detail:
-        ledger.detail ??
-        (error instanceof Error
-          ? error.message
-          : String(error ?? "migration failed")),
-    };
-    await handle.executeUpdate(recordMigrationEntryUpdate, { args: [failed] });
-    throw error;
-  }
-}
-
 export async function reImportChangeState(
   client: { workflow: WorkflowClientLike },
   input: {
@@ -228,11 +171,6 @@ export async function reImportChangeState(
       wisdom: input.change.wisdom,
       gates: input.change.gates,
       reentry_history: input.change.reentry_history,
-      task_runs: (
-        input.change as Change & {
-          task_runs?: ChangeWorkflowState["task_runs"];
-        }
-      ).task_runs,
     },
   });
 }
@@ -246,30 +184,4 @@ export async function rebuildProjectWorkflowState(
   },
 ): Promise<WorkflowHandleLike> {
   return ensureProjectWorkflowStarted(client, input);
-}
-
-export async function reExportChangeArtifacts(
-  client: { workflow: WorkflowClientLike },
-  input: { projectId: string; changeId: string },
-): Promise<
-  Partial<Record<keyof ChangeWorkflowState["artifacts"], ArtifactMetadata>>
-> {
-  const handle = client.workflow.getHandle(
-    buildChangeWorkflowId(input.projectId, input.changeId),
-  );
-  const state = (await handle.query(changeStateQuery)) as Pick<
-    ChangeWorkflowState,
-    "artifacts"
-  >;
-  return state.artifacts ?? {};
-}
-
-export async function loadProjectWorkflowState(
-  client: { workflow: WorkflowClientLike },
-  input: { projectId: string },
-): Promise<ProjectWorkflowState> {
-  const handle = client.workflow.getHandle(
-    buildProjectWorkflowId(input.projectId),
-  );
-  return (await handle.query(projectStateQuery)) as ProjectWorkflowState;
 }

@@ -118,9 +118,7 @@ export interface StatusInput {
 
 export interface WorkerLockHealthInput {
   holder_pid: number;
-  last_heartbeat_at: string | null;
-  heartbeat_age_ms: number | null;
-  schema_version: 1 | 2;
+  schema_version: 1;
 }
 
 export interface WorkerRunErrorInput {
@@ -194,10 +192,7 @@ export function formatWorkerLockHealth(
   lock: WorkerLockHealthInput | null | undefined,
 ): string | undefined {
   if (!lock) return undefined;
-  const heartbeatAge =
-    lock.heartbeat_age_ms === null ? "unknown" : `${lock.heartbeat_age_ms}ms`;
-  const lastHeartbeat = lock.last_heartbeat_at ?? "unknown";
-  return `pid=${lock.holder_pid} v${lock.schema_version} heartbeat=${heartbeatAge} last=${lastHeartbeat}`;
+  return `pid=${lock.holder_pid} v${lock.schema_version}`;
 }
 
 export function formatWorkerRunError(

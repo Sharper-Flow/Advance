@@ -727,7 +727,6 @@ export async function changeWorkflow(
       gates: state.gates,
       reentry_history: state.reentry_history,
       artifacts: state.artifacts,
-      task_runs: state.task_runs,
       fast_follow_of: state.fast_follow_of,
     },
   };

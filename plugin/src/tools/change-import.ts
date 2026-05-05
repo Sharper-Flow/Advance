@@ -158,9 +158,6 @@ async function runImport(
     const projectId = basename(
       activeStore.paths.external ?? activeStore.paths.root,
     );
-    const taskRuns = (
-      change as Change & { task_runs?: ChangeWorkflowState["task_runs"] }
-    ).task_runs;
     await ensureChangeWorkflowStarted(
       {
         workflow: bundle.client.workflow as {
@@ -179,7 +176,6 @@ async function runImport(
           wisdom: change.wisdom ?? [],
           gates: change.gates ?? createDefaultGates(),
           reentry_history: change.reentry_history ?? [],
-          ...(taskRuns ? { task_runs: taskRuns } : {}),
         },
       },
     );

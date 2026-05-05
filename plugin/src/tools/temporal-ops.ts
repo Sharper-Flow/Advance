@@ -25,7 +25,6 @@ import {
   formatWorkerLockHealth,
   formatWorkerRunError,
 } from "../utils/tool-formatters";
-import { STALE_HEARTBEAT_MS } from "../temporal/worker-lock";
 import {
   classifyQueueServiceability,
   probeTaskQueuePollers,
@@ -168,15 +167,6 @@ function recommendTemporalRecovery(input: {
   }
   if (
     !queueServiceable &&
-    !input.health.worker_alive &&
-    input.health.worker_lock?.heartbeat_age_ms !== null &&
-    input.health.worker_lock?.heartbeat_age_ms !== undefined &&
-    input.health.worker_lock.heartbeat_age_ms > STALE_HEARTBEAT_MS
-  ) {
-    return "normal recovery — peer worker spawn pending";
-  }
-  if (
-    !queueServiceable &&
     (!input.health.worker_process_alive || !input.health.worker_alive)
   ) {
     return "run adv_temporal_worker_restart (worker process only); if diagnose is unchanged, inspect stale worker lock/project workflow before retrying";
@@ -271,13 +261,6 @@ function classifySuspectWorkerLock(input: {
     return undefined;
   }
   if (lock.schema_version === 1) return "suspect_live_legacy_lock";
-  if (
-    lock.schema_version === 2 &&
-    (lock.heartbeat_age_ms === null ||
-      lock.heartbeat_age_ms <= STALE_HEARTBEAT_MS)
-  ) {
-    return "suspect_live_unserviceable_lock";
-  }
   return undefined;
 }
 
