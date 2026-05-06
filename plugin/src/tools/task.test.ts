@@ -287,6 +287,35 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
+    test("routes done status to taskCompletedSignal with verification text", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "done",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          notes: "Focused tests passed",
+          implementation_summary: "Implemented signal path",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignal.mock.calls[0];
+      expect(signalCall[2]).toMatchObject({
+        taskId: "tk-abc",
+        verification: "Focused tests passed",
+        summary: "Implemented signal path",
+      });
+      expect(signalCall[2]).not.toHaveProperty("partial");
+    });
+
     test("rejects direct cancellation", async () => {
       const store = createMockStore();
 

@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => {
     getService: vi.fn(() => temporalBundle),
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
+    querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
   };
 });
@@ -48,6 +49,7 @@ vi.mock("../utils/project-id", async () => {
 
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
+  querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
 
@@ -114,6 +116,7 @@ function createMockStore(
 describe("gate tools — signal-driven lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.querySignal.mockReset();
   });
 
   afterEach(() => {
@@ -123,6 +126,15 @@ describe("gate tools — signal-driven lifecycle", () => {
   describe("adv_gate_complete", () => {
     test("fires gateCompletedSignal after sequence validation passes", async () => {
       const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      });
 
       const result = await gateTools.adv_gate_complete.execute(
         {
@@ -148,6 +160,43 @@ describe("gate tools — signal-driven lifecycle", () => {
         gateId: "planning",
         completedBy: "agent",
       });
+    });
+
+    test("queries workflow gate state before firing completion signal", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "pending" },
+          discovery: { status: "pending" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        } as import("../types").Gates,
+      });
+      mocks.querySignal.mockResolvedValue({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "design",
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.querySignal).toHaveBeenCalled();
+      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
     });
 
     test("blocks planning gate without userApproved: true", async () => {
@@ -232,6 +281,7 @@ describe("gate tools — signal-driven lifecycle", () => {
         release: { status: "pending" },
       } as import("../types").Gates;
       const store = createMockStore({ gates });
+      mocks.querySignal.mockResolvedValue(gates);
 
       const result = await gateTools.adv_gate_complete.execute(
         {
@@ -261,18 +311,19 @@ describe("gate tools — signal-driven lifecycle", () => {
       const store = createMockStore({
         gates,
         change: {
-          tasks: [
-            {
-              id: "tk-1",
-              title: "Incomplete task",
-              status: "in_progress",
-              priority: 0,
-              deps: [],
-              created_at: "2026-01-01T00:00:00Z",
-            },
-          ],
+          tasks: [],
         },
       });
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce([
+        {
+          id: "tk-1",
+          title: "Incomplete task",
+          status: "in_progress",
+          priority: 0,
+          deps: [],
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ]);
 
       const result = await gateTools.adv_gate_complete.execute(
         {

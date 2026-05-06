@@ -10,6 +10,7 @@ import type { Store } from "../storage/store";
 import {
   type GateId,
   type Gates,
+  type Task,
   type FeatureFlags,
   type Change,
   GATE_ORDER,
@@ -32,8 +33,12 @@ import {
 } from "./target-project";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, getChangeHandle } from "./_adapters";
-import { gateCompletedSignal } from "../temporal/messages";
+import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
+import {
+  changeTasksQuery,
+  gateCompletedSignal,
+  getGateStatusQuery,
+} from "../temporal/messages";
 
 function getContextMismatchFields(error: Error): {
   owningProjectId?: unknown;
@@ -283,7 +288,26 @@ export const gateTools = {
             }
 
             // Get or create gates
-            const gates = result.data.gates ?? createDefaultGates();
+            let gates = result.data.gates ?? createDefaultGates();
+            const bundle = getService();
+            const projectId = bundle
+              ? await getProjectId(activeStore.paths.root)
+              : null;
+            if (bundle && projectId) {
+              const handle = getChangeHandle(
+                bundle.client,
+                projectId,
+                changeId,
+              );
+              const queriedGates = await querySignal<Gates>(
+                handle,
+                getGateStatusQuery,
+                undefined,
+              );
+              if (queriedGates && typeof queriedGates === "object") {
+                gates = queriedGates;
+              }
+            }
             const incomplete = getIncompleteGates(gates);
             const canArchive = allGatesSatisfied(gates);
             const nextGate = incomplete.length > 0 ? incomplete[0] : null;
@@ -420,7 +444,33 @@ export const gateTools = {
           throw error;
         }
 
-        const gates: Gates = change.gates ?? createDefaultGates();
+        let gates: Gates = change.gates ?? createDefaultGates();
+
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({
+            error: "Temporal service not available",
+            changeId,
+            gateId,
+          });
+        }
+        const projectId = await getProjectId(activeStore.paths.root);
+        if (!projectId) {
+          return formatToolOutput({
+            error: "Could not resolve project ID",
+            changeId,
+            gateId,
+          });
+        }
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const queriedGates = await querySignal<Gates>(
+          handle,
+          getGateStatusQuery,
+          undefined,
+        );
+        if (queriedGates && typeof queriedGates === "object") {
+          gates = queriedGates;
+        }
 
         // Check sequence enforcement
         if (!canCompleteGate(gates, gateId)) {
@@ -452,7 +502,16 @@ export const gateTools = {
         }
 
         if (gateId === "execution") {
-          const incompleteTasks = change.tasks.filter(
+          const workflowTasks = await querySignal<Task[]>(
+            handle,
+            changeTasksQuery,
+            undefined,
+            undefined,
+          );
+          const tasks = Array.isArray(workflowTasks)
+            ? workflowTasks
+            : change.tasks;
+          const incompleteTasks = tasks.filter(
             (t) => t.status !== "done" && t.status !== "cancelled",
           );
           if (incompleteTasks.length > 0) {
@@ -469,23 +528,6 @@ export const gateTools = {
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after sequence/task checks pass
-        const bundle = getService();
-        if (!bundle) {
-          return formatToolOutput({
-            error: "Temporal service not available",
-            changeId,
-            gateId,
-          });
-        }
-        const projectId = await getProjectId(activeStore.paths.root);
-        if (!projectId) {
-          return formatToolOutput({
-            error: "Could not resolve project ID",
-            changeId,
-            gateId,
-          });
-        }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
         await fireSignal(handle, gateCompletedSignal, {
           gateId,
           completedBy,

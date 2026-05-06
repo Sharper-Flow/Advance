@@ -336,6 +336,18 @@ export const taskTools = {
             attempts: args.error_recovery?.attempts ?? [],
             blockedAt: now,
           });
+        } else if (args.status === "done") {
+          await fireSignal(handle, taskCompletedSignal, {
+            taskId: args.taskId,
+            verification:
+              args.notes ??
+              args.implementation_summary ??
+              "Task marked done via adv_task_update",
+            summary:
+              args.implementation_summary ?? args.notes ?? "Task completed",
+            filesTouched: [],
+            completedAt: now,
+          });
         } else {
           await fireSignal(handle, taskUpdatedSignal, {
             taskId: args.taskId,
