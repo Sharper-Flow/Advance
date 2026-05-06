@@ -216,6 +216,10 @@ Post-approval: whitelist or exact shown continuation command begins next phase i
 
 No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questions are permitted.
 
+### MCP Tool Name Contract
+
+MCP callable names are exact schema identifiers. Never normalize, split, or recase them. `gh_grep_searchGitHub`, `context7_resolve-library-id`, and `kagi_kagi_search_fetch` are valid callable names; `gh_grep_search_git_hub`, `context7_resolve_library_id`, and `kagi_search_fetch` are not. If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+
 ### Completion Bar
 
 For finish/ship/resume work, “done” means requested end-state verified. Red CI/test means inspect, classify, remediate, rerun. TDD Protocol evidence remains required per tasks.

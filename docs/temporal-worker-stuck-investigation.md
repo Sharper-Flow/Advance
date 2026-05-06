@@ -102,7 +102,7 @@ The key distinction: lock/process liveness is not queue serviceability.
   `git worktree add`; missing paths run `git worktree prune` before fresh create.
 - `adv_task_checkpoint` surfaces clean-tree and dirty-commit ledger failures as
   `checkpointRecorded:false` with remediation. `/adv-apply` must run
-  `adv_task_run_status` and recover checkpoint ledger state before marking done.
+  `adv_task_show` and recover checkpoint ledger state before marking done.
 
 ## Recovery Ladder
 

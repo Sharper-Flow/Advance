@@ -226,7 +226,7 @@
     {
       "id": "rq-TDD008path",
       "title": "Primary TDD Evidence Path for Inline Work",
-      "body": "For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. adv_task_evidence remains available as fallback only for externally obtained or manually captured evidence that did not flow through adv_run_test.",
+      "body": "For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. No separate fallback evidence tool is part of the live task surface; externally obtained evidence is folded into task verification text when needed.",
       "priority": "must",
       "tags": ["tdd", "inline", "evidence", "workflow"],
       "scenarios": [

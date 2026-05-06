@@ -132,7 +132,7 @@ describe("project workflow state", () => {
       );
     });
 
-    it("includes the run-adv_workflow_repair hint", () => {
+    it("includes the run-adv_temporal_diagnose hint", () => {
       try {
         assertProjectWorkflowReachable(null);
         throw new Error("expected throw");
@@ -140,8 +140,8 @@ describe("project workflow state", () => {
         expect(err).toBeInstanceOf(WorkflowNotReadyError);
         const e = err as WorkflowNotReadyError;
         expect(e.code).toBe("WORKFLOW_NOT_READY");
-        expect(e.hint).toBe("run adv_workflow_repair");
-        expect(e.message).toContain("adv_workflow_repair");
+        expect(e.hint).toBe("run adv_temporal_diagnose");
+        expect(e.message).toContain("adv_temporal_diagnose");
       }
     });
 

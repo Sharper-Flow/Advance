@@ -56,7 +56,6 @@ const COMMAND_EMOJIS: Record<string, string> = {
   adv_agenda_complete: "✅",
   adv_agenda_cancel: "❌",
   adv_agenda_prioritize: "⬆️",
-  adv_agenda_evidence: "🧪",
 };
 
 const DEFAULT_EMOJI = "🔧";

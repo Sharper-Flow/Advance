@@ -8,4 +8,5 @@
 - Voice: user-facing prose terse and direct; keep JSON/code/commits/safety text normal — see `docs/command-voice-standard.md` § Voice Contract
 - Canonical TDD path here is documentation, not enforcement: use editing tools for test-file changes and `adv_run_test` for red/green; enforcement lives in plugin/runtime + spec.
 - Task checkpoint: before marking a task `done`, call `adv_task_checkpoint` to create a git commit of the working tree. Cancellation path also checkpoints (`mode:'cancel'`).
+- Tool names are exact schema identifiers. Never normalize MCP names: use `gh_grep_searchGitHub`, not `gh_grep_search_git_hub`; use `context7_resolve-library-id`, not `context7_resolve_library_id`.
 <!-- ADV_SYNC:END build -->

@@ -212,7 +212,7 @@ invocation, which is slower and less specialized.
 | Agent       | Used by                                                                       | What it does                                                  |
 | ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                           |
-| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, grep.app)             |
+| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, `gh_grep_searchGitHub`) |
 | `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                      |
 | `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                     |
 | `adv-engineer` | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes      | Produces structured ENGINEER_REPORT payload for ADV ingestion |
@@ -225,14 +225,16 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server     | Tool prefix   | Used by                                   | Degradation if missing                                                      |
-| -------------- | ------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*`     | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl      | `firecrawl_*` | `plan`, `build`                           | Web scraping unavailable; use `webfetch` instead                            |
-| Context7       | `context7_*`  | `adv-researcher`                          | Library documentation lookup unavailable                                    |
-| Kagi           | `kagi_*`      | `adv-researcher`                          | Web search unavailable                                                      |
-| Grep by Vercel | `gh_grep_*`   | `adv-researcher`                          | Cross-repo code example search unavailable                                  |
-| arXiv MCP      | `arxiv-mcp_*` | `adv-researcher`                          | Academic paper search unavailable                                           |
+| MCP server     | Allowlist prefix / callable examples                                                                 | Used by                                   | Degradation if missing                                                      |
+| -------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| lgrep          | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`           | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`                  | `plan`, `build`                           | Web scraping unavailable; use `webfetch` instead                            |
+| Context7       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                        | `adv-researcher`                          | Library documentation lookup unavailable                                    |
+| Kagi           | `kagi_*` grants; call `kagi_kagi_search_fetch`, `kagi_kagi_summarizer`                                | `adv-researcher`                          | Web search unavailable                                                      |
+| Grep by Vercel | `gh_grep_*` grants; call `gh_grep_searchGitHub`                                                       | `adv-researcher`                          | Cross-repo code example search unavailable                                  |
+| arXiv MCP      | `arxiv-mcp_*` grants; call exact names from active schema                                             | `adv-researcher`                          | Academic paper search unavailable                                           |
+
+Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `gh_grep_searchGitHub` to `gh_grep_search_git_hub`.
 
 Configure these MCP servers in your `opencode.json` `mcp` section per each
 server's documentation. The ADV sync script does not install or validate
@@ -933,7 +935,7 @@ If you customized your global `plan.md` or `build.md`, the sync script only patc
 **Note:** `adv-engineer.md` is synced by this repo as a repo-owned full-file global agent (not overlay-managed). Any local customization in `~/.config/opencode/agents/adv-engineer.md` will be overwritten on each sync. If you need custom behavior, extend via your own agent or overlay instead.
 
 - `plan.md` `tools:` — `webfetch: true`, `firecrawl_firecrawl_scrape: true`, `firecrawl_firecrawl_crawl: true`, `firecrawl_firecrawl_check_crawl_status: true`
-- `build.md` `tools:` — `adv_task_update: true`, `adv_task_evidence: true`, `adv_task_tdd: true`, `adv_run_test: true`, `adv_wisdom_add: true`, plus `webfetch: true` and `firecrawl_*: true`
+- `build.md` `tools:` — `adv_task_update: true`, `adv_run_test: true`, `adv_task_checkpoint: true`, `adv_wisdom_add: true`, plus `webfetch: true` and exact Firecrawl grants (`firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`, `firecrawl_firecrawl_check_crawl_status`)
 
 ### Temporal Worker Errors
 
@@ -1169,9 +1171,8 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_add`            | Add a new task to a change                                    |
 | `adv_task_update`         | Update task status (pending/in_progress/done)                 |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
-| `adv_task_evidence`       | Attach fallback/manual TDD evidence when `adv_run_test` cannot run the command directly |
-| `adv_task_tdd`            | Set or inspect TDD state for a task (`action=set              | status`) |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
+| `adv_task_checkpoint`     | Create task checkpoint commit before completion/cancellation  |
 
 **Gates**
 
@@ -1204,7 +1205,6 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_agenda_complete`   | Mark an agenda item as done            |
 | `adv_agenda_cancel`     | Cancel an agenda item                  |
 | `adv_agenda_prioritize` | Change priority of an agenda item      |
-| `adv_agenda_evidence`   | Record TDD evidence for an agenda item |
 
 ---
 

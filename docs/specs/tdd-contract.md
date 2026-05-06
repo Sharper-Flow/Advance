@@ -369,7 +369,7 @@ Once the planning gate is marked complete, task metadata.tdd_intent is frozen. N
 
 **ID:** `rq-TDD008path` | **Priority:** **[MUST]**
 
-For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. adv_task_evidence remains available as fallback only for externally obtained or manually captured evidence that did not flow through adv_run_test.
+For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. No separate fallback evidence tool is part of the live task surface; externally obtained evidence is folded into task verification text when needed.
 
 **Tags:** `tdd`, `inline`, `evidence`, `workflow`
 
@@ -389,25 +389,11 @@ For ordinary inline TDD work, the primary red/green execution path MUST use adv_
 - The test command is run through adv_run_test for the red phase
 - The test command is run through adv_run_test for the green phase
 
-**adv_task_evidence is fallback for externally obtained evidence** (`rq-TDD008path.2`)
-
-**Given:**
-
-- Evidence was produced outside adv_run_test
-- The evidence still needs to be attached to the task record
-
-**When:** The fallback evidence path is used
-
-**Then:**
-
-- adv_task_evidence may be used to record the evidence
-- The fallback path is not described as the primary inline-TDD path
-
 **Primary path does not change evidence semantics validation** (`rq-TDD008path.3`)
 
 **Given:**
 
-- adv_run_test or adv_task_evidence records red or green phase evidence
+- adv_run_test records red or green phase evidence
 
 **When:** Exit-code semantics are validated
 

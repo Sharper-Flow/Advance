@@ -203,6 +203,12 @@ Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reente
 
 ## Critical Protocols
 
+### MCP Tool Name Contract
+
+MCP callable names are exact schema identifiers; never normalize, split, or recase them. Current examples: `context7_resolve-library-id`, `context7_query-docs`, `kagi_kagi_search_fetch`, `kagi_kagi_summarizer`, `gh_grep_searchGitHub`, `firecrawl_firecrawl_scrape`, `vision_vision_list`, `lgrep_search_semantic`.
+Invalid examples: `gh_grep_search_git_hub`, `context7_resolve_library_id`, `context7_query_docs`, `kagi_search_fetch`, `firecrawl_scrape`, `vision_list`.
+If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+
 ### ADV State Access
 
 × NEVER read ADV state files directly (`read`, `cat`, `ls`). Use ADV MCP tools exclusively.
@@ -456,12 +462,10 @@ Tools with `target_path` (read or mutation) accept the optional path argument an
 | `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`                         | temporal-required               | Mutation                                                                           |
 | `adv_task_update`, `adv_task_cancel`, `adv_task_add`                                      | temporal-required               | Mutation                                                                           |
 | `adv_gate_status`, `adv_gate_complete`                                                    | temporal-required               | Read-status / mutation                                                             |
-| `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect`                       | temporal-required               | Mutation                                                                           |
-| `adv_archive_sweep_orphans`                                                               | temporal-required               | Mutation                                                                           |
-| `adv_change_diagnose`                                                                     | snapshot-ok                     | Read-only diagnose                                                                 |
+| `adv_temporal_reconnect`                                                                  | temporal-required               | Mutation                                                                           |
 | `adv_run_test`                                                                            | temporal-required               | Mutation (records evidence)                                                        |
 
-Tools without `target_path` (current-project only): `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`, `adv_run_test` workdir-resolution.
+Tools without `target_path` (current-project only): `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
 When a tool you need lacks `target_path` and the work is genuinely cross-project, switch sessions: `cd <other-project> && opencode`.
 
@@ -720,7 +724,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 | Agent            | Use For                                                                                              | Tools                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `librarian`      | Docs, API refs, code examples                                                                        | Context7, grep.app, Kagi                                        |
+| `librarian`      | Docs, API refs, code examples                                                                        | Context7, `gh_grep_searchGitHub`, Kagi                          |
 | `adv-researcher` | Architecture validation, simplicity                                                                  | Context7, Kagi, ADV read-only                                   |
 | `explore`        | Codebase navigation, find usages                                                                     | Read, Glob, Grep, lgrep                                         |
 | `adv-engineer`   | Delegated ADV code-writing executor (Working Directory Lock: must pass `workdir` to every tool call) | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
@@ -796,12 +800,12 @@ metadata:
 {2-3 gotchas to avoid}
 
 ## Sources
-{Citations from Context7, Kagi, grep.app research}
+{Citations from Context7, Kagi, `gh_grep_searchGitHub` research}
 ```
 
 ### Creation Flow
 
-1. **Research domain** — Context7, Kagi, grep.app → gather domain-specific guidance
+1. **Research domain** — Context7, Kagi, `gh_grep_searchGitHub` → gather domain-specific guidance
 2. **Assemble** — populate template with research findings, include source citations
 3. **Persist** — write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. **Skip if exists** — if file already exists, report "skill already exists" and skip

@@ -193,7 +193,7 @@ Use `webfetch` and `firecrawl` for web content extraction:
 | Find code patterns | `explore`   | "How is auth handled in this codebase?"    |
 | Trace a bug        | `explore`   | "Find where this error is thrown"          |
 | Find documentation | `librarian` | "What's the Context7 API for React hooks?" |
-| Find examples      | `librarian` | "Show me grep.app examples of retry logic" |
+| Find examples      | `librarian` | "Show me `gh_grep_searchGitHub` examples of retry logic" |
 | Research a library | `librarian` | "What are the known issues with X?"        |
 
 ## Planning Rules

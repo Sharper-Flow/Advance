@@ -597,10 +597,10 @@ export class WorkflowNotReadyError extends Error {
     super(
       `Project workflow not ready: missing required field(s): ${missing.join(
         ", ",
-      )}. Hint: run adv_workflow_repair to rebuild project workflow state.`,
+      )}. Hint: run adv_temporal_diagnose, then follow its recommended recovery action.`,
     );
     this.name = "WorkflowNotReadyError";
-    this.hint = "run adv_workflow_repair";
+    this.hint = "run adv_temporal_diagnose";
     this.missing = missing;
   }
 }

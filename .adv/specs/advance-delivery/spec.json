@@ -107,7 +107,7 @@
     {
       "id": "rq-ADVEXEC04",
       "title": "Evidence Tool Value Justification",
-      "body": "ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof, durable evidence, and task-run ledger continuity. adv_task_evidence is a fallback/manual attachment path only when it adds unique audit or recovery value.",
+      "body": "ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof, durable evidence, and durable workflow-queryable test records. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.",
       "priority": "must",
       "tags": ["workflow", "execution", "tdd", "evidence", "value"],
       "scenarios": [
@@ -466,7 +466,7 @@
     {
       "id": "rq-checkpointLedger01",
       "title": "Checkpoint ledger recording blocks task completion when ledger write fails",
-      "body": "adv_task_checkpoint MUST surface ledger recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but the task-run ledger event cannot be persisted. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_run_status, retries the checkpoint or ledger event, and only marks the task done after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.",
+      "body": "adv_task_checkpoint MUST surface ledger recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but the task-run ledger event cannot be persisted. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint or ledger event, and only marks the task done after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.",
       "priority": "must",
       "tags": ["checkpoint", "ledger", "task-run", "apply-flow", "recovery"],
       "scenarios": [
@@ -481,7 +481,7 @@
           "then": [
             "The tool returns status `committed` with the new commit sha",
             "The tool returns `checkpointRecorded: false` to indicate the ledger event was not durably recorded",
-            "The remediation guidance names adv_task_run_status and a retry path for ledger recovery",
+            "The remediation guidance names adv_task_show and a retry path for ledger recovery",
             "The result MUST NOT be silently treated as task completion"
           ]
         },
@@ -496,7 +496,7 @@
           "then": [
             "The tool returns status `clean` with no new commit",
             "The tool returns `checkpointRecorded: false` to indicate the ledger event was not durably recorded",
-            "The remediation guidance names adv_task_run_status and a retry path for ledger recovery"
+            "The remediation guidance names adv_task_show and a retry path for ledger recovery"
           ]
         },
         {
@@ -507,7 +507,7 @@
           ],
           "when": "The agent prepares to mark the task done",
           "then": [
-            "The agent MUST run adv_task_run_status to inspect ledger state",
+            "The agent MUST run adv_task_show to inspect ledger state",
             "The agent MUST retry the checkpoint or ledger event before marking the task done",
             "The agent MUST NOT call adv_task_update with status done until checkpointRecorded:true is observed",
             "Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget"

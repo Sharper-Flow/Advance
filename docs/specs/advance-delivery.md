@@ -41,19 +41,6 @@ For ordinary inline TDD work, /adv-apply MUST explicitly name editing tools (edi
 - At least one supported editing tool is named for test-file creation or modification
 - Raw shell file-writing is not presented as the normal path
 
-**Fallback framing keeps adv_task_evidence secondary** (`rq-ADVEXEC01.3`)
-
-**Given:**
-- The /adv-apply command or adjacent remediation guidance references adv_task_evidence
-
-**When:** The evidence workflow is described
-
-**Then:**
-- adv_task_evidence is described as fallback or externally captured evidence path
-- It is not described as the primary inline-TDD execution path
-
----
-
 ### Apply Contract Regression Anchors
 
 **ID:** `rq-ADVEXEC02` | **Priority:** **[MUST]**
@@ -128,7 +115,7 @@ During active inline-TDD work, runtime enforcement MUST treat shell-authored tes
 
 **ID:** `rq-ADVEXEC04` | **Priority:** **[MUST]**
 
-ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. `adv_run_test` is the normal inline TDD path because it provides executable proof, durable evidence, and task-run ledger continuity. `adv_task_evidence` is a fallback/manual attachment path only when it adds unique audit or recovery value.
+ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. `adv_run_test` is the normal inline TDD path because it provides executable proof, durable evidence, and durable workflow-queryable test records. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
 
 **Tags:** `workflow`, `execution`, `tdd`, `evidence`, `value`
 
@@ -144,19 +131,7 @@ ADV command and instruction guidance MUST justify prescribed evidence tooling by
 **Then:**
 - It explains executable proof value
 - It explains durable evidence value
-- It explains task-run ledger continuity value
-
-**adv_task_evidence remains value-gated fallback** (`rq-ADVEXEC04.2`)
-
-**Given:**
-- Guidance references adv_task_evidence
-
-**When:** The guidance is inspected
-
-**Then:**
-- It describes adv_task_evidence as fallback/manual attachment
-- It limits use to externally obtained evidence or recovery/audit cases
-- It does not prescribe the tool as ceremony for ordinary inline TDD
+- It explains durable workflow-queryable test record value
 
 ---
 
@@ -299,7 +274,7 @@ adv_change_bulk_close must support closing multiple changes in a single approved
 **Given:**
 - An /adv-apply task has started or partially completed
 
-**When:** adv_task_run_status is called for that task
+**When:** adv_task_show is called for that task
 
 **Then:**
 - The response includes the current phase

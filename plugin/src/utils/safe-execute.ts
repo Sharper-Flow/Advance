@@ -300,8 +300,8 @@ function formatToolTimeoutHint(error: unknown): string | undefined {
   return (
     "Tool execution timed out. Likely causes: (1) missing required args — " +
     "verify all required fields are provided; (2) stuck Temporal workflow — " +
-    "try `adv_status` to check worker health, or `adv_workflow_repair` to " +
-    "rebuild state from disk; (3) unresponsive worker — an OpenCode restart " +
+    "try `adv_status` and `adv_temporal_diagnose` to check worker/workflow health; " +
+    "(3) unresponsive worker — an OpenCode restart " +
     "may be required if `adv_status` shows `worker_alive: false`."
   );
 }

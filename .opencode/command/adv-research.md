@@ -70,7 +70,7 @@ See ADV_INSTRUCTIONS.md §Skill Discovery Protocol. Load only trusted bundled sk
 If no matching skill was found for a domain clearly relevant to the change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
-1. Research domain using Context7, Kagi, grep.app
+1. Research domain using Context7, Kagi, `gh_grep_searchGitHub`
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
@@ -213,7 +213,7 @@ Retry Protocol governs execution failures. This table governs which fallback pat
 | Librarian fails | Continue with adv-researcher only, note "docs research incomplete" |
 | adv-researcher unavailable | Use `explore` agent with full research protocol instructions |
 | adv-researcher fails | Retry once, then fall back to `explore` |
-| Both fallback paths fail | Manual research via Context7 + grep.app + Kagi directly |
+| Both fallback paths fail | Manual research via Context7 + `gh_grep_searchGitHub` + Kagi directly |
 
 Fallbacks must also remain single-level: `explore` performs the work inline and does not delegate further.
 Fallback workers must not invoke `/adv-*` slash commands either.
@@ -242,7 +242,7 @@ RESEARCH PROTOCOL:
 - If unsure, say "I don't know" rather than guess
 - Every finding MUST include a source URL
 - Redact secrets/internal-only details before external queries
-- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into grep.app or web search queries
+- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into `gh_grep_searchGitHub` or web search queries
 
 TASK:
 1. Use Context7 (`context7_resolve-library-id` then `context7_query-docs`) against canonical library docs; fall back to `webfetch` if Context7 is absent

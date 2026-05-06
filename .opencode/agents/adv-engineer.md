@@ -53,7 +53,6 @@ tools:
   adv_gate_status: true
   # === ADV evidence/test (task-level only) ===
   adv_run_test: true
-  adv_task_evidence: true
   adv_wisdom_add: true
   # === BLOCKED: Orchestration, gate management, agenda, worktree ===
   adv_change_create: false
@@ -67,17 +66,14 @@ tools:
   adv_task_cancel: false
   adv_task_reclassify_tdd: false
   adv_task_checkpoint: false
-  adv_task_tdd: false
   adv_gate_complete: false
   adv_agenda_add: false
   adv_agenda_start: false
   adv_agenda_complete: false
   adv_agenda_cancel: false
   adv_agenda_prioritize: false
-  adv_agenda_evidence: false
   adv_investment_report: false
   adv_temporal_worker_restart: false
-  adv_workflow_repair: false
   worktree_create: false
   worktree_delete: false
   task: false
@@ -91,6 +87,8 @@ You have full write capability (read, write, edit, bash, tests). The constraint 
 × NEVER spawn additional sub-agents — nesting depth is hard-limited to `1`; you are the leaf worker.
 × NEVER auto-complete ADV gates, create changes, or update task status — that is orchestration, not execution.
 × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls (cost-governance Phase 1.5), not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
+
+Tool names are exact schema identifiers. Never normalize MCP names: use `gh_grep_searchGitHub`, not `gh_grep_search_git_hub`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
 
 ## Scope Lock
 

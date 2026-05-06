@@ -693,7 +693,7 @@ async function getGateDivergenceHint(
 
   const diskGates = diskResult.data.gates ?? createDefaultGates();
   if (allGatesSatisfied(diskGates)) {
-    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_diagnose changeId: ${changeId}\` to inspect, then \`adv_workflow_repair changeId: ${changeId}\` to rebind.`;
+    return `Disk shows gates done but Temporal sees them incomplete. Run \`adv_change_show changeId: ${changeId}\` and \`adv_gate_status changeId: ${changeId}\` to inspect, then \`adv_temporal_diagnose changeId: ${changeId}\` for recovery guidance.`;
   }
 
   return null; // Both agree gates are incomplete
@@ -2220,7 +2220,7 @@ export const changeTools = {
         result.data.status === "closed"
       ) {
         return formatToolOutput({
-          error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_workflow_repair if a workflow needs re-creation.`,
+          error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_temporal_diagnose if workflow recovery is needed.`,
           changeId,
         });
       }

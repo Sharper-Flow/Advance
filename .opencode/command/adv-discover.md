@@ -130,7 +130,7 @@ If no matching skill was found for a domain clearly relevant to the change's **c
 
 **Creation sub-flow (only if gap detected):**
 <!-- rq-sc02 -->
-1. Research domain using Context7, Kagi, grep.app
+1. Research domain using Context7, Kagi, `gh_grep_searchGitHub`
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
