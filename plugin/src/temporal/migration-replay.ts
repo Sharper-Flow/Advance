@@ -389,15 +389,36 @@ export async function signalMigrationMarkerAndWait(
   );
 }
 
+/**
+ * Brief settle delay between phases of the replay.
+ *
+ * Marker-barrier mode (`signalMigrationMarkerAndWait`) requires
+ * `getProcessedMarkersQuery` to be registered on the live workflow, which
+ * fails for legacy workflows that haven't been re-run under the post-refactor
+ * bundle. The replay loop falls back to a fixed settle delay so signal
+ * handlers have a small drain window before the next phase begins. The
+ * round-trip validator (`validateMigrationRoundTrip`) catches any drift via
+ * `changeStateQuery` after all signals have been delivered.
+ */
+const REPLAY_PHASE_SETTLE_MS = 50;
+
 export async function replayChangeAsSignals(
   handle: MigrationSignalHandle,
   change: Change,
   documents: MigrationDocuments = {},
+  options: { useMarkerBarriers?: boolean } = {},
 ): Promise<MigrationReplayStep[]> {
+  const useMarkerBarriers = options.useMarkerBarriers ?? false;
   const plan = buildMigrationReplayPlan(change, documents);
   for (const step of plan) {
     if (step.kind === "marker") {
-      await signalMigrationMarkerAndWait(handle, step.markerId);
+      if (useMarkerBarriers) {
+        await signalMigrationMarkerAndWait(handle, step.markerId);
+      } else {
+        await new Promise((resolve) =>
+          setTimeout(resolve, REPLAY_PHASE_SETTLE_MS),
+        );
+      }
     } else {
       await applySignalStep(handle, step);
     }
