@@ -21,7 +21,6 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getGateStatus: "adv.change.getGateStatus",
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
-  getProcessedMarkers: "adv.change.getProcessedMarkers",
 } as const;
 
 export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
@@ -116,7 +115,6 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   conformanceOverridden: "adv.change.conformanceOverridden",
   archiveRequested: "adv.change.archiveRequested",
   changeCancelled: "adv.change.changeCancelled",
-  migrationMarker: "adv.change.migrationMarker",
 } as const;
 
 export interface ChangeSummaryPayload {
@@ -176,8 +174,6 @@ export interface ChangeWorkflowInput {
   projectionChangesDir?: string;
   /** In-repo project roots that receive durable archive artifacts. */
   archiveProjects?: Array<{ projectPath: string }>;
-  /** Migration-only marker query state; preserved across continue-as-new. */
-  processedMigrationMarkers?: string[];
   seedState?: Partial<
     Pick<
       ChangeWorkflowState,

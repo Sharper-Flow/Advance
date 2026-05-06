@@ -189,9 +189,6 @@ const getTaskRunSummaryQuery = wf.defineQuery<
     attempts: number;
   }>
 >(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getTaskRunSummary);
-const getProcessedMarkersQuery = wf.defineQuery<string[]>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getProcessedMarkers,
-);
 const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
@@ -274,9 +271,6 @@ const archiveRequestedSignal = wf.defineSignal<
 const changeCancelledSignal = wf.defineSignal<
   [import("../types").ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
-const migrationMarkerSignal = wf.defineSignal<
-  [import("../types").MigrationMarkerSignalPayload]
->(CHANGE_WORKFLOW_SIGNAL_NAMES.migrationMarker);
 const addTaskUpdate = wf.defineUpdate<
   ChangeWorkflowState["tasks"][number],
   [
@@ -598,10 +592,6 @@ export async function changeWorkflow(
   let logicalTick = 0;
   const workflowNow = (): string =>
     new Date(workflowEpoch + logicalTick++).toISOString();
-  const processedMigrationMarkers: string[] = [
-    ...(input.processedMigrationMarkers ?? []),
-  ];
-
   const bootstrap: ChangeWorkflowBootstrapState = {
     projectId: input.projectId,
     changeId: input.changeId,
@@ -695,7 +685,6 @@ export async function changeWorkflow(
   wf.setHandler(getTaskRunSummaryQuery, () =>
     deriveTaskRunSummaryFromState(state),
   );
-  wf.setHandler(getProcessedMarkersQuery, () => [...processedMigrationMarkers]);
   wf.setHandler(changeTaskQuery, (taskId: string) =>
     getTaskFromChangeState(state, taskId),
   );
@@ -1011,12 +1000,6 @@ export async function changeWorkflow(
         else state.closure = previousClosure;
         upsertSignalSearchAttributes("changeCancelledProjectionFailure");
       }
-    }),
-  );
-  wf.setHandler(
-    migrationMarkerSignal,
-    safeUpdateHandler("migrationMarker", (payload) => {
-      processedMigrationMarkers.push(payload.markerId);
     }),
   );
   wf.setHandler(
@@ -1382,7 +1365,6 @@ export async function changeWorkflow(
     searchAttributesEnabled: input.searchAttributesEnabled,
     projectionChangesDir: input.projectionChangesDir,
     archiveProjects: input.archiveProjects,
-    processedMigrationMarkers,
     seedState: {
       status: state.status,
       tasks: state.tasks,

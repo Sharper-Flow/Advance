@@ -36,7 +36,6 @@ import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
 import { conformanceTools } from "./tools/conformance";
-import { changeImportTools } from "./tools/change-import";
 import { advWorktreeTools } from "./tools/adv-worktree";
 import { advSessionTools } from "./tools/adv-session";
 type ToolArgsSchema = Record<string, z.ZodTypeAny>;
@@ -203,11 +202,6 @@ export function createToolMap(
     adv_change_reenter: bindTool(
       changeTools.adv_change_reenter,
       "adv_change_reenter",
-      store,
-    ),
-    adv_change_import: bindTool(
-      changeImportTools.adv_change_import,
-      "adv_change_import",
       store,
     ),
 
@@ -570,7 +564,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_update_issues",
   "adv_change_reenter",
-  "adv_change_import",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",

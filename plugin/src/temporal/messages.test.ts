@@ -76,14 +76,11 @@ const designQueryKeys = [
   "getGateStatus",
   "getWorktrees",
   "getConformanceState",
-  "getProcessedMarkers",
 ] as const;
 
 describe("change workflow message contract", () => {
   it("defines the 24 signal surface plus retained applyChangeSummary binding", () => {
-    const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES).filter(
-      (key) => key !== "migrationMarker",
-    );
+    const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
     expect(surfacedKeys).toHaveLength(27);
