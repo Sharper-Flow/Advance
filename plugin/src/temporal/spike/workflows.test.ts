@@ -158,4 +158,64 @@ describe("spike signal-driven change workflow", () => {
       },
     );
   });
+
+  it("continues as new at a safe point and preserves in-flight signals", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = "advance-spike-can-test";
+        const workflowId = `spike-can-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          await env.client.workflow.start("spikeChangeWorkflow", {
+            workflowId,
+            taskQueue,
+            args: [
+              {
+                changeId: "spike-can",
+                title: "Spike continue-as-new change",
+                initializedAt: "2026-05-06T00:00:00.000Z",
+                historyLengthThreshold: 25,
+              },
+            ],
+          });
+
+          const handle = env.client.workflow.getHandle(workflowId);
+          const signalPromises = Array.from({ length: 120 }, (_, index) =>
+            handle.signal(taskAddedSignal, {
+              task: {
+                id: `tk-can-${index}`,
+                title: `CAN signal ${index}`,
+                status: "pending",
+              },
+              addedAt: `2026-05-06T00:00:${String(index % 60).padStart(
+                2,
+                "0",
+              )}.000Z`,
+            }),
+          );
+
+          await Promise.all(signalPromises);
+
+          let state = await handle.query(getStateQuery);
+          for (let attempt = 0; attempt < 50; attempt += 1) {
+            if (state.continueAsNewCount > 0) break;
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            state = await handle.query(getStateQuery);
+          }
+
+          const taskIds = new Set(state.tasks.map((task) => task.id));
+
+          expect(state.continueAsNewCount).toBeGreaterThanOrEqual(1);
+          expect(state.tasks).toHaveLength(120);
+          expect(taskIds.size).toBe(120);
+        });
+      },
+    );
+  });
 });
