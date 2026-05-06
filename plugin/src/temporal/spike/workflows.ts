@@ -14,8 +14,10 @@ import {
   gateStuckSignal,
   getConformanceStateQuery,
   getGateStatusQuery,
+  getProcessedMarkersQuery,
   getStateQuery,
   getTasksQuery,
+  migrationMarkerSignal,
   proposalUpdatedSignal,
   taskAddedSignal,
 } from "./messages";
@@ -49,6 +51,8 @@ export async function spikeChangeWorkflow(
   wf.setHandler(getTasksQuery, () => [...state.tasks]);
   wf.setHandler(getGateStatusQuery, (gateId) => state.gates[gateId]);
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
+  const processedMarkers: string[] = [];
+  wf.setHandler(getProcessedMarkersQuery, () => [...processedMarkers]);
 
   const projectState = async (projectedAt: string): Promise<void> => {
     await writeChangeProjection({
@@ -132,6 +136,11 @@ export async function spikeChangeWorkflow(
       verdict: payload.verdict,
       recordedAt: payload.recordedAt,
     };
+  });
+
+  wf.setHandler(migrationMarkerSignal, (payload) => {
+    recordSignal();
+    processedMarkers.push(payload.markerId);
   });
 
   await wf.condition(shouldContinueAsNew);

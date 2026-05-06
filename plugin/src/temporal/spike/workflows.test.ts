@@ -14,11 +14,13 @@ import {
   gateStuckSignal,
   getConformanceStateQuery,
   getGateStatusQuery,
+  getProcessedMarkersQuery,
   getStateQuery,
   getTasksQuery,
   proposalUpdatedSignal,
   taskAddedSignal,
 } from "./messages";
+import { replayMigrationSource, waitForMigrationMarker } from "./migration";
 import { withTestWorkflowEnvironment } from "../__tests__/with-test-env";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
@@ -320,6 +322,66 @@ describe("spike signal-driven change workflow", () => {
           expect(projections.every((entry) => entry.schemaVersion === 2)).toBe(
             true,
           );
+        });
+      },
+    );
+  });
+
+  it("replays a source change and waits on a migration marker barrier", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = "advance-spike-migration-test";
+        const projections: SpikeProjection[] = [];
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+          activities: createProjectionActivities(projections),
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start(
+            "spikeChangeWorkflow",
+            {
+              workflowId: `spike-migration-${Date.now()}`,
+              taskQueue,
+              args: [
+                {
+                  changeId: "cleanupzombierunningworkflows",
+                  title: "cleanupZombieRunningWorkflows",
+                  initializedAt: "2026-05-04T16:02:04.193Z",
+                },
+              ],
+            },
+          );
+
+          await replayMigrationSource(
+            handle,
+            {
+              changeId: "cleanupzombierunningworkflows",
+              title: "cleanupZombieRunningWorkflows",
+              createdAt: "2026-05-04T16:02:04.193Z",
+              proposal: "cleanup zombie running workflows",
+              tasks: [],
+              completedGates: [],
+            },
+            "marker-cleanupzombierunningworkflows",
+          );
+          await waitForMigrationMarker(
+            handle,
+            "marker-cleanupzombierunningworkflows",
+          );
+
+          const markers = await handle.query(getProcessedMarkersQuery);
+          const state = await handle.query(getStateQuery);
+
+          expect(markers).toContain("marker-cleanupzombierunningworkflows");
+          expect(state.changeId).toBe("cleanupzombierunningworkflows");
+          expect(state.title).toBe("cleanupZombieRunningWorkflows");
+          expect(state.tasks).toEqual([]);
+          expect(state.proposal?.text).toBe("cleanup zombie running workflows");
+          expect(state.gates.proposal.status).toBe("pending");
         });
       },
     );

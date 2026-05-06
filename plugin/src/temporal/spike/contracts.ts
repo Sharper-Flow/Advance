@@ -96,6 +96,20 @@ export interface ConformanceVerdictPayload {
   recordedAt: string;
 }
 
+export interface MigrationMarkerPayload {
+  markerId: string;
+  recordedAt: string;
+}
+
+export interface SpikeMigrationSource {
+  changeId: string;
+  title: string;
+  createdAt: string;
+  proposal?: string;
+  tasks: SpikeTask[];
+  completedGates: Array<{ gateId: SpikeGateId; completedAt: string }>;
+}
+
 export interface SpikeProjection {
   schemaVersion: 2;
   projectedAt: string;

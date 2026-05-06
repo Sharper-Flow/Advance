@@ -7,6 +7,7 @@ import type {
   GateCompletedPayload,
   GateInProgressPayload,
   GateStuckPayload,
+  MigrationMarkerPayload,
   ProposalUpdatedPayload,
   SpikeChangeState,
   SpikeGateId,
@@ -42,6 +43,9 @@ export const changeCancelledSignal = wf.defineSignal<[ChangeCancelledPayload]>(
 export const conformanceVerdictSignal = wf.defineSignal<
   [ConformanceVerdictPayload]
 >("spike.change.conformanceVerdict");
+export const migrationMarkerSignal = wf.defineSignal<[MigrationMarkerPayload]>(
+  "spike.change.migrationMarker",
+);
 
 export const getStateQuery = wf.defineQuery<SpikeChangeState>(
   "spike.change.getState",
@@ -55,3 +59,6 @@ export const getGateStatusQuery = wf.defineQuery<SpikeGateState, [SpikeGateId]>(
 export const getConformanceStateQuery = wf.defineQuery<
   SpikeChangeState["conformance"]
 >("spike.change.getConformanceState");
+export const getProcessedMarkersQuery = wf.defineQuery<string[]>(
+  "spike.change.getProcessedMarkers",
+);
