@@ -538,11 +538,26 @@ export function resolveChangeSummariesCap(
  * ADV_TEMPORAL_CHANGE_HISTORY_THRESHOLD.
  */
 export const DEFAULT_PROJECT_HISTORY_THRESHOLD = 10_000;
-export const DEFAULT_CHANGE_HISTORY_THRESHOLD = 2_000;
+export const DEFAULT_CHANGE_HISTORY_THRESHOLD = 5_000;
 
 export interface ContinueAsNewThresholds {
   projectHistoryThreshold: number;
   changeHistoryThreshold: number;
+}
+
+export interface ContinueAsNewInfoLike {
+  continueAsNewSuggested?: unknown;
+  historyLength?: unknown;
+}
+
+export function shouldContinueAsNewFromInfo(
+  info: ContinueAsNewInfoLike,
+  threshold: number,
+): boolean {
+  if (info.continueAsNewSuggested === true) return true;
+  return (
+    typeof info.historyLength === "number" && info.historyLength >= threshold
+  );
 }
 
 export function resolveHistoryThresholds(

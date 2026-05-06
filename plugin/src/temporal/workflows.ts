@@ -8,6 +8,7 @@ import {
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
   resolveHistoryThresholds,
+  shouldContinueAsNewFromInfo,
   type ChangeWorkflowState,
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
@@ -1411,14 +1412,7 @@ export async function changeWorkflow(
  * continue-as-new to keep history size bounded.
  */
 function shouldContinueAsNew(threshold: number): boolean {
-  const info = wf.workflowInfo() as wf.WorkflowInfo & {
-    continueAsNewSuggested?: unknown;
-    historyLength?: unknown;
-  };
-  if (info.continueAsNewSuggested === true) return true;
-  return (
-    typeof info.historyLength === "number" && info.historyLength >= threshold
-  );
+  return shouldContinueAsNewFromInfo(wf.workflowInfo(), threshold);
 }
 
 export async function projectWorkflow(
