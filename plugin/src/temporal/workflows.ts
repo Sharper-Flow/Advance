@@ -4,6 +4,7 @@ import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
   CHANGE_WORKFLOW_UPDATE_NAMES,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
   resolveHistoryThresholds,
@@ -122,23 +123,42 @@ const { archiveChangeActivity, writeChangeProjection } =
   });
 
 const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
-  CHANGE_WORKFLOW_QUERY_NAMES.bootstrap,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.bootstrap,
 );
-const changeStateQuery = wf.defineQuery<ChangeWorkflowState>(
-  CHANGE_WORKFLOW_QUERY_NAMES.state,
+const getStateQuery = wf.defineQuery<ChangeWorkflowState>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getState,
 );
+const changeStateQuery = getStateQuery;
+const getTasksQuery = wf.defineQuery<
+  ChangeWorkflowState["tasks"],
+  [
+    ChangeWorkflowState["tasks"][number]["status"] | undefined,
+    string | undefined,
+  ]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getTasks);
+const getGateStatusQuery = wf.defineQuery<
+  | ChangeWorkflowState["gates"]
+  | ChangeWorkflowState["gates"][keyof ChangeWorkflowState["gates"]],
+  [keyof ChangeWorkflowState["gates"] | undefined]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getGateStatus);
+const getWorktreesQuery = wf.defineQuery<
+  NonNullable<ChangeWorkflowState["worktrees"]>
+>(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);
+const getConformanceStateQuery = wf.defineQuery<
+  ChangeWorkflowState["conformance"]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
     ChangeWorkflowState["tasks"][number]["status"] | undefined,
     string | undefined,
   ]
->(CHANGE_WORKFLOW_QUERY_NAMES.tasks);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.tasks);
 const changeReadyQuery = wf.defineQuery<
   ReturnType<typeof getReadyTasksFromChangeState>
->(CHANGE_WORKFLOW_QUERY_NAMES.ready);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.ready);
 const getCurrentBucketQuery = wf.defineQuery<ReturnType<typeof deriveBucket>>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getCurrentBucket,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );
 const getInvestmentReportQuery = wf.defineQuery<{
   taskCounts: {
@@ -151,13 +171,13 @@ const getInvestmentReportQuery = wf.defineQuery<{
   };
   retryCount: number;
   tier: "auto" | "escalate" | "hardstop";
-}>(CHANGE_WORKFLOW_QUERY_NAMES.getInvestmentReport);
+}>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getInvestmentReport);
 const getReviewVerificationQuery = wf.defineQuery<{
   acceptanceCriteriaCount: number;
   incompleteTaskCount: number;
   gatesComplete: boolean;
   readyForAcceptance: boolean;
-}>(CHANGE_WORKFLOW_QUERY_NAMES.getReviewVerification);
+}>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getReviewVerification);
 const getTaskRunSummaryQuery = wf.defineQuery<
   Array<{
     taskId: string;
@@ -168,14 +188,14 @@ const getTaskRunSummaryQuery = wf.defineQuery<
     checkpointSha?: string;
     attempts: number;
   }>
->(CHANGE_WORKFLOW_QUERY_NAMES.getTaskRunSummary);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getTaskRunSummary);
 const getProcessedMarkersQuery = wf.defineQuery<string[]>(
   CHANGE_WORKFLOW_QUERY_NAMES.getProcessedMarkers,
 );
 const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
->(CHANGE_WORKFLOW_QUERY_NAMES.task);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.task);
 const proposalUpdatedSignal = wf.defineSignal<
   [import("../types").ProposalUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.proposalUpdated);
@@ -640,7 +660,19 @@ export async function changeWorkflow(
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
-  wf.setHandler(changeStateQuery, () => state);
+  wf.setHandler(getStateQuery, () => state);
+  wf.setHandler(
+    getTasksQuery,
+    (
+      status: ChangeWorkflowState["tasks"][number]["status"] | undefined,
+      filter: string | undefined,
+    ) => listTasksFromChangeState(state, status, filter),
+  );
+  wf.setHandler(getGateStatusQuery, (gateId) =>
+    gateId ? state.gates[gateId] : state.gates,
+  );
+  wf.setHandler(getWorktreesQuery, () => ({ ...(state.worktrees ?? {}) }));
+  wf.setHandler(getConformanceStateQuery, () => state.conformance);
   wf.setHandler(
     changeTasksQuery,
     (

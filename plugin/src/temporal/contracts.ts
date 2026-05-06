@@ -16,19 +16,24 @@ export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
 } as const;
 
 export const CHANGE_WORKFLOW_QUERY_NAMES = {
-  bootstrap: "adv.change.bootstrap",
-  getChangeState: "adv.change.getChangeState",
-  getCurrentBucket: "adv.change.getCurrentBucket",
-  getReadyTasks: "adv.change.getReadyTasks",
-  getInvestmentReport: "adv.change.getInvestmentReport",
-  getReviewVerification: "adv.change.getReviewVerification",
-  getTaskRunSummary: "adv.change.getTaskRunSummary",
+  getState: "adv.change.getState",
+  getTasks: "adv.change.getTasks",
+  getGateStatus: "adv.change.getGateStatus",
+  getWorktrees: "adv.change.getWorktrees",
+  getConformanceState: "adv.change.getConformanceState",
   getProcessedMarkers: "adv.change.getProcessedMarkers",
-  // Compatibility aliases for code not yet migrated to named queries.
+} as const;
+
+export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
+  bootstrap: "adv.change.bootstrap",
   state: "adv.change.getChangeState",
   ready: "adv.change.getReadyTasks",
   tasks: "adv.change.tasks",
   task: "adv.change.task",
+  getCurrentBucket: "adv.change.getCurrentBucket",
+  getInvestmentReport: "adv.change.getInvestmentReport",
+  getReviewVerification: "adv.change.getReviewVerification",
+  getTaskRunSummary: "adv.change.getTaskRunSummary",
 } as const;
 
 export const PROJECT_WORKFLOW_QUERY_NAMES = {

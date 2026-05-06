@@ -1,0 +1,162 @@
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@temporalio/workflow", () => ({
+  defineQuery: vi.fn((name: string) => ({ kind: "query", name })),
+  defineSignal: vi.fn((name: string) => ({ kind: "signal", name })),
+  defineUpdate: vi.fn((name: string) => ({ kind: "update", name })),
+}));
+
+import {
+  CHANGE_WORKFLOW_QUERY_NAMES,
+  CHANGE_WORKFLOW_SIGNAL_NAMES,
+} from "./contracts";
+import * as messages from "./messages";
+import {
+  AcceptanceCriteriaSetSignalPayloadSchema,
+  AgreementUpdatedSignalPayloadSchema,
+  ArchiveRequestedSignalPayloadSchema,
+  ChangeCancelledSignalPayloadSchema,
+  ConformanceLockedSignalPayloadSchema,
+  ConformanceOverriddenSignalPayloadSchema,
+  ConformanceVerdictSignalPayloadSchema,
+  DesignUpdatedSignalPayloadSchema,
+  GateAwaitingApprovalSignalPayloadSchema,
+  GateCompletedSignalPayloadSchema,
+  GateInProgressSignalPayloadSchema,
+  GateReenteredSignalPayloadSchema,
+  GateStuckSignalPayloadSchema,
+  ProblemStatementUpdatedSignalPayloadSchema,
+  ProposalUpdatedSignalPayloadSchema,
+  ReflectionRecordedSignalPayloadSchema,
+  TaskAddedSignalPayloadSchema,
+  TaskAssignedSignalPayloadSchema,
+  TaskBlockedSignalPayloadSchema,
+  TaskCancelledSignalPayloadSchema,
+  TaskCompletedSignalPayloadSchema,
+  TaskRemovedSignalPayloadSchema,
+  TaskUpdatedSignalPayloadSchema,
+  WisdomAddedSignalPayloadSchema,
+  WorktreeCreatedSignalPayloadSchema,
+  WorktreeDeletedSignalPayloadSchema,
+} from "../types";
+
+const designSignalKeys = [
+  "applyChangeSummary",
+  "proposalUpdated",
+  "problemStatementUpdated",
+  "agreementUpdated",
+  "designUpdated",
+  "acceptanceCriteriaSet",
+  "taskAdded",
+  "taskUpdated",
+  "taskRemoved",
+  "taskAssigned",
+  "taskCompleted",
+  "taskBlocked",
+  "taskCancelled",
+  "gateInProgress",
+  "gateAwaitingApproval",
+  "gateStuck",
+  "gateCompleted",
+  "gateReentered",
+  "wisdomAdded",
+  "reflectionRecorded",
+  "worktreeCreated",
+  "worktreeDeleted",
+  "conformanceLocked",
+  "conformanceVerdict",
+  "conformanceOverridden",
+  "archiveRequested",
+  "changeCancelled",
+] as const;
+
+const designQueryKeys = [
+  "getState",
+  "getTasks",
+  "getGateStatus",
+  "getWorktrees",
+  "getConformanceState",
+  "getProcessedMarkers",
+] as const;
+
+describe("change workflow message contract", () => {
+  it("defines the 24 signal surface plus retained applyChangeSummary binding", () => {
+    const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES).filter(
+      (key) => key !== "migrationMarker",
+    );
+
+    expect(surfacedKeys).toEqual([...designSignalKeys]);
+    expect(surfacedKeys).toHaveLength(27);
+
+    for (const key of designSignalKeys) {
+      expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
+      expect(messages[`${key}Signal` as keyof typeof messages]).toBeDefined();
+    }
+  });
+
+  it("defines the six design query bindings", () => {
+    expect(Object.keys(CHANGE_WORKFLOW_QUERY_NAMES)).toEqual([
+      ...designQueryKeys,
+    ]);
+
+    for (const key of designQueryKeys) {
+      expect(CHANGE_WORKFLOW_QUERY_NAMES[key]).toBe(`adv.change.${key}`);
+      expect(messages[`${key}Query` as keyof typeof messages]).toBeDefined();
+    }
+  });
+
+  it("validates representative payloads for every design signal schema", () => {
+    const timestamp = "2026-05-06T00:00:00.000Z";
+    const task = {
+      id: "tk-1",
+      title: "Task",
+      type: "code",
+      status: "pending",
+      priority: 1,
+      created_at: timestamp,
+    };
+    const wisdom = {
+      id: "ws-1",
+      type: "pattern",
+      content: "Use signals for workflow mutations.",
+      source_task: "tk-1",
+      recorded_at: timestamp,
+    };
+
+    const cases = [
+      [ProposalUpdatedSignalPayloadSchema, { text: "p", updatedAt: timestamp }],
+      [
+        ProblemStatementUpdatedSignalPayloadSchema,
+        { text: "problem", updatedAt: timestamp },
+      ],
+      [AgreementUpdatedSignalPayloadSchema, { text: "a", updatedAt: timestamp }],
+      [DesignUpdatedSignalPayloadSchema, { text: "d", updatedAt: timestamp }],
+      [AcceptanceCriteriaSetSignalPayloadSchema, { criteria: ["c"], setAt: timestamp }],
+      [TaskAddedSignalPayloadSchema, { task, addedAt: timestamp }],
+      [TaskUpdatedSignalPayloadSchema, { taskId: "tk-1", partial: { status: "done" }, updatedAt: timestamp }],
+      [TaskRemovedSignalPayloadSchema, { taskId: "tk-1", removedAt: timestamp }],
+      [TaskAssignedSignalPayloadSchema, { taskId: "tk-1", sessionId: "sess-1", assignedAt: timestamp }],
+      [TaskCompletedSignalPayloadSchema, { taskId: "tk-1", verification: "tests pass", summary: "done", completedAt: timestamp }],
+      [TaskBlockedSignalPayloadSchema, { taskId: "tk-1", reason: "blocked", blockedAt: timestamp }],
+      [TaskCancelledSignalPayloadSchema, { taskId: "tk-1", approvalEvidence: "yes", reason: "cancel", cancelledAt: timestamp }],
+      [GateInProgressSignalPayloadSchema, { gateId: "execution", triggeredAt: timestamp }],
+      [GateAwaitingApprovalSignalPayloadSchema, { gateId: "acceptance", evidence: "ready", triggeredAt: timestamp }],
+      [GateStuckSignalPayloadSchema, { gateId: "execution", reason: "stuck", triggeredAt: timestamp }],
+      [GateCompletedSignalPayloadSchema, { gateId: "execution", completedBy: "agent", completedAt: timestamp }],
+      [GateReenteredSignalPayloadSchema, { fromGateId: "design", reason: "scope", reenteredBy: "agent", reenteredAt: timestamp }],
+      [WisdomAddedSignalPayloadSchema, { entry: wisdom, addedAt: timestamp }],
+      [ReflectionRecordedSignalPayloadSchema, { report: { ok: true }, recordedAt: timestamp }],
+      [WorktreeCreatedSignalPayloadSchema, { branch: "change/x", path: "/repo-x", baseRef: "main", headSha: "abc", createdAt: timestamp }],
+      [WorktreeDeletedSignalPayloadSchema, { branch: "change/x", reason: "merged", deletedAt: timestamp }],
+      [ConformanceLockedSignalPayloadSchema, { specs: ["advance-delivery"], lockedAt: timestamp }],
+      [ConformanceVerdictSignalPayloadSchema, { verdict: "PASS", runId: "run-1", recordedAt: timestamp }],
+      [ConformanceOverriddenSignalPayloadSchema, { user: "user", reason: "accepted", reVerifyDeadline: "2026-06-01", overriddenAt: timestamp }],
+      [ArchiveRequestedSignalPayloadSchema, { approvalEvidence: "ship it", requestedBy: "user", requestedAt: timestamp }],
+      [ChangeCancelledSignalPayloadSchema, { approvalEvidence: "stop", reason: "cancel", cancelledBy: "user", cancelledAt: timestamp }],
+    ] as const;
+
+    for (const [schema, payload] of cases) {
+      expect(schema.safeParse(payload).success).toBe(true);
+    }
+  });
+});

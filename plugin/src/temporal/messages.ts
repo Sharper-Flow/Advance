@@ -56,6 +56,7 @@ import type {
   ChangeSummaryPayload,
 } from "./contracts";
 import {
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
   PROJECT_WORKFLOW_QUERY_NAMES,
@@ -64,26 +65,45 @@ import {
 
 export const changeBootstrapQuery =
   wf.defineQuery<ChangeWorkflowBootstrapState>(
-    CHANGE_WORKFLOW_QUERY_NAMES.bootstrap,
+    CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.bootstrap,
   );
-export const changeStateQuery = wf.defineQuery<ChangeWorkflowState>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getChangeState,
+export const getStateQuery = wf.defineQuery<ChangeWorkflowState>(
+  CHANGE_WORKFLOW_QUERY_NAMES.getState,
 );
+export const changeStateQuery = getStateQuery;
 export const getChangeStateQuery = changeStateQuery;
+export const getTasksQuery = wf.defineQuery<
+  ChangeWorkflowState["tasks"],
+  [
+    ChangeWorkflowState["tasks"][number]["status"] | undefined,
+    string | undefined,
+  ]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getTasks);
+export const getGateStatusQuery = wf.defineQuery<
+  | ChangeWorkflowState["gates"]
+  | ChangeWorkflowState["gates"][keyof ChangeWorkflowState["gates"]],
+  [keyof ChangeWorkflowState["gates"] | undefined]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getGateStatus);
+export const getWorktreesQuery = wf.defineQuery<
+  NonNullable<ChangeWorkflowState["worktrees"]>
+>(CHANGE_WORKFLOW_QUERY_NAMES.getWorktrees);
+export const getConformanceStateQuery = wf.defineQuery<
+  ChangeWorkflowState["conformance"]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getConformanceState);
 export const getCurrentBucketQuery = wf.defineQuery<string>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getCurrentBucket,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );
 export const getReadyTasksQuery = wf.defineQuery<
   ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
->(CHANGE_WORKFLOW_QUERY_NAMES.getReadyTasks);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.ready);
 export const getInvestmentReportQuery = wf.defineQuery<unknown>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getInvestmentReport,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getInvestmentReport,
 );
 export const getReviewVerificationQuery = wf.defineQuery<unknown>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getReviewVerification,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getReviewVerification,
 );
 export const getTaskRunSummaryQuery = wf.defineQuery<unknown>(
-  CHANGE_WORKFLOW_QUERY_NAMES.getTaskRunSummary,
+  CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getTaskRunSummary,
 );
 export const getProcessedMarkersQuery = wf.defineQuery<string[]>(
   CHANGE_WORKFLOW_QUERY_NAMES.getProcessedMarkers,
@@ -94,14 +114,14 @@ export const changeTasksQuery = wf.defineQuery<
     ChangeWorkflowState["tasks"][number]["status"] | undefined,
     string | undefined,
   ]
->(CHANGE_WORKFLOW_QUERY_NAMES.tasks);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.tasks);
 export const changeReadyQuery = wf.defineQuery<
   ReturnType<typeof import("./change-state").getReadyTasksFromChangeState>
->(CHANGE_WORKFLOW_QUERY_NAMES.ready);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.ready);
 export const changeTaskQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"][number] | null,
   [string]
->(CHANGE_WORKFLOW_QUERY_NAMES.task);
+>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.task);
 
 export const proposalUpdatedSignal = wf.defineSignal<
   [ProposalUpdatedSignalPayload]
