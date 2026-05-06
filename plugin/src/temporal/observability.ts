@@ -1,4 +1,5 @@
 import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
+import { ADV_SEARCH_ATTRIBUTES } from "./search-attributes";
 
 export { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 
@@ -6,6 +7,8 @@ export { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 // Source: https://github.com/temporalio/api/blob/master/temporal/api/enums/v1/common.proto
 //   INDEXED_VALUE_TYPE_KEYWORD = 2
 //   INDEXED_VALUE_TYPE_BOOL    = 5
+//   INDEXED_VALUE_TYPE_DATETIME = 6
+//   INDEXED_VALUE_TYPE_KEYWORD_LIST = 7
 // The Temporal operator service expects these exact numeric codes when
 // registering search attributes via OperatorService.addSearchAttributes.
 // Drift is caught by the "uses canonical Temporal IndexedValueType numeric
@@ -13,6 +16,8 @@ export { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
   Keyword: 2,
   Bool: 5,
+  Datetime: 6,
+  KeywordList: 7,
 } as const;
 
 export type AdvSearchAttributeType = keyof typeof SEARCH_ATTRIBUTE_TYPE_CODE;
@@ -62,33 +67,11 @@ export interface SearchAttributeConnectionLike {
 }
 
 export function requiredAdvSearchAttributes(): RequiredAdvSearchAttribute[] {
-  return [
-    {
-      name: ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.projectId,
-      type: "Keyword",
-      typeCode: SEARCH_ATTRIBUTE_TYPE_CODE.Keyword,
-    },
-    {
-      name: ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeId,
-      type: "Keyword",
-      typeCode: SEARCH_ATTRIBUTE_TYPE_CODE.Keyword,
-    },
-    {
-      name: ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus,
-      type: "Keyword",
-      typeCode: SEARCH_ATTRIBUTE_TYPE_CODE.Keyword,
-    },
-    {
-      name: ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate,
-      type: "Keyword",
-      typeCode: SEARCH_ATTRIBUTE_TYPE_CODE.Keyword,
-    },
-    {
-      name: ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.doomLoop,
-      type: "Bool",
-      typeCode: SEARCH_ATTRIBUTE_TYPE_CODE.Bool,
-    },
-  ];
+  return Object.entries(ADV_SEARCH_ATTRIBUTES).map(([name, type]) => ({
+    name,
+    type,
+    typeCode: SEARCH_ATTRIBUTE_TYPE_CODE[type],
+  }));
 }
 
 function extractCustomAttributes(
@@ -258,26 +241,51 @@ export function buildTemporalSearchAttributes(input: {
   projectId: string;
   changeId?: string;
   changeStatus?: string;
+  changeTitle?: string;
   activeGate?: string;
+  currentBucket?: string;
+  lastSignalAt?: string;
+  createdAt?: string;
+  affectedProjects?: string[];
+  affectedPaths?: string[];
+  worktreeBranches?: string[];
+  worktreePaths?: string[];
   doomLoopActive?: boolean;
 }): Record<string, unknown[]> {
-  const attrs: Record<string, unknown[]> = {
-    [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.projectId]: [input.projectId],
-  };
+  const attrs: Record<string, unknown[]> = {};
 
   if (input.changeId) {
-    attrs[ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeId] = [input.changeId];
+    attrs.AdvChangeId = [input.changeId];
   }
   if (input.changeStatus) {
-    attrs[ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus] = [
-      input.changeStatus,
-    ];
+    attrs.AdvChangeStatus = [input.changeStatus];
+  }
+  if (input.changeTitle) {
+    attrs.AdvChangeTitle = [input.changeTitle];
+  }
+  attrs.AdvAffectedProjects = input.affectedProjects?.length
+    ? input.affectedProjects
+    : [input.projectId];
+  if (input.affectedPaths?.length) {
+    attrs.AdvAffectedPaths = input.affectedPaths;
   }
   if (input.activeGate) {
-    attrs[ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate] = [input.activeGate];
+    attrs.AdvCurrentGate = [input.activeGate];
   }
-  if (input.doomLoopActive !== undefined) {
-    attrs[ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.doomLoop] = [input.doomLoopActive];
+  if (input.currentBucket) {
+    attrs.AdvCurrentBucket = [input.currentBucket];
+  }
+  if (input.lastSignalAt) {
+    attrs.AdvLastSignalAt = [new Date(input.lastSignalAt)];
+  }
+  if (input.createdAt) {
+    attrs.AdvCreatedAt = [new Date(input.createdAt)];
+  }
+  if (input.worktreeBranches?.length) {
+    attrs.AdvWorktreeBranches = [...input.worktreeBranches].sort();
+  }
+  if (input.worktreePaths?.length) {
+    attrs.AdvWorktreePaths = [...input.worktreePaths].sort();
   }
 
   return attrs;

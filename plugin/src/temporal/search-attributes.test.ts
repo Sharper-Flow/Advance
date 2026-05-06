@@ -25,6 +25,22 @@ function makeState(): ChangeWorkflowState {
     artifacts: {},
     affectedProjects: ["proj1", "proj2"],
     affectedPaths: ["plugin/src/temporal"],
+    worktrees: {
+      "change/example": {
+        branch: "change/example",
+        path: "/repo/example",
+        baseRef: "main",
+        headSha: "abc123",
+        status: "created",
+        createdAt: "2026-05-05T00:00:00.500Z",
+      },
+      "change/deleted": {
+        branch: "change/deleted",
+        path: "/repo/deleted",
+        status: "deleted",
+        deletedAt: "2026-05-05T00:00:00.750Z",
+      },
+    },
     lastSignalAt: "2026-05-05T00:00:01.000Z",
   };
 }
@@ -41,6 +57,8 @@ describe("ADV search attributes", () => {
       AdvCurrentBucket: "Keyword",
       AdvLastSignalAt: "Datetime",
       AdvCreatedAt: "Datetime",
+      AdvWorktreeBranches: "KeywordList",
+      AdvWorktreePaths: "KeywordList",
     });
   });
 
@@ -55,6 +73,8 @@ describe("ADV search attributes", () => {
       { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },
       { name: "AdvLastSignalAt", type: "Datetime", typeCode: 6 },
       { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
+      { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
+      { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
     ]);
   });
 
@@ -71,6 +91,8 @@ describe("ADV search attributes", () => {
       AdvAffectedPaths: ["plugin/src/temporal"],
       AdvCurrentGate: ["proposal"],
       AdvCurrentBucket: ["in_flight"],
+      AdvWorktreeBranches: ["change/example"],
+      AdvWorktreePaths: ["/repo/example"],
     });
     expect(attrs.AdvLastSignalAt?.[0]).toEqual(
       new Date("2026-05-05T00:00:01.000Z"),
@@ -103,6 +125,8 @@ describe("ADV search attributes", () => {
       "AdvCurrentBucket",
       "AdvLastSignalAt",
       "AdvCreatedAt",
+      "AdvWorktreeBranches",
+      "AdvWorktreePaths",
     ]);
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
@@ -115,6 +139,8 @@ describe("ADV search attributes", () => {
         AdvCurrentBucket: 2,
         AdvLastSignalAt: 6,
         AdvCreatedAt: 6,
+        AdvWorktreeBranches: 7,
+        AdvWorktreePaths: 7,
       },
     });
   });

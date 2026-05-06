@@ -12,6 +12,8 @@ export const ADV_SEARCH_ATTRIBUTES = {
   AdvCurrentBucket: "Keyword",
   AdvLastSignalAt: "Datetime",
   AdvCreatedAt: "Datetime",
+  AdvWorktreeBranches: "KeywordList",
+  AdvWorktreePaths: "KeywordList",
 } as const;
 
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
@@ -179,6 +181,20 @@ export function buildChangeSearchAttributes(
   if (state.affectedPaths && state.affectedPaths.length > 0) {
     attrs.AdvAffectedPaths = state.affectedPaths;
   }
+
+  const activeWorktrees = Object.values(state.worktrees ?? {}).filter(
+    (worktree) => worktree.status !== "deleted",
+  );
+  const worktreeBranches = activeWorktrees
+    .map((worktree) => worktree.branch)
+    .filter((branch): branch is string => branch.trim().length > 0)
+    .sort();
+  const worktreePaths = activeWorktrees
+    .map((worktree) => worktree.path)
+    .filter((path): path is string => Boolean(path?.trim()))
+    .sort();
+  if (worktreeBranches.length > 0) attrs.AdvWorktreeBranches = worktreeBranches;
+  if (worktreePaths.length > 0) attrs.AdvWorktreePaths = worktreePaths;
 
   const lastSignalAt = dateValue(state.lastSignalAt);
   if (lastSignalAt) attrs.AdvLastSignalAt = [lastSignalAt];

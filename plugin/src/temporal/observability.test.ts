@@ -7,6 +7,34 @@ import {
   requiredAdvSearchAttributes,
 } from "./observability";
 
+const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
+  "AdvChangeId",
+  "AdvChangeStatus",
+  "AdvChangeTitle",
+  "AdvAffectedProjects",
+  "AdvAffectedPaths",
+  "AdvCurrentGate",
+  "AdvCurrentBucket",
+  "AdvLastSignalAt",
+  "AdvCreatedAt",
+  "AdvWorktreeBranches",
+  "AdvWorktreePaths",
+] as const;
+
+const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
+  { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
+  { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
+  { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
+  { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
+  { name: "AdvAffectedPaths", type: "KeywordList", typeCode: 7 },
+  { name: "AdvCurrentGate", type: "Keyword", typeCode: 2 },
+  { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },
+  { name: "AdvLastSignalAt", type: "Datetime", typeCode: 6 },
+  { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
+  { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
+  { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
+] as const;
+
 describe("temporal observability helpers", () => {
   it("exports stable search attribute keys", () => {
     expect(ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.projectId).toBe("AdvProjectId");
@@ -29,22 +57,17 @@ describe("temporal observability helpers", () => {
       doomLoopActive: true,
     });
     expect(attrs).toEqual({
-      AdvProjectId: ["proj1"],
       AdvChangeId: ["chg1"],
       AdvChangeStatus: ["active"],
-      AdvActiveGate: ["execution"],
-      AdvDoomLoopActive: [true],
+      AdvAffectedProjects: ["proj1"],
+      AdvCurrentGate: ["execution"],
     });
   });
 
   it("declares required ADV search attributes with server types", () => {
-    expect(requiredAdvSearchAttributes()).toEqual([
-      { name: "AdvProjectId", type: "Keyword", typeCode: 2 },
-      { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
-      { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
-      { name: "AdvActiveGate", type: "Keyword", typeCode: 2 },
-      { name: "AdvDoomLoopActive", type: "Bool", typeCode: 5 },
-    ]);
+    expect(requiredAdvSearchAttributes()).toEqual(
+      SIGNAL_REQUIRED_SEARCH_ATTRIBUTES,
+    );
   });
 
   // Drift-catch: pin Temporal IndexedValueType numeric codes to the canonical
@@ -82,10 +105,9 @@ describe("temporal observability helpers", () => {
     const operatorService = {
       listSearchAttributes: async () => ({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 2 },
           AdvChangeId: { indexedValueType: 2 },
           AdvChangeStatus: { indexedValueType: 3 },
-          AdvActiveGate: { indexedValueType: 2 },
+          AdvCurrentGate: { indexedValueType: 2 },
         },
       }),
     };
@@ -98,12 +120,18 @@ describe("temporal observability helpers", () => {
     expect(result.ok).toBe(false);
     expect(result.verificationStatus).toBe("verified");
     expect(result.present.map((attr) => attr.name)).toEqual([
-      "AdvProjectId",
       "AdvChangeId",
-      "AdvActiveGate",
+      "AdvCurrentGate",
     ]);
     expect(result.missing.map((attr) => attr.name)).toEqual([
-      "AdvDoomLoopActive",
+      "AdvChangeTitle",
+      "AdvAffectedProjects",
+      "AdvAffectedPaths",
+      "AdvCurrentBucket",
+      "AdvLastSignalAt",
+      "AdvCreatedAt",
+      "AdvWorktreeBranches",
+      "AdvWorktreePaths",
     ]);
     expect(result.wrongType).toEqual([
       {
@@ -124,11 +152,7 @@ describe("temporal observability helpers", () => {
     expect(result.ok).toBe(false);
     expect(result.verificationStatus).toBe("unverified");
     expect(result.missing.map((attr) => attr.name)).toEqual([
-      "AdvProjectId",
-      "AdvChangeId",
-      "AdvChangeStatus",
-      "AdvActiveGate",
-      "AdvDoomLoopActive",
+      ...SIGNAL_SEARCH_ATTRIBUTE_NAMES,
     ]);
     expect(result.error).toBe(
       "OperatorService.listSearchAttributes unavailable",
@@ -150,11 +174,7 @@ describe("temporal observability helpers", () => {
     expect(result.ok).toBe(false);
     expect(result.verificationStatus).toBe("unverified");
     expect(result.missing.map((attr) => attr.name)).toEqual([
-      "AdvProjectId",
-      "AdvChangeId",
-      "AdvChangeStatus",
-      "AdvActiveGate",
-      "AdvDoomLoopActive",
+      ...SIGNAL_SEARCH_ATTRIBUTE_NAMES,
     ]);
     expect(result.error).toBe("search attribute RPC unavailable");
   });
@@ -164,10 +184,9 @@ describe("temporal observability helpers", () => {
     const operatorService = {
       listSearchAttributes: async () => ({
         customAttributes: {
-          AdvProjectId: { indexedValueType: 2 },
           AdvChangeId: { indexedValueType: 2 },
           AdvChangeStatus: { indexedValueType: 2 },
-          AdvActiveGate: { indexedValueType: 2 },
+          AdvCurrentGate: { indexedValueType: 2 },
         },
       }),
       addSearchAttributes,
@@ -180,18 +199,35 @@ describe("temporal observability helpers", () => {
 
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
-      searchAttributes: { AdvDoomLoopActive: 5 },
+      searchAttributes: {
+        AdvChangeTitle: 2,
+        AdvAffectedProjects: 7,
+        AdvAffectedPaths: 7,
+        AdvCurrentBucket: 2,
+        AdvLastSignalAt: 6,
+        AdvCreatedAt: 6,
+        AdvWorktreeBranches: 7,
+        AdvWorktreePaths: 7,
+      },
     });
     expect(result).toEqual({
       ok: true,
       method: "operatorService.addSearchAttributes",
       verificationStatus: "verified",
-      created: [{ name: "AdvDoomLoopActive", type: "Bool", typeCode: 5 }],
+      created: [
+        { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
+        { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
+        { name: "AdvAffectedPaths", type: "KeywordList", typeCode: 7 },
+        { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },
+        { name: "AdvLastSignalAt", type: "Datetime", typeCode: 6 },
+        { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
+        { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
+        { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
+      ],
       skipped: [
-        { name: "AdvProjectId", type: "Keyword", typeCode: 2 },
         { name: "AdvChangeId", type: "Keyword", typeCode: 2 },
         { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
-        { name: "AdvActiveGate", type: "Keyword", typeCode: 2 },
+        { name: "AdvCurrentGate", type: "Keyword", typeCode: 2 },
       ],
       refused: [],
     });
