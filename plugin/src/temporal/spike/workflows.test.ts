@@ -2,11 +2,17 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
+import type { SpikeProjection } from "./contracts";
 
 import {
   archiveRequestedSignal,
+  changeCancelledSignal,
+  conformanceVerdictSignal,
+  gateAwaitingApprovalSignal,
   gateCompletedSignal,
   gateInProgressSignal,
+  gateStuckSignal,
+  getConformanceStateQuery,
   getGateStatusQuery,
   getStateQuery,
   getTasksQuery,
@@ -17,16 +23,26 @@ import { withTestWorkflowEnvironment } from "../__tests__/with-test-env";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
+function createProjectionActivities(projections: SpikeProjection[]) {
+  return {
+    writeChangeProjection: async (projection: SpikeProjection) => {
+      projections.push(projection);
+    },
+  };
+}
+
 describe("spike signal-driven change workflow", () => {
   it("applies representative signals and exposes state via queries", async () => {
     await withTestWorkflowEnvironment(
       () => TestWorkflowEnvironment.createTimeSkipping(),
       async (env) => {
         const taskQueue = "advance-spike-test";
+        const projections: SpikeProjection[] = [];
         const worker = await Worker.create({
           connection: env.nativeConnection,
           workflowsPath,
           taskQueue,
+          activities: createProjectionActivities(projections),
         });
 
         await worker.runUntil(async () => {
@@ -98,10 +114,12 @@ describe("spike signal-driven change workflow", () => {
       () => TestWorkflowEnvironment.createTimeSkipping(),
       async (env) => {
         const taskQueue = "advance-spike-concurrent-test";
+        const projections: SpikeProjection[] = [];
         const worker = await Worker.create({
           connection: env.nativeConnection,
           workflowsPath,
           taskQueue,
+          activities: createProjectionActivities(projections),
         });
 
         await worker.runUntil(async () => {
@@ -165,10 +183,12 @@ describe("spike signal-driven change workflow", () => {
       async (env) => {
         const taskQueue = "advance-spike-can-test";
         const workflowId = `spike-can-${Date.now()}`;
+        const projections: SpikeProjection[] = [];
         const worker = await Worker.create({
           connection: env.nativeConnection,
           workflowsPath,
           taskQueue,
+          activities: createProjectionActivities(projections),
         });
 
         await worker.runUntil(async () => {
@@ -214,6 +234,92 @@ describe("spike signal-driven change workflow", () => {
           expect(state.continueAsNewCount).toBeGreaterThanOrEqual(1);
           expect(state.tasks).toHaveLength(120);
           expect(taskIds.size).toBe(120);
+        });
+      },
+    );
+  });
+
+  it("projects only gate/terminal signals and reads conformance via query", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = "advance-spike-projection-test";
+        const projections: SpikeProjection[] = [];
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+          activities: createProjectionActivities(projections),
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start(
+            "spikeChangeWorkflow",
+            {
+              workflowId: `spike-projection-${Date.now()}`,
+              taskQueue,
+              args: [
+                {
+                  changeId: "spike-projection",
+                  title: "Spike projection change",
+                  initializedAt: "2026-05-06T00:00:00.000Z",
+                },
+              ],
+            },
+          );
+
+          await handle.signal(proposalUpdatedSignal, {
+            text: "draft proposal",
+            updatedAt: "2026-05-06T00:00:01.000Z",
+          });
+          await handle.signal(conformanceVerdictSignal, {
+            verdict: "PASS",
+            recordedAt: "2026-05-06T00:00:02.000Z",
+          });
+
+          const conformance = await handle.query(getConformanceStateQuery);
+          expect(conformance).toEqual({
+            verdict: "PASS",
+            recordedAt: "2026-05-06T00:00:02.000Z",
+          });
+          expect(projections).toEqual([]);
+
+          await handle.signal(gateCompletedSignal, {
+            gateId: "proposal",
+            completedAt: "2026-05-06T00:00:03.000Z",
+          });
+          await handle.signal(gateAwaitingApprovalSignal, {
+            gateId: "planning",
+            evidence: "prep report",
+            triggeredAt: "2026-05-06T00:00:04.000Z",
+          });
+          await handle.signal(gateStuckSignal, {
+            gateId: "release",
+            reason: "external conformance drift",
+            triggeredAt: "2026-05-06T00:00:05.000Z",
+          });
+          await handle.signal(archiveRequestedSignal, {
+            requestedAt: "2026-05-06T00:00:06.000Z",
+            approvalEvidence: "archive approval",
+          });
+          await handle.signal(changeCancelledSignal, {
+            reason: "projection test cleanup",
+            cancelledAt: "2026-05-06T00:00:07.000Z",
+          });
+
+          let state = await handle.query(getStateQuery);
+          for (let attempt = 0; attempt < 50; attempt += 1) {
+            if (state.projectionWrites === 5) break;
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            state = await handle.query(getStateQuery);
+          }
+
+          expect(state.projectionWrites).toBe(5);
+          expect(projections).toHaveLength(5);
+          expect(projections.length).toBeLessThanOrEqual(10);
+          expect(projections.every((entry) => entry.schemaVersion === 2)).toBe(
+            true,
+          );
         });
       },
     );

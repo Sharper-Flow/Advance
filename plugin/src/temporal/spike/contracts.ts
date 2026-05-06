@@ -42,6 +42,9 @@ export interface SpikeChangeState {
   tasks: SpikeTask[];
   gates: Record<SpikeGateId, SpikeGateState>;
   archiveRequested?: { requestedAt: string; approvalEvidence: string };
+  closure?: { reason: string; cancelledAt: string };
+  conformance?: { verdict: "PASS" | "DRIFT"; recordedAt: string };
+  projectionWrites: number;
   signalCount: number;
   continueAsNewCount: number;
 }
@@ -66,9 +69,37 @@ export interface GateCompletedPayload {
   completedAt: string;
 }
 
+export interface GateAwaitingApprovalPayload {
+  gateId: SpikeGateId;
+  evidence: string;
+  triggeredAt: string;
+}
+
+export interface GateStuckPayload {
+  gateId: SpikeGateId;
+  reason: string;
+  triggeredAt: string;
+}
+
 export interface ArchiveRequestedPayload {
   requestedAt: string;
   approvalEvidence: string;
+}
+
+export interface ChangeCancelledPayload {
+  reason: string;
+  cancelledAt: string;
+}
+
+export interface ConformanceVerdictPayload {
+  verdict: "PASS" | "DRIFT";
+  recordedAt: string;
+}
+
+export interface SpikeProjection {
+  schemaVersion: 2;
+  projectedAt: string;
+  state: SpikeChangeState;
 }
 
 const gateIds: SpikeGateId[] = [
@@ -91,6 +122,7 @@ export function createSpikeChangeState(
     title: input.title,
     initializedAt: input.initializedAt,
     tasks: [],
+    projectionWrites: 0,
     signalCount: 0,
     continueAsNewCount: 0,
     gates: Object.fromEntries(

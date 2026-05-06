@@ -1,8 +1,12 @@
 import * as wf from "@temporalio/workflow";
 import type {
   ArchiveRequestedPayload,
+  ChangeCancelledPayload,
+  ConformanceVerdictPayload,
+  GateAwaitingApprovalPayload,
   GateCompletedPayload,
   GateInProgressPayload,
+  GateStuckPayload,
   ProposalUpdatedPayload,
   SpikeChangeState,
   SpikeGateId,
@@ -23,9 +27,21 @@ export const gateInProgressSignal = wf.defineSignal<[GateInProgressPayload]>(
 export const gateCompletedSignal = wf.defineSignal<[GateCompletedPayload]>(
   "spike.change.gateCompleted",
 );
+export const gateAwaitingApprovalSignal = wf.defineSignal<
+  [GateAwaitingApprovalPayload]
+>("spike.change.gateAwaitingApproval");
+export const gateStuckSignal = wf.defineSignal<[GateStuckPayload]>(
+  "spike.change.gateStuck",
+);
 export const archiveRequestedSignal = wf.defineSignal<
   [ArchiveRequestedPayload]
 >("spike.change.archiveRequested");
+export const changeCancelledSignal = wf.defineSignal<[ChangeCancelledPayload]>(
+  "spike.change.changeCancelled",
+);
+export const conformanceVerdictSignal = wf.defineSignal<
+  [ConformanceVerdictPayload]
+>("spike.change.conformanceVerdict");
 
 export const getStateQuery = wf.defineQuery<SpikeChangeState>(
   "spike.change.getState",
@@ -36,3 +52,6 @@ export const getTasksQuery = wf.defineQuery<SpikeTask[]>(
 export const getGateStatusQuery = wf.defineQuery<SpikeGateState, [SpikeGateId]>(
   "spike.change.getGateStatus",
 );
+export const getConformanceStateQuery = wf.defineQuery<
+  SpikeChangeState["conformance"]
+>("spike.change.getConformanceState");
