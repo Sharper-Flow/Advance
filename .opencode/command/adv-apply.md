@@ -280,7 +280,7 @@ This returns:
 - `_ledger` — durable run state for the in-progress task (or `null`)
 - `_readyTasks` + `_readyTasksMeta` — unblocked queue (top-10; override with `readyTasksLimit`)
 
-Fall back to the legacy quartet (`adv_change_show + adv_task_list + adv_task_ready + adv_task_run_status`) only if a specific call needs more than the included slice.
+Fall back to the legacy trio (`adv_change_show + adv_task_list + adv_task_ready`) only if a specific call needs more than the included slice.
 
 ---
 
@@ -416,7 +416,7 @@ Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `ad
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof, durable evidence, and task-run ledger continuity in one command. `adv_task_evidence` is fallback for externally captured or manual evidence only when it adds unique audit/recovery value. It is not the primary inline-TDD path when the test command can run via `adv_run_test`; extra evidence-tool ceremony without reproducibility, durable audit, or recovery value is burden without benefit.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value in one command. The final verification claim is recorded on `taskCompletedSignal.verification` when the task transitions to `done`.
 
 ### Delegation Routing
 
@@ -505,17 +505,17 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 
 `adv_task_ready changeId: <id>` → for each ready task:
 
-**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` → record task-run `start` in the durable task-run ledger. On resume, inspect `adv_task_run_status taskId: <id>` for `requiredNextAction` and continue from that point without adding a user pause.
+**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` fires `taskAssignedSignal`. On resume, query the change workflow state and continue from the active task without adding a user pause.
 
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
-**3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. record baseline in the task-run ledger. If dirty → stop and remediate before Red Phase.
+**3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
 
-**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence. Successful `adv_run_test` records the red evidence event in the task-run ledger.
+**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence.
 
-**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence. Successful `adv_run_test` records the green evidence event in the task-run ledger.
+**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
 
-**3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass. Record verification event in the task-run ledger.
+**3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass.
 
 **3c.5. Checkpoint:** Call `adv_task_checkpoint` with:
 
@@ -526,8 +526,8 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 - `expectedHeadSha: <baselineHeadSha>`
 - `verification: <task verification summary>`
 
-- `{status: 'clean' | 'committed', checkpointRecorded:true}` → checkpoint event is recorded in the task-run ledger; proceed to 3c.55.
-- `{status: 'clean' | 'committed', checkpointRecorded:false}` → ledger recording failed even though git checkpoint succeeded. Run `adv_task_run_status`, retry `adv_task_checkpoint` or record the missing ledger event, and MUST NOT call `adv_task_update status: done` until `checkpointRecorded:true` is observed.
+- `{status: 'clean' | 'committed', checkpointRecorded:true}` → `taskCompletedSignal` was fired; proceed to 3c.55.
+- `{status: 'clean' | 'committed', checkpointRecorded:false}` → `taskCompletedSignal` failed to fire even though git checkpoint succeeded. Retry `adv_task_checkpoint`; if it persists, surface remediation before declaring the task done.
 - `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
 - `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
 - `{classification: 'TRANSIENT'}` → tool already retried internally; surface remaining failure as SEMANTIC or ENVIRONMENTAL per its follow-up classification.

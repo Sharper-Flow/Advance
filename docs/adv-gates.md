@@ -20,11 +20,18 @@ proposal → discovery → design → planning → execution → acceptance → 
 
 ## Gate Status Values
 
-| Value     | Meaning                                   |
-| --------- | ----------------------------------------- |
-| `pending` | Not yet completed                         |
-| `done`    | Completed with timestamp + actor evidence |
-| `skipped` | Explicitly skipped with documented reason |
+| Value                | Meaning                                                                       |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `pending`            | Not yet started                                                               |
+| `in_progress`        | A workflow phase is actively running for this gate                            |
+| `awaiting_approval`  | Phase output is staged; waiting for explicit user approval                    |
+| `stuck`              | Surfaced blocker; gate cannot advance until the blocker is resolved or re-entered |
+| `done`               | Completed with timestamp + actor evidence                                     |
+| `skipped`            | Explicitly skipped with documented reason                                     |
+
+The signal-driven model exposes per-gate state transitions via dedicated signals:
+`gateInProgressSignal`, `gateAwaitingApprovalSignal`, `gateStuckSignal`, `gateCompletedSignal`,
+`gateReenteredSignal`. Gate state is queried via `getGateStatusQuery`.
 
 ## Enforcement Rules
 
@@ -56,7 +63,7 @@ Produces `design.md` — validated architecture decisions and implementation str
 
 Owner: `/adv-prep` | **Auto-continues** when clean (no user approval needed)
 
-Produces the task graph in `change.json`. After this gate completes, `metadata.tdd_intent` is frozen on all tasks and no new tasks can be added (use `adv_task_reclassify_tdd` with user approval to change TDD intent).
+Produces the task graph in `change.json`. After this gate completes, `metadata.tdd_intent` is frozen on all tasks. Genuine scope changes are handled via `adv_change_reenter` rather than mid-execution mutation.
 
 ### Execution Gate
 

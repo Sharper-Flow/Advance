@@ -75,6 +75,10 @@ For agent-driven changes that modify ADV tool behavior, the practical workflow i
 
 ## Architecture Gotchas
 
+### Signal-driven change workflows
+
+Change workflows are signal-driven state holders: tools fire signals (`taskAddedSignal`, `gateCompletedSignal`, `taskCompletedSignal`, etc.) and read via queries (`getStateQuery`, `getTasksQuery`, `getGateStatusQuery`). No `defineUpdate`-based mutation contract on the change-workflow surface. Per-change workflow state is the source of truth; on-disk `change.json` is a downstream projection updated only on terminal/gate transitions. Cross-change visibility (e.g. branch-in-use detection) flows through Temporal Visibility search attributes (`AdvWorktreeBranches`, `AdvWorktreePaths`).
+
 ### Runtime is Bun, tests run on Node
 
 OpenCode ships as a Bun executable, while the Vitest suite runs on Node. Runtime storage is Temporal-only; the old `bun:sqlite` / `better-sqlite3` path was removed by `completeTemporalOnlyMigration`.

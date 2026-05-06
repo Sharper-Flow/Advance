@@ -185,7 +185,7 @@ Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub
 
 ### Sub-Agent 1: Test Coverage Scanner
 
-Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence via `adv_run_test`; `adv_task_evidence` is fallback only), report test runner availability.
+Analyze test coverage: for each source file check for test file, calculate coverage ratio, check TDD adherence (red/green evidence via `adv_run_test`), report test runner availability.
 
 Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_without_tests`, `coverage_percent`, `tdd_audit`, `issues`.
 

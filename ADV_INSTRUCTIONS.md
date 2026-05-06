@@ -258,10 +258,10 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 
 - `adv_change_update` — always pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`. Zero-args calls hit a 10s safety-net timeout and return `errorClass: ToolExecutionTimeout`. Confirm the target with `adv_change_show` or `adv_change_list` first.
 - `adv_task_add` — before passing `blockedBy`, call `adv_task_list changeId: <id>` to fetch current task IDs. Unknown IDs are rejected with the list of valid IDs so you can self-correct, but this costs a round trip.
-- `adv_task_add` — `metadata.tdd_intent` defaults to `"inline"` when omitted. Pass it explicitly for `"separate_verification"` (cross-cutting verify tasks) or `"not_applicable"` (docs/config/verification-only tasks). The validator's logic-heavy heuristic flags missing TDD evidence on tasks defaulted to `inline` regardless of content prose; explicit metadata at creation time avoids `adv_task_reclassify_tdd` ceremony at archive time.
+- `adv_task_add` — `metadata.tdd_intent` defaults to `"inline"` when omitted. Pass it explicitly for `"separate_verification"` (cross-cutting verify tasks) or `"not_applicable"` (docs/config/verification-only tasks). The validator's logic-heavy heuristic flags missing TDD evidence on tasks defaulted to `inline` regardless of content prose; set explicit metadata at creation time.
 - `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, NO task is cancelled. Verify with `adv_task_list` before calling.
 - `adv_change_archive` — when archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands inside the worktree's `.adv/archive/` (where `/adv-archive` Phase 9 Step 1 stages it on the change branch). Omitting the arg defaults to `store.paths.root` (main checkout) and the bundle ends up untracked in main, requiring a separate trunk commit.
-- `adv_run_test` — pass `timeoutMs` (range `[1000, 300_000]` ms, default `30_000`) for slow commands like `pnpm run check` or full suites. Without it, commands taking >30s SIGTERM and the tool returns `errorClass: TestExecutionTimeout`. Use `adv_task_evidence` as fallback only when external execution is required (e.g. external CI artifact replay).
+- `adv_run_test` — pass `timeoutMs` (range `[1000, 300_000]` ms, default `30_000`) for slow commands like `pnpm run check` or full suites. Without it, commands taking >30s SIGTERM and the tool returns `errorClass: TestExecutionTimeout`.
 - `adv_gate_complete` — planning gate requires `userApproved: true`. Other gates accept the flag but only planning enforces it.
 - Tool `describe()` text documents relational constraints (which other tool to call first, at-least-one-of patterns, valid enum values). Read field descriptions before constructing calls.
 
@@ -288,15 +288,13 @@ Skip for: bug fixes, mechanical work, choices constrained by security/API/archit
 ### Context Freshness
 
 Phase start (once): prefer the augmented form
-`adv_change_show changeId: <id> include: { ledger: true, snapshot: true, readyTasks: true }` —
-this single call collapses the legacy quartet
-(`adv_change_show + adv_gate_status + adv_task_ready + adv_task_run_status`)
-into one round trip:
+`adv_change_show changeId: <id> include: { snapshot: true, readyTasks: true }` —
+this single call collapses the legacy trio
+(`adv_change_show + adv_gate_status + adv_task_ready`) into one round trip:
 
 | Flag                                | Attached field                                                               | Replaces                                                            |
 | ----------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `include.snapshot: true`            | `_contextSnapshot` (top-level rendered string)                               | `adv_change_show` proposal/gate-row reading + manual reconstruction |
-| `include.ledger: true`              | `_ledger` (TaskRunState for in-progress task or `null`)                      | `adv_task_run_status taskId: <id>`                                  |
 | `include.readyTasks: true`          | `_readyTasks` (top-N) + `_readyTasksMeta` (`{ total, limit, blockedCount }`) | `adv_task_ready changeId: <id>`                                     |
 | `include.readyTasksLimit: N` (1-50) | overrides default top-10 slice                                               | —                                                                   |
 
@@ -315,7 +313,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof, durable evidence, and task-run ledger continuity. `adv_task_evidence` is fallback for externally captured or manual evidence only when it adds unique audit/recovery value; do not add evidence-tool ceremony without reproducibility, durable audit, or recovery value.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value. The final verification claim is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_update`.
 
 ### Reflection Protocol
 
@@ -333,14 +331,6 @@ Post-completion two-plane analysis for every archived change. Tool: `adv_reflect
 
 Every `/adv-apply` task with file changes in its workdir MUST produce a git commit via `adv_task_checkpoint` before transitioning to `status:'done'`. Cancellations MUST checkpoint before `status:'cancelled'`. Enforcement is at the `/adv-apply` command seam (step 3c.5), not in `adv_task_update` itself.
 
-**Durable Task-Run Ledger.**
-
-<!-- rq-taskRunLedger01 -->
-
-Each `/adv-apply` task records a durable task-run ledger in Temporal. Use `adv_task_run_status` to recover the current phase, `requiredNextAction`, resume hint, baseline, evidence, verification, checkpoint, and recent events after context loss or session restart. Ledger status never creates an extra user pause; it tells the agent where to resume inside the existing no-pause apply loop.
-
-Ledger recording points: task start, clean baseline, red evidence, green evidence, incremental verification, checkpoint, completion, failures, and blockers. `adv_task_checkpoint` records the checkpoint event after clean/committed git result; if git succeeds but ledger recording fails, surface remediation before marking the task done.
-
 **Apply-loop ordering:**
 
 | Step | Action                                                                                                                                                                                     |
@@ -350,7 +340,7 @@ Ledger recording points: task start, clean baseline, red evidence, green evidenc
 | 3b   | Red Phase — write failing test                                                                                                                                                             |
 | 3c   | Green Phase — implement, tests pass                                                                                                                                                        |
 | 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                                                                                       |
-| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification; if `checkpointRecorded:false`, run `adv_task_run_status` and do not mark done until `checkpointRecorded:true` |
+| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires `taskCompletedSignal` to mark the task `done` |
 | 3d   | Complete — `adv_task_update status: "done"`                                                                                                                                                |
 
 **Failure classification:**
@@ -464,11 +454,11 @@ Tools with `target_path` (read or mutation) accept the optional path argument an
 | `adv_task_show`, `adv_task_list`, `adv_task_ready`                                        | snapshot-ok                     | Read-only                                                                          |
 | `adv_change_update`, `adv_change_create`                                                  | temporal-required               | Mutation; `target_confirmed: true` + `confirmationEvidence` required for untrusted |
 | `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`                         | temporal-required               | Mutation                                                                           |
-| `adv_task_update`, `adv_task_evidence`, `adv_task_tdd`, `adv_task_cancel`, `adv_task_add` | temporal-required               | Mutation                                                                           |
+| `adv_task_update`, `adv_task_cancel`, `adv_task_add`                                      | temporal-required               | Mutation                                                                           |
 | `adv_gate_status`, `adv_gate_complete`                                                    | temporal-required               | Read-status / mutation                                                             |
 | `adv_workflow_repair`, `adv_orphan_sweep`, `adv_temporal_reconnect`                       | temporal-required               | Mutation                                                                           |
 | `adv_archive_sweep_orphans`                                                               | temporal-required               | Mutation                                                                           |
-| `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup`                         | snapshot-ok / temporal-required | Read-only diagnose; import & cleanup are mutations                                 |
+| `adv_change_diagnose`                                                                     | snapshot-ok                     | Read-only diagnose                                                                 |
 | `adv_run_test`                                                                            | temporal-required               | Mutation (records evidence)                                                        |
 
 Tools without `target_path` (current-project only): `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`, `adv_run_test` workdir-resolution.
