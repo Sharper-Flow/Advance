@@ -25,13 +25,13 @@ interface CliOptions {
   only?: string;
 }
 
-interface LoadedChange {
+export interface LoadedChange {
   dir: string;
   change: Change;
   documents: MigrationDocuments;
 }
 
-interface ChangeMigrationReport {
+export interface ChangeMigrationReport {
   changeId: string;
   mode: CliOptions["mode"];
   planSteps: number;
@@ -65,7 +65,7 @@ async function readOptionalText(path: string): Promise<string | undefined> {
   }
 }
 
-async function loadChangeDir(dir: string): Promise<LoadedChange> {
+export async function loadChangeDir(dir: string): Promise<LoadedChange> {
   const raw = JSON.parse(await readFile(join(dir, "change.json"), "utf8"));
   const change = ChangeSchema.parse(raw);
   const documents: MigrationDocuments = {
@@ -92,7 +92,7 @@ async function loadChanges(
   return loaded;
 }
 
-async function dryRunChange(
+export async function dryRunChange(
   loaded: LoadedChange,
 ): Promise<ChangeMigrationReport> {
   const plan = buildMigrationReplayPlan(loaded.change, loaded.documents);
@@ -223,7 +223,9 @@ async function main(): Promise<void> {
   if (failed.length > 0) process.exitCode = 1;
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack : String(error));
-  process.exitCode = 1;
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack : String(error));
+    process.exitCode = 1;
+  });
+}
