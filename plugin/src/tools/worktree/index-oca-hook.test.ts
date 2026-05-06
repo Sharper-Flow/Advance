@@ -29,6 +29,17 @@ vi.mock("../project-workflow-helper", () => ({
 // Mock debug-log to prevent real filesystem writes.
 vi.mock("../../utils/debug-log", () => ({
   appendDebugLog: vi.fn(),
+  createLogger: () => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
+
+// Stub temporal/service so module-level effects don't fail in test env.
+vi.mock("../../temporal/service", () => ({
+  getService: vi.fn(() => null),
 }));
 
 // Mock hooks module — preserve HookFailedError, replace runHooksWithSafety.

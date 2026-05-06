@@ -44,8 +44,13 @@ import type { OpencodeClient } from "../../utils/opencode-types";
 import type { UpdateWorktreeRecordPayload } from "../../temporal/project-state";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
-import { getService } from "../../temporal/service";
 import { getWorktreesQuery } from "../../temporal/messages";
+
+/** Lazy load to avoid pulling service module-level effects into tests that don't need them. */
+async function loadGetService() {
+  const mod = await import("../../temporal/service");
+  return mod.getService;
+}
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -150,6 +155,7 @@ export async function findBranchOwnersAcrossChanges(
   branch: string,
   excludeChangeId?: string,
 ): Promise<string[]> {
+  const getService = await loadGetService();
   const bundle = getService();
   if (!bundle) return [];
   const owners = await listChangeIdsByWorktreeBranch(
@@ -214,6 +220,7 @@ function materializeChangeWorktreeRecord(
 export async function listWorktreesAcrossChanges(
   access: WorktreeStateAccess,
 ): Promise<MaterializedWorktreeRecord[] | null> {
+  const getService = await loadGetService();
   const bundle = getService();
   if (!bundle) return null;
   const client = bundle.client as WorkflowListClient & {
