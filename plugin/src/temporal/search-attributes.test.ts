@@ -52,7 +52,6 @@ describe("ADV search attributes", () => {
       AdvChangeStatus: "Keyword",
       AdvChangeTitle: "Keyword",
       AdvAffectedProjects: "KeywordList",
-      AdvAffectedPaths: "KeywordList",
       AdvCurrentGate: "Keyword",
       AdvCurrentBucket: "Keyword",
       AdvLastSignalAt: "Datetime",
@@ -68,7 +67,6 @@ describe("ADV search attributes", () => {
       { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
       { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
       { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
-      { name: "AdvAffectedPaths", type: "KeywordList", typeCode: 7 },
       { name: "AdvCurrentGate", type: "Keyword", typeCode: 2 },
       { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },
       { name: "AdvLastSignalAt", type: "Datetime", typeCode: 6 },
@@ -88,12 +86,12 @@ describe("ADV search attributes", () => {
       AdvChangeStatus: ["active"],
       AdvChangeTitle: ["Exact title"],
       AdvAffectedProjects: ["proj1", "proj2"],
-      AdvAffectedPaths: ["plugin/src/temporal"],
       AdvCurrentGate: ["proposal"],
       AdvCurrentBucket: ["in_flight"],
       AdvWorktreeBranches: ["change/example"],
       AdvWorktreePaths: ["/repo/example"],
     });
+    expect(attrs.AdvAffectedPaths).toBeUndefined();
     expect(attrs.AdvLastSignalAt?.[0]).toEqual(
       new Date("2026-05-05T00:00:01.000Z"),
     );
@@ -120,7 +118,6 @@ describe("ADV search attributes", () => {
       "AdvChangeStatus",
       "AdvChangeTitle",
       "AdvAffectedProjects",
-      "AdvAffectedPaths",
       "AdvCurrentGate",
       "AdvCurrentBucket",
       "AdvLastSignalAt",
@@ -134,7 +131,6 @@ describe("ADV search attributes", () => {
         AdvChangeStatus: 2,
         AdvChangeTitle: 2,
         AdvAffectedProjects: 7,
-        AdvAffectedPaths: 7,
         AdvCurrentGate: 2,
         AdvCurrentBucket: 2,
         AdvLastSignalAt: 6,

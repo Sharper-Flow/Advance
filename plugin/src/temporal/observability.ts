@@ -265,9 +265,6 @@ export function buildTemporalSearchAttributes(input: {
   attrs.AdvAffectedProjects = input.affectedProjects?.length
     ? input.affectedProjects
     : [input.projectId];
-  if (input.affectedPaths?.length) {
-    attrs.AdvAffectedPaths = input.affectedPaths;
-  }
   if (input.activeGate) {
     attrs.AdvCurrentGate = [input.activeGate];
   }

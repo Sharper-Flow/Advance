@@ -2,12 +2,18 @@ import * as wf from "@temporalio/workflow";
 import type { ChangeWorkflowState } from "./contracts";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 
+// NOTE: Temporal dev server hard-caps custom search attributes at 3 per
+// `KeywordList` type per namespace. Keep KeywordList entries to ≤ 3:
+// `AdvAffectedProjects`, `AdvWorktreeBranches`, `AdvWorktreePaths`.
+// `AdvAffectedPaths` was previously listed here but had no production
+// visibility query. Removed to fit within the Temporal dev-server limit.
+// If a path-level filter is needed in the future, encode it as a single
+// `Keyword` (joined value) or replace one of the other KeywordLists.
 export const ADV_SEARCH_ATTRIBUTES = {
   AdvChangeId: "Keyword",
   AdvChangeStatus: "Keyword",
   AdvChangeTitle: "Keyword",
   AdvAffectedProjects: "KeywordList",
-  AdvAffectedPaths: "KeywordList",
   AdvCurrentGate: "Keyword",
   AdvCurrentBucket: "Keyword",
   AdvLastSignalAt: "Datetime",
@@ -178,9 +184,6 @@ export function buildChangeSearchAttributes(
         ? [state.projectId]
         : [];
   if (affectedProjects.length > 0) attrs.AdvAffectedProjects = affectedProjects;
-  if (state.affectedPaths && state.affectedPaths.length > 0) {
-    attrs.AdvAffectedPaths = state.affectedPaths;
-  }
 
   const activeWorktrees = Object.values(state.worktrees ?? {}).filter(
     (worktree) => worktree.status !== "deleted",

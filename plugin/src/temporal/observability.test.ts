@@ -12,7 +12,6 @@ const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
   "AdvChangeStatus",
   "AdvChangeTitle",
   "AdvAffectedProjects",
-  "AdvAffectedPaths",
   "AdvCurrentGate",
   "AdvCurrentBucket",
   "AdvLastSignalAt",
@@ -26,7 +25,6 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
   { name: "AdvChangeStatus", type: "Keyword", typeCode: 2 },
   { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
   { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
-  { name: "AdvAffectedPaths", type: "KeywordList", typeCode: 7 },
   { name: "AdvCurrentGate", type: "Keyword", typeCode: 2 },
   { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },
   { name: "AdvLastSignalAt", type: "Datetime", typeCode: 6 },
@@ -126,7 +124,6 @@ describe("temporal observability helpers", () => {
     expect(result.missing.map((attr) => attr.name)).toEqual([
       "AdvChangeTitle",
       "AdvAffectedProjects",
-      "AdvAffectedPaths",
       "AdvCurrentBucket",
       "AdvLastSignalAt",
       "AdvCreatedAt",
@@ -202,7 +199,6 @@ describe("temporal observability helpers", () => {
       searchAttributes: {
         AdvChangeTitle: 2,
         AdvAffectedProjects: 7,
-        AdvAffectedPaths: 7,
         AdvCurrentBucket: 2,
         AdvLastSignalAt: 6,
         AdvCreatedAt: 6,
@@ -217,7 +213,6 @@ describe("temporal observability helpers", () => {
       created: [
         { name: "AdvChangeTitle", type: "Keyword", typeCode: 2 },
         { name: "AdvAffectedProjects", type: "KeywordList", typeCode: 7 },
-        { name: "AdvAffectedPaths", type: "KeywordList", typeCode: 7 },
         { name: "AdvCurrentBucket", type: "Keyword", typeCode: 2 },
         { name: "AdvLastSignalAt", type: "Datetime", typeCode: 6 },
         { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
