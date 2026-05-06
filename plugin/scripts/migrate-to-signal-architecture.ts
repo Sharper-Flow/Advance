@@ -4,9 +4,10 @@ import { join, resolve } from "node:path";
 import { createDefaultGates, ChangeSchema, type Change } from "../src/types";
 import {
   buildChangeWorkflowId,
+  buildProjectTaskQueue,
   createTemporalClientBundle,
 } from "../src/temporal/client";
-import { ensureChangeWorkflowStarted } from "../src/temporal/migration";
+import { changeWorkflow } from "../src/temporal/workflows";
 import { changeStateQuery } from "../src/temporal/messages";
 import {
   buildMigrationReplayPlan,
@@ -110,23 +111,32 @@ async function executeChange(
 ): Promise<ChangeMigrationReport> {
   const bundle = await createTemporalClientBundle();
   try {
-    const handle = await ensureChangeWorkflowStarted(bundle.client, {
-      projectId,
-      changeId: loaded.change.id,
-      title: loaded.change.title,
-      initializedAt: loaded.change.created_at,
-      searchAttributesEnabled: true,
-      seedState: {
-        status: loaded.change.status,
-        tasks: [],
-        wisdom: [],
-        gates: createDefaultGates(),
-        reentry_history: [],
-        deltas: loaded.change.deltas,
-        fast_follow_of: loaded.change.fast_follow_of,
-        affectedProjects: loaded.change.affectedProjects,
-        affectedPaths: loaded.change.affectedPaths,
-      },
+    const workflowId = buildChangeWorkflowId(projectId, loaded.change.id);
+    const taskQueue = buildProjectTaskQueue(projectId);
+    const handle = await bundle.client.workflow.start(changeWorkflow, {
+      workflowId,
+      taskQueue,
+      workflowIdConflictPolicy: "TERMINATE_EXISTING",
+      args: [
+        {
+          projectId,
+          changeId: loaded.change.id,
+          title: loaded.change.title,
+          initializedAt: loaded.change.created_at,
+          searchAttributesEnabled: false,
+          seedState: {
+            status: loaded.change.status,
+            tasks: [],
+            wisdom: [],
+            gates: createDefaultGates(),
+            reentry_history: [],
+            deltas: loaded.change.deltas,
+            fast_follow_of: loaded.change.fast_follow_of,
+            affectedProjects: loaded.change.affectedProjects,
+            affectedPaths: loaded.change.affectedPaths,
+          },
+        },
+      ],
     });
     const plan = await replayChangeAsSignals(
       handle,
@@ -172,6 +182,17 @@ async function main(): Promise<void> {
           : await executeChange(projectId, loaded),
       );
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? `${error.name}: ${error.message}${error.stack ? `\n${error.stack}` : ""}`
+          : String(error);
+      console.error(`[migrate] ${loaded.change.id} failed: ${message}`);
+      if (error && typeof error === "object" && "cause" in error) {
+        const cause = (error as { cause: unknown }).cause;
+        console.error(
+          `[migrate] cause: ${cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)}`,
+        );
+      }
       reports.push({
         changeId: loaded.change.id,
         mode: opts.mode,
@@ -206,5 +227,3 @@ main().catch((error) => {
   console.error(error instanceof Error ? error.stack : String(error));
   process.exitCode = 1;
 });
-
-void buildChangeWorkflowId;
