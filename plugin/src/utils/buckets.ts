@@ -32,7 +32,7 @@ function isIdlePastThreshold(ctx: BucketContext): boolean {
 }
 
 export function deriveBucket(ctx: BucketContext): Bucket {
-  if (ctx.pendingCheckpoint || ctx.currentGateStatus === "awaiting_approval") {
+  if (ctx.pendingCheckpoint) {
     return "awaiting_approval";
   }
 
@@ -41,6 +41,10 @@ export function deriveBucket(ctx: BucketContext): Bucket {
     ctx.releaseGateStatus === "awaiting_approval"
   ) {
     return "ready_to_archive";
+  }
+
+  if (ctx.currentGateStatus === "awaiting_approval") {
+    return "awaiting_approval";
   }
 
   if (ctx.currentGateStatus === "stuck") return "stuck";

@@ -45,6 +45,8 @@ describe("deriveBucket", () => {
     expect(
       deriveBucket(
         ctx({
+          currentGateId: "release",
+          currentGateStatus: "awaiting_approval",
           allNonReleaseGatesDone: true,
           releaseGateStatus: "awaiting_approval",
         }),
