@@ -1979,8 +1979,9 @@ export const changeTools = {
           ? { ...store.paths, wisdom: undefined, inRepoArchive }
           : { ...store.paths, inRepoArchive };
 
-      // Idempotent retry: if the bundle already exists on disk, skip the
-      // disk write. Two sub-cases:
+      // rq-archiveOrdering01: Archive State Transition Must Be Resilient
+      // to Failed Disk Bundle Write. Idempotent retry: if the bundle already
+      // exists on disk, skip the disk write. Two sub-cases:
       //   1. status === "archived"  → no-op success (archive already
       //      complete; both disk + state already transitioned).
       //   2. status !== "archived"  → recovery path; previous attempt

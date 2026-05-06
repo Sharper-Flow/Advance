@@ -137,6 +137,9 @@ export const taskTools = {
         .enum(["pending", "in_progress", "done", "cancelled"])
         .optional()
         .describe("Filter by status"),
+      // rq-advmeta01: Task Metadata Filter Semantics — supports
+      // has_metadata_key:<key> and metadata:<key>=<value> against the
+      // workflow-owned source-of-truth state.
       filter: z
         .string()
         .optional()

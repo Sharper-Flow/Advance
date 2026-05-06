@@ -2,16 +2,25 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // Hoist all mock creation so they're available in both vi.mock factories and tests
 const mocks = vi.hoisted(() => {
+  // Current ADV search-attribute set (must match plugin/src/temporal/search-attributes.ts).
+  // Type codes: 2=Keyword, 5=Bool, 6=Datetime, 7=KeywordList.
+  const ADV_SA_FULL_PRESENT = {
+    AdvChangeId: { indexedValueType: 2 },
+    AdvChangeStatus: { indexedValueType: 2 },
+    AdvChangeTitle: { indexedValueType: 2 },
+    AdvAffectedProjects: { indexedValueType: 7 },
+    AdvAffectedPaths: { indexedValueType: 7 },
+    AdvCurrentGate: { indexedValueType: 2 },
+    AdvCurrentBucket: { indexedValueType: 2 },
+    AdvLastSignalAt: { indexedValueType: 6 },
+    AdvCreatedAt: { indexedValueType: 6 },
+    AdvWorktreeBranches: { indexedValueType: 7 },
+    AdvWorktreePaths: { indexedValueType: 7 },
+  };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
   const listSearchAttributes = vi.fn().mockResolvedValue({
-    customAttributes: {
-      AdvProjectId: { indexedValueType: 2 },
-      AdvChangeId: { indexedValueType: 2 },
-      AdvChangeStatus: { indexedValueType: 2 },
-      AdvActiveGate: { indexedValueType: 2 },
-      AdvDoomLoopActive: { indexedValueType: 5 },
-    },
+    customAttributes: { ...ADV_SA_FULL_PRESENT },
   });
   const connection = {
     close: connectionClose,
@@ -31,6 +40,7 @@ const mocks = vi.hoisted(() => {
     client,
     connect,
     ClientCtor,
+    ADV_SA_FULL_PRESENT,
   };
 });
 
@@ -87,13 +97,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       .mockResolvedValueOnce({ customAttributes: {} }) // verification poll 1
       .mockResolvedValue({
         // verification polls 2+ succeed
-        customAttributes: {
-          AdvProjectId: { indexedValueType: 2 },
-          AdvChangeId: { indexedValueType: 2 },
-          AdvChangeStatus: { indexedValueType: 2 },
-          AdvActiveGate: { indexedValueType: 2 },
-          AdvDoomLoopActive: { indexedValueType: 5 },
-        },
+        customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
       });
 
     await initStsl({
@@ -103,14 +107,22 @@ describe("STSL (Shared Temporal Service Layer)", () => {
 
     expect(mocks.addSearchAttributes).toHaveBeenCalledTimes(1);
     const [call] = mocks.addSearchAttributes.mock.calls;
+    // Type codes: 2=Keyword, 6=Datetime, 7=KeywordList. Must match the
+    // current ADV_SEARCH_ATTRIBUTES set in plugin/src/temporal/search-attributes.ts.
     expect(call[0]).toEqual({
       namespace: "default",
       searchAttributes: {
-        AdvProjectId: 2, // KEYWORD
-        AdvChangeId: 2, // KEYWORD
-        AdvChangeStatus: 2, // KEYWORD
-        AdvActiveGate: 2, // KEYWORD
-        AdvDoomLoopActive: 5, // BOOL
+        AdvChangeId: 2,
+        AdvChangeStatus: 2,
+        AdvChangeTitle: 2,
+        AdvAffectedProjects: 7,
+        AdvAffectedPaths: 7,
+        AdvCurrentGate: 2,
+        AdvCurrentBucket: 2,
+        AdvLastSignalAt: 6,
+        AdvCreatedAt: 6,
+        AdvWorktreeBranches: 7,
+        AdvWorktreePaths: 7,
       },
     });
   });
@@ -166,13 +178,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     mocks.listSearchAttributes.mockReset();
     mocks.addSearchAttributes.mockReset();
     mocks.listSearchAttributes.mockResolvedValue({
-      customAttributes: {
-        AdvProjectId: { indexedValueType: 2 },
-        AdvChangeId: { indexedValueType: 2 },
-        AdvChangeStatus: { indexedValueType: 2 },
-        AdvActiveGate: { indexedValueType: 2 },
-        AdvDoomLoopActive: { indexedValueType: 5 },
-      },
+      customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
     });
     mocks.addSearchAttributes.mockResolvedValue({});
     // Test-specific overrides:
@@ -232,13 +238,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
     mocks.listSearchAttributes.mockReset();
     mocks.addSearchAttributes.mockReset();
     mocks.listSearchAttributes.mockResolvedValue({
-      customAttributes: {
-        AdvProjectId: { indexedValueType: 2 },
-        AdvChangeId: { indexedValueType: 2 },
-        AdvChangeStatus: { indexedValueType: 2 },
-        AdvActiveGate: { indexedValueType: 2 },
-        AdvDoomLoopActive: { indexedValueType: 5 },
-      },
+      customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
     });
     mocks.addSearchAttributes.mockResolvedValue({});
     // Test-specific: empty list on first check, then AlreadyExists rejection
@@ -394,13 +394,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };
@@ -483,13 +477,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
       .mockResolvedValueOnce({ customAttributes: {} }) // check → missing → register
       .mockResolvedValueOnce({ customAttributes: {} }) // verification poll 1
       .mockResolvedValue({
-        customAttributes: {
-          AdvProjectId: { indexedValueType: 2 },
-          AdvChangeId: { indexedValueType: 2 },
-          AdvChangeStatus: { indexedValueType: 2 },
-          AdvActiveGate: { indexedValueType: 2 },
-          AdvDoomLoopActive: { indexedValueType: 5 },
-        },
+        customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
       });
 
     // initStsl already called addSearchAttributes once on the original conn.
@@ -626,13 +614,7 @@ describe("verifyAdvSearchAttributes", () => {
       mocks.listSearchAttributes.mockImplementation(original);
     } else {
       mocks.listSearchAttributes.mockResolvedValue({
-        customAttributes: {
-          AdvProjectId: { indexedValueType: 2 },
-          AdvChangeId: { indexedValueType: 2 },
-          AdvChangeStatus: { indexedValueType: 2 },
-          AdvActiveGate: { indexedValueType: 2 },
-          AdvDoomLoopActive: { indexedValueType: 5 },
-        },
+        customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
       });
     }
   });
@@ -656,13 +638,7 @@ describe("verifyAdvSearchAttributes", () => {
       mocks.listSearchAttributes.mockImplementation(original);
     } else {
       mocks.listSearchAttributes.mockResolvedValue({
-        customAttributes: {
-          AdvProjectId: { indexedValueType: 2 },
-          AdvChangeId: { indexedValueType: 2 },
-          AdvChangeStatus: { indexedValueType: 2 },
-          AdvActiveGate: { indexedValueType: 2 },
-          AdvDoomLoopActive: { indexedValueType: 5 },
-        },
+        customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
       });
     }
   });
@@ -675,13 +651,7 @@ describe("initStsl verification integration", () => {
     // Ensure listSearchAttributes mock is restored to the hoisted default
     // (previous tests may have overridden it with mockResolvedValue/mockRejectedValue)
     mocks.listSearchAttributes.mockResolvedValue({
-      customAttributes: {
-        AdvProjectId: { indexedValueType: 2 },
-        AdvChangeId: { indexedValueType: 2 },
-        AdvChangeStatus: { indexedValueType: 2 },
-        AdvActiveGate: { indexedValueType: 2 },
-        AdvDoomLoopActive: { indexedValueType: 5 },
-      },
+      customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
     });
   });
 
@@ -734,13 +704,7 @@ describe("initStsl verification integration", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };

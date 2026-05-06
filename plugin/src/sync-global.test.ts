@@ -529,11 +529,11 @@ describe("sync-global.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
-      // Ceiling raised from 350 → 360 after the worktree-tool + session
-      // tool allowlist additions on this branch (commit dcc2db3 + parent
-      // edits) pushed the canonical ADV agent body past the prior cap.
+      // Ceiling raised from 360 → 361 after the signal-driven workflow
+      // refactor exposed `adv_worktree_resume` and we added it to the
+      // canonical allowlist to clear sync-global tool-drift checks.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(360);
+      expect(lines).toBeLessThanOrEqual(361);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {

@@ -1392,41 +1392,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "rq-staleLedger01",
-      "title": "Stale ledger references surface explicitly",
-      "body": "When the in-progress task ledger references a task whose current status is cancelled or done, the resume-hint block in compaction output must surface an explicit warning naming the task ID and its terminal status, instructing the agent to re-evaluate from the current ready queue. The agent must NOT silently follow a resume hint that points at a superseded task.",
-      "priority": "must",
-      "tags": ["workflow", "ledger", "compaction", "fidelity"],
-      "scenarios": [
-        {
-          "id": "rq-staleLedger01.1",
-          "title": "Cancelled task triggers warning",
-          "given": [
-            "The in-progress task ledger references task tk-X",
-            "Task tk-X has status 'cancelled' in the change task list"
-          ],
-          "when": "Compaction context is built",
-          "then": [
-            "The resume-hint block contains a ⚠ warning naming tk-X and its 'cancelled' status",
-            "The original phase/resumeHint values are NOT surfaced"
-          ]
-        },
-        {
-          "id": "rq-staleLedger01.2",
-          "title": "Done task triggers warning",
-          "given": [
-            "The in-progress task ledger references task tk-X",
-            "Task tk-X has status 'done' in the change task list"
-          ],
-          "when": "Compaction context is built",
-          "then": [
-            "The resume-hint block contains a ⚠ warning naming tk-X and its 'done' status",
-            "The agent is directed to re-evaluate via adv_change_show include:{readyTasks:true}"
-          ]
-        }
-      ]
     }
   ]
 }

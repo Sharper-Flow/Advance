@@ -16,13 +16,18 @@ import { loadConformanceState } from "../storage/conformance";
 
 const mocks = vi.hoisted(() => {
   const signal = vi.fn(async () => {});
+  const query = vi.fn(async () => undefined);
   return {
     signal,
+    query,
     getService: vi.fn(() => ({
       connection: { close: vi.fn(async () => {}) },
       client: {
         workflow: {
-          getHandle: vi.fn(() => ({ signal })),
+          // Mock workflow handle must include both signal AND query so
+          // _adapters.isWorkflowHandleLike() recognizes it as a handle
+          // and routes fireSignal() through the direct-handle path.
+          getHandle: vi.fn(() => ({ signal, query })),
         },
       },
     })),

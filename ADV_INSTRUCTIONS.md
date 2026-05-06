@@ -669,7 +669,9 @@ Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-
 | 4.5      | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines)                | `delegate_allowed` |
 | 5        | Default                                                                                | `inline_required`  |
 
-Step 4.5 is the **Context-Shed Test** — a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. Gated by floor: ~5 files touched OR ~50 lines changed. All four must pass AND floor must be met for `delegate_allowed`. Conservative bias: when uncertain, default to `inline_required`.
+<!-- rq-contextShed01 -->
+<!-- rq-contextShed02 -->
+Step 4.5 is the **Context-Shed Test** — a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. Gated by floor: ~5 files touched OR ~50 lines changed. All four must pass AND floor must be met for `delegate_allowed`. Conservative bias: when uncertain, default to `inline_required`. Post-delegation, P23 campsite-rule scans within the touched scope still apply.
 
 ADV code-writing delegation targets `adv-engineer` (not `general`). Verify-burst and non-ADV multi-step work remain on `general`.
 

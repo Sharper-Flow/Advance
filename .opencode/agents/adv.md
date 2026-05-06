@@ -104,6 +104,7 @@ tools:
   adv_mesh_scan: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true
+  adv_worktree_resume: true
   adv_worktree_delete: true
   adv_worktree_cleanup: true
   adv_worktree_triage: true

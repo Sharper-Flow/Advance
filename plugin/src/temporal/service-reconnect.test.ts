@@ -3,16 +3,25 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 // Hoist mocks identically to service.test.ts so we can swap connection on
 // reinit and observe call counts.
 const mocks = vi.hoisted(() => {
+  // Current ADV search-attribute set (must match plugin/src/temporal/search-attributes.ts).
+  // Type codes: 2=Keyword, 6=Datetime, 7=KeywordList.
+  const ADV_SA_FULL_PRESENT = {
+    AdvChangeId: { indexedValueType: 2 },
+    AdvChangeStatus: { indexedValueType: 2 },
+    AdvChangeTitle: { indexedValueType: 2 },
+    AdvAffectedProjects: { indexedValueType: 7 },
+    AdvAffectedPaths: { indexedValueType: 7 },
+    AdvCurrentGate: { indexedValueType: 2 },
+    AdvCurrentBucket: { indexedValueType: 2 },
+    AdvLastSignalAt: { indexedValueType: 6 },
+    AdvCreatedAt: { indexedValueType: 6 },
+    AdvWorktreeBranches: { indexedValueType: 7 },
+    AdvWorktreePaths: { indexedValueType: 7 },
+  };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
   const listSearchAttributes = vi.fn().mockResolvedValue({
-    customAttributes: {
-      AdvProjectId: { indexedValueType: 2 },
-      AdvChangeId: { indexedValueType: 2 },
-      AdvChangeStatus: { indexedValueType: 2 },
-      AdvActiveGate: { indexedValueType: 2 },
-      AdvDoomLoopActive: { indexedValueType: 5 },
-    },
+    customAttributes: { ...ADV_SA_FULL_PRESENT },
   });
   const connection = {
     close: connectionClose,
@@ -31,6 +40,7 @@ const mocks = vi.hoisted(() => {
     client,
     connect,
     ClientCtor,
+    ADV_SA_FULL_PRESENT,
   };
 });
 
@@ -93,13 +103,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };
@@ -148,13 +152,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };
@@ -191,13 +189,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };
@@ -283,13 +275,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };
@@ -332,13 +318,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       operatorService: {
         addSearchAttributes: vi.fn().mockResolvedValue({}),
         listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: {
-            AdvProjectId: { indexedValueType: 2 },
-            AdvChangeId: { indexedValueType: 2 },
-            AdvChangeStatus: { indexedValueType: 2 },
-            AdvActiveGate: { indexedValueType: 2 },
-            AdvDoomLoopActive: { indexedValueType: 5 },
-          },
+          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
     };

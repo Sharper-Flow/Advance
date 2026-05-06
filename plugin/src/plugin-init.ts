@@ -579,6 +579,9 @@ export function registerShutdownHandlers(
     }
   };
 
+  // rq-advshut1: Bounded Signal Flush on Shutdown — store.flush
+  // attempted before store.close, hard timeout bounds duration, and
+  // duplicate SIGINT/SIGTERM signals are made idempotent via flushInFlight.
   let flushInFlight = false;
   const shutdownWithFlush = () => {
     cleanupTerminal();

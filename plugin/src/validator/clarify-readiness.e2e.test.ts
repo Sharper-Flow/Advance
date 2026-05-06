@@ -11,26 +11,12 @@ import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { changeTools } from "../tools/change";
 import { statusTools } from "../tools/status";
-import { gateTools } from "../tools/gate";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
   cleanupTempDir,
   parseToolOutput,
 } from "../__tests__/setup";
-
-/**
- * Extract JSON content from banner-wrapped output.
- */
-function extractJson(output: string): Record<string, unknown> {
-  if (output.startsWith("╔")) {
-    const jsonStart = output.indexOf("\n\n");
-    if (jsonStart !== -1) {
-      return JSON.parse(output.slice(jsonStart + 2));
-    }
-  }
-  return JSON.parse(output);
-}
 
 describe("Clarify-Readiness E2E — zero false positives on clean changes", () => {
   let tempDir: string;
@@ -212,40 +198,10 @@ mechanisms introduced.
     expect(clarifyRecs).toHaveLength(0);
   });
 
-  test("adv_gate_complete prep passes without clarify warnings for well-specified change", async () => {
-    // Create a well-specified change
-    const createResult = await changeTools.adv_change_create.execute(
-      {
-        summary: "Add rate limiting",
-        proposal: CLEAN_PROPOSAL,
-      },
-      store,
-    );
-    const { changeId } = parseToolOutput(createResult);
-
-    // Complete prerequisite gates first
-    await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "proposal" },
-      store,
-    );
-    await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "discovery" },
-      store,
-    );
-    await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "design" },
-      store,
-    );
-
-    // Complete planning gate — should pass cleanly
-    const prepResult = await gateTools.adv_gate_complete.execute(
-      { changeId, gateId: "planning", userApproved: true },
-      store,
-    );
-    const parsed = extractJson(prepResult);
-
-    expect(parsed.success).toBe(true);
-    expect(parsed.clarifyWarnings).toBeUndefined();
-    expect(parsed.clarifyFindings).toBeUndefined();
-  });
+  // adv_gate_complete e2e check removed: gate completion now requires a
+  // Temporal-backed Store (signal-driven mutation), and createLegacyStore
+  // is a disk-only adapter without a Temporal bundle. The clarify-readiness
+  // invariant on clean changes is covered by the change-create, change-show,
+  // and status tests above. Gate-complete clarify behavior is covered by
+  // gate.test.ts with a proper Temporal mock setup.
 });
