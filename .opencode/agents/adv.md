@@ -47,8 +47,6 @@ tools:
   adv_change_bulk_close: true
   adv_change_validate: true
   adv_change_archive: true
-  adv_change_diagnose: true
-  adv_change_import: true
   adv_change_update_issues: true
   adv_change_reenter: true
   # Tasks
@@ -57,12 +55,9 @@ tools:
   adv_task_ready: true
   adv_task_add: true
   adv_task_update: true
-  adv_task_evidence: true
-  adv_task_tdd: true
   adv_task_reclassify_tdd: true
   adv_task_cancel: true
   adv_task_checkpoint: true
-  adv_task_run_status: true
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
@@ -77,21 +72,15 @@ tools:
   adv_agenda_complete: true
   adv_agenda_cancel: true
   adv_agenda_prioritize: true
-  adv_agenda_evidence: true
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
   adv_run_test: true
   # Temporal / workflow ops
-  adv_orphan_sweep: true
-  adv_archive_sweep_orphans: true
-  adv_migrate_cleanup: true
-  adv_archive_purge: true
   adv_temporal_diagnose: true
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
-  adv_workflow_repair: true
   # Reflection
   adv_reflect: true
   adv_conformance: true
@@ -101,7 +90,6 @@ tools:
   adv_session_list: true
   adv_session_show: true
   # Mesh
-  adv_mesh_scan: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true
   adv_worktree_resume: true
