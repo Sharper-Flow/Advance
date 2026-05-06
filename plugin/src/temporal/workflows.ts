@@ -599,7 +599,9 @@ export async function changeWorkflow(
   let logicalTick = 0;
   const workflowNow = (): string =>
     new Date(workflowEpoch + logicalTick++).toISOString();
-  const processedMigrationMarkers: string[] = [];
+  const processedMigrationMarkers: string[] = [
+    ...(input.processedMigrationMarkers ?? []),
+  ];
 
   const bootstrap: ChangeWorkflowBootstrapState = {
     projectId: input.projectId,
@@ -1381,6 +1383,7 @@ export async function changeWorkflow(
     searchAttributesEnabled: input.searchAttributesEnabled,
     projectionChangesDir: input.projectionChangesDir,
     archiveProjects: input.archiveProjects,
+    processedMigrationMarkers,
     seedState: {
       status: state.status,
       tasks: state.tasks,

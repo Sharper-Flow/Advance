@@ -176,6 +176,8 @@ export interface ChangeWorkflowInput {
   projectionChangesDir?: string;
   /** In-repo project roots that receive durable archive artifacts. */
   archiveProjects?: Array<{ projectPath: string }>;
+  /** Migration-only marker query state; preserved across continue-as-new. */
+  processedMigrationMarkers?: string[];
   seedState?: Partial<
     Pick<
       ChangeWorkflowState,
