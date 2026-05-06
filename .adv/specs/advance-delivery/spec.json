@@ -32,18 +32,6 @@
             "At least one supported editing tool is named for test-file creation or modification",
             "Raw shell file-writing is not presented as the normal path"
           ]
-        },
-        {
-          "id": "rq-ADVEXEC01.3",
-          "title": "Fallback framing keeps adv_task_evidence secondary",
-          "given": [
-            "The /adv-apply command or adjacent remediation guidance references adv_task_evidence"
-          ],
-          "when": "The evidence workflow is described",
-          "then": [
-            "adv_task_evidence is described as fallback or externally captured evidence path",
-            "It is not described as the primary inline-TDD execution path"
-          ]
         }
       ],
       "meta": {
@@ -133,18 +121,7 @@
           "then": [
             "It explains executable proof value",
             "It explains durable evidence value",
-            "It explains task-run ledger continuity value"
-          ]
-        },
-        {
-          "id": "rq-ADVEXEC04.2",
-          "title": "adv_task_evidence remains value-gated fallback",
-          "given": ["Guidance references adv_task_evidence"],
-          "when": "The guidance is inspected",
-          "then": [
-            "It describes adv_task_evidence as fallback/manual attachment",
-            "It limits use to externally obtained evidence or recovery/audit cases",
-            "It does not prescribe the tool as ceremony for ordinary inline TDD"
+            "It explains durable workflow-queryable test record value"
           ]
         }
       ]
@@ -260,87 +237,6 @@
           "when": "Inspected after this change ships",
           "then": [
             "Its signature and behavior remain identical to before adv_change_bulk_close was added"
-          ]
-        }
-      ],
-      "meta": {
-        "merged_from": "advance"
-      }
-    },
-    {
-      "id": "rq-taskRunLedger01",
-      "title": "Durable Task-Run Lifecycle Ledger",
-      "body": "/adv-apply task execution must maintain a Temporal-owned task-run ledger that records lifecycle phase, required next action, resume hint, evidence, verification, checkpoint, and blocker/failure events without moving OpenCode tool/model/file-edit execution into Temporal activities. The ledger must preserve existing inline TDD, checkpoint-before-done, and no-pause apply-loop semantics.",
-      "priority": "must",
-      "tags": ["tasks", "temporal", "resumability", "ledger", "apply"],
-      "scenarios": [
-        {
-          "id": "rq-taskRunLedger01.1",
-          "title": "Task-run status exposes safe resume point",
-          "given": ["An /adv-apply task has started or partially completed"],
-          "when": "adv_task_run_status is called for that task",
-          "then": [
-            "The response includes the current phase",
-            "The response includes requiredNextAction and resumeHint",
-            "The response summarizes baseline, evidence, verification, checkpoint, attempts, and recent events when present"
-          ]
-        },
-        {
-          "id": "rq-taskRunLedger01.2",
-          "title": "Evidence and checkpoint events are linked to the ledger",
-          "given": [
-            "An /adv-apply task records red evidence, green evidence, verification, or checkpoint result"
-          ],
-          "when": "The corresponding tool path succeeds",
-          "then": [
-            "A task-run ledger event is recorded with a deterministic idempotency key",
-            "Duplicate idempotency keys do not append duplicate events or re-advance phase",
-            "The existing tdd_evidence and checkpoint outputs remain intact"
-          ]
-        },
-        {
-          "id": "rq-taskRunLedger01.3",
-          "title": "Ledger survives Temporal continue-as-new",
-          "given": ["A change workflow has task_runs state"],
-          "when": "The workflow continues as new to bound history size",
-          "then": [
-            "The task_runs state is included in the seed state",
-            "Handler-level idempotency data survives workflow-run rollover",
-            "No task-run phase or resume information is silently reset"
-          ]
-        },
-        {
-          "id": "rq-taskRunLedger01.4",
-          "title": "Temporal remains the runtime state authority",
-          "given": ["Task-run lifecycle state is persisted"],
-          "when": "The runtime reads or mutates task-run state",
-          "then": [
-            "The authoritative runtime state lives in Temporal workflow state",
-            "Disk artifacts may support recovery or tests but are not the task-run runtime source of truth",
-            "No SQLite or replacement local database is introduced for task-run state"
-          ]
-        },
-        {
-          "id": "rq-taskRunLedger01.5",
-          "title": "No direct Temporal execution of OpenCode side effects in v1",
-          "given": [
-            "A task-run event represents evidence, verification, or checkpoint outcome"
-          ],
-          "when": "The event is recorded",
-          "then": [
-            "OpenCode agents still perform file edits, shell/test commands, model calls, sub-agent calls, and git commits",
-            "Temporal records externally supplied results rather than directly executing those side effects"
-          ]
-        },
-        {
-          "id": "rq-taskRunLedger01.6",
-          "title": "Apply-loop autonomy is preserved",
-          "given": ["A task-run ledger indicates the next resume action"],
-          "when": "/adv-apply resumes or continues execution",
-          "then": [
-            "The ledger guides the agent to the next apply-loop step",
-            "No new user pause or approval checkpoint is introduced",
-            "Existing blocker, doom-loop, cancellation, re-entry, and acceptance checkpoints remain unchanged"
           ]
         }
       ],

@@ -9,7 +9,7 @@
     {
       "id": "rq-TDD001inl",
       "title": "Inline TDD as Default Model",
-      "body": "Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. The task's tdd_phase field tracks progress through none -> red -> green -> refactor -> complete.",
+      "body": "Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. Inline TDD progress is observable via adv_run_test invocations and the final verification claim on taskCompletedSignal.",
       "priority": "must",
       "tags": ["tdd", "task-model", "inline"],
       "scenarios": [
@@ -21,7 +21,7 @@
           ],
           "when": "TDD compliance is checked",
           "then": [
-            "The task is expected to have tdd_evidence with both red and green phases",
+            "The task records inline TDD via adv_run_test calls; final claim recorded in taskCompletedSignal.verification",
             "No separate test task is required for this scope"
           ]
         },
@@ -224,86 +224,6 @@
       ]
     },
     {
-      "id": "rq-TDD007req",
-      "title": "TDD Intent Immutability After Planning Gate",
-      "body": "Once the planning gate is marked complete, task metadata.tdd_intent is frozen. New tasks cannot be added (adv_task_add rejects with an error). Existing tasks' tdd_intent can only be changed through adv_task_reclassify_tdd, which requires explicit user approval and records a full audit trail (from_intent, to_intent, reason, approval evidence, timestamp). This prevents agents from silently downgrading TDD requirements during implementation.",
-      "priority": "must",
-      "tags": ["tdd", "immutability", "prep", "gate", "audit"],
-      "scenarios": [
-        {
-          "id": "rq-TDD007req.1",
-          "title": "Task addition rejected after planning gate complete",
-          "given": ["A change whose planning gate status is 'done'"],
-          "when": "adv_task_add is called for that change",
-          "then": [
-            "The operation is rejected with an error",
-            "The error message directs users to adv_task_reclassify_tdd for adjusting existing tasks",
-            "The error message directs users to adv_change_reenter for scope-expansion re-entry when new tasks are genuinely needed"
-          ]
-        },
-        {
-          "id": "rq-TDD007req.2",
-          "title": "Task addition succeeds before planning gate complete",
-          "given": ["A change whose planning gate status is 'pending'"],
-          "when": "adv_task_add is called for that change",
-          "then": [
-            "The task is added normally",
-            "No immutability check blocks the operation"
-          ]
-        },
-        {
-          "id": "rq-TDD007req.3",
-          "title": "TDD intent reclassification requires user approval",
-          "given": [
-            "A task with metadata.tdd_intent='inline'",
-            "The planning gate is complete"
-          ],
-          "when": "adv_task_reclassify_tdd is called with approvedByUser=true, approvalEvidence, reason, and toIntent='not_applicable'",
-          "then": [
-            "The task's metadata.tdd_intent is updated to 'not_applicable'",
-            "A tdd_reclassification record is stored on the task with from_intent, to_intent, reason, approval_evidence, and approved_at timestamp"
-          ]
-        },
-        {
-          "id": "rq-TDD007req.4",
-          "title": "Reclassification without approval is rejected",
-          "given": [
-            "A task with metadata.tdd_intent='inline'",
-            "The planning gate is complete"
-          ],
-          "when": "adv_task_reclassify_tdd is called without approvedByUser=true or without approvalEvidence",
-          "then": [
-            "The operation is rejected",
-            "The task's tdd_intent remains unchanged"
-          ]
-        },
-        {
-          "id": "rq-TDD007req.5",
-          "title": "adv_task_update does not affect tdd_intent",
-          "given": [
-            "A task with metadata.tdd_intent='inline'",
-            "The planning gate is complete"
-          ],
-          "when": "adv_task_update is called with any status change",
-          "then": [
-            "The task status is updated normally",
-            "metadata.tdd_intent remains unchanged",
-            "No immutability check is triggered (adv_task_update does not mutate metadata)"
-          ]
-        },
-        {
-          "id": "rq-TDD007req.6",
-          "title": "Reclassification audit trail is preserved",
-          "given": ["A task that was reclassified via adv_task_reclassify_tdd"],
-          "when": "The task is retrieved via adv_task_show",
-          "then": [
-            "The tdd_reclassification field contains from_intent, to_intent, reason, approved_by_user (true), approval_evidence, and approved_at",
-            "The audit trail is included in change validation and archive"
-          ]
-        }
-      ]
-    },
-    {
       "id": "rq-TDD008path",
       "title": "Primary TDD Evidence Path for Inline Work",
       "body": "For ordinary inline TDD work, the primary red/green execution path MUST use adv_run_test for both phases after test or implementation changes are made with editing tools. adv_task_evidence remains available as fallback only for externally obtained or manually captured evidence that did not flow through adv_run_test.",
@@ -324,109 +244,15 @@
           ]
         },
         {
-          "id": "rq-TDD008path.2",
-          "title": "adv_task_evidence is fallback for externally obtained evidence",
-          "given": [
-            "Evidence was produced outside adv_run_test",
-            "The evidence still needs to be attached to the task record"
-          ],
-          "when": "The fallback evidence path is used",
-          "then": [
-            "adv_task_evidence may be used to record the evidence",
-            "The fallback path is not described as the primary inline-TDD path"
-          ]
-        },
-        {
           "id": "rq-TDD008path.3",
           "title": "Primary path does not change evidence semantics validation",
           "given": [
-            "adv_run_test or adv_task_evidence records red or green phase evidence"
+            "adv_run_test records red or green phase evidence"
           ],
           "when": "Exit-code semantics are validated",
           "then": [
             "Red phase still rejects exitCode=0",
             "Green phase still rejects non-zero exit codes"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rq-TDD009idem",
-      "title": "Idempotent Fallback Evidence Writes",
-      "body": "Fallback/manual evidence attachment MUST be idempotent and correction-aware. Repeating identical same-phase evidence MUST NOT overwrite the original audit timestamp. Replacing conflicting same-phase evidence MUST require an explicit correction reason.",
-      "priority": "must",
-      "tags": ["tdd", "evidence", "idempotency", "audit"],
-      "scenarios": [
-        {
-          "id": "rq-TDD009idem.1",
-          "title": "Identical fallback evidence is a no-op",
-          "given": [
-            "A task already has red or green evidence",
-            "A fallback evidence call repeats the same stable evidence fields"
-          ],
-          "when": "The evidence is recorded again",
-          "then": [
-            "The existing evidence is preserved",
-            "The stored recorded_at timestamp is not overwritten",
-            "The result identifies the write as a duplicate"
-          ]
-        },
-        {
-          "id": "rq-TDD009idem.2",
-          "title": "Conflicting fallback evidence requires correction reason",
-          "given": [
-            "A task already has red or green evidence",
-            "A fallback evidence call supplies different stable evidence fields for that same phase"
-          ],
-          "when": "No correction reason is supplied",
-          "then": [
-            "The write is rejected",
-            "The existing evidence is preserved",
-            "The error tells the caller to provide a correction reason"
-          ]
-        },
-        {
-          "id": "rq-TDD009idem.3",
-          "title": "Correction reason permits replacement",
-          "given": [
-            "A task already has red or green evidence",
-            "A fallback evidence call supplies different stable evidence fields for that same phase",
-            "The call includes a correction reason"
-          ],
-          "when": "The correction is recorded",
-          "then": [
-            "The evidence is replaced",
-            "The correction reason is preserved with the corrected evidence or returned result",
-            "The result identifies the write as corrected"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rq-TDD010phase",
-      "title": "Evidence Phase Derivation Is Monotonic by Presence",
-      "body": "Task tdd_phase MUST be derived from red/green evidence presence after fallback evidence writes. A task with both red and green evidence is complete, even when red evidence is attached or corrected after green evidence.",
-      "priority": "must",
-      "tags": ["tdd", "evidence", "phase", "audit"],
-      "scenarios": [
-        {
-          "id": "rq-TDD010phase.1",
-          "title": "Red after green does not regress complete phase",
-          "given": ["A task has both red and green evidence"],
-          "when": "Red fallback evidence is duplicated or corrected after green evidence exists",
-          "then": [
-            "The task remains in tdd_phase: complete",
-            "Phase is not regressed to red"
-          ]
-        },
-        {
-          "id": "rq-TDD010phase.2",
-          "title": "Single-phase evidence derives expected phase",
-          "given": ["A task has only red evidence or only green evidence"],
-          "when": "Fallback evidence policy derives the phase",
-          "then": [
-            "Red-only evidence yields tdd_phase: red",
-            "Green-only evidence yields tdd_phase: green"
           ]
         }
       ]

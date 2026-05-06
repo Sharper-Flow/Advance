@@ -9,7 +9,7 @@
     {
       "id": "rq-wl-branchRegistry01",
       "title": "Branch-Aware Worktree Registry",
-      "body": "The worktree registry (ProjectWorkflowState.worktree_registry) must store per-entry: branch, path, materialized flag, changeId, status, setupReady, setupFailureReason, baseRef, headSha, source, cleanupEligible, cleanupBlockedBy. Legacy MaterializedWorktreeRecord consumers must continue to work through a materialized-only compatibility view.",
+      "body": "The worktree registry (per-change workflow state, with cross-change visibility via AdvWorktreeBranches/AdvWorktreePaths Temporal search attributes) must store per-entry: branch, path, materialized flag, changeId, status, setupReady, setupFailureReason, baseRef, headSha, source, cleanupEligible, cleanupBlockedBy. Legacy MaterializedWorktreeRecord consumers must continue to work through a materialized-only compatibility view.",
       "priority": "must",
       "tags": ["worktree", "registry", "temporal"],
       "scenarios": [

@@ -951,8 +951,8 @@
     },
     {
       "id": "rq-multiSessionCoordination01",
-      "title": "Multi-Session-Safe ADV State Writes via Temporal Workflow Updates",
-      "body": "Multi-session is the supported design center for ADV. State writes from concurrent OpenCode sessions sharing the same project must be serialized by Temporal workflow updates, not by client-side locks. Replay-determinism must be preserved across sessions, and no ADV-mutating tool may rely on a client-side soft-lock for cross-session coordination.",
+      "title": "Multi-Session-Safe ADV State Writes via Temporal Workflow Signals",
+      "body": "Multi-session is the supported design center for ADV. State writes from concurrent OpenCode sessions sharing the same project must be serialized by Temporal workflow signals, not by client-side locks. Replay-determinism must be preserved across sessions, and no ADV-mutating tool may rely on a client-side soft-lock for cross-session coordination.",
       "priority": "must",
       "tags": ["multi-session", "temporal", "coordination", "state-authority"],
       "scenarios": [
@@ -965,23 +965,23 @@
           ],
           "when": "The plugin processes the concurrent updates",
           "then": [
-            "All updates reach the project workflow as Temporal workflow updates",
-            "Updates are applied in a serializable order chosen by Temporal, not by a client-side lock",
-            "No update is silently dropped; each receives a deterministic outcome (success or conflict)",
-            "The final workflow state reflects every accepted update"
+            "All updates reach the change workflow as Temporal workflow signals",
+            "Signals are applied in delivery order chosen by Temporal, not by a client-side lock",
+            "No signal is silently dropped; each is applied to workflow state",
+            "The final workflow state reflects every delivered signal"
           ]
         },
         {
           "id": "rq-multiSessionCoordination01.2",
           "title": "Workflow replay reproduces multi-session state deterministically",
           "given": [
-            "A project workflow has accumulated updates from multiple sessions",
+            "A change workflow has accumulated signals from multiple sessions",
             "The workflow is replayed from event history"
           ],
-          "when": "Replay executes the recorded update events",
+          "when": "Replay executes the recorded signal events",
           "then": [
             "The replayed final state is identical to the original final state",
-            "Mutators use monotonic source_version dedup for out-of-order updates",
+            "Signal handlers serialize via the workflow signal queue, ensuring deterministic order",
             "No mutator depends on Date.now(), floating-point math, or process-local state"
           ]
         },
@@ -995,26 +995,26 @@
           "then": [
             "No ADV-mutating tool uses a JSONL sidecar lock, in-process mutex, or other client-side soft lock for cross-session coordination",
             "Per-process flocks are restricted to narrow git filesystem operations (for example git worktree add/remove)",
-            "All cross-session coordination flows through Temporal workflow updates"
+            "All cross-session coordination flows through Temporal workflow signals on the change workflow"
           ]
         }
       ]
     },
     {
       "id": "rq-worktreeRegistry01",
-      "title": "Worktree State Authority Lives in ProjectWorkflowState.worktree_registry",
-      "body": "Worktree state for ADV-managed worktrees must live inside the project workflow state (worktree_registry, pending_worktree_deletes, session_registry). Sidecar SQLite databases or JSONL files must not be the authoritative source for worktree state. Cross-session reads must observe the same registry contents.",
+      "title": "Worktree State Authority Lives in Change Workflow State",
+      "body": "Worktree state for ADV-managed worktrees must live inside the change workflow state, with cross-change visibility via the AdvWorktreeBranches and AdvWorktreePaths Temporal search attributes. Sidecar SQLite databases or JSONL files must not be the authoritative source for worktree state. Cross-session reads must observe the same registry contents.",
       "priority": "must",
       "tags": ["worktree", "registry", "state-authority", "temporal"],
       "scenarios": [
         {
           "id": "rq-worktreeRegistry01.1",
-          "title": "Worktree create persists state into project workflow registry",
+          "title": "Worktree create persists state into change workflow worktree state",
           "given": ["A session invokes adv_worktree_create with a branch name"],
           "when": "The create flow completes successfully",
           "then": [
-            "A WorktreeRecord is added to ProjectWorkflowState.worktree_registry via the addWorktreeSession workflow update",
-            "The record contains branch, path, baseRef, headSha, source, and sourceVersion fields",
+            "A worktree record is added to change-workflow worktree state via the worktreeCreatedSignal",
+            "The record contains branch, path, baseRef, headSha, and createdAt fields",
             "No row is written to a sidecar SQLite database or JSONL file as the authoritative state"
           ]
         },
@@ -1022,10 +1022,10 @@
           "id": "rq-worktreeRegistry01.2",
           "title": "Peer session sees the same worktree registry contents",
           "given": [
-            "Session A has created a worktree and the addWorktreeSession update has applied",
+            "Session A has created a worktree and the worktreeCreatedSignal has applied",
             "Session B in the same project queries worktree state"
           ],
-          "when": "Session B reads worktree_registry via the project workflow",
+          "when": "Session B reads worktree state via the change workflow (via AdvWorktreeBranches/AdvWorktreePaths search attributes for cross-change aggregation)",
           "then": [
             "Session B observes the worktree created by session A",
             "The observed record fields match what session A wrote",
@@ -1066,7 +1066,7 @@
           "then": [
             "The tool returns success with the existing path, branch, baseRef, and headSha",
             "The output marks the result as reused so callers can distinguish reuse from fresh create",
-            "No project-workflow recovery is required as a precondition for reuse",
+            "No per-change workflow recovery is required \u2014 change-workflow state survives directly via Temporal",
             "No `git worktree add` is invoked"
           ]
         },
