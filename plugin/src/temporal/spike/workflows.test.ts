@@ -92,4 +92,70 @@ describe("spike signal-driven change workflow", () => {
       },
     );
   });
+
+  it("accepts 3 concurrent clients firing 50 signals each without loss", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const taskQueue = "advance-spike-concurrent-test";
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start(
+            "spikeChangeWorkflow",
+            {
+              workflowId: `spike-concurrent-${Date.now()}`,
+              taskQueue,
+              args: [
+                {
+                  changeId: "spike-concurrent",
+                  title: "Spike concurrent change",
+                  initializedAt: "2026-05-06T00:00:00.000Z",
+                },
+              ],
+            },
+          );
+
+          const failures: string[] = [];
+          const clientRuns = Array.from({ length: 3 }, (_, clientIndex) =>
+            Promise.all(
+              Array.from({ length: 50 }, async (_, signalIndex) => {
+                const taskId = `tk-client-${clientIndex}-${signalIndex}`;
+                try {
+                  await handle.signal(taskAddedSignal, {
+                    task: {
+                      id: taskId,
+                      title: `Client ${clientIndex} signal ${signalIndex}`,
+                      status: "pending",
+                    },
+                    addedAt: `2026-05-06T00:${String(clientIndex).padStart(
+                      2,
+                      "0",
+                    )}:${String(signalIndex).padStart(2, "0")}.000Z`,
+                  });
+                } catch (err) {
+                  failures.push(
+                    err instanceof Error ? err.message : String(err),
+                  );
+                }
+              }),
+            ),
+          );
+
+          await Promise.all(clientRuns);
+
+          const tasks = await handle.query(getTasksQuery);
+          const taskIds = new Set(tasks.map((task) => task.id));
+
+          expect(failures).toEqual([]);
+          expect(tasks).toHaveLength(150);
+          expect(taskIds).toHaveLength(150);
+        });
+      },
+    );
+  });
 });
