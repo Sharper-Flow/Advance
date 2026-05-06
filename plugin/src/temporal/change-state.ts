@@ -33,7 +33,7 @@ import type {
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
 } from "../types";
-import { canCompleteGate, createDefaultGates, GATE_ORDER } from "../types";
+import { createDefaultGates, GATE_ORDER } from "../types";
 import type {
   ArtifactKind,
   ArtifactMetadata,
@@ -609,12 +609,6 @@ export function completeGateInChangeState(
   gateId: GateId,
   input: { now: string; completedBy: string; notes?: string },
 ): ChangeWorkflowState {
-  if (!canCompleteGate(state.gates, gateId)) {
-    throw new Error(
-      `Cannot complete ${gateId}: previous gate is not satisfied`,
-    );
-  }
-
   state.gates[gateId] = {
     ...state.gates[gateId],
     status: "done",
