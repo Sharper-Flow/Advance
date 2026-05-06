@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
@@ -385,4 +386,12 @@ describe("changeWorkflow signal handlers", () => {
       expect(description.status.name).toBe("COMPLETED");
     });
   }, 30_000);
+
+  it("drains in-flight handlers before continuing as new", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+
+    expect(source).toMatch(
+      /await wf\.condition\(wf\.allHandlersFinished\);\s+await wf\.continueAsNew<typeof changeWorkflow>\(seed\);/,
+    );
+  });
 });

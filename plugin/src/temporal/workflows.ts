@@ -1402,6 +1402,7 @@ export async function changeWorkflow(
       archiveRequest: state.archiveRequest,
     },
   };
+  await wf.condition(wf.allHandlersFinished);
   await wf.continueAsNew<typeof changeWorkflow>(seed);
 }
 
