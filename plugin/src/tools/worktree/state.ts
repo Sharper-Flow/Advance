@@ -44,6 +44,8 @@ import type { OpencodeClient } from "../../utils/opencode-types";
 import type { UpdateWorktreeRecordPayload } from "../../temporal/project-state";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
+import { getService } from "../../temporal/service";
+import { getWorktreesQuery } from "../../temporal/messages";
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -100,6 +102,152 @@ export interface WorktreeStateAccess {
 // =============================================================================
 
 const CHANGE_BRANCH_PREFIX = "change/";
+const CHANGE_WORKFLOW_PREFIX = "adv/change/";
+
+function escapeVisibilityValue(value: string): string {
+  return value.replace(/"/g, '\\"');
+}
+
+export function buildWorktreeBranchVisibilityQuery(
+  projectId: string,
+  branch: string,
+): string {
+  return [
+    `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
+    `AdvWorktreeBranches = "${escapeVisibilityValue(branch)}"`,
+    `AdvChangeStatus = "active"`,
+  ].join(" AND ");
+}
+
+interface WorkflowListClient {
+  workflow: {
+    list?: (opts: { query: string }) => AsyncIterable<{ workflowId: string }>;
+  };
+}
+
+export async function listChangeIdsByWorktreeBranch(
+  client: WorkflowListClient,
+  projectId: string,
+  branch: string,
+): Promise<string[]> {
+  const query = buildWorktreeBranchVisibilityQuery(projectId, branch);
+  const list = client.workflow.list;
+  if (!list) return [];
+
+  const ids: string[] = [];
+  const prefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  for await (const wf of list.call(client.workflow, { query })) {
+    if (!wf.workflowId.startsWith(prefix)) continue;
+    const changeId = wf.workflowId.slice(prefix.length);
+    if (!changeId) continue;
+    ids.push(changeId);
+  }
+  return ids;
+}
+
+export async function findBranchOwnersAcrossChanges(
+  access: WorktreeStateAccess,
+  branch: string,
+  excludeChangeId?: string,
+): Promise<string[]> {
+  const bundle = getService();
+  if (!bundle) return [];
+  const owners = await listChangeIdsByWorktreeBranch(
+    bundle.client as WorkflowListClient,
+    access.projectId,
+    branch,
+  );
+  return owners.filter((id) => id !== excludeChangeId);
+}
+
+export function buildActiveWorktreeChangesVisibilityQuery(
+  projectId: string,
+): string {
+  return [
+    `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
+    `AdvChangeStatus IN ("draft", "pending", "active")`,
+  ].join(" AND ");
+}
+
+async function listChangeIdsWithActiveWorktrees(
+  client: WorkflowListClient,
+  projectId: string,
+): Promise<string[]> {
+  const list = client.workflow.list;
+  if (!list) return [];
+  const query = buildActiveWorktreeChangesVisibilityQuery(projectId);
+  const prefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  const ids: string[] = [];
+  for await (const wf of list.call(client.workflow, { query })) {
+    if (!wf.workflowId.startsWith(prefix)) continue;
+    const changeId = wf.workflowId.slice(prefix.length);
+    if (changeId) ids.push(changeId);
+  }
+  return ids;
+}
+
+function materializeChangeWorktreeRecord(
+  changeId: string,
+  branch: string,
+  record: NonNullable<
+    import("../../temporal/contracts").ChangeWorkflowState["worktrees"]
+  >[string],
+): MaterializedWorktreeRecord | null {
+  if (record.status === "deleted" || !record.path) return null;
+  const createdAt = record.createdAt ?? new Date(0).toISOString();
+  return {
+    branch,
+    path: record.path,
+    materialized: true,
+    changeId,
+    status: "active",
+    createdAt,
+    lastSeenAt: createdAt,
+    baseRef: record.baseRef ?? "",
+    headSha: record.headSha ?? "",
+    source: "tool",
+    sourceVersion: Date.parse(createdAt) || 0,
+    setupReady: true,
+  };
+}
+
+export async function listWorktreesAcrossChanges(
+  access: WorktreeStateAccess,
+): Promise<MaterializedWorktreeRecord[] | null> {
+  const bundle = getService();
+  if (!bundle) return null;
+  const client = bundle.client as WorkflowListClient & {
+    workflow: WorkflowListClient["workflow"] & {
+      getHandle?: (workflowId: string) => {
+        query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+      };
+    };
+  };
+  if (!client.workflow.list || !client.workflow.getHandle) return null;
+
+  const changeIds = await listChangeIdsWithActiveWorktrees(
+    client,
+    access.projectId,
+  );
+  const records: MaterializedWorktreeRecord[] = [];
+  for (const changeId of changeIds) {
+    const handle = client.workflow.getHandle(
+      `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`,
+    );
+    const worktrees = (await handle.query(getWorktreesQuery)) as NonNullable<
+      import("../../temporal/contracts").ChangeWorkflowState["worktrees"]
+    >;
+    for (const [branch, record] of Object.entries(worktrees ?? {})) {
+      const materialized = materializeChangeWorktreeRecord(
+        changeId,
+        branch,
+        record,
+      );
+      if (materialized) records.push(materialized);
+    }
+  }
+  return records;
+}
 
 /**
  * Infer owning ADV change id from canonical change worktree branch names.
@@ -455,6 +603,14 @@ export async function getWorktreeRecord(
   access: WorktreeStateAccess,
   branch: string,
 ): Promise<WorktreeRecord | null> {
+  const changeId = inferChangeIdFromBranch(branch);
+  if (changeId) {
+    const acrossChanges = await listWorktreesAcrossChanges(access);
+    const record = acrossChanges?.find(
+      (candidate) => candidate.branch === branch,
+    );
+    if (record) return record;
+  }
   const state = await readProjectState(access);
   return state?.worktree_registry[branch] ?? null;
 }
@@ -467,6 +623,8 @@ export async function getWorktreeRecord(
 export async function listWorktrees(
   access: WorktreeStateAccess,
 ): Promise<MaterializedWorktreeRecord[]> {
+  const acrossChanges = await listWorktreesAcrossChanges(access);
+  if (acrossChanges) return acrossChanges;
   const state = await readProjectState(access);
   if (!state) return [];
   return Object.values(state.worktree_registry).filter(

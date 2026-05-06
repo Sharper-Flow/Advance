@@ -129,7 +129,6 @@ const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
 const getStateQuery = wf.defineQuery<ChangeWorkflowState>(
   CHANGE_WORKFLOW_QUERY_NAMES.getState,
 );
-const changeStateQuery = getStateQuery;
 const getTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [

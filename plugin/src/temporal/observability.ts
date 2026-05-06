@@ -1,4 +1,3 @@
-import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";
 import { ADV_SEARCH_ATTRIBUTES } from "./search-attributes";
 
 export { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "./contracts";

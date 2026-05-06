@@ -21,7 +21,9 @@ import {
 
 type SignalTarget = WorkflowHandleLike | TemporalStoreBackendInput;
 
-function isWorkflowHandleLike(target: SignalTarget): target is WorkflowHandleLike {
+function isWorkflowHandleLike(
+  target: SignalTarget,
+): target is WorkflowHandleLike {
   return (
     typeof (target as WorkflowHandleLike).signal === "function" &&
     typeof (target as WorkflowHandleLike).query === "function"
@@ -94,7 +96,9 @@ export async function querySignal<T>(
   );
   const query = isWorkflowHandleLike(target) ? queryOrChangeId : args[0];
   const queryArgs = isWorkflowHandleLike(target) ? args : args.slice(1);
-  return runTemporalQuery(() => handle.query(query, ...queryArgs)) as Promise<T>;
+  return runTemporalQuery(() =>
+    handle.query(query, ...queryArgs),
+  ) as Promise<T>;
 }
 
 /**

@@ -67,6 +67,7 @@ import {
   getWorktreeRecord,
   getSession,
   getWorktreePath,
+  findBranchOwnersAcrossChanges,
   inferChangeIdFromBranch,
   incrementPendingDeleteAttempts,
   initStateDb,
@@ -726,6 +727,13 @@ export type AdvWorktreeCreateResult =
   | { ok: false; error: "DEFAULT_BRANCH_UNRESOLVABLE"; hint: string }
   | { ok: false; error: "STALE_BASE"; reason: string; suggestion: string }
   | { ok: false; error: "BRANCH_LOCKED"; hint: string }
+  | {
+      ok: false;
+      error: "BRANCH_IN_USE";
+      branch: string;
+      ownerChangeIds: string[];
+      hint: string;
+    }
   | { ok: false; error: "GIT_FAILED"; reason: string }
   | {
       ok: false;
@@ -792,6 +800,22 @@ export async function advWorktreeCreate(
     if (!pruneResult.ok) {
       return { ok: false, error: "GIT_FAILED", reason: pruneResult.error };
     }
+  }
+
+  const inferredChangeId = inferChangeIdFromBranch(branch);
+  const ownerChangeIds = await findBranchOwnersAcrossChanges(
+    deps.database,
+    branch,
+    inferredChangeId,
+  );
+  if (ownerChangeIds.length > 0) {
+    return {
+      ok: false,
+      error: "BRANCH_IN_USE",
+      branch,
+      ownerChangeIds,
+      hint: "Branch is already registered by an active ADV change workflow",
+    };
   }
 
   // Step 1: resolve base branch explicitly. NEVER fall through to HEAD.
@@ -1839,6 +1863,8 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                 return `Failed to create worktree: base branch is stale. ${createResult.reason}. ${createResult.suggestion}`;
               case "BRANCH_LOCKED":
                 return `Failed to create worktree: ${createResult.hint}`;
+              case "BRANCH_IN_USE":
+                return `Failed to create worktree: branch ${createResult.branch} is already registered by active change workflow(s): ${createResult.ownerChangeIds.join(", ")}. ${createResult.hint}`;
               case "GIT_FAILED":
                 return `Failed to create worktree: ${createResult.reason}`;
               case "SETUP_FAILED":

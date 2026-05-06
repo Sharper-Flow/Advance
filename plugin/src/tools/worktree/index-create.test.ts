@@ -26,6 +26,13 @@ const workflowQuery = vi.hoisted(() =>
   })),
 );
 const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
+const workflowList = vi.hoisted(() =>
+  vi.fn(() =>
+    (async function* () {
+      // default: no cross-change branch owners
+    })(),
+  ),
+);
 
 // Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
 vi.mock("../project-workflow-helper", () => ({
@@ -44,7 +51,8 @@ vi.mock("../../temporal/service", () => ({
     connection: { close: vi.fn() },
     client: {
       workflow: {
-        getHandle: vi.fn(() => ({ signal: workflowSignal })),
+        getHandle: vi.fn(() => ({ signal: workflowSignal, query: vi.fn() })),
+        list: workflowList,
       },
     },
   })),
@@ -121,6 +129,11 @@ describe.skipIf(!isLinux)(
       repoRoot = createGitRepo();
       cleanupPaths = [];
       vi.clearAllMocks();
+      workflowList.mockImplementation(() =>
+        (async function* () {
+          // default: no cross-change branch owners
+        })(),
+      );
       workflowQuery.mockResolvedValue({
         session_registry: {},
         worktree_registry: {},
@@ -533,6 +546,35 @@ describe.skipIf(!isLinux)(
       // Worktree should NOT be created
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).not.toContain("feature/test");
+    });
+
+    it("BRANCH_IN_USE — blocks when Temporal visibility shows another active change owns the branch", async () => {
+      workflowList.mockImplementationOnce(() =>
+        (async function* () {
+          yield {
+            workflowId: "adv/change/test-id/other-change",
+          };
+        })(),
+      );
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/feature", {}, deps);
+
+      expect(result).toEqual({
+        ok: false,
+        error: "BRANCH_IN_USE",
+        branch: "change/feature",
+        ownerChangeIds: ["other-change"],
+        hint: "Branch is already registered by an active ADV change workflow",
+      });
+      expect(workflowList).toHaveBeenCalledWith({
+        query:
+          'AdvAffectedProjects = "test-id" AND AdvWorktreeBranches = "change/feature" AND AdvChangeStatus = "active"',
+      });
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).not.toContain("change/feature");
     });
   },
 );

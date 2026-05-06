@@ -129,30 +129,128 @@ describe("change workflow message contract", () => {
         ProblemStatementUpdatedSignalPayloadSchema,
         { text: "problem", updatedAt: timestamp },
       ],
-      [AgreementUpdatedSignalPayloadSchema, { text: "a", updatedAt: timestamp }],
+      [
+        AgreementUpdatedSignalPayloadSchema,
+        { text: "a", updatedAt: timestamp },
+      ],
       [DesignUpdatedSignalPayloadSchema, { text: "d", updatedAt: timestamp }],
-      [AcceptanceCriteriaSetSignalPayloadSchema, { criteria: ["c"], setAt: timestamp }],
+      [
+        AcceptanceCriteriaSetSignalPayloadSchema,
+        { criteria: ["c"], setAt: timestamp },
+      ],
       [TaskAddedSignalPayloadSchema, { task, addedAt: timestamp }],
-      [TaskUpdatedSignalPayloadSchema, { taskId: "tk-1", partial: { status: "done" }, updatedAt: timestamp }],
-      [TaskRemovedSignalPayloadSchema, { taskId: "tk-1", removedAt: timestamp }],
-      [TaskAssignedSignalPayloadSchema, { taskId: "tk-1", sessionId: "sess-1", assignedAt: timestamp }],
-      [TaskCompletedSignalPayloadSchema, { taskId: "tk-1", verification: "tests pass", summary: "done", completedAt: timestamp }],
-      [TaskBlockedSignalPayloadSchema, { taskId: "tk-1", reason: "blocked", blockedAt: timestamp }],
-      [TaskCancelledSignalPayloadSchema, { taskId: "tk-1", approvalEvidence: "yes", reason: "cancel", cancelledAt: timestamp }],
-      [GateInProgressSignalPayloadSchema, { gateId: "execution", triggeredAt: timestamp }],
-      [GateAwaitingApprovalSignalPayloadSchema, { gateId: "acceptance", evidence: "ready", triggeredAt: timestamp }],
-      [GateStuckSignalPayloadSchema, { gateId: "execution", reason: "stuck", triggeredAt: timestamp }],
-      [GateCompletedSignalPayloadSchema, { gateId: "execution", completedBy: "agent", completedAt: timestamp }],
-      [GateReenteredSignalPayloadSchema, { fromGateId: "design", reason: "scope", reenteredBy: "agent", reenteredAt: timestamp }],
+      [
+        TaskUpdatedSignalPayloadSchema,
+        { taskId: "tk-1", partial: { status: "done" }, updatedAt: timestamp },
+      ],
+      [
+        TaskRemovedSignalPayloadSchema,
+        { taskId: "tk-1", removedAt: timestamp },
+      ],
+      [
+        TaskAssignedSignalPayloadSchema,
+        { taskId: "tk-1", sessionId: "sess-1", assignedAt: timestamp },
+      ],
+      [
+        TaskCompletedSignalPayloadSchema,
+        {
+          taskId: "tk-1",
+          verification: "tests pass",
+          summary: "done",
+          completedAt: timestamp,
+        },
+      ],
+      [
+        TaskBlockedSignalPayloadSchema,
+        { taskId: "tk-1", reason: "blocked", blockedAt: timestamp },
+      ],
+      [
+        TaskCancelledSignalPayloadSchema,
+        {
+          taskId: "tk-1",
+          approvalEvidence: "yes",
+          reason: "cancel",
+          cancelledAt: timestamp,
+        },
+      ],
+      [
+        GateInProgressSignalPayloadSchema,
+        { gateId: "execution", triggeredAt: timestamp },
+      ],
+      [
+        GateAwaitingApprovalSignalPayloadSchema,
+        { gateId: "acceptance", evidence: "ready", triggeredAt: timestamp },
+      ],
+      [
+        GateStuckSignalPayloadSchema,
+        { gateId: "execution", reason: "stuck", triggeredAt: timestamp },
+      ],
+      [
+        GateCompletedSignalPayloadSchema,
+        { gateId: "execution", completedBy: "agent", completedAt: timestamp },
+      ],
+      [
+        GateReenteredSignalPayloadSchema,
+        {
+          fromGateId: "design",
+          reason: "scope",
+          reenteredBy: "agent",
+          reenteredAt: timestamp,
+        },
+      ],
       [WisdomAddedSignalPayloadSchema, { entry: wisdom, addedAt: timestamp }],
-      [ReflectionRecordedSignalPayloadSchema, { report: { ok: true }, recordedAt: timestamp }],
-      [WorktreeCreatedSignalPayloadSchema, { branch: "change/x", path: "/repo-x", baseRef: "main", headSha: "abc", createdAt: timestamp }],
-      [WorktreeDeletedSignalPayloadSchema, { branch: "change/x", reason: "merged", deletedAt: timestamp }],
-      [ConformanceLockedSignalPayloadSchema, { specs: ["advance-delivery"], lockedAt: timestamp }],
-      [ConformanceVerdictSignalPayloadSchema, { verdict: "PASS", runId: "run-1", recordedAt: timestamp }],
-      [ConformanceOverriddenSignalPayloadSchema, { user: "user", reason: "accepted", reVerifyDeadline: "2026-06-01", overriddenAt: timestamp }],
-      [ArchiveRequestedSignalPayloadSchema, { approvalEvidence: "ship it", requestedBy: "user", requestedAt: timestamp }],
-      [ChangeCancelledSignalPayloadSchema, { approvalEvidence: "stop", reason: "cancel", cancelledBy: "user", cancelledAt: timestamp }],
+      [
+        ReflectionRecordedSignalPayloadSchema,
+        { report: { ok: true }, recordedAt: timestamp },
+      ],
+      [
+        WorktreeCreatedSignalPayloadSchema,
+        {
+          branch: "change/x",
+          path: "/repo-x",
+          baseRef: "main",
+          headSha: "abc",
+          createdAt: timestamp,
+        },
+      ],
+      [
+        WorktreeDeletedSignalPayloadSchema,
+        { branch: "change/x", reason: "merged", deletedAt: timestamp },
+      ],
+      [
+        ConformanceLockedSignalPayloadSchema,
+        { specs: ["advance-delivery"], lockedAt: timestamp },
+      ],
+      [
+        ConformanceVerdictSignalPayloadSchema,
+        { verdict: "PASS", runId: "run-1", recordedAt: timestamp },
+      ],
+      [
+        ConformanceOverriddenSignalPayloadSchema,
+        {
+          user: "user",
+          reason: "accepted",
+          reVerifyDeadline: "2026-06-01",
+          overriddenAt: timestamp,
+        },
+      ],
+      [
+        ArchiveRequestedSignalPayloadSchema,
+        {
+          approvalEvidence: "ship it",
+          requestedBy: "user",
+          requestedAt: timestamp,
+        },
+      ],
+      [
+        ChangeCancelledSignalPayloadSchema,
+        {
+          approvalEvidence: "stop",
+          reason: "cancel",
+          cancelledBy: "user",
+          cancelledAt: timestamp,
+        },
+      ],
     ] as const;
 
     for (const [schema, payload] of cases) {

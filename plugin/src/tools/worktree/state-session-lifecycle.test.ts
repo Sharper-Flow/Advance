@@ -8,28 +8,47 @@
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock project-workflow-helper so we can drive the access state machine.
-
-vi.mock("../project-workflow-helper", () => ({
-  getBoundedProjectWorkflowAccess: vi.fn(),
-}));
-
 // Note: do NOT mock ./state here — the test needs the real implementation.
 // Mocking it with importOriginal causes module-resolution ordering issues
 // when sibling files (e.g. branch-integration.ts) also import from state.
 
 // Capture executeUpdate calls.
-const executeUpdate = vi.fn(async () => undefined);
+const executeUpdate = vi.hoisted(() => vi.fn(async () => undefined));
+const projectWorkflowQuery = vi.hoisted(() => vi.fn(async () => ({})));
+const workflowList = vi.hoisted(() =>
+  vi.fn(() =>
+    (async function* () {
+      // default: no workflows
+    })(),
+  ),
+);
+const changeWorkflowQuery = vi.hoisted(() => vi.fn(async () => ({})));
+const workflowGetHandle = vi.hoisted(() =>
+  vi.fn(() => ({ query: changeWorkflowQuery })),
+);
 
-const mockHandle = {
-  query: vi.fn(async () => ({})),
-  executeUpdate,
-};
+const getBoundedProjectWorkflowAccess = vi.hoisted(() =>
+  vi.fn(async () => ({
+    mode: "workflow-backed" as const,
+    handle: {
+      query: projectWorkflowQuery,
+      executeUpdate,
+    },
+  })),
+);
 
 vi.mock("../project-workflow-helper", () => ({
-  getBoundedProjectWorkflowAccess: vi.fn(async () => ({
-    mode: "workflow-backed",
-    handle: mockHandle,
+  getBoundedProjectWorkflowAccess,
+}));
+
+vi.mock("../../temporal/service", () => ({
+  getService: vi.fn(() => ({
+    client: {
+      workflow: {
+        list: workflowList,
+        getHandle: workflowGetHandle,
+      },
+    },
   })),
 }));
 
@@ -39,6 +58,9 @@ import {
   registerSession,
   unregisterSession,
   updateSessionActivity,
+  buildWorktreeBranchVisibilityQuery,
+  findBranchOwnersAcrossChanges,
+  listWorktreesAcrossChanges,
   type WorktreeStateAccess,
 } from "./state";
 import { synthesizeTestProjectId } from "../../utils/project-id";
@@ -56,6 +78,12 @@ const access: WorktreeStateAccess = {
 describe("session lifecycle helpers (T21)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    workflowList.mockImplementation(() =>
+      (async function* () {
+        // default: no workflows
+      })(),
+    );
+    changeWorkflowQuery.mockResolvedValue({});
   });
 
   it("registerSession dispatches registerSessionUpdate with payload", async () => {
@@ -116,6 +144,64 @@ describe("session lifecycle helpers (T21)", () => {
     });
 
     expect(executeUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("cross-change worktree visibility helpers (T22)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("builds branch-in-use query from AdvAffectedProjects, AdvWorktreeBranches, and active status", () => {
+    expect(buildWorktreeBranchVisibilityQuery("proj", "change/feature")).toBe(
+      'AdvAffectedProjects = "proj" AND AdvWorktreeBranches = "change/feature" AND AdvChangeStatus = "active"',
+    );
+  });
+
+  it("lists active owner change ids for a worktree branch and excludes current change", async () => {
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/current" };
+        yield { workflowId: "adv/change/test-id/other" };
+        yield { workflowId: "adv/project/test-id" };
+      })(),
+    );
+
+    await expect(
+      findBranchOwnersAcrossChanges(access, "change/feature", "current"),
+    ).resolves.toEqual(["other"]);
+  });
+
+  it("aggregates materialized worktrees from active change workflow search results", async () => {
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/change-a" };
+      })(),
+    );
+    changeWorkflowQuery.mockResolvedValueOnce({
+      "change/change-a": {
+        branch: "change/change-a",
+        path: "/work/change-a",
+        baseRef: "main",
+        headSha: "abc123",
+        status: "created",
+        createdAt: "2026-05-01T00:00:00.000Z",
+      },
+      "change/deleted": {
+        branch: "change/deleted",
+        path: "/work/deleted",
+        status: "deleted",
+      },
+    });
+
+    await expect(listWorktreesAcrossChanges(access)).resolves.toEqual([
+      expect.objectContaining({
+        branch: "change/change-a",
+        path: "/work/change-a",
+        changeId: "change-a",
+        status: "active",
+      }),
+    ]);
   });
 });
 

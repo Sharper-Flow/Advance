@@ -40,7 +40,7 @@ vi.mock("../../temporal/service", () => ({
     connection: { close: vi.fn() },
     client: {
       workflow: {
-        getHandle: vi.fn(() => ({ signal: workflowSignal })),
+        getHandle: vi.fn(() => ({ signal: workflowSignal, query: vi.fn() })),
       },
     },
   })),
