@@ -1,7 +1,7 @@
 # Decision: Refactor Change Workflows to Signal-Driven Architecture
 
-> **Status:** design phase (ADV change `refactorChangeWorkflowsSignal`)
-> **Date:** 2026-05-04
+> **Status:** design phase (ADV change `refactorChangeWorkflowsSignal`); CONFLICT (2026-05-05) resolved via path-B (retire tool surfaces); pending re-validation
+> **Date:** 2026-05-04 (initial draft); 2026-05-05 (resolution amendments)
 > **Author:** collaboratively designed across an extended conversation; recorded by adv-claude
 > **Related ADV change:** `refactorChangeWorkflowsSignal`
 > **Related issues:** closes #39, #48 structurally; related #33, #46
@@ -217,7 +217,7 @@ export const fooSignal = wf.defineSignal<[FooPayload]>("foo");
 
 **Total: 24 new + 1 retained (`applyChangeSummarySignal`) = 25 signals.** Replaces 28 updates.
 
-#### Enforcement Layer Migration (V5 validator finding)
+#### Enforcement Layer Migration (V5 + V6 validator findings)
 
 The current update-based architecture enforces several protocol rules inside the workflow handler (e.g., `cancelTaskUpdate` requires `approvedByUser: true`; `setTaskPhaseUpdate` enforces red→green→complete transitions). Under the signal-driven model, these enforcement points **move out of the workflow** to where they semantically belong:
 
@@ -227,6 +227,9 @@ The current update-based architecture enforces several protocol rules inside the
 | TDD phase progression (red → green → complete) | `setTaskPhaseUpdate` enforces transitions | **Agent layer** — agent self-enforces. Workflow records final outcome via `taskCompletedSignal.verification`. No phase machine. |
 | Planning gate requires `userApproved: true` | `completeGateUpdate` rejects without it | **Tool layer** — `adv_gate_complete` validates `userApproved` before firing `gateCompletedSignal` for the planning gate. |
 | Spec-conformance lock prevents reads | (today: filesystem path guard) | **Unchanged** — path guards stay at the OS/tool layer, not workflow. |
+| Sequential gate enforcement (`rq-gatemodel01.1`) | `completeGateUpdate` rejects if prior gate incomplete | **Tool layer** — `adv_gate_complete` queries current gate state via `getGateStatusQuery` before firing `gateCompletedSignal`; rejects if any prior gate is not `done`. The workflow handler stays a pure mutation. |
+| Execution-gate task completeness (`rq-gatemodel01.4`) | `completeGateUpdate` rejects when execution gate has incomplete tasks | **Tool layer** — `adv_gate_complete` queries `getTasksQuery` before firing for `gateId: 'execution'`; rejects when any task is `pending` or `in_progress`. |
+| Re-entry cascade reset (`rq-scopeReentry02`) | `reenterUpdate` resets target + downstream gates atomically | **Workflow handler** — `gateReenteredSignal` handler computes the downstream gate set from `fromGateId` and resets each to `pending` in one mutation. Tool-layer adapter only validates `approvalEvidence + reason`. The cascade is structural and stays in the workflow because it operates on workflow state, not tool inputs. |
 
 **Protocol semantics are preserved**; only the enforcement point shifts. This is consistent with the design's "trust the agent at the workflow layer; validate at the boundary" principle. Bad payloads are rejected before they ever become signals; the workflow's signal handlers can therefore stay pure mutations on `state`.
 
@@ -265,6 +268,20 @@ Mutually exclusive. Configurable thresholds (default 24h idle).
 | **NOT** triggered by task signals, doc updates, wisdom, worktree | — |
 
 Net write rate: ~10 writes per change lifetime (99% reduction).
+
+#### Read Path Routing (V6 validator finding — A3)
+
+The disk projection is a downstream cache for **external readers only** (CI workers running outside the OpenCode session, human inspection, archival tooling). Internal ADV reads MUST go through workflow queries to preserve strong consistency.
+
+| Reader | Path | Consistency |
+|---|---|---|
+| `adv_change_show`, `adv_task_list`, `adv_task_ready`, `adv_gate_status` (all internal tool reads) | Workflow query | Strongly consistent |
+| `adv_conformance action: 'run'` (verdict computation) | Workflow query | Strongly consistent — verdict cannot race a pending signal |
+| `adv_conformance action: 'status'`, `adv_change_export` | Workflow query (preferred) or projection (fallback when workflow unreachable) | Strongly consistent when workflow reachable |
+| External CI worker reading `.adv/changes/{id}/projection.json` | Disk projection | Eventually consistent — must validate `schemaVersion === 2` and tolerate file absence |
+| Human reading the on-disk bundle | Disk projection | Eventually consistent |
+
+**SC4 amendment:** "External CI conformance verification continues to function. Internal `adv_conformance action: 'run'` reads workflow state via query (strongly consistent). External CI workers read disk projection (eventually consistent, gate-transition cadence)."
 
 ```typescript
 wf.setHandler(gateCompletedSignal, async (payload) => {
@@ -408,6 +425,29 @@ archived scratch context. This preserves the orchestrator's ability to avoid
 collisions without reintroducing Temporal-as-database history scraping.
 
 Task queue: `advance-changes` (single global) + `advance-host-{hostname}` (per-host activities).
+
+#### Cross-Change Worktree Lookup (V6 validator finding — A2)
+
+Worktree state lives in per-change workflow state (via `worktreeCreatedSignal` / `worktreeDeletedSignal`). Cross-change queries — "is branch X already in use by another change?", "list all worktrees for this project" — are answered via Temporal search attributes, not via a separate aggregation workflow.
+
+Add two search attributes:
+
+| Attribute | Type | Use |
+|---|---|---|
+| `AdvWorktreeBranches` | `KeywordList` | Active worktree branches owned by the change. Updated atomically when `worktreeCreatedSignal` / `worktreeDeletedSignal` is processed. |
+| `AdvWorktreePaths` | `KeywordList` | Active worktree absolute paths. Same update lifecycle. |
+
+Lookup pattern:
+
+```typescript
+// Is branch already in use?
+const inUse = await client.workflow.list({
+  query: `AdvAffectedProjects = '${projectId}' AND AdvWorktreeBranches = '${branch}' AND AdvChangeStatus = 'active'`,
+});
+if (inUse.length > 0) throw new BranchInUseError(branch, inUse[0].workflowId);
+```
+
+Worktree registry semantics from `worktree-lifecycle` spec (rq-wl-branchRegistry01) are preserved: branch-aware entries, setup readiness, git-first reconciliation. The location moves from a single project workflow's `worktree_registry` field to per-change workflow state, with cross-change visibility via search attributes. The `adv_worktree_triage` and `adv_worktree_resume` tools refactor to query search attributes for cross-change visibility.
 
 #### Type & Sort Notes (V3 validator findings)
 
@@ -616,6 +656,78 @@ If spike shows "rewrite from scratch" takes >2× the salvage approach, revisit. 
 
 ---
 
+### Section 10: Spec Deltas (V6 validator finding — CONFLICT resolution)
+
+The V6 validator pass surfaced 3 spec-law CONFLICTs (`rq-taskRunLedger01`, `rq-TDD007req`, `rq-TDD008path` / `rq-TDD009idem` / `rq-TDD010phase` / `rq-ADVEXEC04.2`) where the design deletes tool surfaces that current specs mandate. The user chose **path B (retire tool surfaces, amend specs)** to align with ADV's refined value vision: single user, single machine, trust the agent, durable trinity. The retired surfaces (`adv_task_run_status`, `adv_task_tdd`, `adv_task_evidence`) no longer fit that vision.
+
+This section catalogs every spec delta. Deltas are applied at archive time (Phase 9 of `/adv-archive`) via direct edits to `.adv/specs/*.yaml` files; the archive activity records the delta set against the change record for audit.
+
+#### Mission Justification
+
+ADV's mission, as locked in the agreement: "ADV gives human orchestrators maximum power over their agentic workflows. Single user, single machine. Specs, wisdom, and brief change summaries are the durable artifacts; everything else is working memory."
+
+The retired tool surfaces all served audit/compliance use cases that don't help the human orchestrator on a single machine:
+
+- `adv_task_run_status` — durable resume ledger. The agent already maintains in-context state for resume; a Temporal ledger duplicates that with no orchestration value.
+- `adv_task_tdd` (reclassification) — post-planning intent change with audit trail. The audit trail is for compliance, not orchestration. Set intent at task creation.
+- `adv_task_evidence` (fallback) — externally-captured evidence path with idempotency and correction. The verification field on `taskCompletedSignal` carries whatever the agent claims; external evidence is folded into that text. No fallback ceremony.
+
+#### Retired Requirements
+
+Specs to retire entirely (`delete` operation):
+
+| Spec | Requirement | Reason |
+|---|---|---|
+| `advance-delivery` v1.2 | `rq-taskRunLedger01` (all 6 scenarios) | Durable task-run ledger retired. Task state is a query; resume hints are agent-context, not Temporal-backed. |
+| `tdd-contract` v1.5 | `rq-TDD007req` (all 6 scenarios) | TDD intent immutability via `adv_task_reclassify_tdd` retired. `tdd_intent` set at task creation; no post-planning reclassification mechanism. |
+| `tdd-contract` v1.5 | `rq-TDD009idem` (all 3 scenarios) | Idempotent fallback evidence writes retired with the fallback path itself. |
+| `tdd-contract` v1.5 | `rq-TDD010phase` (both scenarios) | Phase derivation from evidence presence retired. No phase machine; `taskCompletedSignal.verification` is a single field. |
+
+#### Amended Requirements
+
+Specs to amend (`modify` or `delete-scenario` operation):
+
+| Spec | Requirement | Amendment |
+|---|---|---|
+| `advance-delivery` v1.2 | `rq-ADVEXEC01` | Delete scenario `rq-ADVEXEC01.3` (fallback framing for `adv_task_evidence`). Other scenarios stay. |
+| `advance-delivery` v1.2 | `rq-ADVEXEC04` | Delete scenario `rq-ADVEXEC04.2` (`adv_task_evidence` value-gated fallback). `rq-ADVEXEC04.1` (adv_run_test value categories) stays. |
+| `advance-delivery` v1.2 | `rq-ADVEXEC04.1` (V7 finding #1) | Modify third `then` clause: replace "It explains task-run ledger continuity value" with "It explains durable workflow-queryable test record value." The retired `rq-taskRunLedger01` no longer provides the original "ledger continuity" value category; the new value is the durable, query-accessible test record on the change workflow. |
+| `tdd-contract` v1.5 | `rq-TDD001inl` | Amend `rq-TDD001inl.1` `then` clause to remove the "expected to have tdd_evidence with both red and green phases" language; replace with "the task records inline TDD via adv_run_test calls; final claim recorded in taskCompletedSignal.verification". |
+| `tdd-contract` v1.5 | `rq-TDD001inl` body (V7 finding #2) | Modify body: remove the sentence "The task's tdd_phase field tracks progress through none -> red -> green -> refactor -> complete." The phase machine is retired. Replace with "Inline TDD progress is observable via adv_run_test invocations and the final verification claim on taskCompletedSignal." |
+| `tdd-contract` v1.5 | `rq-TDD008path` | Delete scenario `rq-TDD008path.2` (`adv_task_evidence` fallback). `rq-TDD008path.1` (primary path uses adv_run_test) and `rq-TDD008path.3` (exit-code semantics) stay. |
+| `tdd-contract` v1.5 | `rq-TDD008path.3` `given` (V7 finding #3) | Modify `given` clause: replace "adv_run_test or adv_task_evidence records red or green phase evidence" with "adv_run_test records red or green phase evidence" (the retired `adv_task_evidence` is dropped from the disjunction). The scenario's exit-code-semantics behavior is unchanged. |
+| `advance-meta` (current version) | `rq-worktreeRegistry01` (V7 finding #4) | Modify body: replace "must live inside the project workflow state" with "must live inside the change workflow state, with cross-change visibility via the `AdvWorktreeBranches` and `AdvWorktreePaths` Temporal search attributes." Modify scenarios `.1` and `.2`: replace `ProjectWorkflowState.worktree_registry` references with `change-workflow worktree state`; replace `addWorktreeSession workflow update` with `worktreeCreatedSignal`; replace "project workflow" with "change workflow." Observable behaviors (durable state, cross-session visibility, no sidecar DB per scenario `.3`) are preserved. |
+| `advance-meta` (current version) | `rq-multiSessionCoordination01` (V7 finding #5) | Modify body: replace "serialized by Temporal workflow updates" with "serialized by Temporal workflow signals." Modify scenario `.1` `then` clause: replace "updates reach the project workflow as Temporal workflow updates" with "signals reach the change workflow as Temporal workflow signals; Temporal's per-workflow signal queue serializes them." Modify scenario `.2`: replace "mutators use monotonic source_version dedup" with "signal queue serialization provides ordering; idempotency is enforced by handler-level state checks where required." The serialization principle is preserved; the implementation mechanism changes from updates to signals. |
+| `worktree-lifecycle` v1.0 | `rq-wl-branchRegistry01` body (V7 finding #6) | Modify body: replace "The worktree registry (ProjectWorkflowState.worktree_registry) must store per-entry..." with "The worktree registry (per-change workflow state, with cross-change visibility via `AdvWorktreeBranches` / `AdvWorktreePaths` Temporal search attributes) must store per-entry...". Branch-aware entries, setup readiness, and git-first reconciliation semantics are preserved. |
+| `worktree-lifecycle` v1.0 | `rq-worktreeReuse01.1` (V7 finding #7, info) | Modify `then` clause: replace "No project-workflow recovery is required as a precondition for reuse" with "No per-change workflow recovery is required as a precondition for reuse — change-workflow state survives directly via Temporal." Cosmetic cleanup; the original clause becomes vacuous (no project workflow exists) but is otherwise non-blocking. |
+
+#### Preserved Requirements
+
+The following requirements are NOT touched by this change and remain in force:
+
+| Spec | Requirement | Rationale |
+|---|---|---|
+| `advance-delivery` v1.2 | `rq-ADVEXEC02`, `rq-ADVEXEC03`, `rq-ADVEXEC05` | Asset/regression anchors and runtime guards for inline TDD remain valuable. |
+| `advance-delivery` v1.2 | `rq-bulkClose01`, `rq-deltaOps01`, `rq-cc01` through `rq-cc05` | Unrelated to the retired surfaces. |
+| `tdd-contract` v1.5 | `rq-TDD001inl.2`, `rq-TDD001inl.3`, `rq-TDD002sep`, `rq-TDD003na`, `rq-TDD004cls`, `rq-TDD005inv`, `rq-TDD006rem` | Inline-TDD-as-default, classifier, inversion detection, and merge-not-reverse remediation all stay. The model still favors inline TDD; only the post-completion ceremony is gone. |
+
+#### Tool-Layer Boundary Enforcement (preserves O5 trust without losing safety)
+
+Retiring the durable ledger does not eliminate every safety check. The tool layer still validates:
+
+- `adv_run_test` exit-code semantics (red phase rejects exit-code 0; green phase rejects non-zero). Preserved per `rq-TDD008path.3`.
+- `adv_task_checkpoint` verification, branch, and HEAD guards (`rq-cc01`, `rq-cc02`, `rq-cc03`, `rq-cc04`, `rq-cc05`). Unchanged.
+- Inline-TDD bash workarounds blocked (`rq-ADVEXEC03`). Unchanged.
+- Cancellation user-approval validation moves from workflow handler to `adv_task_cancel` tool layer (V5 row).
+
+What's gone: durable replay of the red-green-checkpoint sequence. The workflow records the agent's verification claim and moves on. If the agent lies about verification, downstream gates (`/adv-review`, `/adv-harden`, conformance CI) catch the lie in code/tests, not in a Temporal ledger.
+
+#### Acceptance Criterion (added to Part 4)
+
+**SC11** — Spec deltas applied: `rq-taskRunLedger01`, `rq-TDD007req`, `rq-TDD009idem`, `rq-TDD010phase` deleted; `rq-ADVEXEC01.3`, `rq-ADVEXEC04.2`, `rq-TDD008path.2` scenario-deleted; `rq-ADVEXEC04.1`, `rq-TDD001inl` (body + `.1`), `rq-TDD008path.3` `given`, `rq-worktreeRegistry01` (body + `.1`/`.2`), `rq-multiSessionCoordination01` (body + `.1`/`.2`), `rq-wl-branchRegistry01` body, `rq-worktreeReuse01.1` `then` modified. Verified by inspection of `.adv/specs/advance-delivery.yaml`, `.adv/specs/tdd-contract.yaml`, `.adv/specs/advance-meta.yaml`, and `.adv/specs/worktree-lifecycle.yaml` after archive Phase 9.
+
+---
+
 ## Part 4: Acceptance Criteria (from agreement)
 
 The change ships when ALL true:
@@ -632,6 +744,7 @@ The change ships when ALL true:
 | SC8 | `temporal/` LOC reduction ≥30% (~6,500 LOC removed from 18,551) | wc -l before/after |
 | SC9 | Per-change signal traffic ≤300 events for representative change | Instrumented spike change |
 | SC10 | Spike validates: concurrent signaling, CAN at 5k events, projection cadence, migration | Spike report |
+| SC11 | Spec deltas applied per Section 10: 4 retired (`rq-taskRunLedger01`, `rq-TDD007req`, `rq-TDD009idem`, `rq-TDD010phase`); 3 scenario-deletes (`rq-ADVEXEC01.3`, `rq-ADVEXEC04.2`, `rq-TDD008path.2`); 7 modifications (`rq-ADVEXEC04.1`, `rq-TDD001inl` body+`.1`, `rq-TDD008path.3` given, `rq-worktreeRegistry01`, `rq-multiSessionCoordination01`, `rq-wl-branchRegistry01`, `rq-worktreeReuse01.1`) | Inspection of `.adv/specs/advance-delivery.yaml`, `.adv/specs/tdd-contract.yaml`, `.adv/specs/advance-meta.yaml`, `.adv/specs/worktree-lifecycle.yaml` post-archive |
 
 ---
 
