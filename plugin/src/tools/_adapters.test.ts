@@ -46,6 +46,27 @@ function createMockClient(handle: ReturnType<typeof createMockHandle>): {
   };
 }
 
+function createMockStoreInput(handle: ReturnType<typeof createMockHandle>) {
+  return {
+    projectId: "proj-123",
+    legacy: {
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: { adv_project_id: "proj-123" },
+        })),
+      },
+    },
+    temporal: {
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => handle),
+        },
+      },
+    },
+  };
+}
+
 describe("_adapters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -82,6 +103,21 @@ describe("_adapters", () => {
         "signal failed",
       );
     });
+
+    test("resolves a guarded workflow handle from store input", async () => {
+      const handle = createMockHandle();
+      const input = createMockStoreInput(handle);
+      const signalDef = { name: "taskAdded" };
+      const payload = { taskId: "tk-1" };
+
+      await fireSignal(input, "chg-456", signalDef, payload);
+
+      expect(input.legacy.changes.get).toHaveBeenCalledWith("chg-456");
+      expect(input.temporal.client.workflow.getHandle).toHaveBeenCalledWith(
+        "adv/change/proj-123/chg-456",
+      );
+      expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
+    });
   });
 
   describe("querySignal", () => {
@@ -116,6 +152,21 @@ describe("_adapters", () => {
       await expect(querySignal(handle, { name: "bad" })).rejects.toThrow(
         "query failed",
       );
+    });
+
+    test("queries via a guarded workflow handle from store input", async () => {
+      const handle = createMockHandle();
+      const input = createMockStoreInput(handle);
+      handle.query.mockResolvedValue({ tasks: [] });
+
+      await expect(
+        querySignal(input, "chg-456", { name: "getTasks" }, "done"),
+      ).resolves.toEqual({ tasks: [] });
+
+      expect(input.temporal.client.workflow.getHandle).toHaveBeenCalledWith(
+        "adv/change/proj-123/chg-456",
+      );
+      expect(handle.query).toHaveBeenCalledWith({ name: "getTasks" }, "done");
     });
   });
 
@@ -171,6 +222,27 @@ describe("_adapters", () => {
       ).rejects.toThrow("signal refused");
 
       expect(handle.query).not.toHaveBeenCalled();
+    });
+
+    test("fires then queries through store input", async () => {
+      const handle = createMockHandle();
+      const input = createMockStoreInput(handle);
+      handle.query.mockResolvedValue({ fresh: true });
+
+      const result = await fireSignalAndQuery(
+        input,
+        "chg-456",
+        { name: "taskCompleted" },
+        [{ taskId: "tk-1" }],
+        { name: "getState" },
+      );
+
+      expect(handle.signal).toHaveBeenCalledWith(
+        { name: "taskCompleted" },
+        { taskId: "tk-1" },
+      );
+      expect(handle.query).toHaveBeenCalledWith({ name: "getState" });
+      expect(result).toEqual({ fresh: true });
     });
   });
 
