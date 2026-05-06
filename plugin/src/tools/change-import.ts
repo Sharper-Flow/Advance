@@ -16,7 +16,7 @@ import { loadChange } from "../storage/json";
 import {
   ensureChangeWorkflowStarted,
   type WorkflowHandleLike,
-} from "../temporal/migration";
+} from "../temporal/workflow-start";
 import { getService } from "../temporal/service";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store";

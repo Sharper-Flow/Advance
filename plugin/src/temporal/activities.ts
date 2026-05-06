@@ -36,7 +36,7 @@ import {
   rebuildProjectWorkflowState,
   reImportChangeState,
   type WorkflowClientLike,
-} from "./migration";
+} from "./workflow-start";
 import { buildProjectWorkflowId } from "./client";
 import { projectAgendaQuery, projectWisdomQuery } from "./messages";
 

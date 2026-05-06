@@ -29,10 +29,10 @@ const mocks = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("../temporal/migration", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/migration")>(
-    "../temporal/migration",
-  );
+vi.mock("../temporal/workflow-start", async () => {
+  const actual = await vi.importActual<
+    typeof import("../temporal/workflow-start")
+  >("../temporal/workflow-start");
   return {
     ...actual,
     ensureChangeWorkflowStarted: mocks.ensureChangeWorkflowStarted,

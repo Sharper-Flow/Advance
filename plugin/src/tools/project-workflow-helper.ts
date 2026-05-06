@@ -20,7 +20,10 @@ import {
   probeTaskQueuePollers,
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
-import { ensureProjectWorkflowStarted } from "../temporal/migration";
+import {
+  ensureProjectWorkflowStarted,
+  type WorkflowClientLike,
+} from "../temporal/workflow-start";
 import { createLogger } from "../utils/debug-log";
 
 const logger = createLogger("project-workflow-helper");
@@ -210,8 +213,7 @@ async function buildWorkflowBackedWithBootstrap(
   try {
     await ensureProjectWorkflowStarted(
       {
-        workflow: bundle.client
-          .workflow as unknown as import("../temporal/migration").WorkflowClientLike,
+        workflow: bundle.client.workflow as unknown as WorkflowClientLike,
       },
       {
         projectId,

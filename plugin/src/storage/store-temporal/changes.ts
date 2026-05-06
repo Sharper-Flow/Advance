@@ -5,7 +5,7 @@ import {
   closeChangeUpdate,
   updateArtifactMetadataUpdate,
 } from "../../temporal/messages";
-import { ensureChangeWorkflowStarted } from "../../temporal/migration";
+import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";

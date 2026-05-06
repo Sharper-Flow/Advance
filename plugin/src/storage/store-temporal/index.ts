@@ -30,7 +30,7 @@ import {
   applyChangeSummarySignal,
   changeStateQuery,
 } from "../../temporal/messages";
-import { ensureChangeWorkflowStarted } from "../../temporal/migration";
+import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import type {
   ChangeSummaryPayload,
   ChangeWorkflowState,

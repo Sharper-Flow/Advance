@@ -13,12 +13,12 @@ import {
   startChangeWorkflow,
 } from "./_adapters";
 
-// Mock the migration module so startChangeWorkflow is testable
-vi.mock("../temporal/migration", () => ({
+// Mock the workflow-start module so startChangeWorkflow is testable
+vi.mock("../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted: vi.fn(),
 }));
 
-import { ensureChangeWorkflowStarted } from "../temporal/migration";
+import { ensureChangeWorkflowStarted } from "../temporal/workflow-start";
 
 function createMockHandle(): {
   query: ReturnType<typeof vi.fn>;

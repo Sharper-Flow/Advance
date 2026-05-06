@@ -32,7 +32,6 @@ import { gateTools } from "./tools/gate";
 import { testTools } from "./tools/test";
 import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
-import { migrateCleanupTools } from "./tools/migrate-cleanup";
 import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
 import { projectMetadataTools } from "./tools/project-metadata";
@@ -365,11 +364,6 @@ export function createToolMap(
       "adv_temporal_reconnect",
       store,
     ),
-    adv_migrate_cleanup: bindTool(
-      migrateCleanupTools.adv_migrate_cleanup,
-      "adv_migrate_cleanup",
-      store,
-    ),
     // adv_temporal_worker_restart — rq-toolTimeoutOverride01.2.
     // Inner verified recovery waits up to 10s for queue serviceability;
     // 15s outer budget gives modest wrapper headroom while preserving a
@@ -603,7 +597,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_temporal_diagnose",
   "adv_temporal_register_search_attributes",
   "adv_temporal_reconnect",
-  "adv_migrate_cleanup",
   "adv_temporal_worker_restart",
   "adv_task_checkpoint",
   "adv_reflect",

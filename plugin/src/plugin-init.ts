@@ -41,7 +41,10 @@ import {
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
-import { ensureProjectWorkflowStarted } from "./temporal/migration";
+import {
+  ensureProjectWorkflowStarted,
+  type WorkflowClientLike,
+} from "./temporal/workflow-start";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -235,7 +238,7 @@ export async function tryInitStore(
           await ensureProjectWorkflowStarted(
             {
               workflow: temporalBundle.client
-                .workflow as unknown as import("./temporal/migration").WorkflowClientLike,
+                .workflow as unknown as WorkflowClientLike,
             },
             {
               projectId,

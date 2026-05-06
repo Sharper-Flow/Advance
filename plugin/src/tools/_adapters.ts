@@ -10,7 +10,7 @@
 
 import { buildChangeWorkflowId } from "../temporal/client";
 import type { ChangeWorkflowInput } from "../temporal/contracts";
-import { ensureChangeWorkflowStarted } from "../temporal/migration";
+import { ensureChangeWorkflowStarted } from "../temporal/workflow-start";
 import {
   type WorkflowHandleLike,
   runTemporal,

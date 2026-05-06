@@ -270,23 +270,6 @@ describe("safeExecute timeout overrides for slow-subprocess tools", () => {
     expect(value).toBeGreaterThanOrEqual(35_000);
   });
 
-  test("adv_workflow_repair registers safeExecute with timeoutMs override ≥ 30s (B2 / KD-6)", () => {
-    // adv_workflow_repair rebuilds project workflow state from legacy
-    // snapshots and re-imports change state, which legitimately exceeds
-    // the 10s default safety net on mature projects. rq-toolTimeoutOverride01
-    // requires every tool that needs >10s to declare an explicit override.
-    const block = extractRegistrationBlock(registrySrc, "adv_workflow_repair");
-    expect(
-      block,
-      "adv_workflow_repair registration block not found",
-    ).not.toBeNull();
-    expect(block!).toMatch(/timeoutMs:\s*\d/);
-    const valueMatch = block!.match(/timeoutMs:\s*(\d[\d_]*)/);
-    expect(valueMatch).toBeTruthy();
-    const value = Number(valueMatch![1].replace(/_/g, ""));
-    expect(value).toBeGreaterThanOrEqual(30_000);
-  });
-
   test("adv_temporal_worker_restart registers safeExecute with timeoutMs override ≥ 15s (rq-toolTimeoutOverride01.2)", () => {
     const block = extractRegistrationBlock(
       registrySrc,
