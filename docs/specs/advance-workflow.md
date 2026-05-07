@@ -404,7 +404,7 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 
 **Given:**
 - A change is in the execution gate with multiple pending ready tasks
-- No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry, no unresolved judgment call)
+- No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry)
 
 **When:** A task completes successfully and `adv_task_ready` returns another pending task
 
@@ -417,7 +417,7 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 
 **Given:**
 - A change has completed planning and is entering the execution gate
-- Judgment-call surfacing (Phase 1.5) has already resolved any pending user input
+- User-value tradeoffs have been resolved at the design approval checkpoint per rq-autonomy01.3
 
 **When:** `/adv-apply` begins the TDD work loop
 
@@ -1090,8 +1090,7 @@ The /adv-autopilot command provides a single-shot delegation surface that auto-a
 
 **Given:**
 - An autopilot run reaches acceptance gate completion
-- Or a populated judgment_calls[] surfaces during /adv-apply Phase 1.5
-- Or design validator returns CONFLICT
+- Design validator returns CONFLICT
 
 **When:** The orchestrator evaluates whether to proceed
 
