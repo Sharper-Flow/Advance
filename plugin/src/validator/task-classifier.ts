@@ -111,13 +111,50 @@ export function requiresTddEvidence(
 }
 
 /**
+ * Shape of TDD evidence preserved on the Task via the schema's
+ * `.passthrough()` modifier. The canonical Zod TaskSchema does not
+ * declare these fields explicitly, so they survive parsing as
+ * passthrough properties. This local type lets the classifier inspect
+ * them without round-tripping through `unknown`.
+ */
+type TaskWithTddEvidence = Pick<Task, "title" | "metadata"> & {
+  tdd_evidence?: {
+    red?: unknown;
+    green?: unknown;
+  };
+};
+
+/**
  * Metadata-aware TDD compliance used by validators and task tools.
+ *
+ * Returns:
+ *   - "not_required" when TDD does not apply (intent: not_applicable /
+ *     separate_verification, or trivial title heuristic).
+ *   - "compliant" when TDD applies AND the task carries complete evidence
+ *     for both red and green phases under `tdd_evidence`. The
+ *     passthrough-preserved evidence object is the durable record of an
+ *     inline red→green cycle (see /adv-apply step 3b/3c). Presence of
+ *     both phases is sufficient — exit-code semantics are validated at
+ *     evidence-write time, not here.
+ *   - "missing" when TDD applies but evidence is absent or incomplete.
+ *
+ * Bug history: prior to rq-TDDvalidatorCompliantPath01, this function
+ * had no path to "compliant" and returned "missing" for every
+ * inline-intent / logic-heavy task regardless of recorded evidence.
+ * Archive validation (rq-archiveValidate01) treated those false
+ * positives as hard blockers, preventing release of work that had in
+ * fact completed full red→green cycles.
  */
 export function getTaskTddCompliance(
-  task: Pick<Task, "title" | "metadata">,
+  task: TaskWithTddEvidence,
 ): "compliant" | "missing" | "not_required" {
   if (!requiresTddEvidence(task)) {
     return "not_required";
+  }
+
+  const evidence = task.tdd_evidence;
+  if (evidence && evidence.red && evidence.green) {
+    return "compliant";
   }
 
   return "missing";
