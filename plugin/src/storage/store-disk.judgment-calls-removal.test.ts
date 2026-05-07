@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { mkdtemp, mkdir, writeFile, readFile } from "fs/promises";
+import { mkdtemp, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createDiskStore } from "./store-disk";
@@ -78,7 +78,9 @@ describe("change-selection — batch_surfaced_at removal", () => {
 
     const withBatchResult = getLastActivityTimestamp(withBatch);
     expect(withBatchResult).toBe(new Date(createdAt).getTime());
-    expect(withBatchResult).not.toBe(new Date("2026-12-31T23:59:59Z").getTime());
+    expect(withBatchResult).not.toBe(
+      new Date("2026-12-31T23:59:59Z").getTime(),
+    );
   });
 });
 

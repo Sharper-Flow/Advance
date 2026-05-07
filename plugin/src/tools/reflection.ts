@@ -193,7 +193,6 @@ function generateReflectionMarkdown(entry: ReflectionEntry): string {
     `- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes (wall-clock) / ${(activeElapsedMs / 1000 / 60).toFixed(1)} minutes (active)`,
   );
 
-
   lines.push("### Quality");
   lines.push(
     `- TDD compliance: ${(entry.plane1.quality.tdd_compliance * 100).toFixed(0)}%`,
@@ -519,7 +518,6 @@ export const reflectionTools = {
             elapsed_ms: elapsedMs,
             active_elapsed_ms: activeElapsedMs,
             per_gate_ms: perGateMs,
-
           },
           quality: {
             tdd_compliance: tddCompliance,

@@ -1011,7 +1011,7 @@ Tools that surface change data must display fast-follow lineage: adv_change_show
 
 **ID:** `rq-largeScopeValidity01` | **Priority:** **[MUST]**
 
-Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Size-triggered concerns route through cost-governance Phase 1.5 judgment-call surfacing only.
+Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Real concerns surface through the existing user-value tradeoff escape clause (rq-autonomy01.6 contract-compromise design pause) and the design Key Decisions surface.
 
 **Tags:** `workflow`, `scope`, `cost-governance`, `autonomy`
 
@@ -1036,13 +1036,13 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 **When:** The agent evaluates how to surface concerns
 
 **Then:**
-- Concerns are routed through cost-governance Phase 1.5 judgment-call surfacing
+- Concerns are routed through rq-autonomy01.6 contract-compromise design pause
 - No split-suggestion is made
 
 **Hardstop remains advisory** (`rq-largeScopeValidity01.3`)
 
 **Given:**
-- Cost-governance hardstop tier fires
+- High-investment advisory threshold fires
 
 **When:** The agent evaluates the hardstop signal
 
@@ -1056,7 +1056,7 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 
 **ID:** `rq-autopilot01` | **Priority:** **[MUST]**
 
-The /adv-autopilot command provides a single-shot delegation surface that auto-approves the 5 routine human checkpoints (proposal, agreement, design, prep, acceptance) for a change. The change records approval_mode: 'autopilot' and autopilot_invoked_at on invocation, and each auto-approved gate is completed with completedBy: 'adv-autopilot' and notes documenting the delegation. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are NOT auto-approved by autopilot. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, Phase 1.5 judgment-call surfacing, drift detection in /adv-review and /adv-harden) remain active and are NOT suppressed by autopilot mode.
+The /adv-autopilot command provides a single-shot delegation surface that auto-approves the 5 routine human checkpoints (proposal, agreement, design, prep, acceptance) for a change. The change records approval_mode: 'autopilot' and autopilot_invoked_at on invocation, and each auto-approved gate is completed with completedBy: 'adv-autopilot' and notes documenting the delegation. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are NOT auto-approved by autopilot. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, drift detection in /adv-review and /adv-harden) remain active and are NOT suppressed by autopilot mode.
 
 **Tags:** `workflow`, `autonomy`, `autopilot`, `audit`
 
@@ -1096,7 +1096,6 @@ The /adv-autopilot command provides a single-shot delegation surface that auto-a
 
 **Then:**
 - Archive sign-off uses the standard Tier B inline-approval prompt
-- Phase 1.5 surfaces unresolved judgment calls via question tool
 - Design CONFLICT pauses for user resolution
 - Cancellation always requires adv_task_cancel approvedByUser: true
 

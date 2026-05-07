@@ -50,9 +50,4 @@ describe("scope discovery protocol assets", () => {
     const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
     expect(content).toContain("### Large-Scope Validity");
   });
-
-  test("ADV_INSTRUCTIONS.md references cost-governance", () => {
-    const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
-    expect(content).toContain("cost-governance");
-  });
 });

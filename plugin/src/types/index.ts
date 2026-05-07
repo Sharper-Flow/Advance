@@ -90,10 +90,7 @@ export {
 // =============================================================================
 // Investment
 // =============================================================================
-export {
-  InvestmentReportSchema,
-  type InvestmentReport,
-} from "./investment";
+export { InvestmentReportSchema, type InvestmentReport } from "./investment";
 
 // =============================================================================
 // Changes

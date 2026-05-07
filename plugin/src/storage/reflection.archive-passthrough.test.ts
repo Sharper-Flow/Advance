@@ -7,8 +7,8 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { appendReflection, listReflections, getReflectionsPath } from "./reflection";
-import { mkdtempSync, rmSync, readFileSync } from "fs";
+import { appendReflection, listReflections } from "./reflection";
+import { mkdtempSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 

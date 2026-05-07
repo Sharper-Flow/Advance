@@ -174,7 +174,9 @@ describe("Investment Tools", () => {
         { changeId: "addFeature" },
         store,
       );
-      const parsed = parseToolOutput<{ task_counts: { total: number } }>(result);
+      const parsed = parseToolOutput<{ task_counts: { total: number } }>(
+        result,
+      );
       expect(parsed.task_counts.total).toBe(3);
     });
 

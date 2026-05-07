@@ -157,19 +157,9 @@ describe("command-vs-skill policy docs", () => {
 
   test("cross-cutting skill-backed commands remain documented in command/docs surface", () => {
     const instructions = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
-    const prepContent = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
-      "utf8",
-    );
-    const applyContent = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-apply.md"),
-      "utf8",
-    );
 
     expect(instructions).toContain("adv-slop-detection");
     expect(instructions).toContain("adv-tron");
-    expect(prepContent).toContain("adv-cost-governance-methodology");
-    expect(applyContent).toContain("adv-cost-governance-methodology");
   });
 
   test("README.md mentions command + skill architecture", () => {

@@ -7,9 +7,11 @@ phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped
 ---
 # ADV Prep — Pre-Implementation Gap Analysis
 Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → add them via ADV tools. Uses 4-Step Gap Analysis and IEEE completeness criteria. Runs **inline** — no sub-agents.
+<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 -->
+
 ## Command Boundary
-**Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator), gap analysis, task sequencing with dependencies.
-**× MUST NOT:** Complete non-planning gates, make new architecture decisions, modify problem statement/agreement/design intent.
+**Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator per rq-prep-out1), gap analysis (rq-prep-scope1), task sequencing with dependencies.
+**× MUST NOT:** Complete non-planning gates, make new architecture decisions, modify problem statement/agreement/design intent (per rq-prep-neg1).
 **Gate:** Completes `planning` only. `/adv-task` is exempt (fast-track bundles proposal+discovery+design+planning).
 <UserRequest>
   $ARGUMENTS

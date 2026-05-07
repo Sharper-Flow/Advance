@@ -106,16 +106,18 @@ const ReflectionEntrySchema = z.object({
   change_id: z.string().min(1),
   created_at: z.string().datetime({ offset: true }),
   plane1: z.object({
-    efficiency: z.object({
-      task_count: z.number().int().min(0),
-      tasks_done: z.number().int().min(0),
-      tasks_cancelled: z.number().int().min(0),
-      retry_total: z.number().int().min(0),
-      retry_density: z.number().min(0),
-      active_elapsed_ms: z.number().min(0).optional(),
-      elapsed_ms: z.number().min(0),
-      per_gate_ms: z.record(z.string(), z.number().min(0)),
-    }).passthrough(),
+    efficiency: z
+      .object({
+        task_count: z.number().int().min(0),
+        tasks_done: z.number().int().min(0),
+        tasks_cancelled: z.number().int().min(0),
+        retry_total: z.number().int().min(0),
+        retry_density: z.number().min(0),
+        active_elapsed_ms: z.number().min(0).optional(),
+        elapsed_ms: z.number().min(0),
+        per_gate_ms: z.record(z.string(), z.number().min(0)),
+      })
+      .passthrough(),
     quality: z.object({
       review_findings_count: z.number().int().min(0).optional(),
       harden_findings_count: z.number().int().min(0).optional(),
