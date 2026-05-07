@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildChangeWorkflowId,
   buildProjectTaskQueue,
-  buildProjectWorkflowId,
   getTemporalAddress,
   getTemporalNamespace,
 } from "./client";
@@ -16,7 +15,7 @@ describe("temporal client helpers", () => {
     expect(buildChangeWorkflowId("proj1", "changeA")).toBe(
       "adv/change/proj1/changeA",
     );
-    expect(buildProjectWorkflowId("proj1")).toBe("adv/project/proj1");
+    // buildProjectWorkflowId retired with projectWorkflow (D3).
   });
 
   it("uses default address and namespace", () => {

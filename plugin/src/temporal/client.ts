@@ -61,10 +61,6 @@ export function buildChangeWorkflowId(
   return `adv/change/${projectId}/${changeId}`;
 }
 
-export function buildProjectWorkflowId(projectId: string): string {
-  return `adv/project/${projectId}`;
-}
-
 export interface TemporalClientBundle {
   address: string;
   namespace: string;
