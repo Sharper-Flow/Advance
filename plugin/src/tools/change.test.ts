@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => {
     getService: vi.fn(() => temporalBundle),
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
+    fireSignalAndRefresh: vi.fn(async () => {}),
     getChangeHandle: vi.fn(() => handleMock),
     removeChangeDir: vi.fn(async () => {}),
     sweepClosedChangesFromDisk: vi.fn(async () => ({
@@ -53,6 +54,7 @@ vi.mock("../utils/project-id", async () => {
 
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
+  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   getChangeHandle: mocks.getChangeHandle,
 }));
 
@@ -153,14 +155,14 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
         mocks.temporalBundle.client,
         "test-project-id",
         "test-change",
       );
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         approvalEvidence: "user confirmed cancellation",
         reason: "cancelled",
         cancelledBy: "agent",
@@ -182,7 +184,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("approvalEvidence is required");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("returns error when Temporal service is unavailable", async () => {
@@ -201,7 +203,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Temporal service not available");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("returns error when change not found", async () => {
@@ -223,7 +225,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("not found");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("requires supersededBy when reason is superseded", async () => {
@@ -241,7 +243,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("supersededBy is required");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 
@@ -293,7 +295,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.closed).toBe(2);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(2);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
         mocks.temporalBundle.client,
         "test-project-id",
@@ -336,7 +338,7 @@ describe("change tools — signal-driven lifecycle", () => {
           },
         } as import("../types").Change,
       }));
-      mocks.fireSignal.mockRejectedValueOnce(new Error("signal rejected"));
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(new Error("signal rejected"));
 
       const result = await changeTools.adv_change_bulk_close.execute(
         {
@@ -378,7 +380,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("not supported");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 
@@ -398,14 +400,14 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
         mocks.temporalBundle.client,
         "test-project-id",
         "test-change",
       );
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         fromGateId: "execution",
         reason: "Scope expanded",
         scopeDelta: "Add new module",
@@ -427,7 +429,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Cannot reenter archived");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("returns error when Temporal service is unavailable", async () => {
@@ -445,7 +447,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Temporal service not available");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 });
