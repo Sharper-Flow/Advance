@@ -75,6 +75,20 @@ afterEach(async () => {
 
 const tool = conformanceTools.adv_conformance;
 
+// Helper to construct a minimal Store-shaped object for tool.execute.
+// After centralizemutationcacherefresh T02, adv_conformance uses
+// bindTool (not bindToolSimple) and derives projectDir/externalRoot from
+// store.paths.{root,external}. The conformance tool only reads these
+// fields, so a minimal partial-store is sufficient for tests.
+function makeStore() {
+  return {
+    paths: {
+      root: projectDir,
+      external: externalRoot,
+    },
+  } as unknown as Parameters<typeof tool.execute>[1];
+}
+
 async function seedRequiredSpec(spec = "advance-workflow"): Promise<void> {
   const state = await loadConformanceState(externalRoot, projectDir);
   state.specs[spec] = {
@@ -92,8 +106,7 @@ describe("adv_conformance action: status", () => {
   test("returns empty state when conformance.json is missing", async () => {
     const result = await tool.execute(
       { action: "status" },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.version).toBe(1);
@@ -120,8 +133,7 @@ describe("adv_conformance action: status", () => {
     );
     const result = await tool.execute(
       { action: "status" },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.specs["advance-workflow"]?.conformance_required).toBe(true);
@@ -132,8 +144,7 @@ describe("adv_conformance action: init", () => {
   test("default mode scaffolds in-repo subfolder", async () => {
     const result = await tool.execute(
       { action: "init" },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -149,8 +160,7 @@ describe("adv_conformance action: init", () => {
   test("mode=sibling records the sibling path (does not require git availability)", async () => {
     const result = await tool.execute(
       { action: "init", mode: "sibling", projectId: "abc123" },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -161,7 +171,7 @@ describe("adv_conformance action: init", () => {
   });
 
   test("init is idempotent: second invocation succeeds without clobbering specs", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     // Add a spec entry between inits
     const before = await loadConformanceState(externalRoot, projectDir);
     const seeded = {
@@ -181,8 +191,7 @@ describe("adv_conformance action: init", () => {
     // Re-init should preserve the spec entry
     const result = await tool.execute(
       { action: "init" },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     expect(JSON.parse(result).success).toBe(true);
     const state = await loadConformanceState(externalRoot, projectDir);
@@ -192,7 +201,7 @@ describe("adv_conformance action: init", () => {
 
 describe("adv_conformance action: lock", () => {
   test("locks an existing spec entry and fires conformanceLockedSignal", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     // Seed a spec entry
     const state = await loadConformanceState(externalRoot, projectDir);
     state.specs["my-spec"] = {
@@ -210,8 +219,7 @@ describe("adv_conformance action: lock", () => {
         spec: "my-spec",
         change_id: "myChange",
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -230,15 +238,14 @@ describe("adv_conformance action: lock", () => {
   });
 
   test("rejects lock on missing spec", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const result = await tool.execute(
       {
         action: "lock",
         spec: "nonexistent",
         change_id: "myChange",
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
@@ -249,7 +256,7 @@ describe("adv_conformance action: lock", () => {
 
 describe("adv_conformance action: unlock", () => {
   test("unlocks a locked spec and records an override audit entry", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const state = await loadConformanceState(externalRoot, projectDir);
     state.specs["my-spec"] = {
       conformance_required: true,
@@ -270,8 +277,7 @@ describe("adv_conformance action: unlock", () => {
         reason: "amend spec for new edge case",
         re_verify_deadline: "2026-05-22T00:00:00Z",
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -287,7 +293,7 @@ describe("adv_conformance action: unlock", () => {
 
 describe("adv_conformance action: override", () => {
   test("records an override entry and fires conformanceOverriddenSignal when changeId is known", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const state = await loadConformanceState(externalRoot, projectDir);
     state.specs["my-spec"] = {
       conformance_required: true,
@@ -307,8 +313,7 @@ describe("adv_conformance action: override", () => {
         reason: "CI cluster outage 2026-05-15",
         re_verify_deadline: "2026-05-22T00:00:00Z",
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -328,7 +333,7 @@ describe("adv_conformance action: override", () => {
   });
 
   test("records override without signal when locked_at_archive is absent", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const state = await loadConformanceState(externalRoot, projectDir);
     state.specs["my-spec"] = {
       conformance_required: true,
@@ -347,8 +352,7 @@ describe("adv_conformance action: override", () => {
         reason: "CI cluster outage 2026-05-15",
         re_verify_deadline: "2026-05-22T00:00:00Z",
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
@@ -356,7 +360,7 @@ describe("adv_conformance action: override", () => {
   });
 
   test("rejects override missing required audit fields", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const result = await tool.execute(
       {
         action: "override",
@@ -364,8 +368,7 @@ describe("adv_conformance action: override", () => {
         user: "jrede",
         // missing reason + re_verify_deadline
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
@@ -375,7 +378,7 @@ describe("adv_conformance action: override", () => {
 
 describe("adv_conformance action: run", () => {
   test("returns DRIFT verdict and fires conformanceVerdictSignal when changeId is known", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     await seedRequiredSpec();
     // Seed a CI artifact at the documented path
     const artifactPath = join(externalRoot, "verdict.json");
@@ -402,8 +405,7 @@ describe("adv_conformance action: run", () => {
         spec: "advance-workflow",
         artifact_path: artifactPath,
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.verdict).toBe("DRIFT");
@@ -424,7 +426,7 @@ describe("adv_conformance action: run", () => {
   });
 
   test("returns PASS verdict when artifact has empty failed array", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     await seedRequiredSpec();
     const artifactPath = join(externalRoot, "verdict.json");
     await writeFile(
@@ -440,8 +442,7 @@ describe("adv_conformance action: run", () => {
         spec: "advance-workflow",
         artifact_path: artifactPath,
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.verdict).toBe("PASS");
@@ -449,7 +450,7 @@ describe("adv_conformance action: run", () => {
   });
 
   test("rejects when artifact path is missing", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     await seedRequiredSpec();
     const result = await tool.execute(
       {
@@ -457,8 +458,7 @@ describe("adv_conformance action: run", () => {
         spec: "advance-workflow",
         artifact_path: join(tempDir, "nonexistent.json"),
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
@@ -466,7 +466,7 @@ describe("adv_conformance action: run", () => {
   });
 
   test("rejects when spec is not conformance_required", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const artifactPath = join(externalRoot, "verdict.json");
     await writeFile(artifactPath, JSON.stringify({ passed: [], failed: [] }));
     const result = await tool.execute(
@@ -475,8 +475,7 @@ describe("adv_conformance action: run", () => {
         spec: "advance-workflow",
         artifact_path: artifactPath,
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
@@ -484,7 +483,7 @@ describe("adv_conformance action: run", () => {
   });
 
   test("persists run_id and ran_at in spec.last_verdict", async () => {
-    await tool.execute({ action: "init" }, projectDir, externalRoot);
+    await tool.execute({ action: "init" }, makeStore());
     const state = await loadConformanceState(externalRoot, projectDir);
     state.specs["my-spec"] = {
       conformance_required: true,
@@ -506,8 +505,7 @@ describe("adv_conformance action: run", () => {
         spec: "my-spec",
         artifact_path: artifactPath,
       },
-      projectDir,
-      externalRoot,
+      makeStore(),
     );
     const parsed = JSON.parse(result);
     const updated = await loadConformanceState(externalRoot, projectDir);
