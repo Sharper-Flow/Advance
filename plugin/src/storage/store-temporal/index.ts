@@ -321,7 +321,7 @@ export function createTemporalStoreBackend(
       return withProjectionRecovery(exact.data, "archive", reason);
     }
 
-    let archiveDirs: string[] = [];
+    let archiveDirs: string[];
     try {
       archiveDirs = await listChangeDirs(legacy.paths.archive);
     } catch (err) {
@@ -420,7 +420,11 @@ export function createTemporalStoreBackend(
         }`,
       );
       if (classifyTemporalError(err) === "fallback") {
-        return withProjectionRecovery(change, "disk", recoveryReasonFromError(err));
+        return withProjectionRecovery(
+          change,
+          "disk",
+          recoveryReasonFromError(err),
+        );
       }
       return null;
     }

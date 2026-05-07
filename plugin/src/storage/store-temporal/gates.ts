@@ -35,7 +35,7 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
         }
         const recovered = await getTemporalChange(changeId);
         if (recovered.success && recovered.data) {
-          return recovered.data.gates;
+          return recovered.data.gates ?? null;
         }
         throw error;
       }

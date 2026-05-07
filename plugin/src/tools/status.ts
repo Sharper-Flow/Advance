@@ -40,6 +40,7 @@ import {
   type GateId,
   type FeatureFlags,
   type ChangeRecency,
+  type ProjectStatus,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
 import {

@@ -59,7 +59,9 @@ export function collectErrorText(error: unknown): string {
 
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
   const text = collectErrorText(error);
-  if (/TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(text)) {
+  if (
+    /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(text)
+  ) {
     return "fallback";
   }
   if (

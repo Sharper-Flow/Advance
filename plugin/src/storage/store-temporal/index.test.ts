@@ -35,7 +35,11 @@ function archivedChange(id: string): Change {
 
 async function createPoisonedStore(root: string) {
   const legacy = await createDiskStore(root);
-  const handle = { query: async () => { throw poisonedHistoryError(); } };
+  const handle = {
+    query: async () => {
+      throw poisonedHistoryError();
+    },
+  };
   const temporal = {
     client: {
       workflow: {
@@ -76,7 +80,12 @@ describe("createTemporalStoreBackend change projection fallback", () => {
 
   it("returns an archive bundle projection when source disk snapshot is absent", async () => {
     tempDir = await createTempDir();
-    const archiveDir = join(tempDir, ".adv", "archive", "2026-05-07-poisonedArchive");
+    const archiveDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      "2026-05-07-poisonedArchive",
+    );
     await mkdir(archiveDir, { recursive: true });
     await writeFile(
       join(archiveDir, "change.json"),
