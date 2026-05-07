@@ -199,8 +199,8 @@ The existing `plugin/src/__tests__/no-psw-references.test.ts` only catches PSW s
 - [x] R8.0.2 — `cd plugin && pnpm run check` green
 - [x] R8.0.3 — `cd plugin && pnpm run build` green
 - [x] R8.0.4 — Audit doc Completion section populated with commit SHAs
-- [ ] R8.0.5 — Final commit `audit: post-cull remediation complete`
-- [ ] R8.0.6 — Push trunk (deferred to orchestrator)
+- [x] R8.0.5 — Final commit `audit: post-cull remediation complete (R1-R8)` `a99bdb6`
+- [x] R8.0.6 — Push trunk `b9ae92b` (push: `0160e2a..b9ae92b`)
 
 ---
 
