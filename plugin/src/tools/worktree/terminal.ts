@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 /**
  * Terminal Module for Worktree Plugin
  *

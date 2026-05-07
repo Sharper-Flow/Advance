@@ -23,6 +23,25 @@ export default tseslint.config(
       ],
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/no-explicit-any": "warn",
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "Bun",
+          message:
+            "Bun APIs are not available at runtime on Node hosts. Use /// <reference types=\"bun-types\" /> only in Bun-specific modules.",
+        },
+      ],
+    },
+  },
+  // Bun-specific source files — allowed to reference Bun globals
+  {
+    files: [
+      "src/temporal/runtime-manager.ts",
+      "src/tools/worktree/terminal.ts",
+      "src/tools/worktree/index.ts",
+    ],
+    rules: {
+      "no-restricted-globals": "off",
     },
   },
   // Test files - without project service

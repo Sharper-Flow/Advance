@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 /**
  * OCX Worktree Plugin
  *

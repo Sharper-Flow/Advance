@@ -1,3 +1,5 @@
+/// <reference types="bun-types" />
+
 import { dirname, join } from "path";
 import { mkdir } from "fs/promises";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
