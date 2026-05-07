@@ -1,0 +1,269 @@
+{
+  "id": "fixWorkflowReplayDeterminism",
+  "title": "Fix workflow replay determinism: remove non-deterministic seeds + recover poisoned histories",
+  "status": "archived",
+  "created_at": "2026-05-07T18:44:40.556Z",
+  "tasks": [
+    {
+      "id": "tk-2623e27b7687",
+      "title": "T01 — Add RED tests for Temporal poisoned-history classification, then implement narrow fallback classification in `plugin/src/temporal/retry-wrapper.ts`. Cover TMPRL1100, `Nondeterminism error`, `No command scheduled for event`, and negative case: bare `WorkflowExecutionUpdateAccepted` text without TMPRL/no-command context must not classify as fallback. TDD inline: red tests first, green implementation second.",
+      "type": "code",
+      "section": "Temporal fallback classification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-07T20:59:02.796Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:00:17.417Z",
+      "verification": "Completed T01. Checkpoint 2e8bbe2594b5a7b3a0d73ebd6aebadee4c6f247b recorded.",
+      "summary": "Added retry-wrapper classification tests for TMPRL1100/nondeterminism/no-command replay errors and negative bare accepted-update text. Implemented narrow fallback classification in classifyTemporalError.",
+      "implementation_summary": "Added retry-wrapper classification tests for TMPRL1100/nondeterminism/no-command replay errors and negative bare accepted-update text. Implemented narrow fallback classification in classifyTemporalError.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:02:30.837Z",
+      "completed_at": "2026-05-07T21:02:30.837Z",
+      "updatedAt": "2026-05-07T22:20:41.819Z"
+    },
+    {
+      "id": "tk-0a8ecac2b6ad",
+      "title": "T02 — Add RED tests for direct `store.changes.get` projection recovery, then implement active-disk/archive-bundle fallback in `plugin/src/storage/store-temporal/index.ts`. When Temporal query throws poisoned-history fallback error, return active disk projection with `_source: \"disk\"` or archive bundle with `_source: \"archive\"` plus recovery marker; do not reseed archived/closed terminal projections. TDD inline.",
+      "type": "code",
+      "section": "Projection fallback",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-07T20:59:06.385Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2623e27b7687"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:02:46.332Z",
+      "verification": "Completed T02. Checkpoint 270a6c5247188d79e06c9ba8d7905c53a3ae3c2c recorded.",
+      "summary": "Added projection fallback tests for poisoned workflow histories and implemented disk/archive projection recovery markers in store-temporal changes.get path.",
+      "implementation_summary": "Added projection fallback tests for poisoned workflow histories and implemented disk/archive projection recovery markers in store-temporal changes.get path.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:05:42.220Z",
+      "completed_at": "2026-05-07T21:05:42.220Z",
+      "updatedAt": "2026-05-07T22:20:44.574Z"
+    },
+    {
+      "id": "tk-9bd3cc457642",
+      "title": "T03 — Add RED tests for `store.gates.get` / `adv_gate_status` recovery, then update `plugin/src/storage/store-temporal/gates.ts` so direct gate queries catch fallback-class Temporal errors, route through `deps.getTemporalChange(changeId)`, and return recovered `change.gates` when a projection exists. Preserve original error when no projection exists. TDD inline.",
+      "type": "code",
+      "section": "Gate fallback",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-07T20:59:09.761Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0a8ecac2b6ad"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:05:50.972Z",
+      "verification": "Completed T03. Checkpoint 15333e47320b711c49046b66cb9c66de922e6d5f recorded.",
+      "summary": "Added a gate fallback regression test and updated store-temporal gates.get to recover gates through getTemporalChange on fallback-class Temporal query errors.",
+      "implementation_summary": "Added a gate fallback regression test and updated store-temporal gates.get to recover gates through getTemporalChange on fallback-class Temporal query errors.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:07:23.767Z",
+      "completed_at": "2026-05-07T21:07:23.767Z",
+      "updatedAt": "2026-05-07T22:20:46.493Z"
+    },
+    {
+      "id": "tk-5ecf70773710",
+      "title": "T04 — Add RED tests for `adv_status` first-call TMPRL/bootstrap handling, then implement bounded retry/degrade in `plugin/src/tools/status.ts`. First fallback-class status failure retries once after a short non-interactive delay; repeated failure returns structured diagnostic such as `bootstrap_in_progress` instead of crashing the tool. TDD inline.",
+      "type": "code",
+      "section": "Status bootstrap",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-07T20:59:13.249Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2623e27b7687"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:07:37.827Z",
+      "verification": "Completed T04. Checkpoint a734f748be3275058647953a29a84bf6818065c1 recorded.",
+      "summary": "Added adv_status bootstrap retry regression coverage and implemented one-shot fallback-class retry with structured bootstrap_in_progress diagnostic on repeated fallback failure.",
+      "implementation_summary": "Added adv_status bootstrap retry regression coverage and implemented one-shot fallback-class retry with structured bootstrap_in_progress diagnostic on repeated fallback failure.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:09:16.233Z",
+      "completed_at": "2026-05-07T21:09:16.233Z",
+      "updatedAt": "2026-05-07T22:20:48.910Z"
+    },
+    {
+      "id": "tk-0be0e0ef8992",
+      "title": "T05 — Add RED static guardrail test for production workflow-reachable code, then implement scanner in `plugin/src/temporal/workflow-bundle-boundary.test.ts` or sibling test. It must fail on `defineUpdate` / `wf.defineUpdate` in the change workflow surface, reuse existing reachability traversal where practical, and must not flag Temporal TypeScript-patched `Date.now()`, `new Date()`, or `Math.random()`. TDD inline.",
+      "type": "code",
+      "section": "Replay guardrail",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-07T20:59:16.879Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:09:27.912Z",
+      "verification": "Completed T05. Checkpoint 33e975f65fbd6809b78ff4bb40bc68dcf4ef1d13 recorded.",
+      "summary": "Extended workflow bundle boundary tests with a defineUpdate scanner and a production workflow-reachable guardrail, while explicitly not flagging Temporal TypeScript deterministic Date/random APIs.",
+      "implementation_summary": "Extended workflow bundle boundary tests with a defineUpdate scanner and a production workflow-reachable guardrail, while explicitly not flagging Temporal TypeScript deterministic Date/random APIs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:11:12.381Z",
+      "completed_at": "2026-05-07T21:11:12.381Z",
+      "updatedAt": "2026-05-07T22:20:51.283Z"
+    },
+    {
+      "id": "tk-0d9d76ca426f",
+      "title": "T06 — Update agent-facing replay determinism documentation and, if warranted, `advance-delivery` spec deltas. Document that Temporal TypeScript patches `Date.now()`, `new Date()`, and `Math.random()` deterministically in workflow sandbox; use `sleep()`/`condition()` for workflow timers; ADV change workflows remain signal/query-only unless future specs explicitly handle update migration. Verification: docs/spec tests or targeted grep/assertions as applicable. TDD intent: not_applicable (docs/spec).",
+      "type": "code",
+      "section": "Docs and specs",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-07T20:59:20.620Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0be0e0ef8992"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:11:25.532Z",
+      "verification": "Completed T06. Checkpoint 8d3e625f26698ef79904e2691e3b7460e90e6829 recorded.",
+      "summary": "Updated AGENTS.md with corrected Temporal TypeScript determinism guidance and added advance-delivery requirements for poisoned-history fallback, signal-only change workflow surface, and docs guidance. Added external citations for new requirements.",
+      "implementation_summary": "Updated AGENTS.md with corrected Temporal TypeScript determinism guidance and added advance-delivery requirements for poisoned-history fallback, signal-only change workflow surface, and docs guidance. Added external citations for new requirements.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:13:35.004Z",
+      "completed_at": "2026-05-07T21:13:35.004Z",
+      "updatedAt": "2026-05-07T22:20:54.061Z"
+    },
+    {
+      "id": "tk-05bd5abc0ff3",
+      "title": "T07 — Final recovery verification across affected surfaces. Run targeted tests for retry-wrapper, store-temporal fallback, gate fallback, status bootstrap, and workflow guardrail; then run `pnpm run check` and `pnpm test` from `plugin/`. If live-tool validation remains blocked by cached dist/session reload, document exact rebuild/restart requirement and source-level evidence. TDD intent: separate_verification.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-07T20:59:25.173Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9bd3cc457642"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5ecf70773710"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0d9d76ca426f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T21:13:50.675Z",
+      "verification": "Completed T07. Checkpoint 7af636bd0e2b3c4f664489ba9140e79de4c66987 recorded.",
+      "summary": "Ran targeted affected tests, full check, full test suite, and build. Applied formatting/type fixes required by check. Source-level verification passed; live tool behavior requires fresh session/rebuilt dist to exercise host-loaded tool changes due OpenCode cache model.",
+      "implementation_summary": "Ran targeted affected tests, full check, full test suite, and build. Applied formatting/type fixes required by check. Source-level verification passed; live tool behavior requires fresh session/rebuilt dist to exercise host-loaded tool changes due OpenCode cache model.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T21:17:01.992Z",
+      "completed_at": "2026-05-07T21:17:01.992Z",
+      "updatedAt": "2026-05-07T22:20:56.987Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-nyFHtw",
+      "type": "gotcha",
+      "content": "Temporal TypeScript workflows patch `Date.now()`, `new Date()`, and `Math.random()` to deterministic sandbox values; replay guardrails for this project should target actual unsafe workflow-surface drift such as reintroducing `defineUpdate`, not blindly ban patched Date/random APIs.",
+      "source_task": "tk-0be0e0ef8992",
+      "recorded_at": "2026-05-07T21:11:18.851Z"
+    },
+    {
+      "id": "ws-jbXtRt",
+      "type": "gotcha",
+      "content": "Archive validator (rq-archiveValidate01 + rq-TDDvalidatorCompliantPath01) requires `task.tdd_evidence.{red,green}` to be stamped via `adv_run_test phase:'red'/'green'`. /adv-apply protocol calls for these calls in steps 3b/3c, but ad-hoc apply that runs tests via plain `pnpm test` or `bash` will not stamp evidence — leading to MISSING_TDD_EVIDENCE blockers at archive time even when full red→green cycles ran. Mitigations: (1) call `adv_run_test` for inline TDD tasks during apply, OR (2) use explicit `metadata.tdd_intent` at task creation (`separate_verification` / `not_applicable`) when a single verification task covers a batch of impl tasks. Reclassification via `adv_task_reclassify_tdd` clears the block post-hoc when evidence exists in summaries but not in the durable evidence record.",
+      "recorded_at": "2026-05-07T22:21:09.845Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-07T20:48:58.261Z",
+      "completed_by": "user"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-07T20:54:06.088Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved discovery agreement: proceed with error-classified disk/archive fallback, defineUpdate guardrail, adv_status bootstrap handling, and corrected Temporal TS determinism documentation."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-07T20:58:47.699Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed. Independent validator verdict VALIDATED with caution resolved inline: fallback classification narrowed to TMPRL/no-command/nondeterminism replay context, not bare WorkflowExecutionUpdateAccepted."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-07T21:00:04.917Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep task graph. TDD reclassification attempted for T06/T07 but adv_task_show/reclassify reported Task not found while adv_task_list shows both tasks; titles preserve intended classifications (T06 not_applicable, T07 separate_verification). Strict validation passed with 0 errors before planning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-07T21:17:20.913Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 planned tasks complete with checkpoint commits. Verification passed: targeted tests, pnpm run check, pnpm test, pnpm run build. Worktree clean after checkpoint."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-07T21:40:14.642Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted review result and delivered work: \"acceptapprove\". Review verdict APPROVED; repeated bootstrap failure coverage added and verified (targeted tests, pnpm run check, pnpm test, pnpm run build)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-07T22:18:39.326Z",
+      "completed_by": "user",
+      "approval_evidence": "User signed off via inline Tier B whitelist match: 'sign off'. Archive proceeding."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-07T22:10:28.587Z"
+    }
+  ]
+}
