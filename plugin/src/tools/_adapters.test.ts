@@ -266,7 +266,7 @@ describe("_adapters", () => {
 
       await fireSignalAndRefresh(
         handle,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         store as any,
         "chg-456",
         signalDef,
@@ -293,7 +293,7 @@ describe("_adapters", () => {
 
       await fireSignalAndRefresh(
         input,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         store as any,
         "chg-789",
         signalDef,
@@ -313,7 +313,7 @@ describe("_adapters", () => {
       await expect(
         fireSignalAndRefresh(
           handle,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           store as any,
           "chg-1",
           { name: "bad" },
@@ -337,7 +337,7 @@ describe("_adapters", () => {
       await expect(
         fireSignalAndRefresh(
           handle,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           store as any,
           "chg-1",
           { name: "ok" },
@@ -356,7 +356,7 @@ describe("_adapters", () => {
 
       await fireSignalAndRefresh(
         handle,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         store as any,
         "chg-2",
         { name: "multiArg" },

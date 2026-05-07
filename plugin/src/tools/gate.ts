@@ -240,18 +240,12 @@ async function handlePlanningGateCompletion({
   // rq-cacheRefresh01: helper fires signal AND refreshes cache so the
   // subsequent completeGateAndBuildResponse builds its response from
   // fresh state (no parallel inline refresh in the helper anymore).
-  await fireSignalAndRefresh(
-    handle,
-    store,
-    changeId,
-    gateCompletedSignal,
-    {
-      gateId,
-      completedBy,
-      completedAt: new Date().toISOString(),
-      approvalEvidence: notes,
-    },
-  );
+  await fireSignalAndRefresh(handle, store, changeId, gateCompletedSignal, {
+    gateId,
+    completedBy,
+    completedAt: new Date().toISOString(),
+    approvalEvidence: notes,
+  });
 
   return completeGateAndBuildResponse({
     store,

@@ -338,7 +338,9 @@ describe("change tools — signal-driven lifecycle", () => {
           },
         } as import("../types").Change,
       }));
-      mocks.fireSignalAndRefresh.mockRejectedValueOnce(new Error("signal rejected"));
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("signal rejected"),
+      );
 
       const result = await changeTools.adv_change_bulk_close.execute(
         {

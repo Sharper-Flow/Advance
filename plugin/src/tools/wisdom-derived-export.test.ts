@@ -138,6 +138,7 @@ describe("adv_wisdom_add signal-driven path", () => {
           recorded_at: "2026-04-20T00:00:00.000Z",
         })),
       },
+      changes: { refresh: vi.fn(async () => undefined) },
     } as any;
 
     const result = await wisdomTools.adv_wisdom_add.execute(
@@ -191,6 +192,7 @@ describe("adv_wisdom_add signal-driven path", () => {
         })),
       },
       changes: {
+        refresh: vi.fn(async () => undefined),
         get: vi.fn(async () => ({
           success: true,
           data: {
@@ -248,6 +250,7 @@ describe("adv_wisdom_add signal-driven path", () => {
           recorded_at: "2026-04-20T00:00:00.000Z",
         })),
       },
+      changes: { refresh: vi.fn(async () => undefined) },
     } as any;
 
     const result = await wisdomTools.adv_wisdom_add.execute(
@@ -282,6 +285,7 @@ describe("adv_wisdom_add signal-driven path", () => {
           recorded_at: "2026-04-20T00:00:00.000Z",
         })),
       },
+      changes: { refresh: vi.fn(async () => undefined) },
     } as any;
 
     const result = await wisdomTools.adv_wisdom_add.execute(

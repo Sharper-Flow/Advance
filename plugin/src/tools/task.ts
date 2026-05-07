@@ -554,16 +554,10 @@ export const taskTools = {
             : {}),
         };
 
-        await fireSignalAndRefresh(
-          handle,
-          store,
-          changeId,
-          taskAddedSignal,
-          {
-            task,
-            addedAt: now,
-          },
-        );
+        await fireSignalAndRefresh(handle, store, changeId, taskAddedSignal, {
+          task,
+          addedAt: now,
+        });
 
         const snapshot = await fetchChangeContextTicker(store, changeId);
         return formatToolOutput({
@@ -918,22 +912,16 @@ export const taskTools = {
       const handle = await getHandleForChangeId(store, changeId);
       const now = new Date().toISOString();
 
-      await fireSignalAndRefresh(
-        handle,
-        store,
-        changeId,
-        taskUpdatedSignal,
-        {
-          taskId: args.taskId,
-          partial: {
-            metadata: {
-              ...task.metadata,
-              tdd_intent: args.toIntent,
-            },
+      await fireSignalAndRefresh(handle, store, changeId, taskUpdatedSignal, {
+        taskId: args.taskId,
+        partial: {
+          metadata: {
+            ...task.metadata,
+            tdd_intent: args.toIntent,
           },
-          updatedAt: now,
         },
-      );
+        updatedAt: now,
+      });
 
       const reclassification: TddReclassification = {
         from_intent: currentIntent ?? "none",

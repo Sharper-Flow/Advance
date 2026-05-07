@@ -79,6 +79,12 @@ For agent-driven changes that modify ADV tool behavior, the practical workflow i
 
 Change workflows are signal-driven state holders: tools fire signals (`taskAddedSignal`, `gateCompletedSignal`, `taskCompletedSignal`, etc.) and read via queries (`getStateQuery`, `getTasksQuery`, `getGateStatusQuery`). No `defineUpdate`-based mutation contract on the change-workflow surface. Per-change workflow state is the source of truth; on-disk `change.json` is a downstream projection updated only on terminal/gate transitions. Cross-change visibility (e.g. branch-in-use detection) flows through Temporal Visibility search attributes (`AdvWorktreeBranches`, `AdvWorktreePaths`).
 
+#### Cache-refresh discipline (rq-cacheRefresh01)
+
+Tool-layer code SHALL use `fireSignalAndRefresh(handle, store, changeId, signal, ...args)` from `plugin/src/tools/_adapters.ts` for any signal targeting a change workflow. The helper fires the signal AND invalidates the in-memory `changeCache` so subsequent `store.changes.get()` calls return fresh state. Direct `fireSignal` use is permitted only for signals NOT associated with a single change (none currently exist; documented exemptions require a `// rq-cacheRefresh01-exempt: <reason>` annotation at the call site). The grep gate `grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v ".test.ts" | grep -v rq-cacheRefresh01-exempt` MUST return zero matches.
+
+Cross-project note: when mutating a change in another project via `target_path`, the helper invalidates the TARGET project's cache via the `store` argument that wraps that project's StoreBackend. Use `withTargetPathStore(...)` upstream to obtain the correct store reference before calling the helper.
+
 ### Runtime is Bun, tests run on Node
 
 OpenCode ships as a Bun executable, while the Vitest suite runs on Node. Runtime storage is Temporal-only; the old `bun:sqlite` / `better-sqlite3` path was removed by `completeTemporalOnlyMigration`.

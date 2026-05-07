@@ -104,10 +104,7 @@ async function seedRequiredSpec(spec = "advance-workflow"): Promise<void> {
 
 describe("adv_conformance action: status", () => {
   test("returns empty state when conformance.json is missing", async () => {
-    const result = await tool.execute(
-      { action: "status" },
-      makeStore(),
-    );
+    const result = await tool.execute({ action: "status" }, makeStore());
     const parsed = JSON.parse(result);
     expect(parsed.version).toBe(1);
     expect(parsed.specs).toEqual({});
@@ -131,10 +128,7 @@ describe("adv_conformance action: status", () => {
       join(externalRoot, "conformance.json"),
       JSON.stringify(stateData),
     );
-    const result = await tool.execute(
-      { action: "status" },
-      makeStore(),
-    );
+    const result = await tool.execute({ action: "status" }, makeStore());
     const parsed = JSON.parse(result);
     expect(parsed.specs["advance-workflow"]?.conformance_required).toBe(true);
   });
@@ -142,10 +136,7 @@ describe("adv_conformance action: status", () => {
 
 describe("adv_conformance action: init", () => {
   test("default mode scaffolds in-repo subfolder", async () => {
-    const result = await tool.execute(
-      { action: "init" },
-      makeStore(),
-    );
+    const result = await tool.execute({ action: "init" }, makeStore());
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(parsed.kind).toBe("subfolder");
@@ -189,10 +180,7 @@ describe("adv_conformance action: init", () => {
       JSON.stringify(seeded),
     );
     // Re-init should preserve the spec entry
-    const result = await tool.execute(
-      { action: "init" },
-      makeStore(),
-    );
+    const result = await tool.execute({ action: "init" }, makeStore());
     expect(JSON.parse(result).success).toBe(true);
     const state = await loadConformanceState(externalRoot, projectDir);
     expect(state.specs["my-spec"]?.conformance_required).toBe(true);
