@@ -19,7 +19,7 @@ import { atomicWriteFile } from "../utils/fs";
 import { appendDebugLog } from "../utils/debug-log";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { reflectionRecordedSignal } from "../temporal/messages";
 
 // =============================================================================
@@ -567,17 +567,25 @@ export const reflectionTools = {
       // Best-effort: write human-readable markdown to archive dir
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
 
-      // Signal-driven: notify change workflow that reflection was recorded
+      // Signal-driven: notify change workflow that reflection was recorded.
+      // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
+      // changeCache is invalidated after the signal fires.
       try {
         const bundle = getService();
         if (bundle) {
           const projectId = await getProjectId(store.paths.root);
           if (projectId) {
             const handle = getChangeHandle(bundle.client, projectId, change.id);
-            await fireSignal(handle, reflectionRecordedSignal, {
-              report: persisted,
-              recordedAt: new Date().toISOString(),
-            });
+            await fireSignalAndRefresh(
+              handle,
+              store,
+              change.id,
+              reflectionRecordedSignal,
+              {
+                report: persisted,
+                recordedAt: new Date().toISOString(),
+              },
+            );
           }
         }
       } catch (err) {
