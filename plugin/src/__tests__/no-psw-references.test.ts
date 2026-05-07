@@ -74,10 +74,16 @@ describe("PSW retirement denylist", () => {
     { regex: /\baddTaskUpdate\b/, desc: "addTaskUpdate alias" },
     { regex: /\bupdateTaskUpdate\b/, desc: "updateTaskUpdate alias" },
     { regex: /\bcancelTaskUpdate\b/, desc: "cancelTaskUpdate alias" },
-    { regex: /\breclassifyTaskTddUpdate\b/, desc: "reclassifyTaskTddUpdate alias" },
+    {
+      regex: /\breclassifyTaskTddUpdate\b/,
+      desc: "reclassifyTaskTddUpdate alias",
+    },
     { regex: /\breopenFromGateUpdate\b/, desc: "reopenFromGateUpdate alias" },
     { regex: /\baddChangeWisdomUpdate\b/, desc: "addChangeWisdomUpdate alias" },
-    { regex: /\bupdateArtifactMetadataUpdate\b/, desc: "updateArtifactMetadataUpdate alias" },
+    {
+      regex: /\bupdateArtifactMetadataUpdate\b/,
+      desc: "updateArtifactMetadataUpdate alias",
+    },
     { regex: /\barchiveChangeUpdate\b/, desc: "archiveChangeUpdate alias" },
     { regex: /\bcloseChangeUpdate\b/, desc: "closeChangeUpdate alias" },
   ];
@@ -181,14 +187,29 @@ describe("PSW retirement denylist", () => {
 
   it("has no PSW or retired-tool references in live docs", () => {
     const docPatterns = [
-      { regex: /\bProjectWorkflowState\.worktree_registry\b/, desc: "ProjectWorkflowState.worktree_registry" },
-      { regex: /\bgetBoundedProjectWorkflowAccess\b/, desc: "getBoundedProjectWorkflowAccess" },
+      {
+        regex: /\bProjectWorkflowState\.worktree_registry\b/,
+        desc: "ProjectWorkflowState.worktree_registry",
+      },
+      {
+        regex: /\bgetBoundedProjectWorkflowAccess\b/,
+        desc: "getBoundedProjectWorkflowAccess",
+      },
       { regex: /\bbuildProjectWorkflowId\b/, desc: "buildProjectWorkflowId" },
-      { regex: /\brebuildProjectWorkflowState\b/, desc: "rebuildProjectWorkflowState" },
-      { regex: /\bensureProjectWorkflowStarted\b/, desc: "ensureProjectWorkflowStarted" },
+      {
+        regex: /\brebuildProjectWorkflowState\b/,
+        desc: "rebuildProjectWorkflowState",
+      },
+      {
+        regex: /\bensureProjectWorkflowStarted\b/,
+        desc: "ensureProjectWorkflowStarted",
+      },
       { regex: /\badv_workflow_repair\b/, desc: "adv_workflow_repair" },
       { regex: /\badv_orphan_sweep\b/, desc: "adv_orphan_sweep" },
-      { regex: /\badv_archive_sweep_orphans\b/, desc: "adv_archive_sweep_orphans" },
+      {
+        regex: /\badv_archive_sweep_orphans\b/,
+        desc: "adv_archive_sweep_orphans",
+      },
       { regex: /\badv_migrate_cleanup\b/, desc: "adv_migrate_cleanup" },
       { regex: /\badv_change_diagnose\b/, desc: "adv_change_diagnose" },
       { regex: /\badv_change_import\b/, desc: "adv_change_import" },

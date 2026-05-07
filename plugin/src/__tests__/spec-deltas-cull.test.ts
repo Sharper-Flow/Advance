@@ -9,12 +9,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 async function loadSpecJson(capability: string): Promise<unknown> {
-  const path = join(
-    __dirname,
-    "../../../.adv/specs",
-    capability,
-    "spec.json",
-  );
+  const path = join(__dirname, "../../../.adv/specs", capability, "spec.json");
   const content = await readFile(path, "utf-8");
   return JSON.parse(content);
 }
