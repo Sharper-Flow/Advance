@@ -78,6 +78,28 @@ describe("Status Tools", () => {
   });
 
   describe("adv_status", () => {
+    test("retries once when initial status load hits poisoned-history bootstrap error", async () => {
+      const originalStatus = store.status.bind(store);
+      const statusSpy = vi
+        .fn()
+        .mockRejectedValueOnce(
+          new Error(
+            "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
+          ),
+        )
+        .mockImplementation(() => originalStatus());
+      store.status = statusSpy;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(2);
+      expect(parsed.view).toBe("summary");
+      expect(parsed.diagnostics?.lastErrorClass).not.toBe(
+        "bootstrap_in_progress",
+      );
+    });
+
     test("shows ↳ prefix for fast-follow changes in formatted output", async () => {
       // Create parent and child changes
       const { changeTools } = await import("./change");
