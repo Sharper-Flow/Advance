@@ -346,6 +346,8 @@ export function createTemporalStoreBackend(
     changeId: string,
     reason: ProjectionRecoveryReason = "missing_workflow",
   ): Promise<Change | null> => {
+    // rq-replayFallback01: poisoned or missing workflow reads fall back to
+    // durable disk/archive projections instead of forcing manual bundle work.
     const legacyRead = await legacy.changes.get(changeId);
     if (!legacyRead.success || !legacyRead.data) {
       return loadArchiveProjection(changeId, reason);

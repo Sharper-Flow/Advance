@@ -3,7 +3,7 @@
   "name": "advance-delivery",
   "title": "Advance Delivery",
   "purpose": "Capability: Execution-layer contract for ADV \u2014 TDD execution routing, task-run ledger, bulk operations, delta operations, and per-task checkpoint commits. Split from `advance` capability; absorbs former `contract-system` and `checkpoint-commits` capabilities.",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "updated_at": "2026-05-07T20:00:00.000Z",
   "requirements": [
     {
@@ -873,6 +873,108 @@
       "meta": {
         "introduced_by": "centralizemutationcacherefresh",
         "replaces_inline_pattern": "4a3e81f gate.ts inline store.changes.refresh"
+      }
+    },
+    {
+      "id": "rq-replayFallback01",
+      "title": "Poisoned Workflow History Read Fallback",
+      "body": "When a change workflow read fails with a known poisoned-history replay error (TMPRL1100, nondeterminism, or no-command replay shape), ADV read surfaces SHALL attempt durable projection fallback before failing. If an active source snapshot or archive bundle exists, read tools SHALL return projection-backed change data with a recovery marker instead of requiring manual bundle assembly. Terminal projections (archived or closed) MUST NOT recreate change workflows during fallback.",
+      "priority": "must",
+      "tags": [
+        "temporal",
+        "replay",
+        "recovery",
+        "read-tools"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-replayFallback01.1",
+          "title": "Poisoned history has archive projection",
+          "given": [
+            "A change workflow query fails with a known poisoned-history replay error",
+            "An archive bundle exists for the change"
+          ],
+          "when": "A read tool loads the change",
+          "then": [
+            "The tool returns archive-backed change data",
+            "The returned data includes a recovery/source marker",
+            "The workflow is not re-created for the archived change"
+          ]
+        },
+        {
+          "id": "rq-replayFallback01.2",
+          "title": "Poisoned history has no projection",
+          "given": [
+            "A change workflow query fails with a known poisoned-history replay error",
+            "No active source snapshot or archive bundle exists"
+          ],
+          "when": "A read tool loads the change",
+          "then": [
+            "The original error remains visible",
+            "No synthetic change state is invented"
+          ]
+        }
+      ],
+      "meta": {
+        "introduced_by": "fixWorkflowReplayDeterminism"
+      }
+    },
+    {
+      "id": "rq-changeWorkflowSignalOnly01",
+      "title": "Change Workflow Signal-Only Mutation Surface",
+      "body": "Production change workflow code SHALL remain signal/query based and SHALL NOT reintroduce defineUpdate handlers unless a future spec explicitly defines migration handling for existing workflow histories. Regression tests MUST fail if workflow-reachable production code defines update handlers on the change workflow surface.",
+      "priority": "must",
+      "tags": [
+        "temporal",
+        "signal-driven",
+        "workflow-surface",
+        "regression"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-changeWorkflowSignalOnly01.1",
+          "title": "Workflow surface scan detects update handler drift",
+          "given": [
+            "Production code is reachable from plugin/src/temporal/workflows.ts"
+          ],
+          "when": "The workflow boundary regression tests run",
+          "then": [
+            "The scan fails on wf.defineUpdate or defineUpdate usage",
+            "The scan does not fail merely because Temporal TypeScript patched Date or random APIs are used"
+          ]
+        }
+      ],
+      "meta": {
+        "introduced_by": "fixWorkflowReplayDeterminism"
+      }
+    },
+    {
+      "id": "rq-temporalTsDeterminismDocs01",
+      "title": "Temporal TypeScript Determinism Guidance",
+      "body": "Agent-facing repository guidance SHALL state that Temporal TypeScript workflows patch Date.now(), new Date(), and Math.random() to deterministic sandbox values. Guidance SHALL direct workflow timers to Temporal workflow APIs such as sleep() or condition(), and SHALL distinguish official Temporal TypeScript determinism behavior from project-specific restrictions such as the signal-only change workflow surface.",
+      "priority": "should",
+      "tags": [
+        "temporal",
+        "documentation",
+        "agent-guidance",
+        "determinism"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-temporalTsDeterminismDocs01.1",
+          "title": "Agent docs avoid false Date/random ban",
+          "given": [
+            "An agent reads repository implementation guidance"
+          ],
+          "when": "It inspects Temporal workflow determinism guidance",
+          "then": [
+            "The docs say Date.now(), new Date(), and Math.random() are deterministic in Temporal TypeScript workflow sandbox",
+            "The docs identify signal/query-only change workflows as the project-specific replay guardrail"
+          ]
+        }
+      ],
+      "meta": {
+        "introduced_by": "fixWorkflowReplayDeterminism"
       }
     }
   ]
