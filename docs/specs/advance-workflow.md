@@ -347,7 +347,7 @@ When adv_change_archive completes successfully, ADV MUST create the archive bund
 - A matching source changes/<id>/ directory still exists
 - The workflow or source state is not marked archived
 
-**When:** adv_archive_sweep_orphans runs in approved execute mode
+**When:** A bulk-close or archive operation runs and leaves orphaned source dirs
 
 **Then:**
 - The change status is repaired to archived before source removal
@@ -1141,7 +1141,7 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 **Given:**
 - A ChangeWorkflowInput with searchAttributesEnabled: false
 
-**When:** completeGateUpdate, archiveChangeUpdate, or closeChangeUpdate handlers execute
+**When:** gateCompletedSignal, archiveChangeSignal, or closeChangeSignal handlers execute
 
 **Then:**
 - wf.upsertSearchAttributes is NOT called

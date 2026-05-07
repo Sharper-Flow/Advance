@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.7.0",
-  "updated_at": "2026-05-07T01:35:00.000Z",
+  "version": "1.7.1",
+  "updated_at": "2026-05-07T04:10:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -680,7 +680,7 @@
           "when": "The tool returns",
           "then": [
             "Source dirs for failed closures are NOT removed",
-            "The orphan sweeper (adv_archive_sweep_orphans includeClosed: true) remains the documented recovery path"
+            "Failed source dirs are reported separately and may be retried via subsequent bulk-close runs"
           ]
         }
       ]
