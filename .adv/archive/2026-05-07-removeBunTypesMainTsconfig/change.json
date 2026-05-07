@@ -1,0 +1,180 @@
+{
+  "id": "removeBunTypesMainTsconfig",
+  "title": "Remove bun-types from main tsconfig to prevent Node type shadowing",
+  "status": "archived",
+  "created_at": "2026-05-04T19:47:02.778Z",
+  "tasks": [
+    {
+      "id": "tk-ed44c986-b97c-41ba-995e-fe699284f94b",
+      "title": "Remove bun-types from plugin/tsconfig.json types array",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-04T19:47:02.854Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "tdd_phase": "green",
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-04T20:06:20.834Z",
+          "test_file": "pnpm run typecheck",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "output_snippet": "> @goost/advance@0.8.3 typecheck /home/jrede/.local/share/opencode/worktree/bdf2\n... [truncated]"
+        }
+      },
+      "assignedTo": "migration",
+      "started_at": "2026-05-04T19:47:02.859Z",
+      "verification": "CI=true pnpm run check passed (typecheck + lint + format clean). CI=true pnpm test passed (1786 pass, 2 skipped, 0 fail) on rebased branch (post-trunk merge to 8869d24).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/eslint.config.js",
+        "plugin/src/temporal/runtime-manager.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/terminal.ts",
+        "plugin/tsconfig.json"
+      ],
+      "touched_files": [
+        "plugin/eslint.config.js",
+        "plugin/src/temporal/runtime-manager.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/terminal.ts",
+        "plugin/tsconfig.json"
+      ],
+      "checkpointSha": "2a958af76905a61d772832d4a4bd1b9f386a058f",
+      "completedAt": "2026-05-07T16:00:06.652Z",
+      "completed_at": "2026-05-07T16:00:06.652Z",
+      "updatedAt": "2026-05-07T16:03:44.173Z"
+    },
+    {
+      "id": "tk-c3d2b619-2e82-4cba-97ce-9438ae7ec3ea",
+      "title": "Add /// <reference types=\"bun-types\" /> to Bun-specific source files",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-04T19:47:02.855Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "tdd_phase": "none",
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T16:00:18.021Z",
+      "updatedAt": "2026-05-07T16:00:50.837Z",
+      "verification": "Reclassified tdd_intent: inline → separate_verification (verified by Task 4).",
+      "summary": "Added /// <reference types=\"bun-types\" /> compiler directive to plugin/src/temporal/runtime-manager.ts, plugin/src/tools/worktree/index.ts, and plugin/src/tools/worktree/terminal.ts (the three files that legitimately use Bun globals: Bun.spawn, Bun.spawnSync, Bun.file, Bun.write, Bun.sleepSync). All other files lose Bun ambient access (enforced by Task 1's tsconfig change + Task 3's ESLint rule). Committed alongside Tasks 1 and 3 in commit 2a958af per user direction (single combined commit). Verified by Task 4 — typecheck passes against rebased trunk (HEAD 8869d24 + this commit).",
+      "implementation_summary": "Added /// <reference types=\"bun-types\" /> compiler directive to plugin/src/temporal/runtime-manager.ts, plugin/src/tools/worktree/index.ts, and plugin/src/tools/worktree/terminal.ts (the three files that legitimately use Bun globals: Bun.spawn, Bun.spawnSync, Bun.file, Bun.write, Bun.sleepSync). All other files lose Bun ambient access (enforced by Task 1's tsconfig change + Task 3's ESLint rule). Committed alongside Tasks 1 and 3 in commit 2a958af per user direction (single combined commit). Verified by Task 4 — typecheck passes against rebased trunk (HEAD 8869d24 + this commit).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T16:01:03.828Z",
+      "completed_at": "2026-05-07T16:01:03.828Z"
+    },
+    {
+      "id": "tk-01f98853-174f-426a-b571-dd7183bcfdbf",
+      "title": "Add ESLint no-restricted-globals rule to block Bun usage outside allowed files",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-04T19:47:02.856Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "tdd_phase": "none",
+      "updatedAt": "2026-05-07T16:00:54.185Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T16:01:04.067Z",
+      "verification": "Reclassified tdd_intent: inline → separate_verification (verified by Task 4).",
+      "summary": "Added no-restricted-globals ESLint rule to plugin/eslint.config.js:23 blocking direct use of `Bun` global, with a per-file override for the 3 Bun-specific files (src/temporal/runtime-manager.ts, src/tools/worktree/terminal.ts, src/tools/worktree/index.ts) where the rule is set to \"off\". Locks the policy: Bun APIs may only be used in files that explicitly opt in via the corresponding /// <reference> markers from Task 2. Committed in commit 2a958af alongside Tasks 1 and 2 per user direction (single combined commit). Verified by Task 4 — `pnpm run lint` passes with the rule active and the 3 allowlisted files still lint-clean.",
+      "implementation_summary": "Added no-restricted-globals ESLint rule to plugin/eslint.config.js:23 blocking direct use of `Bun` global, with a per-file override for the 3 Bun-specific files (src/temporal/runtime-manager.ts, src/tools/worktree/terminal.ts, src/tools/worktree/index.ts) where the rule is set to \"off\". Locks the policy: Bun APIs may only be used in files that explicitly opt in via the corresponding /// <reference> markers from Task 2. Committed in commit 2a958af alongside Tasks 1 and 2 per user direction (single combined commit). Verified by Task 4 — `pnpm run lint` passes with the rule active and the 3 allowlisted files still lint-clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T16:01:17.091Z",
+      "completed_at": "2026-05-07T16:01:17.091Z"
+    },
+    {
+      "id": "tk-45ed624c-3d09-418d-b702-28c1647695de",
+      "title": "Verify: typecheck, lint, format:check, test pass",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-04T19:47:02.857Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "tdd_phase": "none",
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T16:01:17.847Z",
+      "updatedAt": "2026-05-07T16:01:35.458Z",
+      "verification": "Reclassified tdd_intent: inline → not_applicable (verification meta-task). Test evidence recorded via adv_run_test (CI=true pnpm test, exit 0, 28.13s, 1786 pass).",
+      "summary": "Verification meta-task. Ran full pipeline against the Tasks 1-3 combined commit (2a958af) on rebased branch (HEAD 8869d24): pnpm run check passed (typecheck + test-isolation + lint + format:check, exit 0); pnpm test passed (1786 pass, 2 skipped, 0 fail, 145 test files, 28.13s). Bun-types removed from main tsconfig types array. Three Bun-specific files have /// <reference types=\"bun-types\" /> markers. ESLint no-restricted-globals: Bun rule active with 3-file allowlist override. No regressions.",
+      "implementation_summary": "Verification meta-task. Ran full pipeline against the Tasks 1-3 combined commit (2a958af) on rebased branch (HEAD 8869d24): pnpm run check passed (typecheck + test-isolation + lint + format:check, exit 0); pnpm test passed (1786 pass, 2 skipped, 0 fail, 145 test files, 28.13s). Bun-types removed from main tsconfig types array. Three Bun-specific files have /// <reference types=\"bun-types\" /> markers. ESLint no-restricted-globals: Bun rule active with 3-file allowlist override. No regressions.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-07T16:02:17.152Z",
+      "completed_at": "2026-05-07T16:02:17.152Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-04T19:47:02.851Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-04T19:47:02.852Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-04T19:47:02.853Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-04T19:47:02.858Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-07T16:02:47.019Z",
+      "completed_by": "user",
+      "approval_evidence": "All 4 tasks complete. Combined commit 2a958af on change/removeBunTypesMainTsconfig branch (HEAD = trunk 8869d24 + this commit). Task 1 (tsconfig.json bun-types removal): TDD evidence preserved from prior session (typecheck green). Tasks 2 (reference markers) and 3 (ESLint rule) reclassified to separate_verification — they are mechanical config/declaration work verified by Task 4. Task 4 reclassified to not_applicable (verification meta-task). Final pipeline: pnpm run check (exit 0) + pnpm test (1786 pass, 2 skipped, 0 fail, 28.13s) on rebased branch."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-07T16:03:00.125Z",
+      "completed_by": "user",
+      "approval_evidence": "Manual acceptance per user direction in resume Step 3. Verification meets the change's intent: bun-types removed from plugin/tsconfig.json's global types array (preventing Node type shadowing); 3 Bun-specific files explicitly opt in via /// <reference types=\"bun-types\" /> markers; ESLint no-restricted-globals rule blocks accidental Bun usage outside the 3 allowlisted files. Full check + test pipeline green (1786 pass, 0 fail). No regressions on rebased branch (HEAD 8869d24 + commit 2a958af)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-07T16:05:52.687Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-completion after workaround reentry. All earlier completion conditions still hold (4/4 tasks done, FF-merged to trunk at 2a958af, pipeline green). This re-completion fires the cache-refresh path in completeGateAndBuildResponse so adv_change_archive sees the post-reclassification task state."
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "release",
+      "reason": "Workaround for cache-stale validator bug. Task 1 reclassified tdd_intent inline → separate_verification via adv_task_reclassify_tdd (which uses fireSignal directly without cache invalidation, same bug pattern as the gate-complete cache bug fixed in 4a3e81f). adv_change_archive reads stale cached task with old tdd_intent and validator returns MISSING_TDD_EVIDENCE. Reopening release so we can re-complete it, which triggers store.changes.refresh via the already-fixed completeGateAndBuildResponse path. Avoids a third session restart.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-07T16:05:45.285Z",
+      "gates_reset": [
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-07T15:51:03.157Z"
+    }
+  ]
+}

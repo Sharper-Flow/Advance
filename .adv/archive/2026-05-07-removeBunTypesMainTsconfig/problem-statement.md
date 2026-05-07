@@ -1,0 +1,1 @@
+`plugin/tsconfig.json` includes both `node` and `bun-types` in the `types` array. The plugin is built with tsup as Node-compatible ESM. `bun-types` shadows Node types and creates a latent runtime error risk: a developer could use a Bun-only API (e.g., `Bun.spawn`, `Bun.file`) that compiles without error but throws at runtime on Node hosts.
