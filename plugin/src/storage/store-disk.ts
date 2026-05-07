@@ -367,7 +367,6 @@ export async function createDiskStore(
           created_at: new Date().toISOString(),
           tasks: [],
           deltas: {},
-          judgment_calls: [],
         } as Change;
         await saveChange(paths.changes, change);
 
