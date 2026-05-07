@@ -7,8 +7,7 @@
  * Change.
  *
  * Imports TaskSchema (./tasks), DeltaSchema (./specs), WisdomEntrySchema
- * (./wisdom), GatesSchema/GateIdSchema (./gates), JudgmentCallSchema
- * (./investment).
+ * (./wisdom), GatesSchema/GateIdSchema (./gates).
  */
 
 import { z } from "zod";
@@ -16,7 +15,6 @@ import { TaskSchema } from "./tasks";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
-import { JudgmentCallSchema } from "./investment";
 
 // =============================================================================
 // Validation Result (private — used only by ChangeSchema)
@@ -321,19 +319,6 @@ export const ChangeSchema = z
     clarify_findings: z.array(ClarifyFindingSnapshotSchema).optional(),
     /** Append-only audit trail for scope-expansion re-entry events */
     reentry_history: z.array(ReentryHistoryEntrySchema).optional(),
-    /**
-     * Investment check-in judgment calls (addCostTimeInvestment v1).
-     * Identified during /adv-prep Phase J; surfaced at /adv-apply Phase 1.5.
-     * Absence (undefined) marks a legacy pre-v1 change — /adv-apply Phase 1.5
-     * skips surfacing silently. Empty array marks a new-generation change
-     * with zero calls identified (Phase 1.5 still records batch_surfaced_at).
-     */
-    judgment_calls: z.array(JudgmentCallSchema).optional(),
-    /**
-     * ISO8601 timestamp recorded by /adv-apply Phase 1.5 after the judgment
-     * batch is surfaced (including the N=0 silent case) for auditability.
-     */
-    batch_surfaced_at: z.string().optional(),
     /**
      * Cross-project origin provenance — set when this change was created
      * as a follow-up from another project. Presence signals to /adv-discover

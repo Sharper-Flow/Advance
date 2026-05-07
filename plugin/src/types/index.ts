@@ -15,7 +15,7 @@
  *   - gates.ts          GateId, Gates, GateCompletion, GATE_DEFS, helpers
  *   - changes.ts        Change, ChangeStatus, ReentryHistory, CrossProject*, BulkClose, etc.
  *   - wisdom.ts         WisdomType, WisdomEntry
- *   - investment.ts     InvestmentReport, JudgmentCall, ThresholdTier
+ *   - investment.ts     InvestmentReport
  *   - project.ts        ProjectConfig, FeatureFlags, RelatedRepo, ProjectMetadataEntry
  *   - conformance.ts    Conformance*, EMPTY_CONFORMANCE_STATE
  *   - agenda.ts         Agenda*, AGENDA_PRIORITY_ORDER
@@ -91,12 +91,6 @@ export {
 // Investment
 // =============================================================================
 export {
-  ThresholdTierSchema,
-  type ThresholdTier,
-  JudgmentCallCategorySchema,
-  type JudgmentCallCategory,
-  JudgmentCallSchema,
-  type JudgmentCall,
   InvestmentReportSchema,
   type InvestmentReport,
 } from "./investment";
