@@ -20,8 +20,7 @@ Delegate all 5 routine human checkpoints (proposal, agreement, design, prep, acc
 - × MUST NOT embed compressed phase logic — read `.opencode/command/adv-{X}.md` at invocation time
 - × MUST NOT auto-archive — Tier B archive sign-off preserved verbatim
 - × MUST NOT bypass cancellation approval — `adv_task_cancel approvedByUser: true` always required
-- × MUST NOT suppress system-level interrupts: doom-loop, design CONFLICT, contract-compromise risk, Phase 1.5 judgment-call surfacing, drift detection
-- × MUST NOT mute Phase 1.5 judgment-call surfacing — populated `judgment_calls[]` pauses per `rq-autonomy01`
+- × MUST NOT suppress system-level interrupts: doom-loop, design CONFLICT, contract-compromise risk, drift detection
 
 <UserRequest>
   $ARGUMENTS
@@ -98,7 +97,6 @@ Read `.opencode/command/adv-prep.md`. Execute inline.
 
 Read `.opencode/command/adv-apply.md`. Execute inline.
 
-- **Phase 1.5 judgment-call surfacing** — NOT replaced. If `judgment_calls[]` is populated with unresolved entries, surface via `question` tool per `rq-autonomy01` escape clause. This is a system interrupt, not a boundary approval.
 - **Doom-loop recovery** — NOT replaced. After 3 failed task attempts, STOP and escalate via `question` tool.
 - **Task execution** — proceed autonomously. No "shall I continue?" prompts between tasks per `rq-autonomy01.4`.
 
@@ -159,11 +157,9 @@ or `cancel` / `stop` / `abort` to halt.
 
 | Interrupt | Source | Behavior |
 |-----------|--------|----------|
-| Phase 1.5 judgment calls | `/adv-apply` Phase 1.5 | Pause, surface via `question` tool |
 | Design validator CONFLICT | `/adv-design` Phase 3.5 | Pause, surface to user |
 | Contract-compromise risk | `/adv-design` Phase 4.1 | Pause, surface to user |
 | Doom-loop (3 retries) | `/adv-apply` retry protocol | Pause, surface via `question` tool |
 | Drift detection | `/adv-review`, `/adv-harden` | Pause if auto-fix boundary exceeded |
-| Cost-governance hardstop | `adv_investment_report` | Advisory note, proceed |
 
 All interrupts fire inside phase workflows. Autopilot replaces only boundary approvals. Interrupts are NOT suppressed.

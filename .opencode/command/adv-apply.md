@@ -284,26 +284,7 @@ Fall back to the legacy trio (`adv_change_show + adv_task_list + adv_task_ready`
 
 ---
 
-## Phase 1.5: Investment Check-In Preamble (addCostTimeInvestment)
-
-Load `skill("adv-cost-governance-methodology")` and **apply the Surfacing
-Protocol**. Single-cadence batch for judgment calls identified in `/adv-prep`
-Phase J. Doom-loop-clearance re-surface is the only secondary path in v1.
-
-**6-step summary:**
-
-1. **Inspect** `change.judgment_calls`: `undefined` → legacy, skip silently; `[]` → record `batch_surfaced_at`, proceed; populated → continue.
-2. **Change-level doom-loop scan** via `adv_investment_report` — if `doom_loop_active`, defer to doom-loop recovery (supersedes batch).
-3. **Surface** unresolved entries (`user_choice === undefined`) via single `question` tool call, multi-question, `(Recommended)` + P26 write-in.
-   - When a judgment call is easier to compare side-by-side than from prose alone, prepend a compact text-first comparison block before the `question` call.
-   - Keep screenshots optional, require text fallback, and align displayed options with final `question` options.
-4. **Record resolutions** per call: `user_choice`, `resolved_by: "user"`, `surfaced_at`; persist via `adv_change_update`.
-5. **Record `batch_surfaced_at`** on change (audit anchor for AC #6, including N=0 case).
-6. **Hard-stop advisory** (if `threshold_tier === "hardstop"`): strongly-worded recommend-pause note. × Do NOT call `adv_change_reenter` — re-entry is scope-expansion-driven per `rq-scopeReentry01`.
-
-**Composition:** Phase 1.5 is covered by `rq-autonomy01`'s "unresolved user-value tradeoff" escape clause — NOT a new enumerated checkpoint. See skill for full protocol + detailed semantics.
-
-## Phase 2: Prep Gate Approval Verification
+## Phase 1.5: Prep Gate Approval Verification
 
 ### Prep Gate Approval Check
 
@@ -332,7 +313,7 @@ Emit a purpose line: `Working on: {change-id}`. State is visible via `_contextSn
 
 Retry policy (advisory): SEMANTIC 3 retries, TRANSIENT 1 retry + 5s delay, ENVIRONMENTAL immediate escalation.
 
-Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Judgment calls have already been surfaced in Phase 1.5; scope and criteria were signed off at the Agreement gate.
+Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Scope and criteria were signed off at the Agreement gate; the prep gate confirms the plan is ready for execution.
 
 ---
 
@@ -547,8 +528,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 3. ENVIRONMENTAL blocker (missing dep, config, credential) → escalate via `question`.
 4. User-requested cancellation → `adv_task_cancel` flow.
 5. Scope expansion requiring re-entry → `adv_change_reenter` flow.
-6. New judgment call surfaces mid-execution that was not captured in Phase 1.5 → resurface via `question`.
-7. Checkpoint failure with ENVIRONMENTAL or unresolved SEMANTIC classification → escalate via `question`.
+6. Checkpoint failure with ENVIRONMENTAL or unresolved SEMANTIC classification → escalate via `question`.
 
 #### Invalid stop reasons (MUST NOT pause for any of these)
 
