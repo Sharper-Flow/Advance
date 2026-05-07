@@ -93,4 +93,16 @@ describe("createTemporalStoreBackend change projection fallback", () => {
       "archive",
     );
   });
+
+  it("returns recovered gates when direct gate query hits poisoned history", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const change = archivedChange("poisonedGates");
+    await legacy.changes.save(change);
+
+    const store = await createPoisonedStore(tempDir);
+    const gates = await store.gates.get("poisonedGates");
+
+    expect(gates).toEqual(change.gates);
+  });
 });
