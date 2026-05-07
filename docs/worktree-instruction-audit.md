@@ -1,6 +1,16 @@
 # ADV Worktree Instruction Audit
 
-> **[CORRECTED 2026-05]** P1 (sidecar JSONL state) and P5 (soft-lock for ADV-mutating ops) mitigations are SUPERSEDED by the `unifyworktreeunderadvmultisess` change. Temporal `ProjectWorkflowState.worktree_registry` field is now the state authority; soft-locks for ADV-mutating ops are explicitly forbidden (multi-session is the supported design center). The "Concurrent Session Hazard" framing in ADV_INSTRUCTIONS.md has been replaced by "§ Multi-Session Coordination" — see that section for the current model. Original diagnoses below are preserved as historical context.
+> **HISTORICAL DOCUMENT — preserved for decision context.**
+> Implemented via `cullDeadCodeFixArchive` — references retired tools and
+> `ProjectWorkflowState` are historical. Current behavior lives in
+> `ADV_INSTRUCTIONS.md § Worktree Integration` and `skills/adv-worktree/SKILL.md`.
+>
+> **[CORRECTED 2026-05]** P1 (sidecar JSONL state) and P5 (soft-lock for
+> ADV-mutating ops) mitigations are SUPERSEDED by the
+> `unifyworktreeunderadvmultisess` change. Per-change workflow worktree state
+> via Temporal search attributes is now the state authority; soft-locks for
+> ADV-mutating ops are explicitly forbidden. Original diagnoses below are
+> preserved as historical context.
 
 **Date:** 2026-05-02
 **Origin:** User directive after concrete worktree-related friction surfaced during multi-hour cleanup session (concurrent-session thrashing, stale HEAD on dead hotfix branch, orphan branches without ADV records, rebase conflicts during Phase 9 archive merge).

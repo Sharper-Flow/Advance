@@ -9,10 +9,12 @@
  *
  * This script intentionally performs no deletion. Use:
  *   adv_status view:hygiene
- *   adv_migrate_cleanup dryRun:true
- *   adv_archive_sweep_orphans dryRun:true
  * for dry-run hygiene reporting. Any deletion remains approval-gated through
  * ADV tools.
+ *
+ * > NOTE: implemented via cullDeadCodeFixArchive — references retired tools
+ *   are historical. `adv_migrate_cleanup` and `adv_archive_sweep_orphans`
+ *   were retired; use `adv_status view:hygiene` instead.
  */
 
 console.log("ADV SQLite recovery is retired.");

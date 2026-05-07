@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "child_process";
+import { join } from "node:path";
 
 /**
  * Denylist test: ensure retired project-workflow (PSW) symbols do not
@@ -68,6 +69,17 @@ describe("PSW retirement denylist", () => {
       regex: /\bremoveWorktreeSessionUpdate\b/,
       desc: "removeWorktreeSessionUpdate symbol",
     },
+    // PSW-era update aliases (R1)
+    { regex: /\bcompleteGateUpdate\b/, desc: "completeGateUpdate alias" },
+    { regex: /\baddTaskUpdate\b/, desc: "addTaskUpdate alias" },
+    { regex: /\bupdateTaskUpdate\b/, desc: "updateTaskUpdate alias" },
+    { regex: /\bcancelTaskUpdate\b/, desc: "cancelTaskUpdate alias" },
+    { regex: /\breclassifyTaskTddUpdate\b/, desc: "reclassifyTaskTddUpdate alias" },
+    { regex: /\breopenFromGateUpdate\b/, desc: "reopenFromGateUpdate alias" },
+    { regex: /\baddChangeWisdomUpdate\b/, desc: "addChangeWisdomUpdate alias" },
+    { regex: /\bupdateArtifactMetadataUpdate\b/, desc: "updateArtifactMetadataUpdate alias" },
+    { regex: /\barchiveChangeUpdate\b/, desc: "archiveChangeUpdate alias" },
+    { regex: /\bcloseChangeUpdate\b/, desc: "closeChangeUpdate alias" },
   ];
 
   it("has no live PSW references in src/", () => {
@@ -113,6 +125,143 @@ describe("PSW retirement denylist", () => {
     if (violations.length > 0) {
       expect.fail(
         `Found ${violations.length} live PSW reference(s):\n\n${violations.join("\n\n")}`,
+      );
+    }
+  });
+
+  it("has no retired-tool references in scripts/", () => {
+    const retiredToolPatterns = [
+      "adv_workflow_repair",
+      "adv_orphan_sweep",
+      "adv_archive_sweep_orphans",
+      "adv_migrate_cleanup",
+      "adv_change_diagnose",
+      "adv_change_import",
+      "adv_task_evidence",
+      "adv_task_run_status",
+      "adv_task_tdd",
+    ];
+
+    let files: string[];
+    try {
+      files = execSync("git ls-files scripts/*.{js,ts,sh}", {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+      })
+        .trim()
+        .split("\n")
+        .filter(Boolean);
+    } catch {
+      files = [];
+    }
+
+    const violations: string[] = [];
+
+    for (const file of files) {
+      const content = execSync(`cat "${file}"`, {
+        cwd: process.cwd(),
+        encoding: "utf-8",
+      });
+
+      for (const token of retiredToolPatterns) {
+        for (const line of content.split("\n")) {
+          if (line.includes(token)) {
+            violations.push(`${file}: ${token}\n  ${line.trim()}`);
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} retired-tool reference(s):\n\n${violations.join("\n\n")}`,
+      );
+    }
+  });
+
+  it("has no PSW or retired-tool references in live docs", () => {
+    const docPatterns = [
+      { regex: /\bProjectWorkflowState\.worktree_registry\b/, desc: "ProjectWorkflowState.worktree_registry" },
+      { regex: /\bgetBoundedProjectWorkflowAccess\b/, desc: "getBoundedProjectWorkflowAccess" },
+      { regex: /\bbuildProjectWorkflowId\b/, desc: "buildProjectWorkflowId" },
+      { regex: /\brebuildProjectWorkflowState\b/, desc: "rebuildProjectWorkflowState" },
+      { regex: /\bensureProjectWorkflowStarted\b/, desc: "ensureProjectWorkflowStarted" },
+      { regex: /\badv_workflow_repair\b/, desc: "adv_workflow_repair" },
+      { regex: /\badv_orphan_sweep\b/, desc: "adv_orphan_sweep" },
+      { regex: /\badv_archive_sweep_orphans\b/, desc: "adv_archive_sweep_orphans" },
+      { regex: /\badv_migrate_cleanup\b/, desc: "adv_migrate_cleanup" },
+      { regex: /\badv_change_diagnose\b/, desc: "adv_change_diagnose" },
+      { regex: /\badv_change_import\b/, desc: "adv_change_import" },
+      { regex: /\badv_task_evidence\b/, desc: "adv_task_evidence" },
+      { regex: /\badv_task_run_status\b/, desc: "adv_task_run_status" },
+      { regex: /\badv_task_tdd\b/, desc: "adv_task_tdd" },
+    ];
+
+    // Exclude historical documents and decisions
+    const excludedFiles = [
+      "CHANGELOG.md",
+      "docs/decisions/",
+      "docs/audits/",
+      ".adv/archive/",
+    ];
+
+    const docs = [
+      "../README.md",
+      "../SETUP.md",
+      "../AGENTS.md",
+      "../project.md",
+      "../ADV_INSTRUCTIONS.md",
+    ];
+
+    let docFiles: string[];
+    try {
+      docFiles = execSync("git ls-files docs/**/*.md", {
+        cwd: join(process.cwd(), ".."),
+        encoding: "utf-8",
+      })
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .filter((f) => !excludedFiles.some((ex) => f.includes(ex)))
+        .map((f) => `../${f}`);
+    } catch {
+      docFiles = [];
+    }
+
+    const allFiles = [...docs, ...docFiles];
+    const violations: string[] = [];
+
+    for (const file of allFiles) {
+      let content: string;
+      try {
+        content = execSync(`cat "${file}"`, {
+          cwd: process.cwd(),
+          encoding: "utf-8",
+        });
+      } catch {
+        continue;
+      }
+
+      for (const { regex, desc } of docPatterns) {
+        for (const line of content.split("\n")) {
+          if (regex.test(line)) {
+            // Allow lines that are explicitly marked as historical
+            if (
+              line.includes("historical") ||
+              line.includes("retired") ||
+              line.includes("preserved for decision context")
+            ) {
+              continue;
+            }
+            violations.push(`${file}: ${desc}\n  ${line.trim()}`);
+          }
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(
+        `Found ${violations.length} live reference(s) in docs:\n\n${violations.join("\n\n")}`,
       );
     }
   });

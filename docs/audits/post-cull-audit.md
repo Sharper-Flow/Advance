@@ -146,22 +146,22 @@ Section-level acceptance criterion is the GREEN-phase test passing plus the deny
 
 #### R5.0 RED — assertion tests per requirement
 
-- [ ] R5.0.1 — `plugin/src/__tests__/spec-deltas-cull.test.ts` — for each of the seven requirements below, load the spec JSON and assert the body contains the new language and does NOT contain the retired language:
-  - [ ] `advance-meta/rq-archivePurge01` — must NOT mention `change_summaries` or `source_versions` registry. Should reference archive bundle / change workflow termination.
-  - [ ] `advance-meta/rq-changeSummariesCap01` — RETIRED entirely. Test asserts the requirement ID does not exist in the spec.
-  - [ ] `advance-meta/rq-worktreeRegistry01` — body must reference `change workflow worktree state` and `AdvWorktreeBranches` / `AdvWorktreePaths`. Must NOT reference `ProjectWorkflowState.worktree_registry`.
-  - [ ] `advance-meta/rq-multiSessionCoordination01` — body must reference signals; must NOT reference `Temporal workflow updates → project workflow`.
-  - [ ] `advance-meta/rq-temporalConcurrentLoad01` — body must reference per-change workflows / project task queue / worker singleton.
-  - [ ] `advance-workflow/rq-searchAttrHealth01.2` — `when` clause must reference `gateCompletedSignal` (not `completeGateUpdate`).
-  - [ ] `worktree-lifecycle/rq-worktreeReuse01.1` — `then` clause must NOT reference project-workflow recovery.
+- [x] R5.0.1 — `plugin/src/__tests__/spec-deltas-cull.test.ts` asserts all 7 deltas — `8fcd31f`
+  - [x] `advance-meta/rq-archivePurge01` — no `change_summaries` / `source_versions`
+  - [x] `advance-meta/rq-changeSummariesCap01` — retired, ID does not exist
+  - [x] `advance-meta/rq-worktreeRegistry01` — references `change workflow worktree state` + search attrs
+  - [x] `advance-meta/rq-multiSessionCoordination01` — references signals
+  - [x] `advance-meta/rq-temporalConcurrentLoad01` — references per-change workflows / project task queue / worker singleton
+  - [x] `advance-workflow/rq-searchAttrHealth01.2` — `when` clause uses `gateCompletedSignal`
+  - [x] `advance-meta/rq-worktreeReuse01.1` — `then` clause does NOT reference project-workflow recovery
 
 #### R5.1 GREEN
 
-- [ ] R5.1.1 — For each spec where the assertion fails, edit the JSON to match the spec-conflict inventory in `cullDeadCodeFixArchive` design (preserved in `.adv/archive/.../change.json` or design.md if archived; otherwise reconstruct from the original audit recommendations).
+- [x] R5.1.1 — All specs already matched the expected language; no edits required — `8fcd31f`
 
 #### R5.2 VERIFY
 
-- [ ] R5.2.1 — All seven assertions pass.
+- [x] R5.2.1 — All seven assertions pass — `8fcd31f`
 
 ---
 
@@ -212,7 +212,7 @@ The existing `plugin/src/__tests__/no-psw-references.test.ts` only catches PSW s
 | R2 spec leak rq-bulkCloseDiskSweep01.2 | **complete** | `1a7568d` |
 | R3 generated doc leak | **complete** | `1a7568d` |
 | R4 validator citations | **complete** | `15abf67` |
-| R5 spec delta verification | _pending_ | _pending_ |
+| R5 spec delta verification | **complete** | `8fcd31f` |
 | R6 scripts + residual docs | _pending_ | _pending_ |
 | R7 broaden denylist | _pending_ | _pending_ |
 | R8 final verify | _pending_ | _pending_ |

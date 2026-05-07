@@ -1,5 +1,9 @@
 # F10 — Non-LLM Tool Execution for Cross-Project ADV Ops
 
+> **HISTORICAL DOCUMENT — preserved for decision context only.**
+> Implemented via `cullDeadCodeFixArchive` — references retired tools
+> (`adv_workflow_repair`) are historical.
+
 **Status:** Investigation complete 2026-05-02. Recommendation below.
 **Origin:** Deferred from change `repairTemporalMigrationDebt` (archived `2026-05-02-repairtemporalmigrationdebt`) due to plugin-boundary scope.
 

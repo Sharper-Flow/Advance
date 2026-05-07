@@ -1,11 +1,12 @@
 # ADV ↔ Worktree Integration Strategy
 
-> **[SUPERSEDED 2026-05]** This was a pre-implementation strategy memo.
-> `unifyworktreeunderadvmultisess` implemented the Option B direction with
-> Temporal as state authority, `ProjectWorkflowState.worktree_registry`,
-> privacy-defensive peer sessions, and no standalone worktree SQLite store.
-> Treat the rest of this document as historical decision context only. Current
-> agent-facing behavior lives in `ADV_INSTRUCTIONS.md § Worktree Integration`,
+> **HISTORICAL DOCUMENT — preserved for decision context only.**
+> Implemented via `cullDeadCodeFixArchive` — references retired tools and
+> `ProjectWorkflowState` are historical. `unifyworktreeunderadvmultisess`
+> implemented the Option B direction with Temporal as state authority,
+> per-change workflow worktree state, privacy-defensive peer sessions, and
+> no standalone worktree SQLite store. Current agent-facing behavior lives in
+> `ADV_INSTRUCTIONS.md § Worktree Integration`,
 > `.opencode/command/adv-archive.md § Phase 9`, and
 > `skills/adv-worktree/SKILL.md`.
 
