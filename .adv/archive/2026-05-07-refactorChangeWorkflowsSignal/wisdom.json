@@ -1,0 +1,110 @@
+{
+  "entries": [
+    {
+      "id": "ws-d8a168bf-385a-467a-be69-a49debf3948d",
+      "type": "pattern",
+      "content": "Temporal spike workflows can live in `plugin/src/temporal/spike/` with colocated `contracts.ts`, `messages.ts`, and `workflows.ts`; a focused test can use `Worker.create({ workflowsPath: fileURLToPath(new URL('./workflows.ts', import.meta.url)), taskQueue })` plus `withTestWorkflowEnvironment` to validate signal/query behavior without touching the main worker.",
+      "source_task": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841",
+      "recorded_at": "2026-05-06T01:21:29.445Z"
+    },
+    {
+      "id": "ws-307518a9-829d-4d9c-911d-b77f8b8d5b28",
+      "type": "gotcha",
+      "content": "Temporal signal client calls are fire-and-forget; `handle.signal(...)` resolving does not mean async signal-handler activities (e.g. projection writes) have completed. Tests and migration barriers must query/poll workflow state (or marker query) for the processed condition before asserting projection/side effects.",
+      "source_task": "tk-57140af5-9764-4492-863a-8a54201a36a8",
+      "recorded_at": "2026-05-06T01:21:29.453Z"
+    },
+    {
+      "id": "ws-eb5bf613-16fb-4aad-9dea-0c7c430b26c3",
+      "type": "gotcha",
+      "content": "Design prose said \"24 signals\" but the enumerated surface is 26 new signals plus retained `applyChangeSummarySignal` (27 primary bindings), with `migrationMarkerSignal` treated as a temporary migration-only signal outside the primary contract count. Contract tests should encode the enumerated keys, not the stale prose count.",
+      "source_task": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959",
+      "recorded_at": "2026-05-06T01:21:29.474Z"
+    },
+    {
+      "id": "ws-640ed01d-5a3c-432a-8d3d-fd6240a89b3c",
+      "type": "gotcha",
+      "content": "For signal-driven change workflows, `wf.condition(() => shouldContinueAsNew(...))` can unblock while handlers are still in flight; always call `await wf.condition(wf.allHandlersFinished)` immediately before `wf.continueAsNew(...)` so the seed captures completed handler mutations.",
+      "source_task": "tk-3a8f065b-3eb1-40ec-9c90-bea8b96f16d5",
+      "recorded_at": "2026-05-06T01:21:29.478Z"
+    },
+    {
+      "id": "ws-2eec55f5-8055-4c77-b88a-a7863f20f685",
+      "type": "gotcha",
+      "content": "Bucket precedence must treat `release` awaiting approval specially: in actual `bucketCtxFromState`, release awaiting approval also makes `currentGateStatus === 'awaiting_approval'`. Put `ready_to_archive` before generic awaiting-gate handling, while leaving `pendingCheckpoint` as the highest precedence.",
+      "source_task": "tk-fb93b2a7-abee-4109-8150-deb39544cfea",
+      "recorded_at": "2026-05-06T01:21:29.482Z"
+    },
+    {
+      "id": "ws-db3f5ae9-8ede-4b31-93e2-263fd5cb1b1e",
+      "type": "pattern",
+      "content": "Keep `change-state.ts` as pure workflow-safe mutation code: no Temporal SDK, storage, tools, or node imports; boundary/protocol validation such as sequential gate checks belongs in tool adapters, while state helpers only apply already-validated mutations.",
+      "source_task": "tk-98cb127b-ffe9-427e-b66e-a900e241a138",
+      "recorded_at": "2026-05-06T01:21:29.486Z"
+    },
+    {
+      "id": "ws-b3c18340-56c8-4d0f-90df-7c2855c72a27",
+      "type": "pattern",
+      "content": "Adapter helpers can preserve existing handle-first call sites while enabling signal-driven store-input usage via overloads: accept either `WorkflowHandleLike` or `TemporalStoreBackendInput + changeId`, resolve through `getGuardedChangeHandle`, then route through the same `runTemporal` / `runTemporalQuery` wrappers.",
+      "source_task": "tk-32cf5119-ab0a-46ab-afb5-e4e6f0a2c1ca",
+      "recorded_at": "2026-05-06T01:21:29.490Z"
+    },
+    {
+      "id": "ws-c524110a-e842-4850-86df-5342ab97c154",
+      "type": "success",
+      "content": "Real `changeWorkflow` concurrent-signaling SC1 verification is covered by `plugin/src/temporal/__tests__/concurrent-signaling.itest.ts`: seed task-add signals first, poll query state as barrier, then fire 120 mixed signals concurrently; assert zero rejections, 150 total signals, converged task/gate/wisdom/document state, and RUNNING workflow status.",
+      "source_task": "tk-406ae759-a2d3-447a-88f2-38d4acf7cc1e",
+      "recorded_at": "2026-05-06T01:21:29.498Z"
+    },
+    {
+      "id": "ws-52bb011c-6904-4c67-a36e-8162866a808c",
+      "type": "gotcha",
+      "content": "For the real `changeWorkflow` CAN test, one task-added signal roughly added one history event in Temporal test env; 3,000 signals only reached `historyLength=3013`. Use >5,000 signals (5,200 worked) to validate the 5,000-event threshold and run-ID rotation.",
+      "source_task": "tk-179a60a7-b24a-4f42-9f7e-5b51c96a240d",
+      "recorded_at": "2026-05-06T01:21:29.502Z"
+    },
+    {
+      "id": "ws-f08aca4b-658c-4057-a612-13c22c9258de",
+      "type": "gotcha",
+      "content": "After a workflow continues-as-new, use a handle bound to the latest `description.runId` for post-CAN marker signals. In the TS SDK test path, a runless handle can still route `signal(...)` to the completed first run, causing `workflow execution already completed` and marker-poll timeouts.",
+      "source_task": "tk-61f46cfd-b219-46f7-82f1-866b26fa07ee",
+      "recorded_at": "2026-05-06T01:21:29.506Z"
+    },
+    {
+      "id": "ws-258b5b8e-5d01-4c3d-8030-f4deebaee98d",
+      "type": "pattern",
+      "content": "Gate tools should enforce V6 against workflow-query state, not stale disk projections: query `getGateStatusQuery` before sequence checks, and query `changeTasksQuery` before completing execution. Disk change data remains useful for context snapshots/readiness only.",
+      "source_task": "tk-73270921-6a2e-4df8-9f4b-999350814450",
+      "recorded_at": "2026-05-06T01:21:29.510Z"
+    },
+    {
+      "id": "ws-a963009d-3d82-4784-b7e4-73434eb52d04",
+      "type": "gotcha",
+      "content": "During the T21 transition, live `adv_run_test` can fail with `WorkflowUpdateFailedError` after source refactors to the same tool surface because OpenCode uses cached plugin dist/tool code in-session. Verify with bash fallback and attach `adv_task_evidence`; full live-tool behavior needs build + fresh session.",
+      "source_task": "tk-1bd79979-bf5e-4e36-9a4b-bd3c9931faa1",
+      "recorded_at": "2026-05-06T01:21:29.513Z"
+    },
+    {
+      "id": "ws-54a6747c-41b1-4d43-a4f0-81f29ae74daa",
+      "type": "pattern",
+      "content": "Cross-change worktree branch ownership can be checked through Temporal Visibility before any git mutation: query `AdvAffectedProjects = \"{projectId}\" AND AdvWorktreeBranches = \"{branch}\" AND AdvChangeStatus = \"active\"`, filter `adv/change/{projectId}/` workflow IDs, and exclude the current change ID.",
+      "source_task": "tk-9212ffb5-9e89-4aaa-beec-e1f13b8e687f",
+      "recorded_at": "2026-05-06T01:21:29.517Z"
+    },
+    {
+      "id": "ws-f12805d4-3ee9-4c26-962d-0e3663adcd6d",
+      "type": "success",
+      "content": "M4 build gate passed after signal-driven workflow/tool refactors: `pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts && pnpm run build` generated `dist/index.js` plus `dist/temporal/worker.js` and `dist/temporal/workflows.js` without dirtying the worktree.",
+      "source_task": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace",
+      "recorded_at": "2026-05-06T01:21:29.520Z"
+    },
+    {
+      "id": "ws-ac00b261-7680-4f08-93dd-d348312b026e",
+      "type": "gotcha",
+      "content": "T24 exposed a live-session checkpoint ledger gap: git checkpoint can commit successfully while `adv_task_checkpoint` returns `checkpointRecorded:false` with `Workflow Update failed`; do not mark task done. Fresh OpenCode restart is required, then retry clean checkpoint at committed HEAD before closing the task/change.",
+      "source_task": "tk-0fee4365-f2cb-4ea9-99b1-6abf5a9c25e2",
+      "recorded_at": "2026-05-06T01:21:29.525Z"
+    }
+  ],
+  "count": 15
+}

@@ -1,0 +1,1808 @@
+{
+  "id": "refactorChangeWorkflowsSignal",
+  "title": "Refactor change workflows to signal-driven state-holder architecture",
+  "status": "archived",
+  "created_at": "2026-05-04T22:04:18.192Z",
+  "tasks": [
+    {
+      "id": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841",
+      "title": "M0/T01: Spike workflow scaffold. Create one signal-driven change workflow with 5-10 representative signal handlers (e.g. proposalUpdated, taskAdded, gateCompleted, gateInProgress, archiveRequested) and 3-4 representative queries (getState, getTasks, getGateStatus) in `plugin/src/temporal/spike/`. Wire to a temporary spike worker on a separate task queue (`advance-spike`). Goal: minimal validation harness for SC1/SC10. RED: write a spike test that starts the workflow, fires one signal, queries state. GREEN: scaffold passes. Defer integration with main worker until M2.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-06T01:21:29.403Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.442Z",
+      "implementation_summary": "Added spike contracts, signal/query definitions, workflow handlers, and a Temporal test that starts spikeChangeWorkflow, fires proposal/task/gate/archive signals, and queries state/tasks/gate status. Also checkpoint included prior design-doc amendment already present in worktree.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:02:56.713Z",
+          "test_file": "pnpm test -- src/temporal/spike/workflows.test.ts",
+          "command": "pnpm test -- src/temporal/spike/workflows.test.ts",
+          "exit_code": 1,
+          "output_snippet": "> @goost/advance@0.8.3 test /home/jrede/.local/share/opencode/worktree/bdf259aa1\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:04:21.224Z",
+          "test_file": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "command": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "docs/decisions/2026-05-04-signal-driven-change-workflows.md",
+        "plugin/src/temporal/spike/contracts.ts",
+        "plugin/src/temporal/spike/messages.ts",
+        "plugin/src/temporal/spike/workflows.test.ts",
+        "plugin/src/temporal/spike/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.444Z",
+      "completed_by": "T01 complete. Spike workflow scaffold created under plugin/src/temporal/spike with representative signal/query surface and Temporal worker test."
+    },
+    {
+      "id": "tk-d2219dbb-1ad2-4796-a2a5-93c48187bcb8",
+      "title": "M0/T02: Spike \u2014 concurrent signaling test (SC1 verification). Spawn 3 client agents that each fire 50 signals to the same spike workflow over a short window. Validate: zero `Workflow Update failed` errors, all 150 signals applied (workflow state reflects all mutations), no signal lost. Use Temporal test environment for deterministic timing. This is the core SC1 acceptance test.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-06T01:21:29.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.446Z",
+      "implementation_summary": "Added a focused spike test that starts one workflow, fires 150 concurrent taskAdded signals from 3 simulated clients, verifies no signal failures, validates 150 stored tasks and unique IDs. Checkpoint f6c24e52980389e1e8e95c80112a9b8a25a1dcd0 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T04:06:23.626Z",
+          "test_file": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "command": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/spike/workflows.test.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.448Z",
+      "completed_by": "T02 complete. Spike concurrent signaling verification added and passed."
+    },
+    {
+      "id": "tk-4f06a540-18c8-4031-a2ed-35eed1f376d2",
+      "title": "M0/T03: Spike \u2014 continueAsNew test (SC10 part a). Drive spike workflow past 5,000 events via signal flooding. Verify: `info.continueAsNewSuggested` triggers CAN, `allHandlersFinished()` gate respected, in-flight signals preserved across CAN, queryable state survives, history is bounded. Validate both defensive triggers (historyLength threshold + continueAsNewSuggested).",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-06T01:21:29.405Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.449Z",
+      "implementation_summary": "Added seed-state carry-forward, configurable history threshold, signal counting, continue-as-new count, `workflowInfo().continueAsNewSuggested || historyLength > threshold` trigger, and `wf.allHandlersFinished` drain before `continueAsNew`. Added test that floods 120 signals, waits for CAN, and verifies state/tasks survive. Checkpoint 4fd69a1a8737ac7146d920b4d2dabb50d5e04c46 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T04:09:11.946Z",
+          "test_file": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "command": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/spike/contracts.ts",
+        "plugin/src/temporal/spike/workflows.test.ts",
+        "plugin/src/temporal/spike/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.451Z",
+      "completed_by": "T03 complete. Continue-as-new spike path implemented and verified with signal flooding."
+    },
+    {
+      "id": "tk-57140af5-9764-4492-863a-8a54201a36a8",
+      "title": "M0/T04: Spike \u2014 disk projection cadence + conformance read routing (SC4 verification). Implement `writeChangeProjectionActivity` triggered only on gateCompleted/gateAwaitingApproval/gateStuck/archiveRequested/changeCancelled signals. Wire `adv_conformance action: 'run'` POC to read via workflow query (strongly consistent), not projection. Validate: \u226410 disk writes per representative spike change lifetime; conformance verdict cannot race a pending signal; external readers tolerate file absence + validate schemaVersion.",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-06T01:21:29.406Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.452Z",
+      "implementation_summary": "Added projection-trigger signals (`gateAwaitingApproval`, `gateStuck`, `changeCancelled`), conformance verdict signal/query, spike projection activity contract, and projection writes for gate/terminal signals only. Test verifies conformance reads via workflow query before any projection, exactly 5 projection writes for gate/terminal signals, schemaVersion 2 projection payloads, and \u226410 writes. Checkpoint 8fda26fe50ab0a965bf1c3af8f5521d79bdbc511 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "T04 test expected projectionWrites=5 immediately after fire-and-forget signals; got 1 because async signal handler activities had not all completed before query.",
+            "diagnosis": "Temporal signal delivery is fire-and-forget; handler activities/projection side effects need query/poll barrier before assertions.",
+            "fix_tried": "Updated test to poll getStateQuery until projectionWrites reaches expected count before asserting projection array.",
+            "strategy_label": "poll-processed-projection-state",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-06T04:12:15.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T04:12:18.790Z",
+          "test_file": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "command": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/spike/contracts.ts",
+        "plugin/src/temporal/spike/messages.ts",
+        "plugin/src/temporal/spike/workflows.test.ts",
+        "plugin/src/temporal/spike/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.455Z",
+      "completed_by": "T04 complete. Projection cadence and conformance query routing verified."
+    },
+    {
+      "id": "tk-4a963f0c-a7e5-44e6-808d-b41ea3f04727",
+      "title": "M0/T05: Spike \u2014 one-shot migration script POC + marker barrier (SC10 part b). Pick one current active change (suggest `cleanupzombierunningworkflows` \u2014 0 tasks, smallest). Read its disk JSON, replay as gate-batched signals into the spike workflow, fire `migrationMarkerSignal`, poll `getProcessedMarkersQuery` until marker seen. Verify round-trip: source state \u2192 replay \u2192 workflow query state must match. Validates V4 marker barrier strategy for cross-name signal ordering.",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-06T01:21:29.407Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.456Z",
+      "implementation_summary": "Added spike migration replay helper, migrationMarkerSignal, getProcessedMarkersQuery, and workflow marker storage. Test replays a cleanupzombierunningworkflows-style source state into spike workflow, polls marker query until processed, and verifies round-trip state (title, proposal text, 0 tasks, pending gates). Checkpoint ab58e0ac453341dd408b78bef55d457713d73f0d recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T04:15:35.815Z",
+          "test_file": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "command": "pnpm exec vitest run src/temporal/spike/workflows.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/spike/contracts.ts",
+        "plugin/src/temporal/spike/messages.ts",
+        "plugin/src/temporal/spike/migration.ts",
+        "plugin/src/temporal/spike/workflows.test.ts",
+        "plugin/src/temporal/spike/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.458Z",
+      "completed_by": "T05 complete. Migration replay POC and marker barrier verified. Source inspection used adv_change_show for cleanupzombierunningworkflows (0 tasks, all gates pending), not direct ADV state-file reads."
+    },
+    {
+      "id": "tk-e5a25f6b-1839-4490-b383-c007b7bb98fb",
+      "title": "M0/T06: Spike report. Synthesize results from T02-T05 into a written kill-criteria report at `docs/decisions/2026-05-04-spike-report.md`. PASS criteria: SC1 zero Workflow Update failed; SC10a CAN preserves state; SC4 conformance routing works; SC10b migration POC round-trips. Any FAIL \u2192 halt change for re-design via `adv_change_reenter` from design gate. PASS \u2192 unblocks M1.",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-06T01:21:29.408Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d2219dbb-1ad2-4796-a2a5-93c48187bcb8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4f06a540-18c8-4031-a2ed-35eed1f376d2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-57140af5-9764-4492-863a-8a54201a36a8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4a963f0c-a7e5-44e6-808d-b41ea3f04727"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.459Z",
+      "implementation_summary": "Created docs/decisions/2026-05-04-spike-report.md documenting PASS for SC1 concurrent signaling, SC10a continue-as-new, SC4 conformance routing/projection cadence, and SC10b migration replay. Included verification commands/results and noted the ADV-safe deviation from direct disk JSON reads. Checkpoint 06fdb3a4e4ac6f1a0222b11bf6f40c6392c83902 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "touched_files": [
+        "docs/decisions/2026-05-04-spike-report.md"
+      ],
+      "completed_at": "2026-05-06T01:21:29.461Z",
+      "completed_by": "T06 complete. M0 spike report records PASS and explicitly allows proceeding to M1; no redesign/re-entry needed."
+    },
+    {
+      "id": "tk-ece0cfea-60a0-4e59-a87c-f16dc7f971c4",
+      "title": "M1/T07: Capture LOC baseline for SC8 verification. Run `wc -l plugin/src/temporal/**/*.ts` and `wc -l plugin/src/tools/{change-diagnose,archive-sweep,mesh-scan,task-run-status,task-tdd,task-evidence,change-import,migrate-cleanup}.ts` (where files exist). Record baseline counts in `docs/decisions/2026-05-04-loc-baseline.md`. This snapshot is the SC8 \u226530% reduction reference.",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-06T01:21:29.409Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e5a25f6b-1839-4490-b383-c007b7bb98fb"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-06T01:21:29.462Z",
+      "implementation_summary": "Created docs/decisions/2026-05-04-loc-baseline.md. Baseline: temporal LOC 18,630 across 63 files; existing target tool files 554 LOC across 2 files. Required SC8 reduction: \u22655,589 temporal LOC, post-change temporal LOC \u226413,041. Checkpoint b44cf3988e7a8dec3bfd79886d48ba76362007db recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "touched_files": [
+        "docs/decisions/2026-05-04-loc-baseline.md"
+      ],
+      "completed_at": "2026-05-06T01:21:29.464Z",
+      "completed_by": "T07 complete. LOC baseline captured for SC8."
+    },
+    {
+      "id": "tk-e6f2ed8b-0300-479f-bdba-10f02bfb67f8",
+      "title": "M1/T08: Bulk deletions per Section 9 strategy. `git rm` source + sibling .test.ts files: (a) `plugin/src/temporal/{migration,gate-reentry,orphan-sweep}.ts` + tests; (b) `plugin/src/tools/{change-diagnose,archive-sweep,mesh-scan}.ts` + tests; (c) retired tool surfaces \u2014 locate and delete files implementing `adv_task_run_status`, `adv_task_tdd`, `adv_task_evidence` (may be in tools/task.ts as separate exports OR separate files; deletion may be partial extraction + re-save). Build will be broken \u2014 accept it. Single commit (or per-category commits).",
+      "type": "code",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-06T01:21:29.410Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ece0cfea-60a0-4e59-a87c-f16dc7f971c4"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-06T01:21:29.465Z",
+      "implementation_summary": "Removed plugin/src/temporal/migration.ts and plugin/src/temporal/migration.test.ts. Verified missing/deleted targets: gate-reentry, orphan-sweep, change-diagnose, archive-sweep, mesh-scan, task-run-status, task-tdd, task-evidence had no separate source files. `pnpm run typecheck` now fails on migration imports, which is the expected T08 broken-build window owned by T09. Checkpoint c57ff5618b156370892892cfc609345b53128ee3 recorded.",
+      "error_recovery": {
+        "last_error": "Expected post-deletion typecheck failure: imports still reference './temporal/migration'.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "T09 updates tool registry/imports/exports and removes migration references.",
+        "attempts": []
+      },
+      "touched_files": [
+        "plugin/src/temporal/migration.test.ts",
+        "plugin/src/temporal/migration.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.467Z",
+      "completed_by": "T08 complete. Deleted obsolete temporal migration files; no separate retired tool files were present under plugin/src/tools. Broken typecheck is expected until T09 import/registry cleanup."
+    },
+    {
+      "id": "tk-4580cbd9-5209-4f6c-9605-ab94b87f9798",
+      "title": "M1/T09: Update `plugin/src/tool-registry.ts` to remove all references to deleted tools (adv_workflow_repair, adv_change_diagnose, adv_change_import \u2014 defer until M5, adv_orphan_sweep, adv_archive_sweep_orphans, adv_migrate_cleanup, adv_mesh_scan, adv_task_run_status, adv_task_tdd, adv_task_evidence). Also remove deleted-tool exports from `plugin/src/tools/index.ts` if present. Typecheck of registry should pass; tests still broken (expected M2 boundary).",
+      "type": "code",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-06T01:21:29.411Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e6f2ed8b-0300-479f-bdba-10f02bfb67f8"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.468Z",
+      "implementation_summary": "Added `plugin/src/temporal/workflow-start.ts` for idempotent project/change workflow bootstrap helpers after deleting `temporal/migration.ts`. Updated all migration imports and related tests to use workflow-start. Removed `adv_migrate_cleanup` registration and degraded-tool entry. Removed stale `adv_workflow_repair` timeout registry test. Typecheck and targeted registry/adapter/import tests pass. Checkpoint 2e11dd4ca0d2a92c25ccf2cfa19299018efd8958 recorded.",
+      "error_recovery": {
+        "last_error": "Initial targeted test failed because stale tool-registry test still expected adv_workflow_repair registration after tool retirement.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`src/tool-registry.test.ts` failed: adv_workflow_repair registration block not found.",
+            "diagnosis": "The test encoded the old retired tool surface. Since adv_workflow_repair is intentionally no longer registered, the test itself was stale.",
+            "fix_tried": "Deleted the stale adv_workflow_repair timeout-override assertion from tool-registry.test.ts.",
+            "strategy_label": "remove-stale-retired-tool-test",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-06T04:24:16.000Z"
+          }
+        ]
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/temporal/workflow-start.ts",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tools/change-import.test.ts",
+        "plugin/src/tools/change-import.ts",
+        "plugin/src/tools/project-workflow-helper.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.470Z",
+      "completed_by": "T09 complete. Registry/import repair green."
+    },
+    {
+      "id": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959",
+      "title": "M2/T10: Define 24 signals + 6 queries in `plugin/src/temporal/messages.ts`. Per Design Section 1: 5 doc/metadata signals (proposalUpdated, problemStatementUpdated, agreementUpdated, designUpdated, acceptanceCriteriaSet); 7 task lifecycle (taskAdded, taskUpdated, taskRemoved, taskAssigned, taskCompleted with verification field, taskBlocked, taskCancelled); 5 gate state (gateInProgress, gateAwaitingApproval, gateStuck, gateCompleted, gateReentered); 2 wisdom/reflection; 2 worktree (worktreeCreated, worktreeDeleted); 3 conformance (locked, verdict, overridden); 2 lifecycle (archiveRequested, changeCancelled). Plus retained applyChangeSummarySignal. 6 queries: getState, getTasks, getGateStatus, getWorktrees, getConformanceState, getProcessedMarkers. Each with Zod payload schema. RED: write empty signal definitions test asserting count + schema validity; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-06T01:21:29.412Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4580cbd9-5209-4f6c-9605-ab94b87f9798"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.471Z",
+      "implementation_summary": "Implemented M2/T10 signal/query contract: 27 primary signal bindings (24-task wording enumerates 26 new + retained applyChangeSummary, excluding temporary migrationMarker) and six design query bindings. Added schema/sample validation coverage in plugin/src/temporal/messages.test.ts. Verification passed: pnpm run typecheck; pnpm exec vitest run src/temporal/messages.test.ts src/temporal/workflows.test.ts.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:28:19.817Z",
+          "test_file": "pnpm exec vitest run src/temporal/messages.test.ts",
+          "command": "pnpm exec vitest run src/temporal/messages.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:30:35.324Z",
+          "test_file": "pnpm exec vitest run src/temporal/messages.test.ts",
+          "command": "pnpm exec vitest run src/temporal/messages.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.473Z",
+      "completed_by": "T10 complete. Added RED/GREEN message contract test, narrowed primary change query names to six design queries, added signal/query bindings for getState/getTasks/getGateStatus/getWorktrees/getConformanceState/getProcessedMarkers, retained compatibility query names separately, and wired workflow handlers for new design query bindings. Checkpoint 6ae5d28 recorded."
+    },
+    {
+      "id": "tk-3a8f065b-3eb1-40ec-9c90-bea8b96f16d5",
+      "title": "M2/T11: Implement signal handlers + query handlers in `plugin/src/temporal/workflows.ts`. Each handler is a pure mutation on `state`. Special: `gateReenteredSignal` handler computes downstream gate set from fromGateId and resets atomically (rq-scopeReentry02 cascade). On terminal signals (archiveRequested, changeCancelled), schedule `archiveChangeActivity` then complete workflow. CAN trigger: after handler completes AND `allHandlersFinished()`, check `historyLength > 5000 || info.continueAsNewSuggested` \u2192 continueAsNew. Adhere to workflow-bundle boundary (no storage/, tools/, node:* imports). RED: handler unit tests for each signal asserting state mutation; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-06T01:21:29.413Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.475Z",
+      "implementation_summary": "Completed M2/T11 workflow handler/query validation. Added a RED regression asserting changeWorkflow drains in-flight handlers before continue-as-new. GREEN added `await wf.condition(wf.allHandlersFinished)` before `wf.continueAsNew`. Verified workflow handler/query suites, message contract, workflow bundle boundary, and typecheck.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:33:33.020Z",
+          "test_file": "pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts",
+          "command": "pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:33:52.163Z",
+          "test_file": "pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts src/temporal/workflows.queries.test.ts",
+          "command": "pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts src/temporal/workflows.queries.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.477Z",
+      "completed_by": "T11 complete. Existing workflow signal/query handlers covered all primary signal categories; added regression coverage for continue-as-new drain ordering and fixed changeWorkflow to await wf.allHandlersFinished immediately before continueAsNew. Checkpoint 49692eb recorded."
+    },
+    {
+      "id": "tk-fb93b2a7-abee-4109-8150-deb39544cfea",
+      "title": "M2/T12: Implement bucket derivation in `plugin/src/utils/buckets.ts`. Pure function `deriveBucket(ctx: BucketContext) \u2192 Bucket` per Design Section 2. 7-rule precedence: pendingCheckpoint OR gate awaiting_approval \u2192 awaiting_approval; all non-release done + release awaiting \u2192 ready_to_archive; gate stuck \u2192 stuck; gate in_progress + idle past threshold (default 24h) \u2192 drifting; gate in_progress \u2192 in_flight; only proposal done + age > threshold \u2192 never_started; default \u2192 in_flight. Mutually exclusive. RED: unit test for each precedence rule; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-05-06T01:21:29.414Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.479Z",
+      "implementation_summary": "Implemented bucket derivation fix for design precedence: `pendingCheckpoint` returns `awaiting_approval`; all non-release gates done plus release awaiting approval returns `ready_to_archive`; other awaiting gates return `awaiting_approval`. Verification passed: typecheck plus buckets, workflow queries, and search-attribute tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:35:58.489Z",
+          "test_file": "pnpm exec vitest run src/utils/buckets.test.ts",
+          "command": "pnpm exec vitest run src/utils/buckets.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:36:09.048Z",
+          "test_file": "pnpm exec vitest run src/utils/buckets.test.ts",
+          "command": "pnpm exec vitest run src/utils/buckets.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/utils/buckets.test.ts",
+        "plugin/src/utils/buckets.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.481Z",
+      "completed_by": "T12 complete. Added RED coverage for actual release-awaiting context and fixed deriveBucket precedence so release awaiting approval maps to ready_to_archive while pendingCheckpoint still wins. Checkpoint b0acb94 recorded."
+    },
+    {
+      "id": "tk-98cb127b-ffe9-427e-b66e-a900e241a138",
+      "title": "M2/T13: Refactor `plugin/src/temporal/change-state.ts` to pure mutation functions (no Temporal imports, no I/O). Functions like `applyTaskAddedToState(state, payload)`, `applyGateCompletedToState(state, payload)`, etc. \u2014 one per signal. Remove dual-write logic, idempotency-key bookkeeping, and any update-validator residue. State shape: change metadata + tasks + gates + worktrees + conformance + lastSignalAt. RED: per-mutation unit tests; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-05-06T01:21:29.415Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.483Z",
+      "implementation_summary": "Implemented T13 pure mutation cleanup for change-state. Added focused unit tests for purity imports, task lifecycle mutation without task-run ledger state, and tool-layer gate enforcement boundary. Removed `canCompleteGate` usage/import from `completeGateInChangeState`. Verification passed: typecheck plus change-state, workflow handlers, workflow queries, and bundle-boundary tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:38:21.222Z",
+          "test_file": "pnpm exec vitest run src/temporal/change-state.test.ts",
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:38:32.826Z",
+          "test_file": "pnpm exec vitest run src/temporal/change-state.test.ts",
+          "command": "pnpm exec vitest run src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.485Z",
+      "completed_by": "T13 complete. Added change-state pure mutation tests, removed sequential gate validation from change-state so validation stays in tool layer, and verified no Temporal/storage/tools/node imports. Checkpoint 2fc26e7 recorded."
+    },
+    {
+      "id": "tk-32cf5119-ab0a-46ab-afb5-e4e6f0a2c1ca",
+      "title": "M2/T14: Implement tool adapter helpers in `plugin/src/tools/_adapters.ts`. Functions per Design Section 6: `fireSignal(changeId, signal, payload)` (fire-and-forget, ~15 callers), `querySignal(changeId, query, ...args)` (sync, ~12 callers), `fireSignalAndQuery(...)` (eventual fresh state, ~3 callers), `startChangeWorkflow(input)` (only for adv_change_create). All adapters resolve workflow handle via shared service-layer (STSL). RED: per-adapter unit tests with mocked Temporal client; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 13,
+      "created_at": "2026-05-06T01:21:29.416Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3a8f065b-3eb1-40ec-9c90-bea8b96f16d5"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.487Z",
+      "implementation_summary": "Implemented T14 adapter helper expansion: `fireSignal`, `querySignal`, and `fireSignalAndQuery` overloads now accept either a workflow handle or `TemporalStoreBackendInput + changeId`, resolving guarded handles through `getGuardedChangeHandle`. Added tests for guarded handle resolution and signal/query sequencing. Verification passed: typecheck plus adapters, task, and gate tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:41:51.379Z",
+          "test_file": "pnpm exec vitest run src/tools/_adapters.test.ts",
+          "command": "pnpm exec vitest run src/tools/_adapters.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:42:32.105Z",
+          "test_file": "pnpm exec vitest run src/tools/_adapters.test.ts",
+          "command": "pnpm exec vitest run src/tools/_adapters.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/_adapters.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.489Z",
+      "completed_by": "T14 complete. Adapter helpers now support both existing handle-first calls and store-input/changeId calls that resolve guarded workflow handles through STSL shared helpers. Checkpoint 7ba4509 recorded."
+    },
+    {
+      "id": "tk-7110cd20-a8b6-45d5-9856-a0dac14c99fa",
+      "title": "M2/T15: Add Temporal search attributes per Design Section 7. Existing 9 (`AdvChangeId`, `AdvChangeStatus`, `AdvChangeTitle` Keyword, `AdvAffectedProjects` KeywordList, `AdvAffectedPaths` KeywordList, `AdvCurrentGate`, `AdvCurrentBucket`, `AdvLastSignalAt`, `AdvCreatedAt`) + 2 new from V6 A2 (`AdvWorktreeBranches` KeywordList, `AdvWorktreePaths` KeywordList). Update `adv_temporal_register_search_attributes` migration code. Workflow updates search attributes atomically when worktreeCreated/Deleted signals process. Sort client-side per V3 fix. RED: registration test asserts all 11 attributes registered; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 14,
+      "created_at": "2026-05-06T01:21:29.417Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.491Z",
+      "implementation_summary": "Implemented T15 Temporal search attributes: `ADV_SEARCH_ATTRIBUTES` now includes 11 attributes; `buildChangeSearchAttributes` emits sorted active `AdvWorktreeBranches` and `AdvWorktreePaths`; observability registration helpers now register/verify the 11 signal-driven attributes used by `adv_temporal_register_search_attributes`. Verification passed: typecheck plus search-attributes, workflows.search-attrs, and observability tests.",
+      "error_recovery": {
+        "last_error": "Unrelated legacy service-reconnect tests timed out when included in an overly broad verification burst.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Keep T15 verification focused on search-attribute registration/upsert surface; old failing suites are handled by later cleanup/refactor tasks per user instruction.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm exec vitest run src/temporal/search-attributes.test.ts src/temporal/workflows.search-attrs.test.ts src/temporal/service-reconnect.test.ts` failed: service-reconnect tests timed out/failures unrelated to T15 search-attribute surface.",
+            "diagnosis": "Legacy STSL reconnect suite is outside T15 touched scope and already unstable under this major refactor; focused search-attribute suites isolate T15 behavior.",
+            "fix_tried": "Reran focused search attribute verification including observability registration tests after updating expectations.",
+            "strategy_label": "narrow-affected-verification",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-06T04:48:32.005Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T04:45:03.859Z",
+          "test_file": "pnpm exec vitest run src/temporal/search-attributes.test.ts",
+          "command": "pnpm exec vitest run src/temporal/search-attributes.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T04:45:20.663Z",
+          "test_file": "pnpm exec vitest run src/temporal/search-attributes.test.ts",
+          "command": "pnpm exec vitest run src/temporal/search-attributes.test.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/observability.test.ts",
+        "plugin/src/temporal/observability.ts",
+        "plugin/src/temporal/search-attributes.test.ts",
+        "plugin/src/temporal/search-attributes.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.493Z",
+      "completed_by": "T15 complete. Added AdvWorktreeBranches and AdvWorktreePaths KeywordList attributes, active-worktree upsert population, and moved registration helper surface to the 11 signal-driven attributes. Checkpoint 2f3fc77 recorded. Note: old service-reconnect suite still times out independently; not part of T15 focused verification and slated for old-test cleanup per refactor scope."
+    },
+    {
+      "id": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f",
+      "title": "M2/T16: Get `pnpm typecheck` green \u2014 M2 milestone gate. Run `pnpm run typecheck` in `plugin/`; resolve any remaining type errors from the new workflow surface. Tests still broken \u2014 that's expected and accepted (per Section 9 broken-build window). This task is the M2 boundary verification before tool refactor batch can begin.",
+      "type": "code",
+      "status": "done",
+      "priority": 15,
+      "created_at": "2026-05-06T01:21:29.418Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a8f065b-3eb1-40ec-9c90-bea8b96f16d5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fb93b2a7-abee-4109-8150-deb39544cfea"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-98cb127b-ffe9-427e-b66e-a900e241a138"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-32cf5119-ab0a-46ab-afb5-e4e6f0a2c1ca"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7110cd20-a8b6-45d5-9856-a0dac14c99fa"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-06T01:21:29.494Z",
+      "implementation_summary": "Verified M2 milestone boundary with `pnpm run typecheck` passing. No file changes needed; checkpoint reported clean at 2f3fc77.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "completed_at": "2026-05-06T01:21:29.495Z",
+      "completed_by": "T16 complete. M2 boundary typecheck passed; checkpoint clean at 2f3fc77."
+    },
+    {
+      "id": "tk-406ae759-a2d3-447a-88f2-38d4acf7cc1e",
+      "title": "M3/T17: Cross-cutting concurrent-signaling test (SC1). Beyond per-handler unit tests, drive the full real workflow (not spike) with 3 concurrent agents \u00d7 50 signals each (150 signals to one change workflow), validate state convergence, zero `Workflow Update failed`. Use Temporal test environment. Pass `timeoutMs: 60000` to adv_run_test for slow Temporal startup.",
+      "type": "code",
+      "status": "done",
+      "priority": 16,
+      "created_at": "2026-05-06T01:21:29.419Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.496Z",
+      "implementation_summary": "Verified the real change workflow handles 3 agents \u00d7 50 signals (150 total) without signal rejection using `plugin/src/temporal/__tests__/concurrent-signaling.itest.ts`. Test passed; no file changes needed in this session; checkpoint clean at 2f3fc77.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T04:51:30.329Z",
+          "test_file": "pnpm exec vitest run src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "command": "pnpm exec vitest run src/temporal/__tests__/concurrent-signaling.itest.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "completed_at": "2026-05-06T01:21:29.497Z",
+      "completed_by": "T17 complete. Concurrent-signaling integration verification passed; checkpoint clean at 2f3fc77."
+    },
+    {
+      "id": "tk-179a60a7-b24a-4f42-9f7e-5b51c96a240d",
+      "title": "M3/T18: Cross-cutting continueAsNew test (SC10 part a). Drive full workflow past 5,000 events. Validate: CAN at threshold, in-flight signals preserved, queryable state survives, history bounded, both triggers (historyLength + continueAsNewSuggested) work.",
+      "type": "code",
+      "status": "done",
+      "priority": 17,
+      "created_at": "2026-05-06T01:21:29.420Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.499Z",
+      "implementation_summary": "Added a real changeWorkflow continue-as-new integration test that floods 5,200 taskAdded signals, verifies all in-flight signal state survives into the new run, confirms run ID rotation, and asserts bounded post-CAN history. Added a pure trigger helper to cover both `continueAsNewSuggested` and explicit `historyLength >= threshold` paths; aligned default change CAN threshold with the 5,000-event design. Verified with focused vitest, typecheck, and Prettier check. Checkpoint 958f730.",
+      "error_recovery": {
+        "last_error": "Initial T18 test used too few signals, so historyLength reached only 3013 and did not trigger continue-as-new.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Focused continue-as-new test failed: `continue-as-new did not rotate; historyLength=3013`.",
+            "diagnosis": "The integration test generated fewer than 5,000 history events, so the 5,000-event CAN threshold was not reached.",
+            "fix_tried": "Increased flood size to 5,200 signals and reran focused test.",
+            "strategy_label": "increase-event-volume",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-06T04:58:23Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T04:58:32.062Z",
+          "test_file": "pnpm exec vitest run src/temporal/__tests__/continue-as-new.itest.ts",
+          "command": "pnpm exec vitest run src/temporal/__tests__/continue-as-new.itest.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.501Z",
+      "completed_by": "T18 complete. Continue-as-new integration verification passed; checkpoint 958f730."
+    },
+    {
+      "id": "tk-61f46cfd-b219-46f7-82f1-866b26fa07ee",
+      "title": "M3/T19: Cross-cutting cross-name signal-ordering test. Validate: signals of same name arrive in order; signals across different names may interleave but the gate-batched-replay marker barrier strategy (Section 8 V4 fix) deterministically serializes batches. Test scenarios: (a) taskAdded \u00d7 N + gateCompleted; (b) marker-signal-then-query polling completes; (c) replay determinism across CAN.",
+      "type": "code",
+      "status": "done",
+      "priority": 18,
+      "created_at": "2026-05-06T01:21:29.421Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.503Z",
+      "implementation_summary": "Added signal-ordering integration coverage for same-name taskAdded ordering, marker barriers between task and gate replay batches, and processed-marker preservation across continue-as-new. Persisted migration marker query state through ChangeWorkflowInput during CAN and used the current run ID for post-CAN marker signaling. Verified focused vitest, typecheck, and Prettier check. Checkpoint 47c41c9.",
+      "error_recovery": {
+        "last_error": "Initial post-CAN marker wait targeted a runless handle and timed out after the original run had continued-as-new.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Focused signal-ordering test timed out in post-CAN marker wait; Temporal logged `workflow execution already completed`.",
+            "diagnosis": "After CAN, signaling through a runless handle can target the completed first run in this SDK path; the marker must be sent to the current run ID returned by describe.",
+            "fix_tried": "Describe latest run after CAN, create a handle with that runId, then send/poll the post-CAN marker on the current-run handle.",
+            "strategy_label": "target-current-run",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-06T05:03:39Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T05:01:34.130Z",
+          "test_file": "pnpm exec vitest run src/temporal/__tests__/signal-ordering.itest.ts",
+          "command": "pnpm exec vitest run src/temporal/__tests__/signal-ordering.itest.ts",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/__tests__/signal-ordering.itest.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.505Z",
+      "completed_by": "T19 complete. Signal-ordering and marker-barrier integration verification passed; checkpoint 47c41c9."
+    },
+    {
+      "id": "tk-73270921-6a2e-4df8-9f4b-999350814450",
+      "title": "M4/T20: Refactor `plugin/src/tools/change.ts`, `task.ts`, `gate.ts`, `wisdom.ts` to signal-fire pattern. For each tool: replace update calls with `fireSignal` (mutations) or `querySignal` (reads). `gate.ts` adds V6 enforcement: query gate state before fire (sequential gate `rq-gatemodel01.1`); for gateId='execution', query tasks before fire (task completeness `rq-gatemodel01.4`). `task.ts` collapses TDD ceremony: drop separate red/green/checkpoint orchestration, the single taskCompletedSignal carries verification text. RED: per-tool integration test with mocked workflow handle; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 19,
+      "created_at": "2026-05-06T01:21:29.422Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.507Z",
+      "implementation_summary": "Refactored T20 tool paths so task completion uses `taskCompletedSignal` with verification/summary, gate status/completion reads workflow gate state via `getGateStatusQuery`, and execution gate checks workflow tasks via `changeTasksQuery` before firing `gateCompletedSignal`. Added failing-then-passing tests for task completion signal routing and gate workflow-query enforcement. Verified change/task/gate/wisdom focused tests, typecheck, and formatting. Checkpoint dd5b07b.",
+      "error_recovery": {
+        "last_error": "Full focused adv_run_test evidence recording failed with WorkflowUpdateFailedError after focused green evidence; fallback evidence recorded via adv_task_evidence.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`adv_run_test` for full T20 focused suite returned WorkflowUpdateFailedError while recording evidence.",
+            "diagnosis": "Test command itself was safe to rerun; evidence tool failed at workflow-update layer, not test execution layer.",
+            "fix_tried": "Reran full focused suite via bash, confirmed 4 files/42 tests passed, and attached fallback green evidence with adv_task_evidence.",
+            "strategy_label": "fallback-evidence-recording",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-06T17:04:56Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T17:03:21.318Z",
+          "test_file": "pnpm exec vitest run src/tools/task.test.ts src/tools/gate.test.ts",
+          "command": "pnpm exec vitest run src/tools/task.test.ts src/tools/gate.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T17:04:56.468Z",
+          "test_file": "src/tools/change.test.ts src/tools/task.test.ts src/tools/gate.test.ts src/tools/wisdom-derived-export.test.ts",
+          "command": "pnpm exec vitest run src/tools/change.test.ts src/tools/task.test.ts src/tools/gate.test.ts src/tools/wisdom-derived-export.test.ts",
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]",
+          "exit_code": 0,
+          "correction_reason": "adv_run_test full focused verification failed to record with WorkflowUpdateFailedError after focused green evidence was already recorded; command was rerun via bash and passed, so attaching fallback green evidence for full T20 per-tool suite."
+        }
+      },
+      "touched_files": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.509Z",
+      "completed_by": "T20 complete. Tool refactor verified; checkpoint dd5b07b."
+    },
+    {
+      "id": "tk-1bd79979-bf5e-4e36-9a4b-bd3c9931faa1",
+      "title": "M4/T21: Refactor `plugin/src/tools/checkpoint.ts`, `test.ts`, `temporal-ops.ts`, `archive-helpers/`. `checkpoint.ts`: signal carries result (drop ledger writes). `test.ts`: drop `phase: 'red' | 'green'` parameter; record `verification` via taskCompletedSignal at task end (not per-phase). `temporal-ops.ts`: simplify `adv_temporal_diagnose` (drop STSL singleton complexity, drop divergence checks); keep `adv_temporal_reconnect` and `adv_temporal_worker_restart`. `archive-helpers/`: refactor to produce durable trinity (brief change summary + spec deltas + wisdom); drop full-bundle output. RED: per-tool tests; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 20,
+      "created_at": "2026-05-06T01:21:29.423Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.511Z",
+      "implementation_summary": "Refactored checkpoint/test/temporal-ops/archive durable paths already present and verified: checkpoint completion routes through taskCompletedSignal, adv_run_test public output no longer has phase, temporal diagnose is a thin health diagnostic, and archiveChangeActivity writes durable trinity (brief summary, spec deltas, wisdom) with preflight and commit tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T17:09:17.611Z",
+          "test_file": "src/tools/checkpoint.test.ts src/tools/test.test.ts src/temporal/archive-activity.test.ts + typecheck",
+          "command": "pnpm exec vitest run src/tools/checkpoint.test.ts src/tools/test.test.ts src/temporal/archive-activity.test.ts && pnpm run typecheck",
+          "output_snippet": "pnpm exec vitest run src/tools/checkpoint.test.ts src/tools/test.test.ts src/tem\n... [truncated]",
+          "exit_code": 0,
+          "correction_reason": "adv_run_test failed with WorkflowUpdateFailedError before command output; bash fallback completed verification successfully."
+        }
+      },
+      "completed_at": "2026-05-06T01:21:29.512Z",
+      "completed_by": "T21 verified after resume. adv_run_test failed with WorkflowUpdateFailedError for typecheck, so bash fallback evidence recorded with adv_task_evidence. Checkpoint recorded clean at dd5b07bb78bc8d9beebd8bb89b3cf5b82054a97f."
+    },
+    {
+      "id": "tk-9212ffb5-9e89-4aaa-beec-e1f13b8e687f",
+      "title": "M4/T22: Refactor worktree tools (`adv_worktree_create`, `_delete`, `_triage`, `_resume`, `_cleanup`) to use `AdvWorktreeBranches` and `AdvWorktreePaths` search attributes for cross-change visibility. Branch-in-use detection: `client.workflow.list({ query: \"AdvAffectedProjects = 'X' AND AdvWorktreeBranches = 'Y' AND AdvChangeStatus = 'active'\" })`. Worktree state moves from project-workflow registry to per-change workflow state via worktreeCreated/Deleted signals. Triage tool aggregates across changes via search-attribute query. RED: cross-change branch-collision test; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 21,
+      "created_at": "2026-05-06T01:21:29.424Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7110cd20-a8b6-45d5-9856-a0dac14c99fa"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6e9a1099-f9c7-4203-84a3-1ffd3f68aa6f"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.514Z",
+      "implementation_summary": "Added search-attribute-backed worktree visibility helpers, branch-in-use detection via Temporal workflow.list over AdvAffectedProjects + AdvWorktreeBranches + AdvChangeStatus, and cross-change worktree aggregation from active change workflows. adv_worktree_create now blocks BRANCH_IN_USE before creating a local worktree. Added/updated tests for branch collision, visibility query construction, owner filtering, cross-change aggregation, and signal mock shape. Also fixed lint/format fallout in touched Temporal files so pnpm run check passes.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "recorded_at": "2026-05-06T17:11:38.285Z",
+          "test_file": "pnpm exec vitest run src/tools/worktree/index-create.test.ts",
+          "command": "pnpm exec vitest run src/tools/worktree/index-create.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        },
+        "green": {
+          "recorded_at": "2026-05-06T17:15:59.960Z",
+          "test_file": "src/tools/worktree/index-create.test.ts src/tools/worktree/state-session-lifecycle.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/index-delete.test.ts + pnpm run check",
+          "command": "pnpm exec vitest run src/tools/worktree/index-create.test.ts src/tools/worktree/state-session-lifecycle.test.ts src/tools/worktree/triage.test.ts src/tools/worktree/index-delete.test.ts && pnpm run check",
+          "output_snippet": "Focused worktree tests passed: 4 test files, 41 tests passed. pnpm run check pas\n... [truncated]",
+          "exit_code": 0,
+          "correction_reason": "adv_run_test failed with WorkflowUpdateFailedError before command output; bash fallback completed T22 verification successfully."
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/observability.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/_adapters.ts",
+        "plugin/src/tools/worktree/index-create.test.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.516Z",
+      "completed_by": "T22 complete. Checkpoint committed at 0727ef1ad2d47a3a3100c3f85798cf47028b1e3f."
+    },
+    {
+      "id": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace",
+      "title": "M4/T23: Get `pnpm build` green \u2014 M4 milestone gate. Run `pnpm run build` in `plugin/`; ensure tsup ESM bundle generates `dist/index.js` + `dist/temporal/*.js` cleanly. All tool registrations resolved. Workflow-bundle boundary test (`workflow-bundle-boundary.test.ts`) passes. M5 migration cannot start until this is green.",
+      "type": "code",
+      "status": "done",
+      "priority": 22,
+      "created_at": "2026-05-06T01:21:29.425Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-73270921-6a2e-4df8-9f4b-999350814450"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1bd79979-bf5e-4e36-9a4b-bd3c9931faa1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9212ffb5-9e89-4aaa-beec-e1f13b8e687f"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-06T01:21:29.518Z",
+      "implementation_summary": "M4 build gate verified: workflow-bundle boundary test passed (2 tests), plugin build passed, worker build emitted dist/temporal artifacts successfully, and working tree remained clean after build.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T17:17:27.021Z",
+          "test_file": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts && pnpm run build",
+          "command": "pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts && pnpm run build",
+          "exit_code": 0,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "completed_at": "2026-05-06T01:21:29.519Z",
+      "completed_by": "T23 build gate passed. Checkpoint recorded clean at 0727ef1ad2d47a3a3100c3f85798cf47028b1e3f."
+    },
+    {
+      "id": "tk-0fee4365-f2cb-4ea9-99b1-6abf5a9c25e2",
+      "title": "M5/T24: Implement one-shot migration script `plugin/scripts/migrate-to-signal-architecture.ts`. Algorithm per Design Section 8: read each `~/.local/share/opencode/plugins/advance/{pid}/changes/{id}/` directory; for each change.json, start a fresh signal-driven workflow with the change-id; replay (a) tasks via taskAdded signals batch, (b) marker barrier wait, (c) gate completions in order via gateCompleted signals batch, (d) marker barrier per gate. Verify state via getStateQuery == source state (round-trip check). Support `--dry-run` (no signals fired, just validate readability) and `--execute` (fire signals). Surface diff for any mismatch. RED: write test using `cleanupzombierunningworkflows` change as fixture; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 23,
+      "created_at": "2026-05-06T01:21:29.426Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.521Z",
+      "implementation_summary": "Implemented one-shot migration script `plugin/scripts/migrate-to-signal-architecture.ts` per Design Section 8. Reads each `~/.local/share/opencode/plugins/advance/{pid}/changes/{id}/` directory; `--dry-run` builds replay plan from `migration-replay.ts` (proposalUpdated/problemStatementUpdated/agreementUpdated/designUpdated \u2192 marker:docs \u2192 taskAdded/taskAssigned/taskBlocked/taskCompleted/taskCancelled per task \u2192 marker:tasks \u2192 gateInProgress/gateAwaitingApproval/gateStuck/gateCompleted per gate with marker barrier per gate \u2192 wisdomAdded \u2192 marker:wisdom \u2192 marker:final). `--execute` mode starts a fresh signal-driven changeWorkflow with TERMINATE_EXISTING policy, fires the plan via `replayChangeAsSignals`, and runs `validateMigrationRoundTrip` against `changeStateQuery` for source-vs-replayed task counts/status/gate-state/wisdom/documents. Added `scripts/migrate-to-signal-architecture.test.ts` with cleanupzombierunningworkflows-style fixture verifying dry-run plan via exposed `loadChangeDir`/`dryRunChange`. Verified post-restart: 3 test files pass; cleanupzombierunningworkflows real dry-run reports 13 plan steps (2 signal, 11 marker); pnpm run check (typecheck + isolation + lint + format) passes. Commit cafa358b1cbb777893acee2cb9bb6c88208c4817.",
+      "error_recovery": {
+        "last_error": "adv_task_checkpoint returns checkpointRecorded:false with error `Workflow Update failed` after commit cafa358; persists post session restart and post worker restart.",
+        "retry_count": 3,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "User approved manual acceptance. Re-validate after T26/T27 reseed workflows. Document workflow-versioning gap as known closing-check.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Workflow Update failed",
+            "diagnosis": "Live workflow update path rejects ledger writes after T23 dist rebuild.",
+            "fix_tried": "Inspected ledger via adv_task_run_status.",
+            "strategy_label": "inspect-ledger-after-commit",
+            "outcome": "failed",
+            "attempted_at": "2026-05-06T17:21:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Workflow Update failed",
+            "diagnosis": "Persists in fresh OpenCode session.",
+            "fix_tried": "Restarted OpenCode session; retried adv_run_test green and adv_task_checkpoint clean.",
+            "strategy_label": "session-restart",
+            "outcome": "failed",
+            "attempted_at": "2026-05-06T17:43:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Workflow Update failed",
+            "diagnosis": "Persists after Temporal worker process restart with healthy queue/workflow diagnostics.",
+            "fix_tried": "adv_temporal_worker_restart; retried adv_task_checkpoint at HEAD cafa358.",
+            "strategy_label": "worker-restart",
+            "outcome": "failed",
+            "attempted_at": "2026-05-06T17:44:00.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T17:20:43.064Z",
+          "test_file": "scripts/migrate-to-signal-architecture.test.ts src/temporal/migration-ordering.test.ts src/temporal/migration-barrier.test.ts + dry-run fixture + check",
+          "command": "pnpm exec vitest run scripts/migrate-to-signal-architecture.test.ts src/temporal/migration-ordering.test.ts src/temporal/migration-barrier.test.ts && pnpm exec tsx scripts/migrate-to-signal-architecture.ts --dry-run --only cleanupzombierunningworkflows && pnpm run check",
+          "output_snippet": "Migration script/replay tests passed: 3 files, 3 tests. cleanupzombierunningwork\n... [truncated]",
+          "exit_code": 0,
+          "correction_reason": "adv_run_test failed with WorkflowUpdateFailedError before command output; bash fallback completed T24 verification successfully."
+        },
+        "red": {
+          "recorded_at": "2026-05-06T17:19:46.508Z",
+          "test_file": "pnpm exec vitest run scripts/migrate-to-signal-architecture.test.ts",
+          "command": "pnpm exec vitest run scripts/migrate-to-signal-architecture.test.ts",
+          "exit_code": 1,
+          "output_snippet": "RUN  v4.1.4 /home/jrede/.local/share/opencode/worktree/bdf259aa162ae192af5b18899\n... [truncated]"
+        }
+      },
+      "touched_files": [
+        "plugin/scripts/migrate-to-signal-architecture.test.ts",
+        "plugin/scripts/migrate-to-signal-architecture.ts"
+      ],
+      "completed_at": "2026-05-06T01:21:29.526Z",
+      "completed_by": "User-approved manual gap acceptance. T24 implementation is committed at cafa358 and verified via bash; checkpoint ledger could not be recorded due to workflow-versioning incompatibility (task-run-ledger workflow started under pre-refactor signal code; rejects updates after T23 rebuild). Re-validate after T26/T27 migration reseeds workflows."
+    },
+    {
+      "id": "tk-2f751700-ca4a-49d4-af9f-5eafdf7efce5",
+      "title": "M5/T25: Migration marker signal infrastructure. Add `migrationMarkerSignal` (defined alongside other signals, marked transient/post-migration-deletable) and `getProcessedMarkersQuery` to workflow surface. Migration script fires markers between batches and polls until processed. Both removed in T28 (post-migration cleanup) along with `change-import.ts` and `migrate-cleanup.ts`. RED: marker-roundtrip test; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 24,
+      "created_at": "2026-05-06T01:21:29.427Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a8f065b-3eb1-40ec-9c90-bea8b96f16d5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.527Z",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "green": {
+          "recorded_at": "2026-05-06T17:46:43.103Z",
+          "test_file": "src/temporal/migration-barrier.test.ts src/temporal/messages.test.ts",
+          "command": "pnpm exec vitest run src/temporal/migration-barrier.test.ts src/temporal/messages.test.ts",
+          "output_snippet": "Migration marker barrier + messages tests passed: 2 files, 4 tests. migrationMar\n... [truncated]",
+          "exit_code": 0,
+          "correction_reason": "T25 marker infrastructure was implemented in earlier tasks (T19+T18 spike work). Direct verification via existing tests rather than new red\u2192green cycle."
+        }
+      },
+      "completed_at": "2026-05-06T01:21:29.528Z",
+      "completed_by": "T25 complete. Marker infrastructure already implemented from prior task work; verified via existing tests post-restart. Checkpoint clean at cafa358.",
+      "implementation_summary": "migrationMarkerSignal + getProcessedMarkersQuery already wired across signals.ts (MigrationMarkerSignalPayloadSchema), messages.ts (signal/query exports), workflows.ts (handler + processedMarkers state), and consumed by migration-replay.ts/spike/migration.ts. Round-trip exercised by migration-barrier.itest (signalMigrationMarkerAndWait + getProcessedMarkersQuery polling). Marker infrastructure persists past CAN per T19 ordering test. Pending T28 cleanup removes both signal+query post-migration."
+    },
+    {
+      "id": "tk-dcac5430-06eb-41a3-96f9-cafb4afadf62",
+      "title": "M5/T26: Run dry-run migration on all 7 active changes (`removeBunTypesMainTsconfig`, `reconcilesessionlistwithdiagno`, `cleanupzombierunningworkflows`, `singleworkerperprojectpolicy`, `reconcilechangelistsourcesoftr`, `addAgentMeshAndInRepoArchive`, `makeAdvTaskEvidenceFallback` \u2014 plus this change `refactorChangeWorkflowsSignal` itself if still active). Capture diffs in `docs/decisions/2026-05-04-migration-dryrun.md`. Any mismatch escalates to user before execute.",
+      "type": "code",
+      "status": "done",
+      "priority": 25,
+      "created_at": "2026-05-06T01:21:29.428Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0fee4365-f2cb-4ea9-99b1-6abf5a9c25e2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2f751700-ca4a-49d4-af9f-5eafdf7efce5"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-06T01:21:29.529Z",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "touched_files": [
+        "docs/decisions/2026-05-04-migration-dryrun.md"
+      ],
+      "completed_at": "2026-05-06T01:21:29.531Z",
+      "completed_by": "T26 dry-run complete; all 8 active changes load and produce well-formed replay plans. No mismatches. Decision doc + checkpoint at 7e6b722.",
+      "implementation_summary": "Ran `pnpm exec tsx scripts/migrate-to-signal-architecture.ts --dry-run` (no --only) against project bdf259aa162ae192af5b18899ccdc653b085528d. All 8 changes (addagentmeshandinrepoarchive, cleanupzombierunningworkflows, makeAdvTaskEvidenceFallback, reconcilechangelistsourcesoftr, reconcilesessionlistwithdiagno, refactorChangeWorkflowsSignal, removeBunTypesMainTsconfig, singleworkerperprojectpolicy) loaded change.json + four document artifacts and produced replay plans totaling 236 steps (158 signal + 88 marker). Marker barriers constant at 11 per change as expected. Captured per-change report in docs/decisions/2026-05-04-migration-dryrun.md. No mismatches surfaced; T27 cleared to execute."
+    },
+    {
+      "id": "tk-358b93bf-160c-457e-b7be-3d145d189cd6",
+      "title": "M5/T27: Execute migration after dry-run review. Run script with `--execute` flag. Hard cutover per O7. After execution, verify each change via `adv_change_show changeId: <id>` returns expected state. Then this change continues from execution gate.",
+      "type": "code",
+      "status": "done",
+      "priority": 26,
+      "created_at": "2026-05-06T01:21:29.429Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dcac5430-06eb-41a3-96f9-cafb4afadf62"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T01:21:29.532Z",
+      "completed_at": "2026-05-06T17:55:00.000Z",
+      "completed_by": "User-approved direct file edit; adv_task_update blocked by stale plugin tool code in OpenCode session memory. Migration succeeded for all 8 active changes with round-trip OK. Side fixes: marker-bypass in replay, fresh dist copied to main repo path. Commit a07f759.",
+      "implementation_summary": "Hard-cutover migration via migrate-to-signal-architecture.ts --execute succeeded for all 8 active changes. Each report shows roundTrip.ok=true with unexpectedLosses=[]; task counts, status counts, wisdom counts, and document sets matched between source disk state and replayed workflow state. For refactorChangeWorkflowsSignal: 38 tasks (26 done/1 in_progress/11 pending), 15 wisdom, 4 docs replayed verbatim. Required two side fixes: (a) bypass marker barriers in replayChangeAsSignals via useMarkerBarriers flag (default false) plus 50ms settle delay, since legacy live workflows reject getProcessedMarkersQuery; (b) copy fresh worktree plugin/dist/temporal/* over stale main-repo plugin/dist/temporal/* (worker child loads from main repo path) and restart worker. Commit a07f759. Note: ledger update via adv_task_checkpoint failed because OpenCode plugin host loaded pre-T22 dist/index.js into memory at session start; pending OpenCode restart for plugin tool refresh.",
+      "error_recovery": {
+        "last_error": "adv_task_update failed with QueryNotRegisteredError(adv.change.state) because OpenCode plugin tool code is stale (pre-T22 dist).",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "User restart OpenCode to reload plugin/dist/index.js for fresh query names. Until then, mark via direct disk edit per user authorization.",
+        "attempts": []
+      }
+    },
+    {
+      "id": "tk-d96ec683-32b1-4c05-83bd-76915ddaa023",
+      "title": "M5/T28: Delete migration tooling post-execution. `git rm plugin/scripts/migrate-to-signal-architecture.ts`, `plugin/src/tools/change-import.ts` + test, `plugin/src/tools/migrate-cleanup.ts` + test. Remove `migrationMarkerSignal` and `getProcessedMarkersQuery` from `messages.ts` and workflow handlers. Update `tool-registry.ts` to drop `adv_change_import` and `adv_migrate_cleanup`. These were one-shot tools.",
+      "type": "code",
+      "status": "done",
+      "priority": 27,
+      "created_at": "2026-05-06T01:21:29.430Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-358b93bf-160c-457e-b7be-3d145d189cd6"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-06T17:55:30.000Z",
+      "completed_at": "2026-05-06T18:02:00.000Z",
+      "completed_by": "Direct disk edit (plugin tools stale). Deleted migration-related source: scripts/migrate-to-signal-architecture(.test).ts, src/tools/change-import(.test).ts, src/tools/migrate-cleanup(.test).ts, src/temporal/migration-replay.ts, src/temporal/migration-{barrier,ordering}.test.ts, src/temporal/__tests__/signal-ordering.itest.ts. Removed migrationMarkerSignal + getProcessedMarkersQuery from contracts.ts/messages.ts/workflows.ts/types/signals.ts. Removed adv_change_import from tool-registry.ts. typecheck + lint + format:check + messages.test all pass. Commit 29d1a50 (16 files, 2223 deletions).",
+      "implementation_summary": "Deleted one-shot migration tooling per T28: 6 source files (script, change-import, migrate-cleanup, migration-replay, marker tests, signal-ordering itest). Removed marker signal/query from contracts/messages/workflows/types and dropped adv_change_import from tool-registry. Net reduction 2223 lines. Repo check passes; messages.test green.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      }
+    },
+    {
+      "id": "tk-d1ebe3e1-8707-4950-9b55-d57ccb3d4b05",
+      "title": "M5/T29: Integration tests pass. Run `pnpm test -- --run integration` (or relevant integration test invocation). Validate end-to-end signal-driven workflows handle all 7 gate transitions, archive flow produces durable trinity, conformance routing works, worktree lifecycle works. Pass `timeoutMs: 120000` for slow tests.",
+      "type": "code",
+      "status": "done",
+      "priority": 28,
+      "created_at": "2026-05-06T01:21:29.431Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-358b93bf-160c-457e-b7be-3d145d189cd6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "completed_at": "2026-05-06T20:34:20.049Z",
+      "completedAt": "2026-05-06T20:34:20.049Z",
+      "verification": "Phantom-pending reconciliation post-rebuild; landed in commit d15cb06; workflow query confirms done; disk projection patched manually due to projection-writer staleness.",
+      "summary": "M5/T29 integration tests passed in prior session \u2014 full suite 1805/1805 green; verified at commit d15cb06; re-verification skipped per user instruction.",
+      "implementation_summary": "M5/T29 integration tests passed in prior session \u2014 full suite 1805/1805 green; verified at commit d15cb06; re-verification skipped per user instruction."
+    },
+    {
+      "id": "tk-3f623003-441e-4a47-95c6-c99a06fd65f5",
+      "title": "M6/T30: Documentation sweep. Update (a) `ADV_INSTRUCTIONS.md` \u2014 remove TDD ceremony references (no phase machine, no `adv_task_evidence` fallback, no `adv_task_run_status` resume ledger, no `adv_task_tdd` reclassification); update tool tables; remove project-keying references; document V6 enforcement-layer migration; (b) `AGENTS.md` \u2014 architecture notes for signal-driven model; remove dual-write language; (c) `docs/adv-gates.md` \u2014 preserve 7-gate sequence text; document new per-gate state machine (pending/in_progress/awaiting_approval/stuck/done); (d) Command files in `.opencode/command/` \u2014 remove references to retired tools and update enforcement language. RED: command-asset tests confirm references removed; GREEN: implement.",
+      "type": "code",
+      "status": "done",
+      "priority": 29,
+      "created_at": "2026-05-06T01:21:29.432Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T18:18:00.000Z",
+      "completed_at": "2026-05-06T18:25:00.000Z",
+      "completed_by": "Direct disk edit; T30 docs sweep applied + repo check passes. Commit 056967a.",
+      "implementation_summary": "Removed adv_task_evidence/adv_task_run_status/adv_task_tdd/adv_task_reclassify_tdd/adv_change_import/adv_migrate_cleanup references from ADV_INSTRUCTIONS.md, .opencode/command/adv-apply.md, .opencode/command/adv-harden.md. Replaced ledger-include flag with signal-driven framing. Replaced durable ledger section with signal-driven note. Added Signal-driven change workflows architecture entry to AGENTS.md. Expanded gate status values in docs/adv-gates.md to include in_progress/awaiting_approval/stuck and named the per-gate signals. pnpm run check (typecheck + lint + format:check) passes."
+    },
+    {
+      "id": "tk-55e933f2-bd5c-48a8-b7ba-032263313894",
+      "title": "M6/T31: Apply spec deltas to `.adv/specs/advance-delivery.yaml`. (a) Delete `rq-taskRunLedger01` (all 6 scenarios). (b) Delete scenario `rq-ADVEXEC01.3` (fallback framing). (c) Delete scenario `rq-ADVEXEC04.2` (adv_task_evidence value-gated fallback). (d) Modify `rq-ADVEXEC04.1` third `then` clause: replace \"task-run ledger continuity value\" with \"durable workflow-queryable test record value\". Verify via `adv_spec action: 'show' capability: 'advance-delivery'` after edit.",
+      "type": "code",
+      "status": "done",
+      "priority": 30,
+      "created_at": "2026-05-06T01:21:29.433Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T18:05:00.000Z",
+      "completed_at": "2026-05-06T18:08:00.000Z",
+      "completed_by": "Direct disk edit; spec deltas applied + JSON validated. Commit 06f847f.",
+      "implementation_summary": "Applied advance-delivery deltas: deleted rq-taskRunLedger01 (6 scenarios), deleted rq-ADVEXEC01.3, deleted rq-ADVEXEC04.2, modified rq-ADVEXEC04.1 third then to durable workflow-queryable test record value. spec.json passes JSON.parse."
+    },
+    {
+      "id": "tk-1de3dc04-4f8a-447f-b38b-875cd08f4baa",
+      "title": "M6/T32: Apply spec deltas to `.adv/specs/tdd-contract.yaml`. (a) Delete `rq-TDD007req` (all 6 scenarios \u2014 reclassification mechanism retired). (b) Delete `rq-TDD009idem` (all 3 scenarios \u2014 fallback evidence idempotency retired). (c) Delete `rq-TDD010phase` (both scenarios \u2014 phase derivation retired). (d) Modify `rq-TDD001inl` body: remove \"tdd_phase field tracks progress\" sentence; replace with \"Inline TDD progress is observable via adv_run_test invocations and the final verification claim on taskCompletedSignal.\" (e) Modify `rq-TDD001inl.1` then clause: remove \"expected to have tdd_evidence with both red and green phases\"; replace with \"the task records inline TDD via adv_run_test calls; final claim recorded in taskCompletedSignal.verification\". (f) Delete scenario `rq-TDD008path.2`. (g) Modify `rq-TDD008path.3` given clause: remove `or adv_task_evidence` from disjunction. Verify via `adv_spec action: 'show' capability: 'tdd-contract'`.",
+      "type": "code",
+      "status": "done",
+      "priority": 31,
+      "created_at": "2026-05-06T01:21:29.434Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T18:05:00.000Z",
+      "completed_at": "2026-05-06T18:08:00.000Z",
+      "completed_by": "Direct disk edit; spec deltas applied + JSON validated. Commit 06f847f.",
+      "implementation_summary": "Applied tdd-contract deltas: deleted rq-TDD007req (6 scenarios), deleted rq-TDD009idem (3 scenarios), deleted rq-TDD010phase (2 scenarios), modified rq-TDD001inl body to remove tdd_phase reference, modified rq-TDD001inl.1 then to taskCompletedSignal.verification, deleted rq-TDD008path.2, modified rq-TDD008path.3 given to drop adv_task_evidence disjunction. spec.json passes JSON.parse."
+    },
+    {
+      "id": "tk-a9f7c700-23c3-4e57-9779-ecfa972d815e",
+      "title": "M6/T33: Apply spec deltas to `.adv/specs/advance-meta.yaml`. (a) Modify `rq-worktreeRegistry01` body: replace \"must live inside the project workflow state\" with \"must live inside the change workflow state, with cross-change visibility via the AdvWorktreeBranches and AdvWorktreePaths Temporal search attributes.\" Modify scenarios `.1` and `.2`: replace `ProjectWorkflowState.worktree_registry` with `change-workflow worktree state`; replace `addWorktreeSession workflow update` with `worktreeCreatedSignal`; replace \"project workflow\" with \"change workflow\". (b) Modify `rq-multiSessionCoordination01` body: replace \"serialized by Temporal workflow updates\" with \"serialized by Temporal workflow signals.\" Modify scenario `.1` then clause to reference signals on change workflow. Modify scenario `.2`: replace \"mutators use monotonic source_version dedup\" with signal-queue serialization language. Verify via `adv_spec`.",
+      "type": "code",
+      "status": "done",
+      "priority": 32,
+      "created_at": "2026-05-06T01:21:29.435Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T18:05:00.000Z",
+      "completed_at": "2026-05-06T18:08:00.000Z",
+      "completed_by": "Direct disk edit; spec deltas applied + JSON validated. Commit 06f847f.",
+      "implementation_summary": "Applied advance-meta deltas: modified rq-multiSessionCoordination01 body+scenarios to signal-driven coordination via change workflow; modified rq-worktreeRegistry01 body+scenarios to change-workflow + AdvWorktreeBranches/AdvWorktreePaths visibility. spec.json passes JSON.parse."
+    },
+    {
+      "id": "tk-948d811d-0e94-41b1-88cb-fbf608615f73",
+      "title": "M6/T34: Apply spec deltas to `.adv/specs/worktree-lifecycle.yaml`. (a) Modify `rq-wl-branchRegistry01` body: replace \"ProjectWorkflowState.worktree_registry\" reference with \"per-change workflow state, with cross-change visibility via AdvWorktreeBranches/AdvWorktreePaths search attributes\". Branch-aware entries, setup readiness, and git-first reconciliation semantics preserved. (b) Modify `rq-worktreeReuse01.1` then clause: replace \"No project-workflow recovery is required\" with \"No per-change workflow recovery is required \u2014 change-workflow state survives directly via Temporal.\" Verify via `adv_spec action: 'show' capability: 'worktree-lifecycle'`.",
+      "type": "code",
+      "status": "done",
+      "priority": 33,
+      "created_at": "2026-05-06T01:21:29.436Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-06T18:05:00.000Z",
+      "completed_at": "2026-05-06T18:08:00.000Z",
+      "completed_by": "Direct disk edit; spec deltas applied + JSON validated. Commit 06f847f.",
+      "implementation_summary": "Applied worktree-lifecycle delta: modified rq-wl-branchRegistry01 body to per-change workflow + AdvWorktreeBranches/AdvWorktreePaths visibility. Also modified rq-worktreeReuse01.1 then.2 in advance-meta (where rq-worktreeReuse01 lives) to per-change workflow recovery framing. spec.json passes JSON.parse."
+    },
+    {
+      "id": "tk-4228f878-8dec-4ca4-b580-8a724ab23b3f",
+      "title": "M6/T35: Verify SC8 LOC reduction \u226530%. Run `wc -l plugin/src/temporal/**/*.ts plugin/src/tools/**/*.ts` after all M5/M6 work; compare against T07 baseline. Compute reduction percentage. Append result to `docs/decisions/2026-05-04-loc-baseline.md`. Pass: \u226530%. Fail: surface to user \u2014 design's \"rip out and rewrite\" should achieve this; if short, escalate.",
+      "type": "code",
+      "status": "done",
+      "priority": 34,
+      "created_at": "2026-05-06T01:21:29.437Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d96ec683-32b1-4c05-83bd-76915ddaa023"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ece0cfea-60a0-4e59-a87c-f16dc7f971c4"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "completed_at": "2026-05-06T20:34:20.049Z",
+      "completedAt": "2026-05-06T20:34:20.049Z",
+      "verification": "Phantom-pending reconciliation post-rebuild; landed in commit d15cb06; workflow query confirms done; disk projection patched manually due to projection-writer staleness.",
+      "summary": "M6/T35 SC8 LOC verification: 1.5% reduction (MISSED \u226530%). Documented in docs/decisions/2026-05-04-loc-baseline.md. Gap to be closed by follow-up cull change. Commit d15cb06.",
+      "implementation_summary": "M6/T35 SC8 LOC verification: 1.5% reduction (MISSED \u226530%). Gap to be closed by follow-up cull change. Commit d15cb06."
+    },
+    {
+      "id": "tk-340547ca-e12c-40a7-8fb0-c677b39252e4",
+      "title": "M6/T36: Verify SC9 signal traffic \u2264300 events. Pick a representative migrated change (suggest `addAgentMeshAndInRepoArchive` \u2014 8 completed tasks, full lifecycle) and instrument signal counts via Temporal history inspection. Validate \u2264300 events for full change lifetime. Document in spike report or final verification appendix.",
+      "type": "code",
+      "status": "done",
+      "priority": 35,
+      "created_at": "2026-05-06T01:21:29.438Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-358b93bf-160c-457e-b7be-3d145d189cd6"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "completed_at": "2026-05-06T20:34:20.049Z",
+      "completedAt": "2026-05-06T20:34:20.049Z",
+      "verification": "Phantom-pending reconciliation post-rebuild; landed in commit d15cb06; workflow query confirms done; disk projection patched manually due to projection-writer staleness.",
+      "summary": "M6/T36 SC9 signal traffic \u2264300 verified via Temporal history. Commit d15cb06.",
+      "implementation_summary": "M6/T36 SC9 signal traffic \u2264300 verified via Temporal history. Commit d15cb06."
+    },
+    {
+      "id": "tk-f2ea2fe9-291a-49e7-827e-d49cc7f4a27e",
+      "title": "M6/T37: Get full test suite green \u2014 M6 milestone gate. Run `pnpm test` in `plugin/`; all 1356+ tests + new tests pass. Per Section 9: this is the moment all M1-M5 broken-build milestones converge. Pass `timeoutMs: 180000` if needed for full suite duration.",
+      "type": "code",
+      "status": "done",
+      "priority": 36,
+      "created_at": "2026-05-06T01:21:29.439Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-406ae759-a2d3-447a-88f2-38d4acf7cc1e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-179a60a7-b24a-4f42-9f7e-5b51c96a240d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-61f46cfd-b219-46f7-82f1-866b26fa07ee"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d1ebe3e1-8707-4950-9b55-d57ccb3d4b05"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3f623003-441e-4a47-95c6-c99a06fd65f5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-55e933f2-bd5c-48a8-b7ba-032263313894"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1de3dc04-4f8a-447f-b38b-875cd08f4baa"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a9f7c700-23c3-4e57-9779-ecfa972d815e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-948d811d-0e94-41b1-88cb-fbf608615f73"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "completed_at": "2026-05-06T20:34:20.049Z",
+      "completedAt": "2026-05-06T20:34:20.049Z",
+      "verification": "Phantom-pending reconciliation post-rebuild; landed in commit d15cb06; workflow query confirms done; disk projection patched manually due to projection-writer staleness.",
+      "summary": "M6/T37 full test suite green: 1805/1805 tests pass; pnpm run check \u2713; pnpm run build \u2713. Commit d15cb06.",
+      "implementation_summary": "M6/T37 full test suite green: 1805/1805 tests pass; pnpm run check \u2713; pnpm run build \u2713. Commit d15cb06."
+    },
+    {
+      "id": "tk-19e67937-9634-4c52-bc88-fed462b08c53",
+      "title": "M6/T38: Verify SC3 \u2014 all 24 slash commands smoke. After session restart (rebuild required per AGENTS.md \"Source-vs-Dist Reload Gotcha\"), run `pnpm run check` (typecheck + lint + format:check) and exercise canonical workflow: `/adv-status`, `/adv-proposal`, `/adv-discover`, `/adv-design`, `/adv-prep`, `/adv-apply`, `/adv-review`, `/adv-archive`. Confirm command-asset tests pass and manual smoke shows expected gate transitions, signal-driven state, and durable-trinity archive output. This is the final acceptance gate.",
+      "type": "code",
+      "status": "done",
+      "priority": 37,
+      "created_at": "2026-05-06T01:21:29.440Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace"
+        }
+      ],
+      "tdd_phase": "none",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "completed_at": "2026-05-06T20:34:20.049Z",
+      "completedAt": "2026-05-06T20:34:20.049Z",
+      "verification": "Phantom-pending reconciliation post-rebuild; landed in commit d15cb06; workflow query confirms done; disk projection patched manually due to projection-writer staleness.",
+      "summary": "M6/T38 SC3 24-slash-command smoke verified post-rebuild. Commit d15cb06.",
+      "implementation_summary": "M6/T38 SC3 24-slash-command smoke verified post-rebuild. Commit d15cb06."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-d8a168bf-385a-467a-be69-a49debf3948d",
+      "type": "pattern",
+      "content": "Temporal spike workflows can live in `plugin/src/temporal/spike/` with colocated `contracts.ts`, `messages.ts`, and `workflows.ts`; a focused test can use `Worker.create({ workflowsPath: fileURLToPath(new URL('./workflows.ts', import.meta.url)), taskQueue })` plus `withTestWorkflowEnvironment` to validate signal/query behavior without touching the main worker.",
+      "source_task": "tk-7e41fd3b-565b-4c7d-a1b4-4d75ac5a5841",
+      "recorded_at": "2026-05-06T01:21:29.445Z"
+    },
+    {
+      "id": "ws-307518a9-829d-4d9c-911d-b77f8b8d5b28",
+      "type": "gotcha",
+      "content": "Temporal signal client calls are fire-and-forget; `handle.signal(...)` resolving does not mean async signal-handler activities (e.g. projection writes) have completed. Tests and migration barriers must query/poll workflow state (or marker query) for the processed condition before asserting projection/side effects.",
+      "source_task": "tk-57140af5-9764-4492-863a-8a54201a36a8",
+      "recorded_at": "2026-05-06T01:21:29.453Z"
+    },
+    {
+      "id": "ws-eb5bf613-16fb-4aad-9dea-0c7c430b26c3",
+      "type": "gotcha",
+      "content": "Design prose said \"24 signals\" but the enumerated surface is 26 new signals plus retained `applyChangeSummarySignal` (27 primary bindings), with `migrationMarkerSignal` treated as a temporary migration-only signal outside the primary contract count. Contract tests should encode the enumerated keys, not the stale prose count.",
+      "source_task": "tk-3c4e7d74-726e-4419-bf63-165cf84b5959",
+      "recorded_at": "2026-05-06T01:21:29.474Z"
+    },
+    {
+      "id": "ws-640ed01d-5a3c-432a-8d3d-fd6240a89b3c",
+      "type": "gotcha",
+      "content": "For signal-driven change workflows, `wf.condition(() => shouldContinueAsNew(...))` can unblock while handlers are still in flight; always call `await wf.condition(wf.allHandlersFinished)` immediately before `wf.continueAsNew(...)` so the seed captures completed handler mutations.",
+      "source_task": "tk-3a8f065b-3eb1-40ec-9c90-bea8b96f16d5",
+      "recorded_at": "2026-05-06T01:21:29.478Z"
+    },
+    {
+      "id": "ws-2eec55f5-8055-4c77-b88a-a7863f20f685",
+      "type": "gotcha",
+      "content": "Bucket precedence must treat `release` awaiting approval specially: in actual `bucketCtxFromState`, release awaiting approval also makes `currentGateStatus === 'awaiting_approval'`. Put `ready_to_archive` before generic awaiting-gate handling, while leaving `pendingCheckpoint` as the highest precedence.",
+      "source_task": "tk-fb93b2a7-abee-4109-8150-deb39544cfea",
+      "recorded_at": "2026-05-06T01:21:29.482Z"
+    },
+    {
+      "id": "ws-db3f5ae9-8ede-4b31-93e2-263fd5cb1b1e",
+      "type": "pattern",
+      "content": "Keep `change-state.ts` as pure workflow-safe mutation code: no Temporal SDK, storage, tools, or node imports; boundary/protocol validation such as sequential gate checks belongs in tool adapters, while state helpers only apply already-validated mutations.",
+      "source_task": "tk-98cb127b-ffe9-427e-b66e-a900e241a138",
+      "recorded_at": "2026-05-06T01:21:29.486Z"
+    },
+    {
+      "id": "ws-b3c18340-56c8-4d0f-90df-7c2855c72a27",
+      "type": "pattern",
+      "content": "Adapter helpers can preserve existing handle-first call sites while enabling signal-driven store-input usage via overloads: accept either `WorkflowHandleLike` or `TemporalStoreBackendInput + changeId`, resolve through `getGuardedChangeHandle`, then route through the same `runTemporal` / `runTemporalQuery` wrappers.",
+      "source_task": "tk-32cf5119-ab0a-46ab-afb5-e4e6f0a2c1ca",
+      "recorded_at": "2026-05-06T01:21:29.490Z"
+    },
+    {
+      "id": "ws-c524110a-e842-4850-86df-5342ab97c154",
+      "type": "success",
+      "content": "Real `changeWorkflow` concurrent-signaling SC1 verification is covered by `plugin/src/temporal/__tests__/concurrent-signaling.itest.ts`: seed task-add signals first, poll query state as barrier, then fire 120 mixed signals concurrently; assert zero rejections, 150 total signals, converged task/gate/wisdom/document state, and RUNNING workflow status.",
+      "source_task": "tk-406ae759-a2d3-447a-88f2-38d4acf7cc1e",
+      "recorded_at": "2026-05-06T01:21:29.498Z"
+    },
+    {
+      "id": "ws-52bb011c-6904-4c67-a36e-8162866a808c",
+      "type": "gotcha",
+      "content": "For the real `changeWorkflow` CAN test, one task-added signal roughly added one history event in Temporal test env; 3,000 signals only reached `historyLength=3013`. Use >5,000 signals (5,200 worked) to validate the 5,000-event threshold and run-ID rotation.",
+      "source_task": "tk-179a60a7-b24a-4f42-9f7e-5b51c96a240d",
+      "recorded_at": "2026-05-06T01:21:29.502Z"
+    },
+    {
+      "id": "ws-f08aca4b-658c-4057-a612-13c22c9258de",
+      "type": "gotcha",
+      "content": "After a workflow continues-as-new, use a handle bound to the latest `description.runId` for post-CAN marker signals. In the TS SDK test path, a runless handle can still route `signal(...)` to the completed first run, causing `workflow execution already completed` and marker-poll timeouts.",
+      "source_task": "tk-61f46cfd-b219-46f7-82f1-866b26fa07ee",
+      "recorded_at": "2026-05-06T01:21:29.506Z"
+    },
+    {
+      "id": "ws-258b5b8e-5d01-4c3d-8030-f4deebaee98d",
+      "type": "pattern",
+      "content": "Gate tools should enforce V6 against workflow-query state, not stale disk projections: query `getGateStatusQuery` before sequence checks, and query `changeTasksQuery` before completing execution. Disk change data remains useful for context snapshots/readiness only.",
+      "source_task": "tk-73270921-6a2e-4df8-9f4b-999350814450",
+      "recorded_at": "2026-05-06T01:21:29.510Z"
+    },
+    {
+      "id": "ws-a963009d-3d82-4784-b7e4-73434eb52d04",
+      "type": "gotcha",
+      "content": "During the T21 transition, live `adv_run_test` can fail with `WorkflowUpdateFailedError` after source refactors to the same tool surface because OpenCode uses cached plugin dist/tool code in-session. Verify with bash fallback and attach `adv_task_evidence`; full live-tool behavior needs build + fresh session.",
+      "source_task": "tk-1bd79979-bf5e-4e36-9a4b-bd3c9931faa1",
+      "recorded_at": "2026-05-06T01:21:29.513Z"
+    },
+    {
+      "id": "ws-54a6747c-41b1-4d43-a4f0-81f29ae74daa",
+      "type": "pattern",
+      "content": "Cross-change worktree branch ownership can be checked through Temporal Visibility before any git mutation: query `AdvAffectedProjects = \"{projectId}\" AND AdvWorktreeBranches = \"{branch}\" AND AdvChangeStatus = \"active\"`, filter `adv/change/{projectId}/` workflow IDs, and exclude the current change ID.",
+      "source_task": "tk-9212ffb5-9e89-4aaa-beec-e1f13b8e687f",
+      "recorded_at": "2026-05-06T01:21:29.517Z"
+    },
+    {
+      "id": "ws-f12805d4-3ee9-4c26-962d-0e3663adcd6d",
+      "type": "success",
+      "content": "M4 build gate passed after signal-driven workflow/tool refactors: `pnpm exec vitest run src/temporal/workflow-bundle-boundary.test.ts && pnpm run build` generated `dist/index.js` plus `dist/temporal/worker.js` and `dist/temporal/workflows.js` without dirtying the worktree.",
+      "source_task": "tk-32a5ef1c-22e6-44e6-821f-815a2c1d2ace",
+      "recorded_at": "2026-05-06T01:21:29.520Z"
+    },
+    {
+      "id": "ws-ac00b261-7680-4f08-93dd-d348312b026e",
+      "type": "gotcha",
+      "content": "T24 exposed a live-session checkpoint ledger gap: git checkpoint can commit successfully while `adv_task_checkpoint` returns `checkpointRecorded:false` with `Workflow Update failed`; do not mark task done. Fresh OpenCode restart is required, then retry clean checkpoint at committed HEAD before closing the task/change.",
+      "source_task": "tk-0fee4365-f2cb-4ea9-99b1-6abf5a9c25e2",
+      "recorded_at": "2026-05-06T01:21:29.525Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-06T01:21:29.400Z",
+      "completed_by": "agent",
+      "notes": "approved via /adv-autopilot at 2026-05-05T03:15:00Z \u2014 proposal complete with 10 SC, scope, problem statement, agreement, design (canonical doc at docs/decisions/2026-05-04-signal-driven-change-workflows.md, 656 lines)"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-06T01:21:29.401Z",
+      "completed_by": "agent",
+      "notes": "approved via /adv-autopilot at 2026-05-05T03:15:00Z \u2014 agreement locked: 8 objectives (O1-O8), 10 AC (SC1-SC10), 5 discovery findings (F1-F5: workflow surface counts, disk-read tool inventory, deletion-target LOC, claude-tempo positive control, 7 active changes for migration), 6 risks (R1-R6), 8 design questions (Q1-Q8 deferred to design). Architectural decisions carried forward."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-06T01:21:29.402Z",
+      "completed_by": "agent",
+      "notes": "approved via /adv-autopilot at 2026-05-05T03:30:00Z \u2014 V6 CONFLICT resolved via user-approved path B (retire tool surfaces); V7 CAUTION verdict with all V6 conflicts RESOLVED and V6 cautions ADDRESSED; 6 V7 spec-coherence findings folded into Section 10 delta catalog (now 4 retired + 3 scenario-deletes + 7 modifications across advance-delivery, tdd-contract, advance-meta, worktree-lifecycle). Design gate ready."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-06T01:21:29.441Z",
+      "completed_by": "agent",
+      "notes": "Prep approved by user reply: \"Continue if you have next steps\" after 38-task graph creation and state reload. Task graph: 38 pending, 1 ready, dependencies staged M0\u2192M6. Autopilot delegation remains active but Tier B archive/cancellation and system interrupts still require stop."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-06T20:34:46.908Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 38 tasks done. Source/git landed in prior session (commits 29d1a50, 06f847f, 056967a, d15cb06, 918ca94). Full suite 1805/1805 green; pnpm run check \u2713; pnpm run build \u2713. Phantom-pending workflow records reconciled this session post-rebuild; disk projection patched manually due to projection-writer staleness."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-06T20:34:55.729Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved acceptance: SC8 LOC reduction MISSED at 1.5% (target \u226530%) \u2014 documented; user explicitly acknowledged the miss as out-of-scope-deferred to follow-up cull change. SC1-SC7, SC9, SC10 verified. Architectural objectives met. Full suite 1805/1805 green."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-06T20:43:28.262Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved release per resume directive + post-investigation archive directive (\"lets archive this change now and make a full follow up for full cull\"). SC8 explicitly accepted as missed; follow-up change to be filed for full cull (safe deletes + project-workflow retirement + archive-tool migration). All other SCs verified. 1805/1805 tests green."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
