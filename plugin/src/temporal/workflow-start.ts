@@ -2,18 +2,13 @@ import type { Change } from "../types";
 import {
   buildChangeWorkflowId,
   buildProjectTaskQueue,
-  buildProjectWorkflowId,
 } from "./client";
 import type {
   ChangeWorkflowInput,
   ChangeWorkflowState,
-  MigrationLedgerEntry,
-  ProjectWisdomEntry,
-  ProjectWorkflowInput,
-  ProjectWorkflowState,
 } from "./contracts";
 import { buildTemporalSearchAttributes } from "./observability";
-import { changeWorkflow, projectWorkflow } from "./workflows";
+import { changeWorkflow } from "./workflows";
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -37,31 +32,6 @@ function isAlreadyStartedError(error: unknown): boolean {
   return /already started|already exists|Workflow execution already started/i.test(
     message,
   );
-}
-
-export async function ensureProjectWorkflowStarted(
-  client: { workflow: WorkflowClientLike },
-  input: ProjectWorkflowInput & {
-    agenda?: ProjectWorkflowState["agenda"];
-    projectWisdom?: ProjectWisdomEntry[];
-    migrationLedger?: MigrationLedgerEntry[];
-  },
-): Promise<WorkflowHandleLike> {
-  const workflowId = buildProjectWorkflowId(input.projectId);
-  const taskQueue = buildProjectTaskQueue(input.projectId);
-
-  try {
-    return await client.workflow.start(projectWorkflow, {
-      workflowId,
-      taskQueue,
-      args: [input],
-    });
-  } catch (error) {
-    if (isAlreadyStartedError(error)) {
-      return client.workflow.getHandle(workflowId);
-    }
-    throw error;
-  }
 }
 
 export async function ensureChangeWorkflowStarted(
@@ -138,15 +108,4 @@ export async function reImportChangeState(
       reentry_history: input.change.reentry_history,
     },
   });
-}
-
-export async function rebuildProjectWorkflowState(
-  client: { workflow: WorkflowClientLike },
-  input: ProjectWorkflowInput & {
-    agenda?: ProjectWorkflowState["agenda"];
-    projectWisdom?: ProjectWisdomEntry[];
-    migrationLedger?: MigrationLedgerEntry[];
-  },
-): Promise<WorkflowHandleLike> {
-  return ensureProjectWorkflowStarted(client, input);
 }

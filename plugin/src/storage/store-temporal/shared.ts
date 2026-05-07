@@ -1,13 +1,6 @@
 import type { Change } from "../../types";
-import type {
-  ChangeWorkflowState,
-  ProjectWorkflowState,
-} from "../../temporal/contracts";
-import {
-  buildChangeWorkflowId,
-  buildProjectWorkflowId,
-} from "../../temporal/client";
-import { projectStateQuery } from "../../temporal/messages";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
+import { buildChangeWorkflowId } from "../../temporal/client";
 import { withTemporalRetry } from "../../temporal/retry-wrapper";
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
@@ -80,63 +73,6 @@ export class AdvProjectContextMismatchError extends Error {
   ) {
     super(message);
   }
-}
-
-/**
- * Typed error raised when the ADV project workflow is confirmed missing
- * from Temporal (NOT_FOUND). Surfaces as `errorClass:
- * "AdvProjectWorkflowMissing"` in the agent-visible response so the
- * agent can suggest reseed/recovery instead of retrying.
- *
- * GH#31: replaces the generic timeout/fallback errors that previously
- * obscured this specific failure mode.
- */
-export class AdvProjectWorkflowMissingError extends Error {
-  override readonly name = "AdvProjectWorkflowMissing";
-  constructor(
-    public readonly projectId: string,
-    message?: string,
-  ) {
-    super(
-      message ??
-        `ADV project workflow not found for project '${projectId}'. ` +
-          `The Temporal server may have lost state. ` +
-          `Run adv_status to check health, or restart the OpenCode session ` +
-          `to trigger auto-bootstrap.`,
-    );
-  }
-}
-
-/**
- * Inspect a Temporal error chain for project-workflow NOT_FOUND signals.
- * Returns true when the error chain contains a NOT_FOUND /
- * WorkflowExecutionNotFound message referencing the project workflow ID.
- */
-export function isProjectWorkflowNotFoundError(
-  error: unknown,
-  projectId: string,
-): boolean {
-  const workflowId = buildProjectWorkflowId(projectId);
-  const parts: string[] = [];
-  let current: unknown = error;
-  const seen = new Set<unknown>();
-  while (current && !seen.has(current)) {
-    seen.add(current);
-    if (current instanceof Error) {
-      parts.push(current.message ?? "");
-      parts.push(current.constructor.name ?? current.name ?? "");
-      current = (current as Error & { cause?: unknown }).cause;
-    } else {
-      parts.push(String(current ?? ""));
-      break;
-    }
-  }
-  const combined = parts.join(" | ");
-  return (
-    /WorkflowExecutionNotFound|Workflow execution not found|workflow not found|NOT_FOUND/i.test(
-      combined,
-    ) && combined.includes(workflowId)
-  );
 }
 
 /**
@@ -247,54 +183,6 @@ export async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
   return runTemporal(op, { timeoutMs: QUERY_TIMEOUT_MS });
 }
 
-/**
- * Background hydration: query projectWorkflow.state and bulk-load
- * change_summaries into the Memo. Best-effort — failures are logged but
- * never block store creation.
- */
-export function hydrateMemoFromPSW(
-  input: TemporalStoreBackendInput,
-  memo: ChangeSummaryMemo,
-): void {
-  void (async () => {
-    try {
-      const pswState = (await runTemporalQuery(() => {
-        const handle = getProjectHandleForInput(input);
-        if (!handle) {
-          throw new Error("hydrateMemoFromPSW: no project handle available");
-        }
-        return handle.query(projectStateQuery);
-      })) as ProjectWorkflowState | null;
-      if (!pswState?.change_summaries) return;
-      const entries: Array<[string, ChangeSummary]> = [];
-      for (const [changeId, summary] of Object.entries(
-        pswState.change_summaries,
-      )) {
-        if (summary && typeof summary === "object" && "id" in summary) {
-          entries.push([changeId, summary as ChangeSummary]);
-        }
-      }
-      if (entries.length > 0) {
-        memo.bulkSet(entries);
-      }
-    } catch {
-      // PSW may not be running; hydration is best-effort
-    }
-  })();
-}
-
-export function getProjectHandleForInput(
-  input: TemporalStoreBackendInput,
-): WorkflowHandleLike | null {
-  try {
-    const workflowId = buildProjectWorkflowId(input.projectId);
-    const bundle = input.temporal as { client: TemporalHandleClient };
-    return bundle.client.workflow.getHandle(workflowId);
-  } catch {
-    return null;
-  }
-}
-
 export interface StoreDeps {
   input: TemporalStoreBackendInput;
   legacy: Store;
@@ -317,7 +205,6 @@ export interface StoreDeps {
   ) => void;
   persistStateToDisk: (changeId: string, state: ChangeWorkflowState) => void;
   dualWriteAfterMutation: (changeId: string) => Promise<void>;
-  getProjectHandle: () => WorkflowHandleLike | null;
   getTemporalWorkflowClient: () => {
     workflow: {
       start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
