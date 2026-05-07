@@ -3,7 +3,6 @@ import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
-  CHANGE_WORKFLOW_UPDATE_NAMES,
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
   CHANGE_WORKFLOW_SIGNAL_NAMES,
@@ -14,8 +13,6 @@ import {
   type ChangeWorkflowInput,
 } from "./contracts";
 import {
-  addChangeWisdom,
-  addTaskToChangeState,
   applyAcceptanceCriteriaSetToState,
   applyAgreementUpdatedToState,
   applyArchiveRequestedToState,
@@ -43,17 +40,12 @@ import {
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
   archiveChangeInChangeState,
-  cancelTaskInChangeState,
   closeChangeInChangeState,
-  completeGateInChangeState,
   createChangeWorkflowState,
   getTaskFromChangeState,
   getReadyTasksFromChangeState,
   listTasksFromChangeState,
-  reclassifyTaskTddInChangeState,
-  reopenFromGateInChangeState,
   updateArtifactMetadataInChangeState,
-  updateTaskInChangeState,
 } from "./change-state";
 
 type WriteChangeProjectionActivityResult =
@@ -233,62 +225,21 @@ const archiveRequestedSignal = wf.defineSignal<
 const changeCancelledSignal = wf.defineSignal<
   [import("../types").ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
-const addTaskUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
+const updateArtifactMetadataSignal = wf.defineSignal<
   [
     {
-      title: string;
-      type?: ChangeWorkflowState["tasks"][number]["type"];
-      section?: string;
-      blockedBy?: string[];
-      metadata?: Record<string, string>;
+      kind: import("./contracts").ArtifactKind;
+      metadata: import("./contracts").ArtifactMetadata;
     },
   ]
->(CHANGE_WORKFLOW_UPDATE_NAMES.addTask);
-const updateTaskUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [
-    string,
-    {
-      status: ChangeWorkflowState["tasks"][number]["status"];
-      notes?: string;
-      implementationSummary?: string;
-      errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
-      touchedFiles?: string[];
-    },
-  ]
->(CHANGE_WORKFLOW_UPDATE_NAMES.updateTask);
-const cancelTaskUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, import("../types").Cancellation]
->(CHANGE_WORKFLOW_UPDATE_NAMES.cancelTask);
-const reclassifyTaskTddUpdate = wf.defineUpdate<
-  ChangeWorkflowState["tasks"][number],
-  [string, import("../types").TddReclassification]
->(CHANGE_WORKFLOW_UPDATE_NAMES.reclassifyTaskTdd);
-const completeGateUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [import("../types").GateId, string | undefined, string | undefined]
->(CHANGE_WORKFLOW_UPDATE_NAMES.completeGate);
-const reopenFromGateUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [import("../types").GateId, string, string | undefined, string | undefined]
->(CHANGE_WORKFLOW_UPDATE_NAMES.reopenFromGate);
-const addWisdomUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [import("../types").WisdomType, string, string | undefined]
->(CHANGE_WORKFLOW_UPDATE_NAMES.addWisdom);
-const updateArtifactMetadataUpdate = wf.defineUpdate<
-  void,
-  [import("./contracts").ArtifactKind, import("./contracts").ArtifactMetadata]
->(CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata);
-const archiveChangeUpdate = wf.defineUpdate<ChangeWorkflowState>(
-  CHANGE_WORKFLOW_UPDATE_NAMES.archiveChange,
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.updateArtifactMetadata);
+const archiveChangeSignal = wf.defineSignal(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.archiveChange,
 );
-const closeChangeUpdate = wf.defineUpdate<
-  ChangeWorkflowState,
-  [import("../types").ChangeClosure]
->(CHANGE_WORKFLOW_UPDATE_NAMES.closeChange);
+const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange,
+);
+// Update definitions removed — signal-only architecture (R1.1)
 /**
  * Wrap a workflow update handler so domain errors propagate as
  * `wf.ApplicationFailure` (non-retryable, surfaces as a clean update
@@ -841,277 +792,41 @@ export async function changeWorkflow(
     }),
   );
   wf.setHandler(
-    addTaskUpdate,
-    safeUpdateHandler(
-      "addTask",
-      (taskInput: {
-        title: string;
-        type?: ChangeWorkflowState["tasks"][number]["type"];
-        section?: string;
-        blockedBy?: string[];
-        metadata?: Record<string, string>;
+    updateArtifactMetadataSignal,
+    signalMutation(
+      "updateArtifactMetadata",
+      (payload: {
+        kind: import("./contracts").ArtifactKind;
+        metadata: import("./contracts").ArtifactMetadata;
       }) => {
         wf.log.info("op:start", {
-          op: "addTaskUpdate",
+          op: "updateArtifactMetadataSignal",
           changeId: state.changeId,
           title: state.title?.slice(0, 80),
         });
-        const newTask = addTaskToChangeState(state, taskInput, {
-          now: workflowNow(),
-          uuid: wf.uuid4,
-        });
-        wf.log.info("op:end", {
-          op: "addTaskUpdate",
-          changeId: state.changeId,
-          taskId: newTask.id,
-          taskCount: state.tasks.length,
-        });
-        return newTask;
-      },
-    ),
-  );
-  wf.setHandler(
-    updateTaskUpdate,
-    safeUpdateHandler(
-      "updateTask",
-      (
-        taskId: string,
-        update: {
-          status: ChangeWorkflowState["tasks"][number]["status"];
-          notes?: string;
-          implementationSummary?: string;
-          errorRecovery?: ChangeWorkflowState["tasks"][number]["error_recovery"];
-          touchedFiles?: string[];
-        },
-      ) => {
-        wf.log.info("op:start", {
-          op: "updateTaskUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = updateTaskInChangeState(state, taskId, {
-          status: update.status,
-          now: workflowNow(),
-          notes: update.notes,
-          implementationSummary: update.implementationSummary,
-          errorRecovery: update.errorRecovery,
-          touchedFiles: update.touchedFiles,
-        });
-        wf.log.info("op:end", {
-          op: "updateTaskUpdate",
-          changeId: state.changeId,
-          taskId,
-          status: update.status,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    cancelTaskUpdate,
-    safeUpdateHandler(
-      "cancelTask",
-      (taskId: string, cancellation: import("../types").Cancellation) => {
-        wf.log.info("op:start", {
-          op: "cancelTaskUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = cancelTaskInChangeState(
+        updateArtifactMetadataInChangeState(
           state,
-          taskId,
-          cancellation,
-          workflowNow(),
+          payload.kind,
+          payload.metadata,
         );
         wf.log.info("op:end", {
-          op: "cancelTaskUpdate",
+          op: "updateArtifactMetadataSignal",
           changeId: state.changeId,
-          taskId,
+          kind: payload.kind,
         });
-        return result;
+        return state;
       },
     ),
   );
   wf.setHandler(
-    reclassifyTaskTddUpdate,
-    safeUpdateHandler(
-      "reclassifyTaskTdd",
-      (
-        taskId: string,
-        reclassification: import("../types").TddReclassification,
-      ) => {
-        wf.log.info("op:start", {
-          op: "reclassifyTaskTddUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = reclassifyTaskTddInChangeState(
-          state,
-          taskId,
-          reclassification,
-        );
-        wf.log.info("op:end", {
-          op: "reclassifyTaskTddUpdate",
-          changeId: state.changeId,
-          taskId,
-          toIntent: reclassification.to_intent,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    completeGateUpdate,
-    safeUpdateHandler(
-      "completeGate",
-      (
-        gateId: import("../types").GateId,
-        notes: string | undefined,
-        completedBy: string | undefined,
-      ) => {
-        wf.log.info("op:start", {
-          op: "completeGateUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = completeGateInChangeState(state, gateId, {
-          now: workflowNow(),
-          completedBy: completedBy ?? "agent",
-          notes,
-        });
-        // Update search attributes with the next active gate
-        const gateOrder: import("../types").GateId[] = [
-          "proposal",
-          "discovery",
-          "design",
-          "planning",
-          "execution",
-          "acceptance",
-          "release",
-        ];
-        const currentIdx = gateOrder.indexOf(gateId);
-        const nextGate = gateOrder[currentIdx + 1];
-        // Search attributes are best-effort index metadata. GH #17.
-        if (input.searchAttributesEnabled !== false) {
-          try {
-            wf.upsertSearchAttributes({
-              [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.activeGate]: [
-                nextGate ?? "done",
-              ],
-            });
-          } catch (saErr) {
-            wf.log.warn("search-attribute-upsert-failed", {
-              op: "completeGateUpdate",
-              changeId: state.changeId,
-              error: saErr instanceof Error ? saErr.message : String(saErr),
-            });
-          }
-        }
-        wf.log.info("op:end", {
-          op: "completeGateUpdate",
-          changeId: state.changeId,
-          gateId,
-          gateStatus: state.gates[gateId]?.status,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    reopenFromGateUpdate,
-    safeUpdateHandler(
-      "reopenFromGate",
-      (
-        fromGate: import("../types").GateId,
-        reason: string,
-        scopeDelta: string | undefined,
-        approvalEvidence: string | undefined,
-      ) => {
-        wf.log.info("op:start", {
-          op: "reopenFromGateUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = reopenFromGateInChangeState(state, fromGate, {
-          now: workflowNow(),
-          reason,
-          scopeDelta,
-          approvalEvidence,
-          reopenedBy: "agent",
-        });
-        wf.log.info("op:end", {
-          op: "reopenFromGateUpdate",
-          changeId: state.changeId,
-          fromGate,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    addWisdomUpdate,
-    safeUpdateHandler(
-      "addWisdom",
-      (
-        type: import("../types").WisdomType,
-        content: string,
-        sourceTask: string | undefined,
-      ) => {
-        wf.log.info("op:start", {
-          op: "addWisdomUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = addChangeWisdom(
-          state,
-          { type, content, sourceTask },
-          { now: workflowNow(), uuid: wf.uuid4 },
-        );
-        wf.log.info("op:end", {
-          op: "addWisdomUpdate",
-          changeId: state.changeId,
-          wisdomType: type,
-          wisdomCount: state.wisdom.length,
-        });
-        return result;
-      },
-    ),
-  );
-  wf.setHandler(
-    updateArtifactMetadataUpdate,
-    safeUpdateHandler(
-      "updateArtifactMetadata",
-      (
-        kind: import("./contracts").ArtifactKind,
-        metadata: import("./contracts").ArtifactMetadata,
-      ) => {
-        wf.log.info("op:start", {
-          op: "updateArtifactMetadataUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        updateArtifactMetadataInChangeState(state, kind, metadata);
-        wf.log.info("op:end", {
-          op: "updateArtifactMetadataUpdate",
-          changeId: state.changeId,
-          kind,
-        });
-      },
-    ),
-  );
-  wf.setHandler(
-    archiveChangeUpdate,
+    archiveChangeSignal,
     safeUpdateHandler("archiveChange", () => {
       wf.log.info("op:start", {
-        op: "archiveChangeUpdate",
+        op: "archiveChangeSignal",
         changeId: state.changeId,
         title: state.title?.slice(0, 80),
       });
-      const result = archiveChangeInChangeState(state);
-      // Search attributes are best-effort index metadata. Failure to upsert
-      // (e.g. unregistered attributes, operator service unavailable) MUST NOT
-      // block the archive state transition — the change is already archived
-      // in the workflow state and on disk. GH #17.
+      archiveChangeInChangeState(state);
       if (input.searchAttributesEnabled !== false) {
         try {
           wf.upsertSearchAttributes({
@@ -1119,52 +834,48 @@ export async function changeWorkflow(
           });
         } catch (saErr) {
           wf.log.warn("search-attribute-upsert-failed", {
-            op: "archiveChangeUpdate",
+            op: "archiveChangeSignal",
             changeId: state.changeId,
             error: saErr instanceof Error ? saErr.message : String(saErr),
           });
         }
       }
       wf.log.info("op:end", {
-        op: "archiveChangeUpdate",
+        op: "archiveChangeSignal",
         changeId: state.changeId,
       });
-      return result;
+      upsertSignalSearchAttributes("archiveChange");
     }),
   );
   wf.setHandler(
-    closeChangeUpdate,
-    safeUpdateHandler(
-      "closeChange",
-      (closure: import("../types").ChangeClosure) => {
-        wf.log.info("op:start", {
-          op: "closeChangeUpdate",
-          changeId: state.changeId,
-          title: state.title?.slice(0, 80),
-        });
-        const result = closeChangeInChangeState(state, closure);
-        // Search attributes are best-effort index metadata. GH #17.
-        if (input.searchAttributesEnabled !== false) {
-          try {
-            wf.upsertSearchAttributes({
-              [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
-            });
-          } catch (saErr) {
-            wf.log.warn("search-attribute-upsert-failed", {
-              op: "closeChangeUpdate",
-              changeId: state.changeId,
-              error: saErr instanceof Error ? saErr.message : String(saErr),
-            });
-          }
+    closeChangeSignal,
+    signalMutation("closeChange", (closure) => {
+      wf.log.info("op:start", {
+        op: "closeChangeSignal",
+        changeId: state.changeId,
+        title: state.title?.slice(0, 80),
+      });
+      closeChangeInChangeState(state, closure);
+      if (input.searchAttributesEnabled !== false) {
+        try {
+          wf.upsertSearchAttributes({
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+          });
+        } catch (saErr) {
+          wf.log.warn("search-attribute-upsert-failed", {
+            op: "closeChangeSignal",
+            changeId: state.changeId,
+            error: saErr instanceof Error ? saErr.message : String(saErr),
+          });
         }
-        wf.log.info("op:end", {
-          op: "closeChangeUpdate",
-          changeId: state.changeId,
-          closureReason: closure.reason,
-        });
-        return result;
-      },
-    ),
+      }
+      wf.log.info("op:end", {
+        op: "closeChangeSignal",
+        changeId: state.changeId,
+        closureReason: closure.reason,
+      });
+      return state;
+    }),
   );
 
   const thresholds = resolveHistoryThresholds();

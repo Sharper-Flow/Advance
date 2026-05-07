@@ -336,9 +336,8 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             args: [input],
           });
           // NEW signal — does not exist on trunk
-          const { archiveChangeSignal } = await import(
-            "../../../temporal/messages"
-          );
+          const { archiveChangeSignal } =
+            await import("../../../temporal/messages");
           await handle.signal(archiveChangeSignal);
           const state = await handle.query(changeStateQuery);
           expect(state.status).toBe("archived");
@@ -364,9 +363,8 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             args: [input],
           });
           // NEW signal — does not exist on trunk
-          const { closeChangeSignal } = await import(
-            "../../../temporal/messages"
-          );
+          const { closeChangeSignal } =
+            await import("../../../temporal/messages");
           await handle.signal(closeChangeSignal, {
             reason: "cancelled",
             approved_by_user: true,
@@ -397,9 +395,8 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             args: [input],
           });
           // NEW signal — does not exist on trunk
-          const { updateArtifactMetadataSignal } = await import(
-            "../../../temporal/messages"
-          );
+          const { updateArtifactMetadataSignal } =
+            await import("../../../temporal/messages");
           await handle.signal(updateArtifactMetadataSignal, {
             kind: "proposal",
             metadata: {

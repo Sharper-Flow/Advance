@@ -1,9 +1,6 @@
 import type { Store } from "../store-types";
 import type { WisdomType, WisdomEntry } from "../../types";
-import {
-  addChangeWisdomUpdate,
-  changeStateQuery,
-} from "../../temporal/messages";
+import { wisdomAddedSignal, changeStateQuery } from "../../temporal/messages";
 import {
   runTemporal,
   runTemporalQuery,
@@ -16,7 +13,6 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
     input,
     legacy,
     invalidateChange,
-    resolveStateOrQuery,
     setCachedChange,
     emitChangeSummarySignal,
     persistStateToDisk,
@@ -26,18 +22,25 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
     ...legacy.wisdom,
     add: async (changeId, type: WisdomType, content, sourceTask) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          addChangeWisdomUpdate,
+      const now = new Date().toISOString();
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          wisdomAddedSignal,
           {
-            args: [type, content, sourceTask],
+            entry: {
+              id: `ws-${Date.now()}`,
+              type,
+              content,
+              source_task: sourceTask,
+              recorded_at: now,
+            },
+            addedAt: now,
           },
         ),
       );
-      const state = await resolveStateOrQuery(
-        async () => await getGuardedChangeHandle(input, changeId),
-        raw,
-      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);
@@ -46,7 +49,7 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
         | undefined;
       if (!latest) {
         throw new Error(
-          `Temporal wisdom update for change ${changeId} completed without returning an appended wisdom entry`,
+          `Temporal wisdom signal for change ${changeId} completed without returning an appended wisdom entry`,
         );
       }
       return latest;

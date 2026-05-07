@@ -1,14 +1,14 @@
 /**
- * Temporal Query/Update Definitions — Client-Side Bindings
+ * Temporal Query/Signal Definitions — Client-Side Bindings
  *
- * These `wf.defineQuery` / `wf.defineUpdate` calls MUST declare client-side
+ * These `wf.defineQuery` / `wf.defineSignal` calls declare client-side
  * bindings for the definitions used inside `workflows.ts`. Temporal's
  * workflow bundle is compiled in isolation, so handler tokens created inside
  * the workflow cannot be imported by the outer client/adapter layer. The
  * string names are the actual wire contract; the handler *tokens* are local
  * bindings.
  *
- * When adding or renaming a query/update:
+ * When adding or renaming a query/signal:
  *   1. Update the name constant in `contracts.ts` (single source of truth).
  *   2. Update both this file and `workflows.ts` so every call site uses the
  *      same constant, not a raw string literal.
@@ -190,27 +190,17 @@ export const archiveRequestedSignal = wf.defineSignal<
 export const changeCancelledSignal = wf.defineSignal<
   [ChangeCancelledSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled);
-
-// Compatibility exports only: old defineUpdate contracts are deleted.
-// Remaining pre-M4 adapters still import these names until their tool bodies
-// are rewritten to fire signals directly.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const addTaskUpdate = taskAddedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const updateTaskUpdate = taskUpdatedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const cancelTaskUpdate = taskCancelledSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const reclassifyTaskTddUpdate = taskUpdatedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const completeGateUpdate = gateCompletedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const reopenFromGateUpdate = gateReenteredSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const addChangeWisdomUpdate = wisdomAddedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const updateArtifactMetadataUpdate = taskUpdatedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const archiveChangeUpdate = archiveRequestedSignal as any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const closeChangeUpdate = changeCancelledSignal as any;
+export const updateArtifactMetadataSignal = wf.defineSignal<
+  [
+    {
+      kind: import("./contracts").ArtifactKind;
+      metadata: import("./contracts").ArtifactMetadata;
+    },
+  ]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.updateArtifactMetadata);
+export const archiveChangeSignal = wf.defineSignal(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.archiveChange,
+);
+export const closeChangeSignal = wf.defineSignal<
+  [import("../types").ChangeClosure]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange);

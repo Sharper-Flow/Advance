@@ -1,113 +1,67 @@
 /**
- * Wire-name mismatch proxy test (R1.0 RED).
+ * Wire-name mismatch proxy test (R1.0 → R1.3).
  *
- * Proves that the store-layer aliases route update names to signal
- * definitions, causing WorkflowUpdateFailedError at runtime.
+ * Proves that the store-layer aliases have been removed and only
+ * clean signal definitions remain.
  */
 import { describe, expect, it } from "vitest";
-import {
-  completeGateUpdate,
-  addTaskUpdate,
-  updateTaskUpdate,
-  cancelTaskUpdate,
-  reclassifyTaskTddUpdate,
-  reopenFromGateUpdate,
-  addChangeWisdomUpdate,
-  updateArtifactMetadataUpdate,
-  archiveChangeUpdate,
-  closeChangeUpdate,
-} from "../messages";
-import {
-  CHANGE_WORKFLOW_UPDATE_NAMES,
-  CHANGE_WORKFLOW_SIGNAL_NAMES,
-} from "../contracts";
+import * as messages from "../messages";
 
-describe("update alias wire-name mismatch (R1.0 RED)", () => {
-  it("completeGateUpdate alias has signal wire name, not update name", () => {
-    // The alias is `gateCompletedSignal as any`
-    // Its name is the signal wire name, not the update wire name.
-    expect(completeGateUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.gateCompleted,
-    );
-    expect(completeGateUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.completeGate,
-    );
+describe("update aliases removed (R1.3)", () => {
+  it("does not export completeGateUpdate alias", () => {
+    expect(messages).not.toHaveProperty("completeGateUpdate");
   });
 
-  it("addTaskUpdate alias has signal wire name, not update name", () => {
-    expect(addTaskUpdate.name).toBe(CHANGE_WORKFLOW_SIGNAL_NAMES.taskAdded);
-    expect(addTaskUpdate.name).not.toBe(CHANGE_WORKFLOW_UPDATE_NAMES.addTask);
+  it("does not export addTaskUpdate alias", () => {
+    expect(messages).not.toHaveProperty("addTaskUpdate");
   });
 
-  it("updateTaskUpdate alias has signal wire name, not update name", () => {
-    expect(updateTaskUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.taskUpdated,
-    );
-    expect(updateTaskUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.updateTask,
-    );
+  it("does not export updateTaskUpdate alias", () => {
+    expect(messages).not.toHaveProperty("updateTaskUpdate");
   });
 
-  it("cancelTaskUpdate alias has signal wire name, not update name", () => {
-    expect(cancelTaskUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.taskCancelled,
-    );
-    expect(cancelTaskUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.cancelTask,
-    );
+  it("does not export cancelTaskUpdate alias", () => {
+    expect(messages).not.toHaveProperty("cancelTaskUpdate");
   });
 
-  it("reclassifyTaskTddUpdate alias has signal wire name", () => {
-    expect(reclassifyTaskTddUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.taskUpdated,
-    );
-    expect(reclassifyTaskTddUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.reclassifyTaskTdd,
-    );
+  it("does not export reclassifyTaskTddUpdate alias", () => {
+    expect(messages).not.toHaveProperty("reclassifyTaskTddUpdate");
   });
 
-  it("reopenFromGateUpdate alias has signal wire name, not update name", () => {
-    expect(reopenFromGateUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.gateReentered,
-    );
-    expect(reopenFromGateUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.reopenFromGate,
-    );
+  it("does not export reopenFromGateUpdate alias", () => {
+    expect(messages).not.toHaveProperty("reopenFromGateUpdate");
   });
 
-  it("addChangeWisdomUpdate alias has signal wire name, not update name", () => {
-    expect(addChangeWisdomUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.wisdomAdded,
-    );
-    expect(addChangeWisdomUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.addWisdom,
-    );
+  it("does not export addChangeWisdomUpdate alias", () => {
+    expect(messages).not.toHaveProperty("addChangeWisdomUpdate");
   });
 
-  it("updateArtifactMetadataUpdate alias has signal wire name", () => {
-    expect(updateArtifactMetadataUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.taskUpdated,
-    );
-    expect(updateArtifactMetadataUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.updateArtifactMetadata,
-    );
+  it("does not export updateArtifactMetadataUpdate alias", () => {
+    expect(messages).not.toHaveProperty("updateArtifactMetadataUpdate");
   });
 
-  it("archiveChangeUpdate alias has signal wire name, not update name", () => {
-    expect(archiveChangeUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.archiveRequested,
-    );
-    expect(archiveChangeUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.archiveChange,
-    );
+  it("does not export archiveChangeUpdate alias", () => {
+    expect(messages).not.toHaveProperty("archiveChangeUpdate");
   });
 
-  it("closeChangeUpdate alias has signal wire name, not update name", () => {
-    expect(closeChangeUpdate.name).toBe(
-      CHANGE_WORKFLOW_SIGNAL_NAMES.changeCancelled,
-    );
-    expect(closeChangeUpdate.name).not.toBe(
-      CHANGE_WORKFLOW_UPDATE_NAMES.closeChange,
+  it("does not export closeChangeUpdate alias", () => {
+    expect(messages).not.toHaveProperty("closeChangeUpdate");
+  });
+
+  it("exports new archiveChangeSignal", () => {
+    expect(messages).toHaveProperty("archiveChangeSignal");
+    expect(messages.archiveChangeSignal.name).toBe("adv.change.archiveChange");
+  });
+
+  it("exports new closeChangeSignal", () => {
+    expect(messages).toHaveProperty("closeChangeSignal");
+    expect(messages.closeChangeSignal.name).toBe("adv.change.closeChange");
+  });
+
+  it("exports new updateArtifactMetadataSignal", () => {
+    expect(messages).toHaveProperty("updateArtifactMetadataSignal");
+    expect(messages.updateArtifactMetadataSignal.name).toBe(
+      "adv.change.updateArtifactMetadata",
     );
   });
 });

@@ -67,6 +67,9 @@ const designSignalKeys = [
   "conformanceOverridden",
   "archiveRequested",
   "changeCancelled",
+  "updateArtifactMetadata",
+  "archiveChange",
+  "closeChange",
 ] as const;
 
 const designQueryKeys = [
@@ -82,7 +85,7 @@ describe("change workflow message contract", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(26);
+    expect(surfacedKeys).toHaveLength(29);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);

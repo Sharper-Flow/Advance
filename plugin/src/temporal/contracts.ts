@@ -34,19 +34,6 @@ export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
   getTaskRunSummary: "adv.change.getTaskRunSummary",
 } as const;
 
-export const CHANGE_WORKFLOW_UPDATE_NAMES = {
-  addTask: "adv.change.addTask",
-  updateTask: "adv.change.updateTask",
-  cancelTask: "adv.change.cancelTask",
-  reclassifyTaskTdd: "adv.change.reclassifyTaskTdd",
-  completeGate: "adv.change.completeGate",
-  reopenFromGate: "adv.change.reopenFromGate",
-  addWisdom: "adv.change.addWisdom",
-  updateArtifactMetadata: "adv.change.updateArtifactMetadata",
-  archiveChange: "adv.change.archiveChange",
-  closeChange: "adv.change.closeChange",
-} as const;
-
 export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   proposalUpdated: "adv.change.proposalUpdated",
   problemStatementUpdated: "adv.change.problemStatementUpdated",
@@ -74,6 +61,9 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   conformanceOverridden: "adv.change.conformanceOverridden",
   archiveRequested: "adv.change.archiveRequested",
   changeCancelled: "adv.change.changeCancelled",
+  updateArtifactMetadata: "adv.change.updateArtifactMetadata",
+  archiveChange: "adv.change.archiveChange",
+  closeChange: "adv.change.closeChange",
 } as const;
 
 export interface ChangeSummaryPayload {

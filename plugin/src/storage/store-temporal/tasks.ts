@@ -1,10 +1,9 @@
 import type { Store } from "../store-types";
 import type { Task, TddReclassification } from "../../types";
 import {
-  addTaskUpdate,
-  updateTaskUpdate,
-  cancelTaskUpdate,
-  reclassifyTaskTddUpdate,
+  taskAddedSignal,
+  taskUpdatedSignal,
+  taskCancelledSignal,
   changeTasksQuery,
   changeTaskQuery,
   changeStateQuery,
@@ -61,44 +60,61 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          updateTaskUpdate,
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          taskUpdatedSignal,
           {
-            args: [
-              taskId,
-              {
-                status: status as Task["status"],
-                notes,
-                implementationSummary,
-                errorRecovery,
-                touchedFiles,
-              },
-            ],
+            taskId,
+            partial: {
+              status: status as Task["status"],
+              notes,
+              implementationSummary,
+              errorRecovery,
+              touchedFiles,
+            },
+            updatedAt: new Date().toISOString(),
           },
         ),
-      )) as Awaited<ReturnType<Store["tasks"]["update"]>>;
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+      const task = state.tasks.find((t) => t.id === taskId) ?? null;
       await dualWriteAfterMutation(changeId);
-      return result;
+      return task;
     },
     add: async (changeId, content, options) => {
       invalidateChange(changeId);
-      const created = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          addTaskUpdate,
+      const now = new Date().toISOString();
+      const tempId = `tmp-${Date.now()}`;
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          taskAddedSignal,
           {
-            args: [
-              {
-                title: content,
-                type: options?.type,
-                section: options?.section,
-                blockedBy: options?.blockedBy,
-                metadata: options?.metadata,
-              },
-            ],
+            task: {
+              id: tempId,
+              title: content,
+              type: options?.type ?? "code",
+              section: options?.section,
+              status: "pending",
+              priority: 0,
+              created_at: now,
+              deps: options?.blockedBy
+                ? options.blockedBy.map((target) => ({
+                    type: "blocked_by" as const,
+                    target,
+                  }))
+                : [],
+              metadata: options?.metadata,
+            },
+            addedAt: now,
           },
         ),
-      )) as Awaited<ReturnType<Store["tasks"]["add"]>>;
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+      const created = state.tasks[state.tasks.length - 1] ?? null;
       if (created && typeof created === "object" && "id" in created) {
         taskChangeIndex.set((created as { id: string }).id, changeId);
       }
@@ -131,31 +147,48 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          cancelTaskUpdate,
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          taskCancelledSignal,
           {
-            args: [taskId, cancellation],
+            taskId,
+            approvalEvidence: cancellation.approval_evidence ?? "cancelled",
+            reason: cancellation.reason ?? "cancelled",
+            cancelledAt: new Date().toISOString(),
           },
         ),
-      )) as Awaited<ReturnType<Store["tasks"]["cancel"]>>;
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+      const task = state.tasks.find((t) => t.id === taskId) ?? null;
       await dualWriteAfterMutation(changeId);
-      return result;
+      return task;
     },
     reclassifyTdd: async (taskId, reclassification: TddReclassification) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          reclassifyTaskTddUpdate,
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          taskUpdatedSignal,
           {
-            args: [taskId, reclassification],
+            taskId,
+            partial: {
+              metadata: {
+                tdd_intent: reclassification.to_intent,
+              },
+            },
+            updatedAt: new Date().toISOString(),
           },
         ),
-      )) as Awaited<ReturnType<Store["tasks"]["reclassifyTdd"]>>;
+      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+      const task = state.tasks.find((t) => t.id === taskId) ?? null;
       await dualWriteAfterMutation(changeId);
-      return result;
+      return task;
     },
   };
 }

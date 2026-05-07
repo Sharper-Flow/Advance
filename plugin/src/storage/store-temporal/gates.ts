@@ -1,8 +1,8 @@
 import type { Store } from "../store-types";
 import type { GateId } from "../../types";
 import {
-  completeGateUpdate,
-  reopenFromGateUpdate,
+  gateCompletedSignal,
+  gateReenteredSignal,
   changeStateQuery,
 } from "../../temporal/messages";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
@@ -12,7 +12,6 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
     input,
     legacy,
     invalidateChange,
-    resolveStateOrQuery,
     setCachedChange,
     emitChangeSummarySignal,
     persistStateToDisk,
@@ -28,18 +27,20 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
     },
     complete: async (changeId: string, gateId: GateId, notes?: string) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          completeGateUpdate,
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          gateCompletedSignal,
           {
-            args: [gateId, notes, "agent"],
+            gateId,
+            approvalEvidence: notes,
+            completedBy: "agent",
+            completedAt: new Date().toISOString(),
           },
         ),
       );
-      const state = await resolveStateOrQuery(
-        async () => await getGuardedChangeHandle(input, changeId),
-        raw,
-      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);
@@ -50,26 +51,24 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       reason,
       scopeDelta,
       reopenedBy,
-      approvalEvidence,
+      _approvalEvidence,
     ) => {
       invalidateChange(changeId);
-      const raw = await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-          reopenFromGateUpdate,
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          gateReenteredSignal,
           {
-            args: [
-              fromGate,
-              reason,
-              scopeDelta,
-              approvalEvidence ?? reopenedBy,
-            ],
+            fromGateId: fromGate,
+            reason,
+            scopeDelta: scopeDelta ?? undefined,
+            reenteredBy: reopenedBy ?? "agent",
+            reenteredAt: new Date().toISOString(),
           },
         ),
       );
-      const state = await resolveStateOrQuery(
-        async () => await getGuardedChangeHandle(input, changeId),
-        raw,
-      );
+      const state = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
       persistStateToDisk(changeId, state);

@@ -1,9 +1,10 @@
 import type { Store } from "../store-types";
 import type { ChangeClosure, BulkCloseResult, Change } from "../../types";
 import {
-  archiveChangeUpdate,
-  closeChangeUpdate,
-  updateArtifactMetadataUpdate,
+  archiveChangeSignal,
+  closeChangeSignal,
+  updateArtifactMetadataSignal,
+  changeStateQuery,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { removeChangeDir } from "../json";
@@ -21,34 +22,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     invalidateChange,
     updateOverlay,
     emitChangeSummarySignal,
-    resolveStateOrQuery,
     indexTasksFromState,
     setCachedChange,
     getTemporalChange,
     listResolvedChanges,
     getTemporalWorkflowClient,
   } = deps;
-
-  const restoreDiskSnapshot = async (
-    changeId: string,
-    snapshot: Change,
-    cause: unknown,
-  ): Promise<void> => {
-    try {
-      await legacy.changes.save(snapshot);
-    } catch (rollbackErr) {
-      logger.warn(
-        `Failed to restore disk snapshot for change ${changeId} after Temporal close failure: ${
-          rollbackErr instanceof Error
-            ? rollbackErr.message
-            : String(rollbackErr)
-        }`,
-        {
-          cause: cause instanceof Error ? cause.message : String(cause),
-        },
-      );
-    }
-  };
 
   return {
     create: async (
@@ -157,16 +136,16 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       invalidateChange(change.id);
 
       if (change.status === "archived") {
-        const raw = await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, change.id)).executeUpdate(
-            archiveChangeUpdate,
-            { args: [] },
+        await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, change.id)).signal(
+            archiveChangeSignal,
           ),
         );
-        const result = await resolveStateOrQuery(
-          async () => await getGuardedChangeHandle(input, change.id),
-          raw,
-        );
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, change.id)).query(
+            changeStateQuery,
+          ),
+        )) as import("../../temporal/contracts").ChangeWorkflowState;
         indexTasksFromState(result);
         updateOverlay(change.id, { status: "archived" });
         setCachedChange(result);
@@ -299,24 +278,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       invalidateChange(changeId);
 
-      let raw: unknown;
-      try {
-        raw = await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-            closeChangeUpdate,
-            {
-              args: [closure],
-            },
-          ),
-        );
-      } catch (err) {
-        await restoreDiskSnapshot(changeId, current.data, err);
-        throw err;
-      }
-      const result = await resolveStateOrQuery(
-        async () => await getGuardedChangeHandle(input, changeId),
-        raw,
+      await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).signal(
+          closeChangeSignal,
+          closure,
+        ),
       );
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
       indexTasksFromState(result);
       updateOverlay(changeId, { status: "closed", closure });
       const change = setCachedChange(result);
@@ -398,24 +368,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
           invalidateChange(id);
 
-          let raw: unknown;
-          try {
-            raw = await runTemporal(async () =>
-              (await getGuardedChangeHandle(input, id)).executeUpdate(
-                closeChangeUpdate,
-                {
-                  args: [closure],
-                },
-              ),
-            );
-          } catch (err) {
-            await restoreDiskSnapshot(id, current.data, err);
-            throw err;
-          }
-          const result = await resolveStateOrQuery(
-            async () => await getGuardedChangeHandle(input, id),
-            raw,
+          await runTemporal(async () =>
+            (await getGuardedChangeHandle(input, id)).signal(
+              closeChangeSignal,
+              closure,
+            ),
           );
+          const result = (await runTemporal(async () =>
+            (await getGuardedChangeHandle(input, id)).query(changeStateQuery),
+          )) as import("../../temporal/contracts").ChangeWorkflowState;
           indexTasksFromState(result);
           updateOverlay(id, { status: "closed", closure });
           setCachedChange(result);
@@ -473,10 +434,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       for (const [kind, path] of updates) {
         if (!path) continue;
         await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).executeUpdate(
-            updateArtifactMetadataUpdate,
+          (await getGuardedChangeHandle(input, changeId)).signal(
+            updateArtifactMetadataSignal,
             {
-              args: [kind, { path, updatedAt: new Date().toISOString() }],
+              kind,
+              metadata: { path, updatedAt: new Date().toISOString() },
             },
           ),
         );
