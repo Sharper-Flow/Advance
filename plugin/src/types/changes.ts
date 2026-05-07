@@ -303,11 +303,9 @@ export const ChangeSchema = z
     created_at: z.string(), // ISO8601
     created_by: z.string().optional(),
     // Optional with safe defaults so legacy / hand-authored change.json
-    // (lacking tasks or deltas) loads via adv_workflow_repair / adv_change_import
-    // without manual schema patching. Output type stays non-optional via
-    // .default() — callers continue to see Task[] / Record<string, Delta[]>.
-    // [F3 — fixes the "expected array/record, received undefined" rejection
-    // in workflow_repair surfaced during 2026-05-02 pokeedge cleanup]
+    // (lacking tasks or deltas) loads without manual schema patching.
+    // Output type stays non-optional via .default() — callers continue to see
+    // Task[] / Record<string, Delta[]>.
     tasks: z.array(TaskSchema).optional().default([]),
     deltas: z.record(z.string(), z.array(DeltaSchema)).optional().default({}),
     validation: ValidationResultSchema.optional(),

@@ -2,9 +2,8 @@
  * Disk Sweep Helpers
  *
  * Generic helpers for removing per-id directories under a known parent
- * with per-id success/failure tracking. Used by:
- *   - `adv_change_bulk_close` (composes disk sweep with workflow-state close)
- *   - `adv_archive_sweep_orphans` (orphan-detection-driven cleanup)
+ * with per-id success/failure tracking. Used by `adv_change_bulk_close`
+ * (composes disk sweep with workflow-state close).
  *
  * Idempotent: removing an already-missing directory is reported as
  * success. Defensive against path traversal: change IDs containing

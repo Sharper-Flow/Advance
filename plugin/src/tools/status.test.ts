@@ -634,9 +634,7 @@ Vague in-flight work.
         );
         expect(leakRec).toBeDefined();
         expect(leakRec).toContain("ratio 6:1");
-        expect(leakRec).toContain(
-          "adv_archive_sweep_orphans dryRun: true includeClosed: true",
-        );
+        expect(leakRec).toContain("adv_cleanup");
       });
     });
 

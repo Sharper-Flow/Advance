@@ -333,7 +333,7 @@ async function computeExternalStateHygiene(
     if (inRepoChanges) parts.push(".adv/changes/");
     if (inRepoArchive) parts.push(".adv/archive/");
     recommendations.push(
-      `legacy in-repo state detected (${parts.join(", ")}): run adv_migrate_cleanup after confirming specs are preserved. Specs (.adv/specs/) are always in-repo and OK.`,
+      `legacy in-repo state detected (${parts.join(", ")}): confirm specs are preserved, then remove manually. Specs (.adv/specs/) are always in-repo and OK.`,
     );
   }
 
@@ -837,7 +837,7 @@ export const statusTools = {
           if (healthSnapshot.closed_to_active_ratio > 5) {
             const ratio = healthSnapshot.closed_to_active_ratio;
             status.recommendations.push(
-              `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_archive_sweep_orphans dryRun: true includeClosed: true\` to inspect.`,
+              `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`,
             );
           }
 
