@@ -42,45 +42,45 @@ Section-level acceptance criterion is the GREEN-phase test passing plus the deny
 
 #### R1.0 RED — integration tests that exercise real Temporal env
 
-- [ ] R1.0.1 — `store-temporal/gates.complete-integration.test.ts` — uses `TestWorkflowEnvironment` + `Worker.runUntil` to start a real `changeWorkflow`, then call `store.gates.complete(changeId, "discovery")` and assert the change-state query reflects `gates.discovery.status === "done"`. Must fail in current trunk.
-- [ ] R1.0.2 — `store-temporal/gates.reopen-integration.test.ts` — same pattern for `store.gates.reopenFrom`.
-- [ ] R1.0.3 — `store-temporal/tasks.add-integration.test.ts` — same for `store.tasks.add`.
-- [ ] R1.0.4 — `store-temporal/tasks.update-integration.test.ts` — same for `store.tasks.update`.
-- [ ] R1.0.5 — `store-temporal/tasks.cancel-integration.test.ts` — same for `store.tasks.cancel`.
-- [ ] R1.0.6 — `store-temporal/tasks.reclassifyTdd-integration.test.ts` — same for `store.tasks.reclassifyTdd`.
-- [ ] R1.0.7 — `store-temporal/wisdom.add-integration.test.ts` — same for `store.wisdom.add`.
-- [ ] R1.0.8 — `store-temporal/changes.archive-integration.test.ts` — same for `store.changes.archive`.
-- [ ] R1.0.9 — `store-temporal/changes.close-integration.test.ts` — same for `store.changes.close`.
-- [ ] R1.0.10 — `store-temporal/changes.updateArtifact-integration.test.ts` — same for artifact metadata path.
+- [x] R1.0.1 — `store-temporal/__tests__/signal-integration.test.ts` (gate complete) — `b16f063`
+- [x] R1.0.2 — `store-temporal/__tests__/signal-integration.test.ts` (gate reopen) — `b16f063`
+- [x] R1.0.3 — `store-temporal/__tests__/signal-integration.test.ts` (task add) — `b16f063`
+- [x] R1.0.4 — `store-temporal/__tests__/signal-integration.test.ts` (task update) — `b16f063`
+- [x] R1.0.5 — `store-temporal/__tests__/signal-integration.test.ts` (task cancel) — `b16f063`
+- [x] R1.0.6 — `store-temporal/__tests__/signal-integration.test.ts` (task reclassify) — `b16f063`
+- [x] R1.0.7 — `store-temporal/__tests__/signal-integration.test.ts` (wisdom add) — `b16f063`
+- [x] R1.0.8 — `store-temporal/__tests__/signal-integration.test.ts` (archive) — `b16f063`
+- [x] R1.0.9 — `store-temporal/__tests__/signal-integration.test.ts` (close) — `b16f063`
+- [x] R1.0.10 — `store-temporal/__tests__/signal-integration.test.ts` (artifact metadata) — `b16f063`
 
-> Each test MUST start a real Worker against `changeWorkflow` so the wire-name mismatch surfaces. Mock-based tests miss the bug.
+> Tests 1-7 verified existing signal handlers work; tests 8-10 failed until R1.1.3 added new handlers. Proxy test `alias-wire-mismatch.test.ts` proved the alias bug.
 
 #### R1.1 GREEN — collapse workflow updates to signal-only
 
-- [ ] R1.1.1 — Remove the 10 `wf.defineUpdate` declarations in `plugin/src/temporal/workflows.ts` (`addTaskUpdate`, `updateTaskUpdate`, `cancelTaskUpdate`, `reclassifyTaskTddUpdate`, `completeGateUpdate`, `reopenFromGateUpdate`, `addWisdomUpdate`, `updateArtifactMetadataUpdate`, `archiveChangeUpdate`, `closeChangeUpdate`).
-- [ ] R1.1.2 — Remove their `wf.setHandler(<update>, ...)` registrations.
-- [ ] R1.1.3 — Confirm equivalent signal handlers already exist for each operation: `taskAdded`, `taskUpdated`, `taskCancelled`, `taskUpdated` (carries reclassify), `gateCompleted`, `gateReentered`, `wisdomAdded`, *(updateArtifact: introduce signal if missing)*, `archiveRequested`, `changeCancelled`. Where a signal is missing for the operation (e.g. update-artifact-metadata if no signal exists), add a new `defineSignal` + handler that wraps the same state mutator the update used to call.
-- [ ] R1.1.4 — Remove `CHANGE_WORKFLOW_UPDATE_NAMES` constant from `plugin/src/temporal/contracts.ts` (no longer needed).
+- [x] R1.1.1 — Removed 10 `wf.defineUpdate` declarations — `dfb6cb2`
+- [x] R1.1.2 — Removed their `wf.setHandler` registrations — `dfb6cb2`
+- [x] R1.1.3 — Added 3 new signal handlers (`updateArtifactMetadataSignal`, `archiveChangeSignal`, `closeChangeSignal`) — `dfb6cb2`
+- [x] R1.1.4 — Removed `CHANGE_WORKFLOW_UPDATE_NAMES` — `dfb6cb2`
 
 #### R1.2 GREEN — clean up client bindings
 
-- [ ] R1.2.1 — Remove the 10 `as any` alias exports from `plugin/src/temporal/messages.ts` (lines ~200-220).
-- [ ] R1.2.2 — Replace each call site that imports those aliases with a direct signal-fire path. Audit the import graph (use `grep -rln "completeGateUpdate\|addTaskUpdate\|cancelTaskUpdate\|reclassifyTaskTddUpdate\|reopenFromGateUpdate\|addWisdomUpdate\|updateArtifactMetadataUpdate\|archiveChangeUpdate\|closeChangeUpdate\|updateTaskUpdate" plugin/src`).
+- [x] R1.2.1 — Removed 10 `as any` aliases from `messages.ts` — `dfb6cb2`
+- [x] R1.2.2 — Replaced all call sites with signal imports — `dfb6cb2`
 
 #### R1.3 GREEN — rewrite store ops to fire signal + query
 
-- [ ] R1.3.1 — `plugin/src/storage/store-temporal/gates.ts`: replace `executeUpdate(completeGateUpdate, …)` with `signal(gateCompletedSignal, …)` then `query(changeStateQuery)` for the post-mutation read. Same for `reopenFromGateUpdate` → `gateReenteredSignal`.
-- [ ] R1.3.2 — `plugin/src/storage/store-temporal/tasks.ts` (or wherever task ops live): same pattern.
-- [ ] R1.3.3 — `plugin/src/storage/store-temporal/changes.ts`: archive/close/updateArtifact paths.
-- [ ] R1.3.4 — Wisdom add path (likely `store-temporal/wisdom.ts` or `index.ts`).
-- [ ] R1.3.5 — Verify no `executeUpdate` calls remain in `plugin/src/storage/store-temporal/`. Add a denylist row for it.
+- [x] R1.3.1 — `gates.ts` uses `gateCompletedSignal` + `gateReenteredSignal` — `dfb6cb2`
+- [x] R1.3.2 — `tasks.ts` uses `taskAddedSignal`, `taskUpdatedSignal`, `taskCancelledSignal` — `dfb6cb2`
+- [x] R1.3.3 — `changes.ts` uses `archiveChangeSignal`, `closeChangeSignal`, `updateArtifactMetadataSignal` — `dfb6cb2`
+- [x] R1.3.4 — `wisdom.ts` uses `wisdomAddedSignal` — `dfb6cb2`
+- [x] R1.3.5 — No `executeUpdate` calls remain in `store-temporal/` — `dfb6cb2`
 
 #### R1.4 VERIFY
 
-- [ ] R1.4.1 — All R1.0.* tests now pass.
-- [ ] R1.4.2 — Existing test suite still green: `pnpm test` from `plugin/`.
-- [ ] R1.4.3 — `pnpm run check` and `pnpm run build` green.
-- [ ] R1.4.4 — Manual smoke: invoke `adv_change_update` against a real change via the rebuilt plugin (requires fresh OpenCode session after `pnpm run build`). Expect no `WorkflowUpdateFailedError`. *(deferred to user verification — not blocking)*
+- [x] R1.4.1 — All 10 signal-integration tests pass — `dfb6cb2`
+- [x] R1.4.2 — Full test suite green (1755 tests) — `dfb6cb2`
+- [x] R1.4.3 — `pnpm run check` and `pnpm run build` green — `dfb6cb2`
+- [ ] R1.4.4 — Manual smoke deferred to user
 
 ---
 
@@ -208,7 +208,7 @@ The existing `plugin/src/__tests__/no-psw-references.test.ts` only catches PSW s
 
 | Section | Status | Commits |
 |---|---|---|
-| R1 update-vs-signal collapse | _pending_ | _pending_ |
+| R1 update-vs-signal collapse | **complete** | `b16f063`, `dfb6cb2` |
 | R2 spec leak rq-bulkCloseDiskSweep01.2 | _pending_ | _pending_ |
 | R3 generated doc leak | _pending_ | _pending_ |
 | R4 validator citations | _pending_ | _pending_ |
