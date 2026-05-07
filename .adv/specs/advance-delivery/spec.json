@@ -3,20 +3,27 @@
   "name": "advance-delivery",
   "title": "Advance Delivery",
   "purpose": "Capability: Execution-layer contract for ADV \u2014 TDD execution routing, task-run ledger, bulk operations, delta operations, and per-task checkpoint commits. Split from `advance` capability; absorbs former `contract-system` and `checkpoint-commits` capabilities.",
-  "version": "1.2.0",
-  "updated_at": "2026-05-03T00:00:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-05-07T20:00:00.000Z",
   "requirements": [
     {
       "id": "rq-ADVEXEC01",
       "title": "Canonical Apply Tool Path for Inline TDD",
       "body": "For ordinary inline TDD work, /adv-apply MUST explicitly name editing tools (edit, write, morph_edit where appropriate) as the correct path for creating or modifying test files, and MUST explicitly name adv_run_test as the primary red/green test execution path.",
       "priority": "must",
-      "tags": ["workflow", "execution", "tdd", "tool-routing"],
+      "tags": [
+        "workflow",
+        "execution",
+        "tdd",
+        "tool-routing"
+      ],
       "scenarios": [
         {
           "id": "rq-ADVEXEC01.1",
           "title": "Red and green contract lines name adv_run_test",
-          "given": ["The /adv-apply command contract is present"],
+          "given": [
+            "The /adv-apply command contract is present"
+          ],
           "when": "Its Red and Green phase guidance is inspected",
           "then": [
             "The Red phase line names adv_run_test with phase 'red'",
@@ -26,7 +33,9 @@
         {
           "id": "rq-ADVEXEC01.2",
           "title": "Apply contract names editing tools for test-file changes",
-          "given": ["The /adv-apply command contract is present"],
+          "given": [
+            "The /adv-apply command contract is present"
+          ],
           "when": "Its ordinary inline-TDD file-editing guidance is inspected",
           "then": [
             "At least one supported editing tool is named for test-file creation or modification",
@@ -43,21 +52,34 @@
       "title": "Apply Contract Regression Anchors",
       "body": "The repository MUST maintain asset or regression tests that fail when canonical inline-TDD path wording is removed from /adv-apply or when shell-authored test-file content is reintroduced as normal-path guidance.",
       "priority": "must",
-      "tags": ["workflow", "execution", "regression", "tool-routing"],
+      "tags": [
+        "workflow",
+        "execution",
+        "regression",
+        "tool-routing"
+      ],
       "scenarios": [
         {
           "id": "rq-ADVEXEC02.1",
           "title": "Asset tests guard canonical path wording",
-          "given": ["The /adv-apply contract is covered by asset tests"],
+          "given": [
+            "The /adv-apply contract is covered by asset tests"
+          ],
           "when": "Canonical Red/Green adv_run_test wording is removed",
-          "then": ["The asset or regression suite fails"]
+          "then": [
+            "The asset or regression suite fails"
+          ]
         },
         {
           "id": "rq-ADVEXEC02.2",
           "title": "Asset tests guard anti-pattern row",
-          "given": ["The /adv-apply contract is covered by asset tests"],
+          "given": [
+            "The /adv-apply contract is covered by asset tests"
+          ],
           "when": "The shell-authored test-file anti-pattern row is removed or weakened",
-          "then": ["The asset or regression suite fails"]
+          "then": [
+            "The asset or regression suite fails"
+          ]
         }
       ],
       "meta": {
@@ -69,7 +91,13 @@
       "title": "Runtime Enforcement for Inline-TDD Bash Workarounds",
       "body": "During active inline-TDD work, runtime enforcement MUST treat shell-authored test-file content and direct test-runner bash differently. Shell-authored test-file content targeting test-glob paths is prohibited and MUST be blocked. Direct test-runner bash without a matching recent adv_run_test signal MUST emit an advisory but MUST NOT be blocked. These are firm defaults, not feature-flagged rollout modes.",
       "priority": "must",
-      "tags": ["workflow", "execution", "runtime", "guard", "tdd"],
+      "tags": [
+        "workflow",
+        "execution",
+        "runtime",
+        "guard",
+        "tdd"
+      ],
       "scenarios": [
         {
           "id": "rq-ADVEXEC03.1",
@@ -109,7 +137,13 @@
       "title": "Evidence Tool Value Justification",
       "body": "ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof, durable evidence, and durable workflow-queryable test records. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.",
       "priority": "must",
-      "tags": ["workflow", "execution", "tdd", "evidence", "value"],
+      "tags": [
+        "workflow",
+        "execution",
+        "tdd",
+        "evidence",
+        "value"
+      ],
       "scenarios": [
         {
           "id": "rq-ADVEXEC04.1",
@@ -131,7 +165,13 @@
       "title": "Prescriptive Tool Guidance Must Pass Value-vs-Burden Test",
       "body": "New prescriptive ADV execution guidance MUST state the durable value category that justifies its burden. Valid categories include reproducibility, durable audit, recovery, safety, validation, and governance. Guidance that only adds ceremony without one of these values MUST NOT be added.",
       "priority": "must",
-      "tags": ["workflow", "execution", "governance", "value", "burden"],
+      "tags": [
+        "workflow",
+        "execution",
+        "governance",
+        "value",
+        "burden"
+      ],
       "scenarios": [
         {
           "id": "rq-ADVEXEC05.1",
@@ -164,12 +204,18 @@
       "title": "Filter-Aware Bulk Close",
       "body": "adv_change_bulk_close must support closing multiple changes in a single approved tool call, using either an explicit ID list or filter-based selection, with fail-all semantics on invalid targets and a structured result envelope.",
       "priority": "must",
-      "tags": ["workflow", "changes", "bulk-operations"],
+      "tags": [
+        "workflow",
+        "changes",
+        "bulk-operations"
+      ],
       "scenarios": [
         {
           "id": "rq-bulkClose01.1",
           "title": "Explicit ID list close",
-          "given": ["A list of valid active change IDs"],
+          "given": [
+            "A list of valid active change IDs"
+          ],
           "when": "adv_change_bulk_close is called with kind: 'explicit' and those IDs",
           "then": [
             "All specified changes are closed with the provided reason",
@@ -180,7 +226,9 @@
         {
           "id": "rq-bulkClose01.2",
           "title": "Filter-based close requires explicit filter",
-          "given": ["A repository with changes in various states"],
+          "given": [
+            "A repository with changes in various states"
+          ],
           "when": "adv_change_bulk_close is called with kind: 'filter'",
           "then": [
             "The call must supply either a status filter (draft or pending) OR a staleness filter (createdBefore or lastActivityBefore)",
@@ -202,7 +250,9 @@
         {
           "id": "rq-bulkClose01.4",
           "title": "Empty match is a structured error",
-          "given": ["A filter-based bulk close that matches zero changes"],
+          "given": [
+            "A filter-based bulk close that matches zero changes"
+          ],
           "when": "The selection resolves",
           "then": [
             "A structured error is returned with success: false",
@@ -213,7 +263,9 @@
         {
           "id": "rq-bulkClose01.5",
           "title": "Result envelope mirrors task-cancel pattern",
-          "given": ["A bulk close request that partially or fully succeeds"],
+          "given": [
+            "A bulk close request that partially or fully succeeds"
+          ],
           "when": "The result is returned",
           "then": [
             "The envelope contains success, closed (count), results (array of per-change entries), and message",
@@ -223,7 +275,9 @@
         {
           "id": "rq-bulkClose01.6",
           "title": "No hard delete",
-          "given": ["Any bulk close call"],
+          "given": [
+            "Any bulk close call"
+          ],
           "when": "The operation completes",
           "then": [
             "Changes are closed (status moved to closed) but never purged or hard-deleted",
@@ -233,7 +287,9 @@
         {
           "id": "rq-bulkClose01.7",
           "title": "Existing close signature unchanged",
-          "given": ["The existing adv_change_close tool"],
+          "given": [
+            "The existing adv_change_close tool"
+          ],
           "when": "Inspected after this change ships",
           "then": [
             "Its signature and behavior remain identical to before adv_change_bulk_close was added"
@@ -249,14 +305,22 @@
       "title": "Typed Delta Operations",
       "body": "The delta system MUST enforce type safety on modifications and support rename operations on requirements. Modifications must reject unknown keys; renames must update title (and optionally id) while preserving all other fields.",
       "priority": "must",
-      "tags": ["contract-system", "delta", "schema"],
+      "tags": [
+        "contract-system",
+        "delta",
+        "schema"
+      ],
       "scenarios": [
         {
           "id": "rq-deltaOps01.1",
           "title": "Reject unknown keys on modify",
-          "given": ["A DeltaModifySchema object with unknown keys"],
+          "given": [
+            "A DeltaModifySchema object with unknown keys"
+          ],
           "when": "The schema is parsed by Zod",
-          "then": ["The parse operation MUST fail with a validation error"]
+          "then": [
+            "The parse operation MUST fail with a validation error"
+          ]
         },
         {
           "id": "rq-deltaOps01.2",
@@ -281,7 +345,12 @@
       "title": "Verified Checkpoint Ordering",
       "body": "Checkpoint commits MUST only represent verified task completion state. Verification runs before checkpoint, not after.",
       "priority": "must",
-      "tags": ["checkpoint", "ordering", "verification", "apply-flow"],
+      "tags": [
+        "checkpoint",
+        "ordering",
+        "verification",
+        "apply-flow"
+      ],
       "scenarios": [
         {
           "id": "rq-cc01.1",
@@ -299,7 +368,9 @@
         {
           "id": "rq-cc01.2",
           "title": "Red-phase checkpoint prohibited",
-          "given": ["A task has failing tests or unverified changes"],
+          "given": [
+            "A task has failing tests or unverified changes"
+          ],
           "when": "The agent attempts checkpoint before green phase",
           "then": [
             "The checkpoint MUST NOT run",
@@ -316,7 +387,12 @@
       "title": "Scope Guard",
       "body": "Checkpoint commits MUST be scoped to the correct change worktree. Branch and HEAD guards are fail-closed and run before staging.",
       "priority": "must",
-      "tags": ["checkpoint", "guard", "worktree", "scope"],
+      "tags": [
+        "checkpoint",
+        "guard",
+        "worktree",
+        "scope"
+      ],
       "scenarios": [
         {
           "id": "rq-cc02.1",
@@ -347,7 +423,9 @@
         {
           "id": "rq-cc02.3",
           "title": "Change identity derived from task",
-          "given": ["A valid `taskId` is provided"],
+          "given": [
+            "A valid `taskId` is provided"
+          ],
           "when": "The checkpoint tool resolves the change context",
           "then": [
             "The tool MUST call `store.tasks.show(taskId)` to derive the owning `changeId`",
@@ -365,12 +443,19 @@
       "title": "Audit Metadata",
       "body": "Checkpoint commits MUST include machine-readable metadata in the commit message for audit and rollback purposes.",
       "priority": "must",
-      "tags": ["checkpoint", "metadata", "audit", "commit-message"],
+      "tags": [
+        "checkpoint",
+        "metadata",
+        "audit",
+        "commit-message"
+      ],
       "scenarios": [
         {
           "id": "rq-cc03.1",
           "title": "Structured commit message",
-          "given": ["A checkpoint succeeds"],
+          "given": [
+            "A checkpoint succeeds"
+          ],
           "when": "The commit is created",
           "then": [
             "The commit message MUST have a terse subject line (`task({taskId}): {mode}`)",
@@ -384,7 +469,9 @@
         {
           "id": "rq-cc03.2",
           "title": "Clean tree returns without commit",
-          "given": ["The working tree has no changes"],
+          "given": [
+            "The working tree has no changes"
+          ],
           "when": "The checkpoint tool runs",
           "then": [
             "No commit is created",
@@ -402,12 +489,19 @@
       "title": "Dirty-Baseline Protection",
       "body": "The `/adv-apply` flow MUST capture a clean baseline before the Red Phase to ensure checkpoint commits represent only the task's incremental changes.",
       "priority": "must",
-      "tags": ["checkpoint", "baseline", "apply-flow", "dirty-tree"],
+      "tags": [
+        "checkpoint",
+        "baseline",
+        "apply-flow",
+        "dirty-tree"
+      ],
       "scenarios": [
         {
           "id": "rq-cc04.1",
           "title": "Baseline capture before Red Phase",
-          "given": ["A task is starting in `/adv-apply`"],
+          "given": [
+            "A task is starting in `/adv-apply`"
+          ],
           "when": "The agent begins the task workflow",
           "then": [
             "The agent MUST verify the working tree is clean or checkpoint any pre-existing changes before entering Red Phase",
@@ -417,7 +511,9 @@
         {
           "id": "rq-cc04.2",
           "title": "Incremental verification before checkpoint",
-          "given": ["A task has completed the Green Phase"],
+          "given": [
+            "A task has completed the Green Phase"
+          ],
           "when": "The agent prepares to checkpoint",
           "then": [
             "The agent MUST run incremental verification (tests, typecheck, lint) before calling `adv_task_checkpoint`",
@@ -434,12 +530,19 @@
       "title": "No-Publication Authority",
       "body": "Checkpoint commits are local rollback/audit points only. Publication, merge, and archive remain separate workflows requiring explicit user approval.",
       "priority": "must",
-      "tags": ["checkpoint", "publication", "authority", "archive"],
+      "tags": [
+        "checkpoint",
+        "publication",
+        "authority",
+        "archive"
+      ],
       "scenarios": [
         {
           "id": "rq-cc05.1",
           "title": "Checkpoint commits are not published",
-          "given": ["A checkpoint commit exists in a change worktree"],
+          "given": [
+            "A checkpoint commit exists in a change worktree"
+          ],
           "when": "The agent considers next steps",
           "then": [
             "The agent MUST NOT push the checkpoint commit to a remote",
@@ -450,7 +553,9 @@
         {
           "id": "rq-cc05.2",
           "title": "Archive is the separate publication path",
-          "given": ["All tasks are done and the acceptance gate is complete"],
+          "given": [
+            "All tasks are done and the acceptance gate is complete"
+          ],
           "when": "The user requests archive",
           "then": [
             "`/adv-archive` runs Phase 9 Git Finalization as the publication path",
@@ -468,7 +573,13 @@
       "title": "Checkpoint ledger recording blocks task completion when ledger write fails",
       "body": "adv_task_checkpoint MUST surface ledger recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but the task-run ledger event cannot be persisted. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint or ledger event, and only marks the task done after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.",
       "priority": "must",
-      "tags": ["checkpoint", "ledger", "task-run", "apply-flow", "recovery"],
+      "tags": [
+        "checkpoint",
+        "ledger",
+        "task-run",
+        "apply-flow",
+        "recovery"
+      ],
       "scenarios": [
         {
           "id": "rq-checkpointLedger01.1",
@@ -523,7 +634,12 @@
       "title": "Archive Completeness Validation",
       "body": "adv_change_archive MUST run validateChange before creating the archive bundle. Validation errors block the archive; warnings are included in the response but do not block. Validation runs before the idempotent bundle-existence check so that retries also validate.",
       "priority": "must",
-      "tags": ["workflow", "archive", "validation", "completeness"],
+      "tags": [
+        "workflow",
+        "archive",
+        "validation",
+        "completeness"
+      ],
       "scenarios": [
         {
           "id": "rq-archiveValidate01.1",
@@ -572,12 +688,18 @@
       "title": "adv_change_show accepts opt-in include flags",
       "body": "adv_change_show must accept an optional include argument with shape { ledger?: boolean, snapshot?: boolean, readyTasks?: boolean, readyTasksLimit?: number }. When include is omitted, the response shape is unchanged (backward compatible). When include.snapshot is true, the rendered context snapshot is attached as top-level _contextSnapshot, matching the mutation-tool convention. When include.ledger is true, the in-progress task's TaskRunState (or null) is attached as _ledger. When include.readyTasks is true, the unblocked ready queue is attached as _readyTasks (top-N by priority then created_at; default 10, max 50) along with _readyTasksMeta. Cross-project target_path routing is preserved.",
       "priority": "must",
-      "tags": ["delivery", "tools", "context-emission"],
+      "tags": [
+        "delivery",
+        "tools",
+        "context-emission"
+      ],
       "scenarios": [
         {
           "id": "rq-advChangeShowInclude01.1",
           "title": "Default behavior preserved when include is omitted",
-          "given": ["A change exists with completed and pending tasks"],
+          "given": [
+            "A change exists with completed and pending tasks"
+          ],
           "when": "adv_change_show is called without include",
           "then": [
             "The response does NOT contain _contextSnapshot, _ledger, or _readyTasks",
@@ -587,7 +709,9 @@
         {
           "id": "rq-advChangeShowInclude01.2",
           "title": "include.snapshot attaches _contextSnapshot",
-          "given": ["A change exists"],
+          "given": [
+            "A change exists"
+          ],
           "when": "adv_change_show is called with include: { snapshot: true }",
           "then": [
             "The response includes top-level _contextSnapshot string",
@@ -611,14 +735,20 @@
     {
       "id": "rq-advStatusView01",
       "title": "adv_status accepts optional view selector",
-      "body": "adv_status must accept an optional view argument of type 'summary' | 'health' | 'changes' | 'hygiene' (default: 'summary'). The summary view returns specs.count, simplified changes.recent (id+title+recency+minutesSinceActivity only), recommendations, temporal_health_ok (boolean), and worktree_count — explicitly omitting hygiene-archaeology fields like _healthSnapshot. The health view returns full temporal_health, search_attributes, opencode_session_debt, diagnostics, and the metrics counters. The changes view returns full status.changes detail. The hygiene view returns _healthSnapshot, opencode_session_debt detail, project_metadata, recommendations, and migration_status. The formatted block is preserved across all views.",
+      "body": "adv_status must accept an optional view argument of type 'summary' | 'health' | 'changes' | 'hygiene' (default: 'summary'). The summary view returns specs.count, simplified changes.recent (id+title+recency+minutesSinceActivity only), recommendations, temporal_health_ok (boolean), and worktree_count \u2014 explicitly omitting hygiene-archaeology fields like _healthSnapshot. The health view returns full temporal_health, search_attributes, opencode_session_debt, diagnostics, and the metrics counters. The changes view returns full status.changes detail. The hygiene view returns _healthSnapshot, opencode_session_debt detail, project_metadata, recommendations, and migration_status. The formatted block is preserved across all views.",
       "priority": "must",
-      "tags": ["delivery", "tools", "context-emission"],
+      "tags": [
+        "delivery",
+        "tools",
+        "context-emission"
+      ],
       "scenarios": [
         {
           "id": "rq-advStatusView01.1",
           "title": "Default view is summary",
-          "given": ["adv_status is called with no view arg"],
+          "given": [
+            "adv_status is called with no view arg"
+          ],
           "when": "The tool runs",
           "then": [
             "The response includes view:'summary'",
@@ -628,7 +758,9 @@
         {
           "id": "rq-advStatusView01.2",
           "title": "Health view exposes full diagnostics",
-          "given": ["adv_status is called with view:'health'"],
+          "given": [
+            "adv_status is called with view:'health'"
+          ],
           "when": "The tool runs",
           "then": [
             "The response includes temporal_health, search_attributes, opencode_session_debt, diagnostics",
@@ -642,12 +774,18 @@
       "title": "Per-phase metrics counters surfaced via health view",
       "body": "The plugin must maintain in-memory counters for the session: adv_tool_calls (total adv_* tool invocations), adv_tool_call_count_by_name (Record<string, number> breakdown), system_block_bytes (cumulative bytes appended to output.system[0]), subagent_spawns (count of `task` tool invocations from main), and wall_time_ms. Counters reset on plugin init. They are surfaced as the metrics field on adv_status view:'health'. Per JC-1, persistence across sessions is OUT of scope for this baseline.",
       "priority": "must",
-      "tags": ["delivery", "metrics", "observability"],
+      "tags": [
+        "delivery",
+        "metrics",
+        "observability"
+      ],
       "scenarios": [
         {
           "id": "rq-advMetricsBaseline01.1",
           "title": "Counters reset on plugin init",
-          "given": ["The plugin factory runs"],
+          "given": [
+            "The plugin factory runs"
+          ],
           "when": "resetMetrics is called",
           "then": [
             "All five counters are zero",
@@ -657,7 +795,9 @@
         {
           "id": "rq-advMetricsBaseline01.2",
           "title": "Health view exposes counters",
-          "given": ["adv_status is called with view:'health'"],
+          "given": [
+            "adv_status is called with view:'health'"
+          ],
           "when": "The tool runs",
           "then": [
             "The response includes a metrics object with the five fields",
@@ -665,6 +805,75 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-cacheRefresh01",
+      "title": "Tool-Layer Cache Refresh After Signal Fire",
+      "body": "Tool-layer code SHALL use fireSignalAndRefresh(handle, store, changeId, signal, ...args) for any Temporal signal targeting a change workflow. The helper fires the signal AND invalidates the in-memory changeCache so subsequent store.changes.get() calls return fresh state. Direct fireSignal use is permitted ONLY for signals not associated with a single change; any such call MUST be annotated with // rq-cacheRefresh01-exempt: <reason>. Cross-project: when mutating a change in another project via target_path, the helper invalidates the TARGET projects cache via the store argument; tools MUST resolve the target store via withTargetPathStore(...) upstream before calling the helper.",
+      "priority": "must",
+      "tags": [
+        "cache-discipline",
+        "execution",
+        "tool-layer",
+        "signal-driven"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cacheRefresh01.1",
+          "title": "Tool fires signal targeting change workflow",
+          "given": [
+            "A tool-layer function fires a Temporal signal",
+            "The signal is associated with a changeId"
+          ],
+          "when": "The tool issues the signal",
+          "then": [
+            "It MUST use fireSignalAndRefresh(handle, store, changeId, signal, ...)",
+            "Direct fireSignal(handle, signal, ...) is forbidden in this case"
+          ]
+        },
+        {
+          "id": "rq-cacheRefresh01.2",
+          "title": "Code review identifies a non-exempt direct fireSignal call",
+          "given": [
+            "A tool-layer source file contains fireSignal(handle, ...)",
+            "The signal is associated with a changeId"
+          ],
+          "when": "The grep gate runs (grep -rn \"fireSignal(handle\" plugin/src/tools/ | grep -v .test.ts | grep -v rq-cacheRefresh01-exempt)",
+          "then": [
+            "The gate MUST return zero non-exempt matches",
+            "CI MUST fail if matches are present"
+          ]
+        },
+        {
+          "id": "rq-cacheRefresh01.3",
+          "title": "Cross-project mutation via target_path",
+          "given": [
+            "A tool mutates a change in project B from project As session",
+            "The mutation requires a Temporal signal"
+          ],
+          "when": "The tool resolves the workflow handle and store",
+          "then": [
+            "The store argument to fireSignalAndRefresh MUST be the target projects store",
+            "The store MUST be obtained via withTargetPathStore(...) upstream"
+          ]
+        },
+        {
+          "id": "rq-cacheRefresh01.4",
+          "title": "Documented exemption for change-less signals",
+          "given": [
+            "A tool-layer function fires a signal not associated with any changeId"
+          ],
+          "when": "The function uses fireSignal directly",
+          "then": [
+            "The call site MUST include a // rq-cacheRefresh01-exempt: <reason> comment",
+            "The reason MUST explain why no changeId association exists"
+          ]
+        }
+      ],
+      "meta": {
+        "introduced_by": "centralizemutationcacherefresh",
+        "replaces_inline_pattern": "4a3e81f gate.ts inline store.changes.refresh"
+      }
     }
   ]
 }
