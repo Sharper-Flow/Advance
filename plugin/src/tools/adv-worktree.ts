@@ -74,7 +74,7 @@ export const advWorktreeTools = {
       const result = await advWorktreeCreate(
         args.branch,
         { base: args.base, force: args.force },
-        { projectRoot, database, log, ocaEnsureWindow },
+        { projectRoot, database, log, ocaEnsureWindow, store },
       );
       return formatToolOutput(result);
     },
@@ -143,7 +143,7 @@ export const advWorktreeTools = {
       const result = await advWorktreeDelete(
         args.branch,
         { force: args.force },
-        { projectRoot, database, log },
+        { projectRoot, database, log, store },
       );
       return formatToolOutput(result);
     },
