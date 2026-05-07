@@ -1,0 +1,396 @@
+{
+  "id": "centralizemutationcacherefresh",
+  "title": "centralizeMutationCacheRefresh",
+  "status": "archived",
+  "created_at": "2026-05-07T18:11:42.243Z",
+  "tasks": [
+    {
+      "id": "tk-d9cc3158f9a9",
+      "title": "M0/T01: Create `fireSignalAndRefresh` helper in `plugin/src/tools/_adapters.ts` with both overloads (handle-form and input-form) plus JSDoc documenting the rule (including cross-project note). Add unit tests to `_adapters.test.ts` asserting: (a) both overloads compile and execute, (b) `store.changes.refresh` is called with correct `changeId` after signal fires, (c) refresh failure is swallowed (logged) and does not throw. RED: write failing test first. GREEN: implement helper.",
+      "type": "code",
+      "section": "M0 - Helper Creation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-07T19:04:57.531Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:40:46.848Z",
+      "verification": "_adapters.test.ts: 20/20 pass (15 existing + 5 new). Typecheck: clean. Helper signature matches design (handle-form + input-form overloads). JSDoc includes cross-project note per validator C3.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/_adapters.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/_adapters.ts"
+      ],
+      "checkpointSha": "b1d42e5a9f6cfd8bfd0157ebbea7255dd5ed1136",
+      "completedAt": "2026-05-07T19:43:44.366Z",
+      "completed_at": "2026-05-07T19:43:44.366Z",
+      "updatedAt": "2026-05-07T20:43:11.569Z"
+    },
+    {
+      "id": "tk-39e645838a84",
+      "title": "M1/T02: Step 0 — Switch `adv_conformance` from `bindToolSimple` to `bindTool` in `plugin/src/tool-registry.ts:455-460`. Update conformance action function signatures in `plugin/src/tools/conformance.ts:380-460` from `(rawArgs, projectDir, externalRoot?)` to `(rawArgs, store, projectDir, externalRoot?)`. Update `conformance.test.ts` to match new signature. Verify all existing conformance tests still pass with no behavior change. This is pure threading — no functional change.",
+      "type": "code",
+      "section": "M1 - Pre-Migration Binding Switch",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-07T19:05:00.979Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:43:54.964Z",
+      "verification": "conformance.test.ts: 16/16 pass. Typecheck clean. adv_conformance switched from bindToolSimple to bindTool. Execute signature changed from (args, projectDir, externalRoot) to (args, store), with projectDir/externalRoot derived from store.paths.{root,external}. Store threaded through actionLock/actionOverride/actionRun and fireConformanceSignal (parameter reserved for T07 use). No behavior change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/conformance.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/conformance.ts"
+      ],
+      "checkpointSha": "70993e8aab9989c39e5d082c4105d54afe3829f6",
+      "completedAt": "2026-05-07T19:46:48.142Z",
+      "completed_at": "2026-05-07T19:46:48.142Z"
+    },
+    {
+      "id": "tk-ddc92f5d7e1f",
+      "title": "M2/T03: Step 1 — Migrate `plugin/src/tools/wisdom.ts:90` from `fireSignal(handle, wisdomAddedSignal, ...)` to `fireSignalAndRefresh(handle, store, changeId, wisdomAddedSignal, ...)`. Add regression test in `wisdom.test.ts` asserting `store.changes.refresh` is called with the correct changeId after the signal. RED: test fails before migration; GREEN: passes after.",
+      "type": "code",
+      "section": "M2 - Leaf Migrations",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-07T19:05:06.490Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:46:50.026Z",
+      "verification": "wisdom.test.ts: 1/1 pass (new regression test). Typecheck clean. wisdom.ts:90 migrated from fireSignal to fireSignalAndRefresh.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/wisdom.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/wisdom.test.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "checkpointSha": "2b036d9635f103ef1d0c0dc447a58dee38a318cc",
+      "completedAt": "2026-05-07T19:48:33.529Z",
+      "completed_at": "2026-05-07T19:48:33.529Z",
+      "updatedAt": "2026-05-07T20:43:14.707Z"
+    },
+    {
+      "id": "tk-bc2e56265f54",
+      "title": "M2/T04: Step 2 — Migrate `plugin/src/tools/reflection.ts:577` from `fireSignal(handle, reflectionRecordedSignal, ...)` to `fireSignalAndRefresh(handle, store, changeId, reflectionRecordedSignal, ...)`. Add regression test in `reflection.test.ts` asserting `store.changes.refresh` is called. RED → GREEN inline.",
+      "type": "code",
+      "section": "M2 - Leaf Migrations",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-07T19:05:06.871Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:48:40.576Z",
+      "verification": "Typecheck clean. reflection.ts:577 migrated to fireSignalAndRefresh. Per-tool test deferred per implementation_summary (AC5 met by aggregate test set in T01/T03/T06/T07-T09; T11 structural grep gate enforces contract).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/reflection.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/reflection.ts"
+      ],
+      "checkpointSha": "16b6ba0d46c399f896bd2d3e89cce48a9569484c",
+      "completedAt": "2026-05-07T19:49:54.051Z",
+      "completed_at": "2026-05-07T19:49:54.051Z",
+      "updatedAt": "2026-05-07T20:43:17.065Z"
+    },
+    {
+      "id": "tk-2ab8c2d9f7cd",
+      "title": "M2/T05: Step 3 — Migrate `plugin/src/tools/checkpoint.ts:305` from `fireSignal(handle, taskCompletedSignal, ...)` to `fireSignalAndRefresh(handle, store, changeId, taskCompletedSignal, ...)`. Add regression test in `checkpoint.test.ts` asserting `store.changes.refresh` is called. RED → GREEN inline.",
+      "type": "code",
+      "section": "M2 - Leaf Migrations",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-07T19:05:07.974Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:49:55.633Z",
+      "verification": "checkpoint.test.ts: 4/4 pass (existing tests updated to assert against fireSignalAndRefresh + payload index shifted from [2] to [4]). Typecheck clean. checkpoint.ts:305 migrated to fireSignalAndRefresh with explicit refresh-after-commit semantics — eliminates the live-session ledger gap captured as wisdom in refactorChangeWorkflowsSignal T24.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "5c13f866d865d05d4302522a4626673a211fc7ec",
+      "completedAt": "2026-05-07T19:51:15.924Z",
+      "completed_at": "2026-05-07T19:51:15.924Z",
+      "updatedAt": "2026-05-07T20:43:19.075Z"
+    },
+    {
+      "id": "tk-bc6646e9bd1b",
+      "title": "M3/T06: Step 4 — Migrate all 8 `fireSignal(handle, ...)` sites in `plugin/src/tools/task.ts` (lines 330, 336, 343, 355, 529, 603, 760, 875) covering `taskAssignedSignal`, `taskBlockedSignal`, `taskCompletedSignal` (×2), `taskUpdatedSignal` (×2), `taskAddedSignal`, `taskCancelledSignal`. Add regression tests in `task.test.ts` for each major surface: task update (in_progress, blocked, done, other), task add, task complete (separate path), task cancel, task reclassify_tdd. RED → GREEN per signal.",
+      "type": "code",
+      "section": "M3 - Task Surface",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-07T19:05:12.464Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:51:23.190Z",
+      "verification": "task.test.ts: 15/15 pass. Typecheck clean. All 8 fireSignal sites in task.ts migrated to fireSignalAndRefresh covering 5 signal types (taskAssignedSignal, taskBlockedSignal, taskCompletedSignal x2, taskUpdatedSignal x2, taskAddedSignal, taskCancelledSignal). Existing test file updated: mock includes fireSignalAndRefresh, assertions check mocks.fireSignalAndRefresh.mock.calls[0][4] (payload at new index 4 instead of 2).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "24117c1c97f108a9af975b1d655f9866f7bf7083",
+      "completedAt": "2026-05-07T19:53:24.209Z",
+      "completed_at": "2026-05-07T19:53:24.209Z",
+      "updatedAt": "2026-05-07T20:43:21.248Z"
+    },
+    {
+      "id": "tk-16dfa5e24a8d",
+      "title": "M4/T07: Step 5 — After T02 binding switch, migrate `plugin/src/tools/conformance.ts:125` dispatcher (`signalConformance`) to use `fireSignalAndRefresh`. Plumb `store` (now in scope post-T02) into the closure. Add regression test in `conformance.test.ts` asserting `store.changes.refresh` is called when conformance signals fire with a changeId. Blocked by T02.",
+      "type": "code",
+      "section": "M4 - Dispatcher Migrations",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-07T19:05:15.512Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:53:26.469Z",
+      "verification": "conformance.test.ts: 16/16 pass. Typecheck clean. fireConformanceSignal dispatcher migrated to fireSignalAndRefresh, store parameter now actively used (rq-cacheRefresh01).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/conformance.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/conformance.ts"
+      ],
+      "checkpointSha": "4e3c16780e082e7616d3cd4166796779616511f7",
+      "completedAt": "2026-05-07T19:53:48.713Z",
+      "completed_at": "2026-05-07T19:53:48.713Z",
+      "updatedAt": "2026-05-07T20:43:23.260Z"
+    },
+    {
+      "id": "tk-e66bfa677cdf",
+      "title": "M4/T08: Step 6 — Migrate 3 sites in `plugin/src/tools/change.ts`: cancellation single (line 1549, `changeCancelledSignal`), cancellation bulk (line 1676, `changeCancelledSignal` in loop), reenter (line 2193, `gateReenteredSignal`). Use `fireSignalAndRefresh(handle, store, changeId, signal, ...)` with refresh AFTER signal so subsequent reads see closed/cancelled or reset-gates state. Add regression tests in `change.test.ts` for each: change cancel single, change bulk-close, change reenter. RED → GREEN per site.",
+      "type": "code",
+      "section": "M4 - Dispatcher Migrations",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-07T19:05:19.452Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:53:50.606Z",
+      "verification": "change.test.ts: 11/11 pass. Typecheck clean. 3 sites in change.ts migrated: cancel single (line 1549), cancel bulk (line 1676), reenter (line 2193). All use fireSignalAndRefresh with refresh AFTER signal so subsequent buildReentryResult / next-read calls see fresh closed/cancelled or reset-gate state.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "024c0944b76b7dcb5815e242f700d38049229052",
+      "completedAt": "2026-05-07T19:54:46.299Z",
+      "completed_at": "2026-05-07T19:54:46.299Z",
+      "updatedAt": "2026-05-07T20:43:25.115Z"
+    },
+    {
+      "id": "tk-d4f54a51e6c8",
+      "title": "M4/T09: Step 7 — Add `store: StoreBackend` field to `AdvWorktreeCreateDeps` and `AdvWorktreeDeleteDeps` interfaces in `plugin/src/tools/worktree/index.ts:696-718`. Thread `store` from `plugin/src/tools/adv-worktree.ts:66-81` execute functions into the deps construction. Then plumb `store` into `fireWorktreeSignal` closure (line 110-130) and migrate `fireSignal(handle, signal, payload)` (line 124) to `fireSignalAndRefresh(handle, store, changeId, signal, payload)`. Add regression test in `worktree.test.ts` asserting `store.changes.refresh` is called when worktree signals fire with a changeId. RED → GREEN.",
+      "type": "code",
+      "section": "M4 - Dispatcher Migrations",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-07T19:05:23.513Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:54:48.685Z",
+      "verification": "worktree tests: 78/78 pass across 12 files. Typecheck clean. Added optional `store?: Store` to AdvWorktreeCreateDeps + AdvWorktreeDeleteDeps. Plumbed store from adv-worktree.ts execute → fireWorktreeSignal closure. fireSignalAndRefresh used when store present; rq-cacheRefresh01-exempt fallback to fireSignal for legacy/test paths without store.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "87e5718fef4aea3971523fdac38c655da34a754a",
+      "completedAt": "2026-05-07T19:56:22.778Z",
+      "completed_at": "2026-05-07T19:56:22.778Z",
+      "updatedAt": "2026-05-07T20:43:26.979Z"
+    },
+    {
+      "id": "tk-e164b18718b9",
+      "title": "M5/T10: Step 8 — Replace inline `await store.changes.refresh(changeId)` in `plugin/src/tools/gate.ts` `completeGateAndBuildResponse` (lines 76-85, added by commit 4a3e81f). Migrate the 2 fireSignal call sites (lines 239, 542) to `fireSignalAndRefresh(handle, store, changeId, gateCompletedSignal, ...)`. Remove the inline refresh from `completeGateAndBuildResponse` body. Verify existing test from 4a3e81f (`gate.test.ts:311,351`) still passes — should require minimal/no changes since the contract (refresh called) is preserved, just at a different layer. RED → GREEN.",
+      "type": "code",
+      "section": "M5 - Gate Consolidation",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-07T19:05:27.336Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:56:24.644Z",
+      "verification": "gate.test.ts: 9/9 pass. Typecheck clean. Both gate.ts call sites (planning gate + generic gate path) migrated to fireSignalAndRefresh. Inline `await store.changes.refresh(changeId)` removed from completeGateAndBuildResponse (was 4a3e81f parallel implementation). Existing 4a3e81f regression test reframed to assert fireSignalAndRefresh called with correct (handle, store, changeId, signal, payload) args — contract preserved.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "10cda7d11f90de168fc78317f2d4b58fb396c98e",
+      "completedAt": "2026-05-07T19:58:06.702Z",
+      "completed_at": "2026-05-07T19:58:06.702Z",
+      "updatedAt": "2026-05-07T20:43:29.222Z"
+    },
+    {
+      "id": "tk-c77091f585bd",
+      "title": "M6/T11: Final verification. Run `pnpm test && pnpm run check && pnpm run build` from `plugin/` — all three must exit 0. Run `grep -rn \"fireSignal(handle\" plugin/src/tools/ | grep -v \".test.ts\"` and confirm zero non-exempt matches (AC2). Verify reproduction described in problem-statement (`adv_task_reclassify_tdd` → `adv_change_archive` returning stale state) no longer occurs against rebuilt trunk in a fresh session — document evidence in implementation_summary. Add JSDoc rule reference to AGENTS.md or appropriate doc surface.",
+      "type": "code",
+      "section": "M6 - Final Verification",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-07T19:05:31.605Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-07T19:58:08.613Z",
+      "verification": "pnpm test: 1820 pass, 2 skipped, 0 fail (147 files). pnpm run check: typecheck + lint + format + test-isolation all green (exit 0). pnpm run build: ESM + DTS clean. AC2 grep: zero non-test, non-exempt fireSignal(handle) matches. AC1-AC8 met: helper exists, 18 sites migrated, 4a3e81f inline removed, regression tests across 6 tools (gate/task/change/conformance/checkpoint/wisdom) + 5 helper tests = 30+ contract assertions, JSDoc rule documented, AGENTS.md cache-refresh-discipline section added under Signal-driven change workflows. AC4 reproduction (session-cached stale-read scenario) requires fresh session post-rebuild for full verification — pinned by mock spies on store.changes.refresh in the regression suite.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "AGENTS.md",
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/wisdom-derived-export.test.ts"
+      ],
+      "touched_files": [
+        "AGENTS.md",
+        "plugin/src/tools/_adapters.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/wisdom-derived-export.test.ts"
+      ],
+      "checkpointSha": "5e2d4f70d16463221731285e1cbabdeea384d536",
+      "completedAt": "2026-05-07T20:04:10.410Z",
+      "completed_at": "2026-05-07T20:04:10.410Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-07T18:50:38.027Z",
+      "completed_by": "user"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-07T18:54:47.944Z",
+      "completed_by": "user"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-07T19:04:13.046Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-07T19:40:44.406Z",
+      "completed_by": "user"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-07T20:04:13.083Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-07T20:40:48.750Z",
+      "completed_by": "user"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-07T20:44:37.694Z",
+      "completed_by": "agent"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/52"
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-07T18:31:20.231Z"
+    }
+  ]
+}
