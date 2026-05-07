@@ -516,6 +516,13 @@ export async function createDiskStore(
               : `Closed ${closed} of ${changeIds.length} change(s).`,
         };
       },
+
+      // Disk store has no in-memory cache; refresh is a no-op. The
+      // Store interface requires the method so the temporal store
+      // (which does cache) can satisfy the contract.
+      refresh: async (_changeId: string): Promise<void> => {
+        // intentional no-op
+      },
     },
 
     // -------------------------------------------------------------------

@@ -27,6 +27,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     getTemporalChange,
     listResolvedChanges,
     getTemporalWorkflowClient,
+    dualWriteAfterMutation,
   } = deps;
 
   return {
@@ -248,6 +249,18 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // a workflow is missing: try to re-seed from disk, otherwise
       // return the not-found error.
       return getTemporalChange(changeId);
+    },
+    refresh: async (changeId: string): Promise<void> => {
+      // R1 follow-on: tool-layer code paths that mutate workflow state
+      // via direct fireSignal() (notably adv_gate_complete) bypass the
+      // store's own mutation methods and would otherwise leave stale
+      // data in changeCache. After firing the signal those tools call
+      // store.changes.refresh(changeId) to drop the stale entry and
+      // re-populate the cache with fresh workflow state. Best-effort:
+      // a refresh failure is logged but never thrown — the workflow
+      // signal has already succeeded by the time we get here.
+      invalidateChange(changeId);
+      await dualWriteAfterMutation(changeId);
     },
     close: async (changeId: string, closure: ChangeClosure) => {
       // Layer C1 (rq-archiveRetirement01-followon for closed class):

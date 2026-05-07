@@ -108,6 +108,21 @@ export interface Store {
       changeIds: string[],
       closure: ChangeClosure,
     ) => Promise<BulkCloseResult>;
+    /**
+     * Invalidate the in-memory change cache and refresh from the durable
+     * source of truth (Temporal workflow state for the temporal store,
+     * disk for the disk store). Must be called by tool-layer code paths
+     * that mutate workflow state via direct fireSignal() — those paths
+     * bypass the store's own mutation methods and would otherwise leave
+     * stale data in the cache.
+     *
+     * R1 follow-on regression: adv_gate_complete fires gateCompletedSignal
+     * directly to avoid the store.gates.complete() boilerplate, which
+     * left changeCache holding pre-signal state with the gate still
+     * `pending`. adv_change_archive then read that stale cache and
+     * blocked archive even though the workflow gate was already done.
+     */
+    refresh: (changeId: string) => Promise<void>;
   };
 
   // Tasks

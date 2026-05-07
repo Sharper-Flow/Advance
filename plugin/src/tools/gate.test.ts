@@ -101,6 +101,7 @@ function createMockStore(
       updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
+      refresh: vi.fn(async () => undefined),
     } as Store["changes"],
     tasks: {} as Store["tasks"],
     wisdom: {} as Store["wisdom"],
@@ -296,6 +297,58 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed.error).toContain("prior gate(s) incomplete");
       expect(parsed.blockedBy).toContain("discovery");
       expect(mocks.fireSignal).not.toHaveBeenCalled();
+    });
+
+    test("invalidates change cache after firing gateCompletedSignal (R1 follow-on regression)", async () => {
+      // R1 cache-stale regression: when adv_gate_complete fires
+      // gateCompletedSignal directly via fireSignal(), the in-memory
+      // changeCache held by store-temporal/index.ts is not invalidated.
+      // Subsequent store.changes.get() calls return stale cached data
+      // showing the gate as still pending, blocking adv_change_archive
+      // even though Temporal workflow state has the gate done.
+      //
+      // Fix contract: after fireSignal(gateCompletedSignal) succeeds,
+      // the tool MUST call store.changes.refresh(changeId) so the next
+      // read sees the freshly-completed gate. Without this, archive,
+      // adv_change_show, and adv_change_list return stale gate state.
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "pending" },
+        } as import("../types").Gates,
+      });
+      mocks.querySignal.mockResolvedValue({
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "release",
+          completedBy: "user",
+          notes: "Manual finalization",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+
+      // Cache invalidation must happen after the signal fires so the
+      // archive preflight can read fresh gate state.
+      expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
     });
 
     test("execution gate checks for incomplete tasks", async () => {

@@ -73,6 +73,17 @@ async function completeGateAndBuildResponse({
   boundaryWarning?: string;
   extraPayload?: Record<string, unknown>;
 }): Promise<string> {
+  // R1 follow-on cache-stale fix: both call sites of this helper fire
+  // gateCompletedSignal directly via fireSignal() before calling here,
+  // bypassing store.gates.complete() which would normally invalidate
+  // the in-memory changeCache. Without this refresh, subsequent
+  // store.changes.get() reads return stale `gates: { [gateId]: pending }`
+  // state, blocking adv_change_archive and surfacing inconsistent
+  // adv_change_show output even though the workflow gate is done.
+  // Refresh is best-effort — failures are logged inside the store and
+  // do not throw, since the signal has already succeeded.
+  await store.changes.refresh(changeId);
+
   const completedAt = new Date().toISOString();
   const completedGates: Gates = {
     ...gates,
