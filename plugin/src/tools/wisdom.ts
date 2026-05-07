@@ -20,7 +20,11 @@ import { formatToolOutput } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  querySignal,
+  getChangeHandle,
+} from "./_adapters";
 
 async function getChangeHandleForChangeId(
   store: Store,
@@ -84,13 +88,22 @@ export const wisdomTools = {
           recorded_at: new Date().toISOString(),
         };
 
-        // Signal-driven: fire wisdomAddedSignal to change workflow
+        // Signal-driven: fire wisdomAddedSignal to change workflow.
+        // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
+        // changeCache is invalidated after the signal fires — without
+        // this, subsequent reads in the same session return stale state.
         const handle = await getChangeHandleForChangeId(store, changeId);
         if (handle) {
-          await fireSignal(handle, wisdomAddedSignal, {
-            entry,
-            addedAt: entry.recorded_at,
-          });
+          await fireSignalAndRefresh(
+            handle,
+            store,
+            changeId,
+            wisdomAddedSignal,
+            {
+              entry,
+              addedAt: entry.recorded_at,
+            },
+          );
         } else {
           // Fallback to disk store when Temporal is unavailable
           await store.wisdom.add(changeId, type, content, sourceTask);
