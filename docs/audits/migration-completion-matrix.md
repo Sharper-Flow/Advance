@@ -95,11 +95,28 @@ In-session smoke tests against live MCP plugin would not pick up `dist/` changes
 | Write this migration matrix doc | done (this file) |
 | Commit + push | this commit + push |
 
-## Out of scope
+## Tier 5 — Final cleanup pass (executed 2026-05-07)
 
-- 9 stale changeWorkflows for the Advance project (`cullDeadCodeFixArchive`, `refactorChangeWorkflowsSignal`, etc.). Not migration debt — pre-existing change records, mix of "abandoned drafts" and "release-ready not-yet-archived". Future cleanup via `adv_change_close` / `adv_change_archive` outside this work.
-- ChangeWorkflows for sibling projects (4 each on bdf259aa, 67fe3e95, etc.). Each project's session owns its own change cleanup.
-- The 13 ambiguous + 2 named on-disk dirs. User reviews separately to decide reap vs keep.
+User asked to "complete all remaining". Executed everything that could be safely closed:
+
+**Disk reap (Tier 2 follow-up):** investigated `proj123` (hand-named, agenda contained only `"Write docs"` test items — confirmed test fixture, reaped). Investigated `changes/accountRequestApprovals` (has substantive 7331-byte proposal.md — KEPT for user review). Sampled 4 of the 13 ambiguous IDs — found real change records (e.g. `agentEvidencePackets`, `addTimeoutResilienceSafeguards`, `addCardAcquisitionTracking`, `addResearchMcpToolsAgent`). Confirmed they are real projects (orphaned / older root-commit / sibling repos), NOT test residue. **All 13 KEPT.**
+
+**ChangeWorkflow termination (Tier 1 follow-up):** terminated 6 abandoned `changeWorkflow` executions for the Advance project. None had completed work that wasn't already on trunk:
+- `cullDeadCodeFixArchive` (work landed on trunk via plain git)
+- `refactorChangeWorkflowsSignal` (predecessor, abandoned)
+- `reconcilesessionlistwithdiagno` (proposal-stage, abandoned)
+- `cleanupzombierunningworkflows` (proposal-stage, abandoned — this exact cleanup happened today)
+- `singleworkerperprojectpolicy` (proposal-stage, abandoned)
+- `reconcilechangelistsourcesoftr` (proposal-stage, abandoned)
+
+## Out of scope (explicitly preserved)
+
+| Item | Reason |
+|---|---|
+| 3 in-flight / release-ready changeWorkflows for Advance: `removeBunTypesMainTsconfig`, `addagentmeshandinrepoarchive`, `makeAdvTaskEvidenceFallback` | First has active worktree (in-flight). Last two are 8/8 + 5/5 done; need proper `/adv-archive` in fresh session, not termination. |
+| ChangeWorkflows for sibling projects (4 on `67fe3e95…`, 2 on `cdae139e…`, 1 on `6f85aebf…`) | Each project's own session owns cleanup. They will load new code on next session start. |
+| 13 ambiguous on-disk project dirs | Sampling proved at least 4 contain real change records. Cannot safely auto-classify the remaining 9 without per-project verification. User confirms when they touch each project. |
+| `changes/accountRequestApprovals/proposal.md` (top-level stray) | Substantive content (7331-byte proposal). User reviews before reap. |
 
 ## Audit trail
 
@@ -117,7 +134,10 @@ In-session smoke tests against live MCP plugin would not pick up `dist/` changes
 |---|---|---|
 | Code (PSW retired, signals collapsed) | ✅ complete | trunk `f2ea8fb`, 1768 tests pass |
 | Specs / docs / denylists | ✅ complete | `cull*` + `R1-R8` commits |
-| Temporal runtime (PSW orphans) | ✅ complete | 5 terminations executed |
-| Disk hygiene (test residue) | ✅ complete (auto-safe) | 1932 reaped, 13 ambiguous + 2 named kept for user review |
-| Fresh-session smoke test | DEFERRED | requires user OpenCode restart |
+| Temporal: PSW orphan termination | ✅ complete | 5 terminations |
+| Temporal: Advance abandoned changeWorkflows | ✅ complete | 6 terminations |
+| Temporal: Advance in-flight + release-ready changeWorkflows | KEPT | 3 surviving (`removeBunTypesMainTsconfig`, `addagentmeshandinrepoarchive`, `makeAdvTaskEvidenceFallback`) |
+| Disk hygiene (test residue) | ✅ complete | 1933 reaped (1932 + proj123). 1952 → 19 dirs. |
+| Disk hygiene (ambiguous reals) | KEPT | 13 ambiguous + `changes/` stray with substantive content kept; user reviews per-project |
+| Fresh-session smoke test | DEFERRED | requires user OpenCode restart to load new `dist/` |
 | Cross-project verification | DEFERRED | requires user opening session in each real sibling project |
