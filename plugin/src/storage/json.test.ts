@@ -419,6 +419,65 @@ describe("Change Operations", () => {
     expect(result.data!.id).toBe("newFeature");
   });
 
+  describe("saveChange synthetic-fixture-id guard (rq-synthstate01 disk layer)", () => {
+    test("rejects changeRoundtrip ID — leaks ~514 records before this guard", async () => {
+      const changesDir = join(tempDir, ".adv/changes");
+      const change = { ...SAMPLE_CHANGE, id: "changeRoundtrip5" };
+      await expect(saveChange(changesDir, change)).rejects.toThrow(
+        /synthetic.*validation.*draft/i,
+      );
+    });
+
+    test("rejects gateParity ID — leaks ~69 records before this guard", async () => {
+      const changesDir = join(tempDir, ".adv/changes");
+      const change = { ...SAMPLE_CHANGE, id: "gateParity42" };
+      await expect(saveChange(changesDir, change)).rejects.toThrow(
+        /synthetic.*validation.*draft/i,
+      );
+    });
+
+    test("rejects parityTemporalGateParity ID", async () => {
+      const changesDir = join(tempDir, ".adv/changes");
+      const change = { ...SAMPLE_CHANGE, id: "parityTemporalGateParity" };
+      await expect(saveChange(changesDir, change)).rejects.toThrow(
+        /synthetic.*validation.*draft/i,
+      );
+    });
+
+    test("rejects latencyLegacy ID", async () => {
+      const changesDir = join(tempDir, ".adv/changes");
+      const change = { ...SAMPLE_CHANGE, id: "latencyLegacy" };
+      await expect(saveChange(changesDir, change)).rejects.toThrow(
+        /synthetic.*validation.*draft/i,
+      );
+    });
+
+    test("does not reject real change IDs that contain similar substrings", async () => {
+      const changesDir = join(tempDir, ".adv/changes");
+      // 'parity' substring but not the synthetic pattern
+      await expect(
+        saveChange(changesDir, {
+          ...SAMPLE_CHANGE,
+          id: "addParityCheckMonitoring",
+        }),
+      ).resolves.not.toThrow();
+      await expect(
+        saveChange(changesDir, {
+          ...SAMPLE_CHANGE,
+          id: "documentDataRoundtripContract",
+        }),
+      ).resolves.not.toThrow();
+    });
+
+    test("error message names the offending ID and the spec ref", async () => {
+      const changesDir = join(tempDir, ".adv/changes");
+      const change = { ...SAMPLE_CHANGE, id: "changeRoundtrip" };
+      await expect(saveChange(changesDir, change)).rejects.toThrow(
+        /changeRoundtrip/,
+      );
+    });
+  });
+
   test("loadAllChanges loads all changes", async () => {
     const changesDir = join(tempDir, ".adv/changes");
 

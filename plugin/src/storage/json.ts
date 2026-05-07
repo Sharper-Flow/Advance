@@ -12,6 +12,7 @@ import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
 import { atomicWriteFile } from "../utils/fs";
 import { createLogger } from "../utils/debug-log";
+import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-detector";
 
 const logger = createLogger("json");
 
@@ -487,6 +488,22 @@ export async function saveChange(
   changesDir: string,
   change: Change,
 ): Promise<string> {
+  // rq-synthstate01 disk-layer guard: reject synthetic-validation-draft
+  // change IDs at the lowest write path so leaked test fixtures can't
+  // accumulate via legacy / direct-disk-write code paths that bypass
+  // adv_change_create's tool-layer guard. See utils/synthetic-fixture-detector
+  // and the audit at 2026-05-07 (~600 leaked records reaped manually
+  // across 16 ADV project directories before this guard landed).
+  if (isSyntheticValidationDraftPattern(change.id)) {
+    throw new Error(
+      `Refusing to write change with synthetic-validation-draft ID "${change.id}": ` +
+        `matches reserved pattern (changeRoundtrip*, gateParity*, parityTemporal*, ` +
+        `latencyLegacy*, etc). These IDs are reserved for ADV's own validation/parity/` +
+        `latency/roundtrip workflows which must use isolated temp storage, not live ADV ` +
+        `state. Spec: rq-synthstate01.`,
+    );
+  }
+
   const changeDir = join(changesDir, change.id);
   const changePath = join(changeDir, "change.json");
 
