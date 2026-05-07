@@ -33,7 +33,11 @@ import {
 } from "./target-project";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  querySignal,
+  getChangeHandle,
+} from "./_adapters";
 import {
   changeTasksQuery,
   gateCompletedSignal,
@@ -73,16 +77,13 @@ async function completeGateAndBuildResponse({
   boundaryWarning?: string;
   extraPayload?: Record<string, unknown>;
 }): Promise<string> {
-  // R1 follow-on cache-stale fix: both call sites of this helper fire
-  // gateCompletedSignal directly via fireSignal() before calling here,
-  // bypassing store.gates.complete() which would normally invalidate
-  // the in-memory changeCache. Without this refresh, subsequent
-  // store.changes.get() reads return stale `gates: { [gateId]: pending }`
-  // state, blocking adv_change_archive and surfacing inconsistent
-  // adv_change_show output even though the workflow gate is done.
-  // Refresh is best-effort — failures are logged inside the store and
-  // do not throw, since the signal has already succeeded.
-  await store.changes.refresh(changeId);
+  // rq-cacheRefresh01: cache invalidation now happens at the call sites
+  // via fireSignalAndRefresh (which fires the signal AND refreshes the
+  // cache atomically). The previous inline `await store.changes.refresh(changeId)`
+  // here was a parallel implementation of the rule — removed in T10 of
+  // change centralizemutationcacherefresh to keep a single helper-based
+  // path. Both gate.ts call sites (planning gate path and generic gate
+  // path) now use fireSignalAndRefresh before invoking this helper.
 
   const completedAt = new Date().toISOString();
   const completedGates: Gates = {
@@ -236,12 +237,21 @@ async function handlePlanningGateCompletion({
     });
   }
   const handle = getChangeHandle(bundle.client, projectId, changeId);
-  await fireSignal(handle, gateCompletedSignal, {
-    gateId,
-    completedBy,
-    completedAt: new Date().toISOString(),
-    approvalEvidence: notes,
-  });
+  // rq-cacheRefresh01: helper fires signal AND refreshes cache so the
+  // subsequent completeGateAndBuildResponse builds its response from
+  // fresh state (no parallel inline refresh in the helper anymore).
+  await fireSignalAndRefresh(
+    handle,
+    store,
+    changeId,
+    gateCompletedSignal,
+    {
+      gateId,
+      completedBy,
+      completedAt: new Date().toISOString(),
+      approvalEvidence: notes,
+    },
+  );
 
   return completeGateAndBuildResponse({
     store,
@@ -538,13 +548,22 @@ export const gateTools = {
           // All tasks done/cancelled (or empty list) — fall through
         }
 
-        // Signal-driven mutation: fire gateCompletedSignal after sequence/task checks pass
-        await fireSignal(handle, gateCompletedSignal, {
-          gateId,
-          completedBy,
-          completedAt: new Date().toISOString(),
-          approvalEvidence: notes,
-        });
+        // Signal-driven mutation: fire gateCompletedSignal after
+        // sequence/task checks pass. rq-cacheRefresh01: helper invalidates
+        // the cache so completeGateAndBuildResponse + subsequent reads
+        // see the fresh gate-done state.
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          gateCompletedSignal,
+          {
+            gateId,
+            completedBy,
+            completedAt: new Date().toISOString(),
+            approvalEvidence: notes,
+          },
+        );
 
         return completeGateAndBuildResponse({
           store: activeStore,
