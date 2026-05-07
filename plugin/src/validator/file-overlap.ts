@@ -6,8 +6,8 @@
  * autonomous execution begins.
  *
  * Spec anchors:
- * - rq-worktreeRegistry01 (state authority lives in ProjectWorkflowState)
- * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes)
+ * - rq-worktreeRegistry01 (per-change workflow worktree state via Temporal search attributes)
+ * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes via signals)
  */
 
 import {

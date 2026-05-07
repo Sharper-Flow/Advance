@@ -90,16 +90,16 @@ Section-level acceptance criterion is the GREEN-phase test passing plus the deny
 
 #### R2.0 RED
 
-- [ ] R2.0.1 — Add scan test `plugin/src/__tests__/no-retired-tool-spec-refs.test.ts` that walks `.adv/specs/**/spec.json` and fails if any non-comment field contains: `adv_workflow_repair`, `adv_orphan_sweep`, `adv_archive_sweep_orphans`, `adv_migrate_cleanup`, `adv_change_diagnose`, `adv_change_import`, `adv_task_evidence`, `adv_task_run_status`, `adv_task_tdd`. Should fail today on `advance-meta/rq-bulkCloseDiskSweep01.2.then[1]`.
+- [x] R2.0.1 — `plugin/src/__tests__/no-retired-tool-spec-refs.test.ts` scans `.adv/specs/**/spec.json` for retired-tool tokens — `1a7568d`
 
 #### R2.1 GREEN
 
-- [ ] R2.1.1 — Patch `.adv/specs/advance-meta/spec.json` line 683: rewrite to `"Failed source dirs are reported separately and may be retried via subsequent bulk-close runs"` or similar — drop the retired-tool reference.
-- [ ] R2.1.2 — Bump the `version` field on `advance-meta` spec.
+- [x] R2.1.1 — Patched `.adv/specs/advance-meta/spec.json` line 683 to remove `adv_archive_sweep_orphans` reference — `1a7568d`
+- [x] R2.1.2 — Bumped `advance-meta` spec version to 1.7.1 — `1a7568d`
 
 #### R2.2 VERIFY
 
-- [ ] R2.2.1 — Scan test from R2.0.1 passes.
+- [x] R2.2.1 — Scan test passes — `1a7568d`
 
 ---
 
@@ -109,15 +109,15 @@ Section-level acceptance criterion is the GREEN-phase test passing plus the deny
 
 #### R3.0 RED
 
-- [ ] R3.0.1 — Extend the scan from R2.0.1 (or add a sibling test) to also walk `docs/specs/**/*.md` for the same retired-token list. Should fail today on `advance-workflow.md` lines 350 and 1144.
+- [x] R3.0.1 — Same scan test (`no-retired-tool-spec-refs.test.ts`) also walks `docs/specs/**/*.md` — `1a7568d`
 
 #### R3.1 GREEN
 
-- [ ] R3.1.1 — Determine if `docs/specs/*.md` is generated or hand-maintained (check for a regen script in `package.json`/`scripts/`). If generated → run regen. If hand-maintained → edit the file directly to drop `adv_archive_sweep_orphans runs in approved execute mode` (line 350) and `completeGateUpdate, archiveChangeUpdate, or closeChangeUpdate handlers execute` (line 1144) language. Replace with current truth.
+- [x] R3.1.1 — Hand-maintained docs edited directly: line 350 (`adv_archive_sweep_orphans`) and line 1144 (`completeGateUpdate` etc.) — `1a7568d`
 
 #### R3.2 VERIFY
 
-- [ ] R3.2.1 — Scan test passes.
+- [x] R3.2.1 — Scan test passes — `1a7568d`
 
 ---
 
@@ -209,8 +209,8 @@ The existing `plugin/src/__tests__/no-psw-references.test.ts` only catches PSW s
 | Section | Status | Commits |
 |---|---|---|
 | R1 update-vs-signal collapse | **complete** | `b16f063`, `dfb6cb2` |
-| R2 spec leak rq-bulkCloseDiskSweep01.2 | _pending_ | _pending_ |
-| R3 generated doc leak | _pending_ | _pending_ |
+| R2 spec leak rq-bulkCloseDiskSweep01.2 | **complete** | `1a7568d` |
+| R3 generated doc leak | **complete** | `1a7568d` |
 | R4 validator citations | _pending_ | _pending_ |
 | R5 spec delta verification | _pending_ | _pending_ |
 | R6 scripts + residual docs | _pending_ | _pending_ |
