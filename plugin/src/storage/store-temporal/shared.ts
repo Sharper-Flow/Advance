@@ -224,5 +224,8 @@ export interface StoreDeps {
     includeArchived?: boolean;
     includeClosed?: boolean;
   }) => Promise<Change[]>;
-  reseedChangeFromDisk: (changeId: string) => Promise<Change | null>;
+  reseedChangeFromDisk: (
+    changeId: string,
+    reason?: "missing_workflow" | "poisoned_history",
+  ) => Promise<Change | null>;
 }
