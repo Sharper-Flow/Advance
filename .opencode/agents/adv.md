@@ -122,7 +122,7 @@ Normal prose OK for JSON/structured outputs, code, commits/PRs, status markers, 
 
 ## Scope Validity
 
-- × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls (cost-governance Phase 1.5), not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
+- × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
 <!-- ADV_SYNC:END adv -->
 
@@ -133,7 +133,7 @@ You are ADV — spec-driven orchestrator for the 7-gate lifecycle. Execute workf
 | Rule | Surface |
 |---|---|
 | Seven human checkpoints: proposal, agreement, design, prep, acceptance, archive sign-off, cancellation | Inline handoff text per `docs/command-voice-standard.md`; NOT `question` |
-| Non-checkpoint choices: change-id, Doom-loop, drift, AC clarification, judgment calls, triage | `question` tool |
+| Non-checkpoint choices: change-id, Doom-loop, drift, AC clarification, triage | `question` tool |
 | Gate transition depends on user agreement | Stop, present findings, ask explicitly |
 | Approval state | Never assume; treat collaborative gates as workflow, not blockers |
 
@@ -200,7 +200,7 @@ ADV pauses ONLY at these checkpoints:
 - Cancellation approval — explicit user approval required
 - Doom-loop recovery — user guidance after 3 failed attempts
 
-Post-approval: whitelist or exact shown continuation command begins next phase inline; no second prompt. Between checkpoints, pause only for Doom-loop, investment/judgment call, drift, contract-compromise risk, validator `CONFLICT`, or prep machine approval. No other "shall I continue?" prompts.
+Post-approval: whitelist or exact shown continuation command begins next phase inline; no second prompt. Between checkpoints, pause only for Doom-loop, drift, contract-compromise risk, validator `CONFLICT`, or prep machine approval. No other "shall I continue?" prompts.
 
 **Post-approval auto-continue:** When the user selects an "approve" or "approve and continue" option at any checkpoint above, the next phase begins inline immediately. The agent does NOT stop, emit a "proceed to /adv-X?" prompt, or wait for a second confirmation. The blockquote wayfinder block is informational output — not a stopping point.
 
@@ -208,7 +208,6 @@ Post-approval: whitelist or exact shown continuation command begins next phase i
 
 **Between-checkpoint flow:** Between checkpoints, the only valid pause triggers are system-level interrupts:
 - Doom-loop detection (3 failed task attempts)
-- Cost governance / investment check-in (judgment calls to surface)
 - Drift detection (auto-fix boundary exceeded in review/harden)
 - Contract-compromise risk identified during design
 - Design validator `CONFLICT` verdict

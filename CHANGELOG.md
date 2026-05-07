@@ -5,6 +5,27 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - retireInvestmentGovernanceDeadweight
+
+### Removed — Investment Governance v1 (retireInvestmentGovernanceDeadweight)
+
+- Removed `/adv-prep` Phase J (judgment-call identification)
+- Removed `/adv-apply` Phase 1.5 (judgment-call surfacing)
+- Removed threshold-tier hardstop semantics
+- Removed `change.judgment_calls[]` and `change.batch_surfaced_at` from active schema (read-passthrough preserved for archived data via `Change` schema's `.passthrough()`)
+- Slimmed `adv_investment_report` tool: dropped `thresholds` arg, `threshold_tier` output, tier classification logic; retains task counts, retry total, doom-loop signal, per-gate ms (consumed by `adv_reflect` plane1)
+- Deleted `.opencode/instructions/cost-governance.md` and `skills/adv-cost-governance-methodology/`
+- Updated agent overlays (`adv.md`, `build.md`, `adv-engineer.md`) and `.opencode/overlays/*.overlay.md` to drop cost-governance references
+- Updated `ADV_INSTRUCTIONS.md` to drop Investment Check-In section
+- Updated `.adv/specs/advance-workflow/spec.json` scenarios `rq-autonomy01.4` and `rq-autonomy01.5` to drop judgment-call references; `rq-autonomy01` body unchanged
+
+**One-time user steps after upgrade:**
+- Remove `P28` (cost-governance rule) from your `~/.config/opencode/instructions/rules.yaml` if present (rule referenced retired Phase 1.5 surface)
+- After running `scripts/sync-global.sh --fix`, the `cost-governance.md` entry is automatically removed from your `~/.config/opencode/opencode.json` `instructions[]` array
+- Manually remove `~/.config/opencode/instructions/cost-governance.md` and `~/.config/opencode/skills/adv-cost-governance-methodology/` if `sync-global.sh` does not propagate deletions
+
+**Rationale:** Investment governance v1 produced zero observed surfacing across 14 archived changes. Functional intents (user-value tradeoff identification + surfacing) are absorbed by `rq-autonomy01.3` (design approval conditional on tradeoffs) + `rq-autonomy01.6` (contract-compromise design pause) + `/adv-design` Key Decisions section. Empirical 5-archive verification during /adv-discover confirmed coverage.
+
 ## [Unreleased] - cullDeadCodeFixArchive
 
 ### Removed
