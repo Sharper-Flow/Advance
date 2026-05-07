@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
     getService: vi.fn(() => temporalBundle),
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
+    fireSignalAndRefresh: vi.fn(async () => {}),
     getChangeHandle: vi.fn(() => handleMock),
     execFile: vi.fn(
       (_cmd: string, _args: string[], _opts: unknown, cb: unknown) => {
@@ -57,6 +58,7 @@ vi.mock("../utils/project-id", async () => {
 
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
+  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   getChangeHandle: mocks.getChangeHandle,
 }));
 
@@ -188,9 +190,9 @@ describe("checkpoint tools — signal-driven", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.status).toBe("committed");
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         verification: "Tests passed",
         checkpointSha: expect.any(String),
@@ -214,9 +216,9 @@ describe("checkpoint tools — signal-driven", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.status).toBe("clean");
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         verification: "Clean tree checkpoint",
         filesTouched: [],
@@ -241,7 +243,7 @@ describe("checkpoint tools — signal-driven", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.status).toBe("committed");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("returns error when Temporal service unavailable", async () => {
