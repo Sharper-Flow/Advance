@@ -82,7 +82,6 @@ Only system-level interrupts cause pauses between checkpoints:
 | Interrupt                             | Trigger                                     |
 | ------------------------------------- | ------------------------------------------- |
 | Doom-loop                             | 3 failed task attempts                      |
-| Cost governance / investment check-in | judgment calls to surface                   |
 | Drift detection                       | auto-fix boundary exceeded in review/harden |
 | Contract-compromise risk              | identified during design                    |
 | Design validator `CONFLICT`           | verdict requires user resolution            |
@@ -279,7 +278,7 @@ Write-in option enforced by P26 (`rules.yaml`). ADV notes:
 - 2-5 options including write-in, concise labels
 - Leave custom input enabled
 
-**Scope of question tool use:** Reserved for non-checkpoint structured choices: change-id selection / disambiguation, doom-loop recovery, drift detection in `/adv-review` and `/adv-harden`, AC clarification rounds (Phase 4.5 of `/adv-discover`), investment check-in / judgment-call surfacing (`/adv-apply` Phase 1.5), and triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`). Human checkpoints listed above use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01`.
+**Scope of question tool use:** Reserved for non-checkpoint structured choices: change-id selection / disambiguation, doom-loop recovery, drift detection in `/adv-review` and `/adv-harden`, AC clarification rounds (Phase 4.5 of `/adv-discover`), and triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`). Human checkpoints listed above use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01`.
 
 ### Tradeoff Prioritizer Protocol
 
@@ -389,17 +388,6 @@ After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask v
 | Silent retries      | Document each attempt  |
 | 4+ same method      | Escalate after 3       |
 
-### Investment Check-In
-
-`/adv-apply` Phase 1.5 surfaces pending judgment calls before execution. Methodology in `skills/adv-cost-governance-methodology/SKILL.md`; thresholds in `.opencode/instructions/cost-governance.md`.
-
-| Rule                                        | Behavior                                                                  |
-| ------------------------------------------- | ------------------------------------------------------------------------- |
-| `adv_investment_report` tier classification | auto / escalate / hardstop                                                |
-| Hard-stop in v1                             | advisory only — does NOT trigger `adv_change_reenter`                     |
-| Doom-loop supersede                         | Doom-loop recovery supersedes investment check-in on simultaneous trigger |
-| Unresolved user-value tradeoff              | Triggers `rq-autonomy01` escape-clause citation                           |
-
 ### External Conformance
 
 Black-box AC verification run by external CI. Specs under conformance are "locked" after first archive — the agent cannot read conformance test source.
@@ -485,18 +473,13 @@ Workflow: identify tasks + reasons → present to user via `question` → user a
 
 Planned-and-structured size is valid. Once a change has completed the prep gate
 with `userApproved`, the agent MUST NOT suggest splitting based on size, complexity,
-or task count alone. Size-triggered concerns route through cost-governance Phase 1.5
-judgment-call surfacing only.
+or task count alone.
 
 | × Bad                                     | ✓ Good                                                   |
 | ----------------------------------------- | -------------------------------------------------------- |
 | "This seems large, want to split?"        | Trust the prep gate; execute                             |
 | "Maybe break this into smaller changes?"  | Execute as planned                                       |
-| "Lots of tasks here, should we cut some?" | Surface real concerns as judgment calls (Phase 1.5)      |
 | Mid-execution split-suggestion            | Mid-execution scope discovery → scope-discovery protocol |
-
-Cost-governance hardstop tier remains advisory — it informs investment check-ins,
-not split decisions. See `.opencode/instructions/cost-governance.md`.
 
 For the canonical scope-discovery protocol (when non-campsite scope is found
 mid-execution), see `docs/scope-discovery-protocol.md`.
@@ -738,7 +721,7 @@ Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synth
 
 ## Skill Discovery Protocol
 
-Enabled in `/adv-research` Phase 1.5. Filesystem-only, no API calls.
+Enabled in `/adv-research`. Filesystem-only, no API calls.
 
 | Step    | Action                                                                                       |
 | ------- | -------------------------------------------------------------------------------------------- |
@@ -760,13 +743,13 @@ keywords: ["term1", "term2", "term3"]
 
 ## Skill Creation Protocol
 
-Enabled in `/adv-discover` Phase 1.5 and `/adv-research` Phase 1.5. Conservative — only triggers for the change's core problem domain.
+Enabled in `/adv-discover` and `/adv-research`. Conservative — only triggers for the change's core problem domain.
 
 ### Trigger Conditions (ALL must be true)
 
 | #   | Condition                                                                    |
 | --- | ---------------------------------------------------------------------------- |
-| 1   | Phase 1.5 finds no matching skill for a domain                               |
+| 1   | No matching skill found for a domain                                         |
 | 2   | Domain is clearly relevant to the change's **core problem** (not tangential) |
 | 3   | No partial-skill match covers the domain                                     |
 
@@ -814,7 +797,7 @@ metadata:
 
 ### Pending Review
 
-Auto-created skills set `metadata.review_status: "pending"`. Next `/adv-discover` Phase 1.5:
+Auto-created skills set `metadata.review_status: "pending"`. Next `/adv-discover`:
 
 | Step    | Action                                                         |
 | ------- | -------------------------------------------------------------- |
@@ -859,21 +842,17 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 
 **Command + shared/cross-cutting skill** (loads a reusable methodology skill also used by other commands):
 
-- `adv-prep` → `adv-cost-governance-methodology` (Phase J: judgment-call identification)
-- `adv-apply` → `adv-cost-governance-methodology` (Phase 1.5: investment check-in)
 - `adv-harden` → `adv-slop-detection` (Phase 0: AI-slop scanner methodology)
 - `adv-slop-scan` → `adv-slop-detection` (Phase 0: two-phase detection strategy)
 
 **Command with embedded methodology** (inlined `## Phase 0: Embedded Methodology` block; may also load a cross-cutting skill):
 
-- `adv-discover` — dynamic skill discovery (Phase 1.5) + embedded methodology
-- `adv-prep` — embedded prep methodology + `adv-cost-governance-methodology`
-- `adv-apply` — embedded apply methodology + `adv-cost-governance-methodology`
+- `adv-discover` — dynamic skill discovery + embedded methodology
 - `adv-review` — methodology inlined in `.opencode/command/adv-review.md` Phase 0
 
 **Dynamic skill discovery** (no fixed backing skill; scans and loads matching skills at runtime):
 
-- `adv-discover` — loads skills matching change domain via `skill("{name}")` (Phase 1.5)
+- `adv-discover` — loads skills matching change domain via `skill("{name}")`
 - `adv-research` — references skill discovery protocol; may load matching skills
 
 > **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
