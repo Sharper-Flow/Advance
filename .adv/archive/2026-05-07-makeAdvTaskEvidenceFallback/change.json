@@ -1,0 +1,353 @@
+{
+  "id": "makeAdvTaskEvidenceFallback",
+  "title": "Make adv_task_evidence fallback-only and idempotent",
+  "status": "archived",
+  "created_at": "2026-05-03T22:20:33.176Z",
+  "tasks": [
+    {
+      "id": "tk-b5869d42-7b6a-46c5-8e0f-dfa9785fef6a",
+      "title": "Implement evidence write idempotency and phase monotonicity in Temporal and disk state paths\n\nAffected files: `plugin/src/temporal/change-state.ts`, `plugin/src/temporal/change-state.test.ts`, `plugin/src/storage/store-disk.ts`, relevant storage tests.\n\nPurpose/value: safety + durable audit. Prevent repeated fallback evidence writes from silently overwriting useful evidence or regressing `tdd_phase`.\n\nRED: Add failing tests for identical duplicate evidence, conflicting same-phase evidence without correction reason, correction with reason, and red-after-green preserving `tdd_phase: complete` in both Temporal and disk paths.\n\nGREEN: Implement small local deterministic policy at existing evidence write sites. Compare stable evidence fields while ignoring `recorded_at`; identical duplicate no-ops; conflicting duplicate rejects unless correction reason is present; derive phase from evidence presence (`red+green => complete`).\n\nAcceptance: AC3, AC5. No new default diagnostic output.",
+      "type": "code",
+      "section": "Evidence state policy",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-03T22:20:33.197Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "ac": "AC3,AC5",
+        "value_category": "safety,durable_audit",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-03T22:20:33.203Z",
+      "implementation_summary": "Implemented local deterministic evidence write policy for Temporal and disk paths: identical same-phase fallback evidence is idempotent, conflicting evidence requires correctionReason, correction overwrites intentionally, and tdd_phase derives from red/green presence so complete does not regress after red correction.",
+      "error_recovery": {
+        "last_error": "adv_run_test green command timed out after 30000ms with broad runner output",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "Use focused pnpm exec vitest command for evidence-policy tests and keep broader verification separate.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "adv_run_test green command timed out after 30000ms",
+            "diagnosis": "The pnpm test wrapper produced broad Temporal/worktree output and exceeded adv_run_test timeout; focused evidence policy tests pass quickly.",
+            "fix_tried": "Reran with pnpm exec vitest run src/temporal/change-state.test.ts src/storage/store-disk.test.ts --pool=threads",
+            "strategy_label": "narrow-focused-vitest",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-03T23:00:32.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-03T22:57:59.292Z",
+          "test_file": "pnpm test -- src/temporal/change-state.test.ts src/storage/store-disk.test.ts"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-03T23:00:32.477Z",
+          "test_file": "pnpm exec vitest run src/temporal/change-state.test.ts src/storage/store-disk.test.ts --pool=threads"
+        }
+      },
+      "touched_files": [
+        "plugin/src/storage/store-disk.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/tasks.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "completed_at": "2026-05-03T22:20:33.206Z",
+      "completed_by": "Completed. Red evidence added failing idempotency/conflict/correction/phase tests; green evidence passed with focused vitest. Incremental verification passed focused tests and typecheck. Checkpoint committed 5ef85b5e."
+    },
+    {
+      "id": "tk-13b00921-2157-4478-a346-ef132a3a6a34",
+      "title": "Update `adv_task_evidence` tool API, descriptions, and outputs for fallback/correction semantics\n\nAffected files: `plugin/src/tools/task.ts`, `plugin/src/tools/task.test.ts`, `plugin/src/tools/target-mutation-tools.test.ts` if cross-project cases need update.\n\nPurpose/value: reduce tool confusion while preserving recovery/audit attachment path.\n\nRED: Add failing tool tests showing: description includes fallback/manual wording; duplicate evidence returns `duplicate: true`; conflicting evidence without `correctionReason` returns structured error; conflicting evidence with `correctionReason` records correction; target_path behavior remains supported.\n\nGREEN: Add optional `correctionReason` arg, pass it to the evidence write policy, update output messages, and keep existing exit-code validation. Do not require reason for first fallback evidence call.\n\nAcceptance: AC2, AC3, AC4, AC5.",
+      "type": "code",
+      "section": "Evidence tool semantics",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-03T22:20:33.198Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5869d42-7b6a-46c5-8e0f-dfa9785fef6a"
+        }
+      ],
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "ac": "AC2,AC3,AC4,AC5",
+        "value_category": "durable_audit,recovery",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-03T22:20:33.208Z",
+      "implementation_summary": "Updated adv_task_evidence as fallback/manual attachment: description names adv_run_test as normal path, correctionReason is accepted for conflicting same-phase evidence, duplicate/corrected metadata returns in outputs, conflicting writes return structured errors, and adv_run_test adapts to the new evidence-record result shape.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-03T23:02:13.135Z",
+          "test_file": "pnpm exec vitest run src/tools/task.test.ts --pool=threads"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-03T23:04:06.793Z",
+          "test_file": "pnpm exec vitest run src/tools/task.test.ts src/tools/target-mutation-tools.test.ts --pool=threads"
+        }
+      },
+      "touched_files": [
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/target-mutation-tools.test.ts",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/types.ts"
+      ],
+      "completed_at": "2026-05-03T22:20:33.210Z",
+      "completed_by": "Completed. Red tool tests failed for missing fallback wording, duplicate flag, structured conflict error, and correction output. Green passed task/target mutation tests plus state tests and typecheck. Checkpoint committed a85f740f."
+    },
+    {
+      "id": "tk-8293e821-afd1-4801-a29b-414d00f35516",
+      "title": "Update ADV command guidance and specs with value-vs-burden rule and evidence command distinction\n\nAffected files: `ADV_INSTRUCTIONS.md`, `.opencode/command/adv-apply.md`, `docs/specs/tdd-contract.md`, `.adv/specs/tdd-contract/spec.json`, `docs/specs/advance-delivery.md`, `.adv/specs/advance-delivery/spec.json`, `SETUP.md` if tool table wording needs update.\n\nPurpose/value: prevent future prescriptive ADV tool calls from becoming ceremony without durable value.\n\nRED: Add/adjust asset tests that fail when `adv_task_evidence` is described as normal path, when `adv_run_test` value justification is absent, or when prescriptive tool-use guidance lacks value categories.\n\nGREEN: Add `rq-TDD009idem`, `rq-TDD010phase`, `rq-ADVEXEC04`, and `rq-ADVEXEC05` spec deltas. Update command/instruction wording to state `adv_run_test` is prescribed because it provides executable proof + durable evidence + ledger, while `adv_task_evidence` attaches externally obtained evidence only when it adds unique audit/recovery value.\n\nAcceptance: AC1, AC2, AC4, AC6, AC7, AC8.",
+      "type": "code",
+      "section": "Specs and guidance",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-03T22:20:33.199Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "ac": "AC1,AC2,AC4,AC6,AC7,AC8",
+        "value_category": "reproducibility,durable_audit,governance",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-03T22:20:33.212Z",
+      "implementation_summary": "Added value-vs-burden evidence tooling specs and guidance: rq-TDD009idem/rq-TDD010phase for fallback evidence idempotency and phase derivation, rq-ADVEXEC04/rq-ADVEXEC05 for evidence tool value justification and prescriptive guidance value categories, plus ADV instructions, adv-apply, setup wording, and asset regression tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-03T23:05:34.466Z",
+          "test_file": "pnpm exec vitest run src/adv-command-routing-assets.test.ts --pool=threads"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-03T23:07:16.685Z",
+          "test_file": "pnpm exec vitest run src/adv-command-routing-assets.test.ts --pool=threads"
+        }
+      },
+      "touched_files": [
+        ".adv/specs/advance-delivery/spec.json",
+        ".adv/specs/tdd-contract/spec.json",
+        ".opencode/command/adv-apply.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md",
+        "docs/specs/advance-delivery.md",
+        "docs/specs/tdd-contract.md",
+        "plugin/src/adv-command-routing-assets.test.ts"
+      ],
+      "completed_at": "2026-05-03T22:20:33.214Z",
+      "completed_by": "Completed after Bun/OpenCode crash recovery. Ledger showed required action run_incremental_verification; reran asset tests and typecheck, then checkpointed. Commit 83541a80."
+    },
+    {
+      "id": "tk-b63549f8-2844-4835-aaa8-e9925d6a309e",
+      "title": "Strengthen regression anchors for evidence recommendation surfaces without adding context bloat\n\nAffected files: `plugin/src/adv-command-routing-assets.test.ts`, `plugin/src/validator/completeness.test.ts`, `plugin/src/validator/completeness.ts` if wording needs minor adjustment, `plugin/src/tools/test.test.ts` if adv_run_test description needs assertion.\n\nPurpose/value: prevent recurring noisy fallback guidance and verify no new default diagnostic surface is introduced.\n\nRED: Add failing assertions that (1) `validator/completeness.ts` continues to prefer `adv_run_test` and limit `adv_task_evidence` to externally obtained evidence, (2) `adv_run_test` description says it runs and records evidence, (3) no touched command/status/system-output docs introduce default evidence diagnostic context.\n\nGREEN: Update tests and only minimal wording needed. Do not add new runtime diagnostics.\n\nAcceptance: AC1, AC2, AC6, AC7.",
+      "type": "code",
+      "section": "Regression anchors",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-03T22:20:33.200Z",
+      "tdd_phase": "complete",
+      "metadata": {
+        "tdd_intent": "inline",
+        "ac": "AC1,AC2,AC6,AC7",
+        "value_category": "recovery,governance",
+        "delegation_hint": "delegate_allowed"
+      },
+      "started_at": "2026-05-03T22:20:33.215Z",
+      "implementation_summary": "Strengthened regression anchors without adding runtime diagnostic output: validator recommendation now limits adv_task_evidence to externally obtained evidence only, adv_run_test description names durable evidence, asset tests guard value-vs-burden specs and absence of default evidence diagnostic context.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "tdd_evidence": {
+        "red": {
+          "exit_code": 1,
+          "recorded_at": "2026-05-03T23:10:05.531Z",
+          "test_file": "pnpm exec vitest run src/validator/completeness.test.ts src/tools/test.test.ts src/adv-command-routing-assets.test.ts --pool=threads"
+        },
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-03T23:10:21.338Z",
+          "test_file": "pnpm exec vitest run src/validator/completeness.test.ts src/tools/test.test.ts src/adv-command-routing-assets.test.ts --pool=threads"
+        }
+      },
+      "touched_files": [
+        "plugin/src/adv-command-routing-assets.test.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/validator/completeness.test.ts",
+        "plugin/src/validator/completeness.ts"
+      ],
+      "completed_at": "2026-05-03T22:20:33.217Z",
+      "completed_by": "Completed. Red tests failed on missing durable adv_run_test description and externally-obtained-only recommendation. Green passed regression anchors and typecheck. Checkpoint committed 687809d9."
+    },
+    {
+      "id": "tk-d82c59f8-82b7-4c0f-9ff4-56f8ebee27b2",
+      "title": "Run final value-vs-burden evidence tooling verification\n\nAffected files: no direct implementation files expected; verification over touched scope.\n\nPurpose/value: reproducibility + release confidence.\n\nVerify after implementation tasks complete:\n- focused tests for task evidence, Temporal change-state, disk storage, asset routing, validator completeness, and adv_run_test tool description;\n- `pnpm run check` from `plugin/`;\n- targeted `adv_change_validate strict:true` passes or only expected warnings are resolved before planning/execution completion;\n- no default context/token diagnostic output was added in touched command/status/system-output paths;\n- task evidence command-use model matches agreement: `adv_run_test` normal run+record; `adv_task_evidence` fallback/manual attachment with unique value.\n\nAcceptance: all AC; tdd_intent separate_verification.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-03T22:20:33.201Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b5869d42-7b6a-46c5-8e0f-dfa9785fef6a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-13b00921-2157-4478-a346-ef132a3a6a34"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8293e821-afd1-4801-a29b-414d00f35516"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b63549f8-2844-4835-aaa8-e9925d6a309e"
+        }
+      ],
+      "tdd_phase": "green",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "ac": "AC1,AC2,AC3,AC4,AC5,AC6,AC7,AC8",
+        "value_category": "reproducibility,validation",
+        "delegation_hint": "inline_required"
+      },
+      "started_at": "2026-05-03T22:20:33.218Z",
+      "implementation_summary": "Verified value-vs-burden evidence tooling end-to-end: focused tests cover task evidence, adv_run_test, target mutation, Temporal state, disk storage, validator completeness, and asset routing; plugin check passes; strict ADV validation passes with expected warnings only; no default diagnostic context output was added.",
+      "error_recovery": {
+        "last_error": "pnpm run check failed format:check for src/temporal/change-state.test.ts and src/tools/task.ts",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Formatting fixed; proceed complete.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "prettier format:check failed for src/temporal/change-state.test.ts and src/tools/task.ts",
+            "diagnosis": "Implementation was semantically correct but not Prettier-formatted after edits.",
+            "fix_tried": "Ran pnpm run format, reran pnpm run check, and reran strict ADV validation.",
+            "strategy_label": "format-and-rerun-check",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-03T23:12:31.000Z"
+          }
+        ]
+      },
+      "tdd_evidence": {
+        "green": {
+          "exit_code": 0,
+          "recorded_at": "2026-05-03T23:11:20.044Z",
+          "test_file": "pnpm exec vitest run src/tools/task.test.ts src/tools/test.test.ts src/tools/target-mutation-tools.test.ts src/temporal/change-state.test.ts src/storage/store-disk.test.ts src/validator/completeness.test.ts src/adv-command-routing-assets.test.ts --pool=threads"
+        }
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "completed_at": "2026-05-03T22:20:33.221Z",
+      "completed_by": "Completed. Focused evidence tooling tests passed (201 tests). pnpm run check passed after formatting. Strict ADV validation passed with expected warnings only (NO_DELTAS/proposal-task drift). Checkpoint committed 60fafd0d."
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-8a084454-7a2b-492a-aa97-1e36fe95f4f8",
+      "type": "pattern",
+      "content": "Evidence write idempotency fits as a pure local helper in temporal/change-state.ts and can be reused by disk state paths; compare stable evidence fields while ignoring recorded_at, then derive tdd_phase from red/green presence to avoid phase regression.",
+      "source_task": "tk-b5869d42-7b6a-46c5-8e0f-dfa9785fef6a",
+      "recorded_at": "2026-05-03T22:20:33.207Z"
+    },
+    {
+      "id": "ws-34757bf1-9675-4240-93ac-de96c835a45b",
+      "type": "gotcha",
+      "content": "Changing Store.tasks.recordEvidence from Task to result metadata requires updating adv_run_test and target-store mocks; otherwise code that reads tdd_phase must use result.task.tdd_phase.",
+      "source_task": "tk-13b00921-2157-4478-a346-ef132a3a6a34",
+      "recorded_at": "2026-05-03T22:20:33.211Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.194Z",
+      "completed_by": "agent",
+      "notes": "User approved the proposal with reply: approve"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.195Z",
+      "completed_by": "agent",
+      "notes": "Discovery completed with user-approved value-vs-burden agreement. Core framing: ADV should not prescribe tools for their own sake; evidence/TDD tool requirements must justify burden with durable value. User approved AC with reply: approve."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.196Z",
+      "completed_by": "agent",
+      "notes": "Design completed for value-vs-burden evidence tooling. Independent adv-researcher validator returned CAUTION: prefer local policy logic in existing evidence write sites, explicitly reject inline-context refusal alternative, and add validator/completeness.ts recommendation as regression anchor. All cautions incorporated; no unresolved conflicts or contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.202Z",
+      "completed_by": "agent",
+      "notes": "Prep task graph approved by user. 5 tasks created covering evidence write policy, adv_task_evidence API/outputs, value-vs-burden specs/guidance, regression anchors, and final verification. Strict validation passed with warnings only (NO_DELTAS and proposal-task drift expected pre-implementation/spec edits)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.222Z",
+      "completed_by": "agent",
+      "notes": "Execution complete. 5/5 tasks done. Recovered from Bun/OpenCode crash by resuming task-run ledger at run_incremental_verification. Verification: focused evidence tooling tests passed; pnpm test passed (159 files, 2904 tests, 5 skipped); pnpm run check passed; pnpm run build passed; strict validation passed with expected warnings only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.223Z",
+      "completed_by": "agent",
+      "notes": "User accepted delivered work after review with reply: accept. Review verdict APPROVED; one consistency fix applied and verified; no unresolved blockers/issues."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-03T22:20:33.224Z",
+      "completed_by": "agent",
+      "notes": "User signed off archive/release with exact Tier B reply: sign off. Harden passed; full pnpm test, check, build passed; strict validation passed with warnings only; conformance status has no configured specs."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

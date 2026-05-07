@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-8a084454-7a2b-492a-aa97-1e36fe95f4f8",
+      "type": "pattern",
+      "content": "Evidence write idempotency fits as a pure local helper in temporal/change-state.ts and can be reused by disk state paths; compare stable evidence fields while ignoring recorded_at, then derive tdd_phase from red/green presence to avoid phase regression.",
+      "source_task": "tk-b5869d42-7b6a-46c5-8e0f-dfa9785fef6a",
+      "recorded_at": "2026-05-03T22:20:33.207Z"
+    },
+    {
+      "id": "ws-34757bf1-9675-4240-93ac-de96c835a45b",
+      "type": "gotcha",
+      "content": "Changing Store.tasks.recordEvidence from Task to result metadata requires updating adv_run_test and target-store mocks; otherwise code that reads tdd_phase must use result.task.tdd_phase.",
+      "source_task": "tk-13b00921-2157-4478-a346-ef132a3a6a34",
+      "recorded_at": "2026-05-03T22:20:33.211Z"
+    }
+  ],
+  "count": 2
+}

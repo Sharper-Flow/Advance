@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-48e41691-b1a6-4d4a-9f15-bdac1a53d386",
+      "type": "gotcha",
+      "content": "Previous red evidence recorded a timeout because the test command used pipes (`pnpm test -- ... 2>&1 | tail -40`). When piping, the shell reports the exit code of the last command in the pipe (tail), not vitest. Use `npx vitest run` directly instead of `pnpm test` in worktrees, and avoid piping for test commands that need exit code accuracy.",
+      "source_task": "tk-a6c53905-dc06-42ff-b59a-8ddbb367ed34",
+      "recorded_at": "2026-05-03T22:40:57.582Z"
+    }
+  ],
+  "count": 1
+}

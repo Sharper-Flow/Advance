@@ -1,0 +1,1 @@
+`adv_task_evidence` appears to be used far more often than intended, but the correct fix should address the broader value problem: ADV should not prescribe tools for their own sake. We need to understand which evidence/tool calls create enough durable value to justify their burden, then slim or demote the ones that do not.
