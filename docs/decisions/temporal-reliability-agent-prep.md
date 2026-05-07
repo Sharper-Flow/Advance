@@ -1,5 +1,7 @@
 # Research Pack: Temporal & Connected Tech Reliability for ADV Agent Use
 
+> **Historical note:** `projectWorkflow` / `ProjectWorkflowState` was retired in `cullDeadCodeFixArchive` (2026-05-07). References to `adv_workflow_repair`, `adv_orphan_sweep`, and `projectWorkflow` in this document reflect the pre-retirement architecture.
+
 - **Target:** Temporal stack reliability for ADV / agent execution (worker, client, workflows, recovery, agent-facing tools)
 - **Mode:** Scoped (Temporal subsystem + agent-facing surfaces)
 - **Created:** 2026-04-26

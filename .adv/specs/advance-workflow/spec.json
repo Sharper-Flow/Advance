@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.3.0",
-  "updated_at": "2026-05-02T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-05-07T01:35:00.000Z",
   "requirements": [
     {
       "id": "rq-R3v13wR1",
@@ -337,7 +337,7 @@
     {
       "id": "rq-archiveRetirement01",
       "title": "Archive Retirement Removes Active Source State After Durable Archive",
-      "body": "When adv_change_archive completes successfully, ADV MUST create the archive bundle first, transition the change workflow/status to archived, and only then remove the active changes/<id>/ source directory. Post-archive persistence MUST NOT recreate active change.json for archived changes. Archive orphan sweep recovery MUST repair any matching non-archived workflow/source state to archived before approved source-dir removal and MUST report repair errors separately from removal errors.",
+      "body": "When adv_change_archive completes successfully, ADV MUST create the archive bundle first, transition the change workflow/status to archived, and only then remove the active changes/<id>/ source directory. Post-archive persistence MUST NOT recreate active change.json for archived changes.",
       "priority": "must",
       "tags": ["workflow", "archive", "recovery", "cleanup"],
       "scenarios": [
@@ -365,17 +365,15 @@
         },
         {
           "id": "rq-archiveRetirement01.3",
-          "title": "Sweep repairs archive zombies before source cleanup",
+          "title": "Cleanup refuses to remove active changes",
           "given": [
-            "An archive bundle exists for a change",
-            "A matching source changes/<id>/ directory still exists",
-            "The workflow or source state is not marked archived"
+            "A change in active status still has a source changes/<id>/ directory"
           ],
-          "when": "adv_archive_sweep_orphans runs in approved execute mode",
+          "when": "adv_cleanup or archive flow attempts source removal",
           "then": [
-            "The change status is repaired to archived before source removal",
-            "Repair counts and repair errors are reported separately from removal counts and removal errors",
-            "A candidate with repair failure is not removed"
+            "The change status is verified as archived before source removal",
+            "Active changes are skipped with a structured warning",
+            "A candidate that is not archived is not removed"
           ]
         }
       ]
@@ -1249,7 +1247,7 @@
           "given": [
             "A ChangeWorkflowInput with searchAttributesEnabled: false"
           ],
-          "when": "completeGateUpdate, archiveChangeUpdate, or closeChangeUpdate handlers execute",
+          "when": "gateCompletedSignal, archiveRequestedSignal, or changeCancelledSignal handlers execute",
           "then": [
             "wf.upsertSearchAttributes is NOT called",
             "The handler completes normally without error"

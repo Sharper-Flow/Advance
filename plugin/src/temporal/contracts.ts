@@ -76,7 +76,6 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   changeCancelled: "adv.change.changeCancelled",
 } as const;
 
-// rq-changeSummariesCap01: Bounded change_summaries registry (cap-based eviction)
 export interface ChangeSummaryPayload {
   changeId: string;
   title: string;

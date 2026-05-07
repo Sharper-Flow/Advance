@@ -9,7 +9,9 @@
 > state. References to `store-legacy.ts`, `store-sync.ts`, SQLite, or Temporal
 > fallback behavior are evidence from that pre-migration snapshot, not current
 > architecture. Runtime storage is now Temporal-only with `store-disk.ts` as the
-> disk artifact substrate.
+> disk artifact substrate. Additionally, `projectWorkflow` / `ProjectWorkflowState`
+> was retired in `cullDeadCodeFixArchive` (2026-05-07); all state authority now
+> lives in per-change workflows + external state.
 
 ## Purpose & Scope
 

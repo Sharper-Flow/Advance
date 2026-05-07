@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.6.0",
-  "updated_at": "2026-05-04T05:50:00.000Z",
+  "version": "1.7.0",
+  "updated_at": "2026-05-07T01:35:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -576,19 +576,18 @@
     {
       "id": "rq-archivePurge01",
       "title": "adv_archive_purge tool",
-      "body": "ADV must provide an explicit user-side lever to terminate an archived child workflow and remove its entry from the parent project workflow's in-memory change_summaries registry. The on-disk archive bundle is preserved by default; the destructive disk-removal escalation requires opt-in. After a workflow-only purge, adv_change_show for the purged change continues returning content from the on-disk projection.",
+      "body": "ADV must provide an explicit user-side lever to terminate an archived change workflow and remove its archive bundle and disk projection. The on-disk archive bundle is preserved by default; the destructive disk-removal escalation requires opt-in. After a workflow-only purge, adv_change_show for the purged change continues returning content from the on-disk projection.",
       "priority": "must",
       "scenarios": [
         {
           "id": "rq-archivePurge01.1",
           "title": "Workflow-only purge by default preserves disk bundle",
           "given": [
-            "An archived change with both an entry in the parent's change_summaries and an existing archive/<id>/change.json bundle on disk"
+            "An archived change with both an active change workflow and an existing archive/<id>/change.json bundle on disk"
           ],
           "when": "adv_archive_purge changeId: <id> is invoked without includeDiskBundle",
           "then": [
-            "The child workflow is terminated via Temporal client",
-            "The change is removed from the parent's change_summaries and source_versions",
+            "The change workflow is terminated via Temporal client",
             "The on-disk archive bundle is preserved",
             "adv_change_show for the changeId returns content from the on-disk projection"
           ]
@@ -597,11 +596,11 @@
           "id": "rq-archivePurge01.2",
           "title": "Opt-in includeDiskBundle removes both workflow state and disk artifacts",
           "given": [
-            "An archived change with both workflow-state entry and disk bundle"
+            "An archived change with both active workflow and disk bundle"
           ],
           "when": "adv_archive_purge changeId: <id> includeDiskBundle: true is invoked",
           "then": [
-            "The child workflow is terminated and removed from change_summaries",
+            "The change workflow is terminated",
             "The archive/<id>/ directory is recursively removed from disk",
             "Subsequent adv_change_show returns the existing not-found error path"
           ]
@@ -610,52 +609,11 @@
           "id": "rq-archivePurge01.3",
           "title": "Refuses non-archived or unknown changes",
           "given": [
-            "A change in active status, OR a changeId that does not exist in change_summaries"
+            "A change in active status, OR a changeId that does not exist in the archive"
           ],
           "when": "adv_archive_purge is invoked",
           "then": [
             "The tool returns a structured error and makes no state mutations"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "rq-changeSummariesCap01",
-      "title": "Bounded change_summaries registry",
-      "body": "The parent project workflow's change_summaries registry MUST be bounded by a configurable cap. Default cap is 50 entries; the ADV_CHANGE_SUMMARIES_CAP environment variable overrides at process start. When a new archive summary signal would push the registry past the cap, the oldest archived entry (by lastActivityAt) is evicted. Active and other non-archived statuses are never evicted regardless of count. Eviction is replay-deterministic.",
-      "priority": "must",
-      "scenarios": [
-        {
-          "id": "rq-changeSummariesCap01.1",
-          "title": "Insertion at cap does not evict",
-          "given": [
-            "A project workflow whose change_summaries holds exactly N entries (where N equals the configured cap)"
-          ],
-          "when": "applyChangeSummaryToProjectState is called with an existing changeId (in-place update)",
-          "then": ["The registry size remains exactly N", "No entry is evicted"]
-        },
-        {
-          "id": "rq-changeSummariesCap01.2",
-          "title": "Insertion past cap evicts oldest archived entry",
-          "given": [
-            "A project workflow whose change_summaries already holds N entries (one archived, the rest in mixed statuses)"
-          ],
-          "when": "applyChangeSummaryToProjectState is called with a new (N+1)th changeId",
-          "then": [
-            "The oldest entry with status archived (by lastActivityAt) is removed from change_summaries and source_versions",
-            "Active and non-archived entries are preserved"
-          ]
-        },
-        {
-          "id": "rq-changeSummariesCap01.3",
-          "title": "Eviction is replay-deterministic",
-          "given": [
-            "A workflow history that triggered eviction during a prior run"
-          ],
-          "when": "The same workflow is replayed",
-          "then": [
-            "The same entry is evicted with the same final state",
-            "Replay-determinism guards in the test suite pass"
           ]
         }
       ]
@@ -952,13 +910,13 @@
     {
       "id": "rq-multiSessionCoordination01",
       "title": "Multi-Session-Safe ADV State Writes via Temporal Workflow Signals",
-      "body": "Multi-session is the supported design center for ADV. State writes from concurrent OpenCode sessions sharing the same project must be serialized by Temporal workflow signals, not by client-side locks. Replay-determinism must be preserved across sessions, and no ADV-mutating tool may rely on a client-side soft-lock for cross-session coordination.",
+      "body": "Multi-session is the supported design center for ADV. State writes from concurrent OpenCode sessions sharing the same project must be serialized by Temporal workflow signals on the per-change workflow, not by client-side locks. Replay-determinism must be preserved across sessions, and no ADV-mutating tool may rely on a client-side soft-lock for cross-session coordination. Sessions are process-fact based and are not durably tracked in workflow state.",
       "priority": "must",
       "tags": ["multi-session", "temporal", "coordination", "state-authority"],
       "scenarios": [
         {
           "id": "rq-multiSessionCoordination01.1",
-          "title": "Concurrent state writes from peer sessions are serialized via workflow updates",
+          "title": "Concurrent state writes from peer sessions are serialized via workflow signals",
           "given": [
             "Two or more OpenCode sessions sharing the same ADV project are active",
             "Each session issues an ADV-mutating tool call (for example adv_change_update or adv_task_update) against the same change concurrently"
@@ -1041,7 +999,7 @@
           ],
           "when": "The reads execute against a project with no legacy SQLite present",
           "then": [
-            "All reads succeed using only the project workflow state",
+            "All reads succeed using only the per-change workflow state, Temporal visibility search attributes, and git census",
             "No code path requires a sidecar SQLite or JSONL worktree-state file to function",
             "Migrations from any legacy SQLite are idempotent and reversible"
           ]
@@ -1050,8 +1008,8 @@
     },
     {
       "id": "rq-worktreeReuse01",
-      "title": "adv_worktree_create reuses existing change worktree before recovery or create",
-      "body": "When adv_worktree_create is invoked for a branch that already has a registered git worktree (canonically `change/<change-id>`), the tool MUST detect and reuse the existing worktree before invoking project-workflow recovery or `git worktree add`. If the branch record exists in git but the on-disk path is missing, the tool MUST prune the stale git worktree metadata before creating a fresh worktree. The tool MUST NOT recommend in-place edits as a fallback path; missing workflow access surfaces as a structured failure with a recommended next action.",
+      "title": "adv_worktree_create reuses existing change worktree before create",
+      "body": "When adv_worktree_create is invoked for a branch that already has a registered git worktree (canonically `change/<change-id>`), the tool MUST detect and reuse the existing worktree before invoking `git worktree add`. If the branch record exists in git but the on-disk path is missing, the tool MUST prune the stale git worktree metadata before creating a fresh worktree. The tool MUST NOT recommend in-place edits as a fallback path; missing workflow access surfaces as a structured failure with a recommended next action.",
       "priority": "must",
       "tags": ["worktree", "reuse", "preflight", "recovery"],
       "scenarios": [
@@ -1153,7 +1111,7 @@
           "id": "rq-temporalConcurrentLoad01.1",
           "title": "Five or more concurrent clients complete state writes with no lost updates",
           "given": [
-            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, agenda adds, wisdom adds, worktree registers) against the same project workflow"
+            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, agenda adds, wisdom adds, worktree registers) against change workflows on the same project task queue"
           ],
           "when": "The concurrent-clients benchmark mode runs for the configured duration",
           "then": [
@@ -1167,7 +1125,7 @@
           "id": "rq-temporalConcurrentLoad01.2",
           "title": "Worker-kill mid-load triggers successful respawn-elect",
           "given": [
-            "Five or more concurrent clients are mid-load against a project workflow",
+            "Five or more concurrent clients are mid-load against change workflows on the same project task queue",
             "The current worker-lock holder PID is killed via SIGKILL"
           ],
           "when": "The benchmark continues after the kill",

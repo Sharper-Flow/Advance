@@ -87,11 +87,10 @@ The diagnostic output reports:
 
 - Temporal server reachability
 - STSL initialization and reconnect counters
-- worker / worker-process health
-- worker lock heartbeat health (`worker_lock`)
-- last worker-run failure telemetry (`last_worker_run_error`)
-- project workflow reachability
-- optional change workflow reachability
+ - worker / worker-process health
+ - worker lock heartbeat health (`worker_lock`)
+ - last worker-run failure telemetry (`last_worker_run_error`)
+ - change workflow reachability
 - required ADV search-attribute status
 - stale queues
 - last Temporal error
@@ -153,8 +152,7 @@ ADV change workflows start with custom Temporal search attributes:
 | `AdvActiveGate`     | `Keyword` |
 | `AdvDoomLoopActive` | `Bool`    |
 
-If these attributes are missing, project workflows may still run while change
-workflow starts fail with generic errors such as:
+If these attributes are missing, change workflow starts may fail with generic errors such as:
 
 ```text
 ServiceError: Failed to start Workflow
@@ -305,23 +303,21 @@ recommendation to restart the owning OpenCode session or rerun with explicit
 approval evidence. Do not use `adv_temporal_reconnect` for this shape; reconnect
 only refreshes the STSL/client plane and cannot make a worker poll a queue.
 
-#### Bounded recovery at the project-workflow access seam
+#### Bounded recovery at the change-workflow access seam
 
 Hot-path tools that need workflow-backed access (notably `adv_worktree_create`
-via `tools/worktree/state.ts`) call `getBoundedProjectWorkflowAccess` with
-`recovery: "once"`. When the local readiness check fails, the helper runs a
-single non-approval `adv_temporal_worker_restart` and re-checks readiness.
+via `tools/worktree/state.ts`) resolve the change workflow handle directly.
+When the local readiness check fails, the tool returns `unavailable`
+with `recommendedNextAction` requiring explicit operator intervention — never
+recommends in-place edits as fallback.
 
-- If the retry succeeds, the caller continues unchanged.
+- If Temporal is reachable, the caller continues unchanged.
 - If recovery hits a suspect live v1 lock, the helper returns `unavailable`
   with `recommendedNextAction` requiring explicit approval — never recommends
   in-place edits as fallback.
-- If recovery fails for any other reason, the helper returns `unavailable` with
+- If the change workflow is unreachable for any other reason, the helper returns `unavailable` with
   a `queueServiceability` snapshot and asks the caller to run
   `adv_temporal_diagnose`.
-
-Migration, wisdom, and agenda paths preserve the historical no-recovery
-behavior so non-creation tools do not run worker restarts implicitly.
 
 #### Poller rows are freshness evidence, not durable worker records
 
@@ -375,37 +371,6 @@ This path is idempotent. It lets a peer reclaim immediately instead of waiting
 for the full stale-heartbeat grace window, while still preserving telemetry for
 operators.
 
-### Workflow repair
-
-If diagnose shows a missing project/change workflow after server, search
-attributes, STSL, and worker health are OK, run workflow repair with explicit
-approval:
-
-```bash
-adv_workflow_repair changeId: "<change-id>" approvalEvidence: "<how user approved>"
-```
-
-Repair now reports phase-specific failures. If project rebuild succeeds but
-change re-import fails, the tool reports `phase: "reimport-change"` and
-`projectRebuilt: true` instead of a generic `Failed to start Workflow`.
-
-### Orphan sweep
-
-Use orphan sweep when disk snapshots exist but change workflows are missing in
-Temporal.
-
-Preview only (default, no mutation):
-
-```bash
-adv_orphan_sweep dryRun: true
-```
-
-Re-seed missing workflows (requires explicit approval):
-
-```bash
-adv_orphan_sweep dryRun: false approvedByUser: true approvalEvidence: "<how user approved>"
-```
-
 ### External restart boundary
 
 Restart OpenCode only when diagnostics cannot run, the plugin is fully degraded
@@ -422,7 +387,7 @@ Reload paths are intentionally separate:
 | `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_temporal_worker_restart`. The worker loads from `dist/temporal/`.                                              |
 | Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_temporal_worker_restart`, then verify with `adv_status` or `adv_temporal_diagnose`.                                                                           |
 | Suspect live legacy v1 `worker.lock` (alive PID, no heartbeat, queue not serviceable) | Restart the owning OpenCode session (preferred), or rerun `adv_temporal_worker_restart` with `approvedLockReclaim: true` + `approvalEvidence`. Never reclaim silently. |
-| Diagnose unchanged after worker restart                                               | Stop repeating restart; inspect stale worker lock, stale queues, and project workflow recovery path.                                                                   |
+| Diagnose unchanged after worker restart                                               | Stop repeating restart; inspect stale worker lock, stale queues, and change workflow state.                                                                            |
 
 ## Failed migration recovery
 
@@ -446,7 +411,7 @@ Use this when a project's import ledger is not `done`.
    - Reconnect stale STSL with `adv_temporal_reconnect` when diagnosed
    - Restart the worker with `adv_temporal_worker_restart` for worker liveness failures; if worker code changed, run `pnpm run build:worker` first
    - Re-check `adv_status`
-   - If worker/STSL/search attributes are healthy but project or change workflow state is still wrong, run `adv_workflow_repair` with explicit user approval evidence
+   - If worker/STSL/search attributes are healthy but change workflow state is still wrong, investigate the specific change with `adv_change_show` and `adv_temporal_diagnose`
 4. Re-verify with `adv_status` until `migration_status.status` returns to `done`.
 
 ### Expected ledger meanings
@@ -454,8 +419,8 @@ Use this when a project's import ledger is not `done`.
 | Ledger state      | Meaning                                                | Operator action                            |
 | ----------------- | ------------------------------------------------------ | ------------------------------------------ |
 | `done`            | Project import succeeded                               | No action                                  |
-| `failed` + detail | Workflow/import hit a terminal error                   | Fix root cause, then `adv_workflow_repair` |
-| `empty`           | Project workflow exists but has no import ledger entry | Restart worker, then re-check              |
+| `failed` + detail | Workflow/import hit a terminal error                   | Fix root cause, then restart worker        |
+| `empty`           | Change workflows exist but no import ledger entry      | Restart worker, then re-check              |
 | `null` / missing  | No reachable workflow state yet                        | Check server + worker health first         |
 
 ## Worker auto-respawn troubleshooting
@@ -505,45 +470,26 @@ Treat this as a workflow-state corruption / code-history mismatch problem, not a
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.
 4. Run `adv_temporal_diagnose` to confirm server/search-attribute/STSL/worker health.
-5. Run `adv_workflow_repair` for the affected change.
-6. Re-run `adv_temporal_diagnose` and confirm the project/change workflow is healthy again.
+5. Investigate the affected change with `adv_change_show` and `adv_temporal_diagnose`.
+6. If the change workflow is terminally corrupted, terminate it via Temporal CLI and let the next access reseed from disk.
+7. Re-run `adv_temporal_diagnose` and confirm the change workflow is healthy again.
 
-`adv_workflow_repair` is the supported operator path because it:
+## Stale `adv/change/*` workflows
 
-- terminates the broken project workflow,
-- rebuilds workflow state from the legacy snapshot,
-- re-imports the requested change,
-- re-emits derived agenda/wisdom exports.
-
-## Stale `adv/change/*` and `adv/project/*` workflows
-
-Orphaned workflows occur when a bulk enqueue creates `adv/change/*` or `adv/project/*` executions on a task queue that has **no live poller**. The first workflow task is scheduled but never dispatched, so the execution remains in `Running` state indefinitely.
-
-Disk-only orphaned changes are the inverse shape: a `change.json` snapshot exists
-but its `adv/change/*` Temporal workflow is missing. Use `adv_orphan_sweep`
-dry-run to detect these safely, then execute with user approval to re-seed.
+Orphaned workflows occur when a bulk enqueue creates `adv/change/*` executions on a task queue that has **no live poller**. The first workflow task is scheduled but never dispatched, so the execution remains in `Running` state indefinitely.
 
 Completed `adv/change/*` executions for `archived` and `closed` changes are
 normal. Change workflows now exit once terminal state is reached: the
 archive/close update records the final status, the workflow drains in-flight
 handlers with `allHandlersFinished`, logs `workflow:completing`, and returns.
-Do not re-seed these terminal changes. `reseedChangeFromDisk` intentionally
-serves archived/closed changes from disk instead of starting another workflow
-run.
+Do not re-seed these terminal changes.
 
 ### Symptoms
 
-- `adv_agenda_add` (and other tools that route through the project workflow) fails with `Temporal worker not ready for queue advance-{projectId}` in repos that never started a local worker.
 - `temporal workflow list` shows thousands of `Running` workflows with only 2 history events (`WorkflowExecutionStarted`, `WorkflowTaskScheduled`).
 - `temporal task-queue describe --task-queue advance-{projectId}` shows an empty poller list.
 
 ### Detection
-
-Preferred ADV tool:
-
-```bash
-adv_orphan_sweep dryRun: true
-```
 
 Manual Temporal CLI checks:
 
@@ -563,9 +509,9 @@ temporal task-queue describe --task-queue advance-{projectId}
 
 After `terminatechangeworkflowonarchi`, newly archived or closed changes should
 appear as `Completed`, not long-lived `Running`, workflows. Batch termination is
-for pre-existing zombie executions only: old `Running` `changeWorkflow` or
-`projectWorkflow` rows with no live poller, no legitimate in-flight work, and a
-start time before the fix or incident window.
+for pre-existing zombie executions only: old `Running` `changeWorkflow` rows
+with no live poller, no legitimate in-flight work, and a start time before the
+fix or incident window.
 
 > **⚠️ Update the date.** Replace `YYYY-MM-DD` below with the day **before** the incident enqueue date so you do not terminate legitimate in-flight work.
 
@@ -573,11 +519,6 @@ start time before the fix or incident window.
 # Terminate orphaned change workflows
 temporal workflow terminate \
   --query 'ExecutionStatus="Running" AND WorkflowType="changeWorkflow" AND StartTime < "YYYY-MM-DDT00:00:00Z"' \
-  --reason "Orphaned workflow cleanup — no poller for queue"
-
-# Terminate orphaned project workflows
-temporal workflow terminate \
-  --query 'ExecutionStatus="Running" AND WorkflowType="projectWorkflow" AND StartTime < "YYYY-MM-DDT00:00:00Z"' \
   --reason "Orphaned workflow cleanup — no poller for queue"
 ```
 
@@ -612,7 +553,7 @@ These usually appear as secondary symptoms:
 - Confirm free space on the host
 - Check the plugin's external state directory and runtime/cache locations
 - Re-run the blocked command only after space is restored
-- If workflow state and derived exports diverged, use `adv_workflow_repair`
+- If workflow state and derived exports diverged, investigate with `adv_change_show` and `adv_temporal_diagnose`
 
 ### OOM checklist
 

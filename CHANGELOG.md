@@ -5,7 +5,27 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - cullDeadCodeFixArchive
+
+### Removed
+
+- `projectWorkflow` / `ProjectWorkflowState` live authority retired entirely. All consumers rewired to per-change workflow + external state.
+- PSW worktree/session registry removed; replaced with per-change workflow + Temporal visibility (`AdvWorktreeBranches`, `AdvWorktreePaths`) + git census.
+- Update-era handlers retired: `completeGateUpdate`, agenda/wisdom/migration project updates (`addAgendaItemUpdate`, `addProjectWisdomUpdate`, `recordMigrationEntryUpdate`, `addWorktreeSessionUpdate`, `removeWorktreeSessionUpdate`, `purgeChangeSummaryUpdate`).
+- Retired tools: `adv_orphan_sweep`, `adv_archive_sweep_orphans`, `adv_workflow_repair`, `adv_change_diagnose`, `adv_change_import`, `adv_migrate_cleanup`, `adv_task_evidence`, `adv_task_run_status`, `adv_task_tdd`.
+- Spec requirement `rq-changeSummariesCap01` retired (no PSW registry to cap).
+
+### Changed
+
+- Spec requirements rewritten: `rq-archivePurge01`, `rq-worktreeRegistry01`, `rq-multiSessionCoordination01`, `rq-temporalConcurrentLoad01`, `rq-searchAttrHealth01.2`, `rq-worktreeReuse01.1`.
+- Gate completion now signal-based (`gateCompletedSignal` replaces `completeGateUpdate`).
+- Active-change list derives from disk + Temporal visibility, not PSW registry.
+- Worktree state authority: per-change workflow + visibility + git census.
+- Sessions: process-fact based, not durable in workflow state.
+
+### Added
+
+- `no-psw-references.test.ts` denylist guard prevents retired symbol revival.
 
 ## [0.8.3] - 2026-05-04
 

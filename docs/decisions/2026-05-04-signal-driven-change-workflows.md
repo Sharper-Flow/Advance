@@ -1,9 +1,9 @@
 # Decision: Refactor Change Workflows to Signal-Driven Architecture
 
-> **Status:** design phase (ADV change `refactorChangeWorkflowsSignal`); CONFLICT (2026-05-05) resolved via path-B (retire tool surfaces); pending re-validation
-> **Date:** 2026-05-04 (initial draft); 2026-05-05 (resolution amendments)
+> **Status:** IMPLEMENTED via `cullDeadCodeFixArchive` (2026-05-06–2026-05-07). The `projectWorkflow` / `ProjectWorkflowState` live authority was retired entirely; all consumers were rewired to per-change workflow + external state.
+> **Date:** 2026-05-04 (initial draft); 2026-05-05 (resolution amendments); 2026-05-07 (implementation complete)
 > **Author:** collaboratively designed across an extended conversation; recorded by adv-claude
-> **Related ADV change:** `refactorChangeWorkflowsSignal`
+> **Related ADV change:** `refactorChangeWorkflowsSignal` → superseded by `cullDeadCodeFixArchive`
 > **Related issues:** closes #39, #48 structurally; related #33, #46
 > **Reference architecture:** [claude-tempo](https://github.com/vinceblank/claude-tempo) — same library, correct usage
 

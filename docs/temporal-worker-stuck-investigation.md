@@ -115,8 +115,8 @@ Use [`temporal-recovery.md`](./temporal-recovery.md) for active steps. Summary:
    - rerun `adv_temporal_worker_restart` with explicit approval evidence.
 4. If no suspect live lock blocks recovery, `adv_temporal_worker_restart` performs
    verified recovery.
-5. For workflow-state corruption, use `adv_workflow_repair` with approval; for
-   disk-only orphan workflows, use `adv_orphan_sweep`.
+5. For workflow-state corruption, investigate with `adv_change_show` and
+   `adv_temporal_diagnose`; terminate corrupted workflows via Temporal CLI if needed.
 
 ## Source-vs-Dist Caveat
 
