@@ -39,7 +39,7 @@ import {
 import { type ConformanceState } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   conformanceLockedSignal,
   conformanceOverriddenSignal,
@@ -115,9 +115,7 @@ async function getChangeHandleForProjectDir(
 
 async function fireConformanceSignal(
   projectDir: string,
-  // store reserved for T07 — will be used to refresh cache after signal
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _store: Store,
+  store: Store,
   changeId: string | undefined,
   signal: unknown,
   payload: unknown,
@@ -126,7 +124,10 @@ async function fireConformanceSignal(
   try {
     const handle = await getChangeHandleForProjectDir(projectDir, changeId);
     if (handle) {
-      await fireSignal(handle, signal, payload);
+      // rq-cacheRefresh01: invalidate cache after the signal so the
+      // next adv_change_show / adv_change_archive call sees the
+      // conformance state change reflected in the change workflow.
+      await fireSignalAndRefresh(handle, store, changeId, signal, payload);
     }
   } catch (err) {
     appendDebugLog(
