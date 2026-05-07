@@ -14,8 +14,6 @@ import {
   cancelAgendaItem,
   reprioritizeAgendaItem,
 } from "../storage/agenda";
-import { addAgendaItemUpdate, projectAgendaQuery } from "../temporal/messages";
-import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
 import {
   AgendaPrioritySchema,
   AgendaStatusSchema,
@@ -24,7 +22,6 @@ import {
   allGatesSatisfied,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
-import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 
 // =============================================================================
 // Tool Definitions
@@ -114,72 +111,19 @@ export const agendaTools = {
       projectDir: string,
       agendaPath?: string,
     ) => {
-      let item;
-      let derivedExportWarning: string | undefined;
-      try {
-        const temporal = await getBoundedProjectWorkflowAccess({
-          projectDir,
-          mutablePath: agendaPath,
-        });
-
-        if (temporal.mode === "local-only") {
-          throw new Error("Project workflow unavailable");
-        }
-
-        if (temporal.mode === "unavailable") {
-          return formatToolOutput({
-            error: `Project workflow unavailable: ${temporal.reason}`,
-          });
-        }
-
-        let temporalMutationCommitted = false;
-        item = await temporal.handle.executeUpdate(addAgendaItemUpdate, {
-          args: [
-            {
-              title,
-              description,
-              priority,
-              category,
-              blocked_by,
-            },
-          ],
-        });
-        temporalMutationCommitted = true;
-
-        try {
-          const agenda = await temporal.handle.query(
-            projectAgendaQuery,
-            undefined,
-          );
-          await writeJsonlAtomic(agendaPath!, agenda as readonly unknown[]);
-        } catch (error) {
-          if (temporalMutationCommitted) {
-            derivedExportWarning =
-              error instanceof Error
-                ? `Workflow state updated but derived agenda.jsonl write failed: ${error.message}`
-                : "Workflow state updated but derived agenda.jsonl write failed";
-          } else {
-            throw error;
-          }
-        } finally {
-          await temporal.bundle.connection.close().catch(() => undefined);
-        }
-      } catch {
-        item = await addAgendaItem(projectDir, title, {
-          description,
-          priority,
-          category,
-          blocked_by,
-          agendaPath,
-        });
-      }
+      const item = await addAgendaItem(projectDir, title, {
+        description,
+        priority,
+        category,
+        blocked_by,
+        agendaPath,
+      });
 
       const requiresTdd = isLogicTask(title);
 
       return formatToolOutput({
         success: true,
         item,
-        ...(derivedExportWarning ? { warning: derivedExportWarning } : {}),
         analysis: {
           requires_tdd: requiresTdd,
           recommendation: requiresTdd

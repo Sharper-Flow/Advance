@@ -9,14 +9,7 @@
 import { basename, join } from "path";
 import { access, readdir } from "fs/promises";
 import type { Store } from "../storage/store";
-import {
-  buildProjectTaskQueue,
-  buildProjectWorkflowId,
-  createTemporalClientBundle,
-  getTemporalAddress,
-} from "../temporal/client";
-import { canReachTemporalAddress } from "../temporal/runtime-manager";
-import { projectMigrationLedgerQuery } from "../temporal/messages";
+import { buildProjectTaskQueue } from "../temporal/client";
 import { getTemporalHealth } from "../temporal/health-probe";
 import {
   getTemporalWorkerAliveness,
@@ -515,58 +508,9 @@ function appendRecencyRecommendation(
   }
 }
 
-async function loadMigrationStatus(store: Store) {
-  if (!store.paths.external) return null;
-
-  const projectId = basename(store.paths.external);
-  if (!projectId) return null;
-
-  try {
-    const address = getTemporalAddress(process.env);
-    const reachable = await canReachTemporalAddress(address, 250);
-    if (!reachable) return null;
-    const bundle = await createTemporalClientBundle(process.env);
-    try {
-      const handle = bundle.client.workflow.getHandle(
-        buildProjectWorkflowId(projectId),
-      );
-      const ledger = (await handle.query(
-        projectMigrationLedgerQuery,
-      )) as Array<{
-        key?: string;
-        source?: string;
-        status?: string;
-        detail?: string;
-        recordedAt?: string;
-      }>;
-      const latest =
-        [...ledger].reverse().find((entry) => entry.key === "project-import") ??
-        ledger.at(-1) ??
-        null;
-
-      if (!latest) {
-        return {
-          project_id: projectId,
-          status: "empty",
-          source: null,
-          detail: null,
-          recorded_at: null,
-        };
-      }
-
-      return {
-        project_id: projectId,
-        status: latest.status ?? "unknown",
-        source: latest.source ?? null,
-        detail: latest.detail ?? null,
-        recorded_at: latest.recordedAt ?? null,
-      };
-    } finally {
-      await bundle.connection.close().catch(() => undefined);
-    }
-  } catch {
-    return null;
-  }
+async function loadMigrationStatus(_store: Store) {
+  // Migration ledger retired with projectWorkflow.
+  return null;
 }
 
 // =============================================================================

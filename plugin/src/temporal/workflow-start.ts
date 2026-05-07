@@ -1,12 +1,6 @@
 import type { Change } from "../types";
-import {
-  buildChangeWorkflowId,
-  buildProjectTaskQueue,
-} from "./client";
-import type {
-  ChangeWorkflowInput,
-  ChangeWorkflowState,
-} from "./contracts";
+import { buildChangeWorkflowId, buildProjectTaskQueue } from "./client";
+import type { ChangeWorkflowInput, ChangeWorkflowState } from "./contracts";
 import { buildTemporalSearchAttributes } from "./observability";
 import { changeWorkflow } from "./workflows";
 

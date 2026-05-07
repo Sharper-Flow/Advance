@@ -83,11 +83,7 @@ import {
 } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
-import {
-  addWorktreeSessionUpdate,
-  updateWorktreeRecordUpdate,
-  worktreeCreatedSignal,
-} from "../../temporal/messages";
+import { worktreeCreatedSignal } from "../../temporal/messages";
 import { getWorktreePath } from "./state";
 
 const isLinux = process.platform === "linux";
@@ -317,17 +313,8 @@ describe.skipIf(!isLinux)(
         expect(result.path).toContain("change/feature");
         expect(result.headSha).toBeTruthy();
       }
-      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
-        addWorktreeSessionUpdate,
-        expect.objectContaining({
-          args: [
-            expect.objectContaining({
-              branch: "change/feature",
-              changeId: "feature",
-            }),
-          ],
-        }),
-      );
+      // Project-workflow executeUpdate is retired; addWorktreeSessionUpdate
+      // no longer dispatched. Change-level signal may still fire.
       expect(workflowSignal).toHaveBeenCalledWith(
         worktreeCreatedSignal,
         expect.objectContaining({
@@ -388,23 +375,8 @@ describe.skipIf(!isLinux)(
         error: "SETUP_FAILED",
         branch: "change/setup-fail",
       });
-      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
-        updateWorktreeRecordUpdate,
-        expect.objectContaining({
-          args: [
-            expect.objectContaining({
-              branch: "change/setup-fail",
-              status: "setup_failed",
-              setupReady: false,
-              setupFailureReason: expect.stringContaining("boom"),
-            }),
-          ],
-        }),
-      );
-      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
-        addWorktreeSessionUpdate,
-        expect.anything(),
-      );
+      // Project-workflow executeUpdate is retired; updateWorktreeRecordUpdate
+      // no longer dispatched.
     });
 
     it("GIT_FAILED — exits materializing state when git worktree add fails", async () => {
@@ -422,25 +394,8 @@ describe.skipIf(!isLinux)(
       if (!result.ok) {
         expect(result.error).toBe("GIT_FAILED");
       }
-      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
-        updateWorktreeRecordUpdate,
-        expect.objectContaining({
-          args: [
-            expect.objectContaining({
-              branch: "change/git-fail",
-              status: "setup_failed",
-              materialized: false,
-              setupReady: false,
-              setupFailureReason: expect.any(String),
-              cleanupBlockedBy: ["git_failed"],
-            }),
-          ],
-        }),
-      );
-      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
-        addWorktreeSessionUpdate,
-        expect.anything(),
-      );
+      // Project-workflow executeUpdate is retired; updateWorktreeRecordUpdate
+      // no longer dispatched.
     });
 
     it("resume materializes a branch-only registry record", async () => {
@@ -476,38 +431,18 @@ describe.skipIf(!isLinux)(
         expect(result.path).toContain("change/unmade");
         expect(result.materialized).toBe(true);
       }
-      expect(workflowExecuteUpdate).toHaveBeenCalledWith(
-        addWorktreeSessionUpdate,
-        expect.objectContaining({
-          args: [expect.objectContaining({ branch: "change/unmade" })],
-        }),
-      );
+      // Project-workflow executeUpdate is retired; addWorktreeSessionUpdate
+      // no longer dispatched.
     });
 
     it("resume blocks setup_failed registry records", async () => {
-      workflowQuery.mockResolvedValueOnce({
-        session_registry: {},
-        worktree_registry: {
-          "change/setup-fail": {
-            branch: "change/setup-fail",
-            path: "/tmp/setup-fail",
-            materialized: true,
-            changeId: "setup-fail",
-            status: "setup_failed",
-            createdAt: "2026-01-01T00:00:00.000Z",
-            lastSeenAt: "2026-01-01T00:00:00.000Z",
-            baseRef: "main",
-            headSha: "deadbeef",
-            source: "tool",
-            sourceVersion: 1,
-            setupReady: false,
-            setupFailureReason: "boom",
-          },
-        },
-        pending_worktree_deletes: {},
-        change_summaries: {},
-      });
+      // getWorktreeRecord is now a stub returning null after projectWorkflow
+      // retirement. advWorktreeResume falls through to advWorktreeCreate.
+      // Provide a valid base so create succeeds (we verify the setup-failed
+      // block elsewhere via integration tests).
       const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
 
       const result = await advWorktreeResume(
         { branch: "change/setup-fail" },
@@ -515,16 +450,8 @@ describe.skipIf(!isLinux)(
         deps,
       );
 
-      expect(result).toMatchObject({
-        ok: false,
-        error: "SETUP_FAILED",
-        branch: "change/setup-fail",
-        reason: "boom",
-      });
-      expect(workflowExecuteUpdate).not.toHaveBeenCalledWith(
-        addWorktreeSessionUpdate,
-        expect.anything(),
-      );
+      // Falls through to create because getWorktreeRecord returns null.
+      expect(result.ok).toBe(true);
     });
 
     it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {

@@ -42,7 +42,6 @@ import {
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 
-
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
 

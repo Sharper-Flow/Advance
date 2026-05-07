@@ -2,7 +2,6 @@ import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import { buildProjectWorkflowId } from "../../temporal/client";
 import { classifyTemporalError } from "../../temporal/retry-wrapper";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
@@ -18,23 +17,15 @@ import {
 } from "../store-temporal-memo";
 import {
   type TemporalStoreBackendInput,
-  type TemporalHandleClient,
   type WorkflowHandleLike,
   type StoreDeps,
   mapTemporalChangeStateToChange,
   getGuardedChangeHandle,
   runTemporalQuery,
-  hydrateMemoFromPSW,
 } from "./shared";
-import {
-  applyChangeSummarySignal,
-  changeStateQuery,
-} from "../../temporal/messages";
+import { changeStateQuery } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import type {
-  ChangeSummaryPayload,
-  ChangeWorkflowState,
-} from "../../temporal/contracts";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -198,52 +189,13 @@ export function createTemporalStoreBackend(
    * Fire-and-forget signal to projectWorkflow with updated ChangeSummary.
    * Best-effort: logs errors but never throws. Skipped if no projectWorkflow
    * handle is available (e.g., STSL not initialized, PSW not started).
+   * PSW retired: no-op.
    */
   const emitChangeSummarySignal = (
-    changeId: string,
-    state: ChangeWorkflowState,
+    _changeId: string,
+    _state: ChangeWorkflowState,
   ): void => {
-    try {
-      const version = (sourceVersions.get(changeId) ?? 0) + 1;
-      sourceVersions.set(changeId, version);
-      const summary = buildSummary(state);
-      const allTouched = new Set<string>();
-      for (const t of state.tasks ?? []) {
-        if (t.touched_files) {
-          for (const f of t.touched_files) allTouched.add(f);
-        }
-      }
-      const payload: ChangeSummaryPayload = {
-        changeId,
-        title: summary.title,
-        status: summary.status,
-        gateProgress: summary.gateProgress,
-        taskCounts: summary.taskCounts,
-        lastActivityAt: summary.lastActivityAt,
-        fast_follow_of: summary.fast_follow_of,
-        sourceVersion: version,
-        touched_files: [...allTouched],
-      };
-      const projectHandle = getProjectHandle();
-      if (!projectHandle) return;
-      void projectHandle.signal(applyChangeSummarySignal, payload);
-    } catch (err) {
-      // Best-effort: signal failure must not block mutations, but it should
-      // remain observable when diagnosing stale project-workflow summaries.
-      logger.debug(
-        `ChangeSummary signal skipped for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  };
-
-  const getProjectHandle = (): WorkflowHandleLike | null => {
-    try {
-      const workflowId = buildProjectWorkflowId(input.projectId);
-      const bundle = input.temporal as { client: TemporalHandleClient };
-      return bundle.client.workflow.getHandle(workflowId);
-    } catch {
-      return null;
-    }
+    // No-op: projectWorkflow retired; change summaries live in workflow state.
   };
 
   const getTemporalWorkflowClient = (): {
@@ -833,7 +785,6 @@ export function createTemporalStoreBackend(
     emitChangeSummarySignal,
     persistStateToDisk,
     dualWriteAfterMutation,
-    getProjectHandle,
     getTemporalWorkflowClient,
     resolveStateOrQuery,
     indexTasksFromState,
@@ -853,7 +804,6 @@ export function createTemporalStoreBackend(
     status: async () => buildTemporalStatus(),
   };
 
-  hydrateMemoFromPSW(input, memo);
   return store;
 }
 

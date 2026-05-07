@@ -41,7 +41,6 @@ import {
 } from "../types";
 
 const designSignalKeys = [
-  "applyChangeSummary",
   "proposalUpdated",
   "problemStatementUpdated",
   "agreementUpdated",
@@ -79,11 +78,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 24 signal surface plus retained applyChangeSummary binding", () => {
+  it("defines the 26 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(27);
+    expect(surfacedKeys).toHaveLength(26);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);

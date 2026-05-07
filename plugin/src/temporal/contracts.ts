@@ -48,7 +48,6 @@ export const CHANGE_WORKFLOW_UPDATE_NAMES = {
 } as const;
 
 export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
-  applyChangeSummary: "adv.change.applyChangeSummary",
   proposalUpdated: "adv.change.proposalUpdated",
   problemStatementUpdated: "adv.change.problemStatementUpdated",
   agreementUpdated: "adv.change.agreementUpdated",
@@ -77,6 +76,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   changeCancelled: "adv.change.changeCancelled",
 } as const;
 
+// rq-changeSummariesCap01: Bounded change_summaries registry (cap-based eviction)
 export interface ChangeSummaryPayload {
   changeId: string;
   title: string;

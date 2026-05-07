@@ -199,7 +199,8 @@ export function reconcileWorktreeRegistry(
       branch,
       path: gitWorktree?.path,
       materialized,
-      changeId: existing?.changeId ?? inferChangeIdFromBranch(branch),
+      changeId:
+        existing?.changeId ?? inferChangeIdFromBranch(branch) ?? undefined,
       status,
       createdAt: existing?.createdAt ?? input.now,
       lastSeenAt: input.now,

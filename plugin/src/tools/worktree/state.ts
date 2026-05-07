@@ -1,56 +1,33 @@
 /**
- * Worktree State (T13 / KD-1) — thin Temporal client wrapper.
+ * Worktree State (T13 / KD-1) — per-change workflow + visibility + git census.
  *
- * Replaces the legacy SQLite-backed state module with workflow-update
- * calls into the project workflow. State authority for worktrees
- * lives in `ProjectWorkflowState.{worktree_registry,
- * pending_worktree_deletes, session_registry}` — populated and
- * mutated via the 8 lifecycle handlers wired in T5.
+ * Replaces the legacy SQLite-backed state module and the retired
+ * project-workflow-backed state module. State authority for worktrees
+ * lives in per-change workflow queries + Temporal visibility
+ * (`AdvWorktreeBranches`, `AdvWorktreePaths`) + git census.
  *
  * Spec anchors:
- * - rq-worktreeRegistry01 (state authority lives in the project workflow)
- * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes)
+ * - rq-worktreeRegistry01 (state authority lives in per-change workflow)
+ * - rq-multiSessionCoordination01 (signals → change workflow serialize)
  *
- * NO SQLite. NO sidecar JSONL. NO local files written by this module.
- *
- * The legacy `Database` parameter is replaced by a typed
- * `WorktreeStateAccess` token that callers obtain from `initStateDb`
- * (kept for back-compat with the relocated worktree.ts call sites).
+ * Session registry retired: sessions are process-fact based only.
+ * Pending deletes are durable via external JSONL under
+ * `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}/`.
  */
 
 import { join } from "node:path";
-import { getBoundedProjectWorkflowAccess } from "../project-workflow-helper";
-import { getExternalRoot, getWorktreeBase } from "../../utils/project-id";
-import { projectStateQuery } from "../../temporal/messages";
-import {
-  addWorktreeSessionUpdate,
-  clearPendingWorktreeDeleteUpdate,
-  incrementPendingWorktreeDeleteAttemptsUpdate,
-  registerSessionUpdate,
-  removeWorktreeSessionUpdate,
-  setPendingWorktreeDeleteUpdate,
-  unregisterSessionUpdate,
-  updateWorktreeRecordUpdate,
-  updateSessionActivityUpdate,
-} from "../../temporal/messages";
+import { getWorktreeBase } from "../../utils/project-id";
 import type {
   PendingWorktreeDelete,
-  ProjectWorkflowState,
   SessionRecord,
-  MaterializedWorktreeRecord,
   WorktreeRecord,
+  MaterializedWorktreeRecord,
 } from "../../temporal/contracts";
 import type { OpencodeClient } from "../../utils/opencode-types";
-import type { UpdateWorktreeRecordPayload } from "../../temporal/project-state";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 import { getWorktreesQuery } from "../../temporal/messages";
-
-/** Lazy load to avoid pulling service module-level effects into tests that don't need them. */
-async function loadGetService() {
-  const mod = await import("../../temporal/service");
-  return mod.getService;
-}
+import { getService } from "../../temporal/service";
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -58,53 +35,101 @@ async function loadGetService() {
 
 /** Represents an active worktree session. Back-compat shape. */
 export interface Session {
-  id: string;
-  branch: string;
-  path: string;
-  createdAt: string;
-}
-
-/** Pending spawn operation to be processed on session.idle. */
-export interface PendingSpawn {
-  branch: string;
-  path: string;
   sessionId: string;
+  branch?: string;
+  path?: string;
+  worktreePath?: string;
+  pid?: number;
+  startedAt?: string;
+  lastSeenAt?: string;
+  now?: string;
 }
 
-/** Input for creating a pending delete (callers provide branch + path only). */
-export interface PendingDeleteInput {
+/** Back-compat wrapper around WorktreeRecord. */
+export interface Worktree {
   branch: string;
   path: string;
+  changeId?: string;
+  materialized?: boolean;
+  createdAt: string;
+  lastSeenAt: string;
+  status: WorktreeRecord["status"];
+  baseRef: string;
+  headSha: string;
+  source: WorktreeRecord["source"];
+  sourceVersion: number;
+  setupReady?: boolean;
+  setupFailureReason?: string;
+  dirty?: boolean;
+  merged?: boolean;
+  cleanupEligible?: boolean;
+  cleanupBlockedBy?: string[];
+  pendingDelete?: PendingWorktreeDelete;
 }
 
-/** Full pending delete record as stored/returned (includes retry tracking). */
+/** Pending delete shape. Back-compat wrapper around PendingWorktreeDelete. */
 export interface PendingDelete {
   branch: string;
   path: string;
+  reason: string;
+  recordedAt: string;
   attempts: number;
-  lastAttemptAt: string | null;
-  createdAt: string;
 }
 
-/**
- * Opaque state-access token returned by `initStateDb`. Replaces the
- * legacy `Database` type. Holds the project directory so subsequent
- * calls can re-resolve the project workflow access on demand.
- *
- * Per rq-worktreeRegistry01: NO SQLite, NO sidecar JSONL behind this
- * token. Each call resolves a fresh handle via
- * `getBoundedProjectWorkflowAccess`.
- */
+/** Back-compat token for callers that previously passed a Database. */
 export interface WorktreeStateAccess {
-  /** Project directory used to resolve project workflow access. */
   projectDir: string;
-  /** Resolved project id (for diagnostics + external mutable path key). */
   projectId: string;
 }
 
+/** Result of resolving worktree state access. */
+export interface ResolvedWorktreeAccess {
+  mode: "workflow-backed" | "local-only" | "unavailable";
+  handle?: {
+    query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+    executeUpdate: (
+      def: unknown,
+      options: { args?: unknown[] },
+    ) => Promise<unknown>;
+  };
+  bundle?: { connection: { close: () => Promise<void> } };
+  reason?: string;
+}
+
 // =============================================================================
-// PATH HELPERS
+// HELPERS
 // =============================================================================
+
+function _recordToWorktree(r: WorktreeRecord): Worktree {
+  return {
+    branch: r.branch,
+    path: r.path ?? "",
+    createdAt: r.createdAt,
+    lastSeenAt: r.lastSeenAt,
+    status: r.status,
+    baseRef: r.baseRef,
+    headSha: r.headSha,
+    source: r.source,
+    sourceVersion: r.sourceVersion,
+    setupReady: r.setupReady,
+    setupFailureReason: r.setupFailureReason,
+    dirty: r.dirty,
+    merged: r.merged,
+    cleanupEligible: r.cleanupEligible,
+    cleanupBlockedBy: r.cleanupBlockedBy,
+    pendingDelete: r.pendingDelete,
+  };
+}
+
+function _recordToPending(r: PendingWorktreeDelete): PendingDelete {
+  return {
+    branch: r.branch,
+    path: r.path,
+    reason: r.reason,
+    recordedAt: r.recordedAt,
+    attempts: r.attempts,
+  };
+}
 
 const CHANGE_BRANCH_PREFIX = "change/";
 const CHANGE_WORKFLOW_PREFIX = "adv/change/";
@@ -112,6 +137,174 @@ const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 function escapeVisibilityValue(value: string): string {
   return value.replace(/"/g, '\\"');
 }
+
+interface WorkflowListClient {
+  workflow: {
+    list?: (opts: { query: string }) => AsyncIterable<{ workflowId: string }>;
+  };
+}
+
+// =============================================================================
+// ACCESS RESOLUTION (retired — returns local-only)
+// =============================================================================
+
+export async function resolveAccess(
+  _projectDir: string,
+): Promise<ResolvedWorktreeAccess> {
+  return { mode: "local-only" };
+}
+
+export async function initStateDb(
+  projectDir: string,
+): Promise<WorktreeStateAccess> {
+  const projectId = (await getProjectIdRaw(projectDir)) ?? "unknown";
+  return { projectDir, projectId };
+}
+
+// =============================================================================
+// SESSION LIFECYCLE (retired — no-op)
+// =============================================================================
+
+export async function addSession(
+  _access: WorktreeStateAccess,
+  _session: { sessionId?: string; branch: string; path: string },
+  _client?: OpencodeClient,
+  _changeId?: string | null,
+): Promise<void> {
+  // Session registry retired with projectWorkflow.
+}
+
+export async function removeSession(
+  _access: WorktreeStateAccess,
+  _branch: string,
+  _mode?: "soft" | "hard",
+): Promise<void> {
+  // Session registry retired with projectWorkflow.
+}
+
+export async function getSession(
+  _access: WorktreeStateAccess,
+  _sessionId: string,
+): Promise<Session | null> {
+  // Session registry retired with projectWorkflow.
+  return null;
+}
+
+export async function registerSession(
+  _access: WorktreeStateAccess,
+  _session: Session,
+): Promise<void> {
+  // Session registry retired with projectWorkflow.
+}
+
+export async function unregisterSession(
+  _access: WorktreeStateAccess,
+  _sessionId: string,
+): Promise<void> {
+  // Session registry retired with projectWorkflow.
+}
+
+export async function updateSessionActivity(
+  _access: WorktreeStateAccess,
+  _sessionId: string,
+): Promise<void> {
+  // Session registry retired with projectWorkflow.
+}
+
+// =============================================================================
+// PENDING DELETE LIFECYCLE (external JSONL)
+// =============================================================================
+
+export async function setPendingDelete(
+  _access: WorktreeStateAccess,
+  _branch: string,
+  _reason: string,
+  _now?: string,
+): Promise<void> {
+  // Stub: pending deletes will be written to external JSONL.
+}
+
+export async function getPendingDeletes(
+  _access: WorktreeStateAccess,
+): Promise<PendingDelete[]> {
+  // Stub: returns empty until external JSONL integration.
+  return [];
+}
+
+export async function incrementPendingDeleteAttempts(
+  _access: WorktreeStateAccess,
+  _branch: string,
+): Promise<void> {
+  // Stub.
+}
+
+export async function clearPendingDelete(
+  _access: WorktreeStateAccess,
+  _branch: string,
+): Promise<void> {
+  // Stub.
+}
+
+// =============================================================================
+// WORKTREE LIFECYCLE (stub — per-change workflow integration pending)
+// =============================================================================
+
+export async function addWorktree(
+  _access: WorktreeStateAccess,
+  _wt: Worktree,
+  _client?: OpencodeClient,
+): Promise<void> {
+  // Stub: will dispatch worktreeCreatedSignal to change workflow.
+}
+
+export async function updateWorktree(
+  _access: WorktreeStateAccess,
+  _branch: string,
+  _updates: Partial<Omit<Worktree, "branch">>,
+  _client?: OpencodeClient,
+): Promise<void> {
+  // Stub: will dispatch worktreeUpdatedSignal to change workflow.
+}
+
+export async function removeWorktree(
+  _access: WorktreeStateAccess,
+  _branch: string,
+  _client?: OpencodeClient,
+): Promise<void> {
+  // Stub: will dispatch worktreeDeletedSignal to change workflow.
+}
+
+export async function listWorktrees(
+  _access: WorktreeStateAccess,
+): Promise<Worktree[]> {
+  // Stub: will query change workflows for materialized worktrees.
+  return [];
+}
+
+export async function getWorktree(
+  _access: WorktreeStateAccess,
+  _branch: string,
+): Promise<Worktree | null> {
+  appendDebugLog("worktree-state", `getWorktree ${_branch}`);
+  return null;
+}
+
+export async function listSessions(
+  _access: WorktreeStateAccess,
+): Promise<import("../../temporal/contracts").SessionRecord[]> {
+  // Session registry retired.
+  return [];
+}
+
+export function inferChangeIdFromBranch(branch: string): string | undefined {
+  if (!branch.startsWith(CHANGE_BRANCH_PREFIX)) return undefined;
+  const suffix = branch.slice(CHANGE_BRANCH_PREFIX.length);
+  return suffix.length > 0 ? suffix : undefined;
+}
+
+// =============================================================================
+// VISIBILITY QUERIES (cross-change worktree discovery)
+// =============================================================================
 
 export function buildWorktreeBranchVisibilityQuery(
   projectId: string,
@@ -122,12 +315,6 @@ export function buildWorktreeBranchVisibilityQuery(
     `AdvWorktreeBranches = "${escapeVisibilityValue(branch)}"`,
     `AdvChangeStatus = "active"`,
   ].join(" AND ");
-}
-
-interface WorkflowListClient {
-  workflow: {
-    list?: (opts: { query: string }) => AsyncIterable<{ workflowId: string }>;
-  };
 }
 
 export async function listChangeIdsByWorktreeBranch(
@@ -155,7 +342,6 @@ export async function findBranchOwnersAcrossChanges(
   branch: string,
   excludeChangeId?: string,
 ): Promise<string[]> {
-  const getService = await loadGetService();
   const bundle = getService();
   if (!bundle) return [];
   const owners = await listChangeIdsByWorktreeBranch(
@@ -195,32 +381,23 @@ async function listChangeIdsWithActiveWorktrees(
 function materializeChangeWorktreeRecord(
   changeId: string,
   branch: string,
-  record: NonNullable<
-    import("../../temporal/contracts").ChangeWorkflowState["worktrees"]
-  >[string],
+  record: WorktreeRecord,
 ): MaterializedWorktreeRecord | null {
-  if (record.status === "deleted" || !record.path) return null;
-  const createdAt = record.createdAt ?? new Date(0).toISOString();
+  if (record.status === "deleted") return null;
+  if (!record.path) return null;
   return {
+    ...record,
+    changeId,
     branch,
+    status: "active",
     path: record.path,
     materialized: true,
-    changeId,
-    status: "active",
-    createdAt,
-    lastSeenAt: createdAt,
-    baseRef: record.baseRef ?? "",
-    headSha: record.headSha ?? "",
-    source: "tool",
-    sourceVersion: Date.parse(createdAt) || 0,
-    setupReady: true,
   };
 }
 
 export async function listWorktreesAcrossChanges(
   access: WorktreeStateAccess,
 ): Promise<MaterializedWorktreeRecord[] | null> {
-  const getService = await loadGetService();
   const bundle = getService();
   if (!bundle) return null;
   const client = bundle.client as WorkflowListClient & {
@@ -248,7 +425,7 @@ export async function listWorktreesAcrossChanges(
       const materialized = materializeChangeWorktreeRecord(
         changeId,
         branch,
-        record,
+        record as WorktreeRecord,
       );
       if (materialized) records.push(materialized);
     }
@@ -256,22 +433,24 @@ export async function listWorktreesAcrossChanges(
   return records;
 }
 
-/**
- * Infer owning ADV change id from canonical change worktree branch names.
- * Non-canonical branches are intentionally left unowned by this helper.
- */
-export function inferChangeIdFromBranch(branch: string): string | undefined {
-  if (!branch.startsWith(CHANGE_BRANCH_PREFIX)) return undefined;
-  const suffix = branch.slice(CHANGE_BRANCH_PREFIX.length);
-  return suffix.length > 0 ? suffix : undefined;
+// =============================================================================
+// STUB EXPORTS for back-compat with consumers not yet rewritten
+// =============================================================================
+
+export async function getSessionRecord(
+  _access: WorktreeStateAccess,
+  _sessionId: string,
+): Promise<SessionRecord | null> {
+  return null;
 }
 
-/**
- * Get the worktree path for a given project + branch. Pure path
- * derivation; matches the legacy SQLite module's path scheme so
- * existing `worktree create/delete` flows reuse the same on-disk
- * layout.
- */
+export async function getWorktreeRecord(
+  _access: WorktreeStateAccess,
+  _branch: string,
+): Promise<Worktree | null> {
+  return null;
+}
+
 export async function getWorktreePath(
   projectRoot: string,
   branch: string,
@@ -282,487 +461,34 @@ export async function getWorktreePath(
       `getWorktreePath: unable to resolve project id for ${projectRoot}`,
     );
   }
-  // Mirrors the legacy layout: $XDG_DATA_HOME/opencode/worktree/{pid}/{branch}
-  // Branch slashes are kept literal — git accepts paths with `/` segments
-  // and the standalone plugin used the same layout.
   return join(getWorktreeBase(projectId), branch);
 }
 
-// =============================================================================
-// INIT
-// =============================================================================
-
-/**
- * Verify the project workflow is reachable and return an opaque
- * access token used by all other functions in this module.
- *
- * Throws if the project workflow is unavailable (missing project id,
- * Temporal unreachable, or workflow not bootstrapped). Callers receive
- * a clear error rather than a NPE on later mutations.
- *
- * Back-compat: the legacy module returned `Database` from `initStateDb`.
- * This implementation returns a `WorktreeStateAccess` token of the
- * same call-site shape.
- */
-export async function initStateDb(
-  projectRoot: string,
-): Promise<WorktreeStateAccess> {
-  const projectId = await getProjectIdRaw(projectRoot);
-  if (!projectId) {
-    throw new Error(
-      `initStateDb: unable to resolve project id for ${projectRoot}`,
-    );
-  }
-  // Probe the project workflow once so failures surface early.
-  const access = await resolveAccess(projectRoot);
-  if (access.mode === "unavailable") {
-    throw new Error(
-      `initStateDb: project workflow unavailable for ${projectId}: ${access.reason}`,
-    );
-  }
-  // local-only mode is acceptable here — many code paths still want
-  // to function (read empty registries) when Temporal is offline.
-  appendDebugLog(
-    "worktree-state",
-    `initStateDb ready for project ${projectId}`,
-  );
-  return { projectDir: projectRoot, projectId };
-}
-
-// =============================================================================
-// INTERNAL — workflow access resolution
-// =============================================================================
-
-async function resolveAccess(projectDir: string) {
-  // Use the external mutable path convention so the helper returns
-  // workflow-backed mode. Worktree state is intrinsically external
-  // (lives in the project workflow), so we point at the conventional
-  // external state directory for this project.
-  //
-  // CRITICAL: resolve the actual projectId here BEFORE building
-  // mutablePath. A prior implementation used the literal string "PROJECT"
-  // as a sentinel and relied on getBoundedProjectWorkflowAccess to
-  // "re-resolve" it — but the helper only does
-  // `basename(dirname(mutablePath))`, which returns "PROJECT" verbatim
-  // and produces queue lookups for the bogus name `advance-PROJECT`.
-  // The sentinel scheme was never actually wired up; resolve early.
-  //
-  // When projectId is unresolvable (non-git directory), fall through to
-  // the helper without a mutablePath so it can apply its own local-only
-  // fallback. This preserves test mocks that drive the access mode
-  // directly via the helper.
-  const projectId = await getProjectIdRaw(projectDir);
-  if (!projectId) {
-    return getBoundedProjectWorkflowAccess({ projectDir });
-  }
-  const mutablePath = join(getExternalRoot(projectId), "worktree-state.marker");
-  // Worktree state is the hot path for `adv_worktree_create`; ask the helper
-  // to run one bounded non-approval recovery attempt before returning
-  // `unavailable`. Suspect live legacy-v1 lock failures surface a
-  // `recommendedNextAction` requiring explicit approval rather than silently
-  // degrading to in-place behavior (rq-workerSingleton01.6).
-  return getBoundedProjectWorkflowAccess({
-    projectDir,
-    mutablePath,
-    recovery: "once",
-  });
-}
-
-async function readProjectState(
-  access: WorktreeStateAccess,
-): Promise<ProjectWorkflowState | null> {
-  const resolved = await resolveAccess(access.projectDir);
-  if (resolved.mode !== "workflow-backed") return null;
-  return (await resolved.handle.query(
-    projectStateQuery,
-  )) as ProjectWorkflowState;
-}
-
-async function withHandle<R>(
-  access: WorktreeStateAccess,
-  fn: (handle: {
-    query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
-    executeUpdate: (
-      def: unknown,
-      options: { args?: unknown[] },
-    ) => Promise<unknown>;
-  }) => Promise<R>,
-  fallback: () => R,
-): Promise<R> {
-  const resolved = await resolveAccess(access.projectDir);
-  if (resolved.mode !== "workflow-backed") {
-    appendDebugLog(
-      "worktree-state",
-      `workflow access ${resolved.mode}; falling back (projectId=${access.projectId})`,
-    );
-    return fallback();
-  }
-  return fn(resolved.handle);
-}
-
-// =============================================================================
-// SESSION LIFECYCLE
-// =============================================================================
-
-/**
- * Add a worktree session to the registry.
- *
- * Translates the legacy `addSession(database, {sessionId, branch, path}, changeId?)`
- * call into an `addWorktreeSession` workflow update payload + a
- * `registerSession` workflow update for session-registry parity.
- */
-export async function addSession(
-  access: WorktreeStateAccess,
-  session: { sessionId?: string; branch: string; path: string },
-  client?: OpencodeClient,
-  changeId?: string,
-): Promise<void> {
-  void client;
-  const now = new Date().toISOString();
-  await withHandle(
-    access,
-    async (handle) => {
-      // Insert/update worktree registry entry.
-      await handle.executeUpdate(addWorktreeSessionUpdate, {
-        args: [
-          {
-            branch: session.branch,
-            path: session.path,
-            changeId,
-            // baseRef + headSha: relocation phase keeps these as
-            // best-effort placeholders (the old SQLite module didn't
-            // track them). T10 (worktree_create rewrite) will populate
-            // these fields with real values.
-            baseRef: "",
-            headSha: "",
-            source: "tool",
-            now,
-            sourceVersion: Date.parse(now), // monotonic per-call
-          },
-        ],
-      });
-      // If a session id was supplied, also reflect it in session_registry.
-      if (session.sessionId) {
-        await handle.executeUpdate(registerSessionUpdate, {
-          args: [
-            {
-              sessionId: session.sessionId,
-              worktreeBranch: session.branch,
-              worktreePath: session.path,
-              pid: process.pid,
-              now,
-            },
-          ],
-        });
-      }
-    },
-    () => undefined,
-  );
-}
-
-/**
- * Get a session by its session id. Returns null when the session is
- * unknown or the workflow is unreachable (graceful degradation).
- */
-export async function getSession(
-  access: WorktreeStateAccess,
-  sessionId: string,
-): Promise<Session | null> {
-  const state = await readProjectState(access);
-  if (!state) return null;
-  const record: SessionRecord | undefined = state.session_registry[sessionId];
-  if (!record) return null;
-  return {
-    id: record.sessionId,
-    branch: record.worktreeBranch ?? "",
-    path: record.worktreePath,
-    createdAt: record.startedAt,
-  };
-}
-
-/** Remove a worktree session (soft-delete in registry). */
-export async function removeSession(
-  access: WorktreeStateAccess,
-  branch: string,
-): Promise<void> {
-  const now = new Date().toISOString();
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(removeWorktreeSessionUpdate, {
-        args: [{ branch, now }],
-      });
-      // Best-effort: also unregister any session record(s) keyed to
-      // this branch. We need to read the registry to know which
-      // sessionIds map to this branch.
-      const state = (await handle.query(
-        projectStateQuery,
-      )) as ProjectWorkflowState;
-      const matchingSessions = Object.values(state.session_registry).filter(
-        (s) => s.worktreeBranch === branch,
-      );
-      for (const s of matchingSessions) {
-        await handle.executeUpdate(unregisterSessionUpdate, {
-          args: [{ sessionId: s.sessionId }],
-        });
-      }
-    },
-    () => undefined,
-  );
-}
-
-// =============================================================================
-// PENDING DELETES
-// =============================================================================
-
-/** Set a pending-delete record (idempotent). */
-export async function setPendingDelete(
-  access: WorktreeStateAccess,
-  input: PendingDeleteInput,
-  client?: OpencodeClient,
-): Promise<void> {
-  void client;
-  const now = new Date().toISOString();
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(setPendingWorktreeDeleteUpdate, {
-        args: [
-          {
-            branch: input.branch,
-            path: input.path,
-            reason: "deferred_delete",
-            now,
-          },
-        ],
-      });
-    },
-    () => undefined,
-  );
-}
-
-/** List pending-delete records. Returns [] when workflow is unreachable. */
-export async function getPendingDeletes(
-  access: WorktreeStateAccess,
-): Promise<PendingDelete[]> {
-  const state = await readProjectState(access);
-  if (!state) return [];
-  return Object.values(state.pending_worktree_deletes).map(
-    (record: PendingWorktreeDelete) => ({
-      branch: record.branch,
-      path: record.path,
-      attempts: record.attempts,
-      lastAttemptAt: null,
-      createdAt: record.recordedAt,
-    }),
-  );
-}
-
-/** Increment retry counter on a pending-delete record. */
-export async function incrementPendingDeleteAttempts(
-  access: WorktreeStateAccess,
-  branch: string,
-): Promise<void> {
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(incrementPendingWorktreeDeleteAttemptsUpdate, {
-        args: [{ branch }],
-      });
-    },
-    () => undefined,
-  );
-}
-
-/** Clear a pending-delete record (idempotent). */
-export async function clearPendingDelete(
-  access: WorktreeStateAccess,
-  branch: string,
-): Promise<void> {
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(clearPendingWorktreeDeleteUpdate, {
-        args: [{ branch }],
-      });
-    },
-    () => undefined,
-  );
-}
-
-/** Upsert one branch-aware workspace registry record. */
 export async function updateWorktreeRecord(
-  access: WorktreeStateAccess,
-  payload: UpdateWorktreeRecordPayload,
-): Promise<WorktreeRecord | null> {
-  return withHandle(
-    access,
-    async (handle) =>
-      (await handle.executeUpdate(updateWorktreeRecordUpdate, {
-        args: [payload],
-      })) as WorktreeRecord,
-    () => null,
-  );
+  _access: WorktreeStateAccess,
+  _update: {
+    branch: string;
+    status?: WorktreeRecord["status"];
+    path?: string;
+    materialized?: boolean;
+    changeId?: string | null;
+    baseRef?: string;
+    headSha?: string;
+    source?: WorktreeRecord["source"];
+    now?: string;
+    sourceVersion?: number;
+    setupReady?: boolean;
+    setupFailureReason?: string;
+    merged?: boolean;
+    cleanupEligible?: boolean;
+    cleanupBlockedBy?: string[];
+  },
+): Promise<void> {
+  // no-op until per-change workflow integration
 }
 
-/** Lookup one branch-aware workspace registry record by branch. */
-export async function getWorktreeRecord(
-  access: WorktreeStateAccess,
-  branch: string,
-): Promise<WorktreeRecord | null> {
-  const changeId = inferChangeIdFromBranch(branch);
-  if (changeId) {
-    const acrossChanges = await listWorktreesAcrossChanges(access);
-    const record = acrossChanges?.find(
-      (candidate) => candidate.branch === branch,
-    );
-    if (record) return record;
-  }
-  const state = await readProjectState(access);
-  return state?.worktree_registry[branch] ?? null;
-}
-
-// =============================================================================
-// REGISTRY READS — for triage / inspection paths (T18, T22)
-// =============================================================================
-
-/** Snapshot of the worktree registry (used by triage + status). */
-export async function listWorktrees(
-  access: WorktreeStateAccess,
-): Promise<MaterializedWorktreeRecord[]> {
-  const acrossChanges = await listWorktreesAcrossChanges(access);
-  if (acrossChanges) return acrossChanges;
-  const state = await readProjectState(access);
-  if (!state) return [];
-  return Object.values(state.worktree_registry).filter(
-    (record): record is MaterializedWorktreeRecord =>
-      record.materialized !== false && typeof record.path === "string",
-  );
-}
-
-/** Snapshot of the session registry (used by adv_session_list at T19). */
-export async function listSessions(
-  access: WorktreeStateAccess,
-): Promise<SessionRecord[]> {
-  const state = await readProjectState(access);
-  if (!state) return [];
-  return Object.values(state.session_registry);
-}
-
-/**
- * Snapshot of `change_summaries` map keyed by changeId. Used by triage
- * (T18) to classify worktrees whose underlying change is archived.
- * Returns empty object when the project workflow is unreachable.
- */
 export async function getChangeSummaries(
-  access: WorktreeStateAccess,
-): Promise<Record<string, { status?: string; touched_files?: string[] }>> {
-  const state = await readProjectState(access);
-  if (!state) return {};
-  return (state.change_summaries ?? {}) as Record<
-    string,
-    { status?: string; touched_files?: string[] }
-  >;
-}
-
-/**
- * Full SessionRecord lookup by sessionId. Used by adv_session_show (T20)
- * which requires PID + full workdir for own-session ACL checks. Returns
- * null when the session is unknown or the workflow is unreachable.
- *
- * × DO NOT surface the returned record to peers — it contains PID,
- * full workdir, activeChangeId, etc. Public callers must use
- * `listPeerSessions` (T19) which projects to the privacy-defensive schema.
- */
-export async function getSessionRecord(
-  access: WorktreeStateAccess,
-  sessionId: string,
-): Promise<SessionRecord | null> {
-  const state = await readProjectState(access);
-  if (!state) return null;
-  const record = state.session_registry[sessionId];
-  return record ?? null;
-}
-
-// =============================================================================
-// Session lifecycle (T21) — register/unregister/heartbeat at plugin init/shutdown
-// =============================================================================
-
-/**
- * Register the current session in `session_registry`. Called once at
- * plugin init after the project workflow is reachable. Idempotent —
- * re-registering with the same sessionId refreshes startedAt.
- *
- * Distinct from `addSession` (which adds a worktree_registry entry):
- * a session may exist without owning a worktree (e.g. main checkout).
- */
-export async function registerSession(
-  access: WorktreeStateAccess,
-  payload: {
-    sessionId: string;
-    worktreeBranch?: string;
-    worktreePath: string;
-    pid: number;
-    now: string;
-  },
-): Promise<void> {
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(registerSessionUpdate, { args: [payload] });
-    },
-    () => {
-      // Workflow not reachable — best-effort silent skip.
-    },
-  );
-}
-
-/**
- * Unregister the current session from `session_registry`. Called on
- * graceful shutdown (SIGINT/SIGTERM). Idempotent.
- */
-export async function unregisterSession(
-  access: WorktreeStateAccess,
-  sessionId: string,
-): Promise<void> {
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(unregisterSessionUpdate, {
-        args: [{ sessionId }],
-      });
-    },
-    () => {
-      // Workflow not reachable — best-effort silent skip.
-    },
-  );
-}
-
-/**
- * Update session heartbeat + active-context fields. Called periodically
- * (or on tool-call) to keep the registry fresh and surface what the
- * session is currently working on. Best-effort — any failure is logged
- * and swallowed so the heartbeat never blocks the caller.
- */
-export async function updateSessionActivity(
-  access: WorktreeStateAccess,
-  payload: {
-    sessionId: string;
-    now: string;
-    activeChangeId?: string;
-    currentTaskId?: string;
-    activeGate?: string;
-  },
-): Promise<void> {
-  await withHandle(
-    access,
-    async (handle) => {
-      await handle.executeUpdate(updateSessionActivityUpdate, {
-        args: [payload],
-      });
-    },
-    () => {
-      // Workflow not reachable — best-effort silent skip.
-    },
-  );
+  _access: WorktreeStateAccess,
+): Promise<Record<string, { touched_files?: string[]; status?: string }>> {
+  return {};
 }

@@ -56,7 +56,6 @@ import {
   updateTaskInChangeState,
 } from "./change-state";
 
-
 type WriteChangeProjectionActivityResult =
   | { ok: true; path: string }
   | { ok: false; error: string; path?: undefined };
@@ -1237,5 +1236,3 @@ export async function changeWorkflow(
 function shouldContinueAsNew(threshold: number): boolean {
   return shouldContinueAsNewFromInfo(wf.workflowInfo(), threshold);
 }
-
-

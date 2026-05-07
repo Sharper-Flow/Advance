@@ -16,7 +16,7 @@
  *      so drift between the two files is impossible.
  */
 import * as wf from "@temporalio/workflow";
-import type { WisdomType } from "../types";
+
 import type {
   AcceptanceCriteriaSetSignalPayload,
   AgreementUpdatedSignalPayload,

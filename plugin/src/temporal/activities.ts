@@ -19,19 +19,14 @@
 
 import { mkdir, readFile, stat, unlink } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
-import { z } from "zod";
 
-import { listSpecDirs, loadChange, type ProjectPaths } from "../storage/json";
+import { listSpecDirs } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
 import type { ChangeWorkflowState } from "./contracts";
 import { renderBriefSummary } from "../utils/archive-summary";
 import { applySpecDelta } from "../utils/spec-deltas";
 import { appendWisdom } from "../utils/wisdom-append";
 import { execGit } from "../utils/git";
-import {
-  reImportChangeState,
-  type WorkflowClientLike,
-} from "./workflow-start";
 
 // =============================================================================
 // Disk-artifact activities (P2.1)
@@ -547,5 +542,3 @@ export async function archiveChangeActivity(
     projects: archivedProjects,
   };
 }
-
-

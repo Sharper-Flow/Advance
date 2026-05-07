@@ -7,7 +7,7 @@ import {
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
-import { repairChangeActivity } from "../temporal/activities";
+
 import { getTemporalHealth } from "../temporal/health-probe";
 import {
   buildProjectTaskQueue,
@@ -627,8 +627,6 @@ export const temporalOpsTools = {
           });
         }
 
-        const projectId = basename(activeStore.paths.external);
-
         const bundle = getService();
         if (!bundle) {
           return formatToolOutput({
@@ -650,38 +648,11 @@ export const temporalOpsTools = {
           });
         }
 
-        // P2.6: Disk + workflow repair logic lives in `repairChangeActivity`
-        // (see `temporal/activities.ts`). The tool body validates args,
-        // refreshes STSL, and invokes the activity. Critically, the activity
-        // does NOT close `bundle.connection` — the service-layer singleton owns
-        // that lifecycle (was the poison-pill of the pre-4aa420e bug).
-        const result = await repairChangeActivity({
-          projectId,
-          changeId: args.changeId,
-          approvalEvidence: args.approvalEvidence,
-          paths: {
-            root: activeStore.paths.root,
-            changes: activeStore.paths.changes,
-            agenda: activeStore.paths.agenda,
-            wisdom: activeStore.paths.wisdom,
-          },
-          client: bundle.client as unknown as Parameters<
-            typeof repairChangeActivity
-          >[0]["client"],
-        });
-
-        if (!result.ok) {
-          return formatToolOutput({
-            success: false,
-            ...result,
-            ...(projectContext ? { _projectContext: projectContext } : {}),
-          });
-        }
+        // P2.6: repairChangeActivity retired with projectWorkflow.
         return formatToolOutput({
-          success: true,
-          projectId: result.projectId,
-          changeId: result.changeId,
-          message: result.message,
+          success: false,
+          error:
+            "Workflow repair tool retired. Re-import change via adv_change_reenter or restart the session.",
           ...(projectContext ? { _projectContext: projectContext } : {}),
         });
       };

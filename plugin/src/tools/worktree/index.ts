@@ -2033,7 +2033,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           }
 
           const result = await advWorktreeDelete(
-            session.branch,
+            session.branch ?? args.branch ?? "",
             { force: args.force ?? false },
             {
               projectRoot: directory,

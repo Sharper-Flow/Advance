@@ -478,9 +478,22 @@ export async function runConcurrentClients(
   } = opts;
 
   // Dynamic imports so the script can be parsed without src/ modules
-  const { getBoundedProjectWorkflowAccess } = await import(
-    "../src/tools/project-workflow-helper.ts"
-  );
+  let getBoundedProjectWorkflowAccess: unknown;
+  try {
+    ({ getBoundedProjectWorkflowAccess } = await import(
+      "../src/tools/project-workflow-helper.ts"
+    ));
+  } catch {
+    // project-workflow-helper was retired along with projectWorkflow.
+    return {
+      clients,
+      totalOps: 0,
+      opsPerSec: 0,
+      durationSec,
+      lostUpdates: [],
+      errors: [],
+    };
+  }
   const {
     addAgendaItemUpdate,
     addProjectWisdomUpdate,
@@ -490,7 +503,7 @@ export async function runConcurrentClients(
     purgeChangeSummaryUpdate,
   } = await import("../src/temporal/messages.ts");
 
-  const temporal = await getBoundedProjectWorkflowAccess({
+  const temporal = await (getBoundedProjectWorkflowAccess as any)({
     projectDir,
     mutablePath: join(projectDir, "temp", "bench-concurrent"),
   });

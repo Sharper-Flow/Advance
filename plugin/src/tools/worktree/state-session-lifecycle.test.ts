@@ -1,9 +1,8 @@
 /**
  * Tests for session-lifecycle helpers in state.ts (T21).
  *
- * Verifies that registerSession / unregisterSession / updateSessionActivity
- * call the correct workflow updates with the correct payload shape and
- * silently fall back when the project workflow is unreachable.
+ * ProjectWorkflow (PSW) was retired; session registry is now process-fact
+ * based only. These helpers are no-ops and must not throw.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -12,9 +11,6 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 // Mocking it with importOriginal causes module-resolution ordering issues
 // when sibling files (e.g. branch-integration.ts) also import from state.
 
-// Capture executeUpdate calls.
-const executeUpdate = vi.hoisted(() => vi.fn(async () => undefined));
-const projectWorkflowQuery = vi.hoisted(() => vi.fn(async () => ({})));
 const workflowList = vi.hoisted(() =>
   vi.fn(() =>
     (async function* () {
@@ -26,20 +22,6 @@ const changeWorkflowQuery = vi.hoisted(() => vi.fn(async () => ({})));
 const workflowGetHandle = vi.hoisted(() =>
   vi.fn(() => ({ query: changeWorkflowQuery })),
 );
-
-const getBoundedProjectWorkflowAccess = vi.hoisted(() =>
-  vi.fn(async () => ({
-    mode: "workflow-backed" as const,
-    handle: {
-      query: projectWorkflowQuery,
-      executeUpdate,
-    },
-  })),
-);
-
-vi.mock("../project-workflow-helper", () => ({
-  getBoundedProjectWorkflowAccess,
-}));
 
 vi.mock("../../temporal/service", () => ({
   getService: vi.fn(() => ({
@@ -64,11 +46,6 @@ import {
   type WorktreeStateAccess,
 } from "./state";
 import { synthesizeTestProjectId } from "../../utils/project-id";
-import {
-  registerSessionUpdate,
-  unregisterSessionUpdate,
-  updateSessionActivityUpdate,
-} from "../../temporal/messages";
 
 const access: WorktreeStateAccess = {
   projectDir: "/test/project",
@@ -86,7 +63,7 @@ describe("session lifecycle helpers (T21)", () => {
     changeWorkflowQuery.mockResolvedValue({});
   });
 
-  it("registerSession dispatches registerSessionUpdate with payload", async () => {
+  it("registerSession is a no-op after projectWorkflow retirement", async () => {
     const payload = {
       sessionId: "sess_AAAA1111",
       worktreePath: "/work",
@@ -94,24 +71,17 @@ describe("session lifecycle helpers (T21)", () => {
       now: "2026-05-01T00:00:00Z",
       worktreeBranch: "trunk",
     };
-    await registerSession(access, payload);
-
-    expect(executeUpdate).toHaveBeenCalledOnce();
-    expect(executeUpdate).toHaveBeenCalledWith(registerSessionUpdate, {
-      args: [payload],
-    });
+    // Should not throw.
+    await expect(registerSession(access, payload)).resolves.toBeUndefined();
   });
 
-  it("unregisterSession dispatches unregisterSessionUpdate with sessionId only", async () => {
-    await unregisterSession(access, "sess_AAAA1111");
-
-    expect(executeUpdate).toHaveBeenCalledOnce();
-    expect(executeUpdate).toHaveBeenCalledWith(unregisterSessionUpdate, {
-      args: [{ sessionId: "sess_AAAA1111" }],
-    });
+  it("unregisterSession is a no-op after projectWorkflow retirement", async () => {
+    await expect(
+      unregisterSession(access, "sess_AAAA1111"),
+    ).resolves.toBeUndefined();
   });
 
-  it("updateSessionActivity dispatches updateSessionActivityUpdate with full payload", async () => {
+  it("updateSessionActivity is a no-op after projectWorkflow retirement", async () => {
     const payload = {
       sessionId: "sess_AAAA1111",
       now: "2026-05-01T00:01:00Z",
@@ -119,31 +89,21 @@ describe("session lifecycle helpers (T21)", () => {
       currentTaskId: "tk1",
       activeGate: "execution",
     };
-    await updateSessionActivity(access, payload);
-
-    expect(executeUpdate).toHaveBeenCalledOnce();
-    expect(executeUpdate).toHaveBeenCalledWith(updateSessionActivityUpdate, {
-      args: [payload],
-    });
+    await expect(
+      updateSessionActivity(access, payload),
+    ).resolves.toBeUndefined();
   });
 
-  it("silently falls back when project workflow is not reachable", async () => {
-    const helper = await import("../project-workflow-helper");
-    vi.mocked(helper.getBoundedProjectWorkflowAccess).mockResolvedValueOnce({
-      mode: "unavailable",
-      projectId: "test-id",
-      reason: "test fallback",
-    });
-
-    // Should NOT throw, should NOT call executeUpdate.
-    await registerSession(access, {
-      sessionId: "sess_X",
-      worktreePath: "/p",
-      pid: 1,
-      now: "2026-05-01T00:00:00Z",
-    });
-
-    expect(executeUpdate).not.toHaveBeenCalled();
+  it("silently no-ops when project workflow is not reachable", async () => {
+    // Should NOT throw.
+    await expect(
+      registerSession(access, {
+        sessionId: "sess_X",
+        worktreePath: "/p",
+        pid: 1,
+        now: "2026-05-01T00:00:00Z",
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 

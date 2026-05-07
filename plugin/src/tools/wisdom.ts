@@ -15,41 +15,12 @@ import {
   compactProjectWisdom,
   listProjectWisdom,
 } from "../storage/project-wisdom";
-import {
-  addProjectWisdomUpdate,
-  projectWisdomQuery,
-  wisdomAddedSignal,
-  changeStateQuery,
-} from "../temporal/messages";
-import { writeJsonlAtomic } from "../storage/jsonl-atomic-writer";
+import { wisdomAddedSignal, changeStateQuery } from "../temporal/messages";
 import { formatToolOutput } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
-import { getBoundedProjectWorkflowAccess } from "./project-workflow-helper";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
-
-function toJsonlProjectWisdomEntry(entry: {
-  id: string;
-  type: string;
-  content: string;
-  sourceChange?: string;
-  sourceTask?: string;
-  promotedAt: string;
-  tags?: string[];
-  invalidatedBy?: string;
-}) {
-  return {
-    id: entry.id,
-    type: entry.type,
-    content: entry.content,
-    source_change: entry.sourceChange,
-    source_task: entry.sourceTask,
-    promoted_at: entry.promotedAt,
-    tags: entry.tags,
-    invalidated_by: entry.invalidatedBy,
-  };
-}
 
 async function getChangeHandleForChangeId(
   store: Store,
@@ -126,7 +97,6 @@ export const wisdomTools = {
         }
 
         let promoted: unknown | undefined;
-        let promoteWarning: string | undefined;
         if (promote) {
           const existing = await listProjectWisdom(store.paths.root, {
             wisdomPath: store.paths.wisdom,
@@ -144,102 +114,20 @@ export const wisdomTools = {
             });
           }
 
-          let temporalMutationCommitted = false;
-          let temporalBundleClose: (() => Promise<void>) | undefined;
+          promoted = await addProjectWisdom(store.paths.root, {
+            type: entry.type,
+            content: entry.content,
+            sourceChange: changeId,
+            sourceTask: entry.source_task,
+            wisdomPath: store.paths.wisdom,
+          });
+
           try {
-            const temporal = await getBoundedProjectWorkflowAccess({
-              projectDir: store.paths.root,
-              mutablePath: store.paths.wisdom,
+            await compactProjectWisdom(store.paths.root, {
+              wisdomPath: store.paths.wisdom,
             });
-
-            if (temporal.mode !== "workflow-backed") {
-              promoted = await addProjectWisdom(store.paths.root, {
-                type: entry.type,
-                content: entry.content,
-                sourceChange: changeId,
-                sourceTask: entry.source_task,
-                wisdomPath: store.paths.wisdom,
-              });
-
-              if (temporal.mode === "unavailable") {
-                promoteWarning = `Project workflow unavailable: ${temporal.reason}. Fell back to local project wisdom.`;
-              }
-
-              try {
-                await compactProjectWisdom(store.paths.root, {
-                  wisdomPath: store.paths.wisdom,
-                });
-              } catch {
-                // Compaction failure is non-fatal; add/promote already succeeded
-              }
-
-              let snapshot: string | undefined;
-              try {
-                snapshot = await fetchChangeContextTicker(store, changeId);
-              } catch {
-                // Snapshot emission is best-effort; never fail the tool
-              }
-              return formatToolOutput({
-                success: true,
-                entry,
-                promoted,
-                ...(promoteWarning ? { warning: promoteWarning } : {}),
-                ...(snapshot ? { _contextSnapshot: snapshot } : {}),
-                message: `Added and promoted ${type} wisdom for change ${changeId}`,
-              });
-            }
-
-            temporalBundleClose = () => temporal.bundle.connection.close();
-            promoted = await temporal.handle.executeUpdate(
-              addProjectWisdomUpdate,
-              {
-                args: [
-                  {
-                    type: entry.type,
-                    content: entry.content,
-                    sourceChange: changeId,
-                    sourceTask: entry.source_task,
-                  },
-                ],
-              },
-            );
-            temporalMutationCommitted = true;
-
-            const latest = (await temporal.handle.query(
-              projectWisdomQuery,
-              undefined,
-            )) as Array<Parameters<typeof toJsonlProjectWisdomEntry>[0]>;
-            await writeJsonlAtomic(
-              store.paths.wisdom,
-              latest.map(toJsonlProjectWisdomEntry),
-            );
-            await temporal.bundle.connection.close();
-          } catch (error) {
-            if (temporalBundleClose) {
-              await temporalBundleClose().catch(() => undefined);
-            }
-            if (temporalMutationCommitted) {
-              promoteWarning =
-                error instanceof Error
-                  ? `Workflow state updated but derived wisdom.jsonl write failed: ${error.message}`
-                  : "Workflow state updated but derived wisdom.jsonl write failed";
-            } else {
-              promoted = await addProjectWisdom(store.paths.root, {
-                type: entry.type,
-                content: entry.content,
-                sourceChange: changeId,
-                sourceTask: entry.source_task,
-                wisdomPath: store.paths.wisdom,
-              });
-
-              try {
-                await compactProjectWisdom(store.paths.root, {
-                  wisdomPath: store.paths.wisdom,
-                });
-              } catch {
-                // Compaction failure is non-fatal; add/promote already succeeded
-              }
-            }
+          } catch {
+            // Compaction failure is non-fatal; add/promote already succeeded
           }
         }
 
@@ -253,7 +141,6 @@ export const wisdomTools = {
           success: true,
           entry,
           promoted,
-          ...(promoteWarning ? { warning: promoteWarning } : {}),
           ...(snapshot ? { _contextSnapshot: snapshot } : {}),
           message: promote
             ? `Added and promoted ${type} wisdom for change ${changeId}`
@@ -383,47 +270,10 @@ export const wisdomTools = {
           promoted_at?: string;
         }> = [];
 
-        // Try project workflow query first
-        const bundle = getService();
-        const projectId = bundle ? await getProjectId(store.paths.root) : null;
-        if (bundle && projectId) {
-          try {
-            const projectHandle = bundle.client.workflow.getHandle(
-              `adv/project/${projectId}`,
-            ) as ReturnType<typeof getChangeHandle>;
-            const result = (await querySignal<unknown[]>(
-              projectHandle,
-              projectWisdomQuery,
-              undefined,
-            )) as Array<{
-              id: string;
-              type: string;
-              content: string;
-              sourceChange?: string;
-              sourceTask?: string;
-              promotedAt?: string;
-            }>;
-            entries = result.map((e) => ({
-              id: e.id,
-              type: e.type,
-              content: e.content,
-              source_change: e.sourceChange,
-              source_task: e.sourceTask,
-              promoted_at: e.promotedAt,
-            }));
-          } catch {
-            // Fall through to disk read
-          }
-        }
-
-        if (entries.length === 0) {
-          entries = await listProjectWisdom(store.paths.root, {
-            maxEntries,
-            wisdomPath: store.paths.wisdom,
-          });
-        } else if (maxEntries) {
-          entries = entries.slice(0, maxEntries);
-        }
+        entries = await listProjectWisdom(store.paths.root, {
+          maxEntries,
+          wisdomPath: store.paths.wisdom,
+        });
 
         // Build byType summary — mirrors adv_wisdom_list shape (KD1)
         const byType: Record<string, number> = {};

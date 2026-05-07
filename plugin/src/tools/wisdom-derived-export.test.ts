@@ -166,7 +166,15 @@ describe("adv_wisdom_add signal-driven path", () => {
     expect(store.wisdom.add).not.toHaveBeenCalled();
   });
 
-  it("uses project workflow update/query + writeJsonlAtomic when promote=true and temporal is available", async () => {
+  it("uses addProjectWisdom directly when promote=true and temporal is available", async () => {
+    mocks.addProjectWisdom.mockResolvedValueOnce({
+      id: "pw-123",
+      type: "convention",
+      content: "Always validate inputs at boundary",
+      source_change: "addFeature",
+      source_task: "tk-task0001",
+      promoted_at: "2026-04-20T00:00:00.000Z",
+    });
     const store = {
       paths: {
         root: "/repo",
@@ -219,34 +227,12 @@ describe("adv_wisdom_add signal-driven path", () => {
     expect(parsed.success).toBe(true);
     // Signal-driven: wisdomAddedSignal fired first
     expect(mocks.signal).toHaveBeenCalledTimes(1);
-    // Then project workflow update for promotion
-    expect(mocks.executeUpdate).toHaveBeenCalledTimes(1);
-    expect(mocks.query).toHaveBeenCalledTimes(1);
-    expect(mocks.writeJsonlAtomic).toHaveBeenCalledWith(
-      "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
-      [
-        {
-          id: "pw-123",
-          type: "convention",
-          content: "Always validate inputs at boundary",
-          source_change: "addFeature",
-          source_task: "tk-task0001",
-          promoted_at: "2026-04-20T00:00:00.000Z",
-          tags: undefined,
-          invalidated_by: undefined,
-        },
-      ],
-    );
-    expect(mocks.addProjectWisdom).not.toHaveBeenCalled();
-    expect(mocks.close).toHaveBeenCalledTimes(1);
-    expect(parsed._contextSnapshot).toMatch(
-      /║.*addFeature.*·.*discovery ✓→design.*·.*1\/2.*║/,
-    );
-    expect(parsed._contextSnapshot.split("\n").length).toBe(1);
+    // Project workflow retired; addProjectWisdom is called directly
+    expect(mocks.addProjectWisdom).toHaveBeenCalledTimes(1);
   });
 
-  it("returns success+warning and does NOT fall back to addProjectWisdom when derived wisdom.jsonl write fails after workflow update", async () => {
-    mocks.writeJsonlAtomic.mockRejectedValueOnce(new Error("disk full"));
+  it("returns error when addProjectWisdom fails during promote", async () => {
+    mocks.addProjectWisdom.mockRejectedValueOnce(new Error("disk full"));
     const store = {
       paths: {
         root: "/repo",
@@ -255,9 +241,11 @@ describe("adv_wisdom_add signal-driven path", () => {
       },
       wisdom: {
         add: vi.fn(async () => ({
-          id: "ws-legacy-should-not-run",
+          id: "ws-1",
           type: "convention",
-          content: "duplicate",
+          content: "Always validate inputs at boundary",
+          source_task: "tk-task0001",
+          recorded_at: "2026-04-20T00:00:00.000Z",
         })),
       },
     } as any;
@@ -274,11 +262,7 @@ describe("adv_wisdom_add signal-driven path", () => {
     );
     const parsed = JSON.parse(result);
 
-    expect(parsed.success).toBe(true);
-    expect(parsed.warning).toContain("derived wisdom.jsonl write failed");
-    expect(mocks.signal).toHaveBeenCalledTimes(1); // change-level signal fired
-    expect(mocks.executeUpdate).toHaveBeenCalledTimes(1);
-    expect(mocks.addProjectWisdom).not.toHaveBeenCalled();
+    expect(parsed.error).toContain("disk full");
   });
 
   it("falls back to disk store when Temporal is unavailable", async () => {
@@ -392,14 +376,14 @@ describe("adv_project_wisdom_list signal-driven path", () => {
     vi.clearAllMocks();
   });
 
-  it("queries project workflow when Temporal is available", async () => {
-    mocks.query.mockResolvedValueOnce([
+  it("reads project wisdom from disk when Temporal is available", async () => {
+    mocks.listProjectWisdom.mockResolvedValueOnce([
       {
         id: "pw-1",
         type: "convention",
         content: "Validate inputs",
-        sourceTask: "tk-1",
-        promotedAt: "2026-05-01T00:00:00Z",
+        source_task: "tk-1",
+        promoted_at: "2026-05-01T00:00:00Z",
       },
     ]);
 
@@ -412,7 +396,7 @@ describe("adv_project_wisdom_list signal-driven path", () => {
 
     expect(parsed.entries).toHaveLength(1);
     expect(parsed.entries[0].type).toBe("convention");
-    expect(mocks.query).toHaveBeenCalledTimes(1);
+    expect(mocks.listProjectWisdom).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to disk read when Temporal is unavailable", async () => {

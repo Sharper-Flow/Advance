@@ -147,7 +147,7 @@ describe("KD-8 worktree + session tool registrations", () => {
     }
   });
 
-  test("adv_session_list smoke-test returns unavailable in test fixture", async () => {
+  test("adv_session_list smoke-test returns empty sessions in test fixture", async () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const tool = map.adv_session_list as {
       execute: (args: unknown) => Promise<string>;
@@ -158,7 +158,8 @@ describe("KD-8 worktree + session tool registrations", () => {
       sessions?: unknown[];
       total?: number;
     };
-    expect(parsed.unavailable).toBe(true);
+    // After projectWorkflow retirement, initStateDb never throws;
+    // sessions are local-only and empty in test fixtures.
     expect(parsed.sessions).toEqual([]);
     expect(parsed.total).toBe(0);
   });
