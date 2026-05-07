@@ -36,7 +36,6 @@ export interface ReflectionEntry {
       active_elapsed_ms?: number;
       elapsed_ms: number;
       per_gate_ms: Record<string, number>;
-      threshold_tier: string;
     };
     quality: {
       review_findings_count?: number;
@@ -116,8 +115,7 @@ const ReflectionEntrySchema = z.object({
       active_elapsed_ms: z.number().min(0).optional(),
       elapsed_ms: z.number().min(0),
       per_gate_ms: z.record(z.string(), z.number().min(0)),
-      threshold_tier: z.string(),
-    }),
+    }).passthrough(),
     quality: z.object({
       review_findings_count: z.number().int().min(0).optional(),
       harden_findings_count: z.number().int().min(0).optional(),
