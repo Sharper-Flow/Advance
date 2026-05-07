@@ -127,16 +127,16 @@ Section-level acceptance criterion is the GREEN-phase test passing plus the deny
 
 #### R4.0 RED
 
-- [ ] R4.0.1 — Add header-citation drift test `plugin/src/validator/header-citation.test.ts` that reads each validator's leading comment block and asserts it does NOT contain `state authority lives in ProjectWorkflowState` or similar PSW-era phrasing. Fails today on both `file-overlap.ts` and `merge-order.ts`.
+- [x] R4.0.1 — `plugin/src/validator/header-citation.test.ts` reads validator headers and asserts no PSW phrasing — `15abf67`
 
 #### R4.1 GREEN
 
-- [ ] R4.1.1 — Rewrite `plugin/src/validator/file-overlap.ts` doc-comment header to cite the current `worktree-lifecycle/rq-wl-branchRegistry01` (or whatever the rewritten worktree spec is) and drop `ProjectWorkflowState` mention.
-- [ ] R4.1.2 — Same for `plugin/src/validator/merge-order.ts`.
+- [x] R4.1.1 — Rewrote `file-overlap.ts` header to cite per-change workflow state instead of ProjectWorkflowState — `15abf67`
+- [x] R4.1.2 — Same for `merge-order.ts` — `15abf67`
 
 #### R4.2 VERIFY
 
-- [ ] R4.2.1 — R4.0.1 passes.
+- [x] R4.2.1 — Header-citation test passes — `15abf67`
 
 ---
 
@@ -211,7 +211,7 @@ The existing `plugin/src/__tests__/no-psw-references.test.ts` only catches PSW s
 | R1 update-vs-signal collapse | **complete** | `b16f063`, `dfb6cb2` |
 | R2 spec leak rq-bulkCloseDiskSweep01.2 | **complete** | `1a7568d` |
 | R3 generated doc leak | **complete** | `1a7568d` |
-| R4 validator citations | _pending_ | _pending_ |
+| R4 validator citations | **complete** | `15abf67` |
 | R5 spec delta verification | _pending_ | _pending_ |
 | R6 scripts + residual docs | _pending_ | _pending_ |
 | R7 broaden denylist | _pending_ | _pending_ |
