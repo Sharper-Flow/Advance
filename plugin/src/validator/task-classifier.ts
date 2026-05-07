@@ -111,17 +111,16 @@ export function requiresTddEvidence(
 }
 
 /**
- * Shape of TDD evidence preserved on the Task via the schema's
- * `.passthrough()` modifier. The canonical Zod TaskSchema does not
- * declare these fields explicitly, so they survive parsing as
- * passthrough properties. This local type lets the classifier inspect
- * them without round-tripping through `unknown`.
+ * Shape of TDD evidence/proof preserved on the Task. Older archived tasks may
+ * carry passthrough `tdd_evidence`; signal-driven tasks carry the canonical
+ * completion proof in `verification` from taskCompletedSignal.
  */
 type TaskWithTddEvidence = Pick<Task, "title" | "metadata"> & {
   tdd_evidence?: {
     red?: unknown;
     green?: unknown;
   };
+  verification?: string;
 };
 
 /**
@@ -130,12 +129,12 @@ type TaskWithTddEvidence = Pick<Task, "title" | "metadata"> & {
  * Returns:
  *   - "not_required" when TDD does not apply (intent: not_applicable /
  *     separate_verification, or trivial title heuristic).
- *   - "compliant" when TDD applies AND the task carries complete evidence
- *     for both red and green phases under `tdd_evidence`. The
- *     passthrough-preserved evidence object is the durable record of an
- *     inline red→green cycle (see /adv-apply step 3b/3c). Presence of
- *     both phases is sufficient — exit-code semantics are validated at
- *     evidence-write time, not here.
+ *   - "compliant" when TDD applies AND the task carries either complete legacy
+ *     red/green `tdd_evidence` OR signal-driven completion verification.
+ *     rq-TDD001inl now records inline TDD through adv_run_test calls with the
+ *     final claim in taskCompletedSignal.verification; the validator cannot
+ *     query historical adv_run_test records here, so the durable task-level
+ *     completion proof is sufficient for archive validation.
  *   - "missing" when TDD applies but evidence is absent or incomplete.
  *
  * Bug history: prior to rq-TDDvalidatorCompliantPath01, this function
@@ -154,6 +153,10 @@ export function getTaskTddCompliance(
 
   const evidence = task.tdd_evidence;
   if (evidence && evidence.red && evidence.green) {
+    return "compliant";
+  }
+
+  if (task.verification?.trim()) {
     return "compliant";
   }
 

@@ -647,6 +647,10 @@ export function applyStatusView(
       projection.recommendations = full.recommendations ?? [];
       projection.temporal_health_ok = !!temporalHealth?.server_alive;
       projection.worktree_count = worktreeCensus?.total ?? 0;
+      if (full.bootstrap_retry) {
+        projection.diagnostics = full.diagnostics;
+        projection.bootstrap_retry = full.bootstrap_retry;
+      }
       break;
     }
     case "health": {
