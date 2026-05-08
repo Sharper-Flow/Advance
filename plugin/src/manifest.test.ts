@@ -180,6 +180,7 @@ describe("Command Manifest", () => {
       "Produce",
       "Triage",
       "Delegate",
+      "Execute",
     ];
 
     test("every description starts with a strong verb", () => {
@@ -293,14 +294,14 @@ describe("Command Manifest", () => {
 
     test("no two commands claim the same gate as sole primary owner", () => {
       // Build a map of gate -> commands that own it
-      // Orchestrator commands (adv-task, adv-autopilot) are exempt — they
+      // Orchestrator commands (adv-task, adv-atc) are exempt — they
       // intentionally cross gate boundaries to drive multi-phase workflows.
       const gateOwners = new Map<string, string[]>();
       for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {
         if (!def.scope) continue;
         // Orchestrator commands exempt — they intentionally cross boundaries
         if (name === "adv-task") continue;
-        if (name === "adv-autopilot") continue;
+        if (name === "adv-atc") continue;
         for (const gate of def.scope.gates) {
           const owners = gateOwners.get(gate) ?? [];
           owners.push(name);
@@ -339,13 +340,14 @@ describe("Command Manifest", () => {
       expect(def!.scope!.creates).toContain("tasks");
     });
 
-    test("adv-autopilot scope gates cover all 5 routine checkpoints", () => {
-      const def = getCommandDef("adv-autopilot");
+    test("adv-atc scope gates cover all autonomous gates", () => {
+      const def = getCommandDef("adv-atc");
       expect(def!.scope!.gates).toEqual([
         "proposal",
         "discovery",
         "design",
         "planning",
+        "execution",
         "acceptance",
       ]);
     });
@@ -364,7 +366,7 @@ describe("Command Manifest", () => {
       "adv-harden",
       "adv-archive",
       "adv-reflect",
-      "adv-autopilot",
+      "adv-atc",
     ] as const;
 
     // Non-workflow commands should NOT have phaseGoal
@@ -458,8 +460,8 @@ describe("Command Manifest", () => {
           "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.",
         "adv-reflect":
           "Synthesize post-completion learnings into a durable reflection artifact for process improvement.",
-        "adv-autopilot":
-          "Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving safety boundaries.",
+        "adv-atc":
+          "Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries.",
       };
 
       for (const [name, goal] of Object.entries(expectedGoals)) {

@@ -154,7 +154,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command                     | Purpose                                                                                         |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-| `/adv-atc [target]`   | Autonomous ROADMAP execution, deferring HITL to GitHub issues, stop only on safety boundaries |
+| `/adv-atc [target]`   | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |
 | `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                     |

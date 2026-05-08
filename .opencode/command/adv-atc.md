@@ -1,6 +1,6 @@
 ---
 name: adv-atc
-description: Autonomous ROADMAP execution with HITL deferred to GitHub
+description: Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries
 agent: adv-atc
 ---
 <!-- manifest: adv-atc · requiresChangeId: false · scope: reads[specs, proposal, roadmap, codebase] modifies[proposal] gates[proposal, discovery, design, planning, execution, acceptance] -->

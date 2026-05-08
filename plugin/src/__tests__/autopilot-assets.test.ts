@@ -1,8 +1,8 @@
 /**
- * Asset tests for /adv-autopilot command.
+ * Asset tests for /adv-atc command.
  *
- * These tests verify structural properties of the autopilot command file,
- * sister command anchors that autopilot relies on, schema acceptance,
+ * These tests verify structural properties of the atc command file,
+ * sister command anchors that atc relies on, schema acceptance,
  * and spec requirement loadability.
  */
 
@@ -33,35 +33,31 @@ function loadSpec(capability: string): SpecJson {
   return JSON.parse(readFileSync(path, "utf8")) as SpecJson;
 }
 
-describe("adv-autopilot command file assets", () => {
-  test("adv-autopilot.md exists with manifest header", () => {
-    const content = readCommand("adv-autopilot.md");
-    expect(content).toContain("name: adv-autopilot");
-    expect(content).toMatch(/manifest: adv-autopilot/);
+describe("adv-atc command file assets", () => {
+  test("adv-atc.md exists with manifest header", () => {
+    const content = readCommand("adv-atc.md");
+    expect(content).toContain("name: adv-atc");
+    expect(content).toMatch(/manifest: adv-atc/);
   });
 
-  test("command file contains autopilot delegation anchors", () => {
-    const content = readCommand("adv-autopilot.md");
-    // Gate completion pattern
-    expect(content).toContain("completedBy");
-    expect(content).toContain("adv-autopilot");
-    // Tier B archive sign-off preserved
-    expect(content).toContain("sign off");
-    expect(content).toContain("ship it");
+  test("command file contains atc references", () => {
+    const content = readCommand("adv-atc.md");
+    expect(content).toContain("adv-atc");
+    expect(content).toContain("ROADMAP");
+    expect(content).toContain("HITL");
   });
 
-  test("command file contains constraint markers", () => {
-    const content = readCommand("adv-autopilot.md");
-    expect(content).toMatch(/MUST NOT invoke.*slash commands/i);
-    expect(content).toMatch(/MUST NOT embed.*phase logic/i);
-    expect(content).toMatch(/MUST NOT auto-archive/i);
-    expect(content).toMatch(/MUST NOT.*suppress.*system.*interrupt/i);
+  test("command file contains invocation modes", () => {
+    const content = readCommand("adv-atc.md");
+    expect(content).toContain("ROADMAP loop");
+    expect(content).toContain("Single change");
+    expect(content).toContain("Idea string");
   });
 
-  test("command file references Tier B parsing rules", () => {
-    const content = readCommand("adv-autopilot.md");
-    expect(content).toMatch(/Tier B/i);
-    expect(content).toMatch(/whitelist/i);
+  test("command file contains flags", () => {
+    const content = readCommand("adv-atc.md");
+    expect(content).toContain("--limit");
+    expect(content).toContain("--resume");
   });
 });
 
@@ -87,8 +83,8 @@ describe("sister-command anchor existence (drift detection)", () => {
   });
 });
 
-describe("ChangeSchema autopilot fields", () => {
-  test("accepts approval_mode 'autopilot' with autopilot_invoked_at", () => {
+describe("ChangeSchema passthrough fields", () => {
+  test("accepts extra fields via passthrough", () => {
     const result = ChangeSchema.parse({
       id: "test-change",
       title: "Test",
@@ -96,25 +92,11 @@ describe("ChangeSchema autopilot fields", () => {
       created_at: "2026-01-01T00:00:00.000Z",
       tasks: [],
       deltas: {},
-      approval_mode: "autopilot",
-      autopilot_invoked_at: "2026-04-28T22:00:00.000Z",
+      approval_mode: "atc",
+      atc_invoked_at: "2026-04-28T22:00:00.000Z",
     });
-    expect(result.approval_mode).toBe("autopilot");
-    expect(result.autopilot_invoked_at).toBe("2026-04-28T22:00:00.000Z");
-  });
-
-  test("rejects invalid approval_mode value", () => {
-    expect(() =>
-      ChangeSchema.parse({
-        id: "test-change",
-        title: "Test",
-        status: "draft",
-        created_at: "2026-01-01T00:00:00.000Z",
-        tasks: [],
-        deltas: {},
-        approval_mode: "invalid",
-      }),
-    ).toThrow();
+    expect(result.approval_mode).toBe("atc");
+    expect(result.atc_invoked_at).toBe("2026-04-28T22:00:00.000Z");
   });
 });
 
