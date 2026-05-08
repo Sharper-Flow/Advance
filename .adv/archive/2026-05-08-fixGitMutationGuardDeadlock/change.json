@@ -1,0 +1,123 @@
+{
+  "id": "fixGitMutationGuardDeadlock",
+  "title": "Fix git mutation guard deadlock: allow recovery commands on dirty default branch",
+  "status": "archived",
+  "created_at": "2026-05-08T22:56:15.577Z",
+  "tasks": [
+    {
+      "id": "tk-7f120b85807f",
+      "title": "Add stripHeredocs function to git-guard: regex-based heredoc content stripping applied in checkBashCommand before classification. Prevents false mutation detection on git commands inside heredoc bodies.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T22:57:08.787Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T22:59:09.368Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T23:00:08.554Z",
+      "completed_at": "2026-05-08T23:00:08.554Z"
+    },
+    {
+      "id": "tk-9a5bdcb0cd39",
+      "title": "Add RECOVERY category to git-guard: new GitCommandCategory value, RECOVERY_SUBCOMMANDS set (stash, checkout, switch), classifySubcommand handling, evaluateDecision fast-path allowing recovery commands on dirty default branch. Update classifyCommand severity order.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T22:57:08.799Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T22:57:18.514Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T22:59:02.718Z",
+      "completed_at": "2026-05-08T22:59:02.718Z"
+    },
+    {
+      "id": "tk-f6ba125cb154",
+      "title": "Add tests for RECOVERY category: stash/checkout/switch on dirty default → ALLOW, commit/add/push still BLOCK on dirty default, classifySubcommand returns RECOVERY, stripHeredocs removes heredoc content.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T22:57:08.801Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T23:00:16.111Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T23:01:25.113Z",
+      "completed_at": "2026-05-08T23:01:25.113Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:56:32.816Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:56:38.035Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:56:59.527Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:57:13.418Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:01:31.196Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:01:39.061Z",
+      "completed_by": "agent"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:02:19.663Z",
+      "completed_by": "agent"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-08T23:02:09.995Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-08T23:02:09.995Z"
+    }
+  ]
+}
