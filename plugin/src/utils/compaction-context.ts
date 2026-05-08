@@ -94,8 +94,7 @@ function formatStaleLedgerRemediation(
       (task) => task.status === "done" || task.status === "cancelled",
     );
 
-  const shouldWarn =
-    (hasPendingWork && hasTerminalWork) || allTasksTerminal;
+  const shouldWarn = (hasPendingWork && hasTerminalWork) || allTasksTerminal;
   if (!shouldWarn) return null;
 
   return [
