@@ -837,6 +837,9 @@ check_config() {
   # Cross-check agent tool allowlist against plugin registry
   check_tool_drift
   check_provider_variant_drifts
+  if [ -f "$REPO_AGENTS/adv-atc.md" ]; then
+    check_tool_drift "$REPO_AGENTS/adv-atc.md"
+  fi
 
   # Warn about stale global copy (wastes ~7K tokens per prompt)
   local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
@@ -1132,6 +1135,27 @@ if [ -f "$STALE_GLOBAL_INSTR" ]; then
   else
     rm "$STALE_GLOBAL_INSTR"
     echo "    removed stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Remove stale adv-autopilot files replaced by adv-atc
+# ---------------------------------------------------------------------------
+for stale_autopilot in "$GLOBAL_AGENTS"/adv-autopilot*.md; do
+  [ -f "$stale_autopilot" ] || continue
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run remove stale autopilot agent: $(basename "$stale_autopilot")"
+  else
+    rm -f "$stale_autopilot"
+    echo "    removed stale autopilot agent: $(basename "$stale_autopilot")"
+  fi
+done
+if [ -f "$GLOBAL_COMMANDS/adv-autopilot.md" ]; then
+  if [ "$DRY_RUN" = true ]; then
+    echo "    dry-run remove stale autopilot command: adv-autopilot.md"
+  else
+    rm -f "$GLOBAL_COMMANDS/adv-autopilot.md"
+    echo "    removed stale autopilot command: adv-autopilot.md"
   fi
 fi
 

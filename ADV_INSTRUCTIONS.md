@@ -39,6 +39,7 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 | `/adv-review`   | Autonomous + drift detection | Auto-fix within scope; stop on drift                                           |
 | `/adv-harden`   | Autonomous + drift detection | Auto-fix scoped issues; stop on drift                                          |
 | `/adv-archive`  | Autonomous                   | Apply spec deltas, capture wisdom, finalize git                                |
+| `/adv-atc`      | Autonomous with HITL-defer   | Defers all HITL moments to linked GitHub issues via structured comments. Never prompts inline. Auto-transitions gates when no HITL needed. Stops on system interrupts (defers to GH). |
 
 ### Drift Detection Rule
 
@@ -108,7 +109,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-review`    | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
 | `/adv-harden`    | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
 | `/adv-archive`   | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
-| `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.     |
+| `/adv-atc` | Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries. |
 | `/adv-reflect`   | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
 
 
@@ -153,7 +154,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | Command                     | Purpose                                                                                         |
 | --------------------------- | ----------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-| `/adv-autopilot [target]`   | Delegate routine checkpoints to the agent, stop only on safety boundaries                       |
+| `/adv-atc [target]`   | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |
 | `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                     |

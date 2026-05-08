@@ -274,7 +274,7 @@ This design also enables model competition: run the same change on two providers
 | `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                        |
 | `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval         |
 | `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-| `/adv-autopilot`  | Delegate routine checkpoints to the agent, stop only on safety boundaries         |
+| `/adv-atc`  | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-audit`      | Detect drift between specs and current implementation                             |
 | `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                     |
 | `/adv-arch-scan`  | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |

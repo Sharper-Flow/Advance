@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.3.0
-> **Updated:** 2026-05-02
+> **Version:** 1.5.0
+> **Updated:** 2026-05-08
 
 ## Purpose
 
@@ -1041,65 +1041,80 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 
 ---
 
-### Autopilot Mode Records Delegation Audit and Preserves Safety Boundaries
+### ATC Agent Records Delegation Audit and Defers HITL to GitHub
 
-**ID:** `rq-autopilot01` | **Priority:** **[MUST]**
+**ID:** `rq-atc01` | **Priority:** **[MUST]**
 
-The /adv-autopilot command provides a single-shot delegation surface that auto-approves the 5 routine human checkpoints (proposal, agreement, design, prep, acceptance) for a change. The change records approval_mode: 'autopilot' and autopilot_invoked_at on invocation, and each auto-approved gate is completed with completedBy: 'adv-autopilot' and notes documenting the delegation. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are NOT auto-approved by autopilot. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, drift detection in /adv-review and /adv-harden) remain active and are NOT suppressed by autopilot mode.
+The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL moments to linked GitHub issues via structured comments. ATC auto-transitions gates only when no HITL is required (proposal, discovery, design, planning via auto-transition with `completedBy: 'adv-atc'`). When HITL would block (planning gate machine enforcement `userApproved: true`, acceptance gate, archive sign-off, system interrupts), ATC posts a structured `<!-- ADV_ATC_DEFERRED v1 -->` comment to the linked GitHub issue and moves to the next ROADMAP item. Resume detection is content-based: at every workflow-boundary transition, ATC batch-queries GitHub for new `<!-- ADV_ATC_RESPONSE v1 -->` comments on awaiting_approval changes. Single-session lock prevents concurrent ATC runs. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are deferred to GitHub like other HITL — NOT auto-approved. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, drift) defer to GitHub with full context.
 
-**Tags:** `workflow`, `autonomy`, `autopilot`, `audit`
+**Tags:** `workflow`, `autonomy`, `atc`, `audit`, `github-defer`
 
 #### Scenarios
 
-**Autopilot invocation records change-level audit fields** (`rq-autopilot01.1`)
+**ATC invocation records change-level audit** (`rq-atc01.1`)
 
 **Given:**
-- A change has the proposal gate pending
-- /adv-autopilot {change-id} is invoked
+- A change has proposal gate pending
+- `/adv-atc {change-id}` is invoked
 
-**When:** The autopilot workflow begins
+**When:** ATC workflow begins
 
 **Then:**
-- change.approval_mode is set to 'autopilot'
-- change.autopilot_invoked_at is set to the invocation timestamp
+- Gate transitions record `completedBy: 'adv-atc'`
+- Audit trail is forensically distinguishable from manual approval
 
-**Auto-approved gates record adv-autopilot as completer** (`rq-autopilot01.2`)
+**Auto-transitioned gates record adv-atc as completer** (`rq-atc01.2`)
 
 **Given:**
-- An autopilot run is in progress
-- The discovery gate is being completed
+- An ATC run is in progress
+- The discovery gate is being completed (no HITL needed)
 
 **When:** adv_gate_complete is called
 
 **Then:**
-- completedBy is set to 'adv-autopilot'
-- notes contain 'approved via /adv-autopilot at <ISO>'
+- completedBy is set to 'adv-atc'
+- notes contain 'auto-transitioned by adv-atc at <ISO>'
 
-**Tier B and dynamic interrupts preserved under autopilot** (`rq-autopilot01.3`)
+**HITL-deferred gates post structured GH comment** (`rq-atc01.3`)
 
 **Given:**
-- An autopilot run reaches acceptance gate completion
+- ATC reaches planning gate which requires userApproved: true
+
+**When:** ATC cannot auto-transition the gate
+
+**Then:**
+- A structured comment with `<!-- ADV_ATC_DEFERRED v1 -->` marker is posted to the linked GitHub issue
+- The comment includes: gate name, reason for deferral, context summary, response instructions
+- The change is marked as awaiting_approval
+- ATC continues to next ROADMAP item (multi mode) or stops (single mode)
+
+**Tier B and system interrupts deferred to GH** (`rq-atc01.4`)
+
+**Given:**
+- ATC reaches acceptance gate completion
 - Design validator returns CONFLICT
 
 **When:** The orchestrator evaluates whether to proceed
 
 **Then:**
-- Archive sign-off uses the standard Tier B inline-approval prompt
-- Design CONFLICT pauses for user resolution
+- Archive sign-off is deferred to GitHub via structured comment (Tier B preserved)
+- Design CONFLICT defers to GitHub with full error context
 - Cancellation always requires adv_task_cancel approvedByUser: true
+- Doom-loop, drift, contract-compromise all defer to GitHub
 
-**Autopilot delegates design-approval for user-value tradeoffs** (`rq-autopilot01.4`)
+**Resume detection via content-based markers** (`rq-atc01.5`)
 
 **Given:**
-- approval_mode: 'autopilot' is set on the change
-- The design phase identifies real user-value tradeoffs that do NOT trigger CONFLICT or contract-compromise risk
+- A change is in awaiting_approval state
+- A user has commented on the linked GitHub issue with `<!-- ADV_ATC_RESPONSE v1 -->`
 
-**When:** The orchestrator evaluates whether to pause for design approval per rq-autonomy01.3
+**When:** ATC performs workflow-boundary resume check
 
 **Then:**
-- Design approval is satisfied by autopilot delegation; no inline approval prompt is emitted
-- rq-designval03 (CONFLICT) and rq-autonomy01.6 (contract-compromise) remain blocking interrupts regardless of approval_mode
-- The audit trail records completedBy: 'adv-autopilot' on the design gate so the delegation is forensically distinguishable from manual design approval
+- The response marker is detected (content-based, not timestamp-based)
+- The change is prepended to the execution queue
+- Planning gate is completed with `userApproved: true` and `approvalEvidence` citing the GH comment URL
+- Gate attribution records `completedBy: 'user'` for resumed gates
 
 ---
 

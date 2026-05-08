@@ -290,22 +290,29 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       gates: ["proposal", "discovery", "design", "planning"],
     },
   },
-  "adv-autopilot": {
-    name: "adv-autopilot",
+  "adv-atc": {
+    name: "adv-atc",
     description:
-      "Delegate routine checkpoints to the agent, stop only on safety boundaries",
+      "Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries",
     phase: "advanced",
     requiresChangeId: false,
     prerequisites: [],
     successors: ["adv-archive"],
     scope: {
       creates: [],
-      reads: ["specs", "proposal", "codebase"],
+      reads: ["specs", "proposal", "roadmap", "codebase"],
       modifies: ["proposal"],
-      gates: ["proposal", "discovery", "design", "planning", "acceptance"],
+      gates: [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+      ],
     },
     phaseGoal:
-      "Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving safety boundaries.",
+      "Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries.",
   },
 
   // ---- Post-Implementation ----
