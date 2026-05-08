@@ -25,6 +25,7 @@
 export type GitCommandCategory =
   | "MUTATION"
   | "STAGING"
+  | "RECOVERY"
   | "READ_ONLY"
   | "WORKTREE_MGMT"
   | "UNKNOWN";
@@ -72,7 +73,10 @@ const MUTATION_SUBCOMMANDS = new Set([
   "fetch", // fetch is read-only but can update refs — allow
 ]);
 
-const STAGING_SUBCOMMANDS = new Set(["add", "rm", "mv", "stash"]);
+const STAGING_SUBCOMMANDS = new Set(["add", "rm", "mv"]);
+
+/** Subcommands that are recovery operations — always allowed. */
+const RECOVERY_SUBCOMMANDS = new Set(["stash", "checkout", "switch"]);
 
 const READ_ONLY_SUBCOMMANDS = new Set([
   "log",
@@ -185,6 +189,18 @@ export function resetAliasCache(): void {
 }
 
 // ─── Command Analysis ───────────────────────────────────────────────────────
+
+/**
+ * Strip heredoc content from a command string.
+ * Removes lines between heredoc delimiters (<<DELIM ... DELIM) while
+ * preserving the delimiter markers. Prevents false mutation detection
+ * on git commands inside heredoc bodies and script content.
+ */
+export function stripHeredocs(command: string): string {
+  // Match heredoc blocks: <<[-]?['"]?(\w+)['"]? ... \n\1
+  // Handles: <<EOF, <<'EOF', <<"EOF", <<-EOF, <<-'EOF'
+  return command.replace(/<<-?\s*['"]?(\w+)['"]?\n[\s\S]*?\n\1/g, "<<$1\n$1");
+}
 
 /**
  * Split a shell command on shell operators to extract individual segments.
@@ -309,6 +325,7 @@ export function classifySubcommand(subcommand: string): GitCommandCategory {
     return "MUTATION";
   }
   if (STAGING_SUBCOMMANDS.has(subcommand)) return "STAGING";
+  if (RECOVERY_SUBCOMMANDS.has(subcommand)) return "RECOVERY";
   if (READ_ONLY_SUBCOMMANDS.has(subcommand)) return "READ_ONLY";
   return "UNKNOWN";
 }
@@ -327,6 +344,7 @@ export async function classifyCommand(
     "MUTATION",
     "STAGING",
     "UNKNOWN",
+    "RECOVERY",
     "WORKTREE_MGMT",
     "READ_ONLY",
   ];
@@ -344,7 +362,8 @@ export async function classifyCommand(
       !MUTATION_SUBCOMMANDS.has(resolved) &&
       !STAGING_SUBCOMMANDS.has(resolved) &&
       !READ_ONLY_SUBCOMMANDS.has(resolved) &&
-      !WORKTREE_MGMT_SUBCOMMANDS.has(resolved)
+      !WORKTREE_MGMT_SUBCOMMANDS.has(resolved) &&
+      !RECOVERY_SUBCOMMANDS.has(resolved)
     ) {
       const aliased = aliases.get(resolved);
       if (aliased) {
@@ -477,6 +496,12 @@ export function evaluateDecision(
     return { decision: "ALLOW", category, subcommand };
   }
 
+  // Recovery commands (stash, checkout, switch) always allowed — they are
+  // non-destructive operations needed to escape dirty-default-branch states
+  if (category === "RECOVERY") {
+    return { decision: "ALLOW", category, subcommand, context };
+  }
+
   // ADV worktree — always allow (worktree isolation is the supported path)
   if (context.isWorktree) {
     return { decision: "ALLOW", category, subcommand, context };
@@ -572,7 +597,12 @@ export async function checkBashCommand(
   // Classify the command (includes alias resolution)
   const projectRoot = deps.getProjectRoot();
   const workdir = resolveWorkdir(command, argsWorkdir, projectRoot);
-  const category = await classifyCommand(command, deps.execGit, workdir);
+  const sanitizedCommand = stripHeredocs(command);
+  const category = await classifyCommand(
+    sanitizedCommand,
+    deps.execGit,
+    workdir,
+  );
 
   // Fast path: no mutation detected
   if (category === "READ_ONLY" || category === "WORKTREE_MGMT") {

@@ -18,6 +18,7 @@ import {
   checkBashCommand,
   parseWorktreePaths,
   resetAliasCache,
+  stripHeredocs,
   type GuardContext,
   type GuardDeps,
   type GitCommandCategory,
@@ -205,7 +206,6 @@ describe("classifySubcommand", () => {
     ["add", "STAGING"],
     ["rm", "STAGING"],
     ["mv", "STAGING"],
-    ["stash", "STAGING"],
   ] as [string, GitCommandCategory][])(
     "classifies %s as %s",
     (subcmd, expected) => {
@@ -236,6 +236,18 @@ describe("classifySubcommand", () => {
 
   it("classifies unknown subcommands as UNKNOWN", () => {
     expect(classifySubcommand("foo-bar")).toBe("UNKNOWN");
+  });
+
+  it("classifies stash as RECOVERY", () => {
+    expect(classifySubcommand("stash")).toBe("RECOVERY");
+  });
+
+  it("classifies checkout as RECOVERY", () => {
+    expect(classifySubcommand("checkout")).toBe("RECOVERY");
+  });
+
+  it("classifies switch as RECOVERY", () => {
+    expect(classifySubcommand("switch")).toBe("RECOVERY");
   });
 });
 
@@ -399,6 +411,50 @@ describe("evaluateDecision", () => {
   it("allows staging from clean default branch", () => {
     const ctx = createMockContext({ isDefaultBranch: true, isDirty: false });
     const result = evaluateDecision("STAGING", ctx, "add");
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  // ── Recovery commands on dirty default branch ──
+
+  it("allows stash on dirty default branch (recovery)", () => {
+    const ctx = createMockContext({
+      isDefaultBranch: true,
+      isDirty: true,
+      dirtyFiles: ["src/foo.ts"],
+    });
+    const result = evaluateDecision("RECOVERY", ctx, "stash");
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  it("allows checkout on dirty default branch (recovery)", () => {
+    const ctx = createMockContext({
+      isDefaultBranch: true,
+      isDirty: true,
+      dirtyFiles: ["src/foo.ts"],
+    });
+    const result = evaluateDecision("RECOVERY", ctx, "checkout");
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  it("allows switch on dirty default branch (recovery)", () => {
+    const ctx = createMockContext({
+      isDefaultBranch: true,
+      isDirty: true,
+      dirtyFiles: ["src/foo.ts"],
+    });
+    const result = evaluateDecision("RECOVERY", ctx, "switch");
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  it("allows recovery commands on clean default branch", () => {
+    const ctx = createMockContext({ isDefaultBranch: true, isDirty: false });
+    const result = evaluateDecision("RECOVERY", ctx, "stash");
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  it("allows recovery commands in worktree", () => {
+    const ctx = createMockContext({ isWorktree: true });
+    const result = evaluateDecision("RECOVERY", ctx, "stash");
     expect(result.decision).toBe("ALLOW");
   });
 });
@@ -655,5 +711,62 @@ describe("checkBashCommand", () => {
     // The regex should still detect "git status" as a subcommand in the segment
     expect(result.decision).toBe("ALLOW");
     expect(result.category).toBe("READ_ONLY");
+  });
+});
+
+// ─── stripHeredocs ─────────────────────────────────────────────────────────
+
+describe("stripHeredocs", () => {
+  it("strips heredoc content between quoted delimiters", () => {
+    const input = `cat <<'EOF'\ngit commit -m "x"\nEOF`;
+    const result = stripHeredocs(input);
+    expect(result).not.toContain('git commit -m "x"');
+    expect(result).toContain("EOF");
+  });
+
+  it("strips heredoc content between unquoted delimiters", () => {
+    const input = `cat <<DELIM\ngit add -A && git commit -m "y"\nDELIM`;
+    const result = stripHeredocs(input);
+    expect(result).not.toContain("git add");
+    expect(result).not.toContain("git commit");
+  });
+
+  it("strips heredoc content with dash prefix", () => {
+    const input = `cat <<-MARKER\n  git push\nMARKER`;
+    const result = stripHeredocs(input);
+    expect(result).not.toContain("git push");
+  });
+
+  it("preserves commands outside heredocs", () => {
+    const input = `git status\ncat <<'EOF'\ngit commit -m "x"\nEOF`;
+    const result = stripHeredocs(input);
+    expect(result).toContain("git status");
+    expect(result).not.toContain('git commit -m "x"');
+  });
+
+  it("returns input unchanged when no heredocs present", () => {
+    const input = "git status && git log";
+    expect(stripHeredocs(input)).toBe(input);
+  });
+
+  it("handles empty string", () => {
+    expect(stripHeredocs("")).toBe("");
+  });
+
+  it("integration: heredoc with git commit inside on dirty trunk does not block", async () => {
+    const deps = createMockDeps({
+      getWorktreePaths: () => [],
+      execGit: vi.fn().mockImplementation(async (args) => {
+        if (args[0] === "rev-parse" && args[1] === "--show-toplevel")
+          return "/project";
+        if (args[0] === "rev-parse" && args[1] === "--abbrev-ref")
+          return "trunk";
+        if (args[0] === "status") return " M src/foo.ts";
+        return "";
+      }),
+    });
+    const command = `cat <<'EOF'\ngit commit -m "x"\nEOF`;
+    const result = await checkBashCommand(command, undefined, deps);
+    expect(result.decision).toBe("ALLOW");
   });
 });
