@@ -943,6 +943,11 @@ export const statusTools = {
             peerSessions = { unavailable: true };
           }
 
+          // rq-runtimeProvenance01: compute plugin runtime provenance once
+          // and reuse for both the formatted health surface and the raw
+          // diagnostic field.
+          const pluginRuntimeInfo = await getPluginRuntimeInfo();
+
           const formatted = formatStatusOutput({
             specCount: status.specs.count,
             requirementCount,
@@ -965,6 +970,10 @@ export const statusTools = {
             },
             temporalQueueServiceability:
               queueServiceability?.serviceability ?? null,
+            pluginRuntime: {
+              source_dist_freshness: pluginRuntimeInfo.source_dist_freshness,
+              recovery_hint: pluginRuntimeInfo.recovery_hint,
+            },
             worktreeCensus: worktreeCensus
               ? {
                   total: worktreeCensus.total,
@@ -1012,7 +1021,7 @@ export const statusTools = {
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).
             metrics: getMetrics(),
-            plugin_runtime: await getPluginRuntimeInfo(),
+            plugin_runtime: pluginRuntimeInfo,
             diagnostics: {
               temporalWorker: temporalHealth?.worker_alive
                 ? ("healthy" as const)

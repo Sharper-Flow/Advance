@@ -113,6 +113,25 @@ export interface StatusInput {
     expectedQueue: string;
     blockers?: string[];
   } | null;
+  /**
+   * rq-runtimeProvenance01: optional plugin runtime info. When present and
+   * source_dist_freshness !== "fresh", healthSection appends freshness verdict
+   * and recovery hint lines so the agent can render verbatim to the user.
+   */
+  pluginRuntime?: PluginRuntimeInput;
+}
+
+export interface PluginRuntimeInput {
+  source_dist_freshness:
+    | "fresh"
+    | "source_ahead_of_dist"
+    | "dist_ahead_of_process"
+    | "unknown";
+  recovery_hint: {
+    action: string;
+    commands: string[];
+    paths: { plugin_root: string; main_checkout?: string; worktree?: string };
+  } | null;
 }
 
 export interface WorkerLockHealthInput {
@@ -297,6 +316,20 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   );
   if (workerRunError) {
     healthLines.push(`Last worker run error: ${workerRunError}`);
+  }
+  // rq-runtimeProvenance01: surface plugin freshness verdict + recovery hint
+  // when the running plugin is not fresh. Verbatim rendering — agent passes
+  // through to user for actionable next steps.
+  if (input.pluginRuntime && input.pluginRuntime.source_dist_freshness !== "fresh") {
+    healthLines.push(
+      `Plugin freshness: ⚠ ${input.pluginRuntime.source_dist_freshness}`,
+    );
+    if (input.pluginRuntime.recovery_hint) {
+      healthLines.push(`  → ${input.pluginRuntime.recovery_hint.action}`);
+      for (const cmd of input.pluginRuntime.recovery_hint.commands) {
+        healthLines.push(`     ${cmd}`);
+      }
+    }
   }
   const healthSection = healthLines.join("\n");
 

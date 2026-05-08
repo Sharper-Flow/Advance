@@ -245,6 +245,106 @@ describe("tool-formatters", () => {
         expect(result.worktreeSection).toContain("(none)");
       });
     });
+
+    describe("plugin runtime freshness", () => {
+      const baseInput = {
+        specCount: 1,
+        requirementCount: 1,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+      };
+
+      it("does NOT add freshness lines when fresh", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          pluginRuntime: {
+            loaded_module_path: "/p",
+            process_started_at: "2026-05-08T12:00:00.000Z",
+            build_marker_path: "/p/dist/oca-build.json",
+            build_marker_found: false,
+            worker_script_path: "/p/dist/temporal/worker.js",
+            reload_caveat: "Restart OpenCode after rebuilding Advance",
+            dist_index_path: "/p/dist/index.js",
+            dist_mtime_iso: "2026-05-08T11:00:00.000Z",
+            source_index_path: "/p/src/index.ts",
+            source_index_mtime_iso: "2026-05-08T10:00:00.000Z",
+            source_dist_freshness: "fresh",
+            plugin_checkout_branch: "trunk",
+            plugin_checkout_head_sha: "abc123",
+            cwd_vs_plugin_root: "match",
+            recovery_hint: null,
+          },
+        });
+        expect(result.healthSection).not.toContain("Plugin freshness");
+      });
+
+      it("surfaces freshness verdict + recovery hint when source_ahead_of_dist", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          pluginRuntime: {
+            loaded_module_path: "/p",
+            process_started_at: "2026-05-08T12:00:00.000Z",
+            build_marker_path: "/p/dist/oca-build.json",
+            build_marker_found: false,
+            worker_script_path: "/p/dist/temporal/worker.js",
+            reload_caveat: "Restart OpenCode after rebuilding Advance",
+            dist_index_path: "/p/dist/index.js",
+            dist_mtime_iso: "2026-05-08T11:00:00.000Z",
+            source_index_path: "/p/src/index.ts",
+            source_index_mtime_iso: "2026-05-08T13:00:00.000Z",
+            source_dist_freshness: "source_ahead_of_dist",
+            plugin_checkout_branch: "change/foo",
+            plugin_checkout_head_sha: "def456",
+            cwd_vs_plugin_root: "match",
+            recovery_hint: {
+              action: "Source code is newer than built dist. Rebuild before restart.",
+              commands: ["pnpm run build", "# then restart OpenCode session"],
+              paths: { plugin_root: "/p" },
+            },
+          },
+        });
+        expect(result.healthSection).toContain("Plugin freshness");
+        expect(result.healthSection).toContain("source_ahead_of_dist");
+        expect(result.healthSection).toContain("Rebuild before restart");
+        expect(result.healthSection).toContain("pnpm run build");
+      });
+
+      it("surfaces verdict + restart hint when dist_ahead_of_process", () => {
+        const result = formatStatusOutput({
+          ...baseInput,
+          pluginRuntime: {
+            loaded_module_path: "/p",
+            process_started_at: "2026-05-08T11:00:00.000Z",
+            build_marker_path: "/p/dist/oca-build.json",
+            build_marker_found: false,
+            worker_script_path: "/p/dist/temporal/worker.js",
+            reload_caveat: "Restart OpenCode after rebuilding Advance",
+            dist_index_path: "/p/dist/index.js",
+            dist_mtime_iso: "2026-05-08T13:00:00.000Z",
+            source_index_path: "/p/src/index.ts",
+            source_index_mtime_iso: "2026-05-08T10:00:00.000Z",
+            source_dist_freshness: "dist_ahead_of_process",
+            plugin_checkout_branch: "trunk",
+            plugin_checkout_head_sha: "abc123",
+            cwd_vs_plugin_root: "match",
+            recovery_hint: {
+              action: "Dist is newer than the running process. Restart the OpenCode session.",
+              commands: ["# restart OpenCode session in: /p"],
+              paths: { plugin_root: "/p" },
+            },
+          },
+        });
+        expect(result.healthSection).toContain("dist_ahead_of_process");
+        expect(result.healthSection).toContain("Restart");
+      });
+
+      it("does nothing when pluginRuntime is undefined (backward compat)", () => {
+        const result = formatStatusOutput(baseInput);
+        expect(result.healthSection).not.toContain("Plugin freshness");
+      });
+    });
   });
 
   describe("formatValidationOutput", () => {
