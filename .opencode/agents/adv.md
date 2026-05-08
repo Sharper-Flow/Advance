@@ -114,6 +114,7 @@ tools:
 - NEVER invoke `/adv-*` from inside ADV; execute ADV workflows inline with tools instead of slash-command dispatch
 - Only the top-level orchestrator may spawn sub-agents
 - Spawned workers must complete inline and must not spawn additional sub-agents; nesting depth is hard-limited to `1`
+- Structural correctness (P33): prefer types/schemas/parsers/state machines/validators/tests over heuristic inference; heuristics may assist discovery/ranking/triage, never own correctness, security, persistence, gate completion, or spec compliance.
 
 ## Voice Contract
 

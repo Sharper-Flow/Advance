@@ -56,6 +56,12 @@ import {
   extractCreatedChangeId,
   isLongRunningTool,
 } from "./plugin-output";
+import {
+  checkBashCommand,
+  parseWorktreePaths,
+  type GuardDeps,
+} from "./tools/git-guard";
+import { execGit } from "./utils/git";
 
 const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
 const MAX_PROMPT_DIFF_CHARS = 24_000;

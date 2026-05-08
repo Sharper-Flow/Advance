@@ -33,11 +33,12 @@ new ADV worktrees.
 
 ### Optional
 
-| Dependency   | Purpose                                                    |
-| ------------ | ---------------------------------------------------------- |
-| Git          | Version control, change tracking                           |
-| Temporal CLI | Local dev server for ADV's Temporal-backed runtime         |
-| jq           | Required only for `sync-global.sh --fix` (config patching) |
+| Dependency   | Purpose                                                                  |
+| ------------ | ------------------------------------------------------------------------ |
+| Git          | Version control, change tracking                                         |
+| Temporal CLI | Local dev server for ADV's Temporal-backed runtime                       |
+| jq           | Required only for `sync-global.sh --fix` (config patching)               |
+| GitHub CLI (`gh`) | Required for `/adv-triage` and any ADV command that reads/writes GitHub issues or Projects v2. See **GitHub CLI authentication** below. |
 
 ### Temporal-backed storage
 
@@ -121,6 +122,72 @@ is configured internally with `ADV_TEMPORAL_MULTI_QUEUE=1` and
 `ADV_TEMPORAL_TASK_QUEUES`; users normally only set `ADV_NODE_PATH` when Node is
 not on the plugin host's `PATH`. There is no legacy file-backed runtime
 fallback.
+
+### GitHub CLI authentication
+
+ADV agents perform GitHub operations (read/write issues, manage Projects v2 boards, post comments, open PRs) via the `gh` CLI. The token MUST be a **user-global** OAuth token that works for **every repo and every Projects v2 board** any ADV agent will operate on — including this repo and all `target_path` cross-project peers.
+
+#### Install `gh`
+
+```bash
+brew install gh                      # macOS
+sudo apt install gh                  # Debian/Ubuntu
+sudo dnf install gh                  # Fedora
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg   # see cli.github.com for full Linux instructions
+```
+
+#### Authenticate with the required scopes
+
+```bash
+gh auth login --scopes "repo,project,read:org,workflow"
+```
+
+Required token scopes:
+
+| Scope         | Why ADV needs it                                                                              |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| `repo`        | Read/write issues, comments, PRs across every repo ADV touches (incl. private)                |
+| `project`     | Read/write Projects v2 boards (`/adv-triage` storage of truth: typed Value/RROE/Effort/WSJF)  |
+| `read:org`    | Resolve org membership, list org-owned projects, find ADV peer repos                          |
+| `workflow`    | Inspect Actions workflow runs (used by external conformance gate during `/adv-archive`)       |
+
+If you authenticated previously without one of these scopes, refresh in place:
+
+```bash
+gh auth refresh -s repo,project,read:org,workflow
+```
+
+#### Verify
+
+```bash
+gh auth status
+```
+
+Expected output includes a `gho_*` token line and a scopes line containing at minimum `'project', 'read:org', 'repo', 'workflow'`. ADV `/adv-triage` will refuse to run if any required scope is missing.
+
+#### Token-coverage rule (critical)
+
+The token MUST cover **all** projects ADV will operate on, not just the project where you ran `gh auth login`. `gho_*` OAuth tokens from `gh auth login` are user-global by design — one token authenticates every repo and every Projects v2 board the GitHub user has access to.
+
+| Scenario                                                              | Required action                                                                  |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Personal repos owned by your GitHub user                              | Default `gh auth login` is sufficient                                            |
+| Repos owned by a GitHub organization                                  | Org admin must approve the GitHub CLI app under Settings → Third-party access    |
+| Org-owned Projects v2 boards                                          | Same org-app approval — `project` scope alone is not enough without app approval |
+| Private repos / forks                                                 | `repo` scope covers private repos the user can already access via the web UI    |
+| Multiple machines (laptop, devbox, CI)                                | Each machine needs its own `gh auth login`; `gho_*` tokens are not transferable |
+| Fine-grained PAT instead of OAuth                                     | Must be scoped to **all** orgs and repos ADV agents will touch — coarse OAuth is simpler |
+
+#### Org-access wall (common gotcha)
+
+If `/adv-triage` reports `gh: not found`, `403`, or `Resource not accessible by integration` when creating a project or adding an item, the token is fine but the **GitHub CLI app** is not approved for that org. Two fixes:
+
+1. Org admin: GitHub web UI → Org → Settings → Third-party access → Approve `GitHub CLI`.
+2. If org approval is not possible: create the project under your **personal** account (`@me`) instead, and link the org repo to it via `gh project link <N> --owner @me --repo <org>/<repo>`.
+
+#### Multi-machine setup
+
+`gho_*` tokens are bound to the machine that ran `gh auth login`. Repeat the login (or copy the `~/.config/gh/hosts.yml` file with care) on every machine an ADV agent will run from — devboxes, CI runners, alternate laptops. There is no shared/global token store; each machine authenticates independently.
 
 ### Bun runtime troubleshooting
 
@@ -569,6 +636,54 @@ Restart OpenCode after editing.
 
 ---
 
+## Structural Correctness Rule (P33)
+
+ADV recommends a priority-9 structural-correctness rule that counters the
+agent failure mode of using fuzzy heuristics, prose conventions, or "agent
+judgment" as the source of truth for correctness. It is especially relevant
+to ADV surfaces such as gate completion, task classification, spec compliance,
+and backlog triage: heuristics can suggest candidates, but typed state,
+validators, explicit user assignments, and exact refs must decide.
+
+Like P29-P31, `rules.yaml` is **user-managed** so this change must be
+applied manually.
+
+Add the following entry in the `rules:` map (P33 recommended):
+
+```yaml
+  P33:
+    name: structural-correctness
+    rule: Make correctness structural before heuristic. Prefer
+      machine-checkable mechanisms—types, schemas, parsers, state machines,
+      invariants, contracts, database constraints, generated validators, and
+      tests—over heuristic inference or prose-only rules. Fully recognize
+      and normalize untrusted input at boundaries before processing it. Use
+      heuristics only for discovery, ranking, triage, or advisory guidance;
+      never as the sole authority for correctness, security, persistence,
+      workflow state, gate completion, or spec compliance. If a heuristic is
+      unavoidable, isolate it, document assumptions, add deterministic
+      guardrails, and verify it with edge-case or property-based tests.
+    tags: [correctness, architecture, validation, determinism, heuristics]
+    hint: structural_before_heuristic
+    priority: 9
+```
+
+**Rationale for priority 9:** parity with `P05 ship-complete`, `P24
+tdd-first`, `P27 due-diligence`, and `P31 thoroughness`. This rule governs
+correctness boundaries, but leaves priority-10 for absolute constraints
+(security, collaboration, timeouts).
+
+**Why this rule exists:** web research converged on the same pattern from
+multiple angles: parse/recognize inputs before processing (LangSec), make
+illegal states unrepresentable, enforce domain invariants, prefer allowlist
+validation at trusted boundaries, and use invariant/property tests for broad
+edge-case coverage. The ADV translation is: structural state and validators
+own correctness; heuristics only assist discovery and ranking.
+
+Restart OpenCode after editing.
+
+---
+
 ## Project Initialization
 
 ### Option A: New Project
@@ -627,6 +742,18 @@ mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
 # Update .gitignore
 echo -e "\n# ADV scratch files\ntemp/" >> .gitignore
 ```
+
+### Final auth check (both options)
+
+Before the first ADV session, confirm GitHub CLI auth is healthy and the token covers every project this machine's ADV agents will touch (this repo + all `target_path` cross-project peers):
+
+```bash
+gh auth status                       # token must show project + repo + read:org + workflow scopes
+gh repo view --json nameWithOwner    # must succeed for THIS repo
+gh project list --owner @me --limit 1 # must succeed (creates if missing later)
+```
+
+If `gh auth status` is missing scopes, run `gh auth refresh -s repo,project,read:org,workflow`. If `gh repo view` fails on an org repo, the org admin must approve the GitHub CLI app (see **GitHub CLI authentication** above).
 
 ---
 
@@ -1061,12 +1188,6 @@ New changes start directly in the 7-gate model.
 | `/adv-review <id>`        | Review deliverables and record user sign-off                              |
 | `/adv-harden <id>`        | Release-stage quality hardening                                           |
 | `/adv-archive <id>`       | Archive completed change and apply spec deltas                            |
-
-**Shipping**
-
-| Command | Purpose                                                                                                    |
-| ------- | ---------------------------------------------------------------------------------------------------------- |
-| `/ship` | Commit, merge to main, quality-check, push, and deploy. ADV-aware: skips steps the release gate completed |
 
 **Fast-track and auxiliary**
 

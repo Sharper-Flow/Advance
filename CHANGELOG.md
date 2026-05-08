@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - retireInvestmentGovernanceDeadweight
 
+### Added — Structural correctness guidance
+
+- Documented recommended `P33 structural-correctness` rule in `SETUP.md` and `ADV_INSTRUCTIONS.md`: structural sources of truth (types, schemas, parsers, state machines, validators, exact refs, explicit user assignments) own correctness; heuristics may assist discovery/ranking/triage only.
+- Tightened `/adv-triage` duplicate detection: exact stable-ref/body matches may mark backlog items represented, but title-similarity matches are only candidate duplicates and must remain in the user-confirmation list.
+
 ### Removed — Investment Governance v1 (retireInvestmentGovernanceDeadweight)
 
 - Removed `/adv-prep` Phase J (judgment-call identification)

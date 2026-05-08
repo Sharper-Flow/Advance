@@ -51,7 +51,7 @@ Look up the linked Projects v2 board:
 
 | Field name | Data type | Single-select options |
 |---|---|---|
-| `Type` | `SINGLE_SELECT` | `bug,feature` |
+| `ADV Type` | `SINGLE_SELECT` | `bug,feature` |
 | `Priority` | `SINGLE_SELECT` | `critical,high,medium,low` |
 | `Value` | `NUMBER` | — |
 | `TimeCriticality` | `NUMBER` | — |
@@ -70,7 +70,7 @@ ADV needs a GitHub Projects v2 board for backlog scoring.
 Owner: {owner}
 Title: ADV: {repo-name}
 Linked repo: {owner}/{repo}
-Custom fields to create: Type, Priority, Value, TimeCriticality, RROE, Effort, WSJF
+Custom fields to create: ADV Type, Priority, Value, TimeCriticality, RROE, Effort, WSJF
 
 Reply EXACTLY one of:
 - `create` — create project, link to repo, create fields, persist metadata
@@ -116,26 +116,27 @@ Build a master inventory record per source item:
 - ADV active changes → `feature` if `proposalKind ∈ {addCapability, modifyCapability}`, `bug` if `bugfix`, else `unknown`
 - Notes lines → `unknown` (defer to user in Phase 3)
 
+Structural-correctness guardrail (P33): `kind_hint` is advisory triage only. It may prefill labels for the Phase 3 user prompt, but must not create issues, mutate labels, or suppress candidates without explicit user confirmation.
+
 ---
 
 ## Phase 2: Match + Identify Gaps
 
 For each non-GH inventory item, check if it is already represented by an open GH issue.
 
-### Match algorithm (cheap → expensive, first match wins)
+### Match algorithm (structural first, heuristic last)
 
-1. **Stable ref match** — issue body contains the source's `ref` (e.g. `wisdom-id`, `tk-…`, file:line for TODO, `change-id`).
-2. **Title similarity** — Jaccard similarity of normalized title tokens ≥ `0.6`. Title normalization: lowercase, trim, collapse whitespace, strip punctuation, drop stopwords (`a`, `the`, `and`, `or`, `for`, `to`, `of`, `in`).
-3. **Body excerpt match** — first 80 chars of source `body` (lowercased, normalized) appears verbatim in any open issue body.
+1. **Stable ref match** — issue body contains the source's `ref` (e.g. `wisdom-id`, `tk-…`, file:line for TODO, `change-id`). Exact evidence; may mark **represented**.
+2. **Body excerpt match** — first 80 chars of source `body` (lowercased, normalized) appears verbatim in any open issue body. Exact evidence; may mark **represented**.
+3. **Title similarity** — Jaccard similarity of normalized title tokens ≥ `0.6`. Title normalization: lowercase, trim, collapse whitespace, strip punctuation, drop stopwords (`a`, `the`, `and`, `or`, `for`, `to`, `of`, `in`). Heuristic evidence only; mark **candidate duplicate**, not represented.
 
-If any rule matches → mark item as **represented** with the issue number.
-If none match → mark as **unrepresented** with the inventory record retained.
+Only exact ref/body matches may suppress issue creation automatically. Title-similarity matches must remain in the Phase 3 user-confirmation list with the candidate issue number shown.
 
 ### Output
 
 Build two collections:
-- `represented[]` — `(source-item, gh-issue-number)` pairs (informational)
-- `unrepresented[]` — items with `kind_hint` and proposed title/body for issue creation
+- `represented[]` — `(source-item, gh-issue-number, exact_match_reason)` pairs (informational)
+- `unrepresented[]` — items with `kind_hint`, proposed title/body for issue creation, and optional `candidate_duplicate_issue` from title similarity
 
 If `unrepresented[]` is empty AND every represented issue already has the required field values populated → skip Phases 3-5, jump to Phase 6 with "No new issues, no field gaps. Roadmap may still need regen if `--rescore`."
 
@@ -152,9 +153,9 @@ Only run if `unrepresented[]` is non-empty.
 ```
 Found {N} backlog item(s) not represented by any open GH issue:
 
-1. [bug?] {title} — {source}: {ref}
+1. [bug?] {title} — {source}: {ref} {optional: — possible duplicate #{num}}
    {body excerpt 1-2 lines}
-2. [feature?] {title} — {source}: {ref}
+2. [feature?] {title} — {source}: {ref} {optional: — possible duplicate #{num}}
    {body excerpt}
 ...
 
@@ -174,7 +175,7 @@ For each approved item:
 - Create with `gh issue create --title "<title>" --body "<body+source-trailer>" --label "<bug|feature>"`
 - Body trailer: `\n\n---\n_Promoted by /adv-triage from {source}: {ref}_`
 - Capture the new issue number; add to project via `gh project item-add <N> --owner <owner> --url <issue-url>`
-- Set the project `Type` field to `bug` or `feature` accordingly
+- Set the project `ADV Type` field to `bug` or `feature` accordingly
 
 Skip items where `kind_hint` is still `unknown` after reclassify and no user override — surface in the final report under "skipped: ambiguous kind".
 

@@ -144,12 +144,6 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-arch-scan [path]`   | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
 | `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence                       |
 
-### Shipping
-
-| Command | Purpose                                                                                                    |
-| ------- | ---------------------------------------------------------------------------------------------------------- |
-| `/ship` | Commit, merge to main, quality-check, push, and deploy. ADV-aware: skips steps the release gate completed |
-
 ### Fast-Track / Advanced
 
 | Command                     | Purpose                                                                                         |
@@ -175,11 +169,10 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | review   | Review findings and acceptance evidence                                         | Archive, release, or expand scope silently                               | acceptance           |
 | archive  | Spec promotion, release readiness, cleanup                                      | Skip validation, conformance, or sign-off                                | release              |
 | reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None                 |
-| ship     | Deploy to production (ADV-aware: skips steps release gate completed)            | Skip quality gate without `--force`; force-push; run before archive done | None (post-release)  |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if discovery or planning gates pending
-- `/ship` is a post-release command — runs after archive, handles deploy (the one step outside ADV's gate lifecycle). If release gate is complete, `/ship` detects the archived change and skips commit/merge/quality/push
+- Deployment is outside ADV's gate lifecycle — ADV stops at push. Post-release deploy is a separate, user-initiated step
 - Commands that own boundary-sensitive workflow steps should include `## Command Boundary` details
 
 ## Status Markers
@@ -217,6 +210,26 @@ Emitted by mutation/ticker tools such as `adv_change_create`, `adv_change_reente
 MCP callable names are exact schema identifiers; never normalize, split, or recase them. Current examples: `context7_resolve-library-id`, `context7_query-docs`, `kagi_kagi_search_fetch`, `kagi_kagi_summarizer`, `gh_grep_searchGitHub`, `firecrawl_firecrawl_scrape`, `vision_vision_list`, `lgrep_search_semantic`.
 Invalid examples: `gh_grep_search_git_hub`, `context7_resolve_library_id`, `context7_query_docs`, `kagi_search_fetch`, `firecrawl_scrape`, `vision_list`.
 If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+
+### Structural Correctness (P33)
+
+Make correctness structural before heuristic. Prefer machine-checkable mechanisms — types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests — over heuristic inference or prose-only rules.
+
+ADV-specific boundary:
+
+| Area | Structural source of truth | Heuristic allowed only for |
+| --- | --- | --- |
+| Gate completion | `adv_gate_status`, `adv_gate_complete`, tasks, validation tools | Discovery of missing context |
+| Task classification | `metadata.tdd_intent`, validator schema | Legacy fallback / warning text |
+| Backlog triage | Stable refs, issue IDs, typed project fields, explicit user assignments | Ranking candidates, kind hints, possible duplicate discovery |
+| Spec compliance | Specs, validators, conformance verdicts | Research leads / advisory risk flags |
+
+Rules:
+
+- Fully recognize and normalize untrusted input at boundaries before processing it.
+- Heuristics may assist discovery, ranking, triage, or advisory guidance.
+- Heuristics MUST NOT be the sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance.
+- If a heuristic is unavoidable, isolate it, document assumptions, add deterministic guardrails, and verify it with edge-case or property-based tests.
 
 ### ADV State Access
 
@@ -607,7 +620,7 @@ Required categories (B/F/S/M) MUST have a coverage entry; optional MAY be omitte
 
 Gates are sequential. Archive blocks until release readiness is verified. See [docs/adv-gates.md](docs/adv-gates.md).
 
-**Post-release deploy:** `/ship` handles deployment (the one step outside ADV's gate lifecycle). If run after archive completes, `/ship` detects the archived change and skips commit/merge/quality/push — runs only deploy + optional changelog.
+**Post-release deploy:** Deployment is outside ADV's gate lifecycle — ADV stops at push. Post-release deploy is a separate, user-initiated step.
 
 <!-- rq-extConfGate01 --> When spec conformance is enabled, the archive flow runs an external CI conformance check at Phase 5.5 (between user sign-off and execute archive). DRIFT verdicts halt archive and present user options; no auto-resolve.
 

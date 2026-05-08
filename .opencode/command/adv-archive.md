@@ -357,10 +357,10 @@ Emit GIT FINALIZATION COMPLETE: commit SHA, merge target (`$MAIN` default-branch
 After Phase 9 completes and the archive summary is displayed (Phase 8), if the project has a detectable deployment target, append a one-line nudge:
 
 ```
-→ `/ship` to deploy to production
+→ Deploy to production when ready
 ```
 
-This is informational only — no auto-execution. The agent does not run `/ship` or any deploy command. `/ship` is a separate user-invoked command that handles the deploy step outside ADV's gate lifecycle.
+Deployment is outside ADV's gate lifecycle — ADV stops at push. Post-release deploy is a separate, user-initiated step.
 
 ---
 
