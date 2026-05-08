@@ -394,7 +394,7 @@ The `--fix` flag will:
 - Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, and `plan` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-slop-detection` and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
-- Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing
+- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions` and embed the ADV protocol into generated ADV provider prompts
 - Back up `opencode.json` before any patches
 - Preserve all non-ADV settings (mcp, provider, permissions, etc.)
 
@@ -421,17 +421,27 @@ Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install
 
 ### Step 2b: Manual Setup (Alternative)
 
-If you prefer manual setup, add ADV entries to your `opencode.json`:
+If you prefer manual setup, add the ADV plugin path to your `opencode.json`.
+Do **not** add `ADV_INSTRUCTIONS.md` to global `instructions[]`; `sync-global.sh`
+scopes that protocol to generated ADV provider prompts so non-ADV agents do not
+pay the prompt cost.
 
 ```json
 {
   "instructions": [
-    "~/.config/opencode/identity.md",
-    "/path/to/Advance/ADV_INSTRUCTIONS.md"
+    "~/.config/opencode/identity.md"
   ],
   "plugin": ["/path/to/Advance/plugin"]
 }
 ```
+
+Legacy migration: if your config already contains `/path/to/Advance/ADV_INSTRUCTIONS.md`
+or `~/.config/opencode/instructions/ADV_INSTRUCTIONS.md`, run
+`./scripts/sync-global.sh --fix`. The script removes only ADV instruction paths,
+preserves unrelated global instructions, and regenerates ADV provider prompts with
+the protocol embedded. Manual setups without provider ADV variants intentionally do
+not receive the ADV operating protocol; the supported ADV-agent setup path is the
+sync script above.
 
 Then copy slash commands manually:
 

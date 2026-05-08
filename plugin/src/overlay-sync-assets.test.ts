@@ -229,7 +229,7 @@ describe("overlay sync script support", () => {
       expect(patched.plugin).toContain(join(canonicalRoot, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
-      expect(patched.instructions).toContain(
+      expect(patched.instructions ?? []).not.toContain(
         join(canonicalRoot, "ADV_INSTRUCTIONS.md"),
       );
       expect(patched.instructions).not.toContain(
@@ -331,6 +331,10 @@ describe("overlay sync script support", () => {
           "## ADV Overlay",
         );
         expect(
+          variantContent,
+          `adv-${p}.md missing scoped ADV instructions`,
+        ).toContain("### TDD Protocol (RSTC)");
+        expect(
           readFileSync(join(promptParts, "providers", `${p}.md`), "utf8"),
         ).toContain(`<!-- PROVIDER_HINT:${p} -->`);
         expect(config.agent[`adv-${p}`].prompt).toBe(
@@ -340,6 +344,21 @@ describe("overlay sync script support", () => {
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }
+  });
+
+  test("non-ADV build agent prompt is self-contained without ADV_INSTRUCTIONS section refs", () => {
+    const buildAgent = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/build.md"),
+      "utf8",
+    );
+    expect(buildAgent).toContain(
+      "NEVER suggest splitting a change based on size, complexity, or task count alone",
+    );
+    expect(buildAgent).not.toContain(
+      "See `ADV_INSTRUCTIONS.md § Large-Scope Validity`",
+    );
+    expect(buildAgent).not.toContain("### TDD Protocol (RSTC)");
+    expect(buildAgent).not.toContain("## Critical Protocols");
   });
 
   test("check mode warns and continues when opencode is unavailable for runtime canary", () => {

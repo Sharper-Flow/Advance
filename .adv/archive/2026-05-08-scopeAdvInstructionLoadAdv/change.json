@@ -1,0 +1,238 @@
+{
+  "id": "scopeAdvInstructionLoadAdv",
+  "title": "Scope ADV instruction load to ADV-using sessions",
+  "status": "archived",
+  "created_at": "2026-05-07T15:02:51.692Z",
+  "tasks": [
+    {
+      "id": "tk-73fa7731d28c",
+      "title": "Update sync-global config + provider prompt contract.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T18:19:38.052Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:21:13.567Z",
+      "verification": "RED: sync-global/overlay tests failed on old global ADV_INSTRUCTIONS contract and missing scoped instruction body in provider prompts. GREEN: updated sync-global.sh to remove global ADV_INSTRUCTIONS from instructions[], generate provider prompts as canonical adv body + ADV_INSTRUCTIONS + provider hint, and regenerate expected content in check mode. Targeted verification: pnpm test -- src/sync-global.test.ts src/overlay-sync-assets.test.ts passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/sync-global.test.ts",
+        "scripts/provider-eval.ts",
+        "scripts/sync-global.sh"
+      ],
+      "touched_files": [
+        "plugin/src/overlay-sync-assets.test.ts",
+        "plugin/src/sync-global.test.ts",
+        "scripts/provider-eval.ts",
+        "scripts/sync-global.sh"
+      ],
+      "checkpointSha": "f88045685a762432118906dfa63cc30f62930b35",
+      "completedAt": "2026-05-08T18:25:21.102Z",
+      "completed_at": "2026-05-08T18:25:21.102Z"
+    },
+    {
+      "id": "tk-2f635bff7201",
+      "title": "Update provider-eval prompt model to match new 3-part provider prompt assembly.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T18:19:38.085Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:25:30.387Z",
+      "verification": "Provider-eval prompt model updated to canonical + ADV_INSTRUCTIONS + provider hint in scripts/provider-eval.ts. Focused verification: pnpm test -- src/sync-global.test.ts passed (153 files passed | 1862 tests passed in targeted run). No additional file changes after T1 checkpoint; task recorded clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f88045685a762432118906dfa63cc30f62930b35",
+      "completedAt": "2026-05-08T18:26:05.849Z",
+      "completed_at": "2026-05-08T18:26:05.849Z"
+    },
+    {
+      "id": "tk-f8e97758446e",
+      "title": "Resolve cross-agent references and add contract tests for ADV-only instruction scope.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T18:19:38.112Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:26:15.486Z",
+      "verification": "RED: new overlay-sync asset test failed because non-ADV build agent contained trailing `See ADV_INSTRUCTIONS.md § Large-Scope Validity`. GREEN: removed dangling section ref while keeping full rule inline. Verification: pnpm test -- src/overlay-sync-assets.test.ts passed (153 files passed | 1863 tests passed in targeted run).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/build.md",
+        "plugin/src/overlay-sync-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/build.md",
+        "plugin/src/overlay-sync-assets.test.ts"
+      ],
+      "checkpointSha": "051fcf509d6c0d1e18d6edc7f55a2c68b3090eda",
+      "completedAt": "2026-05-08T18:28:01.325Z",
+      "completed_at": "2026-05-08T18:28:01.325Z"
+    },
+    {
+      "id": "tk-ce14721ea232",
+      "title": "Add spec requirement for scoped ADV instruction loading.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T18:19:38.218Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:28:54.190Z",
+      "verification": "Updated .adv/specs/advance-meta/spec.json with rq-scopedAdvInstructions01 covering ADV provider prompt inclusion, global instructions[] removal, non-ADV marker absence, and unrelated instruction preservation. Verified JSON syntax with node JSON.parse.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json"
+      ],
+      "checkpointSha": "0d625af84d79aa177f43c2627febe012b6bce3a9",
+      "completedAt": "2026-05-08T18:31:06.835Z",
+      "completed_at": "2026-05-08T18:31:06.835Z"
+    },
+    {
+      "id": "tk-816a4753c231",
+      "title": "Full verification and live sync dry-run.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T18:19:38.231Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:31:24.369Z",
+      "verification": "pnpm test initially failed on spec-citation-invariant because rq-scopedAdvInstructions01 lacked an external citation. Added citation comment in plugin/src/sync-global.test.ts, reran focused invariant test: PASS (153 files passed | 1863 tests passed | 2 skipped). Reran pnpm test: PASS (153 files passed | 1863 tests passed | 2 skipped). pnpm run check initially failed on Prettier for sync-global.test.ts; formatted file and reran: PASS. pnpm run build: PASS. scripts/sync-global.sh --dry-run --diff from worktree root: PASS.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/sync-global.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/sync-global.test.ts"
+      ],
+      "checkpointSha": "4f623283dc5d770b3728f279c9436af0440ac92b",
+      "completedAt": "2026-05-08T18:36:05.616Z",
+      "completed_at": "2026-05-08T18:36:05.616Z"
+    },
+    {
+      "id": "tk-29b0d244f4cd",
+      "title": "Update setup documentation for scoped instruction-loading model.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T18:19:38.232Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:28:08.526Z",
+      "verification": "Updated SETUP.md: --fix bullet now removes legacy global ADV_INSTRUCTIONS entries and embeds protocol into ADV provider prompts; manual setup example no longer adds ADV_INSTRUCTIONS.md to instructions[]; migration note added. Grep confirms no active instruction telling users to add ADV_INSTRUCTIONS.md globally (only migration example remains).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "SETUP.md"
+      ],
+      "touched_files": [
+        "SETUP.md"
+      ],
+      "checkpointSha": "d89b750daf59b3506f14c3740048361509fa7c46",
+      "completedAt": "2026-05-08T18:28:35.805Z",
+      "completed_at": "2026-05-08T18:28:35.805Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:08:55.957Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:13:09.700Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:19:04.481Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validator returned CAUTION with required changes RC1-RC4. All required changes incorporated into design: (1) do not copy ADV_INSTRUCTIONS.md into agent-parts; generator/check read canonical repo path directly; (2) provider-eval.ts update marked required; (3) command-file refs explicitly safe because ADV agents receive body; (4) check/fix distinguishes canonical repo path from stale global-copy path. No CONFLICT, no user-value tradeoff, no contract compromise. Proceeding to planning."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:20:58.354Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied approve — prep/vision approval for 6-task graph, design validated with CAUTION resolved."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:36:16.975Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 planned tasks completed and checkpointed. Final verification passed: pnpm test, pnpm run check, pnpm run build, scripts/sync-global.sh --dry-run --diff. Worktree clean at checkpoint 4f623283dc5d770b3728f279c9436af0440ac92b."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:48:43.962Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied `accept` after APPROVED review verdict. Review findings contained no blockers/issues; suggestions/nits rejected with evidence. Verification evidence: pnpm test PASS, pnpm run check PASS, pnpm run build PASS, scripts/sync-global.sh --dry-run --diff PASS."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:54:45.480Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied `sign off` at Tier B archive sign-off prompt. Harden status READY: no blocking findings; full verification and merge dry-run passed. Proceeding with archive execution and git finalization."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-08T05:11:15.825Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-08T05:11:15.825Z",
+      "resolved": true,
+      "resolved_at": "2026-05-08T18:13:56.109Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-08T05:11:15.825Z",
+      "resolved": true,
+      "resolved_at": "2026-05-08T18:13:56.109Z"
+    }
+  ]
+}

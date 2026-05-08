@@ -250,6 +250,7 @@ function stripFrontmatter(content: string): string {
 
 function composeSystemPrompt(
   canonicalContent: string,
+  instructionsContent: string,
   hintContent: string | null,
 ): string {
   const stripped = stripFrontmatter(canonicalContent);
@@ -257,8 +258,8 @@ function composeSystemPrompt(
   if (!hintContent) return stripped; // baseline: no hint
 
   // Replicates sync-global.sh concatenated prompt file:
-  // agent-parts/advance/adv-{provider}.md = canonical body + provider hint
-  return `${stripped}\n\n${hintContent}`;
+  // agent-parts/advance/adv-{provider}.md = canonical body + ADV_INSTRUCTIONS + provider hint
+  return `${stripped}\n\n${instructionsContent.trim()}\n\n${hintContent}`;
 }
 
 function countLines(content: string): number {
@@ -322,6 +323,10 @@ function loadCanonicalAdvPrompt(globalHome: string): {
     `Error: canonical ADV prompt not found at ${localCanonical} or ${globalPromptPart}`,
   );
   process.exit(1);
+}
+
+function loadAdvInstructions(): string {
+  return readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
 }
 
 function loadProviderHint(
@@ -594,6 +599,7 @@ async function runEvaluation(providerName: string): Promise<void> {
     process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
   const canonical = loadCanonicalAdvPrompt(globalHome);
   const canonicalContent = canonical.content;
+  const instructionsContent = loadAdvInstructions();
   console.log(`  Canonical source: ${canonical.source}`);
 
   // Load provider hint from repo source, falling back to synced prompt parts.
@@ -608,8 +614,16 @@ async function runEvaluation(providerName: string): Promise<void> {
   }
 
   // Compose system prompts
-  const baselinePrompt = composeSystemPrompt(canonicalContent, null);
-  const hintPrompt = composeSystemPrompt(canonicalContent, hintContent);
+  const baselinePrompt = composeSystemPrompt(
+    canonicalContent,
+    instructionsContent,
+    null,
+  );
+  const hintPrompt = composeSystemPrompt(
+    canonicalContent,
+    instructionsContent,
+    hintContent,
+  );
   const promptMetrics = collectPromptSizeMetrics({
     generatedProviderPath: join(
       globalHome,

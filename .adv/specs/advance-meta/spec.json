@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.7.1",
-  "updated_at": "2026-05-07T04:10:00.000Z",
+  "version": "1.7.2",
+  "updated_at": "2026-05-08T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -1134,6 +1134,74 @@
             "A new worker is spawned by one of the surviving clients",
             "Pre-kill writes remain reflected in workflow state",
             "Post-respawn writes succeed and are reflected in workflow state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-scopedAdvInstructions01",
+      "title": "ADV Protocol Instructions Are Scoped to ADV Provider Agents",
+      "body": "ADV_INSTRUCTIONS.md protocol content must be loaded by generated ADV provider agents without being globally registered in opencode.json instructions[]. Sync and setup flows must preserve unrelated global instructions while removing legacy ADV_INSTRUCTIONS.md entries so non-ADV agents avoid ADV protocol prompt tax.",
+      "priority": "must",
+      "tags": [
+        "instructions",
+        "sync-global",
+        "prompt-scope",
+        "provider-agents"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-scopedAdvInstructions01.1",
+          "title": "ADV provider prompts embed ADV protocol instructions",
+          "given": [
+            "scripts/sync-global.sh generates provider-specific ADV prompt files for configured providers"
+          ],
+          "when": "The generated ADV provider prompt content is inspected",
+          "then": [
+            "The content includes the canonical ADV agent body",
+            "The content includes ADV_INSTRUCTIONS.md protocol content from the repository source file",
+            "The content includes exactly one provider hint for the selected provider",
+            "The effective order is canonical ADV body, then ADV_INSTRUCTIONS.md body, then provider hint"
+          ]
+        },
+        {
+          "id": "rq-scopedAdvInstructions01.2",
+          "title": "Global config excludes ADV_INSTRUCTIONS.md",
+          "given": [
+            "scripts/sync-global.sh --fix manages a global opencode.json config"
+          ],
+          "when": "The config is created or repaired",
+          "then": [
+            "The plugin path remains registered in plugin[]",
+            "The repository ADV_INSTRUCTIONS.md path is absent from instructions[]",
+            "Any stale global-copy ADV_INSTRUCTIONS.md path is absent from instructions[]",
+            "scripts/sync-global.sh --check treats ADV_INSTRUCTIONS.md presence in instructions[] as drift"
+          ]
+        },
+        {
+          "id": "rq-scopedAdvInstructions01.3",
+          "title": "Non-ADV prompt surfaces do not carry ADV protocol markers",
+          "given": [
+            "Non-ADV agents or generic global instruction surfaces are inspected after sync"
+          ],
+          "when": "Their prompt or instruction content is checked for ADV protocol-only markers",
+          "then": [
+            "Markers unique to ADV_INSTRUCTIONS.md such as ## TDD Protocol (RSTC) or ## Critical Protocols are absent",
+            "Non-ADV prompts remain self-contained for any rules they reference",
+            "No non-ADV agent depends on hidden ADV_INSTRUCTIONS.md sections for correctness"
+          ]
+        },
+        {
+          "id": "rq-scopedAdvInstructions01.4",
+          "title": "Unrelated global instructions are preserved during migration",
+          "given": [
+            "opencode.json instructions[] contains unrelated user or organization instruction files alongside a legacy ADV_INSTRUCTIONS.md entry"
+          ],
+          "when": "scripts/sync-global.sh --fix runs",
+          "then": [
+            "Only ADV_INSTRUCTIONS.md entries managed by ADV are removed from instructions[]",
+            "Unrelated instruction entries remain in their existing order",
+            "The resulting config remains valid JSON and is accepted by check mode"
           ]
         }
       ]

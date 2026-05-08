@@ -399,15 +399,19 @@ generate_concatenated_provider_prompts() {
       return 1
     fi
 
-    # Join canonical body + provider hint with double newline
-    python - "$canonical" "$hint_file" "$output_file" <<'PY'
+    # Join canonical body + ADV instruction body + provider hint with double newline.
+    # ADV_INSTRUCTIONS.md is scoped to ADV provider prompts here instead of
+    # global opencode.json instructions[] so non-ADV agents do not pay the
+    # protocol prompt cost.
+    python - "$canonical" "$ADV_INSTRUCTION_PATH" "$hint_file" "$output_file" <<'PY'
 from pathlib import Path
 import sys
 
-canonical_path, hint_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3]
+canonical_path, instructions_path, hint_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 canonical = Path(canonical_path).read_text().rstrip()
+instructions = Path(instructions_path).read_text().rstrip()
 hint = Path(hint_path).read_text().rstrip()
-Path(output_path).write_text(canonical + "\n\n" + hint + "\n")
+Path(output_path).write_text(canonical + "\n\n" + instructions + "\n\n" + hint + "\n")
 PY
 
     if [ $? -ne 0 ]; then
@@ -581,14 +585,15 @@ check_provider_prompt_parts() {
     fi
 
     # Regenerate-and-diff: compute expected content and compare
-    if [ -f "$PROVIDER_PROMPT_PARTS_DIR/adv.md" ] && [ -f "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" ]; then
+    if [ -f "$PROVIDER_PROMPT_PARTS_DIR/adv.md" ] && [ -f "$ADV_INSTRUCTION_PATH" ] && [ -f "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" ]; then
       local expected_content
-      expected_content="$(python - "$PROVIDER_PROMPT_PARTS_DIR/adv.md" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" <<'PY'
+      expected_content="$(python - "$PROVIDER_PROMPT_PARTS_DIR/adv.md" "$ADV_INSTRUCTION_PATH" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" <<'PY'
 from pathlib import Path
 import sys
 canonical = Path(sys.argv[1]).read_text().rstrip()
-hint = Path(sys.argv[2]).read_text().rstrip()
-print(canonical + "\n\n" + hint + "\n", end="")
+instructions = Path(sys.argv[2]).read_text().rstrip()
+hint = Path(sys.argv[3]).read_text().rstrip()
+print(canonical + "\n\n" + instructions + "\n\n" + hint + "\n", end="")
 PY
 )"
       local actual_content
@@ -804,13 +809,15 @@ check_config() {
     ((config_issues++)) || true
   fi
 
-  # Check instruction entry
+  # ADV_INSTRUCTIONS.md is scoped to generated ADV provider prompts. It should
+  # NOT be globally registered because global instructions load into every
+  # session, including non-ADV agents.
   if json_array_contains "$GLOBAL_JSON" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
-    echo "    ✓  instructions: ADV_INSTRUCTIONS.md registered"
-  else
-    echo "    ✗  instructions: ADV_INSTRUCTIONS.md missing from .instructions array"
-    echo "       Expected: \"$ADV_INSTRUCTION_PATH\""
+    echo "    ✗  instructions: ADV_INSTRUCTIONS.md should not be globally registered"
+    echo "       Remove: \"$ADV_INSTRUCTION_PATH\" (run --fix)"
     ((config_issues++)) || true
+  else
+    echo "    ✓  instructions: ADV_INSTRUCTIONS.md scoped to ADV provider prompts"
   fi
 
   # Warn about stale legacy consolidated-agent config keys
@@ -838,7 +845,7 @@ check_config() {
     '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $s1 or . == $s2)' \
     &>/dev/null; then
     echo "    ⚠  instructions: stale duplicate found at $stale_instr"
-    echo "       This wastes ~7K tokens per prompt. Run with --fix to remove."
+    echo "       This wastes ~17K tokens per prompt. Run with --fix to remove."
     ((config_issues++)) || true
   fi
 
@@ -874,10 +881,8 @@ fix_config() {
     GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
     echo '{}' | jq \
       --arg plugin "$ADV_PLUGIN_PATH" \
-      --arg instr "$ADV_INSTRUCTION_PATH" \
       '. + {
-        "plugin": [$plugin],
-        "instructions": [$instr]
+        "plugin": [$plugin]
       }' > "$GLOBAL_JSON"
     echo "    ✓  Created $GLOBAL_JSON with ADV entries"
     echo "       You will need to add other settings (mcp, provider, etc.) manually"
@@ -929,12 +934,13 @@ fix_config() {
     ((patched++)) || true
   fi
 
-  # Patch instructions array if needed
-  if ! json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
+  # Remove canonical ADV_INSTRUCTIONS.md from global instructions if present.
+  # The protocol body is embedded into generated ADV provider prompts instead.
+  if json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
     jq --arg instr "$ADV_INSTRUCTION_PATH" \
-      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) + [$instr] | unique)' \
+      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $instr)))' \
       "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-    echo "    ✓  Added instruction: $ADV_INSTRUCTION_PATH"
+    echo "    ✓  Removed global instruction: ADV_INSTRUCTIONS.md"
     ((patched++)) || true
   fi
 
