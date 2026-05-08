@@ -108,6 +108,18 @@ If unresolved actionable findings → emit HARDEN BLOCKED banner listing each wi
 
 If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
+### Contract Proof Audit
+
+If `change.contract` exists, verify `contract.reviewMatrix` before scanners run:
+
+1. Required contract items must each have a matrix row.
+2. No required row may remain `fail`, `violated`, or `unknown`.
+3. `not_applicable` rows require a rationale and must match the item's evidence policy.
+4. Matrix evidence must reference task verification, review finding resolution, static check output, or design proof.
+5. Matrix `reviewedAt` must not predate a substantive contract amendment.
+
+If the audit fails → emit HARDEN BLOCKED banner and stop. Required action: rerun `/adv-review {change-id}` or re-enter/amend the contract; do not archive with incomplete proof.
+
 ### Merge Compatibility Check
 
 Dry-run merge of change branch into default branch. Non-destructive — nothing committed.
@@ -173,6 +185,9 @@ AFFECTED FILES:
 ACCEPTANCE CRITERIA:
   - AC1: {text}
   - ...
+CONTRACT PROOF:
+  - contract.reviewMatrix: {passed}/{total} required rows passed/respected
+  - unresolved: {fail|violated|unknown rows}
 TASK EVIDENCE SUMMARY:
   - {task-id}: {title} | {status} | tdd: {phase}
   - ...

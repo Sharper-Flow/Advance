@@ -34,12 +34,26 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
 4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)
 5. `adv_investment_report changeId: {id}` → include investment summary in archive report (informational)
+6. If `change.contract` exists → run the Contract Proof Gate below before user signoff.
+
+### Contract Proof Gate
+
+Archive verifies proof completeness, not product semantics from scratch. If `change.contract` exists, inspect `contract.reviewMatrix` and block archive when:
+
+- Required contract item has no review matrix row.
+- Required row status is `fail`, `violated`, or `unknown`.
+- `not_applicable` row lacks rationale or contradicts the item's evidence policy.
+- Task refs contain unknown contract IDs.
+- Contract amendment/waiver/supersession lacks audit evidence.
+- Review matrix predates a substantive contract amendment.
+
+On pass, plan generation of `CONTRACT_TRACEABILITY.md` in the archive bundle with contract item IDs, task refs, matrix status, evidence summary, and amendment audit. On failure, stop before Phase 2 and direct the user to `/adv-review {change-id}` or contract re-entry/amendment.
 
 ---
 
 ## Phase 2: Archive Preview
 
-Display: change ID/title, task count, delta count per capability, affected spec files, docs to generate, archive location.
+Display: change ID/title, task count, delta count per capability, affected spec files, docs to generate, archive location, and `CONTRACT_TRACEABILITY.md` when a contract exists.
 
 ---
 
@@ -133,7 +147,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 ## Phase 6: Execute Archive
 
-`adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive.
+`adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes.
 
 When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on the change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
 

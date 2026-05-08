@@ -428,6 +428,30 @@ describe("thin-command shape enforcement", () => {
     expect(checklist).toContain("contract_refs");
   });
 
+  test("review, harden, and archive preserve contract proof flow", () => {
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+    const harden = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-harden.md"),
+      "utf8",
+    );
+    const archive = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-archive.md"),
+      "utf8",
+    );
+
+    expect(review).toContain("contractReviewMatrixSetSignal");
+    expect(review).toContain("contract.reviewMatrix");
+    expect(review).toContain("required contract item");
+    expect(harden).toContain("Contract Proof Audit");
+    expect(harden).toContain("contract.reviewMatrix");
+    expect(archive).toContain("Contract Proof Gate");
+    expect(archive).toContain("CONTRACT_TRACEABILITY.md");
+    expect(archive).toMatch(/fail.*violated.*unknown/s);
+  });
+
   test("harden and slop-scan retain shared adv-slop-detection skill reference", () => {
     const hardenContent = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-harden.md"),
