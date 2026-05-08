@@ -283,7 +283,7 @@ export function createToolMap(
     // Status Tool
     adv_status: bindTool(statusTools.adv_status, "adv_status", store),
 
-    // Investment Tools (addCostTimeInvestment)
+    // Investment Tools
     adv_investment_report: bindTool(
       investmentTools.adv_investment_report,
       "adv_investment_report",

@@ -789,7 +789,7 @@
     {
       "id": "rq-inlineApproval01",
       "title": "Inline Approval at Named Human Checkpoints",
-      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, investment check-in, judgment calls, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",
+      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",
       "priority": "must",
       "tags": ["voice", "checkpoints", "approval", "ux"],
       "scenarios": [
@@ -860,7 +860,7 @@
           "id": "rq-inlineApproval01.6",
           "title": "Non-checkpoint question uses unaffected",
           "given": [
-            "A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, investment check-in, judgment call, triage)"
+            "A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, triage)"
           ],
           "when": "The step executes",
           "then": [
@@ -1120,7 +1120,7 @@
       "title": "Size Alone Is Not Grounds for Split-Suggestion",
       "body": "Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Real concerns surface through the existing user-value tradeoff escape clause (rq-autonomy01.6 contract-compromise design pause) and the design Key Decisions surface.",
       "priority": "must",
-      "tags": ["workflow", "scope", "cost-governance", "autonomy"],
+      "tags": ["workflow", "scope", "autonomy"],
       "scenarios": [
         {
           "id": "rq-largeScopeValidity01.1",
@@ -1130,16 +1130,6 @@
           "then": [
             "The agent does not emit split-suggestions based on size, task count, or complexity alone",
             "Execution proceeds as planned"
-          ]
-        },
-        {
-          "id": "rq-largeScopeValidity01.2",
-          "title": "Size concerns route through cost-governance",
-          "given": ["Size-triggered concerns exist during execution"],
-          "when": "The agent evaluates how to surface concerns",
-          "then": [
-            "Concerns are routed through rq-autonomy01.6 contract-compromise design pause",
-            "No split-suggestion is made"
           ]
         },
         {

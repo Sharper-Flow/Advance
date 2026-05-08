@@ -1,5 +1,5 @@
 /**
- * Investment Report Tool (addCostTimeInvestment)
+ * Investment Report Tool
  *
  * Read-only, stateless tool returning a structured investment report
  * for a change. Used by:

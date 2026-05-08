@@ -94,7 +94,7 @@ describe("checkpoint surface drift", () => {
   );
 
   test("non-checkpoint question-tool uses are preserved", () => {
-    // Smoke test: change-id selection and judgment-call surfacing in
+    // Smoke test: change-id selection and AC clarification rounds in
     // adv-apply.md still use the question tool legitimately. This
     // ensures the conversion didn't accidentally migrate non-checkpoint
     // uses.

@@ -1,5 +1,5 @@
 /**
- * Investment Report Tool Tests (addCostTimeInvestment)
+ * Investment Report Tool Tests
  *
  * TDD tests for adv_investment_report — read-only, stateless tool
  * that returns a structured investment report for a change.

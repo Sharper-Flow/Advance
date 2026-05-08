@@ -1,14 +1,12 @@
 /**
- * Investment Check-In / Judgment-Surfacing Governance Types
+ * Investment Report Types (post-retirement)
  *
- * InvestmentReport.
+ * Slimmed type surface for `adv_investment_report`: just `InvestmentReport`.
+ * The full investment-governance surface (Phase J / Phase 1.5 / threshold tier /
+ * judgment_calls / cost-governance) was retired in retireinvestmentgovernancedead.
  */
 
 import { z } from "zod";
-
-// =============================================================================
-// Investment Check-In / Judgment-Surfacing Governance (addCostTimeInvestment)
-// =============================================================================
 
 /**
  * Structured investment report returned by `adv_investment_report`.
