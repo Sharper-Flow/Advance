@@ -61,7 +61,7 @@ import {
   parseWorktreePaths,
   type GuardDeps,
 } from "./tools/git-guard";
-import { execGit } from "./utils/git";
+import { execGit, getDefaultBranch } from "./utils/git";
 
 const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
 const MAX_PROMPT_DIFF_CHARS = 24_000;
@@ -498,6 +498,42 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
 
     if (toolName === "question") {
       setFlags({ permissionPending: true, sessionIdle: false });
+    }
+
+    // Git mutation guard: intercept bash commands containing git mutations
+    if (toolName === "bash" && store) {
+      const command = typeof args.command === "string" ? args.command : "";
+      if (command && /\bgit\b/.test(command)) {
+        const argsWorkdir =
+          typeof args.workdir === "string" ? args.workdir : undefined;
+        const deps: GuardDeps = {
+          getDefaultBranch: (cwd: string) => getDefaultBranch(cwd),
+          execGit: (gitArgs: string[], cwd: string) => execGit(gitArgs, cwd),
+          getWorktreePaths: async () => {
+            try {
+              const output = await execGit(
+                ["worktree", "list", "--porcelain"],
+                store!.paths.root,
+              );
+              return parseWorktreePaths(output);
+            } catch {
+              return [];
+            }
+          },
+          getProjectRoot: () => store!.paths.root,
+        };
+        const result = await checkBashCommand(command, argsWorkdir, deps);
+        if (result.decision === "BLOCK") {
+          throw new Error(
+            `Git mutation guard: ${result.reason ?? `Blocked git ${result.subcommand} command.`}`,
+          );
+        }
+        if (result.decision === "WARN") {
+          debugLog(
+            `git-guard WARN: ${result.reason ?? `Git ${result.subcommand} on unrecognized path.`}`,
+          );
+        }
+      }
     }
 
     handleLongRunningToolStart(toolName);
