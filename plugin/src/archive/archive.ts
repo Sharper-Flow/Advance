@@ -22,6 +22,175 @@ import {
   compactProjectWisdom,
 } from "../storage/project-wisdom";
 
+function contractTaskRefs(task: Change["tasks"][number]): string[] {
+  const refs = task.contract_refs;
+  if (!refs) return [];
+  return [
+    ...(refs.implements ?? []),
+    ...(refs.verifies ?? []),
+    ...(refs.respects ?? []),
+  ];
+}
+
+function isRequiredContractItem(
+  item: NonNullable<Change["contract"]>["items"][number],
+): boolean {
+  return (
+    item.verificationRequired !== false &&
+    item.status !== "waived" &&
+    item.status !== "superseded"
+  );
+}
+
+function hasAmendmentAudit(change: Change, contractId: string): boolean {
+  return (
+    change.contract?.amendments.some(
+      (amendment) =>
+        amendment.affectedIds.includes(contractId) &&
+        amendment.reason.trim().length > 0 &&
+        (amendment.approvalEvidence?.trim().length ?? 0) > 0,
+    ) ?? false
+  );
+}
+
+function matrixPredatesInvalidatingAmendment(change: Change): boolean {
+  const contract = change.contract;
+  if (!contract?.reviewMatrix) return false;
+  const reviewedAt = Date.parse(contract.reviewMatrix.reviewedAt);
+  if (Number.isNaN(reviewedAt)) return false;
+  return contract.amendments.some((amendment) => {
+    if (amendment.invalidatesReviewMatrix === false) return false;
+    const amendedAt = Date.parse(amendment.amendedAt);
+    return !Number.isNaN(amendedAt) && amendedAt > reviewedAt;
+  });
+}
+
+export function getArchiveContractProofErrors(change: Change): string[] {
+  const contract = change.contract;
+  if (!contract) return [];
+
+  const errors: string[] = [];
+  const contractIds = new Set(contract.items.map((item) => item.id));
+  const requiredItems = contract.items.filter(isRequiredContractItem);
+
+  for (const task of change.tasks) {
+    for (const ref of contractTaskRefs(task)) {
+      if (!contractIds.has(ref)) {
+        errors.push(
+          `Contract task ref unknown: task ${task.id} references ${ref}`,
+        );
+      }
+    }
+  }
+
+  for (const item of contract.items) {
+    if (["amended", "waived", "superseded"].includes(item.status)) {
+      if (!hasAmendmentAudit(change, item.id)) {
+        errors.push(`Contract amendment audit missing: ${item.id}`);
+      }
+    }
+  }
+
+  if (requiredItems.length > 0 && !contract.reviewMatrix) {
+    errors.push(
+      "Contract proof missing: change has required contract items but no review matrix",
+    );
+    return errors;
+  }
+
+  if (matrixPredatesInvalidatingAmendment(change)) {
+    errors.push(
+      "Contract proof stale: review matrix predates a substantive contract amendment",
+    );
+  }
+
+  const rowsById = new Map(
+    contract.reviewMatrix?.rows.map((row) => [row.contractId, row]) ?? [],
+  );
+
+  for (const row of contract.reviewMatrix?.rows ?? []) {
+    if (!contractIds.has(row.contractId)) {
+      errors.push(`Contract review ref unknown: ${row.contractId}`);
+    }
+  }
+
+  for (const item of requiredItems) {
+    const row = rowsById.get(item.id);
+    if (!row) {
+      errors.push(`Contract proof missing: ${item.id} has no review row`);
+      continue;
+    }
+    if (["fail", "violated", "unknown"].includes(row.status)) {
+      errors.push(
+        `Contract proof unresolved: ${item.id} has status "${row.status}"`,
+      );
+    }
+    if (
+      row.status === "not_applicable" &&
+      row.evidence.trim().length === 0 &&
+      (row.notes?.trim().length ?? 0) === 0
+    ) {
+      errors.push(`Contract proof rationale missing: ${item.id}`);
+    }
+  }
+
+  return errors;
+}
+
+export function generateContractTraceability(change: Change): string | null {
+  const contract = change.contract;
+  if (!contract) return null;
+
+  const rowsById = new Map(
+    contract.reviewMatrix?.rows.map((row) => [row.contractId, row]) ?? [],
+  );
+  const lines: string[] = [];
+
+  lines.push("# Contract Traceability");
+  lines.push("");
+  lines.push(`**Change ID:** ${change.id}`);
+  lines.push(`**Contract Version:** ${contract.version}`);
+  lines.push(`**Rigor:** ${contract.rigor}`);
+  lines.push(
+    `**Reviewed:** ${contract.reviewMatrix?.reviewedAt ?? "not reviewed"}`,
+  );
+  lines.push("");
+  lines.push("## Contract Items");
+  lines.push("");
+  lines.push("| ID | Kind | Status | Evidence Policy | Evidence |");
+  lines.push("| --- | --- | --- | --- | --- |");
+  for (const item of contract.items) {
+    const row = rowsById.get(item.id);
+    lines.push(
+      `| ${item.id} | ${item.kind} | ${row?.status ?? "missing"} | ${item.evidencePolicy} | ${row?.evidence ?? ""} |`,
+    );
+  }
+  lines.push("");
+  lines.push("## Task References");
+  lines.push("");
+  lines.push("| Task | Implements | Verifies | Respects | N/A Reason |");
+  lines.push("| --- | --- | --- | --- | --- |");
+  for (const task of change.tasks) {
+    const refs = task.contract_refs;
+    lines.push(
+      `| ${task.id} | ${refs?.implements?.join(", ") ?? ""} | ${refs?.verifies?.join(", ") ?? ""} | ${refs?.respects?.join(", ") ?? ""} | ${refs?.not_applicable_reason ?? ""} |`,
+    );
+  }
+  lines.push("");
+  if (contract.amendments.length > 0) {
+    lines.push("## Amendments");
+    lines.push("");
+    for (const amendment of contract.amendments) {
+      lines.push(
+        `- **${amendment.id}** (${amendment.amendedAt}) — ${amendment.reason}`,
+      );
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
 /**
  * Archive a change - applies deltas to specs and generates documentation.
  */
@@ -32,6 +201,22 @@ export async function archiveChange(
   const errors: string[] = [];
   const specsUpdated: SpecUpdateResult[] = [];
   const docsGenerated: string[] = [];
+
+  const contractProofErrors = getArchiveContractProofErrors(change);
+  if (contractProofErrors.length > 0) {
+    return {
+      success: false,
+      changeId: change.id,
+      specsUpdated,
+      docsGenerated,
+      archivePath: join(
+        paths.archive,
+        `${new Date().toISOString().split("T")[0]}-${change.id}`,
+      ),
+      errors: contractProofErrors,
+      archivedAt: new Date().toISOString(),
+    };
+  }
 
   // Process each capability's deltas
   for (const [capability, deltas] of Object.entries(change.deltas)) {
@@ -210,6 +395,14 @@ async function createArchive(
     const summary = generateArchiveSummary(change);
     await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
 
+    const traceability = generateContractTraceability(change);
+    if (traceability) {
+      await atomicWriteFile(
+        join(archivePath, "CONTRACT_TRACEABILITY.md"),
+        traceability,
+      );
+    }
+
     // Copy wisdom entries to archive if present
     if (change.wisdom && change.wisdom.length > 0) {
       await atomicWriteFile(
@@ -327,6 +520,14 @@ export async function createInRepoArchive(
   // Write archive summary
   const summary = generateArchiveSummary(change);
   await atomicWriteFile(join(archivePath, "ARCHIVE_SUMMARY.md"), summary);
+
+  const traceability = generateContractTraceability(change);
+  if (traceability) {
+    await atomicWriteFile(
+      join(archivePath, "CONTRACT_TRACEABILITY.md"),
+      traceability,
+    );
+  }
 
   // Copy wisdom entries to archive if present
   if (change.wisdom && change.wisdom.length > 0) {

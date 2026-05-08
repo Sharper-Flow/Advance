@@ -9,4 +9,6 @@ export {
   archiveChange,
   archiveBundleExists,
   findArchiveBundle,
+  generateContractTraceability,
+  getArchiveContractProofErrors,
 } from "./archive";
