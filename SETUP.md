@@ -1062,6 +1062,12 @@ New changes start directly in the 7-gate model.
 | `/adv-harden <id>`        | Release-stage quality hardening                                           |
 | `/adv-archive <id>`       | Archive completed change and apply spec deltas                            |
 
+**Shipping**
+
+| Command | Purpose                                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------------------- |
+| `/ship` | Commit, merge to main, quality-check, push, and deploy. ADV-aware: skips steps the release gate completed |
+
 **Fast-track and auxiliary**
 
 | Command                   | Purpose                                                                                                                            |

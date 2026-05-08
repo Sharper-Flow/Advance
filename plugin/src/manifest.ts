@@ -423,6 +423,16 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     prerequisites: [],
     successors: ["adv-proposal", "adv-task"],
   },
+  "adv-triage": {
+    name: "adv-triage",
+    description:
+      "Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md",
+    phase: "utility",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal", "adv-task"],
+    args_hint: "[--execute] [--no-commit] [--source <name>] [--rescore]",
+  },
 } as const satisfies Record<string, CommandDef>;
 
 // =============================================================================

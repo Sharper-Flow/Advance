@@ -107,6 +107,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-autopilot` | Execute a full change pipeline autonomously, delegating routine human checkpoints while preserving all safety boundaries.     |
 | `/adv-reflect`   | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
 
+
 ## Commands
 
 ### Core Workflow
@@ -143,6 +144,12 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-arch-scan [path]`   | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
 | `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence                       |
 
+### Shipping
+
+| Command | Purpose                                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------------------- |
+| `/ship` | Commit, merge to main, quality-check, push, and deploy. ADV-aware: skips steps the release gate completed |
+
 ### Fast-Track / Advanced
 
 | Command                     | Purpose                                                                                         |
@@ -151,6 +158,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-autopilot [target]`   | Delegate routine checkpoints to the agent, stop only on safety boundaries                       |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |
+| `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                     |
 | `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                               |
 | `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates        |
 
@@ -167,9 +175,11 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | review   | Review findings and acceptance evidence                                         | Archive, release, or expand scope silently                               | acceptance           |
 | archive  | Spec promotion, release readiness, cleanup                                      | Skip validation, conformance, or sign-off                                | release              |
 | reflect  | Reflection report (JSON + Markdown), friction analysis, improvement suggestions | Mutate change state, tasks, or gates; block archive when invoked from it | None                 |
+| ship     | Deploy to production (ADV-aware: skips steps release gate completed)            | Skip quality gate without `--force`; force-push; run before archive done | None (post-release)  |
 
 - Only `/adv-prep` (and exempt `/adv-task`) may call `adv_task_add`
 - `/adv-apply` stops if discovery or planning gates pending
+- `/ship` is a post-release command — runs after archive, handles deploy (the one step outside ADV's gate lifecycle). If release gate is complete, `/ship` detects the archived change and skips commit/merge/quality/push
 - Commands that own boundary-sensitive workflow steps should include `## Command Boundary` details
 
 ## Status Markers
@@ -596,6 +606,8 @@ Required categories (B/F/S/M) MUST have a coverage entry; optional MAY be omitte
 | 7. `release`    | `/adv-harden` + `/adv-archive`      |
 
 Gates are sequential. Archive blocks until release readiness is verified. See [docs/adv-gates.md](docs/adv-gates.md).
+
+**Post-release deploy:** `/ship` handles deployment (the one step outside ADV's gate lifecycle). If run after archive completes, `/ship` detects the archived change and skips commit/merge/quality/push — runs only deploy + optional changelog.
 
 <!-- rq-extConfGate01 --> When spec conformance is enabled, the archive flow runs an external CI conformance check at Phase 5.5 (between user sign-off and execute archive). DRIFT verdicts halt archive and present user options; no auto-resolve.
 
