@@ -162,6 +162,8 @@ describe("sync-global.sh", () => {
       expect(content).toContain("plugin: ADV plugin path missing");
     });
 
+    // rq-scopedAdvInstructions01: sync must scope ADV protocol body to ADV
+    // provider prompts and remove legacy global instruction registration.
     test("rejects ADV instruction in global .instructions array", () => {
       expect(content).toContain("ADV_INSTRUCTION_PATH=");
       expect(content).toContain(
@@ -220,7 +222,9 @@ describe("sync-global.sh", () => {
     });
 
     test("removes canonical and stale global ADV_INSTRUCTIONS.md from instructions array", () => {
-      expect(content).toContain("Removed global instruction: ADV_INSTRUCTIONS.md");
+      expect(content).toContain(
+        "Removed global instruction: ADV_INSTRUCTIONS.md",
+      );
       expect(content).toContain("Removed stale instruction:");
       expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
     });
