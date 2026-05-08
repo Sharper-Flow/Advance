@@ -1,6 +1,6 @@
-import { mkdir, writeFile, utimes } from "node:fs/promises";
+import { writeFile, utimes } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import {
@@ -8,6 +8,7 @@ import {
   computeCwdRelation,
   buildRecoveryHint,
   statMtimeIso,
+  probeGit,
   getPluginRuntimeInfo,
   type FreshnessVerdict,
   type CwdRelation,
@@ -195,7 +196,51 @@ describe("plugin-runtime-info helpers", () => {
   });
 });
 
+describe("probeGit", () => {
+  it("returns branch + sha for a real git repo", async () => {
+    // The plugin checkout is itself a git repo — probe it.
+    const result = await probeGit(process.cwd());
+    expect(typeof result.branch).toBe("string");
+    expect(result.branch!.length).toBeGreaterThan(0);
+    expect(typeof result.sha).toBe("string");
+    expect(result.sha!.length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("returns null/null for a non-git directory", async () => {
+    const tempDir = await createTempDir();
+    try {
+      const result = await probeGit(tempDir);
+      expect(result.branch).toBeNull();
+      expect(result.sha).toBeNull();
+    } finally {
+      await cleanupTempDir(tempDir);
+    }
+  });
+
+  it("returns null/null when git binary execution times out", async () => {
+    // Use a fake binary that we know won't respond — point at a path that
+    // doesn't exist. execFile should fail fast (ENOENT) but the contract
+    // is "any failure → both null".
+    const result = await probeGit("/nonexistent/path/with/no/git");
+    expect(result.branch).toBeNull();
+    expect(result.sha).toBeNull();
+  });
+
+  it("does not throw on any failure mode", async () => {
+    await expect(probeGit("/nonexistent")).resolves.toBeDefined();
+  });
+});
+
 describe("getPluginRuntimeInfo (integration)", () => {
+  it("populates plugin_checkout_branch + sha when running in a git repo", async () => {
+    const info = await getPluginRuntimeInfo();
+    // The worktree we run in is a real git repo, so probe succeeds.
+    expect(typeof info.plugin_checkout_branch).toBe("string");
+    expect(info.plugin_checkout_branch!.length).toBeGreaterThan(0);
+    expect(typeof info.plugin_checkout_head_sha).toBe("string");
+    expect(info.plugin_checkout_head_sha!.length).toBeGreaterThanOrEqual(7);
+  });
+
   it("returns full extended shape with all new fields present", async () => {
     const info: PluginRuntimeInfo = await getPluginRuntimeInfo();
     // existing fields

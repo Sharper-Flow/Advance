@@ -1,8 +1,13 @@
+import { execFile } from "node:child_process";
 import { readFile, stat } from "fs/promises";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { promisify } from "node:util";
 
 import { isPathInsideDirectory } from "./project-id";
+
+const execFileAsync = promisify(execFile);
+const GIT_PROBE_TIMEOUT_MS = 1000;
 
 const loadedModulePath = fileURLToPath(import.meta.url);
 const pluginRoot = resolve(dirname(loadedModulePath), "../..");
@@ -141,6 +146,40 @@ export function computeCwdRelation(
 }
 
 /**
+ * Probe git for the plugin checkout's branch + HEAD SHA. Returns `{ branch:
+ * null, sha: null }` on any failure mode (no git binary, not a repo, timeout,
+ * subprocess error). Bounded by `GIT_PROBE_TIMEOUT_MS` so a hung git process
+ * cannot block diagnostic surfaces.
+ *
+ * Pattern matches `execGit` in `utils/project-id.ts` but uses promisify for
+ * cleaner ergonomics inside an already-async caller.
+ */
+export async function probeGit(
+  cwd: string,
+): Promise<{ branch: string | null; sha: string | null }> {
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: "0" };
+  try {
+    const [branchResult, shaResult] = await Promise.all([
+      execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+        cwd,
+        timeout: GIT_PROBE_TIMEOUT_MS,
+        env,
+      }),
+      execFileAsync("git", ["rev-parse", "HEAD"], {
+        cwd,
+        timeout: GIT_PROBE_TIMEOUT_MS,
+        env,
+      }),
+    ]);
+    const branch = branchResult.stdout.toString().trim() || null;
+    const sha = shaResult.stdout.toString().trim() || null;
+    return { branch, sha };
+  } catch {
+    return { branch: null, sha: null };
+  }
+}
+
+/**
  * Synthesize a structured recovery hint per freshness verdict. Returns `null`
  * for `fresh`. Structured form (`{ action, commands[], paths }`) lets callers
  * render verbatim or extract individual commands programmatically.
@@ -213,9 +252,7 @@ export async function getPluginRuntimeInfo(
 
   const cwdRelation = computeCwdRelation(process.cwd(), pluginRoot);
 
-  // Git probe is added in T2; T1 leaves these as null.
-  const branch: string | null = null;
-  const headSha: string | null = null;
+  const { branch, sha: headSha } = await probeGit(pluginRoot);
 
   const recoveryHint = buildRecoveryHint(freshness, {
     pluginRoot,
