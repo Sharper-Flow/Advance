@@ -367,6 +367,9 @@ export function applyGateReenteredToState(
   state: ChangeWorkflowState,
   payload: GateReenteredSignalPayload,
 ): ChangeWorkflowState {
+  if (state.contract && payload.fromGateId !== "release") {
+    delete state.contract.reviewMatrix;
+  }
   reopenFromGateInChangeState(state, payload.fromGateId, {
     now: payload.reenteredAt,
     reason: payload.reason,
