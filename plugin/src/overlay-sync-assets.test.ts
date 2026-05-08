@@ -229,7 +229,7 @@ describe("overlay sync script support", () => {
       expect(patched.plugin).toContain(join(canonicalRoot, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
-      expect(patched.instructions).toContain(
+      expect(patched.instructions ?? []).not.toContain(
         join(canonicalRoot, "ADV_INSTRUCTIONS.md"),
       );
       expect(patched.instructions).not.toContain(
@@ -330,6 +330,10 @@ describe("overlay sync script support", () => {
         expect(variantContent, `adv-${p}.md missing canonical body`).toContain(
           "## ADV Overlay",
         );
+        expect(
+          variantContent,
+          `adv-${p}.md missing scoped ADV instructions`,
+        ).toContain("### TDD Protocol (RSTC)");
         expect(
           readFileSync(join(promptParts, "providers", `${p}.md`), "utf8"),
         ).toContain(`<!-- PROVIDER_HINT:${p} -->`);

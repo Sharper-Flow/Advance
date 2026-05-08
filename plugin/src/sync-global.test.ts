@@ -162,15 +162,19 @@ describe("sync-global.sh", () => {
       expect(content).toContain("plugin: ADV plugin path missing");
     });
 
-    test("checks for ADV instruction in .instructions array", () => {
+    test("rejects ADV instruction in global .instructions array", () => {
       expect(content).toContain("ADV_INSTRUCTION_PATH=");
-      expect(content).toContain("instructions: ADV_INSTRUCTIONS.md registered");
-      expect(content).toContain("instructions: ADV_INSTRUCTIONS.md missing");
+      expect(content).toContain(
+        "instructions: ADV_INSTRUCTIONS.md should not be globally registered",
+      );
+      expect(content).not.toContain(
+        "instructions: ADV_INSTRUCTIONS.md missing from .instructions array",
+      );
     });
 
     test("warns about stale duplicate ADV_INSTRUCTIONS.md in global instructions", () => {
       expect(content).toContain("stale duplicate found");
-      expect(content).toContain("wastes ~7K tokens");
+      expect(content).toContain("wastes ~17K tokens");
     });
 
     test("handles tilde-expanded paths in json_array_contains", () => {
@@ -196,7 +200,7 @@ describe("sync-global.sh", () => {
     test("creates minimal config when file is missing", () => {
       expect(content).toContain("Created");
       expect(content).toContain('"plugin": [$plugin]');
-      expect(content).toContain('"instructions": [$instr]');
+      expect(content).not.toContain('"instructions": [$instr]');
     });
 
     test("preserves existing entries via jq unique", () => {
@@ -215,7 +219,8 @@ describe("sync-global.sh", () => {
       expect(content).toContain('if type == "array" then . else [.] end');
     });
 
-    test("removes stale global ADV_INSTRUCTIONS.md from instructions array", () => {
+    test("removes canonical and stale global ADV_INSTRUCTIONS.md from instructions array", () => {
+      expect(content).toContain("Removed global instruction: ADV_INSTRUCTIONS.md");
       expect(content).toContain("Removed stale instruction:");
       expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
     });
@@ -397,7 +402,7 @@ describe("sync-global.sh", () => {
         "Replicates sync-global.sh concatenated prompt file",
       );
       expect(providerEval).toContain(
-        "return `${stripped}\\n\\n${hintContent}`",
+        "return `${stripped}\\n\\n${instructionsContent.trim()}\\n\\n${hintContent}`",
       );
       expect(providerEval).not.toContain("stripped.indexOf(endMarker)");
     });
