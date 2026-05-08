@@ -1,9 +1,8 @@
 /**
- * Asset tests for /adv-atc command.
+ * Asset tests for /adv-atc command and adv-atc agent.
  *
  * These tests verify structural properties of the atc command file,
- * sister command anchors that atc relies on, schema acceptance,
- * and spec requirement loadability.
+ * agent overlay, schema acceptance, and spec requirement loadability.
  */
 
 import { describe, expect, test } from "vitest";
@@ -13,9 +12,14 @@ import { ChangeSchema } from "../types";
 
 const REPO_ROOT = resolve(__dirname, "../../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
+const AGENT_DIR = join(REPO_ROOT, ".opencode/agents");
 
 function readCommand(name: string): string {
   return readFileSync(join(COMMAND_DIR, name), "utf8");
+}
+
+function readAgent(name: string): string {
+  return readFileSync(join(AGENT_DIR, name), "utf8");
 }
 
 interface SpecJson {
@@ -40,11 +44,9 @@ describe("adv-atc command file assets", () => {
     expect(content).toMatch(/manifest: adv-atc/);
   });
 
-  test("command file contains atc references", () => {
+  test("command file routes to adv-atc agent", () => {
     const content = readCommand("adv-atc.md");
-    expect(content).toContain("adv-atc");
-    expect(content).toContain("ROADMAP");
-    expect(content).toContain("HITL");
+    expect(content).toMatch(/agent:\s*adv-atc/);
   });
 
   test("command file contains invocation modes", () => {
@@ -58,6 +60,35 @@ describe("adv-atc command file assets", () => {
     const content = readCommand("adv-atc.md");
     expect(content).toContain("--limit");
     expect(content).toContain("--resume");
+  });
+});
+
+describe("adv-atc agent overlay assets", () => {
+  test("adv-atc.md agent file exists as primary agent", () => {
+    const content = readAgent("adv-atc.md");
+    expect(content).toMatch(/mode:\s*primary/);
+    expect(content).toMatch(/name:\s*adv-atc/);
+  });
+
+  test("agent contains HITL-defer structured comment markers", () => {
+    const content = readAgent("adv-atc.md");
+    expect(content).toContain("<!-- ADV_ATC_DEFERRED v1");
+    expect(content).toContain("<!-- ADV_ATC_RESPONSE v1");
+  });
+
+  test("agent contains must-not constraints", () => {
+    const content = readAgent("adv-atc.md");
+    expect(content).toMatch(/MUST NOT.*auto-approve.*HITL/i);
+    expect(content).toMatch(/MUST NOT.*bypass.*Tier B/i);
+    expect(content).toMatch(/MUST NOT.*auto-approve.*HITL/i);
+  });
+
+  test("agent does NOT have question tool in allowlist", () => {
+    const content = readAgent("adv-atc.md");
+    // Find the tools section and verify question is excluded
+    const toolsSection = content.match(/tools:([\s\S]*?)---/);
+    expect(toolsSection).toBeDefined();
+    expect(toolsSection![0]).toMatch(/question.*false|ATC never prompts inline/);
   });
 });
 
@@ -83,8 +114,10 @@ describe("sister-command anchor existence (drift detection)", () => {
   });
 });
 
-describe("ChangeSchema passthrough fields", () => {
-  test("accepts extra fields via passthrough", () => {
+describe("ChangeSchema no longer validates autopilot fields", () => {
+  test("schema accepts extra fields via passthrough (no autopilot validation)", () => {
+    // approval_mode and autopilot_invoked_at were removed — schema uses passthrough
+    // so they pass through as unknown extras without validation
     const result = ChangeSchema.parse({
       id: "test-change",
       title: "Test",
@@ -92,11 +125,10 @@ describe("ChangeSchema passthrough fields", () => {
       created_at: "2026-01-01T00:00:00.000Z",
       tasks: [],
       deltas: {},
-      approval_mode: "atc",
-      atc_invoked_at: "2026-04-28T22:00:00.000Z",
+      some_extra_field: "passthrough",
     });
-    expect(result.approval_mode).toBe("atc");
-    expect(result.atc_invoked_at).toBe("2026-04-28T22:00:00.000Z");
+    expect(result.id).toBe("test-change");
+    expect(result.some_extra_field).toBe("passthrough");
   });
 });
 
