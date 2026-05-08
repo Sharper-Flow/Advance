@@ -150,6 +150,7 @@ mechanisms introduced.
                 title: "Rejects over-limit requests",
                 given: ["rate limiter is configured at 100 req/min"],
                 when: "client sends 101st request within 1 minute",
+                // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
                 then: [
                   "response status is 429",
                   "Retry-After header is present",
@@ -160,7 +161,7 @@ mechanisms introduced.
                 title: "Allows under-limit requests",
                 given: ["rate limiter is configured at 100 req/min"],
                 when: "client sends 50th request within 1 minute",
-                then: ["response status is 200"],
+                then: ["response status is 200"], // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
               },
             ],
           },
