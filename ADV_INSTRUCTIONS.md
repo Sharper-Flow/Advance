@@ -635,31 +635,19 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 ### Sub-Agent Orchestration (optional, requires `task` tool)
 
-Available to agents with `task: true` in their frontmatter: `adv`, `build`, `plan`. Use when 3+ independent scan dimensions benefit from parallelism.
+Use for 3+ independent scan dimensions. Single-level only.
 
-| Command   | Inline                   | Sub-Agent                                      |
-| --------- | ------------------------ | ---------------------------------------------- |
-| research  | Context7 + Kagi + lgrep  | librarian + adv-researcher (single-level only) |
-| review    | Sequential per dimension | explore × 5 + librarian + general              |
-| harden    | Sequential scans         | explore × 6                                    |
-| audit     | Sequential pipeline      | explore × 4                                    |
-| slop-scan | Sequential categories    | explore × 9 (single-level only)                |
-| tron      | lgrep + read             | adv-tron agent                                 |
-| task      | Context7 + Kagi          | librarian + adv-researcher                     |
-| refactor  | Sequential drift         | explore × 3                                    |
+| Command | Inline | Sub-Agent |
+|---|---|---|
+| research/task | Context7 + Kagi + lgrep | librarian + adv-researcher |
+| review/harden/audit/slop-scan/refactor | Sequential scans | explore/general as command docs specify |
+| tron | lgrep + read | adv-tron |
 
-Rules:
+Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
 
-- Sub-agents × NEVER spawn sub-agents (`enforceTaskPolicy` blocks nesting)
-- Cap parallel bursts at `MAX_PARALLEL_SUBAGENTS` (runtime constant, currently 3)
-- Batch independent work into single spawn message
-- × Don't spawn for single-tool-call work
-- For `/adv-research`, `librarian`, `adv-researcher`, and `explore` fallback must do the research inline and must not delegate to additional research sub-agents
-- For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands
+Design gate requires mandatory independent validator (adv-researcher) before gate completion. Verdicts: VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE.
 
-Design gate requires mandatory independent validator (adv-researcher) before gate completion. See /adv-design command for verdict handling (VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE).
-
-Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`
+Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`.
 
 ### Delegation Routing
 
@@ -674,25 +662,21 @@ Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-
 
 <!-- rq-contextShed01 -->
 <!-- rq-contextShed02 -->
-Step 4.5 is the **Context-Shed Test** — a 4-question AND-conjunctive heuristic: (1) orchestrator already made design/architectural decisions for this task, (2) task's HOW does not feed into a downstream task's decisions, (3) acceptance criteria are fully defined before delegation, (4) task is mechanical implementation of a decided plan. Gated by floor: ~5 files touched OR ~50 lines changed. All four must pass AND floor must be met for `delegate_allowed`. Conservative bias: when uncertain, default to `inline_required`. Post-delegation, P23 campsite-rule scans within the touched scope still apply.
+Context-Shed Test = all four true + floor met (~5 files OR ~50 lines): decided HOW, HOW does not feed downstream decisions, AC defined, mechanical implementation. Unsure → `inline_required`. After delegation, P23 campsite scan touched scope.
 
-ADV code-writing delegation targets `adv-engineer` (not `general`). Verify-burst and non-ADV multi-step work remain on `general`.
+ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`.
 
 ### Context Packet Standards
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
 
-**WORKING DIRECTORY contract:** The `WORKING DIRECTORY` line is a required element of the Apply Context Packet. The `adv-engineer` agent is contractually obligated to extract it and pass it as `workdir` to every `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test` call. See `.opencode/agents/adv-engineer.md § Working Directory Lock`.
+`WORKING DIRECTORY` is required. `adv-engineer` must pass it as `workdir` to every `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test` call. See `.opencode/agents/adv-engineer.md § Working Directory Lock`.
 
-EXPECTED OUTPUT for delegated implementation: implement the task, run tests, emit a fenced `ENGINEER_REPORT` JSON block per `.opencode/agents/adv-engineer.md`.
+EXPECTED OUTPUT: implement, test, emit fenced `ENGINEER_REPORT` JSON per `.opencode/agents/adv-engineer.md`.
 
 #### ENGINEER_REPORT Payload
 
-Required top-level keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (with `what_ads_needs_to_know`, `suggested_next_action`).
-
-The `agent` field MUST be the literal string `"adv-engineer"` — matching the subagent filename in `.opencode/agents/adv-engineer.md`.
-
-Full schema and example: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
+Required keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (`what_ads_needs_to_know`, `suggested_next_action`). `agent` MUST equal `"adv-engineer"`. Full schema: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
 
 ### Structured Sub-Agent Prompt Protocol
 
@@ -710,30 +694,28 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 ### Agent Tiers
 
-| Tier                                           | Agents                                                       | Loading                             |
-| ---------------------------------------------- | ------------------------------------------------------------ | ----------------------------------- |
-| **Primary** (user-selectable top-level)        | `adv`, `plan`, `build`                                       | Global `~/.config/opencode/agents/` |
-| **Common subagents** (spawnable via Task tool) | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global `~/.config/opencode/agents/` |
-| **ADV Specialist** (spawnable, bundled global) | `adv-researcher`, `adv-engineer`                             | Global `~/.config/opencode/agents/` |
-| **Repo-Local** (spawnable, repo-scoped)        | `adv-tron`                                                   | Repo-local `.opencode/agents/`      |
+| Tier | Agents | Loading |
+|---|---|---|
+| Primary (user-selectable) | `adv`, `plan`, `build` | Global agents |
+| Common subagents | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global agents |
+| ADV specialists | `adv-researcher`, `adv-engineer` | Bundled global |
+| Repo-local | `adv-tron` | `.opencode/agents/` |
 
-> **Primary vs subagent:** Only `mode: subagent` agents are spawnable via the Task tool. `adv`, `plan`, and `build` are primary agents — users switch to them directly; they cannot be invoked through sub-agent spawning.
+Only `mode: subagent` agents spawn via Task. `adv`, `plan`, `build` are primary only.
 
 ### Agent Roster
 
-| Agent            | Use For                                                                                              | Tools                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `librarian`      | Docs, API refs, code examples                                                                        | Context7, `gh_grep_searchGitHub`, Kagi                          |
-| `adv-researcher` | Architecture validation, simplicity                                                                  | Context7, Kagi, ADV read-only                                   |
-| `explore`        | Codebase navigation, find usages                                                                     | Read, Glob, Grep, lgrep                                         |
-| `adv-engineer`   | Delegated ADV code-writing executor (Working Directory Lock: must pass `workdir` to every tool call) | Full write (read/write/edit/bash) + narrow ADV reads + evidence |
-| `general`        | Verify-only bursts + generic multi-step non-ADV work                                                 | Full tool access                                                |
-| `mechanic`       | System/infra issues (MCP, config, ADV diagnostics)                                                   | Vision, bash, read/write, ADV read-only diagnostics             |
-| `adv-tron`       | Reconnaissance, hotspot detection                                                                    | Read, Glob, Grep, lgrep                                         |
+| Agent | Use |
+|---|---|
+| `librarian` | Docs, API refs, examples |
+| `adv-researcher` | Architecture validation |
+| `explore` | Code navigation |
+| `adv-engineer` | Delegated ADV code-writing; must use packet `workdir` |
+| `general` | Verify bursts + generic multi-step work |
+| `mechanic` | MCP/config/ADV diagnostics |
+| `adv-tron` | Recon + hotspots |
 
-> **Note:** `adv-tron` is repo-local (requires `.opencode/agents/adv-tron.md`). `adv-researcher` / `adv-engineer` are bundled global specialists — synced to `~/.config/opencode/agents/` by `scripts/sync-global.sh`. All ADV-shipped sub-agents use `adv-<name>` naming.
-
-Orchestrator pattern: spawn `librarian` + `adv-researcher` in parallel → synthesize.
+`adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/sync-global.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
 
 ## Skill Discovery Protocol
 
@@ -747,15 +729,7 @@ Enabled in `/adv-research`. Filesystem-only, no API calls.
 | Trust   | × Never auto-load arbitrary `*/SKILL.md` outside trusted dirs without explicit user approval |
 | Degrade | Skip skills without frontmatter/`keywords`; no matches → proceed normally                    |
 
-Skill metadata:
-
-```yaml
----
-name: my-skill
-description: "What this skill provides"
-keywords: ["term1", "term2", "term3"]
----
-```
+Skill metadata: YAML frontmatter with `name`, `description`, `keywords`.
 
 ## Skill Creation Protocol
 
@@ -775,32 +749,7 @@ Enabled in `/adv-discover` and `/adv-research`. Conservative — only triggers f
 
 ### Assembly Template
 
-```yaml
----
-name: agent-{domain}
-description: "Auto-assembled guidance for {domain}"
-keywords: ["{domain}", "auto-generated"]
-metadata:
-  source: "agent-created"
-  review_status: "pending"
-  created_at: "{ISO-8601 timestamp}"
-  trigger_change: "{change-id that triggered creation}"
----
-
-# {Domain} Guidance
-
-## Purpose
-{Why this domain matters for the current change}
-
-## Key Patterns
-{2-5 domain-specific patterns or best practices from research}
-
-## Common Pitfalls
-{2-3 gotchas to avoid}
-
-## Sources
-{Citations from Context7, Kagi, `gh_grep_searchGitHub` research}
-```
+Create `agent-{domain}/SKILL.md` with YAML `name`, `description`, `keywords`, `metadata.source: "agent-created"`, `review_status: "pending"`, `created_at`, `trigger_change`, then Purpose / Key Patterns / Common Pitfalls / Sources.
 
 ### Creation Flow
 
@@ -824,52 +773,32 @@ Auto-created skills set `metadata.review_status: "pending"`. Next `/adv-discover
 
 ### Protocol Extension Note
 
-Extends Skill Discovery Protocol's "No matches → proceed normally" — when all trigger conditions are met, "no matches" becomes a conditional creation trigger instead of a terminal state. Non-implementing agents still conform by reporting the gap and proceeding.
+When all trigger conditions are true, "no matches" → conditional creation trigger. Non-implementing agents report gap and proceed.
 
 ## Command vs Skill Boundaries
 
-Commands and skills serve different roles. Use this table to decide where new functionality belongs:
+Commands own workflow/state. Skills hold reusable read-only methodology.
 
-| Use a **command** when                    | Use a **skill** when                           |
-| ----------------------------------------- | ---------------------------------------------- |
-| User-facing workflow entry point          | Reusable methodology or analysis protocol      |
-| Mutates ADV state (changes, tasks, gates) | Read-only guidance or checklist framework      |
-| Owns a gate completion                    | Loaded by multiple commands or sub-agents      |
-| Requires explicit user invocation         | Domain knowledge independent of workflow state |
+| Command | Skill |
+|---|---|
+| User-facing entry point | Reusable protocol |
+| Mutates ADV state | Read-only guidance |
+| Owns gate completion | Loaded by commands/sub-agents |
+| Explicit invocation | Domain knowledge |
 
 ### Reference Pattern
 
-`adv-tron` is the canonical example of a command backed by a skill:
-
-- **Command** (`.opencode/command/adv-tron.md`) — owns orchestration, sub-agent spawning, ADV state reads, user interaction
-- **Skill** (`skills/adv-tron/SKILL.md`) — holds investigation protocol, search priorities, evidence requirements, report schema
-- **Fallback** — command includes embedded protocol if skill is unavailable
-
-Commands that fan out to sub-agents with reusable methodology should follow this pattern: load the skill before spawning workers, pass condensed guidance, fall back to embedded protocol if the skill is missing.
+`adv-tron` pattern: command (`.opencode/command/adv-tron.md`) owns orchestration/state/user interaction; skill (`skills/adv-tron/SKILL.md`) owns protocol/search/report schema; command embeds fallback if skill missing. Fan-out commands should load skill before spawning and keep inline fallback is required.
 
 ### Classification
 
-**Command-only** (no fixed skill load; may reference skill-discovery protocol):
-`adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-cleanup`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit`
-
-**Command + dedicated backing skill** (loads a single-purpose skill with inline fallback):
-
-- `adv-tron` → `adv-tron` skill
-
-**Command + shared/cross-cutting skill** (loads a reusable methodology skill also used by other commands):
-
-- `adv-harden` → `adv-slop-detection` (Phase 0: AI-slop scanner methodology)
-- `adv-slop-scan` → `adv-slop-detection` (Phase 0: two-phase detection strategy)
-
-**Command with embedded methodology** (inlined `## Phase 0: Embedded Methodology` block; may also load a cross-cutting skill):
-
-- `adv-discover` — dynamic skill discovery + embedded methodology
-- `adv-review` — methodology inlined in `.opencode/command/adv-review.md` Phase 0
-
-**Dynamic skill discovery** (no fixed backing skill; scans and loads matching skills at runtime):
-
-- `adv-discover` — loads skills matching change domain via `skill("{name}")`
-- `adv-research` — references skill discovery protocol; may load matching skills
+| Class | Commands |
+|---|---|
+| Command-only | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-cleanup`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit` |
+| Dedicated skill | `adv-tron` → `adv-tron` |
+| Shared skill | `adv-harden`, `adv-slop-scan` → `adv-slop-detection` |
+| Embedded methodology | `adv-discover`, `adv-review` |
+| Dynamic discovery | `adv-discover`, `adv-research` |
 
 > **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
 
@@ -882,37 +811,23 @@ Commands that fan out to sub-agents with reusable methodology should follow this
 
 ## Worktree Integration
 
-ADV uses external mutable state — all worktrees share changes, archive, wisdom, agenda, reflections, and Temporal workflow state. Specs remain in-repo (`.adv/specs/`). `db_dir` / physical `db/` directories are legacy compatibility only.
+ADV uses external mutable state shared by worktrees. Specs stay in repo (`.adv/specs/`). `db_dir` / physical `db/` dirs are legacy only.
 
 ### External State
 
-Location: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (project-id = root commit SHA).
-
-```
-{project-id}/
-├── changes/     # Active proposals
-├── archive/     # Completed
-├── wisdom.jsonl      # Learnings
-├── reflections.jsonl # Post-completion reflection reports
-└── agenda.jsonl      # Work queue
-```
-
-ADV worktrees live at `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Cleanup tools report leaked external artifacts in dry-run mode first; deletion requires explicit approval. Worker-lock lifecycle artifacts are excluded from generic cleanup.
+State: `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/` (`changes/`, `archive/`, `wisdom.jsonl`, `reflections.jsonl`, `agenda.jsonl`). Worktrees: `$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}`. Cleanup deletion requires approval.
 
 ### Worktree Policy
 
-ADV always isolates mutating work in per-change worktrees. There are no exemptions or conditional skip paths.
+ADV always isolates mutating work in per-change worktrees.
 
-- Every change must run in a worktree — create or reuse before Phase 1
-- When worktree tools are unavailable → hard block with error. Do not proceed in-place
-- Existing worktree for same change → auto-reuse (see Worktree Reuse below)
+- Every change runs in a worktree — create/reuse before Phase 1
+- Worktree tools unavailable → hard block with error. Do not proceed in-place
+- Existing worktree for same change → auto-reuse
 
 ### Worktree Reuse
 
-Before creating: `git worktree list --porcelain` → find `change/{change-id}` branch.
-
-- Path exists → auto-reuse (switch `workdir`)
-- Path missing → `git worktree prune` → proceed fresh
+Before creating: `git worktree list --porcelain` → find `change/{change-id}`. Path exists → reuse; missing → `git worktree prune` → fresh.
 
 ### Spec Divergence
 
@@ -921,18 +836,18 @@ Before creating: `git worktree list --porcelain` → find `change/{change-id}` b
 | Specs (`.adv/specs/`)            | In-repo, git-tracked | No (branch-local)         |
 | Changes, archive, wisdom, agenda | External             | Yes (keyed by project-id) |
 
-Implication: spec changes in worktree A invisible to B until merged. `/adv-validate` and `/adv-audit` in B may see stale specs. Mitigation: merge promptly after archive (Phase 9 handles this).
+Spec changes in worktree A invisible to B until merged; merge promptly after archive.
 
 ### Inline Worktree Protocol
 
-1. `adv_worktree_create` → capture returned worktree path
-2. **Immediately** set `workdir` to the worktree path for ALL subsequent tool calls
-3. Continue inline — no handoff, no new terminal, no navigation hints needed
-4. When deleting, pass `branch` arg to `adv_worktree_delete` (required in inline mode)
+1. `adv_worktree_create` → capture path
+2. Immediately use worktree path as `workdir` for ALL later tools
+3. Continue inline
+4. Delete via `adv_worktree_delete branch:<branch>` only after merge
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → choose `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → remove `.bak`/`.tmp`/`.orig`. × Never delete worktree with unmerged commits. If worktree tools are unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → temp cleanup. × Never delete worktree with unmerged commits. If tools unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 
