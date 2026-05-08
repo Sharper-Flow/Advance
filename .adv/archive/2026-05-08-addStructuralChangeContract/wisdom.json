@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-YVXH6W",
+      "type": "gotcha",
+      "content": "After ADV worktree creation, apply_patch without an absolute worktree path edits the original session cwd/main checkout, not the worktree. Use absolute worktree paths for apply_patch when current session cwd remains main.",
+      "source_task": "tk-bcba71004c05",
+      "recorded_at": "2026-05-08T21:25:29.224Z"
+    },
+    {
+      "id": "ws-TsWWrm",
+      "type": "pattern",
+      "content": "Contract validation should stay stage-tolerant: validate structural refs and failing provided proof in validateChange, but defer missing review-matrix hard-blocking to archive/review phases so prep/execution validations do not block before review exists.",
+      "source_task": "tk-460f21dd86f5",
+      "recorded_at": "2026-05-08T21:37:40.608Z"
+    }
+  ],
+  "count": 2
+}

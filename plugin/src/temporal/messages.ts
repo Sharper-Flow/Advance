@@ -25,6 +25,9 @@ import type {
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
   ConformanceVerdictSignalPayload,
+  ContractAmendedSignalPayload,
+  ContractReviewMatrixSetSignalPayload,
+  ContractSetSignalPayload,
   DesignUpdatedSignalPayload,
   GateAwaitingApprovalSignalPayload,
   GateCompletedSignalPayload,
@@ -127,6 +130,15 @@ export const designUpdatedSignal = wf.defineSignal<
 export const acceptanceCriteriaSetSignal = wf.defineSignal<
   [AcceptanceCriteriaSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);
+export const contractSetSignal = wf.defineSignal<[ContractSetSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.contractSet,
+);
+export const contractAmendedSignal = wf.defineSignal<
+  [ContractAmendedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.contractAmended);
+export const contractReviewMatrixSetSignal = wf.defineSignal<
+  [ContractReviewMatrixSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.contractReviewMatrixSet);
 export const taskAddedSignal = wf.defineSignal<[TaskAddedSignalPayload]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.taskAdded,
 );

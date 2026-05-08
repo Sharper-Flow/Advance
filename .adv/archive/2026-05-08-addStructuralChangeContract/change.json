@@ -1,0 +1,345 @@
+{
+  "id": "addStructuralChangeContract",
+  "title": "Add structural change-contract traceability",
+  "status": "archived",
+  "created_at": "2026-05-08T21:09:29.511Z",
+  "tasks": [
+    {
+      "id": "tk-bcba71004c05",
+      "title": "Define contract schemas and workflow-safe types",
+      "type": "code",
+      "section": "Schema foundation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T21:20:08.449Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:21:51.863Z",
+      "verification": "Completed with checkpoint 0c9505bb221080ff158c1a1a9fae6cdbf9946351.",
+      "summary": "Added typed contract schemas for ChangeContract, ContractItem, evidence policies/statuses, review matrix rows, amendments, and TaskContractRefs. Added optional `contract` to ChangeSchema and optional `contract_refs` to TaskSchema. Exported schemas/types from barrel. Added schema tests.",
+      "implementation_summary": "Added typed contract schemas for ChangeContract, ContractItem, evidence policies/statuses, review matrix rows, amendments, and TaskContractRefs. Added optional `contract` to ChangeSchema and optional `contract_refs` to TaskSchema. Exported schemas/types from barrel. Added schema tests.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:25:21.166Z",
+      "completed_at": "2026-05-08T21:25:21.166Z"
+    },
+    {
+      "id": "tk-c30b72a29fc3",
+      "title": "Add contract workflow signals and state mutators",
+      "type": "code",
+      "section": "Workflow state",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T21:20:13.518Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bcba71004c05"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:25:41.095Z",
+      "verification": "Completed with checkpoint 795131192b46634b39bd7f8252abe4ccee38a525.",
+      "summary": "Added contractSet, contractAmended, and contractReviewMatrixSet signal names, payload schemas, client/workflow bindings, workflow-state field, seed/continue-as-new persistence, and pure state mutators. Contract set derives legacy acceptanceCriteria projection from AC contract items. Added signal/message tests covering contract state, review matrix, amendments, and lastSignalAt behavior.",
+      "implementation_summary": "Added contractSet, contractAmended, and contractReviewMatrixSet signal names, payload schemas, client/workflow bindings, workflow-state field, seed/continue-as-new persistence, and pure state mutators. Contract set derives legacy acceptanceCriteria projection from AC contract items. Added signal/message tests covering contract state, review matrix, amendments, and lastSignalAt behavior.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:34:18.750Z",
+      "completed_at": "2026-05-08T21:34:18.750Z"
+    },
+    {
+      "id": "tk-460f21dd86f5",
+      "title": "Implement contract validation in change validation path",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T21:20:18.604Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bcba71004c05"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:34:28.523Z",
+      "verification": "Completed with checkpoint ec7dac6fb9349a60976f958c712b5088b1a34f78.",
+      "summary": "Added runContractChecks and integrated it into completeness validation. Checks include duplicate contract IDs, unknown task refs, missing refs on standard/strict code tasks, uncovered required AC items, unknown review refs, missing/failing proof rows, and legacy acceptanceCriteria projection drift. Added validation codes and targeted tests.",
+      "implementation_summary": "Added runContractChecks and integrated it into completeness validation. Checks include duplicate contract IDs, unknown task refs, missing refs on standard/strict code tasks, uncovered required AC items, unknown review refs, missing/failing proof rows, and legacy acceptanceCriteria projection drift. Added validation codes and targeted tests.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:37:33.435Z",
+      "completed_at": "2026-05-08T21:37:33.435Z"
+    },
+    {
+      "id": "tk-ebaae65f6298",
+      "title": "Update discover and prep workflows for contract minting and task refs",
+      "type": "code",
+      "section": "Workflow contracts",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T21:20:23.938Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bcba71004c05"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-460f21dd86f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:39:06.317Z",
+      "verification": "Checkpoint 6f5684e9f6620812feee87eaebd8ced3c4e6294a created after red/green and incremental verification.",
+      "summary": "Updated /adv-discover to mint a typed ChangeContract from approved agreement items before discovery gate completion, including SC/AC/C/DONT/OOS ID rules and acceptanceCriteria projection handling. Updated /adv-prep and prep checklist to require contract_refs during task synthesis when change.contract exists. Added asset tests for discover contract minting and prep task refs. Formatted previously unformatted contract files reported by check.",
+      "implementation_summary": "Updated /adv-discover to mint a typed ChangeContract from approved agreement items before discovery gate completion, including SC/AC/C/DONT/OOS ID rules and acceptanceCriteria projection handling. Updated /adv-prep and prep checklist to require contract_refs during task synthesis when change.contract exists. Added asset tests for discover contract minting and prep task refs. Formatted previously unformatted contract files reported by check.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:44:03.308Z",
+      "completed_at": "2026-05-08T21:44:03.308Z"
+    },
+    {
+      "id": "tk-4e5e0972ac81",
+      "title": "Update review, harden, and archive workflows for contract proof",
+      "type": "code",
+      "section": "Workflow contracts",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-08T21:20:30.078Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-460f21dd86f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:44:19.655Z",
+      "verification": "Checkpoint 88d102564edb6e791b674820e31a8fe28f7609e3 created after red/green and incremental verification.",
+      "summary": "Updated /adv-review to include contract items in review packets and persist contract.reviewMatrix through the contractReviewMatrixSetSignal-backed path before acceptance. Updated /adv-harden to audit contract.reviewMatrix before release scanners. Updated /adv-archive with a Contract Proof Gate and CONTRACT_TRACEABILITY.md archive output expectations. Added asset coverage for the review→harden→archive contract proof flow.",
+      "implementation_summary": "Updated /adv-review to include contract items in review packets and persist contract.reviewMatrix through the contractReviewMatrixSetSignal-backed path before acceptance. Updated /adv-harden to audit contract.reviewMatrix before release scanners. Updated /adv-archive with a Contract Proof Gate and CONTRACT_TRACEABILITY.md archive output expectations. Added asset coverage for the review→harden→archive contract proof flow.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:46:50.334Z",
+      "completed_at": "2026-05-08T21:46:50.334Z"
+    },
+    {
+      "id": "tk-ea38d9001302",
+      "title": "Implement archive contract traceability artifact and archive blocking",
+      "type": "code",
+      "section": "Archive enforcement",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-08T21:20:35.387Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c30b72a29fc3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-460f21dd86f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:47:02.638Z",
+      "verification": "Checkpoint 82a9d65c85d85880f0e7311ada956ef9b0282d55 created after red/green and incremental verification.",
+      "summary": "Added archive contract proof enforcement and traceability output. Archive now blocks proven-contract changes with missing/stale/unresolved review-matrix proof, unknown task/review refs, or missing amendment audit evidence. Archive bundles now include CONTRACT_TRACEABILITY.md for changes with contracts, and adv_change_archive performs proof checks before existing-bundle recovery. Added archive tests for missing proof, unresolved status, traceability markdown generation, archive output, plus tool test verification.",
+      "implementation_summary": "Added archive contract proof enforcement and traceability output. Archive now blocks proven-contract changes with missing/stale/unresolved review-matrix proof, unknown task/review refs, or missing amendment audit evidence. Archive bundles now include CONTRACT_TRACEABILITY.md for changes with contracts, and adv_change_archive performs proof checks before existing-bundle recovery. Added archive tests for missing proof, unresolved status, traceability markdown generation, archive output, plus tool test verification.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:54:06.690Z",
+      "completed_at": "2026-05-08T21:54:06.690Z"
+    },
+    {
+      "id": "tk-1667255dab51",
+      "title": "Implement re-entry and amendment invalidation behavior",
+      "type": "code",
+      "section": "Amendment and re-entry",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-08T21:20:40.451Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c30b72a29fc3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-460f21dd86f5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:54:21.485Z",
+      "verification": "Checkpoint 74ca14fed588fca1e1525678e9ff23b933af52d2 created after red/green and incremental verification.",
+      "summary": "Added contract proof invalidation on gate re-entry before release: if a contract has a review matrix and the change re-enters discovery/design/planning/execution/acceptance, the matrix is cleared so stale proof cannot survive downstream reset. Added pure mutation coverage showing substantive contract amendment invalidates matrix and execution re-entry clears refreshed proof. Verified workflow signal handlers still pass.",
+      "implementation_summary": "Added contract proof invalidation on gate re-entry before release: if a contract has a review matrix and the change re-enters discovery/design/planning/execution/acceptance, the matrix is cleared so stale proof cannot survive downstream reset. Added pure mutation coverage showing substantive contract amendment invalidates matrix and execution re-entry clears refreshed proof. Verified workflow signal handlers still pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T21:57:47.558Z",
+      "completed_at": "2026-05-08T21:57:47.558Z"
+    },
+    {
+      "id": "tk-c380916a5a80",
+      "title": "Update specs and durable documentation for contract spine",
+      "type": "code",
+      "section": "Specs and docs",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-08T21:20:45.705Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ebaae65f6298"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4e5e0972ac81"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:58:05.720Z",
+      "verification": "Checkpoint 7939dc600ef9857aaa67070958663dffe1faf875 created after red/green and incremental verification.",
+      "summary": "Added structural contract traceability requirements to advance-workflow and archive contract proof gate requirements to advance-delivery, including JSON specs and durable docs/specs mirrors. Added asset coverage that asserts spec IDs and docs are wired. Verified command asset tests, pnpm run check, and spec citation invariant.",
+      "implementation_summary": "Added structural contract traceability requirements to advance-workflow and archive contract proof gate requirements to advance-delivery, including JSON specs and durable docs/specs mirrors. Added asset coverage that asserts spec IDs and docs are wired. Verified command asset tests, pnpm run check, and spec citation invariant.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T22:01:58.395Z",
+      "completed_at": "2026-05-08T22:01:58.395Z"
+    },
+    {
+      "id": "tk-aa6caaa047a3",
+      "title": "Run final end-to-end verification for contract spine",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-08T21:20:52.341Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ea38d9001302"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1667255dab51"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c380916a5a80"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-08T21:21:30.943Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T22:02:11.743Z",
+      "verification": "Final verification completed. Checkpoint returned clean at 7939dc600ef9857aaa67070958663dffe1faf875; no new commit needed.",
+      "summary": "Ran final end-to-end verification for structural contract spine. `pnpm test`, `pnpm run check`, and `pnpm run build` all passed from plugin/. `adv_change_validate strict: true` passed with warnings only: NO_DELTAS and PROPOSAL_TASK_DRIFT for scaffold proposal Intent/Scope sections.",
+      "implementation_summary": "Ran final end-to-end verification for structural contract spine. `pnpm test`, `pnpm run check`, and `pnpm run build` all passed from plugin/. `adv_change_validate strict: true` passed with warnings only: NO_DELTAS and PROPOSAL_TASK_DRIFT for scaffold proposal Intent/Scope sections.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T22:04:11.201Z",
+      "completed_at": "2026-05-08T22:04:11.201Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-YVXH6W",
+      "type": "gotcha",
+      "content": "After ADV worktree creation, apply_patch without an absolute worktree path edits the original session cwd/main checkout, not the worktree. Use absolute worktree paths for apply_patch when current session cwd remains main.",
+      "source_task": "tk-bcba71004c05",
+      "recorded_at": "2026-05-08T21:25:29.224Z"
+    },
+    {
+      "id": "ws-TsWWrm",
+      "type": "pattern",
+      "content": "Contract validation should stay stage-tolerant: validate structural refs and failing provided proof in validateChange, but defer missing review-matrix hard-blocking to archive/review phases so prep/execution validations do not block before review exists.",
+      "source_task": "tk-460f21dd86f5",
+      "recorded_at": "2026-05-08T21:37:40.608Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:10:22.561Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved proposal/problem framing with reply `approve`; proceed to discovery/research for complete idea planning."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:14:59.986Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved discovery agreement with reply `approve`. Agreement persisted with objectives, AC1-AC7, constraints/avoidances, initial design direction, and open design questions."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:19:52.831Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design validator returned CAUTION, not CONFLICT. Required specificity items were incorporated: acceptanceCriteria projection rule, signal payloads, re-entry/amendment invalidation, file placement, review matrix construction, archive validation layer. No user-value/product tradeoff or contract-compromise risk remains; design can proceed to prep."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:21:37.824Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep/task graph with reply `approve`. Task graph contains 9 tasks covering schemas, workflow signals/state, validation, command workflows, archive enforcement, re-entry/amendment invalidation, specs/docs, and final verification. Final verification task reclassified to separate_verification with user approval."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:04:23.193Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Execution complete: all 9 tasks done. Verification passed: pnpm test, pnpm run check, pnpm run build. adv_change_validate strict passed with warnings only (NO_DELTAS, scaffold proposal drift). Worktree clean at 7939dc600ef9857aaa67070958663dffe1faf875."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:09:23.088Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Review verdict approved: all tasks completed, verification passed (pnpm test, pnpm run check, pnpm run build), no blocking review findings remain."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T22:54:42.097Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User signed off archive with reply `sign off`. Release readiness verified: all tasks done, all prior gates complete, strict validation passed with warnings only, full tests/check/build passed, conformance status has no required specs."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/99"
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-08T21:10:19.230Z"
+    }
+  ]
+}

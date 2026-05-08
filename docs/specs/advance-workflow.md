@@ -1,6 +1,6 @@
 # Advance Workflow
 
-> **Version:** 1.5.0
+> **Version:** 1.6.0
 > **Updated:** 2026-05-08
 
 ## Purpose
@@ -436,6 +436,66 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 **Then:**
 - The orchestrator pauses for human input before proceeding
 - The design approval checkpoint is triggered regardless of whether user-value tradeoffs exist
+
+---
+
+### Structural Change-Contract Traceability
+
+**ID:** `rq-contractTrace01` | **Priority:** **[MUST]**
+
+ADV changes with an approved agreement may carry a typed `change.contract` spine. Once minted, `contract.items` are the source of truth for success criteria, acceptance criteria, constraints, avoidances, and out-of-scope boundaries. Command workflows MUST project the typed contract into human-facing agreement/review/archive surfaces while preserving structured task refs and proof state.
+
+**Tags:** `workflow`, `contract`, `traceability`, `acceptance`
+
+#### Scenarios
+
+**Discovery mints typed contract from approved agreement** (`rq-contractTrace01.1`)
+
+**Given:**
+- The user has approved acceptance criteria during /adv-discover
+- The change will use structural contract traceability
+
+**When:** The discovery gate is completed
+
+**Then:**
+- The workflow persists a typed ChangeContract before completing discovery
+- Contract item IDs distinguish SC, AC, C, DONT, and OOS obligations
+- Legacy acceptanceCriteria is a projection of AC contract items
+
+**Prep connects tasks to contract items** (`rq-contractTrace01.2`)
+
+**Given:**
+- A change has change.contract set
+
+**When:** /adv-prep synthesizes or updates the task graph
+
+**Then:**
+- Tasks that implement obligations carry contract_refs.implements
+- Tasks that prove obligations carry contract_refs.verifies
+- Tasks that preserve constraints, avoidances, or out-of-scope boundaries carry contract_refs.respects or a not_applicable_reason
+
+**Review persists bounded proof matrix** (`rq-contractTrace01.3`)
+
+**Given:**
+- A change with change.contract reaches /adv-review
+
+**When:** Acceptance evidence is prepared
+
+**Then:**
+- /adv-review persists contract.reviewMatrix before acceptance sign-off
+- Each required contract item has a bounded evidence row
+- Failing, violated, unknown, or missing required proof blocks acceptance until fixed or formally amended
+
+**Re-entry invalidates stale contract proof** (`rq-contractTrace01.4`)
+
+**Given:**
+- A change has contract.reviewMatrix evidence
+
+**When:** The change re-enters a gate before release or receives a substantive contract amendment
+
+**Then:**
+- The stale review matrix is cleared or invalidated
+- Fresh proof is required before acceptance/archive can proceed
 
 ---
 

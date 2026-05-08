@@ -50,7 +50,11 @@ import {
   removeChangeDir,
   loadChange,
 } from "../storage/json";
-import { archiveChange, findArchiveBundle } from "../archive";
+import {
+  archiveChange,
+  findArchiveBundle,
+  getArchiveContractProofErrors,
+} from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
   formatValidationOutput,
@@ -1925,6 +1929,15 @@ export const changeTools = {
             message: e.message,
             path: e.path,
           })),
+          changeId,
+        });
+      }
+
+      const contractProofErrors = getArchiveContractProofErrors(change);
+      if (contractProofErrors.length > 0) {
+        return formatToolOutput({
+          error: `Archive blocked: ${contractProofErrors.length} contract proof error(s). Fix proof and retry.`,
+          contractProofErrors,
           changeId,
         });
       }

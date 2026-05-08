@@ -8,6 +8,7 @@ import type { Change } from "../types";
 import type { ValidationIssue } from "./types";
 import { ValidationCodes } from "./types";
 import { getTaskTddCompliance } from "./task-classifier";
+import { runContractChecks } from "./contract";
 
 /**
  * Check if change has tasks defined
@@ -218,6 +219,7 @@ export function runCompletenessChecks(change: Change): ValidationIssue[] {
   issues.push(...checkScenarioCompleteness(change));
   issues.push(...checkIdFormats(change));
   issues.push(...checkTddCompliance(change));
+  issues.push(...runContractChecks(change));
 
   return issues;
 }

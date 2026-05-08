@@ -88,7 +88,7 @@ Read gate state from the included snapshot or inspect `gates` field on the respo
 
 **Step 4:** Verify target-project contribution workflow used ADV tools with `target_path`: target reads via `snapshot-ok`, target mutations via `temporal-required`, and untrusted mutations include `target_confirmed` plus `confirmationEvidence`.
 ### Extract Context
-From change data: affected files, spec scenarios, task completion evidence.
+From change data: affected files, spec scenarios, task completion evidence, and `change.contract` if present.
 ### Worktree Context
 `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Critical in worktrees — sub-agents inherit default project root, not worktree path.
 
@@ -146,6 +146,9 @@ AFFECTED FILES:
   - ...
 ACCEPTANCE CRITERIA:
   - AC1: {text}
+  - ...
+CONTRACT ITEMS:
+  - {id}: {kind} | {evidencePolicy} | {text}
   - ...
 TASK EVIDENCE SUMMARY:
   - {task-id}: {title} | {status} | tdd: {phase}
@@ -237,6 +240,23 @@ After remediation fixes are applied, re-verify affected dimensions before recomp
 <!-- rq-touchedScope01 -->
 ### Report
 Emit final CODE REVIEW banner: verdict, per-dimension summaries, numbered review comments (label, file:line, what, why, fix), positive notes, fixes applied with verification status.
+
+### Contract Review Matrix
+
+If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off via the `contractReviewMatrixSetSignal`-backed mutation path.
+
+Rules:
+
+- Create one row per required contract item.
+- Use task verification, review findings, static checks, and design proof as evidence.
+- Status values: `pass`, `fail`, `respected`, `violated`, `unknown`, `not_applicable`.
+- `AC*` rows must be `pass` or `not_applicable` with rationale before acceptance.
+- `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
+- Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
+- Keep evidence bounded and structured; do not paste raw logs into the matrix.
+
+The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
+
 ### Emit REVIEW_FINDINGS Block
 Always emit regardless of verdict:
 ```

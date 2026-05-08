@@ -20,6 +20,9 @@ import {
   applyConformanceLockedToState,
   applyConformanceOverriddenToState,
   applyConformanceVerdictToState,
+  applyContractAmendedToState,
+  applyContractReviewMatrixSetToState,
+  applyContractSetToState,
   applyDesignUpdatedToState,
   applyGateAwaitingApprovalToState,
   applyGateCompletedToState,
@@ -161,6 +164,15 @@ const designUpdatedSignal = wf.defineSignal<
 const acceptanceCriteriaSetSignal = wf.defineSignal<
   [import("../types").AcceptanceCriteriaSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);
+const contractSetSignal = wf.defineSignal<
+  [import("../types").ContractSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.contractSet);
+const contractAmendedSignal = wf.defineSignal<
+  [import("../types").ContractAmendedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.contractAmended);
+const contractReviewMatrixSetSignal = wf.defineSignal<
+  [import("../types").ContractReviewMatrixSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.contractReviewMatrixSet);
 const taskAddedSignal = wf.defineSignal<
   [import("../types").TaskAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskAdded);
@@ -418,6 +430,9 @@ export async function changeWorkflow(
     if (input.seedState.acceptanceCriteria) {
       state.acceptanceCriteria = input.seedState.acceptanceCriteria;
     }
+    if (input.seedState.contract) {
+      state.contract = input.seedState.contract;
+    }
     if (input.seedState.documents) state.documents = input.seedState.documents;
     if (input.seedState.reflections) {
       state.reflections = input.seedState.reflections;
@@ -612,6 +627,24 @@ export async function changeWorkflow(
     acceptanceCriteriaSetSignal,
     signalMutation("acceptanceCriteriaSet", (payload) =>
       applyAcceptanceCriteriaSetToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    contractSetSignal,
+    signalMutation("contractSet", (payload) =>
+      applyContractSetToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    contractAmendedSignal,
+    signalMutation("contractAmended", (payload) =>
+      applyContractAmendedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    contractReviewMatrixSetSignal,
+    signalMutation("contractReviewMatrixSet", (payload) =>
+      applyContractReviewMatrixSetToState(state, payload),
     ),
   );
   wf.setHandler(
@@ -920,6 +953,7 @@ export async function changeWorkflow(
       pendingCheckpoint: state.pendingCheckpoint,
       terminated: state.terminated,
       acceptanceCriteria: state.acceptanceCriteria,
+      contract: state.contract,
       documents: state.documents,
       reflections: state.reflections,
       worktrees: state.worktrees,

@@ -1,4 +1,9 @@
-import type { ChangeClosure, FastFollowOf, Gates } from "../types";
+import type {
+  ChangeClosure,
+  ChangeContract,
+  FastFollowOf,
+  Gates,
+} from "../types";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
@@ -40,6 +45,9 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   agreementUpdated: "adv.change.agreementUpdated",
   designUpdated: "adv.change.designUpdated",
   acceptanceCriteriaSet: "adv.change.acceptanceCriteriaSet",
+  contractSet: "adv.change.contractSet",
+  contractAmended: "adv.change.contractAmended",
+  contractReviewMatrixSet: "adv.change.contractReviewMatrixSet",
   taskAdded: "adv.change.taskAdded",
   taskUpdated: "adv.change.taskUpdated",
   taskRemoved: "adv.change.taskRemoved",
@@ -140,6 +148,7 @@ export interface ChangeWorkflowInput {
       | "pendingCheckpoint"
       | "terminated"
       | "acceptanceCriteria"
+      | "contract"
       | "documents"
       | "reflections"
       | "worktrees"
@@ -175,6 +184,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   pendingCheckpoint?: boolean;
   terminated?: boolean;
   acceptanceCriteria?: string[];
+  contract?: ChangeContract;
   documents?: {
     proposal?: string;
     problemStatement?: string;

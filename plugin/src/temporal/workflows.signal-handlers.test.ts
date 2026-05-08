@@ -16,6 +16,9 @@ import {
   conformanceLockedSignal,
   conformanceOverriddenSignal,
   conformanceVerdictSignal,
+  contractAmendedSignal,
+  contractReviewMatrixSetSignal,
+  contractSetSignal,
   designUpdatedSignal,
   gateAwaitingApprovalSignal,
   gateCompletedSignal,
@@ -127,6 +130,29 @@ describe("changeWorkflow signal handlers", () => {
         criteria: ["SC1", "SC2"],
         setBy: "tester",
         setAt: "2026-05-05T00:00:05.000Z",
+      });
+      await handle.signal(contractSetSignal, {
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-05-05T00:00:06.000Z",
+          },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Contract state is persisted.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          amendments: [],
+        },
+        updatedAt: "2026-05-05T00:00:06.000Z",
       });
 
       await handle.signal(taskAddedSignal, {
@@ -243,6 +269,34 @@ describe("changeWorkflow signal handlers", () => {
         reVerifyDeadline: "2026-05-06",
         overriddenAt: "2026-05-05T00:03:06.000Z",
       });
+      await handle.signal(contractReviewMatrixSetSignal, {
+        reviewMatrix: {
+          reviewedAt: "2026-05-05T00:03:07.000Z",
+          rows: [
+            {
+              contractId: "AC1",
+              kind: "acceptance_criterion",
+              status: "pass",
+              evidencePolicy: "test",
+              evidence: "workflow signal test",
+            },
+          ],
+        },
+        updatedAt: "2026-05-05T00:03:07.000Z",
+      });
+      await handle.signal(contractAmendedSignal, {
+        amendments: [
+          {
+            id: "am-1",
+            actor: "tester",
+            reason: "clarified wording without changing intent",
+            amendedAt: "2026-05-05T00:03:08.000Z",
+            affectedIds: ["AC1"],
+            invalidatesReviewMatrix: false,
+          },
+        ],
+        updatedAt: "2026-05-05T00:03:08.000Z",
+      });
 
       const state = await queryState(handle);
       expect(state.documents).toEqual({
@@ -251,7 +305,17 @@ describe("changeWorkflow signal handlers", () => {
         agreement: "agreement text",
         design: "design text",
       });
-      expect(state.acceptanceCriteria).toEqual(["SC1", "SC2"]);
+      expect(state.acceptanceCriteria).toEqual([
+        "Contract state is persisted.",
+      ]);
+      expect(state.contract).toMatchObject({
+        rigor: "standard",
+        items: [{ id: "AC1" }],
+        reviewMatrix: {
+          rows: [{ contractId: "AC1", status: "pass" }],
+        },
+        amendments: [{ id: "am-1" }],
+      });
       expect(state.tasks.map((task) => task.id)).toEqual([
         "tk-added",
         "tk-updated",
@@ -319,7 +383,7 @@ describe("changeWorkflow signal handlers", () => {
           },
         ],
       });
-      expect(state.lastSignalAt).toBe("2026-05-05T00:03:06.000Z");
+      expect(state.lastSignalAt).toBe("2026-05-05T00:03:08.000Z");
     });
   }, 30_000);
 

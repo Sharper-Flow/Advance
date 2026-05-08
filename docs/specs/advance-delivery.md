@@ -1,7 +1,7 @@
 # Advance Delivery
 
-> **Version:** 1.2.0
-> **Updated:** 2026-05-03
+> **Version:** 1.3.2
+> **Updated:** 2026-05-08
 
 ## Purpose
 
@@ -565,5 +565,62 @@ Checkpoint commits are local rollback/audit points only. Publication, merge, and
 - `/adv-archive` runs Phase 9 Git Finalization as the publication path
 - Worktree cleanup is blocked until the branch is merged or the archive process completes
 - The user MUST explicitly approve archive sign-off
+
+---
+
+### Archive Contract Proof Gate
+
+**ID:** `rq-contractArchiveProof01` | **Priority:** **[MUST]**
+
+When a change has `change.contract`, archive MUST verify structural contract proof before bundle creation or existing-bundle recovery. Archive checks proof completeness rather than re-reviewing product semantics. Passing contract archives include `CONTRACT_TRACEABILITY.md` in the archive bundle.
+
+**Tags:** `archive`, `contract`, `traceability`, `validation`
+
+#### Scenarios
+
+**Missing review matrix blocks archive** (`rq-contractArchiveProof01.1`)
+
+**Given:**
+- A change has change.contract with required contract items
+- contract.reviewMatrix is absent
+
+**When:** adv_change_archive is invoked
+
+**Then:**
+- The archive is rejected with a contract proof error
+- No archive bundle is written
+
+**Unresolved proof status blocks archive** (`rq-contractArchiveProof01.2`)
+
+**Given:**
+- A required contract item has a review matrix row
+
+**When:** The row status is fail, violated, or unknown
+
+**Then:**
+- adv_change_archive rejects the archive
+- The response identifies contract proof errors for remediation
+
+**Passing proof writes traceability artifact** (`rq-contractArchiveProof01.3`)
+
+**Given:**
+- All required contract items have passing, respected, or justified not_applicable proof rows
+
+**When:** adv_change_archive creates the archive bundle
+
+**Then:**
+- The bundle includes CONTRACT_TRACEABILITY.md
+- The artifact lists contract item IDs, task refs, proof status, evidence, and amendment audit entries
+
+**Existing bundle retry does not bypass proof gate** (`rq-contractArchiveProof01.4`)
+
+**Given:**
+- An archive bundle already exists on disk for a non-archived change
+
+**When:** adv_change_archive is retried
+
+**Then:**
+- Contract proof validation runs before existing-bundle recovery
+- A stale or incomplete proof state still blocks the retry
 
 ---

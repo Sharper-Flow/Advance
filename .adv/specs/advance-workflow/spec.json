@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.5.0",
-  "updated_at": "2026-05-07T01:35:00.000Z",
+  "version": "1.6.0",
+  "updated_at": "2026-05-08T22:54:42.097Z",
   "requirements": [
     {
       "id": "rq-R3v13wR1",
@@ -466,6 +466,61 @@
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-contractTrace01",
+      "title": "Structural Change-Contract Traceability",
+      "body": "ADV changes with an approved agreement may carry a typed change.contract spine. Once minted, contract.items are the source of truth for success criteria, acceptance criteria, constraints, avoidances, and out-of-scope boundaries. Command workflows MUST project the typed contract into human-facing agreement/review/archive surfaces while preserving structured task refs and proof state.",
+      "priority": "must",
+      "tags": ["workflow", "contract", "traceability", "acceptance"],
+      "scenarios": [
+        {
+          "id": "rq-contractTrace01.1",
+          "title": "Discovery mints typed contract from approved agreement",
+          "given": [
+            "The user has approved acceptance criteria during /adv-discover",
+            "The change will use structural contract traceability"
+          ],
+          "when": "The discovery gate is completed",
+          "then": [
+            "The workflow persists a typed ChangeContract before completing discovery",
+            "Contract item IDs distinguish SC, AC, C, DONT, and OOS obligations",
+            "Legacy acceptanceCriteria is a projection of AC contract items"
+          ]
+        },
+        {
+          "id": "rq-contractTrace01.2",
+          "title": "Prep connects tasks to contract items",
+          "given": ["A change has change.contract set"],
+          "when": "/adv-prep synthesizes or updates the task graph",
+          "then": [
+            "Tasks that implement obligations carry contract_refs.implements",
+            "Tasks that prove obligations carry contract_refs.verifies",
+            "Tasks that preserve constraints, avoidances, or out-of-scope boundaries carry contract_refs.respects or a not_applicable_reason"
+          ]
+        },
+        {
+          "id": "rq-contractTrace01.3",
+          "title": "Review persists bounded proof matrix",
+          "given": ["A change with change.contract reaches /adv-review"],
+          "when": "Acceptance evidence is prepared",
+          "then": [
+            "/adv-review persists contract.reviewMatrix before acceptance sign-off",
+            "Each required contract item has a bounded evidence row",
+            "Failing, violated, unknown, or missing required proof blocks acceptance until fixed or formally amended"
+          ]
+        },
+        {
+          "id": "rq-contractTrace01.4",
+          "title": "Re-entry invalidates stale contract proof",
+          "given": ["A change has contract.reviewMatrix evidence"],
+          "when": "The change re-enters a gate before release or receives a substantive contract amendment",
+          "then": [
+            "The stale review matrix is cleared or invalidated",
+            "Fresh proof is required before acceptance/archive can proceed"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-remediation01",

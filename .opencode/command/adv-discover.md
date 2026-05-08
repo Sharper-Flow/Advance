@@ -12,7 +12,7 @@ Gather the current-state evidence needed to move from proposal into a shared agr
 
 ## Command Boundary
 
-**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement, and `agreement.md`.
+**Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement, `agreement.md`, and the typed `ChangeContract` spine minted from approved agreement items.
 
 **× MUST NOT:** Create tasks, complete non-discovery gates, skip LBP validation when multiple viable directions exist.
 
@@ -447,6 +447,25 @@ Suggested structure:
 - **Agent Decisions (LBP)** — technical questions resolved autonomously
 - **Deferred Questions** — only questions the user explicitly chose to defer
 - × Do NOT include a generic "Open Questions" section
+
+### Contract Minting
+
+After Phase 4.5.1 AC approval and before completing the `discovery` gate, mint the typed contract from the approved agreement and persist it through the `contractSetSignal`-backed change mutation path.
+
+Contract rules:
+
+- Source of truth after minting: `ChangeContract.items`.
+- Legacy `acceptanceCriteria` remains only a backward-compatible projection from `AC*` contract items.
+- Mint stable IDs from the approved agreement text:
+  - `SC1..n` — success criteria / desired outcomes.
+  - `AC1..n` — approved acceptance criteria.
+  - `C1..n` — constraints.
+  - `DONT1..n` — rejected approaches / explicit avoidances.
+  - `OOS1..n` — out-of-scope boundaries.
+- Set `sourceArtifact: "agreement"` for initial items.
+- Choose evidence policy by item kind: `AC*` usually `test`; `C*` `test`/`static_check`/`review`; `DONT*` and `OOS*` `static_check`/`review`/`design_proof` unless an executable test is meaningful.
+
+Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or the projected `acceptanceCriteria` would drift from the approved `AC*` items.
 
 ---
 ## Phase 5: Complete Gate

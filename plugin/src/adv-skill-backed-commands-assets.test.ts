@@ -266,6 +266,38 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");
   });
+
+  test("structural contract traceability specs and docs are wired", () => {
+    const workflowSpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+        "utf8",
+      ),
+    ) as { requirements: Array<{ id: string }> };
+    const deliverySpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-delivery/spec.json"),
+        "utf8",
+      ),
+    ) as { requirements: Array<{ id: string }> };
+    const workflowDoc = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-workflow.md"),
+      "utf8",
+    );
+    const deliveryDoc = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-delivery.md"),
+      "utf8",
+    );
+
+    expect(workflowSpec.requirements.map((rq) => rq.id)).toContain(
+      "rq-contractTrace01",
+    );
+    expect(deliverySpec.requirements.map((rq) => rq.id)).toContain(
+      "rq-contractArchiveProof01",
+    );
+    expect(workflowDoc).toContain("Structural Change-Contract Traceability");
+    expect(deliveryDoc).toContain("Archive Contract Proof Gate");
+  });
 });
 
 describe("thin-command shape enforcement", () => {
@@ -392,6 +424,64 @@ describe("thin-command shape enforcement", () => {
     expect(content).toMatch(
       /Stop if discovery or design gates are incomplete/i,
     );
+  });
+
+  test("adv-discover mints typed contract items from approved agreement", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+      "utf8",
+    );
+
+    expect(content).toContain("contractSetSignal");
+    expect(content).toContain("ChangeContract");
+    expect(content).toContain("SC1..n");
+    expect(content).toContain("AC1..n");
+    expect(content).toContain("DONT1..n");
+    expect(content).toContain("OOS1..n");
+    expect(content).toMatch(/acceptanceCriteria.*projection/i);
+  });
+
+  test("adv-prep requires contract refs when synthesizing tasks", () => {
+    const command = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+    const checklist = readFileSync(
+      join(REPO_ROOT, "docs/checklists/prep-checklist.md"),
+      "utf8",
+    );
+
+    expect(command).toContain("contract_refs");
+    expect(command).toContain("implements");
+    expect(command).toContain("verifies");
+    expect(command).toContain("respects");
+    expect(command).toContain("not_applicable_reason");
+    expect(checklist).toContain("Contract Traceability");
+    expect(checklist).toContain("contract_refs");
+  });
+
+  test("review, harden, and archive preserve contract proof flow", () => {
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+    const harden = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-harden.md"),
+      "utf8",
+    );
+    const archive = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-archive.md"),
+      "utf8",
+    );
+
+    expect(review).toContain("contractReviewMatrixSetSignal");
+    expect(review).toContain("contract.reviewMatrix");
+    expect(review).toContain("required contract item");
+    expect(harden).toContain("Contract Proof Audit");
+    expect(harden).toContain("contract.reviewMatrix");
+    expect(archive).toContain("Contract Proof Gate");
+    expect(archive).toContain("CONTRACT_TRACEABILITY.md");
+    expect(archive).toMatch(/fail.*violated.*unknown/s);
   });
 
   test("harden and slop-scan retain shared adv-slop-detection skill reference", () => {
