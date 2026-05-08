@@ -380,7 +380,9 @@ export const gateTools = {
       completedBy: z
         .string()
         .optional()
-        .describe("Who completed the gate (default: agent)"),
+        .describe(
+          "Who completed the gate (default: agent). Values matching `user` or starting with `user:` are treated as human actors with explicit authority and bypass the manifest-driven boundary check; agent values are validated against the command manifest's gate ownership.",
+        ),
       userApproved: z
         .boolean()
         .optional()
@@ -604,10 +606,14 @@ export const gateTools = {
  * Uses the manifest scope.gates field to determine which commands own which gates.
  * This is advisory (warning) not blocking — the gate still completes.
  */
-function validateGateBoundary(
+export function validateGateBoundary(
   gateId: GateId,
   completedBy: string,
 ): string | undefined {
+  if (completedBy === "user" || completedBy.startsWith("user:")) {
+    return undefined;
+  }
+
   // Find all commands that claim this gate in their scope
   const authorizedCommands: string[] = [];
   for (const [name, def] of Object.entries(COMMAND_MANIFEST)) {

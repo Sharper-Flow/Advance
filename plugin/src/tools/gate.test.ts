@@ -7,7 +7,8 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { gateTools } from "./gate";
+import { COMMAND_MANIFEST } from "../manifest";
+import { gateTools, validateGateBoundary } from "./gate";
 import type { Store } from "../storage/store";
 
 const mocks = vi.hoisted(() => {
@@ -400,5 +401,39 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed.error).toContain("task(s) not done or cancelled");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("validateGateBoundary", () => {
+  test("adv-task manifest declares all gates it completes", () => {
+    expect(COMMAND_MANIFEST["adv-task"].scope?.gates).toEqual([
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+    ]);
+  });
+
+  test("skips boundary warning for explicit user actor", () => {
+    expect(validateGateBoundary("proposal", "user")).toBeUndefined();
+  });
+
+  test("skips boundary warning for user-prefixed actor", () => {
+    expect(validateGateBoundary("proposal", "user:cli")).toBeUndefined();
+  });
+
+  test("allows authorized command actor", () => {
+    expect(validateGateBoundary("proposal", "adv-proposal")).toBeUndefined();
+  });
+
+  test("warns for unauthorized command actor", () => {
+    const warning = validateGateBoundary("proposal", "adv-prep");
+
+    expect(warning).toContain("adv-proposal");
+    expect(warning).toContain("adv-prep");
+  });
+
+  test("allows adv-task to complete proposal gate", () => {
+    expect(validateGateBoundary("proposal", "adv-task")).toBeUndefined();
   });
 });
