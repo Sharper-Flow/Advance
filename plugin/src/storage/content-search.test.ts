@@ -87,26 +87,38 @@ describe("filterChanges", () => {
 
   it("filters by titleContains (case-insensitive)", () => {
     const r = filterChanges(changes, { titleContains: "auth" });
-    expect(r.map((c) => c.id).sort()).toEqual(["addUserAuth", "fixAuthBug"]);
+    expect(r.map((c) => c.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      "addUserAuth",
+      "fixAuthBug",
+    ]);
   });
 
   it("filters by prefix (case-insensitive)", () => {
     const r = filterChanges(changes, { prefix: "add" });
-    expect(r.map((c) => c.id).sort()).toEqual(["addPayments", "addUserAuth"]);
+    expect(r.map((c) => c.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      "addPayments",
+      "addUserAuth",
+    ]);
   });
 
   it("filters by createdBefore", () => {
     const r = filterChanges(changes, {
       createdBefore: "2026-04-22T00:00:00.000Z",
     });
-    expect(r.map((c) => c.id).sort()).toEqual(["addPayments", "addUserAuth"]);
+    expect(r.map((c) => c.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      "addPayments",
+      "addUserAuth",
+    ]);
   });
 
   it("filters by lastActivityBefore", () => {
     const r = filterChanges(changes, {
       lastActivityBefore: "2026-04-23T00:00:00.000Z",
     });
-    expect(r.map((c) => c.id).sort()).toEqual(["addPayments", "addUserAuth"]);
+    expect(r.map((c) => c.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      "addPayments",
+      "addUserAuth",
+    ]);
   });
 
   it("AND-combines multiple filters", () => {

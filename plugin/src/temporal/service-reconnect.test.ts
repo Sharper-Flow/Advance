@@ -249,7 +249,6 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
     let getHandleCallCount = 0;
     let lastObservedClient: unknown = null;
 
-    const originalConn = mocks.connection;
     const originalClient = mocks.client as { workflow?: object };
     originalClient.workflow = {
       getHandle: vi.fn((_id: string) => {
@@ -307,7 +306,6 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
     expect(getStslStats().reconnectCount).toBe(1);
     // Cleanup so we don't pollute other tests in this file.
     delete originalClient.workflow;
-    void originalConn;
   });
 
   it("two parallel ops each get their own per-op idempotent hook", async () => {

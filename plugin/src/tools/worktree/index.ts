@@ -1845,9 +1845,11 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               case "SETUP_FAILED":
                 return `Failed to create worktree: setup failed for ${createResult.branch} at ${createResult.path}. ${createResult.reason}`;
               default: {
+                // Exhaustiveness check — TS errors here if a new variant
+                // is added to AdvWorktreeCreateResult without updating
+                // this switch.
                 const _exhaustive: never = createResult;
-                void _exhaustive;
-                return "Failed to create worktree: unknown error";
+                return `Failed to create worktree: unknown error (${String(_exhaustive)})`;
               }
             }
           }

@@ -87,7 +87,9 @@ export async function createMeshIssuesForArchive(
 }
 
 function getMeshCapability(change: Change): string {
-  const capabilities = Object.keys(change.deltas).sort();
+  const capabilities = Object.keys(change.deltas).sort((a, b) =>
+    a.localeCompare(b),
+  );
   return capabilities[0] ?? "agent-mesh";
 }
 

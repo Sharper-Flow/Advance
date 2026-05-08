@@ -117,7 +117,11 @@ export async function getProjectIdFromGit(
       ["rev-list", "--max-parents=0", "HEAD"],
       directory,
     );
-    const roots = sha.trim().split("\n").filter(Boolean).sort();
+    const roots = sha
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
     const trimmed = roots[0]; // Sort for determinism when multiple roots exist
     if (/^[0-9a-f]{40}$/.test(trimmed)) {
       return trimmed;

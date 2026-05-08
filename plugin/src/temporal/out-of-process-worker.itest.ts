@@ -24,7 +24,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import {
   createTestWorkflowEnvironment,
@@ -218,8 +218,6 @@ if (!canRun) {
   );
 }
 
-// Avoid unused-var lint on beforeAll/afterAll imports — they're exported for
-// symmetry with the in-process itest pattern but not needed here because
-// withTestWorkflowEnvironment handles lifecycle internally.
-void beforeAll;
-void afterAll;
+// beforeAll/afterAll are intentionally not imported here; the in-process
+// itest pattern uses them, but withTestWorkflowEnvironment owns lifecycle
+// in this file.

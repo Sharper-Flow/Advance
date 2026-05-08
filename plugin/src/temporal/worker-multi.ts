@@ -545,7 +545,9 @@ export async function createMultiWorker(
         childExitCode: child?.exitCode ?? null,
         childPid: child?.pid ?? null,
         childRunning: Boolean(child && child.exitCode === null),
-        pendingRegistrations: [...pendingRegistrations.keys()].sort(),
+          pendingRegistrations: [...pendingRegistrations.keys()].sort((a, b) =>
+            a.localeCompare(b),
+          ),
         registerErrors: [...registerErrors]
           .map(([queue, message]) => ({ queue, message }))
           .sort((a, b) => a.queue.localeCompare(b.queue)),

@@ -191,11 +191,11 @@ export function buildChangeSearchAttributes(
   const worktreeBranches = activeWorktrees
     .map((worktree) => worktree.branch)
     .filter((branch): branch is string => branch.trim().length > 0)
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
   const worktreePaths = activeWorktrees
     .map((worktree) => worktree.path)
     .filter((path): path is string => Boolean(path?.trim()))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
   if (worktreeBranches.length > 0) attrs.AdvWorktreeBranches = worktreeBranches;
   if (worktreePaths.length > 0) attrs.AdvWorktreePaths = worktreePaths;
 

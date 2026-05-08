@@ -74,7 +74,7 @@ function listCommandFiles(): string[] {
   }
   return entries
     .filter((f) => f.startsWith("adv-") && f.endsWith(".md"))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
 }
 
 /**

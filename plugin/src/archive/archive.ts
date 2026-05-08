@@ -153,11 +153,10 @@ export async function archiveChange(
   if (paths.inRepoArchive && !dryRun) {
     try {
       await createInRepoArchive(change, paths.inRepoArchive, sourceChangeDir);
-    } catch (err) {
+    } catch {
       // In-repo failure is warning-only — do NOT add to errors array
-      // to avoid failing the overall archive operation.
-      // Logged for diagnostic purposes only.
-      void err; // intentionally swallowed
+      // to avoid failing the overall archive operation. Error binding is
+      // intentionally omitted; would be logged here if a logger were wired.
     }
   }
 
@@ -389,7 +388,7 @@ export async function findArchiveBundle(
 
   const matches = entries
     .filter((name) => name.endsWith(`-${changeId}`))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
 
   for (let i = matches.length - 1; i >= 0; i--) {
     const candidate = join(archiveDir, matches[i]);

@@ -116,16 +116,16 @@ async function resolveFilter(
 
     if (filter.lastActivityBefore) {
       const cutoff = new Date(filter.lastActivityBefore).getTime();
-      const eligible = fullChanges.filter((c) => {
-        const lastActivity = getLastActivityTimestamp(c);
-        return lastActivity < cutoff;
-      });
+      const eligibleIds = new Set(
+        fullChanges
+          .filter((c) => getLastActivityTimestamp(c) < cutoff)
+          .map((c) => c.id),
+      );
       // If both createdBefore and lastActivityBefore are present, intersect
-      if (filter.createdBefore) {
-        changeIds = eligible.map((c) => c.id);
-      } else {
-        changeIds = eligible.map((c) => c.id);
-      }
+      // with the createdBefore-filtered set above. Otherwise replace.
+      changeIds = filter.createdBefore
+        ? changeIds.filter((id) => eligibleIds.has(id))
+        : [...eligibleIds];
     }
   }
 

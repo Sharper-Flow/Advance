@@ -64,8 +64,10 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     try {
       const realToolNames = Object.keys(
         createToolMap(store, tempDir, store.paths.agenda),
-      ).sort();
-      const stubToolNames = [...ADV_TOOL_NAMES].sort();
+      ).sort((a, b) => a.localeCompare(b));
+      const stubToolNames = [...ADV_TOOL_NAMES].sort((a, b) =>
+        a.localeCompare(b),
+      );
 
       const onlyInReal = realToolNames.filter(
         (n) => !stubToolNames.includes(n),

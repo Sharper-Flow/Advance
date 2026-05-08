@@ -102,7 +102,10 @@ describe("listChangeWorkflowIds", () => {
     const ids = await listChangeWorkflowIds(fakeClient, {
       projectId: "proj1",
     });
-    expect(ids.sort()).toEqual(["changeA", "changeB"]);
+    expect(ids.sort((a, b) => a.localeCompare(b))).toEqual([
+      "changeA",
+      "changeB",
+    ]);
   });
 
   it("filters out workflow IDs that do not belong to the project", async () => {

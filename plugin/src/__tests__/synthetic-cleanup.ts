@@ -45,7 +45,9 @@ export async function cleanupNewSyntheticAdvDirs(
   options: { runId?: string } = {},
 ): Promise<string[]> {
   const current = await listSyntheticAdvDirs(dataHome);
-  const candidates = [...current].filter((path) => !baseline.has(path)).sort();
+  const candidates = [...current]
+    .filter((path) => !baseline.has(path))
+    .sort((a, b) => a.localeCompare(b));
   const removed: string[] = [];
 
   for (const path of candidates) {

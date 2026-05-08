@@ -288,7 +288,7 @@ export function getRegisteredTemporalWorkerQueues(): string[] {
       queues.add(queue);
     }
   }
-  return [...queues].sort();
+  return [...queues].sort((a, b) => a.localeCompare(b));
 }
 
 export type TemporalWorkerDiagnostics =
@@ -553,7 +553,10 @@ export function registerShutdownHandlers(
     stopWorkerHealthMonitor();
     if (flushInFlight) return;
     flushInFlight = true;
-    if (!store) return void process.exit(0);
+    if (!store) {
+      process.exit(0);
+      return;
+    }
     const activeStore = store;
     const safeClose = (phase: string) => {
       try {

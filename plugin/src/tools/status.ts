@@ -350,7 +350,9 @@ async function computeExternalStateHygiene(
     worker_locks_excluded: true,
     synthetic_project_dirs: syntheticProjectDirs,
     synthetic_worktree_dirs: syntheticWorktreeDirs,
-    empty_worktree_prefix_dirs: emptyWorktreePrefixDirs.sort(),
+    empty_worktree_prefix_dirs: emptyWorktreePrefixDirs.sort((a, b) =>
+      a.localeCompare(b),
+    ),
     in_repo_changes: inRepoChanges,
     in_repo_archive: inRepoArchive,
     recommendations,

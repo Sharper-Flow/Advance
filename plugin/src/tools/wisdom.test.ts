@@ -9,6 +9,8 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { wisdomTools } from "./wisdom";
 import type { Store } from "../storage/store";
 
@@ -52,14 +54,18 @@ vi.mock("./_adapters", () => ({
 }));
 
 function createMockStore(): Store {
+  // Paths are mock-only — store I/O is fully mocked, these strings are never
+  // touched on disk. Built via tmpdir() instead of "/tmp/..." literals to
+  // avoid Sonar S5443 hardcoded-publicly-writable-directory false-positives.
+  const base = tmpdir();
   return {
     paths: {
-      root: "/tmp/fake-root",
-      external: "/tmp/fake-external",
-      changes: "/tmp/fake-changes",
-      archive: "/tmp/fake-archive",
-      wisdom: "/tmp/fake-wisdom.jsonl",
-      agenda: "/tmp/fake-agenda.jsonl",
+      root: join(base, "fake-root"),
+      external: join(base, "fake-external"),
+      changes: join(base, "fake-changes"),
+      archive: join(base, "fake-archive"),
+      wisdom: join(base, "fake-wisdom.jsonl"),
+      agenda: join(base, "fake-agenda.jsonl"),
     },
     wisdom: {
       // Used as a fallback when Temporal handle is unavailable; mocked here

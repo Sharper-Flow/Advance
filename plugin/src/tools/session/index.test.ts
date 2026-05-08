@@ -75,10 +75,9 @@ describe("adv_session_list (T19)", () => {
       expect(entry).not.toHaveProperty("activeGate");
       expect(entry.worktree).not.toContain("/");
     }
-    expect(result.sessions.map((s) => s.worktree).sort()).toEqual([
-      "feature",
-      "main",
-    ]);
+    expect(
+      result.sessions.map((s) => s.worktree).sort((a, b) => a.localeCompare(b)),
+    ).toEqual(["feature", "main"]);
   });
 
   it("filters out dead PIDs and reports deadFiltered count", async () => {

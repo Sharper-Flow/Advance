@@ -54,10 +54,10 @@ export interface BranchIntegrationDeps {
 export async function verifyBranchIntegration(
   branch: string,
   repoRoot: string,
-  opts?: { force?: boolean },
+  // `_opts.force` does NOT bypass this gate; param kept for API symmetry.
+  _opts?: { force?: boolean },
   deps?: BranchIntegrationDeps,
 ): Promise<BranchIntegrationResult> {
-  void opts; // force does NOT bypass this gate
 
   // --- 1. Resolve registry entry ------------------------------------------------
   let registryEntry:

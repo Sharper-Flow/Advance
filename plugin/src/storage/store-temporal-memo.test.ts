@@ -70,7 +70,10 @@ describe("ChangeSummaryMemo", () => {
 
     const all = memo.getAll();
     expect(all).toHaveLength(2);
-    expect(all.map((s) => s.id).sort()).toEqual(["chg-001", "chg-002"]);
+    expect(all.map((s) => s.id).sort((a, b) => a.localeCompare(b))).toEqual([
+      "chg-001",
+      "chg-002",
+    ]);
   });
 
   it("getAll returns empty array when empty", () => {

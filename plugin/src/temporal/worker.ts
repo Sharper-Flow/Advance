@@ -226,7 +226,9 @@ export async function runMultiQueueTemporalWorker(
           });
           workerRegistry.set(queue, newWorker);
           // Fire-and-forget .run so the IPC handler returns promptly.
-          void newWorker.run().catch((err) => {
+          // .catch() returns a Promise<void> we deliberately drop on the floor.
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          newWorker.run().catch((err) => {
             workerRegistry.delete(queue);
             emitIpcMessage({
               type: "run-error",

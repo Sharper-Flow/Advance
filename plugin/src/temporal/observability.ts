@@ -278,10 +278,14 @@ export function buildTemporalSearchAttributes(input: {
     attrs.AdvCreatedAt = [new Date(input.createdAt)];
   }
   if (input.worktreeBranches?.length) {
-    attrs.AdvWorktreeBranches = [...input.worktreeBranches].sort();
+    attrs.AdvWorktreeBranches = [...input.worktreeBranches].sort((a, b) =>
+      a.localeCompare(b),
+    );
   }
   if (input.worktreePaths?.length) {
-    attrs.AdvWorktreePaths = [...input.worktreePaths].sort();
+    attrs.AdvWorktreePaths = [...input.worktreePaths].sort((a, b) =>
+      a.localeCompare(b),
+    );
   }
 
   return attrs;

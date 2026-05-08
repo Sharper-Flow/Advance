@@ -162,7 +162,9 @@ export function reconcileWorktreeRegistry(
   ]);
   const records: WorktreeRecord[] = [];
 
-  for (const branch of Array.from(branches).sort()) {
+  for (const branch of Array.from(branches).sort((a, b) =>
+    a.localeCompare(b),
+  )) {
     const existing = existingByBranch.get(branch);
     const gitBranch = branchByBranch.get(branch);
     const gitWorktree = worktreeByBranch.get(branch);
