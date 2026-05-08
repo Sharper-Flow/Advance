@@ -118,24 +118,25 @@ describe("ChangeSchema autopilot fields", () => {
   });
 });
 
-describe("rq-autopilot01 spec requirement", () => {
-  test("exists in advance-workflow with 4 scenarios", () => {
+describe("rq-atc01 spec requirement", () => {
+  test("exists in advance-workflow with 5 scenarios", () => {
     const spec = loadSpec("advance-workflow");
-    const req = spec.requirements.find((r) => r.id === "rq-autopilot01");
-    expect(req, "rq-autopilot01 must exist in advance-workflow").toBeDefined();
-    expect(req!.scenarios).toHaveLength(4);
+    const req = spec.requirements.find((r) => r.id === "rq-atc01");
+    expect(req, "rq-atc01 must exist in advance-workflow").toBeDefined();
+    expect(req!.scenarios).toHaveLength(5);
     expect(req!.scenarios.map((s) => s.id)).toEqual([
-      "rq-autopilot01.1",
-      "rq-autopilot01.2",
-      "rq-autopilot01.3",
-      "rq-autopilot01.4",
+      "rq-atc01.1",
+      "rq-atc01.2",
+      "rq-atc01.3",
+      "rq-atc01.4",
+      "rq-atc01.5",
     ]);
   });
 
-  test("body contains autopilot and Tier B anchors", () => {
+  test("body contains atc and Tier B anchors", () => {
     const spec = loadSpec("advance-workflow");
-    const req = spec.requirements.find((r) => r.id === "rq-autopilot01");
-    expect(req!.body.toLowerCase()).toMatch(/autopilot/);
+    const req = spec.requirements.find((r) => r.id === "rq-atc01");
+    expect(req!.body.toLowerCase()).toMatch(/atc/);
     expect(req!.body).toMatch(/Tier B/);
   });
 });
