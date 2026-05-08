@@ -32,7 +32,9 @@ describe("adv-arch-scan structural correctness assets", () => {
     expect(content).toContain("Structural Correctness Boundary Checks (P33)");
     expect(content).toContain("parser/schema/allowlist recognition");
     expect(content).toContain("Gate/spec/compliance boundaries");
-    expect(content).toContain("heuristic-owned persistence/gates/spec/security");
+    expect(content).toContain(
+      "heuristic-owned persistence/gates/spec/security",
+    );
   });
 
   test("skill carries structural correctness scan methodology", () => {
@@ -40,7 +42,9 @@ describe("adv-arch-scan structural correctness assets", () => {
 
     expect(content).toContain("<!-- rq-archp33 -->");
     expect(content).toContain("structural ownership");
-    expect(content).toContain("workflow state, gate completion, or spec compliance");
+    expect(content).toContain(
+      "workflow state, gate completion, or spec compliance",
+    );
     expect(content).toContain("Structural-correctness severity");
   });
 });
