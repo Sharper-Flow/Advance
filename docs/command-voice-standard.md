@@ -241,6 +241,19 @@ ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md
 |---|---|
 ```
 
+### Terse/caveman-lite composition
+
+Terse/caveman-lite is a wording-density layer on top of these templates, not a competing compression method.
+
+| Constraint | Rule |
+|---|---|
+| Template choice | enforcement class still controls what may compress |
+| Wording | Drop filler, pleasantries, hedging, and repeated rationale |
+| Structure | Prefer tables, bullets, fragments, and exact triggers |
+| Safety | Exact contract tokens stay unchanged |
+
+Contract tokens include tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, and JSON/code examples.
+
 ### Stop condition
 
 Compression work halts when no remaining section can be classified as fully-enforced or partially-enforced. Inherently-prose categories use the structured template but are not "compressed away" — they keep their content in scannable form.
