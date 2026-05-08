@@ -103,10 +103,7 @@ describe("plugin-runtime-info helpers", () => {
     });
 
     it("returns 'child' when cwd is inside pluginRoot", () => {
-      const result = computeCwdRelation(
-        "/home/x/proj/sub/dir",
-        "/home/x/proj",
-      );
+      const result = computeCwdRelation("/home/x/proj/sub/dir", "/home/x/proj");
       expect(result).toBe<CwdRelation>("child");
     });
 

@@ -299,7 +299,8 @@ describe("tool-formatters", () => {
             plugin_checkout_head_sha: "def456",
             cwd_vs_plugin_root: "match",
             recovery_hint: {
-              action: "Source code is newer than built dist. Rebuild before restart.",
+              action:
+                "Source code is newer than built dist. Rebuild before restart.",
               commands: ["pnpm run build", "# then restart OpenCode session"],
               paths: { plugin_root: "/p" },
             },
@@ -330,7 +331,8 @@ describe("tool-formatters", () => {
             plugin_checkout_head_sha: "abc123",
             cwd_vs_plugin_root: "match",
             recovery_hint: {
-              action: "Dist is newer than the running process. Restart the OpenCode session.",
+              action:
+                "Dist is newer than the running process. Restart the OpenCode session.",
               commands: ["# restart OpenCode session in: /p"],
               paths: { plugin_root: "/p" },
             },

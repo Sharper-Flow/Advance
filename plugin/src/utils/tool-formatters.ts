@@ -320,7 +320,10 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   // rq-runtimeProvenance01: surface plugin freshness verdict + recovery hint
   // when the running plugin is not fresh. Verbatim rendering — agent passes
   // through to user for actionable next steps.
-  if (input.pluginRuntime && input.pluginRuntime.source_dist_freshness !== "fresh") {
+  if (
+    input.pluginRuntime &&
+    input.pluginRuntime.source_dist_freshness !== "fresh"
+  ) {
     healthLines.push(
       `Plugin freshness: ⚠ ${input.pluginRuntime.source_dist_freshness}`,
     );
