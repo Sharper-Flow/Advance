@@ -913,10 +913,28 @@
             "The original error remains visible",
             "No synthetic change state is invented"
           ]
+        },
+        {
+          "id": "rq-replayFallback01.3",
+          "title": "Poisoned history with non-terminal change and active source snapshot",
+          "given": [
+            "A change workflow query fails with a known poisoned-history replay error",
+            "The change status is non-terminal (active, draft, pending)",
+            "An active source snapshot exists",
+            "Re-seeding the workflow itself fails"
+          ],
+          "when": "A read tool loads the change",
+          "then": [
+            "The tool returns disk-backed change data",
+            "The returned data includes recovery markers (_source: 'disk', _recovery.reason: 'poisoned_history')",
+            "No new workflow run is started",
+            "No ChangeSummary signal is emitted"
+          ]
         }
       ],
       "meta": {
-        "introduced_by": "fixWorkflowReplayDeterminism"
+        "introduced_by": "fixWorkflowReplayDeterminism",
+        "extended_by": "fixtmprl1100nonterminalreplayf"
       }
     },
     {
