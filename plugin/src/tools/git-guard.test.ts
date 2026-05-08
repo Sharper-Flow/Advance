@@ -10,6 +10,7 @@ import {
   splitCommand,
   extractGitSubcommand,
   extractGitCFlag,
+  extractGitDirFlag,
   classifySubcommand,
   classifyCommand,
   resolveWorkdir,
@@ -103,8 +104,9 @@ describe("extractGitSubcommand", () => {
     expect(extractGitSubcommand("git push origin main")).toBe("push");
   });
 
-  it("extracts subcommand with flags before it", () => {
-    expect(extractGitSubcommand("git -C /tmp status")).toBe("-C");
+  it("extracts subcommand after global flags", () => {
+    expect(extractGitSubcommand("git -C /tmp status")).toBe("status");
+    expect(extractGitSubcommand("git --git-dir /tmp/.git push")).toBe("push");
   });
 
   it("extracts subcommand after leading whitespace", () => {
@@ -141,6 +143,22 @@ describe("extractGitCFlag", () => {
 
   it("returns null for empty string", () => {
     expect(extractGitCFlag("")).toBeNull();
+  });
+});
+
+// ─── extractGitDirFlag ──────────────────────────────────────────────────────
+
+describe("extractGitDirFlag", () => {
+  it("extracts --git-dir path", () => {
+    expect(extractGitDirFlag("git --git-dir /tmp/.git status")).toBe("/tmp");
+  });
+
+  it("extracts --git-dir=path", () => {
+    expect(extractGitDirFlag("git --git-dir=/tmp/.git status")).toBe("/tmp");
+  });
+
+  it("returns null when absent", () => {
+    expect(extractGitDirFlag("git status")).toBeNull();
   });
 });
 
@@ -347,15 +365,15 @@ describe("evaluateDecision", () => {
     expect(result.decision).toBe("BLOCK");
   });
 
-  it("warns for mutations on non-default non-worktree branch", () => {
+  it("blocks mutations on non-default non-worktree branch", () => {
     const ctx = createMockContext({
       isDefaultBranch: false,
       isWorktree: false,
       branch: "feature/test",
     });
     const result = evaluateDecision("MUTATION", ctx, "commit");
-    expect(result.decision).toBe("WARN");
-    expect(result.reason).toContain("non-default branch");
+    expect(result.decision).toBe("BLOCK");
+    expect(result.reason).toContain("not a recognized ADV worktree");
   });
 
   it("allows staging from clean default branch", () => {
@@ -507,7 +525,7 @@ describe("checkBashCommand", () => {
     expect(result.decision).toBe("ALLOW");
   });
 
-  it("warns for mutations on non-default non-worktree branch", async () => {
+  it("blocks mutations on non-default non-worktree branch", async () => {
     const deps = createMockDeps({
       execGit: vi.fn().mockImplementation(async (args) => {
         if (args[0] === "rev-parse" && args[1] === "--abbrev-ref")
@@ -518,7 +536,26 @@ describe("checkBashCommand", () => {
       }),
     });
     const result = await checkBashCommand("git commit -m 'x'", undefined, deps);
-    expect(result.decision).toBe("WARN");
+    expect(result.decision).toBe("BLOCK");
+  });
+
+  it("blocks -C default-branch push after extracting actual subcommand", async () => {
+    const deps = createMockDeps({
+      execGit: vi.fn().mockImplementation(async (args) => {
+        if (args[0] === "rev-parse" && args[1] === "--abbrev-ref")
+          return "main";
+        if (args[0] === "status") return "";
+        if (args[0] === "config") return "";
+        return "";
+      }),
+    });
+    const result = await checkBashCommand(
+      "git -C /project push origin main",
+      undefined,
+      deps,
+    );
+    expect(result.decision).toBe("BLOCK");
+    expect(result.subcommand).toBe("push");
   });
 
   it("handles compound commands with mutation", async () => {

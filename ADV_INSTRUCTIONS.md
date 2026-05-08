@@ -873,3 +873,7 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 
 **Use for:** New features, breaking changes, architecture, compliance, unclear bug fixes via `/adv-problem`
 **Use lighter workflows for:** Typos, deps, exploration
+
+### Provider ADV agent assembly
+
+<!-- rq-scopedAdvInstructions01 --> `scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) as generated runtime agents backed by global prompt parts:

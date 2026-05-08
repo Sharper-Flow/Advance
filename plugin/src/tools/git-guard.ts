@@ -51,7 +51,7 @@ export interface GuardResult {
 export interface GuardDeps {
   getDefaultBranch: (cwd: string) => Promise<string>;
   execGit: (args: string[], cwd: string) => Promise<string>;
-  getWorktreePaths: () => string[] | Promise<string[]>;
+  getWorktreePaths: () => Promise<string[]>;
   getProjectRoot: () => string;
 }
 
@@ -129,13 +129,6 @@ const WORKTREE_MGMT_SUBCOMMANDS = new Set(["worktree"]);
 /** Shell operators to split on. */
 const SHELL_OPERATOR_RE = /(?:&&|\|\||;|\|)/;
 
-/** Git subcommand extraction pattern. */
-const GIT_SUBCOMMAND_RE = /(?:^|\s)git\s+(\S+)/;
-
-/** Git -C flag extraction. Captures the path value without surrounding quotes. */
-const GIT_C_FLAG_RE =
-  /(?:^|\s)git\s+(?:-[a-zA-Z]+\s+)*-C\s+(?:'([^']*)'|"([^"]*)"|(\S+))/;
-
 /** Fetch is read-only — override the MUTATION classification. */
 const FETCH_OVERRIDE = new Set(["fetch"]);
 
@@ -202,12 +195,46 @@ export function splitCommand(command: string): string[] {
 }
 
 /**
+ * Tokenize a command segment enough for git guard classification.
+ * Handles simple single/double quoted values and preserves quoted spaces.
+ */
+export function tokenizeSegment(segment: string): string[] {
+  const tokens: string[] = [];
+  const tokenRe = /'([^']*)'|"([^"]*)"|(\S+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = tokenRe.exec(segment)) !== null) {
+    tokens.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return tokens;
+}
+
+/**
  * Extract the git subcommand from a command segment.
+ * Skips git global options that precede the subcommand, including -C and --git-dir.
  * Returns null if the segment doesn't invoke git.
  */
 export function extractGitSubcommand(segment: string): string | null {
-  const match = segment.match(GIT_SUBCOMMAND_RE);
-  return match ? match[1] : null;
+  const tokens = tokenizeSegment(segment);
+  const gitIndex = tokens.indexOf("git");
+  if (gitIndex === -1) return null;
+
+  for (let index = gitIndex + 1; index < tokens.length; index++) {
+    const token = tokens[index];
+
+    if (token === "-C" || token === "--git-dir" || token === "--work-tree") {
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("-C") && token.length > 2) continue;
+    if (token.startsWith("--git-dir=") || token.startsWith("--work-tree=")) {
+      continue;
+    }
+    if (token.startsWith("-")) continue;
+
+    return token;
+  }
+
+  return null;
 }
 
 /**
@@ -215,10 +242,56 @@ export function extractGitSubcommand(segment: string): string | null {
  * Returns the path or null if not present.
  */
 export function extractGitCFlag(command: string): string | null {
-  const match = command.match(GIT_C_FLAG_RE);
-  if (!match) return null;
-  // Return the first non-undefined capture group (single-quoted, double-quoted, or unquoted)
-  return match[1] || match[2] || match[3] || null;
+  for (const segment of splitCommand(command)) {
+    const tokens = tokenizeSegment(segment);
+    const gitIndex = tokens.indexOf("git");
+    if (gitIndex === -1) continue;
+
+    for (let index = gitIndex + 1; index < tokens.length; index++) {
+      const token = tokens[index];
+      if (token === "-C") {
+        const value = tokens[index + 1];
+        return value && value.length > 0 ? value : null;
+      }
+      if (token.startsWith("-C") && token.length > 2) {
+        return token.substring(2);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract a --git-dir flag value and map common .git paths back to repo root.
+ */
+export function extractGitDirFlag(command: string): string | null {
+  for (const segment of splitCommand(command)) {
+    const tokens = tokenizeSegment(segment);
+    const gitIndex = tokens.indexOf("git");
+    if (gitIndex === -1) continue;
+
+    for (let index = gitIndex + 1; index < tokens.length; index++) {
+      const token = tokens[index];
+      let value: string | undefined;
+      if (token === "--git-dir") value = tokens[index + 1];
+      if (token.startsWith("--git-dir="))
+        value = token.substring("--git-dir=".length);
+      if (!value) continue;
+      return value.endsWith("/.git") ? value.slice(0, -"/.git".length) : value;
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract the first actual git subcommand from the full command.
+ */
+export function extractPrimaryGitSubcommand(command: string): string {
+  for (const segment of splitCommand(command)) {
+    const subcmd = extractGitSubcommand(segment);
+    if (subcmd) return subcmd;
+  }
+  return "(unknown)";
 }
 
 /**
@@ -300,7 +373,8 @@ export function resolveWorkdir(
   projectRoot: string,
 ): string {
   const cFlag = extractGitCFlag(command);
-  return cFlag || argsWorkdir || projectRoot;
+  const gitDirFlag = extractGitDirFlag(command);
+  return cFlag || gitDirFlag || argsWorkdir || projectRoot;
 }
 
 /**
@@ -353,7 +427,8 @@ export async function resolveGuardContext(
   // Check if workdir is inside a known ADV worktree
   const worktreePaths = await deps.getWorktreePaths();
   const isWorktree = worktreePaths.some(
-    (wtPath) => workdir.startsWith(wtPath) || gitRoot.startsWith(wtPath),
+    (wtPath) =>
+      isSameOrChildPath(workdir, wtPath) || isSameOrChildPath(gitRoot, wtPath),
   );
 
   return {
@@ -365,6 +440,15 @@ export async function resolveGuardContext(
     isWorktree,
     dirtyFiles,
   };
+}
+
+function isSameOrChildPath(candidate: string, root: string): boolean {
+  const normalizedCandidate = candidate.replace(/\/+$/, "");
+  const normalizedRoot = root.replace(/\/+$/, "");
+  return (
+    normalizedCandidate === normalizedRoot ||
+    normalizedCandidate.startsWith(`${normalizedRoot}/`)
+  );
 }
 
 // ─── Decision Matrix ────────────────────────────────────────────────────────
@@ -414,13 +498,13 @@ export function evaluateDecision(
     };
   }
 
-  // Non-default branch, not a worktree — warn (could be legitimate)
+  // Non-default branch, not a worktree — block mutations/staging to enforce worktree isolation.
   if (!context.isDefaultBranch && !context.isWorktree) {
     return {
-      decision: "WARN",
+      decision: "BLOCK",
       category,
       subcommand,
-      reason: `Git ${subcommand} on non-default branch "${context.branch}" — not a recognized ADV worktree. Verify this is intentional.`,
+      reason: `Git ${subcommand} on non-default branch "${context.branch}" blocked: not a recognized ADV worktree. Run mutations from an ADV worktree branch.`,
       context,
     };
   }
@@ -481,26 +565,19 @@ export async function checkBashCommand(
 
   // Fast path: no mutation detected
   if (category === "READ_ONLY" || category === "WORKTREE_MGMT") {
-    // Extract subcommand for logging
-    const segments = splitCommand(command);
-    const subcmd =
-      segments.map(extractGitSubcommand).find((s) => s !== null) ?? "(unknown)";
-    return { decision: "ALLOW", category, subcommand: subcmd };
+    return {
+      decision: "ALLOW",
+      category,
+      subcommand: extractPrimaryGitSubcommand(command),
+    };
   }
 
   // Mutation or staging detected — resolve context
   const context = await resolveGuardContext(workdir, deps);
 
-  // Extract the primary subcommand (highest severity)
-  const segments = splitCommand(command);
-  let primarySubcmd = "(unknown)";
-  for (const segment of segments) {
-    const subcmd = extractGitSubcommand(segment);
-    if (subcmd) {
-      primarySubcmd = subcmd;
-      break;
-    }
-  }
-
-  return evaluateDecision(category, context, primarySubcmd);
+  return evaluateDecision(
+    category,
+    context,
+    extractPrimaryGitSubcommand(command),
+  );
 }
