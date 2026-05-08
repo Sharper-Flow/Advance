@@ -1,0 +1,198 @@
+{
+  "id": "programmaticgitmutationguard",
+  "title": "programmaticGitMutationGuard",
+  "status": "archived",
+  "created_at": "2026-05-08T18:19:52.765Z",
+  "tasks": [
+    {
+      "id": "tk-d5cb10cb46ca",
+      "title": "Create git-guard module: plugin/src/tools/git-guard.ts",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T18:45:28.021Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:46:14.501Z",
+      "verification": "Harden remediation done.",
+      "summary": "Fixed harden findings: guard now runs even if store unavailable, excludes primary checkout from worktree allowlist, logs degraded git fact-check paths, adds hook BLOCK integration test, adds parseWorktreePaths unit tests, and tightens docs.",
+      "implementation_summary": "Fixed harden findings: guard now runs even if store unavailable, excludes primary checkout from worktree allowlist, logs degraded git fact-check paths, adds hook BLOCK integration test, adds parseWorktreePaths unit tests, and tightens docs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:49:54.645Z",
+      "completed_at": "2026-05-08T19:49:54.645Z"
+    },
+    {
+      "id": "tk-6b8fda1d628d",
+      "title": "Update ADV_INSTRUCTIONS.md enforcement layers section",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T18:45:37.004Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:07:16.154Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:08:14.323Z",
+      "completed_at": "2026-05-08T19:08:14.323Z"
+    },
+    {
+      "id": "tk-fb98b668a181",
+      "title": "Add spec delta: advance-meta rq-gm01",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T18:45:37.017Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:05:42.948Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:07:06.549Z",
+      "completed_at": "2026-05-08T19:07:06.549Z"
+    },
+    {
+      "id": "tk-deb3b95c8e3f",
+      "title": "Add hook-level integration test for bash interception: plugin/src/integration.test.ts",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T18:45:37.020Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:01:05.270Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:05:34.446Z",
+      "completed_at": "2026-05-08T19:05:34.446Z"
+    },
+    {
+      "id": "tk-3e66e574a38a",
+      "title": "Wire git guard into tool.execute.before hook: plugin/src/index.ts",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T18:45:37.037Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:56:56.785Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:00:58.473Z",
+      "completed_at": "2026-05-08T19:00:58.473Z"
+    },
+    {
+      "id": "tk-65c4eb4e901f",
+      "title": "Create git-guard unit tests: plugin/src/tools/git-guard.test.ts",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T18:45:38.964Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T18:56:35.395Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T18:56:47.606Z",
+      "completed_at": "2026-05-08T18:56:47.606Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:32:55.443Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "Problem statement approved by user. Proposal updated to explicitly preserve valid same-project/different-branch OpenCode agent work through separate git worktrees and to keep OpenCode snapshot contention out of scope unless a fixable hook is found."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:39:56.779Z",
+      "completed_by": "adv-discovery",
+      "approval_evidence": "Discovery complete. Codebase investigation mapped all git mutation paths: checkpoint.ts uses runGit (validated), archive helpers use execGit (validated), raw bash is the unguarded surface. tool.execute.before hook confirmed: input.tool === \"bash\" → output.args.command is inspectable/mutable, throw blocks execution. Design: layered guard (bash interception in hook + existing wrapper validation). 11 ACs confirmed, scope and success criteria updated from placeholder."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:45:11.321Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design validated with CAUTION verdict from adv-researcher. Refined v2 addresses: compound command splitting (shell operator parsing), git alias resolution with 5min TTL cache, -C/--git-dir workdir override parsing, fast-path short-circuit for non-mutation commands, new spec requirement rq-gm01 in advance-meta, documented residual risk (shell aliases/functions/scripts). Two-layer architecture confirmed sound: Layer 1 (bash hook interception) covers the only unguarded path; Layer 2 (existing checkpoint/archive validation) already validated."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:46:07.249Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "6-task graph approved by user. Tasks: (1) git-guard module, (2) unit tests, (3) hook wiring, (4) integration test, (5) spec delta, (6) docs. Execution order: 1→2, 1→3→4, 5+6 parallel. AC coverage complete."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:08:25.565Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 6 tasks done. Files: git-guard.ts (new, ~495 lines), git-guard.test.ts (new, ~590 lines), index.ts (modified, +30 lines guard wiring), integration.test.ts (modified, +80 lines), advance-meta/spec.json (modified, +99 lines rq-gm01), ADV_INSTRUCTIONS.md (modified, +25 lines). All checks pass: typecheck ✓, lint ✓, format ✓, 1942/1942 tests pass."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:39:53.459Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted review/acceptance summary. Review verdict APPROVED after remediation. Verification: pnpm run check passed; pnpm test passed (1943 passed, 2 skipped)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:53:10.601Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Archive sign-off received from user (`sign off`). Validation passed with warnings only. Conformance status: no locked specs configured. Harden verification: pnpm run check passed; pnpm test passed (1946 passed, 2 skipped); merge compatibility with trunk passed."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-08T18:36:34.254Z",
+      "resolved": true,
+      "resolved_at": "2026-05-08T19:15:46.928Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-08T19:15:46.928Z"
+    }
+  ]
+}
