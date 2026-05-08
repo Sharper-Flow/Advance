@@ -1,0 +1,207 @@
+{
+  "id": "enhanceadvselfupdateruntimepro",
+  "title": "enhanceAdvSelfUpdateRuntimeProvenance",
+  "status": "archived",
+  "created_at": "2026-05-08T16:40:49.432Z",
+  "tasks": [
+    {
+      "id": "tk-4f334ed997f6",
+      "title": "Extend PluginRuntimeInfo types and add freshness/cwd helpers.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T16:57:50.115Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T17:29:19.786Z",
+      "verification": "pnpm test full suite: 1853 passed | 2 skipped | 0 failed (baseline 1829, +24 new tests for helpers + integration shape). RED→GREEN confirmed: pre-impl run had 24 failures from missing exports; post-impl run all green. Existing status.test.ts assertion line 421 uses objectContaining and remains compatible with additive fields. T1 leaves git probe fields as null; T2 will add probeGit.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts"
+      ],
+      "checkpointSha": "acbaabc8a2ae7cdc9ae61465aa269816a2573501",
+      "completedAt": "2026-05-08T17:32:28.899Z",
+      "completed_at": "2026-05-08T17:32:28.899Z"
+    },
+    {
+      "id": "tk-30d710a6d376",
+      "title": "Add async git probe and integrate into getPluginRuntimeInfo.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T16:57:56.939Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T17:32:29.381Z",
+      "verification": "pnpm test full suite: 1858 passed | 2 skipped, 0 failed (+5 new tests). RED→GREEN: pre-impl had 5 failures (probeGit not exported + integration null branch); post-impl all green. probeGit success returns real branch+sha for cwd repo; failure modes (non-git dir, nonexistent path) all return null/null without throwing. Integration test confirms plugin_checkout_branch and plugin_checkout_head_sha now populated when running in git repo.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/plugin-runtime-info.ts"
+      ],
+      "checkpointSha": "8bbc2b106230834c9838a0210a1477fd6356304f",
+      "completedAt": "2026-05-08T17:34:46.404Z",
+      "completed_at": "2026-05-08T17:34:46.404Z"
+    },
+    {
+      "id": "tk-7fe06761b079",
+      "title": "Surface freshness in formatted healthSection of adv_status.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T16:58:02.724Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T17:34:46.958Z",
+      "verification": "pnpm test (target files): 1862 passed | 2 skipped, 0 failed (+4 new tests for formatStatusOutput plugin runtime freshness section). RED→GREEN: pre-impl 2 failures (Plugin freshness line absent); post-impl all green. tools/status.ts:944 formatStatusOutput call now passes pluginRuntime; line 1013 reuses precomputed pluginRuntimeInfo. Removed unused vi import in plugin-runtime-info.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "checkpointSha": "036510224d3b162c098c80a8bea73bafaeb3af66",
+      "completedAt": "2026-05-08T17:37:45.867Z",
+      "completed_at": "2026-05-08T17:37:45.867Z"
+    },
+    {
+      "id": "tk-4f7e8567d765",
+      "title": "Add rq-runtimeProvenance01 to advance-delivery spec.",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T16:58:10.402Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T17:37:46.324Z",
+      "verification": "Added rq-runtimeProvenance01 with body, priority must, tags [diagnostics, runtime, self-update], 4 scenarios (.1 fresh, .2 source_ahead, .3 dist_ahead, .4 unknown), meta.introduced_by. Spec.json parses as valid JSON. T5 will run pnpm test which exercises spec assets validation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-delivery/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-delivery/spec.json"
+      ],
+      "checkpointSha": "d21a8c990a17dfd8a093641aa3d32b76ebf1ef31",
+      "completedAt": "2026-05-08T17:38:30.395Z",
+      "completed_at": "2026-05-08T17:38:30.395Z"
+    },
+    {
+      "id": "tk-218d93775c9c",
+      "title": "Full verification pass.",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-08T16:58:13.650Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T17:38:30.796Z",
+      "verification": "Full verify: pnpm test 1862 passed | 2 skipped | 0 failed; pnpm run check clean (typecheck + lint + format:check after one prettier --write pass); pnpm run build emitted dist/temporal/* + DTS. AC coverage: AC-1 (full shape) ✓ T1 integration test, AC-2 (4 freshness states + equal-mtime) ✓ T1 helpers, AC-3 (recovery_hint shape) ✓ T1, AC-4 (cwd 3-state) ✓ T1, AC-5 (git probe + fallback) ✓ T2, AC-6 (no regression) ✓ existing 1829 tests still green, AC-7 (formatted output) ✓ T3 4 new tests, AC-8 (spec scenario) ✓ T4 rq-runtimeProvenance01 with 4 scenarios, AC-9 (full verify) ✓ this task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/plugin-runtime-info.test.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "checkpointSha": "0f69fa6164c28a3f0739c0b0ecec1e9b4520a2bc",
+      "completedAt": "2026-05-08T17:40:45.468Z",
+      "completed_at": "2026-05-08T17:40:45.468Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-awsRfg",
+      "type": "pattern",
+      "content": "Self-modifying plugin diagnostic surface: when the agent fixes its own tool code, three timing relationships matter — source mtime, dist mtime, process_started_at. Equal-mtime cases must explicitly fold into the \"fresh\" verdict (sourceMtime <= distMtime AND distMtime <= processStartedAt) to avoid false alarms on same-millisecond rebuilds. Recovery hints must be structured ({ action, commands[], paths }) not freeform strings, so callers can render verbatim OR extract individual commands programmatically. Filesystem stat failures and git probe failures must degrade to null with a \"unknown\" verdict — never throw — because diagnostic surfaces are called by status tools that must keep working even when filesystem/git are unavailable.",
+      "recorded_at": "2026-05-08T18:01:15.853Z"
+    },
+    {
+      "id": "ws-NGmnso",
+      "type": "convention",
+      "content": "Async git probe pattern: use `promisify(execFile)` with explicit `timeout: <ms>` option and `env: { ...process.env, GIT_TERMINAL_PROMPT: \"0\" }`. Never use shell-form spawn for git args — pass arg array to execFile. Bound timeout to ~1s for diagnostic probes (longer for actual operations like execGit at 5s in project-id.ts). Wrap in try/catch returning null/null on any failure; never propagate git errors to diagnostic tool consumers.",
+      "recorded_at": "2026-05-08T18:01:19.450Z"
+    },
+    {
+      "id": "ws-FIZHBf",
+      "type": "gotcha",
+      "content": "Cross-repo ownership boundary for self-update workflow (Advance #40 / OCA #9): Advance owns runtime PROVENANCE diagnostics — what is loaded, what is fresh, what is git HEAD. OCA owns rebuild ORCHESTRATION — invoking pnpm run build, opening new session, switching worktrees. Don't let advance creep into rebuild orchestration even though the symptom (cached dist) screams for it. The split is deliberate: advance can ship the diagnostic in isolation, OCA can ship orchestration on its own cadence, and consumer setups that haven't installed OCA still get useful provenance information.",
+      "recorded_at": "2026-05-08T18:01:24.506Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:43:45.081Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:53:15.321Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:57:16.812Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T17:29:07.862Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T17:40:54.191Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:00:00.318Z",
+      "completed_by": "agent"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T18:01:32.691Z",
+      "completed_by": "agent"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
