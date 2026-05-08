@@ -36,9 +36,6 @@ export const ScenarioSchema = z
     title: z.string(),
     given: z.array(z.string()),
     when: z.string(),
-    // NOSONAR: typescript:S7739 — BDD Given/When/Then is the canonical
-    // scenario vocabulary; the field name is intentional and the resulting
-    // object is never used as a thenable.
     then: z.array(z.string()),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility

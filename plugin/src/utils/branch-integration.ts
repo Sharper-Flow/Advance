@@ -58,7 +58,6 @@ export async function verifyBranchIntegration(
   _opts?: { force?: boolean },
   deps?: BranchIntegrationDeps,
 ): Promise<BranchIntegrationResult> {
-
   // --- 1. Resolve registry entry ------------------------------------------------
   let registryEntry:
     | { branch: string; changeId?: string; path: string }

@@ -56,7 +56,7 @@ export async function withTempScript<T>(
     `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}${extension}`,
   );
   await Bun.write(scriptPath, scriptContent);
-  await fs.chmod(scriptPath, 0o755);
+  await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
 
   try {
     return await fn(scriptPath);
@@ -293,7 +293,7 @@ ${escapedCommand}
 exec $SHELL`,
         );
         await Bun.write(scriptPath, scriptContent);
-        Bun.spawnSync(["chmod", "+x", scriptPath]);
+        await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
 
         // Add script execution to tmux args
         tmuxArgs.push("--", "bash", scriptPath);
@@ -454,7 +454,7 @@ export async function openMacOSTerminal(
           `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
         );
         await Bun.write(detachedScriptPath, scriptContent);
-        await fs.chmod(detachedScriptPath, 0o755);
+        await fs.chmod(detachedScriptPath, 0o700); // owner-only rwx; per-user temp script
 
         const kittyProc = Bun.spawn(
           ["kitty", "--directory", cwd, "-e", "bash", detachedScriptPath],
@@ -475,7 +475,7 @@ export async function openMacOSTerminal(
           `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
         );
         await Bun.write(detachedScriptPath, scriptContent);
-        await fs.chmod(detachedScriptPath, 0o755);
+        await fs.chmod(detachedScriptPath, 0o700); // owner-only rwx; per-user temp script
 
         const alacrittyProc = Bun.spawn(
           [
@@ -503,7 +503,7 @@ export async function openMacOSTerminal(
           `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
         );
         await Bun.write(detachedScriptPath, scriptContent);
-        await fs.chmod(detachedScriptPath, 0o755);
+        await fs.chmod(detachedScriptPath, 0o700); // owner-only rwx; per-user temp script
 
         const warpProc = Bun.spawn(
           ["open", "-b", "dev.warp.Warp-Stable", detachedScriptPath],
@@ -525,7 +525,7 @@ export async function openMacOSTerminal(
           `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
         );
         await Bun.write(detachedScriptPath, scriptContent);
-        await fs.chmod(detachedScriptPath, 0o755);
+        await fs.chmod(detachedScriptPath, 0o700); // owner-only rwx; per-user temp script
 
         const escapedPath = escapeAppleScript(detachedScriptPath);
         const appleScript = `
@@ -649,7 +649,7 @@ export async function openLinuxTerminal(
     `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
   );
   await Bun.write(scriptPath, scriptContent);
-  await fs.chmod(scriptPath, 0o755);
+  await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
 
   try {
     // Helper to try a terminal (all detached spawns)
@@ -933,7 +933,7 @@ export async function openWindowsTerminal(
     `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.bat`,
   );
   await Bun.write(scriptPath, scriptContent);
-  await fs.chmod(scriptPath, 0o755);
+  await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
 
   try {
     // Check for Windows Terminal
@@ -1018,7 +1018,7 @@ export async function openWSLTerminal(
     `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
   );
   await Bun.write(scriptPath, scriptContent);
-  await fs.chmod(scriptPath, 0o755);
+  await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
 
   try {
     // Try wt.exe first (Windows Terminal via PATH interop)
