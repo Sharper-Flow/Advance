@@ -136,7 +136,7 @@ export function formatDegradedBanner(
     "× Do NOT proceed with any ADV workflow (proposal, discover, design, prep, apply, review, harden, archive). They will silently break.",
     "✓ Allowed in this mode: read files, surface this diagnosis, recommend remediation, run /adv-idea or /adv-problem (no tool calls required).",
     "× Forbidden in this mode: drafting markdown as substitute for adv_change_create, fabricating change-ids or gate transitions, declaring tools 'unavailable' without surfacing this banner verbatim.",
-    "Remediation: rebuild the plugin (`pnpm --filter @goost/advance build`), confirm `~/.config/opencode/opencode.json` plugin path is current, then restart OpenCode.",
+    "Remediation: rebuild the plugin (`pnpm --filter @sharperflow/advance build`), confirm `~/.config/opencode/opencode.json` plugin path is current, then restart OpenCode.",
   ].join("\n");
 }
 

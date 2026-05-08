@@ -1,5 +1,5 @@
 {
-  "name": "@goost/advance",
+  "name": "@sharperflow/advance",
   "version": "0.8.3",
   "description": "Advance (ADV) - Spec-driven development plugin for OpenCode where specs become enforceable laws",
   "type": "module",
