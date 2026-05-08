@@ -18,7 +18,11 @@
  * command parser and remain instruction-governed.
  */
 
-// No external imports — all git operations injected via GuardDeps
+import { isSameOrChildPath } from "../utils/path.js";
+
+export { parseWorktreePaths } from "../utils/worktree-paths.js";
+
+// No git subprocess imports — all git operations injected via GuardDeps
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -540,15 +544,6 @@ export async function resolveGuardContext(
   };
 }
 
-function isSameOrChildPath(candidate: string, root: string): boolean {
-  const normalizedCandidate = candidate.replace(/\/+$/, "");
-  const normalizedRoot = root.replace(/\/+$/, "");
-  return (
-    normalizedCandidate === normalizedRoot ||
-    normalizedCandidate.startsWith(`${normalizedRoot}/`)
-  );
-}
-
 // ─── Decision Matrix ────────────────────────────────────────────────────────
 
 /**
@@ -649,19 +644,6 @@ export function evaluateDecision(
 }
 
 // ─── Main Entry Point ───────────────────────────────────────────────────────
-
-/**
- * Parse worktree paths from `git worktree list --porcelain` output.
- */
-export function parseWorktreePaths(porcelain: string): string[] {
-  const paths: string[] = [];
-  for (const line of porcelain.split("\n")) {
-    if (line.startsWith("worktree ")) {
-      paths.push(line.substring("worktree ".length));
-    }
-  }
-  return paths;
-}
 
 /**
  * Check a bash command for git mutations and return a guard decision.
