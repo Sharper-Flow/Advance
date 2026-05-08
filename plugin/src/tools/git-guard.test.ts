@@ -11,6 +11,7 @@ import {
   extractGitSubcommand,
   extractGitCFlag,
   extractGitDirFlag,
+  extractPushFlags,
   classifySubcommand,
   classifyCommand,
   resolveWorkdir,
@@ -161,6 +162,63 @@ describe("extractGitDirFlag", () => {
 
   it("returns null when absent", () => {
     expect(extractGitDirFlag("git status")).toBeNull();
+  });
+});
+
+// ─── extractPushFlags ──────────────────────────────────────────────────────
+
+describe("extractPushFlags", () => {
+  it("returns all false for plain push", () => {
+    expect(extractPushFlags("git push origin trunk")).toEqual({
+      force: false,
+      forceWithLease: false,
+      hasRefspec: false,
+    });
+  });
+
+  it("detects --force flag", () => {
+    expect(extractPushFlags("git push --force origin trunk")).toMatchObject({
+      force: true,
+    });
+  });
+
+  it("detects -f shorthand", () => {
+    expect(extractPushFlags("git push -f origin trunk")).toMatchObject({
+      force: true,
+    });
+  });
+
+  it("detects --force-with-lease flag", () => {
+    expect(
+      extractPushFlags("git push --force-with-lease origin trunk"),
+    ).toMatchObject({ forceWithLease: true });
+  });
+
+  it("detects --force-with-lease=ref form", () => {
+    expect(
+      extractPushFlags("git push --force-with-lease=trunk origin trunk"),
+    ).toMatchObject({ forceWithLease: true });
+  });
+
+  it("detects refspec arguments", () => {
+    expect(
+      extractPushFlags("git push origin trunk:other-branch"),
+    ).toMatchObject({ hasRefspec: true });
+  });
+
+  it("returns all false for non-push commands", () => {
+    expect(extractPushFlags("git status")).toEqual({
+      force: false,
+      forceWithLease: false,
+      hasRefspec: false,
+    });
+  });
+
+  it("does not flag remote URL with colon as refspec", () => {
+    // origin URL has colon but it's not a refspec arg
+    expect(
+      extractPushFlags("git push git@github.com:owner/repo.git trunk"),
+    ).toMatchObject({ hasRefspec: false });
   });
 });
 
@@ -361,12 +419,43 @@ describe("evaluateDecision", () => {
     expect(result.decision).toBe("ALLOW");
   });
 
-  it("blocks push from default branch", () => {
+  it("allows plain push from default branch (canonical archive path)", () => {
     const ctx = createMockContext({ isDefaultBranch: true, isDirty: false });
     const result = evaluateDecision("MUTATION", ctx, "push");
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  it("blocks --force push from default branch", () => {
+    const ctx = createMockContext({ isDefaultBranch: true, isDirty: false });
+    const result = evaluateDecision("MUTATION", ctx, "push", {
+      force: true,
+      forceWithLease: false,
+      hasRefspec: false,
+    });
     expect(result.decision).toBe("BLOCK");
-    expect(result.reason).toContain("push");
-    expect(result.reason).toContain("default branch");
+    expect(result.reason).toContain("force");
+  });
+
+  it("blocks --force-with-lease push from default branch", () => {
+    const ctx = createMockContext({ isDefaultBranch: true, isDirty: false });
+    const result = evaluateDecision("MUTATION", ctx, "push", {
+      force: false,
+      forceWithLease: true,
+      hasRefspec: false,
+    });
+    expect(result.decision).toBe("BLOCK");
+    expect(result.reason).toContain("force-with-lease");
+  });
+
+  it("blocks refspec push from default branch", () => {
+    const ctx = createMockContext({ isDefaultBranch: true, isDirty: false });
+    const result = evaluateDecision("MUTATION", ctx, "push", {
+      force: false,
+      forceWithLease: false,
+      hasRefspec: true,
+    });
+    expect(result.decision).toBe("BLOCK");
+    expect(result.reason).toContain("refspec");
   });
 
   it("allows mutations from clean default branch (archive path)", () => {
@@ -532,7 +621,7 @@ describe("checkBashCommand", () => {
     expect(result.reason).toContain("dirty");
   });
 
-  it("blocks git push from default branch even when clean", async () => {
+  it("allows plain git push from clean default branch (canonical archive path)", async () => {
     const deps = createMockDeps({
       execGit: vi.fn().mockImplementation(async (args) => {
         if (args[0] === "rev-parse" && args[1] === "--abbrev-ref")
@@ -547,9 +636,26 @@ describe("checkBashCommand", () => {
       undefined,
       deps,
     );
+    expect(result.decision).toBe("ALLOW");
+  });
+
+  it("blocks --force push from default branch", async () => {
+    const deps = createMockDeps({
+      execGit: vi.fn().mockImplementation(async (args) => {
+        if (args[0] === "rev-parse" && args[1] === "--abbrev-ref")
+          return "main";
+        if (args[0] === "status") return "";
+        if (args[0] === "config") return "";
+        return "";
+      }),
+    });
+    const result = await checkBashCommand(
+      "git push --force origin main",
+      undefined,
+      deps,
+    );
     expect(result.decision).toBe("BLOCK");
-    expect(result.reason).toContain("push");
-    expect(result.reason).toContain("default branch");
+    expect(result.reason).toContain("force");
   });
 
   it("allows git commit from clean default branch (archive path)", async () => {
@@ -615,7 +721,7 @@ describe("checkBashCommand", () => {
     expect(result.decision).toBe("BLOCK");
   });
 
-  it("blocks -C default-branch push after extracting actual subcommand", async () => {
+  it("extracts push subcommand correctly with -C flag (force-push blocked from default)", async () => {
     const deps = createMockDeps({
       execGit: vi.fn().mockImplementation(async (args) => {
         if (args[0] === "rev-parse" && args[1] === "--abbrev-ref")
@@ -626,12 +732,13 @@ describe("checkBashCommand", () => {
       }),
     });
     const result = await checkBashCommand(
-      "git -C /project push origin main",
+      "git -C /project push --force origin main",
       undefined,
       deps,
     );
     expect(result.decision).toBe("BLOCK");
     expect(result.subcommand).toBe("push");
+    expect(result.reason).toContain("force");
   });
 
   it("handles compound commands with mutation", async () => {

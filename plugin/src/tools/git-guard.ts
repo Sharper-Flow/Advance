@@ -313,6 +313,74 @@ export function extractPrimaryGitSubcommand(command: string): string {
 }
 
 /**
+ * Push command flag analysis result.
+ * Used to distinguish destructive push variants from canonical fast-forward push.
+ */
+export interface PushFlags {
+  force: boolean;
+  forceWithLease: boolean;
+  hasRefspec: boolean;
+}
+
+/**
+ * Extract push command flags from a command string.
+ * Detects --force/-f, --force-with-lease (and =value form), and refspec arguments.
+ *
+ * Refspec detection: a positional arg AFTER `push` AND AFTER any remote name
+ * that contains `:` is treated as a refspec. Remote URLs containing `:`
+ * (e.g. `git@github.com:owner/repo.git`) are NOT flagged because they
+ * appear as the remote-name slot, not as a refspec slot.
+ */
+export function extractPushFlags(command: string): PushFlags {
+  const flags: PushFlags = {
+    force: false,
+    forceWithLease: false,
+    hasRefspec: false,
+  };
+
+  for (const segment of splitCommand(command)) {
+    const tokens = tokenizeSegment(segment);
+    const gitIndex = tokens.indexOf("git");
+    if (gitIndex === -1) continue;
+
+    let pushIndex = -1;
+    for (let i = gitIndex + 1; i < tokens.length; i++) {
+      if (tokens[i] === "push") {
+        pushIndex = i;
+        break;
+      }
+    }
+    if (pushIndex === -1) continue;
+
+    // Track positional args after push (skip flags and their values)
+    let positionalCount = 0;
+    for (let i = pushIndex + 1; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok === "--force" || tok === "-f") {
+        flags.force = true;
+        continue;
+      }
+      if (
+        tok === "--force-with-lease" ||
+        tok.startsWith("--force-with-lease=")
+      ) {
+        flags.forceWithLease = true;
+        continue;
+      }
+      if (tok.startsWith("-")) continue; // skip other flags
+      positionalCount += 1;
+      // Positional arg #1 is the remote (URL or name) — colon there is not a refspec
+      // Positional arg #2+ are refspecs
+      if (positionalCount >= 2 && tok.includes(":")) {
+        flags.hasRefspec = true;
+      }
+    }
+  }
+
+  return flags;
+}
+
+/**
  * Classify a git subcommand into a category.
  */
 export function classifySubcommand(subcommand: string): GitCommandCategory {
@@ -490,6 +558,7 @@ export function evaluateDecision(
   category: GitCommandCategory,
   context: GuardContext,
   subcommand: string,
+  pushFlags?: PushFlags,
 ): GuardResult {
   // Fast path: read-only and worktree management always allowed
   if (category === "READ_ONLY" || category === "WORKTREE_MGMT") {
@@ -507,15 +576,39 @@ export function evaluateDecision(
     return { decision: "ALLOW", category, subcommand, context };
   }
 
-  // Special case: push from main requires commit-range verification
+  // Push from default branch: allow plain fast-forward push (canonical archive
+  // path), block force/force-with-lease/refspec variants which require explicit
+  // user approval per adv-archive Phase 9 Step 5
   if (subcommand === "push" && context.isDefaultBranch) {
-    return {
-      decision: "BLOCK",
-      category,
-      subcommand,
-      reason: `Git push from default branch "${context.branch}" blocked: use adv_task_checkpoint or worktree branch for scoped pushes, or push from a feature branch.`,
-      context,
-    };
+    if (pushFlags?.force) {
+      return {
+        decision: "BLOCK",
+        category,
+        subcommand,
+        reason: `Git push --force from default branch "${context.branch}" blocked: force-push requires explicit user approval. Confirm non-fast-forward publish is intended via the question tool.`,
+        context,
+      };
+    }
+    if (pushFlags?.forceWithLease) {
+      return {
+        decision: "BLOCK",
+        category,
+        subcommand,
+        reason: `Git push --force-with-lease from default branch "${context.branch}" blocked: requires explicit user approval. Show local-only and remote-only commits before retrying.`,
+        context,
+      };
+    }
+    if (pushFlags?.hasRefspec) {
+      return {
+        decision: "BLOCK",
+        category,
+        subcommand,
+        reason: `Git push with refspec from default branch "${context.branch}" blocked: cross-ref pushes require explicit approval. Use plain push for fast-forward publish.`,
+        context,
+      };
+    }
+    // Plain push — allow fast-forward (canonical archive path)
+    return { decision: "ALLOW", category, subcommand, context };
   }
 
   // Main checkout, clean, on default branch — allow (archive finalization path)
@@ -616,9 +709,9 @@ export async function checkBashCommand(
   // Mutation or staging detected — resolve context
   const context = await resolveGuardContext(workdir, deps);
 
-  return evaluateDecision(
-    category,
-    context,
-    extractPrimaryGitSubcommand(command),
-  );
+  const subcommand = extractPrimaryGitSubcommand(command);
+  const pushFlags =
+    subcommand === "push" ? extractPushFlags(sanitizedCommand) : undefined;
+
+  return evaluateDecision(category, context, subcommand, pushFlags);
 }

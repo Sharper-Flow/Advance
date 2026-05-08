@@ -1,0 +1,1 @@
+Git mutation guard unconditionally blocks `git push` from default branch, but the canonical archive workflow (adv-archive.md Phase 9 Step 5) explicitly pushes from $MAIN after a clean fast-forward merge. The guard contradicts the canonical workflow and forces users to push manually outside the OpenCode session.
