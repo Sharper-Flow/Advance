@@ -13,8 +13,9 @@
  *   5. Run git fact checks only when MUTATION/STAGING detected
  *   6. Apply ALLOW/BLOCK/WARN decision matrix
  *
- * Residual risk: shell aliases/functions and script-internal git calls
- * are undetectable from the plugin hook and remain instruction-governed.
+ * Residual risk: shell aliases/functions, script-internal git calls, and
+ * shell-style git aliases beginning with `!` are outside the guard's structural
+ * command parser and remain instruction-governed.
  */
 
 // No external imports — all git operations injected via GuardDeps
@@ -53,6 +54,7 @@ export interface GuardDeps {
   execGit: (args: string[], cwd: string) => Promise<string>;
   getWorktreePaths: () => Promise<string[]>;
   getProjectRoot: () => string;
+  onWarning?: (message: string) => void;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -391,7 +393,10 @@ export async function resolveGuardContext(
     gitRoot = (
       await deps.execGit(["rev-parse", "--show-toplevel"], workdir)
     ).trim();
-  } catch {
+  } catch (error) {
+    deps.onWarning?.(
+      `git-guard: git root detection failed for ${workdir}; using workdir as fallback (${error instanceof Error ? error.message : String(error)})`,
+    );
     // Not a git repo or git unavailable — use workdir as-is
   }
 
@@ -402,7 +407,10 @@ export async function resolveGuardContext(
       await deps.execGit(["rev-parse", "--abbrev-ref", "HEAD"], workdir)
     ).trim();
     isDefaultBranch = branch === defaultBranch;
-  } catch {
+  } catch (error) {
+    deps.onWarning?.(
+      `git-guard: branch detection failed for ${workdir}; using HEAD fallback (${error instanceof Error ? error.message : String(error)})`,
+    );
     // Detached HEAD or error
   }
 
@@ -419,7 +427,10 @@ export async function resolveGuardContext(
         .map((line) => line.substring(3)) // strip XY status prefix
         .filter((f) => f.length > 0);
     }
-  } catch {
+  } catch (error) {
+    deps.onWarning?.(
+      `git-guard: status failed for ${workdir}; treating tree as dirty (${error instanceof Error ? error.message : String(error)})`,
+    );
     // status failed — assume dirty for safety
     isDirty = true;
   }

@@ -501,11 +501,12 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     }
 
     // Git mutation guard: intercept bash commands containing git mutations
-    if (toolName === "bash" && store) {
+    if (toolName === "bash") {
       const command = typeof args.command === "string" ? args.command : "";
       if (command && /\bgit\b/.test(command)) {
         const argsWorkdir =
           typeof args.workdir === "string" ? args.workdir : undefined;
+        const projectRoot = store?.paths.root ?? directory;
         const deps: GuardDeps = {
           getDefaultBranch: (cwd: string) => getDefaultBranch(cwd),
           execGit: (gitArgs: string[], cwd: string) => execGit(gitArgs, cwd),
@@ -513,14 +514,20 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
             try {
               const output = await execGit(
                 ["worktree", "list", "--porcelain"],
-                store!.paths.root,
+                projectRoot,
               );
-              return parseWorktreePaths(output);
-            } catch {
+              return parseWorktreePaths(output).filter(
+                (path) => path !== projectRoot,
+              );
+            } catch (error) {
+              debugLog(
+                `git-guard WARN: worktree path lookup failed for ${projectRoot}: ${error instanceof Error ? error.message : String(error)}`,
+              );
               return [];
             }
           },
-          getProjectRoot: () => store!.paths.root,
+          getProjectRoot: () => projectRoot,
+          onWarning: (message: string) => debugLog(message),
         };
         const result = await checkBashCommand(command, argsWorkdir, deps);
         if (result.decision === "BLOCK") {

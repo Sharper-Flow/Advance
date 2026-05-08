@@ -311,6 +311,36 @@ describe("Git Mutation Guard: bash tool interception", () => {
     ).resolves.toBeUndefined();
   });
 
+  test("blocks git commit from dirty main checkout via bash tool", async () => {
+    const { execSync } = await import("child_process");
+    const { rmSync, writeFileSync } = await import("fs");
+    const { join } = await import("path");
+
+    rmSync(join(tempDir, ".git"), { recursive: true, force: true });
+    execSync("git init -b main", { cwd: tempDir });
+    execSync("git config user.email 'test@test.com'", { cwd: tempDir });
+    execSync("git config user.name 'Test'", { cwd: tempDir });
+    writeFileSync(join(tempDir, "README.md"), "initial");
+    execSync("git add README.md", { cwd: tempDir });
+    execSync("git commit -m 'initial'", { cwd: tempDir });
+
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    writeFileSync(join(tempDir, "dirty-file.ts"), "dirty");
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: "git commit -m 'test'" } } as any,
+      ),
+    ).rejects.toThrow(/Git mutation guard: Git commit .*blocked/);
+  }, 15_000);
+
   test("allows non-git bash commands", async () => {
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
