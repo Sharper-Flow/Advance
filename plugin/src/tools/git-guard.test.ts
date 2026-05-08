@@ -27,7 +27,7 @@ function createMockDeps(overrides?: Partial<GuardDeps>): GuardDeps {
   return {
     getDefaultBranch: vi.fn().mockResolvedValue("main"),
     execGit: vi.fn().mockResolvedValue(""),
-    getWorktreePaths: vi.fn().mockResolvedValue([]),
+    getWorktreePaths: vi.fn().mockReturnValue([]),
     getProjectRoot: vi.fn().mockReturnValue("/project"),
     ...overrides,
   };

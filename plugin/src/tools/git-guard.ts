@@ -51,7 +51,7 @@ export interface GuardResult {
 export interface GuardDeps {
   getDefaultBranch: (cwd: string) => Promise<string>;
   execGit: (args: string[], cwd: string) => Promise<string>;
-  getWorktreePaths: () => string[] | Promise<string[]>;
+  getWorktreePaths: () => string[];
   getProjectRoot: () => string;
 }
 
@@ -351,7 +351,7 @@ export async function resolveGuardContext(
   }
 
   // Check if workdir is inside a known ADV worktree
-  const worktreePaths = await deps.getWorktreePaths();
+  const worktreePaths = deps.getWorktreePaths();
   const isWorktree = worktreePaths.some(
     (wtPath) => workdir.startsWith(wtPath) || gitRoot.startsWith(wtPath),
   );
@@ -436,19 +436,6 @@ export function evaluateDecision(
 }
 
 // ─── Main Entry Point ───────────────────────────────────────────────────────
-
-/**
- * Parse worktree paths from `git worktree list --porcelain` output.
- */
-export function parseWorktreePaths(porcelain: string): string[] {
-  const paths: string[] = [];
-  for (const line of porcelain.split("\n")) {
-    if (line.startsWith("worktree ")) {
-      paths.push(line.substring("worktree ".length));
-    }
-  }
-  return paths;
-}
 
 /**
  * Check a bash command for git mutations and return a guard decision.
