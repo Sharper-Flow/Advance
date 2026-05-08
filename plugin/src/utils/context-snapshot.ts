@@ -39,10 +39,6 @@ export interface ContextSnapshotInput {
   touchedFilesCount?: number;
   /** Doom-loop budget proximity indicator (e.g. "⚠ 2/3 budget") */
   errorBudgetProximity?: string;
-  /** Autopilot mode indicator — set when approval_mode === "autopilot" */
-  approval_mode?: string;
-  /** ISO8601 timestamp when autopilot was invoked */
-  autopilot_invoked_at?: string;
 }
 
 type SnapshotTaskLike = {
@@ -78,8 +74,6 @@ type SnapshotChangeLike = {
   title: string;
   tasks: SnapshotTaskLike[];
   wisdom?: SnapshotWisdomLike[];
-  approval_mode?: string;
-  autopilot_invoked_at?: string;
 };
 
 export function countSuccessCriteria(
@@ -187,8 +181,6 @@ export function buildChangeContextSnapshot({
     wisdomByType,
     touchedFilesCount,
     errorBudgetProximity,
-    approval_mode: change.approval_mode,
-    autopilot_invoked_at: change.autopilot_invoked_at,
   });
 }
 
@@ -333,11 +325,6 @@ export function formatContextSnapshot(input: ContextSnapshotInput): string {
 
   // Build content lines — budget management to stay within 10 lines
   const lines: string[] = [`CONTEXT: ${displayChangeId}`, title];
-
-  // Autopilot mode indicator
-  if (input.approval_mode === "autopilot" && input.autopilot_invoked_at) {
-    lines.push(`Mode: autopilot (since ${input.autopilot_invoked_at})`);
-  }
 
   lines.push(
     "",

@@ -579,27 +579,4 @@ describe("summarizeTasks", () => {
   });
 });
 
-describe("formatContextSnapshot — approval_mode autopilot display", () => {
-  const baseInput: ContextSnapshotInput = {
-    changeId: "autopilotTest",
-    title: "Autopilot test change",
-    successCriteriaCount: 1,
-    taskCounts: { done: 0, in_progress: 0, pending: 1, cancelled: 0 },
-  };
 
-  test("shows Mode: autopilot line when approval_mode is set", () => {
-    const output = formatContextSnapshot({
-      ...baseInput,
-      approval_mode: "autopilot",
-      autopilot_invoked_at: "2026-04-28T22:00:00.000Z",
-    });
-    expect(output).toContain(
-      "Mode: autopilot (since 2026-04-28T22:00:00.000Z)",
-    );
-  });
-
-  test("omits Mode line when approval_mode is not set", () => {
-    const output = formatContextSnapshot(baseInput);
-    expect(output).not.toContain("Mode: autopilot");
-  });
-});

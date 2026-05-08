@@ -29,8 +29,6 @@ export interface CompactionTaskLike {
 export interface CompactionChangeLike {
   id: string;
   title: string;
-  approval_mode?: string;
-  autopilot_invoked_at?: string;
 }
 
 export interface CompactionSpecLike {
@@ -140,8 +138,6 @@ export function buildCompactionContext(
       id: input.change.id,
       title: input.change.title,
       tasks: input.tasks,
-      approval_mode: input.change.approval_mode,
-      autopilot_invoked_at: input.change.autopilot_invoked_at,
     },
     gates: input.gates,
     workdir: input.workdir,
