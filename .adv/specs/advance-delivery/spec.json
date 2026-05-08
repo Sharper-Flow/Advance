@@ -994,6 +994,75 @@
       "meta": {
         "introduced_by": "fixWorkflowReplayDeterminism"
       }
+    },
+    {
+      "id": "rq-runtimeProvenance01",
+      "title": "Runtime Provenance Diagnostic Surface",
+      "body": "ADV SHALL expose plugin loaded-module provenance via the adv_status health view: dist mtime/path, source mtime/path, source-vs-dist freshness verdict (one of fresh, source_ahead_of_dist, dist_ahead_of_process, unknown), plugin checkout git branch and HEAD SHA when probable, cwd-vs-plugin-root relation (match/child/outside), and a structured recovery hint when not fresh. Filesystem stat failures and git probe failures MUST degrade gracefully to null rather than throwing. The recovery hint MUST be structured as { action, commands[], paths } so callers can render verbatim or extract commands programmatically. ADV SHALL NOT perform rebuild orchestration, session restart, or workflow-cache invalidation as part of this surface — those concerns are owned by the OCA companion.",
+      "priority": "must",
+      "tags": [
+        "diagnostics",
+        "runtime",
+        "self-update"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-runtimeProvenance01.1",
+          "title": "Fresh plugin emits no recovery hint",
+          "given": [
+            "source_index_mtime <= dist_mtime AND dist_mtime <= process_started_at"
+          ],
+          "when": "adv_status view: health is read",
+          "then": [
+            "source_dist_freshness is 'fresh'",
+            "recovery_hint is null",
+            "Formatted healthSection contains no plugin freshness line"
+          ]
+        },
+        {
+          "id": "rq-runtimeProvenance01.2",
+          "title": "Source ahead of dist instructs rebuild",
+          "given": [
+            "source_index_mtime > dist_mtime"
+          ],
+          "when": "adv_status view: health is read",
+          "then": [
+            "source_dist_freshness is 'source_ahead_of_dist'",
+            "recovery_hint.action mentions rebuild",
+            "recovery_hint.commands includes 'pnpm run build'",
+            "Formatted healthSection contains the verdict and command lines"
+          ]
+        },
+        {
+          "id": "rq-runtimeProvenance01.3",
+          "title": "Dist ahead of process instructs session restart",
+          "given": [
+            "source_index_mtime <= dist_mtime AND dist_mtime > process_started_at"
+          ],
+          "when": "adv_status view: health is read",
+          "then": [
+            "source_dist_freshness is 'dist_ahead_of_process'",
+            "recovery_hint.action mentions session restart",
+            "Formatted healthSection contains the verdict and restart guidance"
+          ]
+        },
+        {
+          "id": "rq-runtimeProvenance01.4",
+          "title": "Unknown freshness on probe failure",
+          "given": [
+            "Filesystem stat or git probe failed for the plugin checkout"
+          ],
+          "when": "adv_status view: health is read",
+          "then": [
+            "source_dist_freshness is 'unknown'",
+            "recovery_hint.action indicates degraded mode",
+            "plugin_checkout_branch and plugin_checkout_head_sha are null when git probe failed"
+          ]
+        }
+      ],
+      "meta": {
+        "introduced_by": "enhanceadvselfupdateruntimepro"
+      }
     }
   ]
 }
