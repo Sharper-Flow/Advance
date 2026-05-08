@@ -346,6 +346,21 @@ describe("overlay sync script support", () => {
     }
   });
 
+  test("non-ADV build agent prompt is self-contained without ADV_INSTRUCTIONS section refs", () => {
+    const buildAgent = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/build.md"),
+      "utf8",
+    );
+    expect(buildAgent).toContain(
+      "NEVER suggest splitting a change based on size, complexity, or task count alone",
+    );
+    expect(buildAgent).not.toContain(
+      "See `ADV_INSTRUCTIONS.md § Large-Scope Validity`",
+    );
+    expect(buildAgent).not.toContain("### TDD Protocol (RSTC)");
+    expect(buildAgent).not.toContain("## Critical Protocols");
+  });
+
   test("check mode warns and continues when opencode is unavailable for runtime canary", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-canary-skip-"));
 
