@@ -1,0 +1,102 @@
+{
+  "id": "addstaleledgerremediationhint",
+  "title": "addStaleLedgerRemediationHint",
+  "status": "archived",
+  "created_at": "2026-05-08T05:26:22.386Z",
+  "tasks": [
+    {
+      "id": "tk-38d9734f4fb1",
+      "title": "## Task: Implement stale-ledger remediation hint (TDD)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T05:30:43.193Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T13:14:00.688Z",
+      "verification": "Completed with checkpoint commit cbb8e4629614daff36bcd70d513864aede2d57d1.",
+      "summary": "Added pure stale-ledger remediation helper to compaction context output. The helper emits actionable `ADV STALE LEDGER REMEDIATION` only when execution is incomplete, no task is active, and either work remains after prior progress or all tasks are terminal while execution remains incomplete. Added focused utility tests for stale pending-after-progress, orphaned all-terminal execution-incomplete, active task no-warning, fresh pending-only no-warning, execution-done no-warning, and missing-gates no-warning. RED failed on stale cases; GREEN passed.",
+      "implementation_summary": "Added pure stale-ledger remediation helper to compaction context output. The helper emits actionable `ADV STALE LEDGER REMEDIATION` only when execution is incomplete, no task is active, and either work remains after prior progress or all tasks are terminal while execution remains incomplete. Added focused utility tests for stale pending-after-progress, orphaned all-terminal execution-incomplete, active task no-warning, fresh pending-only no-warning, execution-done no-warning, and missing-gates no-warning. RED failed on stale cases; GREEN passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T13:16:45.160Z",
+      "completed_at": "2026-05-08T13:16:45.160Z"
+    },
+    {
+      "id": "tk-d2952ffe507c",
+      "title": "## Task: Verification — check + targeted compaction tests",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T05:30:46.733Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-38d9734f4fb1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T13:16:55.793Z",
+      "verification": "Completed with checkpoint commit a2ceb87cb9766b00ce32a71bacf4d7dc2b26f673.",
+      "summary": "Ran verification. First `pnpm run check` failed only on Prettier formatting for `src/utils/compaction-context.ts`; ran `pnpm run format`, then `pnpm run check` passed. Targeted compaction tests passed (`pnpm test -- src/utils/compaction-context.test.ts`, 152 files, 1821 tests, 2 skipped). Formatting change committed in verification checkpoint.",
+      "implementation_summary": "Ran verification. First `pnpm run check` failed only on Prettier formatting for `src/utils/compaction-context.ts`; ran `pnpm run format`, then `pnpm run check` passed. Targeted compaction tests passed (`pnpm test -- src/utils/compaction-context.test.ts`, 152 files, 1821 tests, 2 skipped). Formatting change committed in verification checkpoint.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T13:18:32.088Z",
+      "completed_at": "2026-05-08T13:18:32.088Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:26:29.309Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "User confirmed #5 quick contract by replying `continue`."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:30:35.492Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Discovery completed: traced compaction path (`index.ts` → `utils/compaction-context.ts`) and existing tests. No external dependencies."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:30:35.601Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Design validated by adv-researcher. Verdict: CAUTION; recommendation adopted. Naive detection rejected as too broad; final design gates stale hint on execution-incomplete + no active task + unfinished/orphaned work with negative tests for healthy states."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T13:13:53.379Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "User approved prep contract by replying `continue`. Proceeding to apply inline."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T13:18:49.056Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All tasks completed. Implementation checkpoint cbb8e4629614daff36bcd70d513864aede2d57d1; verification/format checkpoint a2ceb87cb9766b00ce32a71bacf4d7dc2b26f673. Verification passed: `pnpm run check` and targeted compaction tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:05:34.967Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered #5 implementation by replying `accept`. Review findings: no blockers, issues, suggestions, or questions. Verification passed: targeted compaction tests and `pnpm run check`."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:06:20.112Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Archive sign-off received via Tier B whitelist reply `approve`. Validation passed with warnings only (NO_DELTAS + proposal drift warnings; no spec deltas expected for output-only internal tooling fix). Verification passed before sign-off: `pnpm run check` and targeted compaction tests."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
