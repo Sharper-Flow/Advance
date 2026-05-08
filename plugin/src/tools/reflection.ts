@@ -14,7 +14,10 @@ import type { Store } from "../storage/store";
 import { appendReflection, type ReflectionEntry } from "../storage/reflection";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { GATE_ORDER } from "../types";
-import { computePerGateDurations } from "./investment";
+import {
+  computePerGateDurations,
+  computePerGateWorkDurations,
+} from "./investment";
 import { atomicWriteFile } from "../utils/fs";
 import { appendDebugLog } from "../utils/debug-log";
 import { getService } from "../temporal/service";
@@ -341,6 +344,11 @@ export const reflectionTools = {
         (sum, ms) => sum + ms,
         0,
       );
+      const perGateWorkMs = computePerGateWorkDurations(change);
+      const activeWorkMs = Object.values(perGateWorkMs).reduce(
+        (sum, ms) => sum + ms,
+        0,
+      );
 
       // Per-task TDD evidence history is intentionally removed in the
       // signal-driven model. Verification quality is captured as task/change
@@ -517,7 +525,9 @@ export const reflectionTools = {
             retry_density: retryDensity,
             elapsed_ms: elapsedMs,
             active_elapsed_ms: activeElapsedMs,
+            active_work_ms: activeWorkMs,
             per_gate_ms: perGateMs,
+            per_gate_work_ms: perGateWorkMs,
           },
           quality: {
             tdd_compliance: tddCompliance,
