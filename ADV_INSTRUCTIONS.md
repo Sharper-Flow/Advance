@@ -217,6 +217,7 @@ If a tool-name call fails, copy the exact name from the available-tools list and
 
 ### Structural Correctness (P33)
 
+<<<<<<< HEAD
 Make correctness structural before heuristic: prefer types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests. Fully recognize/normalize untrusted input before processing.
 
 | Area | Structural owner | Heuristic allowed only for |
@@ -224,6 +225,25 @@ Make correctness structural before heuristic: prefer types, schemas, parsers, st
 | Gates/tasks/backlog/specs | `adv_gate_*`, tasks, `metadata.tdd_intent`, validators, specs, conformance, exact refs, typed fields, user assignments | discovery, ranking, triage hints, legacy fallback, advisory risks |
 
 Heuristics MUST NOT be sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. If unavoidable: isolate, document assumptions, add deterministic guardrails, test edge cases/properties.
+=======
+Make correctness structural before heuristic. Prefer machine-checkable mechanisms — types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests — over heuristic inference or prose-only rules.
+
+ADV-specific boundary:
+
+| Area | Structural source of truth | Heuristic allowed only for |
+| --- | --- | --- |
+| Gate completion | `adv_gate_status`, `adv_gate_complete`, tasks, validation tools | Discovery of missing context |
+| Task classification | `metadata.tdd_intent`, validator schema | Legacy fallback / warning text |
+| Backlog triage | Stable refs, issue IDs, typed project fields, explicit user assignments | Ranking candidates, kind hints, possible duplicate discovery |
+| Spec compliance | Specs, validators, conformance verdicts | Research leads / advisory risk flags |
+
+Rules:
+
+- Fully recognize and normalize untrusted input at boundaries before processing it.
+- Heuristics may assist discovery, ranking, triage, or advisory guidance.
+- Heuristics MUST NOT be the sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance.
+- If a heuristic is unavoidable, isolate it, document assumptions, add deterministic guardrails, and verify it with edge-case or property-based tests.
+>>>>>>> 5247018 (task(tk-6b8fda1d628d): completed)
 
 ### ADV State Access
 
@@ -423,15 +443,12 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 **State location:** `~/.local/share/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
 
-**Enforcement layers:** (1) bash guard blocks git clone/curl/wget on locked sibling paths, (2) tool.execute.before blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) git mutation guard (`plugin/src/tools/git-guard.ts`) intercepts raw-bash git mutations via `tool.execute.before` and enforces worktree-scope and dirty-tree constraints.
+<!-- rq-gm01 -->
+**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) git mutation guard (`plugin/src/tools/git-guard.ts`) intercepts bash-tool git mutations and enforces worktree/dirty-tree constraints.
 
 ### Git Mutation Guard
 
-**Spec:** `rq-gm01` in advance-meta.
-
-`tool.execute.before` intercepts bash git mutations/staging. Allow in ADV worktrees and clean main; block main+dirty mutations/staging and main pushes; warn on other branches; always allow read-only/worktree management. Pipeline: split shell ops → extract git subcommand → resolve aliases → classify → fact-check mutation/staging → decide.
-
-Residual risk: shell aliases/functions and script-internal git calls are undetectable. Mitigation: ADV forbids raw-bash git mutations; guard enforces detectable patterns. Must not block read-only/worktree mgmt, mutate peers, add Temporal coordination, or claim snapshot-index contention solved.
+`tool.execute.before` classifies bash git commands (split shell ops → skip git global flags like `-C`/`--git-dir` → resolve aliases → classify). Read-only + worktree management always allowed. Mutations/staging allowed only in ADV worktrees or clean default-branch archive paths; dirty default branch, default-branch push, and non-worktree feature branches block. Residual risk: shell aliases/functions and script-internal git calls are undetectable from the plugin hook; ADV still forbids raw-bash git mutations. The guard must not block read-only/worktree mgmt, mutate peers, add Temporal coordination, or claim snapshot-index contention solved.
 
 ### Cross-Repo Execution
 
