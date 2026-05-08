@@ -248,8 +248,10 @@ async function actionUnlock(
   if (!state.specs[args.spec]) {
     return makeError(`spec "${args.spec}" is not tracked`);
   }
-  // TODO: No dedicated conformanceUnlockedSignal in current signal set.
-  // Unlock stays on the local conformance storage path.
+  // NOTE: Unlock is intentionally local-storage-only — there is no
+  // conformanceUnlockedSignal in the change-workflow signal set, and adding
+  // one is out of scope for the current conformance design. The local audit
+  // record (overrides + applied_at) is the durable trail.
   const audited = appendOverride(state, args.spec, {
     user: args.user,
     reason: args.reason,
