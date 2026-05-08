@@ -211,3 +211,27 @@ describe("ADV_INSTRUCTIONS.md medium cleanup (repairDriftContradictions T3)", ()
     expect(content).toMatch(/\*\*Use lighter workflows for:\*\*/);
   });
 });
+
+describe("ADV_INSTRUCTIONS.md compression guards", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  test("declares exact contract tokens that compression must preserve", () => {
+    expect(content).toMatch(/^### Instruction Compression Guard$/m);
+    expect(content).toContain("Exact contract tokens stay unchanged");
+
+    for (const token of [
+      "tool names",
+      "gate IDs",
+      "slash commands",
+      "enum values",
+      "quoted errors",
+      "`MUST`",
+      "`NEVER`",
+      "approval checkpoints",
+      "cancellation approval",
+      "archive sign-off",
+    ]) {
+      expect(content).toContain(token);
+    }
+  });
+});

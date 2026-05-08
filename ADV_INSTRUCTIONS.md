@@ -6,6 +6,10 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 `→` sequence · `←` blocked by · `✓` complete · `○` pending · `×` forbidden · `⚠` attention
 
+### Instruction Compression Guard
+
+Use `docs/command-voice-standard.md` prose-load templates + terse/caveman-lite wording. Exact contract tokens stay unchanged: tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.
+
 ## Core Decision Rules
 
 | When                               | Then                                   |
