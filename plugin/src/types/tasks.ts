@@ -140,6 +140,19 @@ export const TaskTypeSchema = z.enum([
 ]);
 export type TaskType = z.infer<typeof TaskTypeSchema>;
 
+export const TaskContractRefsSchema = z.object({
+  /** Contract items this task implements, usually AC-* or SC-* IDs. */
+  implements: z.array(z.string()).optional(),
+  /** Contract items this task verifies with tests/checks/evidence. */
+  verifies: z.array(z.string()).optional(),
+  /** Contract items this task must preserve, usually C-*, DONT-*, or OOS-* IDs. */
+  respects: z.array(z.string()).optional(),
+  /** Required when a task intentionally has no contract refs. */
+  not_applicable_reason: z.string().optional(),
+});
+
+export type TaskContractRefs = z.infer<typeof TaskContractRefsSchema>;
+
 export const TaskSchema = z
   .object({
     id: z.string(), // tk-Hf7dK2mN
@@ -184,6 +197,8 @@ export const TaskSchema = z
     cancellation: CancellationSchema.optional(),
     /** Structured TDD reclassification audit trail — populated when tdd_intent is changed after prep gate */
     tdd_reclassification: TddReclassificationSchema.optional(),
+    /** Structured links from task work back to approved change-contract items. */
+    contract_refs: TaskContractRefsSchema.optional(),
     /**
      * Arbitrary key-value metadata for agent-driven filtering and routing.
      * All values are strings. Examples: { env: "production", target_repo: "backend" }

@@ -289,6 +289,120 @@ export const FastFollowOfSchema = z.object({
 export type FastFollowOf = z.infer<typeof FastFollowOfSchema>;
 
 // =============================================================================
+// Change Contract Traceability
+// =============================================================================
+
+export const ContractRigorSchema = z.enum(["minimal", "standard", "strict"]);
+export type ContractRigor = z.infer<typeof ContractRigorSchema>;
+
+export const ContractItemKindSchema = z.enum([
+  "success_criterion",
+  "acceptance_criterion",
+  "constraint",
+  "avoidance",
+  "out_of_scope",
+]);
+export type ContractItemKind = z.infer<typeof ContractItemKindSchema>;
+
+export const ContractEvidencePolicySchema = z.enum([
+  "test",
+  "review",
+  "static_check",
+  "design_proof",
+  "not_applicable",
+]);
+export type ContractEvidencePolicy = z.infer<
+  typeof ContractEvidencePolicySchema
+>;
+
+export const ContractItemStatusSchema = z.enum([
+  "draft",
+  "approved",
+  "amended",
+  "superseded",
+  "waived",
+]);
+export type ContractItemStatus = z.infer<typeof ContractItemStatusSchema>;
+
+export const ContractEvidenceStatusSchema = z.enum([
+  "pass",
+  "fail",
+  "respected",
+  "violated",
+  "unknown",
+  "not_applicable",
+]);
+export type ContractEvidenceStatus = z.infer<
+  typeof ContractEvidenceStatusSchema
+>;
+
+export const ContractSourceSchema = z.object({
+  artifact: z.enum(["proposal", "problemStatement", "agreement", "design"]),
+  contentHash: z.string().optional(),
+  approvedAt: z.string(),
+});
+export type ContractSource = z.infer<typeof ContractSourceSchema>;
+
+export const ContractItemSchema = z.object({
+  id: z.string(),
+  kind: ContractItemKindSchema,
+  text: z.string(),
+  sourceArtifact: z.enum([
+    "proposal",
+    "problemStatement",
+    "agreement",
+    "design",
+  ]),
+  sourceHash: z.string().optional(),
+  verificationRequired: z.boolean().default(true),
+  evidencePolicy: ContractEvidencePolicySchema,
+  status: ContractItemStatusSchema.default("draft"),
+  notRequiredReason: z.string().optional(),
+});
+export type ContractItem = z.infer<typeof ContractItemSchema>;
+
+export const ContractReviewMatrixRowSchema = z.object({
+  contractId: z.string(),
+  kind: ContractItemKindSchema,
+  status: ContractEvidenceStatusSchema,
+  evidencePolicy: ContractEvidencePolicySchema,
+  evidence: z.string(),
+  notes: z.string().optional(),
+});
+export type ContractReviewMatrixRow = z.infer<
+  typeof ContractReviewMatrixRowSchema
+>;
+
+export const ContractReviewMatrixSchema = z.object({
+  reviewedAt: z.string(),
+  rows: z.array(ContractReviewMatrixRowSchema),
+});
+export type ContractReviewMatrix = z.infer<
+  typeof ContractReviewMatrixSchema
+>;
+
+export const ContractAmendmentSchema = z.object({
+  id: z.string(),
+  actor: z.string(),
+  reason: z.string(),
+  approvalEvidence: z.string().optional(),
+  amendedAt: z.string(),
+  affectedIds: z.array(z.string()),
+  invalidatesReviewMatrix: z.boolean().default(true),
+});
+export type ContractAmendment = z.infer<typeof ContractAmendmentSchema>;
+
+export const ChangeContractSchema = z.object({
+  version: z.literal(1),
+  rigor: ContractRigorSchema,
+  source: ContractSourceSchema,
+  items: z.array(ContractItemSchema),
+  reviewMatrix: ContractReviewMatrixSchema.optional(),
+  amendments: z.array(ContractAmendmentSchema).default([]),
+});
+export type ChangeContract = z.infer<typeof ChangeContractSchema>;
+
+// =============================================================================
 // Change
 // =============================================================================
 
@@ -313,6 +427,8 @@ export const ChangeSchema = z
     gates: GatesSchema.optional(),
     /** Linked GitHub issue URLs (optional, backwards compatible) */
     github_issues: z.array(z.string().url()).optional(),
+    /** Structural traceability spine for approved change obligations. */
+    contract: ChangeContractSchema.optional(),
     /** Structured closure metadata for retired changes */
     closure: ChangeClosureSchema.optional(),
     /** Persisted clarify finding snapshots for resolution tracking */
