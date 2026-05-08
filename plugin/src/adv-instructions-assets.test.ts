@@ -107,7 +107,9 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
     expect(phaseGoals).toMatch(/`\/adv-reflect`/);
     expect(phaseGoals).toMatch(/durable reflection artifact/);
     expect(phaseGoals).toMatch(/`\/adv-atc`/);
-    expect(phaseGoals).toMatch(/deferring HITL.*GitHub|preserving all safety boundaries/);
+    expect(phaseGoals).toMatch(
+      /deferring HITL.*GitHub|preserving all safety boundaries/,
+    );
   });
 
   test("target_path matrix does not contradict adv_status support", () => {

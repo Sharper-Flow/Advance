@@ -578,5 +578,3 @@ describe("summarizeTasks", () => {
     expect(result.errorBudgetProximity).toBeUndefined();
   });
 });
-
-

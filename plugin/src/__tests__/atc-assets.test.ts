@@ -88,7 +88,9 @@ describe("adv-atc agent overlay assets", () => {
     // Find the tools section and verify question is excluded
     const toolsSection = content.match(/tools:([\s\S]*?)---/);
     expect(toolsSection).toBeDefined();
-    expect(toolsSection![0]).toMatch(/question.*false|ATC never prompts inline/);
+    expect(toolsSection![0]).toMatch(
+      /question.*false|ATC never prompts inline/,
+    );
   });
 });
 
