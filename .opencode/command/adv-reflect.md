@@ -45,7 +45,7 @@ Parse `$ARGUMENTS`: `change-id` (required).
 
 Call `adv_investment_report changeId: <target>` → capture:
 - Task count, retry count, elapsed time
-- Threshold tier (`auto` | `escalate` | `hardstop`)
+- Per-gate durations, doom-loop signal
 
 This feeds Plane 1 efficiency metrics.
 
@@ -57,7 +57,7 @@ Synthesize from change data:
 
 | Dimension  | Source Data                                              |
 |------------|----------------------------------------------------------|
-| Efficiency | Task counts, elapsed time, retry density, per-gate durations, investment tier |
+| Efficiency | Task counts, elapsed time, retry density, per-gate durations |
 | Quality    | TDD compliance rate, review/harden findings counts       |
 | Process    | Gate completion rate, TDD intent distribution, delegation count, drift triggers |
 | Wisdom     | Entries captured, entries promoted, reuse hits           |
