@@ -51,7 +51,7 @@ export interface GuardResult {
 export interface GuardDeps {
   getDefaultBranch: (cwd: string) => Promise<string>;
   execGit: (args: string[], cwd: string) => Promise<string>;
-  getWorktreePaths: () => string[];
+  getWorktreePaths: () => string[] | Promise<string[]>;
   getProjectRoot: () => string;
 }
 
@@ -351,7 +351,7 @@ export async function resolveGuardContext(
   }
 
   // Check if workdir is inside a known ADV worktree
-  const worktreePaths = deps.getWorktreePaths();
+  const worktreePaths = await deps.getWorktreePaths();
   const isWorktree = worktreePaths.some(
     (wtPath) => workdir.startsWith(wtPath) || gitRoot.startsWith(wtPath),
   );
