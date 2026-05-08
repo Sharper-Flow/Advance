@@ -225,7 +225,7 @@ function parseScenario(content: string): ParsedScenario | null {
     title: "", // Will be set by caller
     given,
     when: when || "the action is performed",
-    then: then.length > 0 ? then : ["the expected outcome occurs"],
+    then: then.length > 0 ? then : ["the expected outcome occurs"], // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
   };
 }
 
@@ -400,7 +400,7 @@ function convertToADV(parsed: ParsedSpec): ADVSpec {
         title: s.title,
         given: s.given,
         when: s.when,
-        then: s.then,
+        then: s.then, // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
       })),
     };
 

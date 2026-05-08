@@ -36,7 +36,7 @@ export const ScenarioSchema = z
     title: z.string(),
     given: z.array(z.string()),
     when: z.string(),
-    then: z.array(z.string()),
+    then: z.array(z.string()), // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

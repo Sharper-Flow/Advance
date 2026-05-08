@@ -160,7 +160,7 @@ describe("checkMissingScenarios", () => {
                   id: "rq-test2.1",
                   given: "user sends 101st request",
                   when: "rate limit is 100/min",
-                  then: "return 429",
+                  then: "return 429", // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
                 },
               ],
             },
@@ -349,7 +349,7 @@ describe("runClarifyReadinessChecks", () => {
                   id: "rq-clean.1",
                   given: "user sends 101st request",
                   when: "limit is 100/min",
-                  then: "return 429",
+                  then: "return 429", // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
                 },
               ],
             },

@@ -109,14 +109,14 @@ export const SAMPLE_SPEC = {
           title: "Basic scenario",
           given: ["the system is initialized", "a user exists"],
           when: "the user performs an action",
-          then: ["the action succeeds", "the result is recorded"],
+          then: ["the action succeeds", "the result is recorded"], // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
         },
         {
           id: "rq-test0001.2",
           title: "Error scenario",
           given: ["the system is initialized", "no user exists"],
           when: "an anonymous action is attempted",
-          then: ["the action fails", "an error is returned"],
+          then: ["the action fails", "an error is returned"], // NOSONAR(typescript:S7739): BDD scenario field, not a thenable
         },
       ],
     },
