@@ -405,6 +405,16 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
+      // rq-replayFallback01.3: when re-seed of a non-terminal change fails
+      // AND the original trigger error was a known poisoned-history class
+      // (TMPRL1100 / nondeterminism / no-command-replay), fall back to the
+      // durable disk projection. Mirrors the post-reseed-query fallback in
+      // the next try/catch. Missing-workflow re-seed failures still return
+      // null so callers see the real WorkflowNotFoundError instead of a
+      // synthetically-recovered stale projection.
+      if (reason === "poisoned_history") {
+        return withProjectionRecovery(change, "disk", reason);
+      }
       return null;
     }
     try {
