@@ -182,6 +182,8 @@ If <3 non-nit findings → require genuinely-clean justification with file-level
 
 Approve when change "definitely improves overall code health." Block only on: security vulns, correctness bugs, system health degradation, missing tests for risky changes. × Don't block on style preferences, minor optimizations, equivalent alternatives.
 
+When APPROVED with unresolved `suggestion:` or `question:` findings, note in the `REVIEW_FINDINGS` block that these are deferred to `/adv-harden` for validation and implementation. The harden phase will validate each and either implement or reject with evidence before archive.
+
 ---
 ## Phase 4: Display Summary
 Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.

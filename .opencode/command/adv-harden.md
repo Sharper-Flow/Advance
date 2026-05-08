@@ -108,6 +108,8 @@ If unresolved actionable findings → emit HARDEN BLOCKED banner listing each wi
 
 If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
+> **Scope note:** `blocker:` and `issue:` findings are checked here (pre-flight). `suggestion:` and `question:` findings are validated and implemented in "Review Findings Ingestion" below. `nit:` findings are excluded from both.
+
 ### Merge Compatibility Check
 
 Dry-run merge of change branch into default branch. Non-destructive — nothing committed.
@@ -131,6 +133,35 @@ Sub-agents inherit default project root, NOT current workdir. When in a worktree
 
 1. `pwd` → record as `{workdir}`
 2. Include in every sub-agent prompt: `WORKING DIRECTORY: {workdir}` — all file paths relative to this directory
+
+### Review Findings Ingestion
+
+Before running 6-scanner analysis, validate and act on review suggestions/questions.
+
+**Step 1:** Load all `REVIEW_FINDINGS` findings with labels `suggestion:` and `question:` that have `status: unresolved`.
+
+**Step 2: Validate each finding:**
+- Re-read the referenced file:line in current codebase
+- Check against specs (`adv_spec action: "show"`), acceptance criteria, and existing tests
+- Determine validity:
+
+| Classification | Criteria | Action |
+|---|---|---|
+| `valid` | Finding still applies; code would genuinely improve | Queue for implementation |
+| `invalid` | Code already handles this, finding based on stale context, or contradicts specs | Mark `rejected_with_evidence`, document why |
+| `already_fixed` | Subsequent task or review remediation already addressed it | Mark `fixed`, cite evidence |
+
+**Step 3: Implement valid findings:**
+- Apply drift-detection rule (same as Phase 3) before each fix
+- If no drift → implement via `adv-engineer` sub-agent or inline
+- If drift → STOP, present to user via `question` tool
+- After implementation → mark `fixed` with fix notes
+
+**Step 4: Emit updated `REVIEW_FINDINGS`** with new statuses for all processed findings.
+
+**Skip condition:** If no `suggestion:`/`question:` findings with `status: unresolved` exist → emit REVIEW FINDINGS INGESTION: NONE banner → proceed to Phase 1.
+
+**Integration with Review Findings Audit:** The pre-flight "Review Findings Audit" blocks on unresolved `blocker:`/`issue:` findings. This ingestion step handles `suggestion:`/`question:` items. Together they ensure ALL non-nit findings reach terminal status before archive.
 
 ---
 

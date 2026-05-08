@@ -1,0 +1,1 @@
+Review `suggestion:` and `question:` findings fall through the gap between review and harden. Review skips remediation when verdict is APPROVED. Harden only checks if findings are resolved — it doesn't validate or implement them. This means suggestions that could improve code quality are silently dropped.
