@@ -214,8 +214,32 @@ Anything else → re-prompt with the same options.
 
 Validation:
 - Bug values must be one of `critical`, `high`, `medium`, `low` (case-insensitive). Apply via `gh issue edit <num> --add-label "priority:<value>"`.
-- Feature values must be integer in `[1,13]`. Apply via `gh project item-edit --project-id <pid> --id <item-id> --field-id <Value-field-id> --number <n>`.
+- Feature values must be integer in `[1,13]`. Apply via single-field `gh api graphql --include` mutation:
+
+```bash
+gh api graphql --include -f query="
+  mutation { update: updateProjectV2ItemFieldValue(input: {
+    projectId: \"<project_id>\", itemId: \"<item_id>\",
+    fieldId: \"<Value_field_id>\", value: {number: <n>}
+  }) { projectV2Item { id } } }"
+```
+
+- Check `x-ratelimit-remaining` from response headers after each write. If `< 10`, stop and report reset time.
 - Any invalid pair → reject the entire reply, re-prompt unchanged.
+
+### GraphQL budget gate (before Value writes)
+
+Before applying feature Value assignments, check budget:
+
+```bash
+budget_info=$(gh api graphql -f query='{ rateLimit { remaining resetAt } }')
+graphql_remaining=$(echo "$budget_info" | jq '.data.rateLimit.remaining')
+graphql_reset=$(echo "$budget_info" | jq -r '.data.rateLimit.resetAt')
+estimated=$((feature_count + 100))
+if [ "$graphql_remaining" -lt "$estimated" ]; then
+  echo "[ADV:BLOCKED] GraphQL budget insufficient for Value writes: ${graphql_remaining} remaining, ${estimated} needed. Resets at ${graphql_reset}."
+fi
+```
 
 Items deferred or skipped due to ambiguity are excluded from Phase 5 roadmap rendering and surfaced in the final report under "deferred / unscored".
 
@@ -224,6 +248,69 @@ Items deferred or skipped due to ambiguity are excluded from Phase 5 roadmap ren
 ## Phase 4: Agent Scoring (autonomous)
 
 For each feature with `Value` set but missing `TimeCriticality`, `RROE`, or `Effort` (or all of them when `--rescore`), the agent must assess and assign a number in `[1,13]` for each missing dimension. Then compute `WSJF = (Value + TimeCriticality + RROE) / Effort` and round to one decimal place.
+
+### Cached project-state protocol
+
+Reuse the `project_items` map built in Phase 1. It already contains `{issue_number → {item_id, fields: {value, timeCriticality, rROE, effort, wSJF}, ...}}`. Do NOT call `gh project item-list` again in Phase 4 — the Phase 1 cache is sufficient.
+
+### GraphQL budget estimation gate
+
+Before entering the scoring loop, check budget:
+
+```bash
+budget_info=$(gh api graphql -f query='{ rateLimit { remaining resetAt } }')
+graphql_remaining=$(echo "$budget_info" | jq '.data.rateLimit.remaining')
+graphql_reset=$(echo "$budget_info" | jq -r '.data.rateLimit.resetAt')
+estimated=$((features_needing_scoring + 1 + 100))  # 1 batch/item + 1 Phase 5 read + 100 buffer
+if [ "$graphql_remaining" -lt "$estimated" ]; then
+  echo "[ADV:BLOCKED] GraphQL budget insufficient: ${graphql_remaining} remaining, ${estimated} needed. Resets at ${graphql_reset}."
+  # Skip to Phase 6 report
+fi
+```
+
+### Batched GraphQL mutation (4 fields per item)
+
+For each item needing scoring, construct a single `gh api graphql` call with 4 aliased mutations:
+
+```bash
+gh api graphql --include -f query="
+  mutation {
+    tc: updateProjectV2ItemFieldValue(input: {
+      projectId: \"$PROJECT_ID\", itemId: \"$ITEM_ID\",
+      fieldId: \"$TC_FIELD_ID\", value: {number: $TC_VALUE}
+    }) { projectV2Item { id } }
+    rroe: updateProjectV2ItemFieldValue(input: {
+      projectId: \"$PROJECT_ID\", itemId: \"$ITEM_ID\",
+      fieldId: \"$RROE_FIELD_ID\", value: {number: $RROE_VALUE}
+    }) { projectV2Item { id } }
+    effort: updateProjectV2ItemFieldValue(input: {
+      projectId: \"$PROJECT_ID\", itemId: \"$ITEM_ID\",
+      fieldId: \"$EFFORT_FIELD_ID\", value: {number: $EFFORT_VALUE}
+    }) { projectV2Item { id } }
+    wsjf: updateProjectV2ItemFieldValue(input: {
+      projectId: \"$PROJECT_ID\", itemId: \"$ITEM_ID\",
+      fieldId: \"$WSJF_FIELD_ID\", value: {number: $WSJF_VALUE}
+    }) { projectV2Item { id } }
+  }"
+```
+
+### Sequential paced writes
+
+- 1-second `sleep 1` between batch requests.
+- After each batch, parse `x-ratelimit-remaining` from response headers (`--include` flag).
+- If `x-ratelimit-remaining < 10`: stop immediately, report `x-ratelimit-reset` time.
+- If response headers are missing (error responses): fall back to `rateLimit` query.
+- Parse response for `errors` array — GraphQL returns HTTP 200 even with errors. Log per-alias errors and continue.
+
+### Idempotent resume
+
+Before each batch mutation:
+
+1. Check cached `project_items[issue_number].fields` against target values.
+2. If all 4 fields already match targets → skip entire item, log "skipped: already correct".
+3. If subset matches → only include non-matching fields in the batch (omit matching aliases).
+4. `--rescore` flag overrides: always include all 4 fields.
+5. WSJF float comparison uses `±0.05` tolerance (values in range 0-39, float64 is exact, tolerance is safety margin).
 
 ### Scoring rubric
 
@@ -251,7 +338,7 @@ scored_at=2026-05-08T12:34:56Z
 -->
 ```
 
-Update the project fields via `gh project item-edit` for each numeric dimension and `WSJF`.
+Update the project fields via batched `gh api graphql --include` mutations as specified above.
 
 ### Bug rebound
 
@@ -261,7 +348,7 @@ Bugs do **not** get `Value`/`TC`/`RROE`/`Effort`/`WSJF`. They use `priority:*` l
 
 ## Phase 5: Generate ROADMAP.md
 
-Read final state from the project: `gh project item-list <N> --owner <owner> --format json --limit 500` filtered to open issues only.
+Read final state from the project: `gh project item-list <N> --owner <owner> --format json --limit 500` filtered to open issues only. **This must be a fresh read** — do NOT reuse the Phase 1 or Phase 4 cached state, since Phase 4 mutations may have changed field values. Correctness of the generated ROADMAP depends on reflecting the actual post-mutation project state.
 
 ### Layout
 
@@ -427,6 +514,13 @@ Project: #{N} ({owner}/ADV: {repo-name})
 - ROADMAP.md ({size} bytes)
 - Commit: {sha or "not committed"}
 - Pushed: {yes / no / dry-run}
+
+### API Budget
+- GraphQL points consumed: {N} (estimated from batch count)
+- GraphQL points remaining: {N}
+- GraphQL reset: {ISO-8601}
+- Batch mutations issued: {N}
+- Items skipped (already correct): {N}
 ```
 
 If dry-run: append `Re-run with `--execute` to apply mutations.`
@@ -458,6 +552,9 @@ If dry-run: append `Re-run with `--execute` to apply mutations.`
 | Recompute WSJF on every run for already-scored features | Only fill missing fields unless `--rescore` is set |
 | Drop low-priority TODOs on the floor without surfacing | All inventory items appear in the final report, even if deferred |
 | LLM fallback on ambiguous Tier B reply | Whitelist + regex only; re-prompt unchanged |
+| Use `gh project item-edit` for bulk writes (1 field/call) | Use `gh api graphql` batched mutations (4 fields/call via aliased mutations) |
+| Ignore `x-ratelimit-remaining` response header | Check after each batch via `--include` flag; stop if < 10 |
+| Use `rateLimit` query for every post-mutation check | Use response headers (primary); `rateLimit` query only for initial gate and fallback when headers missing |
 
 ---
 
@@ -470,7 +567,10 @@ If dry-run: append `Re-run with `--execute` to apply mutations.`
 | Edit issue labels | `gh issue edit <num> --add-label / --remove-label` |
 | List project items | `gh project item-list <N> --owner <owner> --format json` |
 | Add issue to project | `gh project item-add` |
-| Edit project field | `gh project item-edit` |
+| Edit project field (single) | `gh api graphql --include -f query='mutation { update: updateProjectV2ItemFieldValue(input: {...}) { projectV2Item { id } } }'` |
+| Edit project fields (batch 4) | `gh api graphql --include -f query='mutation { tc: ... rroe: ... effort: ... wsjf: ... }'` |
+| Check GraphQL budget (initial gate) | `gh api graphql -f query='{ rateLimit { remaining resetAt } }'` |
+| Check GraphQL budget (per-response) | Parse `x-ratelimit-remaining` from `--include` response headers |
 | Create project field | `gh project field-create` |
 | Persist project metadata | `adv_project_metadata` (read/write `github_project`) |
 | Active ADV changes | `adv_change_list status: 'in-flight'` |

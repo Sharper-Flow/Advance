@@ -1,0 +1,252 @@
+{
+  "id": "fixAdvTriageGraphqlBudget",
+  "title": "Fix /adv-triage GraphQL budget exhaustion during Project field updates",
+  "status": "archived",
+  "created_at": "2026-05-08T19:20:22.479Z",
+  "tasks": [
+    {
+      "id": "tk-08e32fc4b20e",
+      "title": "Update Phase 3b in adv-triage.md: replace `gh project item-edit` on line 217 with `gh api graphql --include` single-field mutation for Value writes. Add budget gate before Value writes.",
+      "type": "code",
+      "section": "Phase 3b",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T19:45:44.425Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:46:22.544Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:46:40.515Z",
+      "completed_at": "2026-05-08T19:46:40.515Z"
+    },
+    {
+      "id": "tk-395291a30b39",
+      "title": "Update Phase 4 in adv-triage.md: add cached project-state protocol (reuse Phase 1 item-list), batched GraphQL mutation instructions (4 fields per item via `gh api graphql --include`), GraphQL budget estimation gate, 1-second pacing, idempotent resume logic (skip already-correct fields, ±0.05 WSJF tolerance), and rate-limit error handling. Replace line 254 `gh project item-edit` reference.",
+      "type": "code",
+      "section": "Phase 4",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T19:45:46.753Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:46:47.397Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:47:20.194Z",
+      "completed_at": "2026-05-08T19:47:20.194Z"
+    },
+    {
+      "id": "tk-af5effb97e4e",
+      "title": "Update Phase 5 in adv-triage.md: add explicit note that Phase 5 must use a separate fresh `item-list` read (not Phase 4 cache) for ROADMAP freshness.",
+      "type": "code",
+      "section": "Phase 5",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T19:45:48.198Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:47:27.186Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:47:37.250Z",
+      "completed_at": "2026-05-08T19:47:37.250Z"
+    },
+    {
+      "id": "tk-bab131e10eb6",
+      "title": "Update Phase 6 report template in adv-triage.md: add API Budget section (GraphQL points consumed, remaining, reset, batch mutations issued, items skipped).",
+      "type": "code",
+      "section": "Phase 6",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T19:45:49.404Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:47:44.573Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:47:53.602Z",
+      "completed_at": "2026-05-08T19:47:53.602Z"
+    },
+    {
+      "id": "tk-8238cd4e1df1",
+      "title": "Update Key Tools table in adv-triage.md: replace `gh project item-edit` row with batched `gh api graphql --include` rows (single-field, batch-4, budget check, per-response header check).",
+      "type": "code",
+      "section": "Key Tools",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-08T19:45:50.950Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:47:53.996Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:48:08.268Z",
+      "completed_at": "2026-05-08T19:48:08.268Z"
+    },
+    {
+      "id": "tk-f916191d984b",
+      "title": "Update Anti-Patterns table in adv-triage.md: add 3 new rows (don't use item-edit for bulk writes, don't ignore rate-limit headers, don't use rateLimit query for every post-mutation check).",
+      "type": "code",
+      "section": "Anti-Patterns",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-08T19:45:52.348Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:48:08.636Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:48:22.146Z",
+      "completed_at": "2026-05-08T19:48:22.146Z"
+    },
+    {
+      "id": "tk-031fa57e7d85",
+      "title": "Add GitHub GraphQL Budget section to SETUP.md: REST vs GraphQL budget separation table, Projects v2 budget note, batching explanation, multi-session shared-budget note.",
+      "type": "code",
+      "section": "SETUP.md",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-08T19:45:53.782Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:48:22.166Z",
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:48:47.271Z",
+      "completed_at": "2026-05-08T19:48:47.271Z"
+    },
+    {
+      "id": "tk-58f47ac157ef",
+      "title": "Validate: run `pnpm run check` to verify no manifest drift from command edits. Read the updated command contract end-to-end to verify consistency across all phases, Key Tools, and Anti-Patterns.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-08T19:45:55.809Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:48:55.292Z",
+      "verification": "Validation passed. typecheck ✓, lint ✓, format warning on unrelated pre-existing file. All item-edit references replaced except Anti-Patterns bad column. Fresh read, budget gate, batching, --include, resume, API Budget report all present and consistent.",
+      "summary": "Validation passed. typecheck ✓, lint ✓, format warning on unrelated pre-existing file. All item-edit references replaced except Anti-Patterns bad column. Fresh read, budget gate, batching, --include, resume, API Budget report all present and consistent.",
+      "implementation_summary": "Validation passed. typecheck ✓, lint ✓, format warning on unrelated pre-existing file. All item-edit references replaced except Anti-Patterns bad column. Fresh read, budget gate, batching, --include, resume, API Budget report all present and consistent.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:49:54.639Z",
+      "completed_at": "2026-05-08T19:49:54.639Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:22:21.769Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal in prior session via Tier A inline approval. Proposal gate completion was interrupted by session health issue."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:41:20.617Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery gate complete. Agreement approved by user via Tier A inline approval. All 8 protocol steps executed. 0 CRITICAL findings, 0 HIGH findings. Key discovery: direct GraphQL batched mutations reduce API budget consumption 4× vs gh project item-edit."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:45:36.913Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher: VALIDATED with 3 suggestions (all incorporated: --include flag, combined rateLimit query, header-absent fallback) and 1 question addressed (timeout retry re-checks budget gate). No CONFLICT."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:46:16.800Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph via Tier A inline approval. 8 tasks: 7 implementation + 1 validation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:50:02.906Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 tasks completed. adv-triage.md updated: Phase 3b (single-field graphql), Phase 4 (cached reads, batched mutations, budget gate, pacing, resume), Phase 5 (fresh read), Phase 6 (API Budget report), Key Tools (4 graphql rows), Anti-Patterns (3 new rows). SETUP.md: GraphQL Budget section added. Validation: check passed (pre-existing format warning on unrelated file only)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:50:19.014Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 12 AC verified against updated command contract. AC9 (resume without rate-limit) requires live validation after GraphQL reset (~19:43Z). No must-not rule violations. No spec conflicts."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:50:48.458Z",
+      "completed_by": "agent",
+      "approval_evidence": "Validation: 0 errors, 11 expected warnings. No spec deltas (utility command, no formal spec). All 8 tasks done. Sign-off by user."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-08T19:41:29.515Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-08T19:41:29.515Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-08T19:41:29.515Z"
+    }
+  ]
+}

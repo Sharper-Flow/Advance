@@ -765,6 +765,21 @@ gh project list --owner @me --limit 1 # must succeed (creates if missing later)
 
 If `gh auth status` is missing scopes, run `gh auth refresh -s repo,project,read:org,workflow`. If `gh repo view` fails on an org repo, the org admin must approve the GitHub CLI app (see **GitHub CLI authentication** above).
 
+### GitHub GraphQL Budget
+
+GitHub enforces two separate rate-limit budgets:
+
+| Budget | Scope | Limit |
+|--------|-------|-------|
+| REST / Core | Per user per hour | 5,000 requests |
+| GraphQL | Per user per hour | 5,000 points |
+
+Projects v2 operations (`gh project item-list`, `gh api graphql` against ProjectV2 types) consume the **GraphQL** budget. Issue operations (`gh issue list`, `gh issue create`) consume the **REST** budget.
+
+`/adv-triage` uses batched GraphQL mutations (`updateProjectV2ItemFieldValue` with aliased fields) to minimize budget consumption: 4 field updates per HTTP request instead of 1. For N features needing scoring, the command issues approximately N batch requests + 2 reads.
+
+**Multi-session note:** All `opencode` sessions on the same machine share the same `gh auth` token and its GraphQL budget (rate limit is per-user, not per-token). Plan for N concurrent triage runs sharing one 5,000/hr pool.
+
 ---
 
 ## Directory Structure
