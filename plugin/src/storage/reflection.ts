@@ -34,8 +34,10 @@ export interface ReflectionEntry {
       retry_total: number;
       retry_density: number;
       active_elapsed_ms?: number;
+      active_work_ms?: number;
       elapsed_ms: number;
       per_gate_ms: Record<string, number>;
+      per_gate_work_ms?: Record<string, number>;
     };
     quality: {
       review_findings_count?: number;
@@ -114,8 +116,10 @@ const ReflectionEntrySchema = z.object({
         retry_total: z.number().int().min(0),
         retry_density: z.number().min(0),
         active_elapsed_ms: z.number().min(0).optional(),
+        active_work_ms: z.number().min(0).optional(),
         elapsed_ms: z.number().min(0),
         per_gate_ms: z.record(z.string(), z.number().min(0)),
+        per_gate_work_ms: z.record(z.string(), z.number().min(0)).optional(),
       })
       .passthrough(),
     quality: z.object({

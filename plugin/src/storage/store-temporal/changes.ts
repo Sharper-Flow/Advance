@@ -412,6 +412,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       };
     },
     updateArtifacts: async (
+      // NOSONAR: typescript:S3516 — Sonar flags this because both return paths
+      // hand back the `result` variable. The values are distinct (early-return
+      // failure vs. post-signal success); identical variable name is incidental.
       changeId,
       proposalContent,
       problemStatementContent,

@@ -139,7 +139,7 @@ describe("experimental.session.compacting enrichment", () => {
       }
     }
 
-    await store.close();
+    store.close();
 
     const input = { sessionID: "test-session" };
     const output = { context: [] as string[] };
@@ -188,7 +188,7 @@ describe("experimental.session.compacting enrichment", () => {
     await store.tasks.update(t2.id, "in_progress");
     // t3 stays pending
 
-    await store.close();
+    store.close();
 
     const input = { sessionID: "test-session" };
     const output = { context: [] as string[] };
@@ -241,7 +241,7 @@ describe("experimental.session.compacting enrichment", () => {
     const t1 = await store.tasks.add(changeId, longTitle);
     await store.tasks.update(t1.id, "in_progress");
 
-    await store.close();
+    store.close();
 
     const input = { sessionID: "test-session" };
     const output = { context: [] as string[] };

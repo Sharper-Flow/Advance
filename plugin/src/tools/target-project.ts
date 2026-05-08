@@ -131,8 +131,8 @@ export async function resolveTargetProject(
   };
 }
 
-async function closeStore(store: Store): Promise<void> {
-  await store.close?.();
+function closeStore(store: Store): void {
+  store.close?.();
 }
 
 export async function withTargetPathStore<T>(
@@ -154,7 +154,7 @@ export async function withTargetPathStore<T>(
         store,
       });
     } finally {
-      await closeStore(store);
+      closeStore(store);
     }
   }
 
@@ -169,7 +169,7 @@ export async function withTargetPathStore<T>(
         store,
       });
     } finally {
-      await closeStore(store);
+      closeStore(store);
     }
   }
 
@@ -190,7 +190,7 @@ export async function withTargetPathStore<T>(
     await store.init();
     return await fn({ context: { ...context, stateMode: "temporal" }, store });
   } finally {
-    await closeStore(store);
+    closeStore(store);
   }
 }
 

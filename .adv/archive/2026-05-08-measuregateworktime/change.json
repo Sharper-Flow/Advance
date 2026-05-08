@@ -1,0 +1,139 @@
+{
+  "id": "measuregateworktime",
+  "title": "measureGateWorkTime",
+  "status": "archived",
+  "created_at": "2026-05-08T16:36:20.270Z",
+  "tasks": [
+    {
+      "id": "tk-f8a9e9ec9899",
+      "title": "## Task: Add task-derived work-time metrics to investment report (TDD)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T16:41:09.537Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T16:44:02.886Z",
+      "verification": "Completed with checkpoint commit d40c347dbefc9d30501a0aa38d5911753eb2329d.",
+      "summary": "Added task-derived work-time metrics to investment reports while preserving existing wall-clock fields. `per_gate_ms` and `active_elapsed_ms` remain wall-clock-compatible; new `per_gate_work_ms` and `active_work_ms` derive from task interval overlap with completed gate windows. Overlapping intervals are unioned to avoid double-counting; invalid/missing intervals are ignored; gates with no task work are included as 0. RED tests failed on missing fields/helper; GREEN targeted investment tests passed.",
+      "implementation_summary": "Added task-derived work-time metrics to investment reports while preserving existing wall-clock fields. `per_gate_ms` and `active_elapsed_ms` remain wall-clock-compatible; new `per_gate_work_ms` and `active_work_ms` derive from task interval overlap with completed gate windows. Overlapping intervals are unioned to avoid double-counting; invalid/missing intervals are ignored; gates with no task work are included as 0. RED tests failed on missing fields/helper; GREEN targeted investment tests passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T16:47:09.450Z",
+      "completed_at": "2026-05-08T16:47:09.450Z"
+    },
+    {
+      "id": "tk-626c5f80ab85",
+      "title": "## Task: Persist work-time metrics in reflection (TDD)",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T16:41:18.835Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f8a9e9ec9899"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T16:47:25.423Z",
+      "verification": "RED `pnpm test -- src/tools/reflection.test.ts` failed on missing per_gate_work_ms/active_work_ms; GREEN `pnpm test -- src/tools/reflection.test.ts src/storage/reflection.test.ts src/storage/reflection.archive-passthrough.test.ts` passed (154 files, 1833 tests, 2 skipped).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/reflection.test.ts",
+        "plugin/src/storage/reflection.ts",
+        "plugin/src/tools/reflection.test.ts",
+        "plugin/src/tools/reflection.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/reflection.test.ts",
+        "plugin/src/storage/reflection.ts",
+        "plugin/src/tools/reflection.test.ts",
+        "plugin/src/tools/reflection.ts"
+      ],
+      "checkpointSha": "5124c774f4569ceba3898bc67f7139233e31fde2",
+      "completedAt": "2026-05-08T16:51:39.145Z",
+      "completed_at": "2026-05-08T16:51:39.145Z"
+    },
+    {
+      "id": "tk-2fe1fadd5992",
+      "title": "## Task: Verification — check + targeted timing/reflection tests",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T16:41:24.334Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-626c5f80ab85"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T16:51:57.693Z",
+      "verification": "Verification completed with clean checkpoint at 5124c774f4569ceba3898bc67f7139233e31fde2.",
+      "summary": "Verification task passed: `pnpm run check`; targeted timing/reflection tests passed (`pnpm test -- src/tools/investment.test.ts src/tools/reflection.test.ts src/storage/reflection.test.ts src/storage/reflection.archive-passthrough.test.ts`). Checkpoint reported clean tree.",
+      "implementation_summary": "Verification task passed: `pnpm run check`; targeted timing/reflection tests passed (`pnpm test -- src/tools/investment.test.ts src/tools/reflection.test.ts src/storage/reflection.test.ts src/storage/reflection.archive-passthrough.test.ts`). Checkpoint reported clean tree.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T16:53:05.067Z",
+      "completed_at": "2026-05-08T16:53:05.067Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:36:27.481Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "Proposal auto-approved by user request `continue-- auto approve all`; #4 is next ordered umbrella item."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:41:00.944Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery complete: traced investment/reflection timing consumers and task timestamp sources. Existing `active_elapsed_ms` compatibility invariant identified."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:41:01.011Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design validated by adv-researcher: CAUTION. Required adjustment adopted: preserve `per_gate_ms`/`active_elapsed_ms`, add `per_gate_work_ms`/`active_work_ms`, use interval union for concurrent tasks."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:41:29.026Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "Prep auto-approved by user request `continue-- auto approve all`. Task graph covers investment metrics, reflection persistence, and verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:53:22.278Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All planned tasks completed. Implementation checkpoint commits: d40c347dbefc9d30501a0aa38d5911753eb2329d and 5124c774f4569ceba3898bc67f7139233e31fde2. Verification passed: `pnpm run check`; targeted investment/reflection tests passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:56:57.746Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User approved acceptance with `approve and complete`. Review found no blockers/issues/suggestions. Verification evidence: `pnpm run check` passed; targeted investment/reflection tests passed."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T17:27:48.842Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Release sign-off received (`sign off`). Strict validation passed with non-blocking warnings only. Conformance status has no configured specs. Final build passed (`pnpm run build`). Proceeding to archive and git finalization."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

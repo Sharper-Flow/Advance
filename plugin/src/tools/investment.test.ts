@@ -8,7 +8,11 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { rm as _rm } from "fs/promises";
 import { join as _join } from "path";
-import { investmentTools } from "./investment";
+import {
+  computePerGateDurations,
+  computePerGateWorkDurations,
+  investmentTools,
+} from "./investment";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
@@ -169,6 +173,23 @@ describe("Investment Tools", () => {
       expect(parsed.active_elapsed_ms).toBe(0);
     });
 
+    test("emits additive task-derived work-time metrics", async () => {
+      const result = await investmentTools.adv_investment_report.execute(
+        { changeId: "addFeature" },
+        store,
+      );
+      const parsed = parseToolOutput<{
+        active_work_ms: number;
+        per_gate_work_ms: Record<string, number>;
+      }>(result);
+
+      expect(parsed.per_gate_work_ms).toBeDefined();
+      expect(typeof parsed.per_gate_work_ms).toBe("object");
+      expect(parsed.active_work_ms).toBe(
+        Object.values(parsed.per_gate_work_ms).reduce((sum, ms) => sum + ms, 0),
+      );
+    });
+
     test("works with minimal args (changeId only)", async () => {
       const result = await investmentTools.adv_investment_report.execute(
         { changeId: "addFeature" },
@@ -243,5 +264,118 @@ describe("Investment Tools", () => {
       expect(parsed.retry_total).toBeGreaterThanOrEqual(3);
       expect(parsed.doom_loop_active).toBe(true);
     });
+  });
+});
+
+describe("investment timing helpers", () => {
+  test("keeps wall-clock per_gate_ms while work-time excludes idle gaps", () => {
+    const change = {
+      created_at: "2026-01-01T00:00:00.000Z",
+      gates: {
+        proposal: {
+          status: "done",
+          completed_at: "2026-01-01T00:10:00.000Z",
+        },
+        discovery: {
+          status: "done",
+          completed_at: "2026-01-01T01:10:00.000Z",
+        },
+      },
+      tasks: [
+        {
+          started_at: "2026-01-01T00:20:00.000Z",
+          completed_at: "2026-01-01T00:30:00.000Z",
+        },
+      ],
+    };
+
+    expect(computePerGateDurations(change).discovery).toBe(60 * 60_000);
+    expect(computePerGateWorkDurations(change)).toEqual({
+      proposal: 0,
+      discovery: 10 * 60_000,
+    });
+  });
+
+  test("splits task intervals across gate windows", () => {
+    const work = computePerGateWorkDurations({
+      created_at: "2026-01-01T00:00:00.000Z",
+      gates: {
+        proposal: {
+          status: "done",
+          completed_at: "2026-01-01T00:10:00.000Z",
+        },
+        discovery: {
+          status: "done",
+          completed_at: "2026-01-01T00:30:00.000Z",
+        },
+        design: {
+          status: "done",
+          completed_at: "2026-01-01T01:00:00.000Z",
+        },
+      },
+      tasks: [
+        {
+          started_at: "2026-01-01T00:05:00.000Z",
+          completed_at: "2026-01-01T00:35:00.000Z",
+        },
+      ],
+    });
+
+    expect(work).toEqual({
+      proposal: 5 * 60_000,
+      discovery: 20 * 60_000,
+      design: 5 * 60_000,
+    });
+  });
+
+  test("unions overlapping task intervals instead of double-counting", () => {
+    const work = computePerGateWorkDurations({
+      created_at: "2026-01-01T00:00:00.000Z",
+      gates: {
+        proposal: {
+          status: "done",
+          completed_at: "2026-01-01T00:10:00.000Z",
+        },
+        discovery: {
+          status: "done",
+          completed_at: "2026-01-01T00:40:00.000Z",
+        },
+      },
+      tasks: [
+        {
+          started_at: "2026-01-01T00:15:00.000Z",
+          completed_at: "2026-01-01T00:30:00.000Z",
+        },
+        {
+          started_at: "2026-01-01T00:20:00.000Z",
+          completed_at: "2026-01-01T00:35:00.000Z",
+        },
+      ],
+    });
+
+    expect(work.discovery).toBe(20 * 60_000);
+  });
+
+  test("ignores missing timestamps and includes valid cancelled-task intervals", () => {
+    const work = computePerGateWorkDurations({
+      created_at: "2026-01-01T00:00:00.000Z",
+      gates: {
+        proposal: {
+          status: "done",
+          completed_at: "2026-01-01T00:10:00.000Z",
+        },
+      },
+      tasks: [
+        { started_at: "2026-01-01T00:01:00.000Z" },
+        { completed_at: "2026-01-01T00:02:00.000Z" },
+        {
+          status: "cancelled",
+          started_at: "2026-01-01T00:03:00.000Z",
+          completed_at: "2026-01-01T00:08:00.000Z",
+        },
+      ],
+    });
+
+    expect(work.proposal).toBe(5 * 60_000);
   });
 });

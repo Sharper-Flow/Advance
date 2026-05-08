@@ -113,7 +113,7 @@ async function createPoisonedReseedFailureStore(root: string) {
     },
   };
 
-  const store = await createTemporalStoreBackend({
+  const store = createTemporalStoreBackend({
     legacy,
     temporal,
     projectId: "project-1",

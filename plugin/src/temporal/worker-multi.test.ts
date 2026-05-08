@@ -46,6 +46,9 @@ function createMockChild(): MockChild {
   const stdout = new EventEmitter();
   const child: MockChild = {
     stdin: {
+      // NOSONAR: typescript:S3516 — Node Writable.write() contract returns
+      // boolean (buffer-not-full); this mock always returns true by design
+      // because tests never assert backpressure behavior.
       write: vi.fn((line: string) => {
         if (!autoAckRegister) return true;
         try {

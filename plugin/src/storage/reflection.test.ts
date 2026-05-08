@@ -124,6 +124,24 @@ describe("reflection storage", () => {
       expect(existsSync(flatPath)).toBe(true);
       expect(existsSync(join(tempDir, ".adv"))).toBe(false);
     });
+
+    test("persists optional task-derived work-time fields", async () => {
+      const entry = createTestEntry("change-work-time");
+      entry.plane1.efficiency.active_work_ms = 120000;
+      entry.plane1.efficiency.per_gate_work_ms = {
+        proposal: 30000,
+        discovery: 90000,
+      };
+
+      await appendReflection(tempDir, entry);
+
+      const result = await getReflection(tempDir, "change-work-time");
+      expect(result?.plane1.efficiency.active_work_ms).toBe(120000);
+      expect(result?.plane1.efficiency.per_gate_work_ms).toEqual({
+        proposal: 30000,
+        discovery: 90000,
+      });
+    });
   });
 
   describe("getReflection", () => {
