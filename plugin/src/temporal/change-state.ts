@@ -5,6 +5,9 @@ import type {
   Cancellation,
   ChangeCancelledSignalPayload,
   ChangeClosure,
+  ContractAmendedSignalPayload,
+  ContractReviewMatrixSetSignalPayload,
+  ContractSetSignalPayload,
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
   ConformanceVerdictSignalPayload,
@@ -157,6 +160,52 @@ export function applyAcceptanceCriteriaSetToState(
 ): ChangeWorkflowState {
   state.acceptanceCriteria = [...payload.criteria];
   setLastSignalAt(state, payload.setAt);
+  return state;
+}
+
+export function applyContractSetToState(
+  state: ChangeWorkflowState,
+  payload: ContractSetSignalPayload,
+): ChangeWorkflowState {
+  state.contract = payload.contract;
+  state.acceptanceCriteria = payload.contract.items
+    .filter((item) => item.kind === "acceptance_criterion")
+    .map((item) => item.text);
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyContractAmendedToState(
+  state: ChangeWorkflowState,
+  payload: ContractAmendedSignalPayload,
+): ChangeWorkflowState {
+  if (!state.contract) {
+    throw new Error("Cannot amend contract: no contract is set");
+  }
+  state.contract.amendments = [
+    ...(state.contract.amendments ?? []),
+    ...payload.amendments,
+  ];
+  if (
+    payload.amendments.some(
+      (amendment) => amendment.invalidatesReviewMatrix !== false,
+    )
+  ) {
+    delete state.contract.reviewMatrix;
+  }
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyContractReviewMatrixSetToState(
+  state: ChangeWorkflowState,
+  payload: ContractReviewMatrixSetSignalPayload,
+): ChangeWorkflowState {
+  if (!state.contract) {
+    throw new Error("Cannot set contract review matrix: no contract is set");
+  }
+  state.contract.reviewMatrix = payload.reviewMatrix;
+  setLastSignalAt(state, payload.updatedAt);
   return state;
 }
 

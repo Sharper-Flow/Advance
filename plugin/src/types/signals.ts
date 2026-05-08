@@ -10,6 +10,11 @@ import { ConformanceVerdictSchema } from "./conformance";
 import { GateIdSchema } from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
+import {
+  ChangeContractSchema,
+  ContractAmendmentSchema,
+  ContractReviewMatrixSchema,
+} from "./changes";
 
 const IsoTimestampSchema = z.string();
 
@@ -47,6 +52,30 @@ export const AcceptanceCriteriaSetSignalPayloadSchema = z.object({
 });
 export type AcceptanceCriteriaSetSignalPayload = z.infer<
   typeof AcceptanceCriteriaSetSignalPayloadSchema
+>;
+
+export const ContractSetSignalPayloadSchema = z.object({
+  contract: ChangeContractSchema,
+  updatedAt: IsoTimestampSchema,
+});
+export type ContractSetSignalPayload = z.infer<
+  typeof ContractSetSignalPayloadSchema
+>;
+
+export const ContractAmendedSignalPayloadSchema = z.object({
+  amendments: z.array(ContractAmendmentSchema),
+  updatedAt: IsoTimestampSchema,
+});
+export type ContractAmendedSignalPayload = z.infer<
+  typeof ContractAmendedSignalPayloadSchema
+>;
+
+export const ContractReviewMatrixSetSignalPayloadSchema = z.object({
+  reviewMatrix: ContractReviewMatrixSchema,
+  updatedAt: IsoTimestampSchema,
+});
+export type ContractReviewMatrixSetSignalPayload = z.infer<
+  typeof ContractReviewMatrixSetSignalPayloadSchema
 >;
 
 export const TaskAddedSignalPayloadSchema = z.object({

@@ -19,6 +19,9 @@ import {
   ConformanceLockedSignalPayloadSchema,
   ConformanceOverriddenSignalPayloadSchema,
   ConformanceVerdictSignalPayloadSchema,
+  ContractAmendedSignalPayloadSchema,
+  ContractReviewMatrixSetSignalPayloadSchema,
+  ContractSetSignalPayloadSchema,
   DesignUpdatedSignalPayloadSchema,
   GateAwaitingApprovalSignalPayloadSchema,
   GateCompletedSignalPayloadSchema,
@@ -46,6 +49,9 @@ const designSignalKeys = [
   "agreementUpdated",
   "designUpdated",
   "acceptanceCriteriaSet",
+  "contractSet",
+  "contractAmended",
+  "contractReviewMatrixSet",
   "taskAdded",
   "taskUpdated",
   "taskRemoved",
@@ -81,11 +87,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 26 signal surface", () => {
+  it("defines the 32 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(29);
+    expect(surfacedKeys).toHaveLength(32);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -136,6 +142,62 @@ describe("change workflow message contract", () => {
       [
         AcceptanceCriteriaSetSignalPayloadSchema,
         { criteria: ["c"], setAt: timestamp },
+      ],
+      [
+        ContractSetSignalPayloadSchema,
+        {
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: { artifact: "agreement", approvedAt: timestamp },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Contract signal payload validates.",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+          updatedAt: timestamp,
+        },
+      ],
+      [
+        ContractAmendedSignalPayloadSchema,
+        {
+          amendments: [
+            {
+              id: "am-1",
+              actor: "agent",
+              reason: "clarified",
+              amendedAt: timestamp,
+              affectedIds: ["AC1"],
+            },
+          ],
+          updatedAt: timestamp,
+        },
+      ],
+      [
+        ContractReviewMatrixSetSignalPayloadSchema,
+        {
+          reviewMatrix: {
+            reviewedAt: timestamp,
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "pass",
+                evidencePolicy: "test",
+                evidence: "message payload test",
+              },
+            ],
+          },
+          updatedAt: timestamp,
+        },
       ],
       [TaskAddedSignalPayloadSchema, { task, addedAt: timestamp }],
       [
