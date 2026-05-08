@@ -345,17 +345,7 @@ export const ChangeSchema = z
      * signals to /adv-discover that lineage validation is required.
      */
     fast_follow_of: FastFollowOfSchema.optional(),
-    /**
-     * Set when /adv-autopilot was invoked on this change. Marks the change as
-     * having been driven through the routine checkpoints under autopilot
-     * delegation rather than per-gate manual approval.
-     */
-    approval_mode: z.literal("autopilot").optional(),
-    /**
-     * ISO8601 timestamp when /adv-autopilot was invoked.
-     * Set once at the start of an autopilot run; not modified afterwards.
-     */
-    autopilot_invoked_at: z.string().optional(),
+
     /**
      * Temporal project ID that owns this change. Persisted on disk snapshots
      * so the shared guard can detect cross-project context mismatches.
