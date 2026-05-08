@@ -3,8 +3,8 @@
   "name": "advance-delivery",
   "title": "Advance Delivery",
   "purpose": "Capability: Execution-layer contract for ADV \u2014 TDD execution routing, task-run ledger, bulk operations, delta operations, and per-task checkpoint commits. Split from `advance` capability; absorbs former `contract-system` and `checkpoint-commits` capabilities.",
-  "version": "1.3.1",
-  "updated_at": "2026-05-07T20:00:00.000Z",
+  "version": "1.3.2",
+  "updated_at": "2026-05-08T21:58:00.000Z",
   "requirements": [
     {
       "id": "rq-ADVEXEC01",
@@ -679,6 +679,60 @@
           "then": [
             "validateChange runs before the bundle-existence short-circuit",
             "A previously-written bundle does not bypass validation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-contractArchiveProof01",
+      "title": "Archive Contract Proof Gate",
+      "body": "When a change has change.contract, archive MUST verify structural contract proof before bundle creation or existing-bundle recovery. Archive checks proof completeness rather than re-reviewing product semantics. Passing contract archives include CONTRACT_TRACEABILITY.md in the archive bundle.",
+      "priority": "must",
+      "tags": ["archive", "contract", "traceability", "validation"],
+      "scenarios": [
+        {
+          "id": "rq-contractArchiveProof01.1",
+          "title": "Missing review matrix blocks archive",
+          "given": [
+            "A change has change.contract with required contract items",
+            "contract.reviewMatrix is absent"
+          ],
+          "when": "adv_change_archive is invoked",
+          "then": [
+            "The archive is rejected with a contract proof error",
+            "No archive bundle is written"
+          ]
+        },
+        {
+          "id": "rq-contractArchiveProof01.2",
+          "title": "Unresolved proof status blocks archive",
+          "given": ["A required contract item has a review matrix row"],
+          "when": "The row status is fail, violated, or unknown",
+          "then": [
+            "adv_change_archive rejects the archive",
+            "The response identifies contract proof errors for remediation"
+          ]
+        },
+        {
+          "id": "rq-contractArchiveProof01.3",
+          "title": "Passing proof writes traceability artifact",
+          "given": [
+            "All required contract items have passing, respected, or justified not_applicable proof rows"
+          ],
+          "when": "adv_change_archive creates the archive bundle",
+          "then": [
+            "The bundle includes CONTRACT_TRACEABILITY.md",
+            "The artifact lists contract item IDs, task refs, proof status, evidence, and amendment audit entries"
+          ]
+        },
+        {
+          "id": "rq-contractArchiveProof01.4",
+          "title": "Existing bundle retry does not bypass proof gate",
+          "given": ["An archive bundle already exists on disk for a non-archived change"],
+          "when": "adv_change_archive is retried",
+          "then": [
+            "Contract proof validation runs before existing-bundle recovery",
+            "A stale or incomplete proof state still blocks the retry"
           ]
         }
       ]

@@ -266,6 +266,38 @@ describe("ambiguity taxonomy spec assets", () => {
     expect(proposalChecklist).toContain("## Ambiguity Scan (B/F/S)");
     expect(discoverChecklist).toContain("## Ambiguity Analysis Protocol");
   });
+
+  test("structural contract traceability specs and docs are wired", () => {
+    const workflowSpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+        "utf8",
+      ),
+    ) as { requirements: Array<{ id: string }> };
+    const deliverySpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-delivery/spec.json"),
+        "utf8",
+      ),
+    ) as { requirements: Array<{ id: string }> };
+    const workflowDoc = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-workflow.md"),
+      "utf8",
+    );
+    const deliveryDoc = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-delivery.md"),
+      "utf8",
+    );
+
+    expect(workflowSpec.requirements.map((rq) => rq.id)).toContain(
+      "rq-contractTrace01",
+    );
+    expect(deliverySpec.requirements.map((rq) => rq.id)).toContain(
+      "rq-contractArchiveProof01",
+    );
+    expect(workflowDoc).toContain("Structural Change-Contract Traceability");
+    expect(deliveryDoc).toContain("Archive Contract Proof Gate");
+  });
 });
 
 describe("thin-command shape enforcement", () => {
