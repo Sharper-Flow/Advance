@@ -641,9 +641,12 @@ Use for 3+ independent scan dimensions. Single-level only.
 |---|---|---|
 | research/task | Context7 + Kagi + lgrep | librarian + adv-researcher |
 | review/harden/audit/slop-scan/refactor | Sequential scans | explore/general as command docs specify |
+| slop-scan | Sequential categories | explore × 9 (single-level only) |
 | tron | lgrep + read | adv-tron |
 
 Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
+
+For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
 
 Design gate requires mandatory independent validator (adv-researcher) before gate completion. Verdicts: VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE.
 
