@@ -99,15 +99,22 @@ export const investmentTools = {
         (sum, ms) => sum + ms,
         0,
       );
+      const perGateWorkMs = computePerGateWorkDurations(change);
+      const activeWorkMs = Object.values(perGateWorkMs).reduce(
+        (sum, ms) => sum + ms,
+        0,
+      );
 
       return formatToolOutput({
         task_counts: taskCounts,
         elapsed_ms: elapsedMs,
         active_elapsed_ms: activeElapsedMs,
+        active_work_ms: activeWorkMs,
         retry_total: retryTotal,
         retry_density: retryDensity,
         doom_loop_active: doomLoopActive,
         per_gate_ms: perGateMs,
+        per_gate_work_ms: perGateWorkMs,
         token_hint:
           "Token tracking not yet available — informational field reserved for v2.",
       });
@@ -158,6 +165,121 @@ export function computePerGateDurations(change: {
       result[gateId] = currentMs - previousMs;
     }
     previousMs = currentMs;
+  }
+
+  return result;
+}
+
+type TimedTaskLike = {
+  started_at?: string | null;
+  completed_at?: string | null;
+};
+
+interface GateWindow {
+  gateId: GateId;
+  startMs: number;
+  endMs: number;
+}
+
+interface TimeInterval {
+  startMs: number;
+  endMs: number;
+}
+
+function buildCompletedGateWindows(change: {
+  created_at?: string;
+  gates?: Record<
+    string,
+    { status?: string; completed_at?: string } | undefined
+  >;
+}): GateWindow[] {
+  const gates = change.gates ?? {};
+  const windows: GateWindow[] = [];
+  let previousMs = parseTimestamp(change.created_at);
+
+  for (const gateId of GATE_ORDER as GateId[]) {
+    const gate = gates[gateId];
+    if (!gate || gate.status !== "done") continue;
+    const currentMs = parseTimestamp(gate.completed_at);
+    if (currentMs === null) continue;
+    if (previousMs !== null && currentMs >= previousMs) {
+      windows.push({ gateId, startMs: previousMs, endMs: currentMs });
+    }
+    previousMs = currentMs;
+  }
+
+  return windows;
+}
+
+function sumMergedIntervals(intervals: TimeInterval[]): number {
+  if (intervals.length === 0) return 0;
+
+  const sorted = [...intervals].sort((a, b) => a.startMs - b.startMs);
+  let total = 0;
+  let current = sorted[0];
+
+  for (const next of sorted.slice(1)) {
+    if (next.startMs <= current.endMs) {
+      current = {
+        startMs: current.startMs,
+        endMs: Math.max(current.endMs, next.endMs),
+      };
+      continue;
+    }
+    total += current.endMs - current.startMs;
+    current = next;
+  }
+
+  total += current.endMs - current.startMs;
+  return total;
+}
+
+/**
+ * Compute task-derived work durations per completed gate.
+ *
+ * Keeps wall-clock `per_gate_ms` semantics separate: this helper measures only
+ * task intervals (`started_at` → `completed_at`) overlapped with each gate
+ * window. Overlapping task intervals are unioned per gate so concurrent work is
+ * not double-counted. Gates with no overlapping work are included as `0`.
+ */
+export function computePerGateWorkDurations(change: {
+  created_at?: string;
+  gates?: Record<
+    string,
+    { status?: string; completed_at?: string } | undefined
+  >;
+  tasks?: TimedTaskLike[];
+}): Record<string, number> {
+  const windows = buildCompletedGateWindows(change);
+  const intervalsByGate = new Map<GateId, TimeInterval[]>();
+  const result: Record<string, number> = {};
+
+  for (const window of windows) {
+    intervalsByGate.set(window.gateId, []);
+    result[window.gateId] = 0;
+  }
+
+  for (const task of change.tasks ?? []) {
+    const taskStart = parseTimestamp(task.started_at);
+    const taskEnd = parseTimestamp(task.completed_at);
+    if (taskStart === null || taskEnd === null || taskEnd <= taskStart) {
+      continue;
+    }
+
+    for (const window of windows) {
+      const overlapStart = Math.max(taskStart, window.startMs);
+      const overlapEnd = Math.min(taskEnd, window.endMs);
+      if (overlapEnd > overlapStart) {
+        intervalsByGate.get(window.gateId)?.push({
+          startMs: overlapStart,
+          endMs: overlapEnd,
+        });
+      }
+    }
+  }
+
+  for (const [gateId, intervals] of intervalsByGate.entries()) {
+    result[gateId] = sumMergedIntervals(intervals);
   }
 
   return result;
