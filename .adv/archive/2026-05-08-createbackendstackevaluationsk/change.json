@@ -1,0 +1,107 @@
+{
+  "id": "createbackendstackevaluationsk",
+  "title": "createBackendStackEvaluationSkill",
+  "status": "archived",
+  "created_at": "2026-05-08T21:06:44.791Z",
+  "tasks": [
+    {
+      "id": "tk-bfb64183dbf8",
+      "title": "Create `skills/adv-backend-stack-eval/SKILL.md` — the full backend stack evaluation skill file.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T21:18:36.915Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T21:19:11.048Z",
+      "verification": "Skill file located in change worktree. Main checkout no longer has accidental adv-backend-stack-eval file. Harden passed; final skill 200 lines with reviewed metadata.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "skills/adv-backend-stack-eval/SKILL.md"
+      ],
+      "touched_files": [
+        "skills/adv-backend-stack-eval/SKILL.md"
+      ],
+      "checkpointSha": "d128be87f4491c27ced677043ac981952d3189bb",
+      "completedAt": "2026-05-08T21:39:05.104Z",
+      "completed_at": "2026-05-08T21:39:05.104Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-pATvJu",
+      "type": "gotcha",
+      "content": "ADV worktree policy must be enforced before first mutation. If checkpoint reports branch mismatch (main/trunk instead of change/<id>), treat as blocking: create/resume the change worktree, move only scoped files into it, remove accidental main-checkout copies, then checkpoint from the worktree.",
+      "source_task": "tk-bfb64183dbf8",
+      "recorded_at": "2026-05-08T21:39:41.836Z"
+    },
+    {
+      "id": "ws-6Fa44K",
+      "type": "gotcha",
+      "content": "scripts/sync-global.sh currently resolves REPO_SKILLS from canonical REPO_ROOT, not ASSET_ROOT, so worktree-local new skills may not be copied by sync-global until merged into the main checkout. Treat as adjacent tooling issue if validating new skills from a worktree.",
+      "source_task": "tk-bfb64183dbf8",
+      "recorded_at": "2026-05-08T21:39:41.846Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:08:02.490Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed problem statement framing inline. B/F/S scan: 0 CRITICAL, 0 HIGH. Coverage B:C F:C S:C M:N/A."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:15:17.523Z",
+      "completed_by": "user",
+      "approval_evidence": "Research validated. Key corrections: name → adv-backend-stack-eval (deployment fix), composition simplified (Phase 0 embedded), project-context gate added (scales evidence bar by project type). Canonical sources secured. User approved findings."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:17:58.717Z",
+      "completed_by": "agent",
+      "approval_evidence": "Validator: VALIDATED (clean pass, all 4 dimensions info-level). No user-value tradeoffs, no CONFLICT, no contract-compromise risk. Proceeding to /adv-prep inline."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:19:06.272Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved vision document inline. 1 task: create SKILL.md + deploy + verify. 0 errors on validation. 14 warnings (proposal-task-drift, expected for single-task skill creation)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:24:05.024Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task tk-bfb64183dbf8 completed. Skill file created at skills/adv-backend-stack-eval/SKILL.md (190 lines, <300 target). Future-proofed: consideration lists (WHAT) not decision matrices (HOW). No hard thresholds or time-bound metrics. Sync verified clean. Checkpoint failed (no worktree, trunk-based additive change)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:30:03.022Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered skill after review remediation. Verdict APPROVED; all issue-level findings fixed and re-verified. Proceeding to harden."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T21:39:58.475Z",
+      "completed_by": "user",
+      "approval_evidence": "User signed off for archive. Worktree violation repaired: change branch worktree created, skill file moved there, accidental main checkout copy removed, checkpoint commit d128be87 created from correct worktree. Harden READY."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-08T21:08:59.017Z",
+      "resolved": true,
+      "resolved_at": "2026-05-08T21:17:21.939Z"
+    }
+  ]
+}
