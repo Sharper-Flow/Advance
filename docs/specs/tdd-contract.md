@@ -13,7 +13,7 @@ Canonical definition of how TDD phases integrate with the ADV task model. Inline
 
 **ID:** `rq-TDD001inl` | **Priority:** **[MUST]**
 
-Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. The task's tdd_phase field tracks progress through none -> red -> green -> refactor -> complete.
+Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. Inline TDD progress is observable via adv_run_test invocations and the final verification claim on taskCompletedSignal.
 
 **Tags:** `tdd`, `task-model`, `inline`
 
@@ -29,7 +29,7 @@ Implementation tasks MUST use inline TDD by default: the red phase (write failin
 
 **Then:**
 
-- The task is expected to have tdd_evidence with both red and green phases
+- The task records inline TDD via adv_run_test calls; final claim recorded in taskCompletedSignal.verification
 - No separate test task is required for this scope
 
 **Proposal templates do not create separate test tasks for same-scope work** (`rq-TDD001inl.2`)

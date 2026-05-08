@@ -24,7 +24,7 @@ import type { Store } from "../storage/store-types";
 import type { ErrorRecovery } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { taskCompletedSignal } from "../temporal/messages";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -302,7 +302,11 @@ async function fireTaskCompletedFromCheckpoint(
     const changeId = await resolveChangeId(store, taskId);
     if (!changeId) return;
     const handle = await getHandleForChangeId(store, changeId);
-    await fireSignal(handle, taskCompletedSignal, {
+    // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
+    // changeCache is invalidated after the signal fires — without this,
+    // the very next adv_change_show / adv_change_archive read returns
+    // stale state with the task still pending.
+    await fireSignalAndRefresh(handle, store, changeId, taskCompletedSignal, {
       taskId,
       verification,
       summary: "Task checkpoint completed",

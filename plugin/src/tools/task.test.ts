@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => {
     getService: vi.fn(() => temporalBundle),
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
+    fireSignalAndRefresh: vi.fn(async () => {}),
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     fetchChangeContextTicker: vi.fn(async () => null),
@@ -48,6 +49,7 @@ vi.mock("../utils/project-id", async () => {
 
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
+  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
@@ -235,9 +237,9 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         sessionId: "agent",
       });
@@ -257,9 +259,9 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         reason: "Blocked reason",
       });
@@ -279,9 +281,9 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         partial: { status: "pending", notes: "Updated" },
       });
@@ -306,14 +308,14 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         verification: "Focused tests passed",
         summary: "Implemented signal path",
       });
-      expect(signalCall[2]).not.toHaveProperty("partial");
+      expect(signalCall[4]).not.toHaveProperty("partial");
     });
 
     test("rejects direct cancellation", async () => {
@@ -326,7 +328,7 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("adv_task_cancel");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 
@@ -343,9 +345,9 @@ describe("task tools — signal/query adapters", () => {
       const parsed = JSON.parse(result);
       expect(parsed.taskId).toBeDefined();
       expect(parsed.task).toBeDefined();
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         task: expect.objectContaining({
           title: "New Task",
           status: "pending",
@@ -374,7 +376,7 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("planning gate");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 
@@ -395,9 +397,9 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         verification: "Tests passed",
         summary: "Implemented feature",
@@ -423,7 +425,7 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(2);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
     });
 
     test("rejects cancellation without approval evidence", async () => {
@@ -441,7 +443,7 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("approvalEvidence");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 
@@ -473,9 +475,9 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[2]).toMatchObject({
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         partial: {
           metadata: { tdd_intent: "not_applicable" },

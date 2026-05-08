@@ -1,5 +1,7 @@
 # Prose-Load Inventory
 
+> **Historical artifact:** This document reflects pre-retirement state. The cost-governance / Phase J / Phase 1.5 / Investment Check-In sections referenced below were retired 2026-05-07 in retireinvestmentgovernancedead. Entries about those surfaces are preserved for archaeological context.
+
 > **Lifecycle:** **POST-COMPRESSION ARCHIVE** (compression complete). No maintenance owner. Durable invariants live in `.adv/specs/advance-meta/spec.json` § rq-proseReduction01–04 and `plugin/src/manifest-doc-drift.test.ts` drift assertions.
 >
 > Durability lives in spec deltas `rq-proseReduction01`–`rq-proseReduction04`, not this file. This inventory is the audit trail for the compression passes (T2/T3/T4/T5) and the planning input for the asset-test audit (T1.5).

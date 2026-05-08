@@ -7,7 +7,8 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { gateTools } from "./gate";
+import { COMMAND_MANIFEST } from "../manifest";
+import { gateTools, validateGateBoundary } from "./gate";
 import type { Store } from "../storage/store";
 
 const mocks = vi.hoisted(() => {
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => {
     getService: vi.fn(() => temporalBundle),
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
+    fireSignalAndRefresh: vi.fn(async () => {}),
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
   };
@@ -49,6 +51,7 @@ vi.mock("../utils/project-id", async () => {
 
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
+  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
@@ -149,15 +152,15 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
         mocks.temporalBundle.client,
         "test-project-id",
         "test-change",
       );
-      const signalCall = mocks.fireSignal.mock.calls[0];
-      expect(signalCall[1]).toBeDefined(); // signal definition
-      expect(signalCall[2]).toMatchObject({
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[3]).toBeDefined(); // signal definition
+      expect(signalCall[4]).toMatchObject({
         gateId: "planning",
         completedBy: "agent",
       });
@@ -197,7 +200,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(mocks.querySignal).toHaveBeenCalled();
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     });
 
     test("blocks planning gate without userApproved: true", async () => {
@@ -215,7 +218,7 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("userApproved: true");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("blocks planning gate when userApproved is omitted", async () => {
@@ -232,7 +235,7 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("userApproved: true");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("returns error when Temporal service is unavailable", async () => {
@@ -250,7 +253,7 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Temporal service not available");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("returns error when project ID cannot be resolved", async () => {
@@ -268,7 +271,7 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Could not resolve project ID");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("enforces gate sequence — cannot skip incomplete prior gates", async () => {
@@ -296,10 +299,10 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("prior gate(s) incomplete");
       expect(parsed.blockedBy).toContain("discovery");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    test("invalidates change cache after firing gateCompletedSignal (R1 follow-on regression)", async () => {
+    test("uses fireSignalAndRefresh so cache is invalidated after gate completes (R1 follow-on, T10 consolidation)", async () => {
       // R1 cache-stale regression: when adv_gate_complete fires
       // gateCompletedSignal directly via fireSignal(), the in-memory
       // changeCache held by store-temporal/index.ts is not invalidated.
@@ -307,10 +310,13 @@ describe("gate tools — signal-driven lifecycle", () => {
       // showing the gate as still pending, blocking adv_change_archive
       // even though Temporal workflow state has the gate done.
       //
-      // Fix contract: after fireSignal(gateCompletedSignal) succeeds,
-      // the tool MUST call store.changes.refresh(changeId) so the next
-      // read sees the freshly-completed gate. Without this, archive,
-      // adv_change_show, and adv_change_list return stale gate state.
+      // Original 4a3e81f fix added inline `store.changes.refresh(changeId)`
+      // in completeGateAndBuildResponse. T10 consolidation replaced that
+      // inline call with fireSignalAndRefresh at the signal-firing site —
+      // the contract is preserved (cache refresh after signal fires) but
+      // now lives inside the centralized helper. This test pins the
+      // contract by asserting the tool calls fireSignalAndRefresh with
+      // the correct (handle, store, changeId, signal, payload) args.
       const store = createMockStore({
         gates: {
           proposal: { status: "done" },
@@ -344,11 +350,15 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.fireSignal).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
 
-      // Cache invalidation must happen after the signal fires so the
-      // archive preflight can read fresh gate state.
-      expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
+      // T10 contract: helper called with (handle, store, changeId, signal, payload).
+      // The helper internally calls store.changes.refresh(changeId) — that
+      // behavior is pinned by tests in _adapters.test.ts. This test pins
+      // the call-site uses the helper (rq-cacheRefresh01).
+      const call = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(call[1]).toBe(store); // store argument
+      expect(call[2]).toBe("test-change"); // changeId argument
     });
 
     test("execution gate checks for incomplete tasks", async () => {
@@ -389,7 +399,41 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("task(s) not done or cancelled");
-      expect(mocks.fireSignal).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("validateGateBoundary", () => {
+  test("adv-task manifest declares all gates it completes", () => {
+    expect(COMMAND_MANIFEST["adv-task"].scope?.gates).toEqual([
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+    ]);
+  });
+
+  test("skips boundary warning for explicit user actor", () => {
+    expect(validateGateBoundary("proposal", "user")).toBeUndefined();
+  });
+
+  test("skips boundary warning for user-prefixed actor", () => {
+    expect(validateGateBoundary("proposal", "user:cli")).toBeUndefined();
+  });
+
+  test("allows authorized command actor", () => {
+    expect(validateGateBoundary("proposal", "adv-proposal")).toBeUndefined();
+  });
+
+  test("warns for unauthorized command actor", () => {
+    const warning = validateGateBoundary("proposal", "adv-prep");
+
+    expect(warning).toContain("adv-proposal");
+    expect(warning).toContain("adv-prep");
+  });
+
+  test("allows adv-task to complete proposal gate", () => {
+    expect(validateGateBoundary("proposal", "adv-task")).toBeUndefined();
   });
 });

@@ -127,7 +127,6 @@ fi
 # ADV entries that must exist in opencode.json(c)
 ADV_PLUGIN_PATH="$REPO_ROOT/plugin"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
-ADV_COST_GOVERNANCE_PATH="$REPO_ROOT/.opencode/instructions/cost-governance.md"
 
 echo "==> ADV sync-global ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
 if [ "$DRY_RUN" = true ]; then
@@ -814,17 +813,6 @@ check_config() {
     ((config_issues++)) || true
   fi
 
-  # Check cost-governance instruction entry (addCostTimeInvestment)
-  if [ -f "$ADV_COST_GOVERNANCE_PATH" ]; then
-    if json_array_contains "$GLOBAL_JSON" ".instructions // []" "$ADV_COST_GOVERNANCE_PATH"; then
-      echo "    ✓  instructions: cost-governance.md registered"
-    else
-      echo "    ✗  instructions: cost-governance.md missing from .instructions array"
-      echo "       Expected: \"$ADV_COST_GOVERNANCE_PATH\""
-      ((config_issues++)) || true
-    fi
-  fi
-
   # Warn about stale legacy consolidated-agent config keys
   for legacy_key in scout refine; do
     if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg k "$legacy_key" '(.agent // {}) | if type == "object" then has($k) else false end' \
@@ -950,15 +938,18 @@ fix_config() {
     ((patched++)) || true
   fi
 
-  # Patch instructions array with cost-governance.md (addCostTimeInvestment)
-  if [ -f "$ADV_COST_GOVERNANCE_PATH" ]; then
-    if ! json_array_contains "$tmp_json" ".instructions // []" "$ADV_COST_GOVERNANCE_PATH"; then
-      jq --arg instr "$ADV_COST_GOVERNANCE_PATH" \
-        '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) + [$instr] | unique)' \
-        "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-      echo "    ✓  Added instruction: $ADV_COST_GOVERNANCE_PATH"
-      ((patched++)) || true
-    fi
+  # Remove retired cost-governance instruction from instructions array if present
+  local retired_instr="$HOME/.config/opencode/instructions/cost-governance.md"
+  local retired_tilde="~/.config/opencode/instructions/cost-governance.md"
+  local retired_repo="$REPO_ROOT/.opencode/instructions/cost-governance.md"
+  if jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
+    -e '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $r1 or . == $r2 or . == $r3)' \
+    "$tmp_json" &>/dev/null; then
+    jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
+      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $r1 and . != $r2 and . != $r3)))' \
+      "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+    echo "    ✓  Removed retired instruction: cost-governance.md"
+    ((patched++)) || true
   fi
 
   # Remove stale global ADV_INSTRUCTIONS.md from instructions array if present

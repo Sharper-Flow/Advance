@@ -1,5 +1,5 @@
 /**
- * Investment Report Tool Tests (addCostTimeInvestment)
+ * Investment Report Tool Tests
  *
  * TDD tests for adv_investment_report — read-only, stateless tool
  * that returns a structured investment report for a change.
@@ -8,7 +8,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { rm as _rm } from "fs/promises";
 import { join as _join } from "path";
-import { classifyTier, investmentTools } from "./investment";
+import { investmentTools } from "./investment";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
@@ -16,13 +16,6 @@ import {
   createTestProject,
   parseToolOutput,
 } from "../__tests__/setup";
-
-// Default conservative thresholds (mirrors agreement user decision #1)
-const DEFAULT_THRESHOLDS = {
-  auto: { tasks: 3, retries: 0, elapsed_minutes: 15 },
-  escalate: { tasks: 8, retries: 2, elapsed_minutes: 60 },
-  hardstop: { tasks: 15, retries: 5, elapsed_minutes: 180 },
-};
 
 describe("Investment Tools", () => {
   let tempDir: string;
@@ -43,7 +36,7 @@ describe("Investment Tools", () => {
     test("happy path: returns counts + metrics for a change with mixed task statuses", async () => {
       // SAMPLE_CHANGE fixture has 3 pending tasks on 'addFeature'
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput<{
@@ -59,7 +52,6 @@ describe("Investment Tools", () => {
         retry_density: number;
         doom_loop_active: boolean;
         per_gate_ms: Record<string, number>;
-        threshold_tier: "auto" | "escalate" | "hardstop";
       }>(result);
 
       expect(parsed.task_counts.total).toBe(3);
@@ -69,8 +61,6 @@ describe("Investment Tools", () => {
       expect(parsed.task_counts.in_progress).toBe(0);
       expect(parsed.retry_total).toBe(0);
       expect(parsed.doom_loop_active).toBe(false);
-      // 3 tasks is at the auto/escalate border (auto ≤3) and 0 retries — tier depends on elapsed
-      expect(["auto", "escalate", "hardstop"]).toContain(parsed.threshold_tier);
     });
 
     test("zero tasks: empty-change case handles without throwing", async () => {
@@ -79,7 +69,7 @@ describe("Investment Tools", () => {
       expect(newChange.changeId).toBeTruthy();
 
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: newChange.changeId, thresholds: DEFAULT_THRESHOLDS },
+        { changeId: newChange.changeId },
         store,
       );
       const parsed = parseToolOutput<{
@@ -107,7 +97,7 @@ describe("Investment Tools", () => {
       }
 
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput<{
@@ -124,7 +114,7 @@ describe("Investment Tools", () => {
       // SAMPLE_CHANGE tasks have no started_at/completed_at — test should pass cleanly
       await expect(
         investmentTools.adv_investment_report.execute(
-          { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+          { changeId: "addFeature" },
           store,
         ),
       ).resolves.toBeDefined();
@@ -132,82 +122,16 @@ describe("Investment Tools", () => {
 
     test("change not found: returns error payload (not throw)", async () => {
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "nonexistent-change", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "nonexistent-change" },
         store,
       );
       const parsed = parseToolOutput<{ error?: string }>(result);
       expect(parsed.error).toBeDefined();
     });
 
-    test("tier classification: auto tier when far below thresholds", async () => {
-      const newChange = await store.changes.create("Tiny Change");
-
-      // Use thresholds that are clearly above the current state
-      const result = await investmentTools.adv_investment_report.execute(
-        {
-          changeId: newChange.changeId,
-          thresholds: {
-            auto: { tasks: 100, retries: 100, elapsed_minutes: 10000 },
-            escalate: { tasks: 200, retries: 200, elapsed_minutes: 20000 },
-            hardstop: { tasks: 500, retries: 500, elapsed_minutes: 50000 },
-          },
-        },
-        store,
-      );
-      const parsed = parseToolOutput<{ threshold_tier: string }>(result);
-      expect(parsed.threshold_tier).toBe("auto");
-    });
-
-    test("tier classification ignores elapsed thresholds", () => {
-      const tier = classifyTier(1, 0, 1_000_000, {
-        auto: { tasks: 1, retries: 0, elapsed_minutes: 1 },
-        escalate: { tasks: 10, retries: 10, elapsed_minutes: 5 },
-        hardstop: { tasks: 20, retries: 20, elapsed_minutes: 10 },
-      });
-
-      expect(tier).toBe("auto");
-    });
-
-    test("tier classification: escalate tier when tasks exceed escalate threshold", async () => {
-      // SAMPLE_CHANGE has 3 tasks
-      // With aggressive thresholds (escalate >=2), 3 tasks should tip to escalate
-      const result = await investmentTools.adv_investment_report.execute(
-        {
-          changeId: "addFeature",
-          thresholds: {
-            auto: { tasks: 1, retries: 0, elapsed_minutes: 1 },
-            escalate: { tasks: 2, retries: 1, elapsed_minutes: 5 },
-            // Keep hardstop bands well above the historical SAMPLE_CHANGE age so
-            // only the task-count signal decides this assertion.
-            hardstop: { tasks: 50, retries: 50, elapsed_minutes: 1_000_000 },
-          },
-        },
-        store,
-      );
-      const parsed = parseToolOutput<{ threshold_tier: string }>(result);
-      expect(parsed.threshold_tier).toBe("escalate");
-    });
-
-    test("tier classification: hardstop tier when tasks exceed hardstop threshold", async () => {
-      const result = await investmentTools.adv_investment_report.execute(
-        {
-          changeId: "addFeature",
-          thresholds: {
-            auto: { tasks: 1, retries: 0, elapsed_minutes: 1 },
-            escalate: { tasks: 2, retries: 1, elapsed_minutes: 5 },
-            hardstop: { tasks: 3, retries: 2, elapsed_minutes: 10 },
-          },
-        },
-        store,
-      );
-      const parsed = parseToolOutput<{ threshold_tier: string }>(result);
-      // SAMPLE_CHANGE has 3 tasks which matches hardstop tasks=3 lower bound
-      expect(parsed.threshold_tier).toBe("hardstop");
-    });
-
     test("per_gate_ms returns a record (may be empty for no-gate changes)", async () => {
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput<{ per_gate_ms: Record<string, number> }>(
@@ -219,7 +143,7 @@ describe("Investment Tools", () => {
 
     test("active_elapsed_ms is sum of per_gate_ms", async () => {
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput<{
@@ -238,25 +162,27 @@ describe("Investment Tools", () => {
       const newChange = await store.changes.create("No Gate Change");
 
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: newChange.changeId, thresholds: DEFAULT_THRESHOLDS },
+        { changeId: newChange.changeId },
         store,
       );
       const parsed = parseToolOutput<{ active_elapsed_ms: number }>(result);
       expect(parsed.active_elapsed_ms).toBe(0);
     });
 
-    test("default thresholds: works when no thresholds arg provided", async () => {
+    test("works with minimal args (changeId only)", async () => {
       const result = await investmentTools.adv_investment_report.execute(
         { changeId: "addFeature" },
         store,
       );
-      const parsed = parseToolOutput<{ threshold_tier: string }>(result);
-      expect(["auto", "escalate", "hardstop"]).toContain(parsed.threshold_tier);
+      const parsed = parseToolOutput<{ task_counts: { total: number } }>(
+        result,
+      );
+      expect(parsed.task_counts.total).toBe(3);
     });
 
     test("elapsed_ms is non-negative and finite", async () => {
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput<{ elapsed_ms: number }>(result);
@@ -307,7 +233,7 @@ describe("Investment Tools", () => {
       });
 
       const result = await investmentTools.adv_investment_report.execute(
-        { changeId: "addFeature", thresholds: DEFAULT_THRESHOLDS },
+        { changeId: "addFeature" },
         store,
       );
       const parsed = parseToolOutput<{

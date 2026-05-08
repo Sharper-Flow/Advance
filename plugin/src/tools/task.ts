@@ -28,7 +28,11 @@ import {
 } from "./target-project";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, querySignal, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  querySignal,
+  getChangeHandle,
+} from "./_adapters";
 import {
   taskAddedSignal,
   taskUpdatedSignal,
@@ -327,45 +331,69 @@ export const taskTools = {
         const now = new Date().toISOString();
 
         if (args.status === "in_progress") {
-          await fireSignal(handle, taskAssignedSignal, {
-            taskId: args.taskId,
-            sessionId: "agent",
-            assignedAt: now,
-          });
-        } else if (args.status === "blocked") {
-          await fireSignal(handle, taskBlockedSignal, {
-            taskId: args.taskId,
-            reason: args.notes ?? "Task blocked",
-            attempts: args.error_recovery?.attempts ?? [],
-            blockedAt: now,
-          });
-        } else if (args.status === "done") {
-          await fireSignal(handle, taskCompletedSignal, {
-            taskId: args.taskId,
-            verification:
-              args.notes ??
-              args.implementation_summary ??
-              "Task marked done via adv_task_update",
-            summary:
-              args.implementation_summary ?? args.notes ?? "Task completed",
-            filesTouched: [],
-            completedAt: now,
-          });
-        } else {
-          await fireSignal(handle, taskUpdatedSignal, {
-            taskId: args.taskId,
-            partial: {
-              status: args.status,
-              ...(args.notes && { notes: args.notes }),
-              ...(args.implementation_summary && {
-                implementation_summary: args.implementation_summary,
-              }),
-              ...(args.error_recovery && {
-                error_recovery: args.error_recovery,
-              }),
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            taskAssignedSignal,
+            {
+              taskId: args.taskId,
+              sessionId: "agent",
+              assignedAt: now,
             },
-            updatedAt: now,
-          });
+          );
+        } else if (args.status === "blocked") {
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            taskBlockedSignal,
+            {
+              taskId: args.taskId,
+              reason: args.notes ?? "Task blocked",
+              attempts: args.error_recovery?.attempts ?? [],
+              blockedAt: now,
+            },
+          );
+        } else if (args.status === "done") {
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            taskCompletedSignal,
+            {
+              taskId: args.taskId,
+              verification:
+                args.notes ??
+                args.implementation_summary ??
+                "Task marked done via adv_task_update",
+              summary:
+                args.implementation_summary ?? args.notes ?? "Task completed",
+              filesTouched: [],
+              completedAt: now,
+            },
+          );
+        } else {
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            taskUpdatedSignal,
+            {
+              taskId: args.taskId,
+              partial: {
+                status: args.status,
+                ...(args.notes && { notes: args.notes }),
+                ...(args.implementation_summary && {
+                  implementation_summary: args.implementation_summary,
+                }),
+                ...(args.error_recovery && {
+                  error_recovery: args.error_recovery,
+                }),
+              },
+              updatedAt: now,
+            },
+          );
         }
 
         const task = await querySignal<Task | null>(
@@ -526,7 +554,7 @@ export const taskTools = {
             : {}),
         };
 
-        await fireSignal(handle, taskAddedSignal, {
+        await fireSignalAndRefresh(handle, store, changeId, taskAddedSignal, {
           task,
           addedAt: now,
         });
@@ -600,14 +628,20 @@ export const taskTools = {
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
 
-        await fireSignal(handle, taskCompletedSignal, {
-          taskId: args.taskId,
-          verification: args.verification,
-          summary: args.summary,
-          filesTouched: args.filesTouched ?? [],
-          checkpointSha: args.checkpointSha,
-          completedAt: now,
-        });
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          taskCompletedSignal,
+          {
+            taskId: args.taskId,
+            verification: args.verification,
+            summary: args.summary,
+            filesTouched: args.filesTouched ?? [],
+            checkpointSha: args.checkpointSha,
+            completedAt: now,
+          },
+        );
 
         const output: Record<string, unknown> = {
           success: true,
@@ -757,12 +791,18 @@ export const taskTools = {
 
         try {
           const handle = await getHandleForChangeId(store, changeId);
-          await fireSignal(handle, taskCancelledSignal, {
-            taskId,
-            approvalEvidence,
-            reason: reasons[taskId],
-            cancelledAt: now,
-          });
+          await fireSignalAndRefresh(
+            handle,
+            store,
+            changeId,
+            taskCancelledSignal,
+            {
+              taskId,
+              approvalEvidence,
+              reason: reasons[taskId],
+              cancelledAt: now,
+            },
+          );
           results.push({ taskId, success: true });
           cancelledTasks.push({ id: taskId, title: "(cancelled)" });
         } catch (err) {
@@ -872,7 +912,7 @@ export const taskTools = {
       const handle = await getHandleForChangeId(store, changeId);
       const now = new Date().toISOString();
 
-      await fireSignal(handle, taskUpdatedSignal, {
+      await fireSignalAndRefresh(handle, store, changeId, taskUpdatedSignal, {
         taskId: args.taskId,
         partial: {
           metadata: {

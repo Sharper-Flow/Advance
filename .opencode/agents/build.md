@@ -198,7 +198,7 @@ ERRORS:
 - Never push to remote — local verification only
 - Never install packages unless explicitly told to (use existing deps)
 - Never auto-complete ADV gates — that is orchestration, not execution
-- × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls (cost-governance Phase 1.5), not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
+- × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
 ## ADV State Access Policy
 

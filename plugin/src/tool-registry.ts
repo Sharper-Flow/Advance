@@ -283,7 +283,7 @@ export function createToolMap(
     // Status Tool
     adv_status: bindTool(statusTools.adv_status, "adv_status", store),
 
-    // Investment Tools (addCostTimeInvestment)
+    // Investment Tools
     adv_investment_report: bindTool(
       investmentTools.adv_investment_report,
       "adv_investment_report",
@@ -451,12 +451,16 @@ export function createToolMap(
     // Reflection Tool
     adv_reflect: bindTool(reflectionTools.adv_reflect, "adv_reflect", store),
 
-    // Conformance Tool — adv_conformance takes (args, dir=projectDir, path=externalRoot)
-    adv_conformance: bindToolSimple(
+    // Conformance Tool — adv_conformance takes (args, store).
+    // Switched from bindToolSimple to bindTool in change
+    // centralizemutationcacherefresh (T02) so the dispatcher can use
+    // fireSignalAndRefresh (rq-cacheRefresh01) when firing conformance
+    // signals to change workflows. projectDir and externalRoot are
+    // derived inside the execute function from store.paths.{root,external}.
+    adv_conformance: bindTool(
       conformanceTools.adv_conformance,
       "adv_conformance",
-      directory,
-      store.paths.external ?? undefined,
+      store,
     ),
 
     // Worktree Tools

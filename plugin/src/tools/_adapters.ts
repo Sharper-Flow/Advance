@@ -18,6 +18,7 @@ import {
   runTemporal,
   runTemporalQuery,
 } from "../storage/store-temporal/shared";
+import type { Store } from "../storage/store";
 
 type SignalTarget = WorkflowHandleLike | TemporalStoreBackendInput;
 
@@ -143,6 +144,63 @@ export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
   const [query, ...queryArgs] = queryAndArgs;
   await fireSignal(target, changeId, signal, ...signalArgs);
   return querySignal<T>(target, changeId, query, ...queryArgs);
+}
+
+/**
+ * Fire a signal targeting a change workflow, then refresh the in-memory cache
+ * for that change.
+ *
+ * Tool-layer code SHALL use this helper for any signal associated with a
+ * `changeId`. Use `fireSignal` (without refresh) ONLY for signals not associated
+ * with a single change (none currently exist; documented exemptions require a
+ * `// rq-cacheRefresh01-exempt: <reason>` annotation at the call site).
+ *
+ * Failure to refresh produces silent stale reads on subsequent
+ * `store.changes.get()` calls — the bug class this helper exists to prevent.
+ *
+ * Cross-project note: when mutating a change in another project via
+ * `target_path`, the refresh invalidates the TARGET project's cache (resolved
+ * via the `store` argument that wraps that project's StoreBackend), NOT the
+ * calling project's. Use `withTargetPathStore(...)` upstream to obtain the
+ * correct store reference before calling this helper.
+ *
+ * Behavior:
+ *   1. Fire signal via `fireSignal()` (preserves transient retry semantics).
+ *   2. After signal succeeds, call `store.changes.refresh(changeId)` (drops
+ *      cache entry and re-fetches).
+ *   3. The store contract guarantees `refresh` is best-effort and does not
+ *      throw in production; if it throws (contract violation), this helper
+ *      propagates so the bug surfaces rather than being swallowed.
+ *   4. If the signal fails, refresh is NOT attempted (the workflow state has
+ *      not advanced).
+ */
+export async function fireSignalAndRefresh<Args extends unknown[]>(
+  handle: WorkflowHandleLike,
+  store: Store,
+  changeId: string,
+  signal: unknown,
+  ...args: Args
+): Promise<void>;
+export async function fireSignalAndRefresh<Args extends unknown[]>(
+  input: TemporalStoreBackendInput,
+  store: Store,
+  changeId: string,
+  signal: unknown,
+  ...args: Args
+): Promise<void>;
+export async function fireSignalAndRefresh<Args extends unknown[]>(
+  target: SignalTarget,
+  store: Store,
+  changeId: string,
+  signal: unknown,
+  ...args: Args
+): Promise<void> {
+  if (isWorkflowHandleLike(target)) {
+    await fireSignal(target, signal, ...args);
+  } else {
+    await fireSignal(target, changeId, signal, ...args);
+  }
+  await store.changes.refresh(changeId);
 }
 
 /**

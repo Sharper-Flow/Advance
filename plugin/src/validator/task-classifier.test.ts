@@ -137,6 +137,17 @@ describe("getTaskTddCompliance", () => {
     ).toBe("compliant");
   });
 
+  test("inline intent + task completion verification → compliant", () => {
+    expect(
+      getTaskTddCompliance({
+        title: "Implement evidence write idempotency",
+        metadata: { tdd_intent: "inline" },
+        verification:
+          "Targeted tests, pnpm run check, pnpm test, and pnpm run build passed.",
+      }),
+    ).toBe("compliant");
+  });
+
   test("inline intent + only red evidence → missing", () => {
     expect(
       getTaskTddCompliance({
@@ -200,6 +211,15 @@ describe("getTaskTddCompliance", () => {
         title: "Implement new feature",
       }),
     ).toBe("missing");
+  });
+
+  test("title-heuristic logic task with task completion verification → compliant", () => {
+    expect(
+      getTaskTddCompliance({
+        title: "Implement new feature",
+        verification: "Task completed with red/green test evidence.",
+      }),
+    ).toBe("compliant");
   });
 
   test("title-heuristic logic task with complete evidence → compliant", () => {

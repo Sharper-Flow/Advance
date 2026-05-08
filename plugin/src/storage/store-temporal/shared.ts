@@ -10,6 +10,22 @@ import type { TemporalClientBundle } from "../../temporal/client";
 
 const logger = createLogger("store-temporal-shared");
 
+const ownerGuardCache = new WeakMap<
+  TemporalStoreBackendInput,
+  Map<string, string>
+>();
+
+function getOwnerGuardCache(
+  input: TemporalStoreBackendInput,
+): Map<string, string> {
+  let cache = ownerGuardCache.get(input);
+  if (!cache) {
+    cache = new Map<string, string>();
+    ownerGuardCache.set(input, cache);
+  }
+  return cache;
+}
+
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
   executeUpdate: (
@@ -85,6 +101,11 @@ export async function getGuardedChangeHandle(
   input: TemporalStoreBackendInput,
   changeId: string,
 ): Promise<WorkflowHandleLike> {
+  const cachedOwner = ownerGuardCache.get(input)?.get(changeId);
+  if (cachedOwner === input.projectId) {
+    return getChangeHandle(input, changeId);
+  }
+
   let legacyResult: Awaited<ReturnType<typeof input.legacy.changes.get>>;
   try {
     legacyResult = await input.legacy.changes.get(changeId);
@@ -111,6 +132,7 @@ export async function getGuardedChangeHandle(
           `Open the change in its owning project's context, or verify the linked-project configuration.`,
       );
     }
+    getOwnerGuardCache(input).set(changeId, owningProjectId);
   }
   return getChangeHandle(input, changeId);
 }
@@ -224,5 +246,8 @@ export interface StoreDeps {
     includeArchived?: boolean;
     includeClosed?: boolean;
   }) => Promise<Change[]>;
-  reseedChangeFromDisk: (changeId: string) => Promise<Change | null>;
+  reseedChangeFromDisk: (
+    changeId: string,
+    reason?: "missing_workflow" | "poisoned_history",
+  ) => Promise<Change | null>;
 }

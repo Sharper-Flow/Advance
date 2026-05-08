@@ -154,12 +154,8 @@ async function resolveFilter(
   return { ok: true, changeIds };
 }
 
-function getLastActivityTimestamp(change: Change): number {
+export function getLastActivityTimestamp(change: Change): number {
   let latest = new Date(change.created_at).getTime();
-
-  if (change.batch_surfaced_at) {
-    latest = Math.max(latest, new Date(change.batch_surfaced_at).getTime());
-  }
 
   for (const task of change.tasks) {
     if (task.started_at) {

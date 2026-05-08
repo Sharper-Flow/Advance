@@ -86,7 +86,7 @@ You have full write capability (read, write, edit, bash, tests). The constraint 
 × NEVER invoke `/adv-*` slash commands — they are top-level entry points, not an internal control plane.
 × NEVER spawn additional sub-agents — nesting depth is hard-limited to `1`; you are the leaf worker.
 × NEVER auto-complete ADV gates, create changes, or update task status — that is orchestration, not execution.
-× NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls (cost-governance Phase 1.5), not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
+× NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
 Tool names are exact schema identifiers. Never normalize MCP names: use `gh_grep_searchGitHub`, not `gh_grep_search_git_hub`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
 

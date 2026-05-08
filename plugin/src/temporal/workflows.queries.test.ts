@@ -154,7 +154,6 @@ describe("changeWorkflow query handlers", () => {
               blocked: 1,
             },
             retryCount: 1,
-            tier: "auto",
           });
           await expect(
             handle.query(getReviewVerificationQuery),

@@ -1,0 +1,102 @@
+{
+  "id": "cachetemporalownerguard",
+  "title": "cacheTemporalOwnerGuard",
+  "status": "archived",
+  "created_at": "2026-05-08T16:18:04.903Z",
+  "tasks": [
+    {
+      "id": "tk-d404d7d293bd",
+      "title": "## Task: Cache successful Temporal owner guard validations (TDD)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T16:20:57.791Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T16:21:25.723Z",
+      "verification": "Completed with checkpoint commit 54e35e3568176c0c59b8be74183486555a3cca7e.",
+      "summary": "Added a store-lifetime WeakMap owner guard cache keyed by `TemporalStoreBackendInput`, caching only successful owner-bearing validations. `getGuardedChangeHandle` now skips repeated legacy disk reads for the same validated change while still returning fresh workflow handles. Ownerless changes, mismatches, and read failures remain uncached. Added focused tests for cache hit, ownerless no-cache, mismatch no-cache, per-input isolation, and read failure no-cache. RED failed on cache-count expectations; GREEN passed.",
+      "implementation_summary": "Added a store-lifetime WeakMap owner guard cache keyed by `TemporalStoreBackendInput`, caching only successful owner-bearing validations. `getGuardedChangeHandle` now skips repeated legacy disk reads for the same validated change while still returning fresh workflow handles. Ownerless changes, mismatches, and read failures remain uncached. Added focused tests for cache hit, ownerless no-cache, mismatch no-cache, per-input isolation, and read failure no-cache. RED failed on cache-count expectations; GREEN passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T16:24:29.180Z",
+      "completed_at": "2026-05-08T16:24:29.180Z"
+    },
+    {
+      "id": "tk-6e41a50949bc",
+      "title": "## Task: Verification — check + targeted shared tests",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T16:21:03.691Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d404d7d293bd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T16:24:41.477Z",
+      "verification": "Completed with clean checkpoint; no new commit needed after verification.",
+      "summary": "Verified owner guard cache change. `pnpm run check` passed (typecheck + isolation check + lint + format:check). Targeted shared tests passed (`pnpm test -- src/storage/store-temporal/shared.test.ts`, 153 files, 1826 tests, 2 skipped). Worktree clean.",
+      "implementation_summary": "Verified owner guard cache change. `pnpm run check` passed (typecheck + isolation check + lint + format:check). Targeted shared tests passed (`pnpm test -- src/storage/store-temporal/shared.test.ts`, 153 files, 1826 tests, 2 skipped). Worktree clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T16:25:49.899Z",
+      "completed_at": "2026-05-08T16:25:49.899Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:18:12.095Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "User requested `continue-- auto approve all`; treating as reversible fast-track approval for #7 proposal. Clarify warning reviewed: failure cases are covered by uncached mismatch/ownerless handling."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:20:47.485Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Discovery completed: identified current N× guard-read path in `store-temporal/shared.ts` and repeated guarded calls in tasks/changes. Old store-locks path absent but issue survives in Temporal owner guard."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:20:47.579Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Design validated by adv-researcher: VALIDATED. WeakMap keyed by TemporalStoreBackendInput is safe because adv_project_id and input.projectId are immutable for store lifetime. Ownerless and mismatch cases remain uncached."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:21:08.934Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Prep auto-approved by user request `continue-- auto approve all`. Task graph contains implementation/TDD task plus verification task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:26:04.451Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All tasks completed. Implementation checkpoint 54e35e3568176c0c59b8be74183486555a3cca7e. Verification passed: `pnpm run check` and targeted shared tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:26:16.278Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "Auto-accepted per user request `continue-- auto approve all` after autonomous review. Review findings: no blockers, issues, suggestions, or questions. Verification passed: targeted shared tests and `pnpm run check`."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T16:34:32.670Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Archive sign-off received via Tier B whitelist reply `sign off`. Validation passed with warnings only (NO_DELTAS + proposal drift warnings; no spec deltas expected for internal performance/cache fix). Verification passed before sign-off: `pnpm run check` and targeted shared tests."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

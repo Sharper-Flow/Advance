@@ -1,0 +1,108 @@
+{
+  "id": "fixgateboundaryuserapproved",
+  "title": "fixGateBoundaryUserApproved",
+  "status": "archived",
+  "created_at": "2026-05-08T05:03:40.503Z",
+  "tasks": [
+    {
+      "id": "tk-1b9d758f2779",
+      "title": "## Task: Implement boundary-skip + adv-task manifest fix (TDD)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T05:10:02.701Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T05:10:44.066Z",
+      "verification": "Completed with checkpoint commit 6f87ca757599190b7df9b6018128d849f6ffac35.",
+      "summary": "Aligned `adv-task.scope.gates` with its fast-track command contract, exported and clarified `validateGateBoundary`, added explicit `user`/`user:*` actor bypass before manifest scanning, documented `completedBy` convention, and added focused tests for manifest ownership, user actor skips, authorized command pass, unauthorized command warning, and adv-task proposal gate pass. RED targeted test failed on the adv-task cases; GREEN targeted test passed.",
+      "implementation_summary": "Aligned `adv-task.scope.gates` with its fast-track command contract, exported and clarified `validateGateBoundary`, added explicit `user`/`user:*` actor bypass before manifest scanning, documented `completedBy` convention, and added focused tests for manifest ownership, user actor skips, authorized command pass, unauthorized command warning, and adv-task proposal gate pass. RED targeted test failed on the adv-task cases; GREEN targeted test passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T05:13:11.047Z",
+      "completed_at": "2026-05-08T05:13:11.047Z"
+    },
+    {
+      "id": "tk-7c36898d6a38",
+      "title": "## Task: Full verification — `pnpm run check` + full test suite",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T05:10:11.035Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b9d758f2779"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T05:13:22.021Z",
+      "verification": "Completed with clean checkpoint; no new commit needed after verification.",
+      "summary": "Verified change end-to-end. `pnpm run check` passed (typecheck + isolation check + lint + format:check). `pnpm test` passed (151 files, 1815 tests, 2 skipped). Worktree remained clean after verification.",
+      "implementation_summary": "Verified change end-to-end. `pnpm run check` passed (typecheck + isolation check + lint + format:check). `pnpm test` passed (151 files, 1815 tests, 2 skipped). Worktree remained clean after verification.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T05:14:19.808Z",
+      "completed_at": "2026-05-08T05:14:19.808Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:03:49.684Z",
+      "completed_by": "adv-task"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:09:30.684Z",
+      "completed_by": "adv-task"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:09:35.459Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Design validated by adv-researcher. Verdict: CAUTION → recommendations adopted. Two distinct false-positive sources identified: (A) user-driven completions, (B) adv-task manifest under-declaration. Both fixed in this change. userApproved overload rejected per validator. Skip placed before manifest scan."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:10:38.114Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "User approved prep contract by replying `continue` after the task graph was presented. Proceeding to apply inline per post-approval auto-continue."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:14:35.121Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All tasks completed. Implementation checkpoint commit 6f87ca757599190b7df9b6018128d849f6ffac35. Verification task passed `pnpm run check` and `pnpm test`; worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:23:00.706Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered #8 implementation by replying `accept`. Review findings: no blockers, issues, suggestions, or questions. Verification passed: targeted gate tests, `pnpm run check`, full `pnpm test`."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T05:24:30.810Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Archive sign-off received via exact Tier B whitelist reply `sign off`. Validation passed with warnings only (NO_DELTAS + proposal drift warnings; no spec deltas expected for internal tooling fix). Verification passed before sign-off: `pnpm run check` and `pnpm test`."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-08T05:04:34.292Z"
+    }
+  ]
+}

@@ -14,12 +14,12 @@ import type { Store } from "../storage/store";
 import { appendReflection, type ReflectionEntry } from "../storage/reflection";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { GATE_ORDER } from "../types";
-import { computePerGateDurations, classifyTier } from "./investment";
+import { computePerGateDurations } from "./investment";
 import { atomicWriteFile } from "../utils/fs";
 import { appendDebugLog } from "../utils/debug-log";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { reflectionRecordedSignal } from "../temporal/messages";
 
 // =============================================================================
@@ -192,8 +192,6 @@ function generateReflectionMarkdown(entry: ReflectionEntry): string {
   lines.push(
     `- Elapsed: ${(entry.plane1.efficiency.elapsed_ms / 1000 / 60).toFixed(1)} minutes (wall-clock) / ${(activeElapsedMs / 1000 / 60).toFixed(1)} minutes (active)`,
   );
-  lines.push(`- Threshold tier: ${entry.plane1.efficiency.threshold_tier}`);
-  lines.push("");
 
   lines.push("### Quality");
   lines.push(
@@ -342,19 +340,6 @@ export const reflectionTools = {
       const activeElapsedMs = Object.values(perGateMs).reduce(
         (sum, ms) => sum + ms,
         0,
-      );
-
-      // Default thresholds (same as investment.ts defaults)
-      const thresholds = {
-        auto: { tasks: 3, retries: 0, elapsed_minutes: 15 },
-        escalate: { tasks: 8, retries: 2, elapsed_minutes: 60 },
-        hardstop: { tasks: 15, retries: 5, elapsed_minutes: 180 },
-      };
-      const thresholdTier = classifyTier(
-        taskCounts.total,
-        retryTotal,
-        elapsedMs / 60_000,
-        thresholds,
       );
 
       // Per-task TDD evidence history is intentionally removed in the
@@ -533,7 +518,6 @@ export const reflectionTools = {
             elapsed_ms: elapsedMs,
             active_elapsed_ms: activeElapsedMs,
             per_gate_ms: perGateMs,
-            threshold_tier: thresholdTier,
           },
           quality: {
             tdd_compliance: tddCompliance,
@@ -567,17 +551,25 @@ export const reflectionTools = {
       // Best-effort: write human-readable markdown to archive dir
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
 
-      // Signal-driven: notify change workflow that reflection was recorded
+      // Signal-driven: notify change workflow that reflection was recorded.
+      // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
+      // changeCache is invalidated after the signal fires.
       try {
         const bundle = getService();
         if (bundle) {
           const projectId = await getProjectId(store.paths.root);
           if (projectId) {
             const handle = getChangeHandle(bundle.client, projectId, change.id);
-            await fireSignal(handle, reflectionRecordedSignal, {
-              report: persisted,
-              recordedAt: new Date().toISOString(),
-            });
+            await fireSignalAndRefresh(
+              handle,
+              store,
+              change.id,
+              reflectionRecordedSignal,
+              {
+                report: persisted,
+                recordedAt: new Date().toISOString(),
+              },
+            );
           }
         }
       } catch (err) {

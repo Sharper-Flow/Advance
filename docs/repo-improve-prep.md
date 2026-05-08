@@ -95,7 +95,7 @@ Future refresh should run Kagi queries: `spec-driven development workflow tools 
 
 ⚠ not refreshed (Kagi unavailable). Future refresh would investigate:
 - Spec conformance trends (the repo already has `_conformance/` infrastructure)
-- AI-agent governance frameworks (cost-governance, doom-loop detection — both already implemented)
+- AI-agent governance frameworks (doom-loop detection (already implemented; cost-governance retired 2026-05-07 in retireinvestmentgovernancedead))
 
 ## Applicability to This Repo
 

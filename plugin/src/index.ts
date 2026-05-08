@@ -727,12 +727,6 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     //   - [ADV] Active change     (active change line)
     //   - [ADV:RECORD_WISDOM]     (wisdom recording prompt — append-only)
     //
-    // Pre-refactor, this hook also surfaced ACCUMULATED_WISDOM and
-    // TODO_CONTINUATION dynamic context. Those were intentionally removed
-    // for prompt caching (see prior tests). No new dynamic-injection
-    // markers are introduced here — investment check-in lives in
-    // /adv-apply Phase 1.5 via `change.judgment_calls[]`, not via
-    // system-block emission.
     "experimental.chat.system.transform": async (
       input,
       output,

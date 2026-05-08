@@ -517,7 +517,6 @@ Inline prose reply instructions at the seven named human checkpoints (vs `questi
 - Drift detection in `/adv-review` and `/adv-harden`
 - Change-id selection / disambiguation
 - AC clarification rounds (`/adv-discover` Phase 4.5)
-- Investment check-in / judgment-call surfacing (`/adv-apply` Phase 1.5)
 - Triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`)
 
 ### Two parsing tiers
@@ -688,7 +687,7 @@ The prep gate's `userApproved: true` argument on `adv_gate_complete` is a machin
 
 - × Don't ask "shall I proceed?" after the user replies with a whitelist word or invokes the exact shown continuation command — that's the go-ahead.
 - × Don't add LLM fallback for Tier B checkpoints. Reversibility is the axis.
-- × Don't migrate non-checkpoint `question` uses (doom-loop, drift detection, change-id selection, AC clarification rounds, judgment calls). They keep structured options.
+- × Don't migrate non-checkpoint `question` uses (doom-loop, drift detection, change-id selection, AC clarification rounds). They keep structured options.
 - × Don't keep the old "Ask via `question`..." phrasing in any of the seven checkpoint command docs after this section is in force. Regression test `plugin/src/checkpoint-surface-drift.test.ts` enforces this.
 - × Don't show redundant alternative command lines in the blockquote wayfinder block — show exactly the one command needed to continue.
 - × Don't make the wayfinder block a separate section or heading — it is the only content after `## Delivered` and `---`.

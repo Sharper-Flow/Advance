@@ -287,7 +287,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
       creates: ["change", "proposal", "tasks"],
       reads: ["specs", "codebase"],
       modifies: [],
-      gates: ["discovery", "planning"],
+      gates: ["proposal", "discovery", "design", "planning"],
     },
   },
   "adv-autopilot": {

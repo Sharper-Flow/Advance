@@ -93,11 +93,12 @@ import {
   getWorktreeBase,
 } from "../../utils/project-id";
 import { getService } from "../../temporal/service";
-import { fireSignal, getChangeHandle } from "../_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
 import {
   worktreeCreatedSignal,
   worktreeDeletedSignal,
 } from "../../temporal/messages";
+import type { Store } from "../../storage/store";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -110,6 +111,7 @@ const MAX_SESSION_CHAIN_DEPTH = 10;
 
 async function fireWorktreeSignal(
   projectDir: string,
+  store: Store | undefined,
   changeId: string | undefined,
   signal: unknown,
   payload: unknown,
@@ -121,7 +123,18 @@ async function fireWorktreeSignal(
     const projectId = await getProjectIdRaw(projectDir);
     if (!projectId) return;
     const handle = getChangeHandle(bundle.client, projectId, changeId);
-    await fireSignal(handle, signal, payload);
+    if (store) {
+      // rq-cacheRefresh01: invalidate the cache after firing the signal
+      // so subsequent reads see the worktree-create/delete state change.
+      await fireSignalAndRefresh(handle, store, changeId, signal, payload);
+    } else {
+      // rq-cacheRefresh01-exempt: ADV worktree calls without a store
+      // bound (legacy/test paths) skip refresh — these paths are not
+      // backed by a live cache. The store argument is plumbed via
+      // AdvWorktreeCreateDeps/AdvWorktreeDeleteDeps for production use.
+      const { fireSignal: _fs } = await import("../_adapters");
+      await _fs(handle, signal, payload);
+    }
   } catch (err) {
     appendDebugLog(
       "worktree",
@@ -697,6 +710,14 @@ export interface AdvWorktreeCreateDeps {
   projectRoot: string;
   database: Database;
   log: Logger;
+  /**
+   * Optional Store for cache-refresh after firing worktreeCreatedSignal
+   * (rq-cacheRefresh01). When omitted, the worktree-created signal still
+   * fires but the in-memory changeCache is not invalidated; subsequent
+   * reads of the affected change may return stale data. Production
+   * callers via adv-worktree.ts always provide store.
+   */
+  store?: Store;
   resolveDefaultBranch?: (cwd: string) => Promise<string | null>;
   detectStaleBasis?: (
     base: string,
@@ -708,13 +729,6 @@ export interface AdvWorktreeCreateDeps {
       dir: string,
     ) => Promise<{ owned: boolean; release: () => Promise<void> }>;
   };
-  /** OCA ensure-window hook. When provided, called after worktree creation
-   *  to create/reuse a tmux window for the new worktree. Non-fatal on failure. */
-  ocaEnsureWindow?: (
-    sessionName: string,
-    windowName: string,
-    worktreePath: string,
-  ) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export type AdvWorktreeCreateResult =
@@ -762,31 +776,6 @@ export async function advWorktreeCreate(
       const headSha = (
         await execGit(["rev-parse", "HEAD"], existingWorktree.path)
       ).trim();
-
-      // OCA ensure-window hook for reuse path (best-effort, non-fatal).
-      if (deps.ocaEnsureWindow) {
-        try {
-          const sessionName = path
-            .basename(repoRoot)
-            .toLowerCase()
-            .replace(/[^a-z0-9_-]+/g, "-");
-          const changeId = inferChangeIdFromBranch(branch) ?? branch;
-          const hookResult = await deps.ocaEnsureWindow(
-            sessionName,
-            changeId,
-            existingWorktree.path,
-          );
-          if (!hookResult.ok) {
-            deps.log.warn(
-              `[worktree] OCA ensure-window failed for reuse ${branch}: ${hookResult.error ?? "unknown error"}`,
-            );
-          }
-        } catch (err) {
-          deps.log.warn(
-            `[worktree] OCA ensure-window error for reuse ${branch}: ${err}`,
-          );
-        }
-      }
 
       return {
         ok: true,
@@ -1004,35 +993,11 @@ export async function advWorktreeCreate(
       inferChangeIdFromBranch(branch),
     );
 
-    // Step 6.5: OCA ensure-window hook (best-effort, non-fatal).
-    if (deps.ocaEnsureWindow) {
-      try {
-        const sessionName = path
-          .basename(repoRoot)
-          .toLowerCase()
-          .replace(/[^a-z0-9_-]+/g, "-");
-        const changeId = inferChangeIdFromBranch(branch) ?? branch;
-        const hookResult = await deps.ocaEnsureWindow(
-          sessionName,
-          changeId,
-          worktreePath,
-        );
-        if (!hookResult.ok) {
-          deps.log.warn(
-            `[worktree] OCA ensure-window failed for ${branch}: ${hookResult.error ?? "unknown error"}`,
-          );
-        }
-      } catch (err) {
-        deps.log.warn(
-          `[worktree] OCA ensure-window error for ${branch}: ${err}`,
-        );
-      }
-    }
-
     // Signal-driven: notify change workflow that worktree was created
     const createdChangeId = inferChangeIdFromBranch(branch);
     await fireWorktreeSignal(
       repoRoot,
+      deps.store,
       createdChangeId ?? undefined,
       worktreeCreatedSignal,
       {
@@ -1185,6 +1150,13 @@ export interface AdvWorktreeDeleteDeps {
   projectRoot: string;
   database: Database;
   log: Logger;
+  /**
+   * Optional Store for cache-refresh after firing worktreeDeletedSignal
+   * (rq-cacheRefresh01). When omitted, the worktree-deleted signal still
+   * fires but the in-memory changeCache is not invalidated. Production
+   * callers via adv-worktree.ts always provide store.
+   */
+  store?: Store;
   worktreePath?: string;
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
@@ -1456,6 +1428,7 @@ export async function advWorktreeDelete(
   const deletedChangeId = inferChangeIdFromBranch(branch);
   await fireWorktreeSignal(
     deps.projectRoot,
+    deps.store,
     deletedChangeId ?? undefined,
     worktreeDeletedSignal,
     {

@@ -1,9 +1,8 @@
 /**
- * Investment Report Tool (addCostTimeInvestment)
+ * Investment Report Tool
  *
  * Read-only, stateless tool returning a structured investment report
  * for a change. Used by:
- * - /adv-apply Phase 1.5 (investment check-in preamble) — tier + doom-loop
  * - /adv-discover, /adv-review, /adv-archive — one-line summary display
  *
  * All metrics are proxies derived from existing change state (timestamps,
@@ -12,84 +11,12 @@
  *
  * Composition rules (per design D5):
  * - doom-loop detection scans all tasks (not just in_progress)
- * - hard-stop tier is advisory in v1 (does NOT trigger adv_change_reenter)
  */
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
-import { GATE_ORDER, type GateId, type ThresholdTier } from "../types";
+import { GATE_ORDER, type GateId } from "../types";
 import { getDoomLoopInfo } from "../events/status";
-
-// =============================================================================
-// Threshold Configuration
-// =============================================================================
-
-const ThresholdBandSchema = z.object({
-  tasks: z.number().int().min(0),
-  retries: z.number().int().min(0),
-  // Retained for reporting/config compatibility. Elapsed time no longer
-  // participates in tier classification.
-  elapsed_minutes: z.number().min(0),
-});
-
-const ThresholdsSchema = z.object({
-  auto: ThresholdBandSchema,
-  escalate: ThresholdBandSchema,
-  hardstop: ThresholdBandSchema,
-});
-
-type Thresholds = z.infer<typeof ThresholdsSchema>;
-
-/**
- * Default conservative thresholds (agreement user decision #1).
- * Matches the values shipped in .opencode/instructions/cost-governance.md
- * YAML frontmatter. Tunable by the user without code changes.
- */
-const DEFAULT_THRESHOLDS: Thresholds = {
-  auto: { tasks: 3, retries: 0, elapsed_minutes: 15 },
-  escalate: { tasks: 8, retries: 2, elapsed_minutes: 60 },
-  hardstop: { tasks: 15, retries: 5, elapsed_minutes: 180 },
-};
-
-// =============================================================================
-// Tier Classification
-// =============================================================================
-
-/**
- * Compute the threshold tier from current investment metrics.
- *
- * Rule: tier is the MAXIMUM across task count and retry signals — any one
- * dimension crossing a tier boundary promotes the whole report to that tier.
- *
- * `auto` values are retained in config for user-facing guidance and possible
- * future expansion, but v1 classification is intentionally binary above that:
- * anything below `escalate` resolves to `auto`.
- *
- * Elapsed minutes are accepted for API compatibility but ignored per the
- * discovery agreement for fixthreereflectionfollowups.
- *
- * hardstop: task count or retry count >= hardstop band
- * escalate: task count or retry count >= escalate band (but none at hardstop)
- * auto: all tiering signals below escalate band
- */
-export function classifyTier(
-  taskCount: number,
-  retryTotal: number,
-  _elapsedMinutes: number,
-  thresholds: Thresholds,
-): ThresholdTier {
-  const hitsHardstop =
-    taskCount >= thresholds.hardstop.tasks ||
-    retryTotal >= thresholds.hardstop.retries;
-  if (hitsHardstop) return "hardstop";
-
-  const hitsEscalate =
-    taskCount >= thresholds.escalate.tasks ||
-    retryTotal >= thresholds.escalate.retries;
-  if (hitsEscalate) return "escalate";
-
-  return "auto";
-}
 
 // =============================================================================
 // Tool Definition
@@ -98,19 +25,14 @@ export function classifyTier(
 export const investmentTools = {
   adv_investment_report: {
     description:
-      "Return a structured investment report for a change — task counts, elapsed time, retry metrics, doom-loop state, per-gate durations, and threshold tier classification (auto/escalate/hardstop). Read-only, stateless. Thresholds are configurable via the thresholds arg or fall back to conservative defaults matching cost-governance.md.",
+      "Return a structured investment report for a change — task counts, elapsed time, retry metrics, doom-loop state, and per-gate durations. Read-only, stateless.",
     args: {
       changeId: z.string().describe("Change ID to compute the report for"),
-      thresholds: ThresholdsSchema.optional().describe(
-        "Threshold configuration overriding the conservative defaults (auto ≤3/0/15min, escalate ≥8/2/60min, hardstop ≥15/5/180min)",
-      ),
     },
     execute: async (
-      args: { changeId: string; thresholds?: Thresholds },
+      args: { changeId: string },
       store: Store,
     ): Promise<string> => {
-      const thresholds = args.thresholds ?? DEFAULT_THRESHOLDS;
-
       const changeResult = await store.changes.get(args.changeId);
       if (!changeResult.success) {
         return formatToolOutput({ error: changeResult.error });
@@ -137,7 +59,6 @@ export const investmentTools = {
       const createdMs = parseTimestamp(change.created_at);
       const elapsedMs =
         createdMs === null ? 0 : Math.max(0, Date.now() - createdMs);
-      const elapsedMinutes = elapsedMs / 60_000;
 
       // Retry aggregation from error_recovery.attempts[] across all tasks
       let retryTotal = 0;
@@ -179,14 +100,6 @@ export const investmentTools = {
         0,
       );
 
-      // Tier classification
-      const thresholdTier = classifyTier(
-        taskCounts.total,
-        retryTotal,
-        elapsedMinutes,
-        thresholds,
-      );
-
       return formatToolOutput({
         task_counts: taskCounts,
         elapsed_ms: elapsedMs,
@@ -195,7 +108,6 @@ export const investmentTools = {
         retry_density: retryDensity,
         doom_loop_active: doomLoopActive,
         per_gate_ms: perGateMs,
-        threshold_tier: thresholdTier,
         token_hint:
           "Token tracking not yet available — informational field reserved for v2.",
       });

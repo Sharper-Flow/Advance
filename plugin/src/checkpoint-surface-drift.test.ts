@@ -94,7 +94,7 @@ describe("checkpoint surface drift", () => {
   );
 
   test("non-checkpoint question-tool uses are preserved", () => {
-    // Smoke test: change-id selection and judgment-call surfacing in
+    // Smoke test: change-id selection and AC clarification rounds in
     // adv-apply.md still use the question tool legitimately. This
     // ensures the conversion didn't accidentally migrate non-checkpoint
     // uses.
@@ -106,11 +106,8 @@ describe("checkpoint surface drift", () => {
       "adv-apply.md must still reference question tool for change-id selection (non-checkpoint use)",
     ).toMatch(/adv_change_list.*question/i);
 
-    // Investment check-in / judgment-call surfacing — non-checkpoint use
-    expect(
-      apply,
-      "adv-apply.md must still use question tool for judgment-call surfacing (Phase 1.5 — non-checkpoint)",
-    ).toMatch(/single `question` tool call.*multi-question/i);
+    // Non-checkpoint question-tool uses remain available for change-id
+    // selection and other structured choice flows.
   });
 
   test("adv-discover.md preserves question tool for clarification rounds (Phase 4.5)", () => {

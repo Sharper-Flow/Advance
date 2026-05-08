@@ -124,7 +124,6 @@ const getInvestmentReportQuery = wf.defineQuery<{
     cancelled: number;
   };
   retryCount: number;
-  tier: "auto" | "escalate" | "hardstop";
 }>(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getInvestmentReport);
 const getReviewVerificationQuery = wf.defineQuery<{
   acceptanceCriteriaCount: number;
@@ -302,7 +301,6 @@ function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
     cancelled: number;
   };
   retryCount: number;
-  tier: "auto" | "escalate" | "hardstop";
 } {
   const taskCounts = {
     total: state.tasks.length,
@@ -321,14 +319,7 @@ function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
     );
   }, 0);
 
-  const tier =
-    taskCounts.total >= 15 || retryCount >= 5
-      ? "hardstop"
-      : taskCounts.total >= 8 || retryCount >= 2
-        ? "escalate"
-        : "auto";
-
-  return { taskCounts, retryCount, tier };
+  return { taskCounts, retryCount };
 }
 
 function deriveReviewVerificationFromState(state: ChangeWorkflowState): {

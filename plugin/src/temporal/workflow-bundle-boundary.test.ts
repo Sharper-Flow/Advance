@@ -42,6 +42,17 @@ function importSources(filePath: string): string[] {
   return [...source.matchAll(importSourcePattern)].map((match) => match[1]);
 }
 
+function forbiddenWorkflowSurfaceUsages(source: string): string[] {
+  const usages = new Set<string>();
+  if (/\bwf\s*\.\s*defineUpdate\b/.test(source)) {
+    usages.add("wf.defineUpdate");
+  }
+  if (/(^|[^.\w])defineUpdate\s*\(/.test(source)) {
+    usages.add("defineUpdate");
+  }
+  return [...usages];
+}
+
 function reachableFrom(root: string): Map<string, string | undefined> {
   const parents = new Map<string, string | undefined>([[root, undefined]]);
   const queue = [root];
@@ -75,6 +86,25 @@ function pathFromRoot(
 }
 
 describe("workflow bundle transitive boundary", () => {
+  it("detects forbidden update-surface declarations without flagging deterministic Date/random APIs", () => {
+    expect(
+      forbiddenWorkflowSurfaceUsages(
+        "const update = wf.defineUpdate('x');\nDate.now();\nnew Date();\nMath.random();",
+      ),
+    ).toEqual(["wf.defineUpdate"]);
+  });
+
+  it("does not define update handlers in workflow-reachable production code", () => {
+    const parents = reachableFrom(workflowRoot);
+    const forbidden = [...parents.keys()].flatMap((filePath) =>
+      forbiddenWorkflowSurfaceUsages(readFileSync(filePath, "utf8")).map(
+        (usage) => `${pathFromRoot(parents, filePath)} uses ${usage}`,
+      ),
+    );
+
+    expect(forbidden).toEqual([]);
+  });
+
   /**
    * Architecture invariant (see AGENTS.md): Temporal workflow bundles must
    * not transitively reach Node-only or side-effect-heavy plugin layers.

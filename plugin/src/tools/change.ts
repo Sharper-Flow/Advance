@@ -70,7 +70,7 @@ import {
 } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { getService } from "../temporal/service";
-import { fireSignal, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   changeCancelledSignal,
   gateReenteredSignal,
@@ -1546,13 +1546,21 @@ export const changeTools = {
           });
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
-        await fireSignal(handle, changeCancelledSignal, {
-          approvalEvidence,
-          reason,
-          supersededBy,
-          cancelledBy: "agent",
-          cancelledAt: new Date().toISOString(),
-        });
+        // rq-cacheRefresh01: refresh AFTER cancel so subsequent reads
+        // see the closed/cancelled state, not the stale active state.
+        await fireSignalAndRefresh(
+          handle,
+          store,
+          changeId,
+          changeCancelledSignal,
+          {
+            approvalEvidence,
+            reason,
+            supersededBy,
+            cancelledBy: "agent",
+            cancelledAt: new Date().toISOString(),
+          },
+        );
 
         // Remove source `changes/<id>/` directory after successful close.
         // Best-effort: failure surfaces as a warning but does NOT flip success
@@ -1673,13 +1681,21 @@ export const changeTools = {
         for (const id of selection.changeIds) {
           try {
             const handle = getChangeHandle(bundle.client, projectId, id);
-            await fireSignal(handle, changeCancelledSignal, {
-              approvalEvidence,
-              reason,
-              supersededBy,
-              cancelledBy: "agent",
-              cancelledAt: new Date().toISOString(),
-            });
+            // rq-cacheRefresh01: refresh per-change after each cancel
+            // so subsequent reads of any cancelled change see closed state.
+            await fireSignalAndRefresh(
+              handle,
+              store,
+              id,
+              changeCancelledSignal,
+              {
+                approvalEvidence,
+                reason,
+                supersededBy,
+                cancelledBy: "agent",
+                cancelledAt: new Date().toISOString(),
+              },
+            );
             results.push({ changeId: id, success: true });
             closed++;
           } catch (err) {
@@ -2190,13 +2206,21 @@ export const changeTools = {
           });
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
-        await fireSignal(handle, gateReenteredSignal, {
-          fromGateId: fromGate,
-          reason,
-          scopeDelta,
-          reenteredBy: "agent",
-          reenteredAt: new Date().toISOString(),
-        });
+        // rq-cacheRefresh01: refresh after reenter so buildReentryResult
+        // reads the reset-gates state from a fresh cache, not stale gates.
+        await fireSignalAndRefresh(
+          handle,
+          store,
+          changeId,
+          gateReenteredSignal,
+          {
+            fromGateId: fromGate,
+            reason,
+            scopeDelta,
+            reenteredBy: "agent",
+            reenteredAt: new Date().toISOString(),
+          },
+        );
         return buildReentryResult(store, changeId, fromGate);
       } catch (error) {
         return formatToolOutput({

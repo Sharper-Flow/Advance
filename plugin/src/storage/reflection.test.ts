@@ -23,7 +23,6 @@ const createTestEntry = (changeId: string): ReflectionEntry => ({
       retry_density: 0.33,
       elapsed_ms: 3600000,
       per_gate_ms: { proposal: 300000, discovery: 600000 },
-      threshold_tier: "auto",
     },
     quality: {
       review_findings_count: 2,
@@ -149,7 +148,6 @@ describe("reflection storage", () => {
       expect(result).not.toBeNull();
       expect(result?.change_id).toBe("change-1");
       expect(result?.id).toBe(appended.id);
-      expect(result?.plane1.efficiency.threshold_tier).toBe("auto");
       expect(result?.plane2.friction_items[0].category).toBe("tool_gap");
     });
 

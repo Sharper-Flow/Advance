@@ -7,9 +7,11 @@ phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped
 ---
 # ADV Prep — Pre-Implementation Gap Analysis
 Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → add them via ADV tools. Uses 4-Step Gap Analysis and IEEE completeness criteria. Runs **inline** — no sub-agents.
+<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 -->
+
 ## Command Boundary
-**Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator), gap analysis, task sequencing with dependencies.
-**× MUST NOT:** Complete non-planning gates, make new architecture decisions, modify problem statement/agreement/design intent.
+**Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator per rq-prep-out1), gap analysis (rq-prep-scope1), task sequencing with dependencies.
+**× MUST NOT:** Complete non-planning gates, make new architecture decisions, modify problem statement/agreement/design intent (per rq-prep-neg1).
 **Gate:** Completes `planning` only. `/adv-task` is exempt (fast-track bundles proposal+discovery+design+planning).
 <UserRequest>
   $ARGUMENTS
@@ -99,26 +101,6 @@ The task graph MUST include tasks covering touched-scope obligations:
 3. **Same-pattern local subsystem issues** — identical defect/quality patterns in the local touched subsystem that are cheap and clearly the same class of issue
 
 × Do NOT expand ownership into implicit repo-wide refactors. Keep ownership bounded to the local touched subsystem.
-
----
-## Phase J: Identify Judgment Calls (addCostTimeInvestment)
-
-After task synthesis is complete AND before Phase 3 validation, load
-`skill("adv-cost-governance-methodology")` and **apply the Identification
-Protocol**. Persist identified calls to `change.judgment_calls[]` (or `[]`
-if none) via `adv_change_update`.
-
-**Cheatsheet (3 in-scope categories):**
-
-| Category | Example |
-|----------|---------|
-| `non_functional_tradeoff` | "Favor latency or consistency for this new endpoint?" |
-| `extensibility` | "Hardcode this value or make it config-driven?" |
-| `scope_boundary` | "Handle edge case X here or defer?" |
-
-**Out of scope** (agent resolves autonomously — surfacing creates decision fatigue): `defaults`, `naming`, `error_semantics`.
-
-**Scoping boundary:** gap surfacing (rq-prep-scope1.1), NOT task creation (rq-prep-out1), NOT architectural reopening (rq-prep-neg1). See skill for full protocol, cap rationale (≤5), worked example, and rq-autonomy01 escape-clause citation.
 
 ---
 ## Phase 3: Validation + Completion

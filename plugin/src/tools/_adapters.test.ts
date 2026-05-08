@@ -9,6 +9,7 @@ import {
   fireSignal,
   querySignal,
   fireSignalAndQuery,
+  fireSignalAndRefresh,
   getChangeHandle,
   startChangeWorkflow,
 } from "./_adapters";
@@ -63,6 +64,16 @@ function createMockStoreInput(handle: ReturnType<typeof createMockHandle>) {
           getHandle: vi.fn(() => handle),
         },
       },
+    },
+  };
+}
+
+function createMockStore(): {
+  changes: { refresh: ReturnType<typeof vi.fn> };
+} {
+  return {
+    changes: {
+      refresh: vi.fn(async () => undefined),
     },
   };
 }
@@ -243,6 +254,124 @@ describe("_adapters", () => {
       );
       expect(handle.query).toHaveBeenCalledWith({ name: "getState" });
       expect(result).toEqual({ fresh: true });
+    });
+  });
+
+  describe("fireSignalAndRefresh", () => {
+    test("fires signal then refreshes cache (handle form)", async () => {
+      const handle = createMockHandle();
+      const store = createMockStore();
+      const signalDef = { name: "taskAdded" };
+      const payload = { taskId: "tk-1" };
+
+      await fireSignalAndRefresh(
+        handle,
+
+        store as any,
+        "chg-456",
+        signalDef,
+        payload,
+      );
+
+      expect(handle.signal).toHaveBeenCalledTimes(1);
+      expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
+      expect(store.changes.refresh).toHaveBeenCalledTimes(1);
+      expect(store.changes.refresh).toHaveBeenCalledWith("chg-456");
+
+      // Order: signal MUST be called before refresh
+      const signalOrder = handle.signal.mock.invocationCallOrder[0];
+      const refreshOrder = store.changes.refresh.mock.invocationCallOrder[0];
+      expect(signalOrder).toBeLessThan(refreshOrder);
+    });
+
+    test("fires signal then refreshes cache (input form)", async () => {
+      const handle = createMockHandle();
+      const input = createMockStoreInput(handle);
+      const store = createMockStore();
+      const signalDef = { name: "wisdomAdded" };
+      const payload = { content: "lesson" };
+
+      await fireSignalAndRefresh(
+        input,
+
+        store as any,
+        "chg-789",
+        signalDef,
+        payload,
+      );
+
+      expect(input.legacy.changes.get).toHaveBeenCalledWith("chg-789");
+      expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
+      expect(store.changes.refresh).toHaveBeenCalledWith("chg-789");
+    });
+
+    test("does NOT refresh when signal fails", async () => {
+      const handle = createMockHandle();
+      const store = createMockStore();
+      handle.signal.mockRejectedValue(new Error("signal refused"));
+
+      await expect(
+        fireSignalAndRefresh(
+          handle,
+
+          store as any,
+          "chg-1",
+          { name: "bad" },
+          {},
+        ),
+      ).rejects.toThrow("signal refused");
+
+      expect(store.changes.refresh).not.toHaveBeenCalled();
+    });
+
+    test("propagates refresh failure (contract: store.refresh should never throw)", async () => {
+      // The store contract guarantees refresh is best-effort and does not
+      // throw in production. If it ever does (contract violation), the
+      // helper propagates so callers can see the bug rather than swallowing.
+      const handle = createMockHandle();
+      const store = createMockStore();
+      store.changes.refresh.mockRejectedValue(
+        new Error("contract violation: refresh threw"),
+      );
+
+      await expect(
+        fireSignalAndRefresh(
+          handle,
+
+          store as any,
+          "chg-1",
+          { name: "ok" },
+          {},
+        ),
+      ).rejects.toThrow("contract violation: refresh threw");
+
+      // Signal still fired before the refresh attempt
+      expect(handle.signal).toHaveBeenCalled();
+      expect(store.changes.refresh).toHaveBeenCalled();
+    });
+
+    test("passes through multiple signal args", async () => {
+      const handle = createMockHandle();
+      const store = createMockStore();
+
+      await fireSignalAndRefresh(
+        handle,
+
+        store as any,
+        "chg-2",
+        { name: "multiArg" },
+        "arg1",
+        42,
+        { nested: true },
+      );
+
+      expect(handle.signal).toHaveBeenCalledWith(
+        { name: "multiArg" },
+        "arg1",
+        42,
+        { nested: true },
+      );
+      expect(store.changes.refresh).toHaveBeenCalledWith("chg-2");
     });
   });
 

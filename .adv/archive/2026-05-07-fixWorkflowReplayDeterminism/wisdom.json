@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "id": "ws-nyFHtw",
+      "type": "gotcha",
+      "content": "Temporal TypeScript workflows patch `Date.now()`, `new Date()`, and `Math.random()` to deterministic sandbox values; replay guardrails for this project should target actual unsafe workflow-surface drift such as reintroducing `defineUpdate`, not blindly ban patched Date/random APIs.",
+      "source_task": "tk-0be0e0ef8992",
+      "recorded_at": "2026-05-07T21:11:18.851Z"
+    },
+    {
+      "id": "ws-jbXtRt",
+      "type": "gotcha",
+      "content": "Archive validator (rq-archiveValidate01 + rq-TDDvalidatorCompliantPath01) requires `task.tdd_evidence.{red,green}` to be stamped via `adv_run_test phase:'red'/'green'`. /adv-apply protocol calls for these calls in steps 3b/3c, but ad-hoc apply that runs tests via plain `pnpm test` or `bash` will not stamp evidence — leading to MISSING_TDD_EVIDENCE blockers at archive time even when full red→green cycles ran. Mitigations: (1) call `adv_run_test` for inline TDD tasks during apply, OR (2) use explicit `metadata.tdd_intent` at task creation (`separate_verification` / `not_applicable`) when a single verification task covers a batch of impl tasks. Reclassification via `adv_task_reclassify_tdd` clears the block post-hoc when evidence exists in summaries but not in the durable evidence record.",
+      "recorded_at": "2026-05-07T22:21:09.845Z"
+    }
+  ],
+  "count": 2
+}

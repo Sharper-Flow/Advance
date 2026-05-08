@@ -39,13 +39,14 @@ import {
 import { type ConformanceState } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignal, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   conformanceLockedSignal,
   conformanceOverriddenSignal,
   conformanceVerdictSignal,
 } from "../temporal/messages";
 import { appendDebugLog } from "../utils/debug-log";
+import type { Store } from "../storage/store";
 
 // =============================================================================
 // Action Schemas
@@ -114,6 +115,7 @@ async function getChangeHandleForProjectDir(
 
 async function fireConformanceSignal(
   projectDir: string,
+  store: Store,
   changeId: string | undefined,
   signal: unknown,
   payload: unknown,
@@ -122,7 +124,10 @@ async function fireConformanceSignal(
   try {
     const handle = await getChangeHandleForProjectDir(projectDir, changeId);
     if (handle) {
-      await fireSignal(handle, signal, payload);
+      // rq-cacheRefresh01: invalidate cache after the signal so the
+      // next adv_change_show / adv_change_archive call sees the
+      // conformance state change reflected in the change workflow.
+      await fireSignalAndRefresh(handle, store, changeId, signal, payload);
     }
   } catch (err) {
     appendDebugLog(
@@ -185,6 +190,7 @@ async function actionInit(
 
 async function actionLock(
   args: ConformanceArgs,
+  store: Store,
   projectDir: string,
   externalRoot: string,
 ): Promise<string> {
@@ -211,6 +217,7 @@ async function actionLock(
   // Signal-driven: notify change workflow that spec was locked
   await fireConformanceSignal(
     projectDir,
+    store,
     args.change_id,
     conformanceLockedSignal,
     {
@@ -241,8 +248,10 @@ async function actionUnlock(
   if (!state.specs[args.spec]) {
     return makeError(`spec "${args.spec}" is not tracked`);
   }
-  // TODO: No dedicated conformanceUnlockedSignal in current signal set.
-  // Unlock stays on the local conformance storage path.
+  // NOTE: Unlock is intentionally local-storage-only — there is no
+  // conformanceUnlockedSignal in the change-workflow signal set, and adding
+  // one is out of scope for the current conformance design. The local audit
+  // record (overrides + applied_at) is the durable trail.
   const audited = appendOverride(state, args.spec, {
     user: args.user,
     reason: args.reason,
@@ -261,6 +270,7 @@ async function actionUnlock(
 
 async function actionOverride(
   args: ConformanceArgs,
+  store: Store,
   projectDir: string,
   externalRoot: string,
 ): Promise<string> {
@@ -287,6 +297,7 @@ async function actionOverride(
   if (changeId) {
     await fireConformanceSignal(
       projectDir,
+      store,
       changeId,
       conformanceOverriddenSignal,
       {
@@ -307,6 +318,7 @@ async function actionOverride(
 
 async function actionRun(
   args: ConformanceArgs,
+  store: Store,
   projectDir: string,
   externalRoot: string,
 ): Promise<string> {
@@ -355,6 +367,7 @@ async function actionRun(
   if (changeId) {
     await fireConformanceSignal(
       projectDir,
+      store,
       changeId,
       conformanceVerdictSignal,
       {
@@ -427,20 +440,23 @@ export const conformanceTools = {
         .describe("Path to CI-produced JSON verdict artifact for action='run'"),
     },
     /**
-     * Execute via bindToolSimple-style: (args, projectDir, externalRoot).
-     * `projectDir` is the main repo working directory; `externalRoot` is
-     * the project's external state directory (`store.paths.external`).
+     * Execute via bindTool-style: (args, store). `projectDir` is derived
+     * from `store.paths.root`; `externalRoot` from `store.paths.external`.
+     * `store` is threaded through to action functions that fire conformance
+     * signals so they can centralize cache invalidation via
+     * `fireSignalAndRefresh` (rq-cacheRefresh01).
      */
     execute: async (
       rawArgs: ConformanceArgs,
-      projectDir: string,
-      externalRoot?: string,
+      store: Store,
     ): Promise<string> => {
+      const externalRoot = store.paths.external;
       if (!externalRoot) {
         return makeError(
           "adv_conformance requires external state root (project must be Temporal-enabled)",
         );
       }
+      const projectDir = store.paths.root;
       const args = ConformanceArgsSchema.parse(rawArgs);
       switch (args.action) {
         case "status":
@@ -448,13 +464,13 @@ export const conformanceTools = {
         case "init":
           return actionInit(args, projectDir, externalRoot);
         case "lock":
-          return actionLock(args, projectDir, externalRoot);
+          return actionLock(args, store, projectDir, externalRoot);
         case "unlock":
           return actionUnlock(args, projectDir, externalRoot);
         case "override":
-          return actionOverride(args, projectDir, externalRoot);
+          return actionOverride(args, store, projectDir, externalRoot);
         case "run":
-          return actionRun(args, projectDir, externalRoot);
+          return actionRun(args, store, projectDir, externalRoot);
       }
     },
   },

@@ -404,7 +404,7 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 
 **Given:**
 - A change is in the execution gate with multiple pending ready tasks
-- No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry, no unresolved judgment call)
+- No enumerated human checkpoint has triggered (no doom-loop, no environmental blocker, no cancellation, no re-entry)
 
 **When:** A task completes successfully and `adv_task_ready` returns another pending task
 
@@ -417,7 +417,7 @@ ADV must pause for human input only at explicit approval/judgment checkpoints an
 
 **Given:**
 - A change has completed planning and is entering the execution gate
-- Judgment-call surfacing (Phase 1.5) has already resolved any pending user input
+- User-value tradeoffs have been resolved at the design approval checkpoint per rq-autonomy01.3
 
 **When:** `/adv-apply` begins the TDD work loop
 
@@ -753,7 +753,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 
 **ID:** `rq-inlineApproval01` | **Priority:** **[MUST]**
 
-ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text — composed with the Gate Handoff Voice spine — instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, investment check-in, judgment calls, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md § Inline Approval Voice.
+ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text — composed with the Gate Handoff Voice spine — instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md § Inline Approval Voice.
 
 **Tags:** `voice`, `checkpoints`, `approval`, `ux`
 
@@ -824,7 +824,7 @@ ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, 
 **Non-checkpoint question uses unaffected** (`rq-inlineApproval01.6`)
 
 **Given:**
-- A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, investment check-in, judgment call, triage)
+- A non-checkpoint workflow step uses the question tool (change-id selection, doom-loop, drift detection, AC clarification round, triage)
 
 **When:** The step executes
 
@@ -1011,9 +1011,9 @@ Tools that surface change data must display fast-follow lineage: adv_change_show
 
 **ID:** `rq-largeScopeValidity01` | **Priority:** **[MUST]**
 
-Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Size-triggered concerns route through cost-governance Phase 1.5 judgment-call surfacing only.
+Once a change has completed the prep gate with userApproved, the agent must not suggest splitting based on size, task count, or complexity alone. Real concerns surface through the existing user-value tradeoff escape clause (rq-autonomy01.6 contract-compromise design pause) and the design Key Decisions surface.
 
-**Tags:** `workflow`, `scope`, `cost-governance`, `autonomy`
+**Tags:** `workflow`, `scope`, `autonomy`
 
 #### Scenarios
 
@@ -1028,21 +1028,10 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 - The agent does not emit split-suggestions based on size, task count, or complexity alone
 - Execution proceeds as planned
 
-**Size concerns route through cost-governance** (`rq-largeScopeValidity01.2`)
-
-**Given:**
-- Size-triggered concerns exist during execution
-
-**When:** The agent evaluates how to surface concerns
-
-**Then:**
-- Concerns are routed through cost-governance Phase 1.5 judgment-call surfacing
-- No split-suggestion is made
-
 **Hardstop remains advisory** (`rq-largeScopeValidity01.3`)
 
 **Given:**
-- Cost-governance hardstop tier fires
+- High-investment advisory threshold fires
 
 **When:** The agent evaluates the hardstop signal
 
@@ -1056,7 +1045,7 @@ Once a change has completed the prep gate with userApproved, the agent must not 
 
 **ID:** `rq-autopilot01` | **Priority:** **[MUST]**
 
-The /adv-autopilot command provides a single-shot delegation surface that auto-approves the 5 routine human checkpoints (proposal, agreement, design, prep, acceptance) for a change. The change records approval_mode: 'autopilot' and autopilot_invoked_at on invocation, and each auto-approved gate is completed with completedBy: 'adv-autopilot' and notes documenting the delegation. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are NOT auto-approved by autopilot. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, Phase 1.5 judgment-call surfacing, drift detection in /adv-review and /adv-harden) remain active and are NOT suppressed by autopilot mode.
+The /adv-autopilot command provides a single-shot delegation surface that auto-approves the 5 routine human checkpoints (proposal, agreement, design, prep, acceptance) for a change. The change records approval_mode: 'autopilot' and autopilot_invoked_at on invocation, and each auto-approved gate is completed with completedBy: 'adv-autopilot' and notes documenting the delegation. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are NOT auto-approved by autopilot. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, drift detection in /adv-review and /adv-harden) remain active and are NOT suppressed by autopilot mode.
 
 **Tags:** `workflow`, `autonomy`, `autopilot`, `audit`
 
@@ -1090,14 +1079,12 @@ The /adv-autopilot command provides a single-shot delegation surface that auto-a
 
 **Given:**
 - An autopilot run reaches acceptance gate completion
-- Or a populated judgment_calls[] surfaces during /adv-apply Phase 1.5
-- Or design validator returns CONFLICT
+- Design validator returns CONFLICT
 
 **When:** The orchestrator evaluates whether to proceed
 
 **Then:**
 - Archive sign-off uses the standard Tier B inline-approval prompt
-- Phase 1.5 surfaces unresolved judgment calls via question tool
 - Design CONFLICT pauses for user resolution
 - Cancellation always requires adv_task_cancel approvedByUser: true
 

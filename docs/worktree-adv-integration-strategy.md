@@ -216,10 +216,10 @@ Constraints:
 1. ADV reads `touched_files` metadata from every active change's tasks
 2. Computes pairwise overlap with the prepping change's planned scope (from agreement + design)
 3. If overlap detected:
-   - **Same file in 2 prepped changes**: surface as judgment call → user decides which proceeds first
-   - **Same file in 1 prepped + 1 in-execution**: prepping change waits, or routes through PR (no local merge)
-   - **Same subsystem (heuristic: same directory)**: warn but proceed
-4. Decision recorded in change's `judgment_calls[]` for audit
+   - **Same file in 2 prepped changes**: surface as user-value tradeoff → user decides which proceeds first
+    - **Same file in 1 prepped + 1 in-execution**: prepping change waits, or routes through PR (no local merge)
+    - **Same subsystem (heuristic: same directory)**: warn but proceed
+ 4. Decision recorded in change's design.md as a Key Decision
 
 **At /adv-apply — pre-execution rebase check (NEW):**
 

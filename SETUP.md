@@ -325,7 +325,7 @@ The `--fix` flag will:
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy only repo-local ADV agents where direct sync is appropriate
 - Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, and `plan` without replacing the full file
-- Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-cost-governance-methodology`, `adv-slop-detection`, and `adv-tron`)
+- Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-slop-detection` and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
 - Add `ADV_INSTRUCTIONS.md` to `opencode.json` `.instructions` array if missing
 - Back up `opencode.json` before any patches
@@ -377,63 +377,6 @@ cp -r /path/to/Advance/.opencode/command/* ~/.config/opencode/command/
 mkdir -p .opencode/command
 cp -r /path/to/Advance/.opencode/command/* .opencode/command/
 ```
-
----
-
-## Cost Governance Rule (P28)
-
-ADV ships a judgment-surfacing governance layer (the `addCostTimeInvestment`
-change). The instruction file `.opencode/instructions/cost-governance.md` is
-synced automatically by `scripts/sync-global.sh --fix` — no manual copy
-needed. However, `rules.yaml` is **user-managed** (not touched by the sync
-script) so you need to add rule P28 manually:
-
-1. Open `~/.config/opencode/instructions/rules.yaml`
-2. Add the following entry in the `rules:` map (pick any unused Pnn key — P28 recommended):
-
-```yaml
-rules:
-  # ... existing rules P01-P27 ...
-
-  P28:
-    name: cost-governance
-    rule: "When an ADV change reaches /adv-apply, surface pending judgment
-      calls from change.judgment_calls[] via the question tool before
-      executing tasks. Auto-proceed when the list is empty. Doom-loop
-      recovery supersedes investment check-in on simultaneous trigger."
-    tags: [cost, governance, approval]
-    hint: cost_aware
-    priority: 9
-```
-
-**Rationale for priority 9:** parity with `P05 ship-complete`, `P24 tdd-first`,
-`P27 due-diligence` — important user-consult rule, but not priority 10 (which
-is reserved for absolute constraints like security). Thresholds are tunable
-in `cost-governance.md` YAML frontmatter, so this rule stays guidance-level.
-
-### Opt-in for existing drafts
-
-Governance applies to changes **created after this feature ships** by default
-(detected via presence/absence of `change.judgment_calls[]` field). If you
-have in-flight draft changes and want them to participate in the governance,
-run `/adv-prep <change-id>` on each — this initializes `judgment_calls[]`
-(as an empty array if no calls identified) and opts the change in for future
-`/adv-apply` Phase 1.5 surfacing.
-
-### Tuning thresholds
-
-Edit the YAML frontmatter in `~/.config/opencode/instructions/cost-governance.md`:
-
-```yaml
-thresholds:
-  auto: { tasks: 3, retries: 0, elapsed_minutes: 15 }
-  escalate: { tasks: 8, retries: 2, elapsed_minutes: 60 }
-  hardstop: { tasks: 15, retries: 5, elapsed_minutes: 180 }
-```
-
-Restart OpenCode after editing. See `cost-governance.md` body for the full
-tuning guide, or `skills/adv-cost-governance-methodology/SKILL.md` for the
-canonical methodology.
 
 ---
 
@@ -607,7 +550,7 @@ Add the following entry in the `rules:` map (P31 recommended):
 ```
 
 **Rationale for priority 9:** parity with `P05 ship-complete`, `P24
-tdd-first`, `P27 due-diligence`, `P28 cost-governance`. Foundational to
+tdd-first`, `P27 due-diligence`. Foundational to
 agent reasoning and user-outcome quality, but not at the priority-10 tier
 reserved for absolute constraints (security, collaboration, timeouts).
 

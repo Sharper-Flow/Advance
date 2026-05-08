@@ -2,7 +2,10 @@ import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import { classifyTemporalError } from "../../temporal/retry-wrapper";
+import {
+  classifyTemporalError,
+  collectErrorText,
+} from "../../temporal/retry-wrapper";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
@@ -33,6 +36,35 @@ import { createGateOps } from "./gates";
 import { createWisdomOps } from "./wisdom";
 
 const logger = createLogger("store-temporal");
+
+type ProjectionSource = "disk" | "archive";
+type ProjectionRecoveryReason = "missing_workflow" | "poisoned_history";
+
+function withProjectionRecovery(
+  change: Change,
+  source: ProjectionSource,
+  reason: ProjectionRecoveryReason,
+): Change & {
+  _source: ProjectionSource;
+  _recovery: {
+    mode: "temporal_query_fallback";
+    reason: ProjectionRecoveryReason;
+  };
+} {
+  return {
+    ...change,
+    _source: source,
+    _recovery: { mode: "temporal_query_fallback", reason },
+  };
+}
+
+function recoveryReasonFromError(error: unknown): ProjectionRecoveryReason {
+  return /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(
+    collectErrorText(error),
+  )
+    ? "poisoned_history"
+    : "missing_workflow";
+}
 
 export function createTemporalStoreBackend(
   input: TemporalStoreBackendInput,
@@ -278,11 +310,48 @@ export function createTemporalStoreBackend(
    * callers see the change instead of a hard error.
    * On failure (no snapshot, re-seed itself throws), returns `null`.
    */
+  const loadArchiveProjection = async (
+    changeId: string,
+    reason: ProjectionRecoveryReason,
+  ): Promise<Change | null> => {
+    if (!legacy.paths.archive) return null;
+
+    const exact = await loadChange(legacy.paths.archive, changeId);
+    if (exact.success && exact.data?.id === changeId) {
+      return withProjectionRecovery(exact.data, "archive", reason);
+    }
+
+    let archiveDirs: string[];
+    try {
+      archiveDirs = await listChangeDirs(legacy.paths.archive);
+    } catch (err) {
+      logger.warn(
+        `Archive projection list failed for change ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+
+    for (const archiveDir of archiveDirs) {
+      if (archiveDir === changeId) continue;
+      const loaded = await loadChange(legacy.paths.archive, archiveDir);
+      if (loaded.success && loaded.data?.id === changeId) {
+        return withProjectionRecovery(loaded.data, "archive", reason);
+      }
+    }
+
+    return null;
+  };
+
   const reseedChangeFromDisk = async (
     changeId: string,
+    reason: ProjectionRecoveryReason = "missing_workflow",
   ): Promise<Change | null> => {
+    // rq-replayFallback01: poisoned or missing workflow reads fall back to
+    // durable disk/archive projections instead of forcing manual bundle work.
     const legacyRead = await legacy.changes.get(changeId);
-    if (!legacyRead.success || !legacyRead.data) return null;
+    if (!legacyRead.success || !legacyRead.data) {
+      return loadArchiveProjection(changeId, reason);
+    }
     const change = legacyRead.data;
 
     // (A5 / rq-archivePurge01.1, M2b/terminatechangeworkflowonarchi)
@@ -296,10 +365,7 @@ export function createTemporalStoreBackend(
     // Mark the result so callers (and tests) can identify disk-sourced
     // returns.
     if (change.status === "archived" || change.status === "closed") {
-      return {
-        ...change,
-        _source: "disk",
-      } as Change & { _source: "disk" };
+      return withProjectionRecovery(change, "disk", reason);
     }
     try {
       const client = {
@@ -339,6 +405,16 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
+      // rq-replayFallback01.3: when re-seed of a non-terminal change fails
+      // AND the original trigger error was a known poisoned-history class
+      // (TMPRL1100 / nondeterminism / no-command-replay), fall back to the
+      // durable disk projection. Mirrors the post-reseed-query fallback in
+      // the next try/catch. Missing-workflow re-seed failures still return
+      // null so callers see the real WorkflowNotFoundError instead of a
+      // synthetically-recovered stale projection.
+      if (reason === "poisoned_history") {
+        return withProjectionRecovery(change, "disk", reason);
+      }
       return null;
     }
     try {
@@ -353,6 +429,13 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
+      if (classifyTemporalError(err) === "fallback") {
+        return withProjectionRecovery(
+          change,
+          "disk",
+          recoveryReasonFromError(err),
+        );
+      }
       return null;
     }
   };
@@ -382,7 +465,10 @@ export function createTemporalStoreBackend(
       // projection without re-creating the workflow — re-seeding would
       // re-emit a summary signal and undo adv_archive_purge.
       if (classifyTemporalError(error) === "fallback") {
-        const reseeded = await reseedChangeFromDisk(changeId);
+        const reseeded = await reseedChangeFromDisk(
+          changeId,
+          recoveryReasonFromError(error),
+        );
         if (reseeded) {
           return { success: true, data: reseeded };
         }

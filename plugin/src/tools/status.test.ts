@@ -78,6 +78,51 @@ describe("Status Tools", () => {
   });
 
   describe("adv_status", () => {
+    test("retries once when initial status load hits poisoned-history bootstrap error", async () => {
+      const originalStatus = store.status.bind(store);
+      const statusSpy = vi
+        .fn()
+        .mockRejectedValueOnce(
+          new Error(
+            "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
+          ),
+        )
+        .mockImplementation(() => originalStatus());
+      store.status = statusSpy;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(2);
+      expect(parsed.view).toBe("summary");
+      expect(parsed.diagnostics?.lastErrorClass).not.toBe(
+        "bootstrap_in_progress",
+      );
+    });
+
+    test("degrades structurally when bootstrap retry hits poisoned history again", async () => {
+      const bootstrapError = new Error(
+        "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
+      );
+      const statusSpy = vi.fn().mockRejectedValue(bootstrapError);
+      store.status = statusSpy;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(2);
+      expect(parsed.view).toBe("summary");
+      expect(parsed.changes.recent).toEqual([]);
+      expect(parsed.diagnostics?.lastErrorClass).toBe("bootstrap_in_progress");
+      expect(parsed.bootstrap_retry).toMatchObject({
+        recovered: false,
+        lastErrorClass: "bootstrap_in_progress",
+      });
+      expect(parsed.recommendations).toContain(
+        "⚠️ Temporal bootstrap in progress — status read hit a replay recovery error twice; retry shortly.",
+      );
+    });
+
     test("shows ↳ prefix for fast-follow changes in formatted output", async () => {
       // Create parent and child changes
       const { changeTools } = await import("./change");

@@ -6,10 +6,6 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
 const AGENT_DIR = join(REPO_ROOT, ".opencode/agents");
 const INSTRUCTIONS = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
-const ADVANCE_WORKFLOW_SPEC = join(
-  REPO_ROOT,
-  ".adv/specs/advance-workflow/spec.json",
-);
 
 function readAsset(path: string): string {
   return readFileSync(path, "utf8");
@@ -174,150 +170,14 @@ describe("Design validation policy", () => {
 });
 
 // =============================================================================
-// 5. Investment Check-In Policy (addCostTimeInvestment)
+// 5. Archive and spec assets
 // =============================================================================
 
-const COST_GOV = join(REPO_ROOT, ".opencode/instructions/cost-governance.md");
-const COST_GOV_SKILL = join(
-  REPO_ROOT,
-  "skills/adv-cost-governance-methodology/SKILL.md",
-);
-const PLUGIN_INDEX = join(REPO_ROOT, "plugin/src/index.ts");
-const SETUP = join(REPO_ROOT, "SETUP.md");
-
-describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
-  test("cost-governance.md instruction file exists", () => {
-    const content = readAsset(COST_GOV);
-    expect(content).toBeTruthy();
-  });
-
-  test("cost-governance.md YAML frontmatter contains threshold keys with conservative defaults", () => {
-    const content = readAsset(COST_GOV);
-    // YAML frontmatter present
-    expect(content).toMatch(/^---\s*$/m);
-    // Threshold tiers
-    expect(content).toMatch(/thresholds:/);
-    expect(content).toMatch(/auto:\s*$/m);
-    expect(content).toMatch(/escalate:\s*$/m);
-    expect(content).toMatch(/hardstop:\s*$/m);
-    // Conservative defaults (agreement user decision #1)
-    expect(content).toMatch(/tasks:\s*3/);
-    expect(content).toMatch(/tasks:\s*8/);
-    expect(content).toMatch(/tasks:\s*15/);
-    expect(content).toMatch(/elapsed_minutes:\s*15/);
-    expect(content).toMatch(/elapsed_minutes:\s*60/);
-    expect(content).toMatch(/elapsed_minutes:\s*180/);
-  });
-
-  test("cost-governance.md references the methodology skill", () => {
-    const content = readAsset(COST_GOV);
-    expect(content).toMatch(/skills\/adv-cost-governance-methodology/);
-  });
-
-  test("cost-governance.md scope is ADV-only", () => {
-    const content = readAsset(COST_GOV);
-    expect(content).toMatch(/scope:\s*adv_only/);
-  });
-
-  test("methodology skill file exists with three in-scope categories", () => {
-    const content = readAsset(COST_GOV_SKILL);
-    expect(content).toBeTruthy();
-    expect(content).toMatch(/non_functional_tradeoff/);
-    expect(content).toMatch(/extensibility/);
-    expect(content).toMatch(/scope_boundary/);
-  });
-
-  test("methodology skill documents out-of-scope categories", () => {
-    const content = readAsset(COST_GOV_SKILL);
-    // Out-of-scope categories (decision-fatigue avoidance)
-    expect(content).toMatch(/defaults/);
-    expect(content).toMatch(/naming/);
-    expect(content).toMatch(/error_semantics/);
-  });
-
-  test("methodology skill documents Phase J identification + Phase 1.5 surfacing protocols", () => {
-    const content = readAsset(COST_GOV_SKILL);
-    expect(content).toMatch(/Phase J/);
-    expect(content).toMatch(/Identification Protocol/);
-    expect(content).toMatch(/Phase 1\.5/);
-    expect(content).toMatch(/Surfacing Protocol/);
-  });
-
-  test("methodology skill contains rq-autonomy01 escape-clause citation", () => {
-    const content = readAsset(COST_GOV_SKILL);
-    expect(content).toMatch(/rq-autonomy01/);
-    expect(content).toMatch(/escape.clause|escape clause/i);
-    expect(content).toMatch(/unresolved user-value tradeoff/i);
-  });
-
-  test("methodology skill documents hard-stop advisory semantics", () => {
-    const content = readAsset(COST_GOV_SKILL);
-    // Hard-stop is advisory in v1 — does NOT trigger adv_change_reenter
-    expect(content).toMatch(/hard.stop/i);
-    expect(content).toMatch(/advisory/i);
-    expect(content).toMatch(
-      /does NOT.*adv_change_reenter|NOT.*trigger.*reenter/i,
-    );
-    expect(content).toMatch(/rq-scopeReentry01/);
-  });
-
-  test("methodology skill documents doom-loop supersede rule", () => {
-    const content = readAsset(COST_GOV_SKILL);
-    expect(content).toMatch(/[Dd]oom.loop/);
-    expect(content).toMatch(/supersede/i);
-  });
-
-  test("ADV_INSTRUCTIONS.md contains Investment Check-In subsection", () => {
-    const content = readAsset(INSTRUCTIONS);
-    expect(content).toMatch(/### Investment Check-In/);
-  });
-
-  test("ADV_INSTRUCTIONS.md contains rq-autonomy01 escape-clause citation", () => {
-    const content = readAsset(INSTRUCTIONS);
-    expect(content).toMatch(/rq-autonomy01/);
-    expect(content).toMatch(/escape.clause|escape clause/i);
-    expect(content).toMatch(/unresolved user-value tradeoff/i);
-  });
-
-  test("ADV_INSTRUCTIONS.md contains hard-stop advisory language", () => {
-    const content = readAsset(INSTRUCTIONS);
-    expect(content).toMatch(/[Hh]ard.stop/);
-    expect(content).toMatch(/advisory/);
-    expect(content).toMatch(
-      /does NOT.*adv_change_reenter|NOT.*trigger.*reenter/i,
-    );
-  });
-
-  test("ADV_INSTRUCTIONS.md contains doom-loop supersede rule", () => {
-    const content = readAsset(INSTRUCTIONS);
-    expect(content).toMatch(/[Dd]oom.loop supersede|supersede.*doom.loop/i);
-  });
-
-  test("adv-prep.md contains Phase J / Identify Judgment Calls", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-prep.md"));
-    expect(content).toMatch(/Phase J/);
-    expect(content).toMatch(/Identify Judgment Calls/);
-    // Should reference the skill
-    expect(content).toMatch(/adv-cost-governance-methodology/);
-  });
-
-  test("adv-apply.md contains Phase 1.5 Investment Check-In Preamble", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-apply.md"));
-    expect(content).toMatch(/Phase 1\.5/);
-    expect(content).toMatch(/Investment Check-In Preamble/);
-    // Should reference the skill
-    expect(content).toMatch(/adv-cost-governance-methodology/);
-    // Composition: doom-loop supersedes + hard-stop advisory
-    expect(content).toMatch(/[Dd]oom.loop/);
-    expect(content).toMatch(/[Hh]ard.stop/);
-  });
-
-  test("adv-discover.md, adv-review.md, adv-archive.md reference adv_investment_report for display", () => {
-    for (const file of ["adv-discover.md", "adv-review.md", "adv-archive.md"]) {
-      const content = readAsset(join(COMMAND_DIR, file));
-      expect(content).toMatch(/adv_investment_report/);
-    }
-  });
+describe("Archive and spec assets", () => {
+  const ADVANCE_WORKFLOW_SPEC = join(
+    REPO_ROOT,
+    ".adv/specs/advance-workflow/spec.json",
+  );
 
   test("adv-archive.md refreshes basis before choosing local or PR archive path", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
@@ -397,41 +257,11 @@ describe("Investment Check-In Policy (addCostTimeInvestment)", () => {
     expect(content).toMatch(/conflicting files/i);
   });
 
-  test("SETUP.md documents P28 rule and cost-governance file", () => {
-    const content = readAsset(SETUP);
-    expect(content).toMatch(/P28/);
-    expect(content).toMatch(/cost-governance/);
-    expect(content).toMatch(/name:\s*cost-governance/);
-    expect(content).toMatch(/hint:\s*cost_aware/);
-    expect(content).toMatch(/priority:\s*9/);
-  });
-
-  test("SETUP.md P28 YAML snippet has all required schema fields under a P28 key", () => {
-    // Structural assertion preventing drift between the P28 example in SETUP.md
-    // and the canonical rule shape (name/rule/tags/hint/priority). Uses regex
-    // rather than a YAML parser to avoid adding a runtime dep for one snippet.
-    const content = readAsset(SETUP);
-    const fence = content.match(/```yaml\s+([\s\S]*?P28:[\s\S]*?)\s*```/);
-    expect(fence?.[1]).toBeTruthy();
-    const snippet = fence![1];
-
-    // Key scaffold
-    expect(snippet).toMatch(/^\s*P28:/m);
-    // Required fields with correct canonical values
-    expect(snippet).toMatch(/\bname:\s*cost-governance\b/);
-    expect(snippet).toMatch(/\brule:\s*["']/); // quoted string
-    expect(snippet).toMatch(/\btags:\s*\[[^\]]*cost[^\]]*\]/);
-    expect(snippet).toMatch(/\btags:\s*\[[^\]]*governance[^\]]*\]/);
-    expect(snippet).toMatch(/\btags:\s*\[[^\]]*approval[^\]]*\]/);
-    expect(snippet).toMatch(/\bhint:\s*cost_aware\b/);
-    expect(snippet).toMatch(/\bpriority:\s*9\b/);
-  });
-
   test("Negative AC #11: no dynamic INVESTMENT_CHECKIN marker injection in plugin/src/index.ts", () => {
     // AC #11: dynamic injection via experimental.chat.system.transform must be
-    // append-only — specifically, no new INVESTMENT_CHECKIN or cost-governance
+    // append-only — specifically, no new INVESTMENT_CHECKIN markers
     // marker tokens added (cache preserved by construction in v1).
-    const content = readAsset(PLUGIN_INDEX);
+    const content = readAsset(join(REPO_ROOT, "plugin/src/index.ts"));
     expect(content).not.toMatch(/INVESTMENT_CHECKIN/);
     expect(content).not.toMatch(/\[ADV:INVESTMENT/);
     // Sanity: existing append-only markers still present

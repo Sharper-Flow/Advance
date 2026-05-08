@@ -70,6 +70,44 @@ function formatSpecsSummary(specs: CompactionSpecLike[]): string | null {
   return lines.join("\n");
 }
 
+function formatStaleLedgerRemediation(
+  tasks: CompactionTaskLike[],
+  gates?: Record<string, GateInfo>,
+): string | null {
+  const executionGate = gates?.execution;
+  if (!executionGate) return null;
+
+  const executionIncomplete =
+    executionGate.status !== "done" && executionGate.status !== "skipped";
+  if (!executionIncomplete) return null;
+
+  const hasNoActiveTask = tasks.every((task) => task.status !== "in_progress");
+  if (!hasNoActiveTask) return null;
+
+  const hasPendingWork = tasks.some((task) => task.status === "pending");
+  const hasTerminalWork = tasks.some(
+    (task) => task.status === "done" || task.status === "cancelled",
+  );
+  const allTasksTerminal =
+    tasks.length > 0 &&
+    tasks.every(
+      (task) => task.status === "done" || task.status === "cancelled",
+    );
+
+  const shouldWarn = (hasPendingWork && hasTerminalWork) || allTasksTerminal;
+  if (!shouldWarn) return null;
+
+  return [
+    "=== ADV STALE LEDGER REMEDIATION ===",
+    "⚠ No active task remains while execution is incomplete.",
+    "Remediation:",
+    "- call adv_change_show with include.snapshot=true and include.readyTasks=true",
+    "- if _readyTasks is non-empty, continue from the first ready task",
+    "- if all tasks are done/cancelled, complete acceptance after review",
+    "====================================",
+  ].join("\n");
+}
+
 /** Truncate `text` to `maxBytes` UTF-8 length, appending an explicit
  *  marker so the agent knows context was elided. */
 function applyByteBudget(text: string, maxBytes: number): string {
@@ -85,7 +123,8 @@ function applyByteBudget(text: string, maxBytes: number): string {
  *
  * Order:
  *   1. Change context snapshot (gate row, task counts, current task)
- *   2. Specs summary (when specs exist)
+ *   2. Stale-ledger remediation hint (when execution is incomplete and no task is active)
+ *   3. Specs summary (when specs exist)
  *
  * Sections are joined with `\n\n`. The final string is truncated to
  * `maxBytes` (default 16_000).
@@ -109,7 +148,14 @@ export function buildCompactionContext(
   });
   sections.push(snapshot);
 
-  // 2. Specs summary — retained from previous compaction logic.
+  // 2. Stale-ledger remediation — actionable recovery when resume state has no active task.
+  const staleLedgerRemediation = formatStaleLedgerRemediation(
+    input.tasks,
+    input.gates,
+  );
+  if (staleLedgerRemediation) sections.push(staleLedgerRemediation);
+
+  // 3. Specs summary — retained from previous compaction logic.
   const specs = formatSpecsSummary(input.specs);
   if (specs) sections.push(specs);
 

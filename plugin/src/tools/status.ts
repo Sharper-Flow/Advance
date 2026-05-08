@@ -21,7 +21,10 @@ import {
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
-import { getTemporalRetryTelemetry } from "../temporal/retry-wrapper";
+import {
+  classifyTemporalError,
+  getTemporalRetryTelemetry,
+} from "../temporal/retry-wrapper";
 import {
   getService,
   getStslStats,
@@ -37,6 +40,7 @@ import {
   type GateId,
   type FeatureFlags,
   type ChangeRecency,
+  type ProjectStatus,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
 import {
@@ -513,6 +517,67 @@ async function loadMigrationStatus(_store: Store) {
   return null;
 }
 
+const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function loadStatusWithBootstrapRetry(store: Store): Promise<{
+  status: ProjectStatus;
+  bootstrapDiagnostic?: {
+    recovered: boolean;
+    lastErrorClass: "bootstrap_in_progress";
+    error: string;
+  };
+}> {
+  try {
+    return { status: await store.status() };
+  } catch (error) {
+    if (classifyTemporalError(error) !== "fallback") throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    await delay(STATUS_BOOTSTRAP_RETRY_DELAY_MS);
+    try {
+      return {
+        status: await store.status(),
+        bootstrapDiagnostic: {
+          recovered: true,
+          lastErrorClass: "bootstrap_in_progress",
+          error: message,
+        },
+      };
+    } catch (retryError) {
+      if (classifyTemporalError(retryError) !== "fallback") throw retryError;
+      const retryMessage =
+        retryError instanceof Error ? retryError.message : String(retryError);
+      return {
+        status: {
+          specs: { count: 0, capabilities: [] },
+          changes: {
+            active: 0,
+            byStatus: {
+              draft: 0,
+              pending: 0,
+              active: 0,
+              archived: 0,
+              closed: 0,
+            },
+            recent: [],
+          },
+          recommendations: [
+            "⚠️ Temporal bootstrap in progress — status read hit a replay recovery error twice; retry shortly.",
+          ],
+        },
+        bootstrapDiagnostic: {
+          recovered: false,
+          lastErrorClass: "bootstrap_in_progress",
+          error: retryMessage,
+        },
+      };
+    }
+  }
+}
+
 // =============================================================================
 // View Filter
 // =============================================================================
@@ -582,6 +647,10 @@ export function applyStatusView(
       projection.recommendations = full.recommendations ?? [];
       projection.temporal_health_ok = !!temporalHealth?.server_alive;
       projection.worktree_count = worktreeCensus?.total ?? 0;
+      if (full.bootstrap_retry) {
+        projection.diagnostics = full.diagnostics;
+        projection.bootstrap_retry = full.bootstrap_retry;
+      }
       break;
     }
     case "health": {
@@ -674,7 +743,8 @@ export const statusTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const status = await activeStore.status();
+          const { status, bootstrapDiagnostic } =
+            await loadStatusWithBootstrapRetry(activeStore);
           const migrationStatus = await loadMigrationStatus(activeStore);
 
           const projectId = activeStore.paths.external
@@ -948,8 +1018,13 @@ export const statusTools = {
                   ? ("degraded" as const)
                   : ("unknown" as const),
               lastErrorClass:
-                getTemporalRetryTelemetry().lastError ?? undefined,
+                bootstrapDiagnostic?.recovered === false
+                  ? bootstrapDiagnostic.lastErrorClass
+                  : (getTemporalRetryTelemetry().lastError ?? undefined),
             },
+            ...(bootstrapDiagnostic
+              ? { bootstrap_retry: bootstrapDiagnostic }
+              : {}),
             formatted,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
