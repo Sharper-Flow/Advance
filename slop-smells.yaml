@@ -308,6 +308,28 @@ categories:
             return user.name;
           }
 
+      - id: QUAL-012
+        name: structural_correctness_bypass
+        severity: high
+        description: "Correctness, security, persistence, workflow state, gate completion, or spec compliance decided by heuristic inference, prose convention, or fuzzy matching instead of a structural source of truth"
+        indicators:
+          - "Regex or fuzzy string matching is the sole authority for mutating persistent state"
+          - "LLM/agent judgment decides gate completion or spec compliance without validator/tool evidence"
+          - "Untrusted input is processed before parser/schema/allowlist recognition and normalization"
+          - "Task, issue, or workflow classification ignores available typed metadata or schema fields"
+          - "Similarity scoring suppresses candidates instead of surfacing them for explicit confirmation"
+        detection: "Phase 1: search for high-risk heuristic APIs near state mutation/gate/spec paths; Phase 2: semantic analysis confirms whether structural validators, exact refs, typed fields, or user confirmations own the boundary"
+        confidence_rules:
+          high: "Heuristic result directly controls persistence, gate/spec compliance, security, or workflow state with no structural validator or explicit user approval"
+          medium: "Heuristic result pre-fills a correctness-relevant decision but has unclear guardrails"
+          low: "Heuristic appears advisory only or operates on ranking/discovery without mutation"
+        false_positive_guidance: |
+          Do NOT flag:
+          - Heuristics used only for discovery, ranking, triage, or advisory notes
+          - Legacy fallback guarded by typed metadata/schema precedence
+          - Low-confidence scanner findings grouped as non-blocking
+          - User-confirmed actions where heuristic output is displayed as a candidate, not treated as authority
+
   documentation_smells:
     description: "AI-characteristic documentation and comment anti-patterns"
     smells:

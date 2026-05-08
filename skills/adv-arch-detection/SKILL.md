@@ -17,6 +17,8 @@ Reusable architecture inconsistency detection for ADV arch-scan workflows. Three
 
 ### Phase 1: Deterministic Tools (Known Stacks)
 
+<!-- rq-archp33 -->
+
 Detect stack from project files, then run stack-specific tools from the Known-Stack Rule Matrix.
 
 | Detected File | Stack | Tools |
@@ -27,6 +29,8 @@ Detect stack from project files, then run stack-specific tools from the Known-St
 | `Cargo.toml` | Rust | `cargo-deps` |
 
 When tools are absent → graceful fallback with `detectionMethod: degraded` and a note.
+
+Also scan known correctness boundaries for structural ownership: input parsing/normalization, workflow state transitions, gate/spec/compliance outcomes, persistence mutation, and classification. Prefer tool/schema/type evidence; heuristic-only signals are low-confidence candidates.
 
 ### Phase 2: Research Fallback (Unknown Stacks)
 
@@ -45,6 +49,7 @@ When Phase 1 and 2 produce no results:
 - Analyze file structure and import patterns heuristically
 - Detect likely layer violations (e.g., UI importing DB directly)
 - Flag circular dependencies via import graph analysis
+- Flag suspected structural-correctness boundary violations only when source evidence shows heuristic/prose/regex/LLM judgment owns correctness, security, persistence, workflow state, gate completion, or spec compliance
 - Mark all findings with `detectionMethod: heuristic` and `confidence: low`
 
 ## Known-Stack Rule Matrix
@@ -85,6 +90,8 @@ Example: Kotlin project detected → Kagi: "Kotlin architecture linter" → Cont
 | major | Layer violations, orphaned critical modules | Fix in current sprint |
 | minor | Style inconsistency, minor complexity | Fix opportunistically |
 | nit | Naming mismatch, formatting | Campsite rule |
+
+Structural-correctness severity: blocker when heuristic-owned authority controls security, persistence, workflow state, gate completion, or spec compliance in touched scope; major when it controls input recognition/classification without immediate mutation; minor/nit only for advisory-only smells with clear guardrails.
 
 ## Constraints
 

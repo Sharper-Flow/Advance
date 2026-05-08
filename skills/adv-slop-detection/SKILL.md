@@ -42,6 +42,7 @@ AST-first structural detection + regex signal layer:
 | Hardcoded env              | `localhost`, `/Users/`, `127.0.0.1`                         |
 | AI signatures              | `Certainly!`, `Sure!`, `I'll help`, `As an AI`              |
 | Security                   | String-concat SQL, hardcoded passwords/keys                 |
+| Structural correctness bypass (QUAL-012) | Heuristic/fuzzy/LLM decisions owning correctness boundaries |
 | Dead code                  | vulture (Python), knip (TS/JS), deadcode (Go)               |
 
 When AST tools are unavailable, fall back to brace/indent counting and mark findings with `detectionMethod: "degraded"`.
@@ -69,6 +70,27 @@ Parallel sub-agent scanners by category:
 | Test            | TEST-\*   | Magic numbers, assertion roulette                    |
 
 Cap each file at 3 scanners. Prioritize: Hallucination, Structure, Quality first.
+
+## Structural Correctness Boundary (QUAL-012)
+
+<!-- rq-ss009 -->
+
+Report `QUAL-012 structural_correctness_bypass` when heuristic inference is the authority for correctness, security, persistence, workflow state, gate completion, or spec compliance.
+
+Look for:
+
+- Fuzzy/title/Jaccard/similarity matches that suppress or mutate records without exact refs or explicit user confirmation
+- Regex/prose parsing used as the sole authority where schemas, parsers, typed fields, validators, or state machines should own the boundary
+- LLM/agent judgment deciding compliance, gate completion, or persistence without validator/tool evidence
+- Untrusted input processed before parser/schema/allowlist recognition and normalization
+- Classification ignoring available typed metadata or schema fields
+
+False-positive controls:
+
+- Advisory heuristics for discovery/ranking/triage are allowed
+- Legacy fallback is allowed when typed metadata/schema precedence is explicit
+- Low-confidence findings remain non-blocking unless structural boundary ownership is proven
+- User-confirmed actions are allowed when heuristic output is shown as a candidate rather than treated as authority
 
 ## False-Positive Control
 

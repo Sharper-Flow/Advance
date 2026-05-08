@@ -3,8 +3,8 @@
   "name": "slop-scan",
   "title": "Slop Scan",
   "purpose": "Capability: /adv-slop-scan command — detect AI-generated code quality issues including defensive overkill, deep nesting, and other slop patterns",
-  "version": "1.1.0",
-  "updated_at": "2026-05-01T22:22:00.000Z",
+  "version": "1.1.1",
+  "updated_at": "2026-05-08T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-ss001",
@@ -327,6 +327,54 @@
           "then": [
             "The scanner either suppresses the finding or marks it low-confidence/non-blocking unless the file is within the explicit target product scope",
             "The confidence rationale explains why the finding is or is not actionable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ss009",
+      "title": "Structural Correctness Bypass Detection",
+      "body": "/adv-slop-scan must detect correctness-boundary overreach where heuristic inference, prose convention, fuzzy matching, or LLM/agent judgment is the sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. Findings are reported as QUAL-012 and must distinguish advisory heuristics from heuristic-owned correctness boundaries.",
+      "priority": "must",
+      "tags": ["structural-correctness", "heuristics", "qual-012", "p33"],
+      "scenarios": [
+        {
+          "id": "rq-ss009.1",
+          "title": "Heuristic-owned state mutation is actionable",
+          "given": [
+            "Code uses fuzzy title/Jaccard/similarity matching or LLM judgment to suppress, create, mutate, or complete a persistent record",
+            "No exact ref, schema validation, typed field, validator result, or explicit user confirmation controls the mutation"
+          ],
+          "when": "/adv-slop-scan runs",
+          "then": [
+            "A QUAL-012 finding is emitted",
+            "confidence is high",
+            "actionability is blocking when the affected scope is in the current change"
+          ]
+        },
+        {
+          "id": "rq-ss009.2",
+          "title": "Advisory triage heuristic is not actionable",
+          "given": [
+            "A heuristic only ranks, suggests, or labels a candidate for later confirmation",
+            "Exact refs, typed fields, validators, or explicit user confirmation own the final decision"
+          ],
+          "when": "/adv-slop-scan runs",
+          "then": [
+            "No blocking QUAL-012 finding is emitted",
+            "Any concern is omitted or grouped as low-confidence/non-blocking with a rationale"
+          ]
+        },
+        {
+          "id": "rq-ss009.3",
+          "title": "Untrusted input reaches logic before recognition",
+          "given": [
+            "Code processes untrusted input in business logic before parser/schema/allowlist recognition and normalization"
+          ],
+          "when": "/adv-slop-scan runs",
+          "then": [
+            "A QUAL-012 or security finding is emitted",
+            "The fix recommends moving recognition/normalization to the boundary before processing"
           ]
         }
       ]

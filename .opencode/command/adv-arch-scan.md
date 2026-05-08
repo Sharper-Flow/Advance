@@ -35,6 +35,8 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 1: Matrix (Known Stacks)
+<!-- rq-archp33 -->
+
 Run stack-specific tools when stack is in the Known-Stack Rule Matrix:
 
 | Stack | Primary Tool | Fallback Tool |
@@ -47,6 +49,17 @@ Run stack-specific tools when stack is in the Known-Stack Rule Matrix:
 If tools are absent → graceful fallback with `detectionMethod: degraded` and a note. Skip to Phase 2.
 
 If `--phase 1` only → skip to Report.
+
+### Structural Correctness Boundary Checks (P33)
+
+During Phase 1 or Phase 2, inspect architecture paths where correctness boundaries should be structural:
+
+- Input boundaries: parser/schema/allowlist recognition and normalization before business logic
+- Workflow/state boundaries: state machines, typed events/signals, validators, or persisted schema contracts own transitions
+- Gate/spec/compliance boundaries: tool verdicts, spec validators, conformance results, or explicit user approvals own outcomes
+- Classification boundaries: typed metadata/fields take precedence over title/body heuristics
+
+Flag architectural findings when heuristic inference, prose convention, regex-only matching, or LLM/agent judgment owns those boundaries. Mark as `category: structural-correctness`, `detectionMethod: ast|tool|research|heuristic`, and set `confidence: low` for AI-only evidence.
 
 ---
 ## Phase 2: Research Fallback
@@ -67,6 +80,7 @@ When Phase 1 and 2 produce no results:
 - Analyze file structure and import patterns heuristically
 - Detect likely layer violations (e.g., UI importing DB directly)
 - Flag circular dependencies via import graph analysis
+- Detect suspected structural-correctness boundary violations (heuristic-owned persistence/gates/spec/security) only as low-confidence candidates unless corroborated by source evidence
 - Mark all findings with `detectionMethod: heuristic` and `confidence: low`
 
 ---
@@ -93,4 +107,3 @@ Output structured JSON: `stack`, `phases`, `summary` (bySeverity, byCategory), `
 ---
 ## Execution
 1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Phase 3 (if enabled) → 6. Write Metadata → 7. Report
-

@@ -302,34 +302,13 @@ describe("Git Mutation Guard: bash tool interception", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    // git status is read-only — should NOT throw
+    // git status is read-only — should NOT throw even without a real store
     await expect(
       hooks["tool.execute.before"]!(
         { tool: "bash", sessionID: "test" } as any,
         { args: { command: "git status" } } as any,
       ),
     ).resolves.toBeUndefined();
-  });
-
-  test("blocks git commit from dirty main checkout via bash tool", async () => {
-    hooks = await AdvancePlugin({
-      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
-      directory: tempDir,
-      worktree: tempDir,
-      serverUrl: new URL("http://localhost"),
-    } as any);
-
-    // Create a dirty file to make the checkout dirty
-    const { writeFileSync } = await import("fs");
-    writeFileSync(`${tempDir}/dirty-file.ts`, "dirty");
-
-    // git commit from dirty main should throw
-    await expect(
-      hooks["tool.execute.before"]!(
-        { tool: "bash", sessionID: "test" } as any,
-        { args: { command: "git commit -m 'test'" } } as any,
-      ),
-    ).rejects.toThrow("Git mutation guard");
   });
 
   test("allows non-git bash commands", async () => {

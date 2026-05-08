@@ -5,6 +5,8 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-slop-scan.md");
 const ADV_INSTRUCTIONS_PATH = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
+const SLOP_SPEC_PATH = join(REPO_ROOT, ".adv/specs/slop-scan/spec.json");
+const SLOP_SKILL_PATH = join(REPO_ROOT, "skills/adv-slop-detection/SKILL.md");
 
 describe("adv-slop-scan anti-recursion assets", () => {
   test("documents single-level-only scanner delegation in command contract", () => {
@@ -61,6 +63,26 @@ describe("adv-slop-scan anti-recursion assets", () => {
     );
     expect(content).toContain("grouping: 'actionable' | 'low-confidence'");
     expect(content).toContain("actionability: 'blocking' | 'non-blocking'");
+  });
+
+  test("documents P33 structural-correctness bypass detection", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SLOP_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss009");
+    expect(command).toContain("<!-- rq-ss009 -->");
+    expect(command).toContain("Structural Correctness Bypass (QUAL-012)");
+    expect(command).toContain(
+      "Heuristics used only for discovery/ranking/triage/advisory notes are not findings",
+    );
+    expect(skill).toContain("structural_correctness_bypass");
+    expect(skill).toContain("<!-- rq-ss009 -->");
+    expect(skill).toContain(
+      "Heuristic/fuzzy/LLM decisions owning correctness boundaries",
+    );
   });
 
   test("preserves slop scanner category wildcards", () => {

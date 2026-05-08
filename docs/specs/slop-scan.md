@@ -1,7 +1,7 @@
 # Slop Scan
 
-> **Version:** 1.1.0
-> **Updated:** 2026-05-01
+> **Version:** 1.1.1
+> **Updated:** 2026-05-08
 
 ## Purpose
 
@@ -391,3 +391,55 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 - The confidence rationale explains why the finding is or is not actionable
 
 ---
+
+### Structural Correctness Bypass Detection
+
+**ID:** `rq-ss009` | **Priority:** **[MUST]**
+
+/adv-slop-scan must detect correctness-boundary overreach where heuristic inference, prose convention, fuzzy matching, or LLM/agent judgment is the sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. Findings are reported as QUAL-012 and must distinguish advisory heuristics from heuristic-owned correctness boundaries.
+
+**Tags:** `structural-correctness`, `heuristics`, `qual-012`, `p33`
+
+#### Scenarios
+
+**Heuristic-owned state mutation is actionable** (`rq-ss009.1`)
+
+**Given:**
+
+- Code uses fuzzy title/Jaccard/similarity matching or LLM judgment to suppress, create, mutate, or complete a persistent record
+- No exact ref, schema validation, typed field, validator result, or explicit user confirmation controls the mutation
+
+**When:** /adv-slop-scan runs
+
+**Then:**
+
+- A QUAL-012 finding is emitted
+- confidence is high
+- actionability is blocking when the affected scope is in the current change
+
+**Advisory triage heuristic is not actionable** (`rq-ss009.2`)
+
+**Given:**
+
+- A heuristic only ranks, suggests, or labels a candidate for later confirmation
+- Exact refs, typed fields, validators, or explicit user confirmation own the final decision
+
+**When:** /adv-slop-scan runs
+
+**Then:**
+
+- No blocking QUAL-012 finding is emitted
+- Any concern is omitted or grouped as low-confidence/non-blocking with a rationale
+
+**Untrusted input reaches logic before recognition** (`rq-ss009.3`)
+
+**Given:**
+
+- Code processes untrusted input in business logic before parser/schema/allowlist recognition and normalization
+
+**When:** /adv-slop-scan runs
+
+**Then:**
+
+- A QUAL-012 or security finding is emitted
+- The fix recommends moving recognition/normalization to the boundary before processing

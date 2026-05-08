@@ -49,6 +49,7 @@ $ARGUMENTS
 <!-- rq-ss001 -->
 <!-- rq-ss003 -->
 <!-- rq-ss004 -->
+<!-- rq-ss009 -->
 
 Fast AST-first structural detection + regex signal layer for deterministic patterns.
 
@@ -85,6 +86,24 @@ Regex for repeated null/undefined checks on same identifier. Escalate when >= `d
 | Hardcoded env     | MAINT-005          | `localhost`, `/Users/`, `/home/`, `127.0.0.1`                            |
 | AI signatures     | DOC-003            | `Certainly!`, `Sure!`, `I'll help`, `As an AI`                           |
 | Security          | QUAL-003           | String-concat SQL, hardcoded passwords/keys/secrets                      |
+| Structural correctness bypass | QUAL-012 | Heuristic/fuzzy/LLM decisions near persistence, gates, specs, security, workflow state |
+
+### Structural Correctness Bypass (QUAL-012)
+
+Flag code where correctness boundaries are owned by heuristic inference instead of structural mechanisms. High-risk targets: persistence writes, workflow state mutation, gate completion, spec compliance, security decisions, and untrusted input processing.
+
+Detection signals:
+- Fuzzy/title/Jaccard/similarity scoring suppresses or mutates records without exact refs or user confirmation
+- Regex/prose parsing is the sole authority where a schema/parser/state machine exists or should exist
+- LLM/agent judgment determines compliance, gate completion, or persistence without validator/tool evidence
+- Untrusted input reaches business logic before parser/schema/allowlist recognition and normalization
+- Typed metadata exists but classification uses title/body heuristics instead
+
+Guardrails:
+- Heuristics used only for discovery/ranking/triage/advisory notes are not findings
+- Legacy fallback is allowed when typed metadata/schema precedence is explicit
+- User-confirmed actions are allowed when heuristic output is displayed as a candidate
+- `confidence: high` only when heuristic output directly owns correctness/security/persistence/workflow/gate/spec behavior
 
 ### Dead Code (MAINT-003)
 

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "arch-scan",
+  "title": "Architecture Scan",
+  "purpose": "Capability: /adv-arch-scan command — detect architecture inconsistencies with deterministic tools first, research fallback second, and low-confidence AI heuristic fallback last.",
+  "version": "1.0.0",
+  "updated_at": "2026-05-08T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-archp33",
+      "title": "Structural Correctness Boundary Detection",
+      "body": "/adv-arch-scan must detect architecture-level violations of structural correctness: correctness, security, persistence, workflow state, gate completion, or spec compliance boundaries must be owned by machine-checkable mechanisms such as types, schemas, parsers, state machines, validators, exact refs, conformance verdicts, or explicit user approvals rather than heuristic inference, prose convention, regex-only matching, or LLM/agent judgment.",
+      "priority": "must",
+      "tags": [
+        "structural-correctness",
+        "architecture",
+        "heuristics",
+        "p33"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-archp33.1",
+          "title": "Heuristic-owned workflow boundary is architectural",
+          "given": [
+            "Code lets a fuzzy match, title heuristic, prose parser, or LLM/agent judgment decide workflow state, persistence, gate completion, or spec compliance",
+            "No schema, state machine, validator, exact ref, conformance verdict, or explicit user approval owns the transition"
+          ],
+          "when": "/adv-arch-scan runs",
+          "then": [
+            "A structural-correctness architecture finding is emitted",
+            "The finding cites the source boundary and missing structural owner",
+            "AI-only evidence is marked low-confidence unless corroborated by source/tool evidence"
+          ]
+        },
+        {
+          "id": "rq-archp33.2",
+          "title": "Structural owner suppresses heuristic concern",
+          "given": [
+            "Heuristics are used only for discovery, ranking, advisory warnings, or legacy fallback",
+            "A typed field, schema, validator, state machine, exact ref, conformance verdict, or explicit user approval owns the correctness decision"
+          ],
+          "when": "/adv-arch-scan runs",
+          "then": [
+            "No blocking structural-correctness finding is emitted",
+            "Any concern is reported as low-confidence advisory only"
+          ]
+        },
+        {
+          "id": "rq-archp33.3",
+          "title": "Untrusted input must be recognized before processing",
+          "given": [
+            "A module processes untrusted input in business logic before parser/schema/allowlist recognition and normalization"
+          ],
+          "when": "/adv-arch-scan runs",
+          "then": [
+            "A structural-correctness or security architecture finding is emitted",
+            "The recommendation moves recognition/normalization to the system boundary"
+          ]
+        }
+      ]
+    }
+  ]
+}
