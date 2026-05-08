@@ -270,3 +270,113 @@ describe("Active Change Title Update on adv_change_create", () => {
     expect(getStatus().activeChangeId).toBe("existingChange");
   });
 });
+
+describe("Git Mutation Guard: bash tool interception", () => {
+  let tempDir: string;
+  let hooks: any;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+  });
+
+  afterEach(async () => {
+    if (hooks?.event) {
+      try {
+        await hooks.event({
+          event: { type: "session.deleted", properties: {} },
+        });
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+    hooks = null;
+    await cleanupTempDir(tempDir);
+  });
+
+  test("allows git status via bash tool", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    // git status is read-only — should NOT throw
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: "git status" } } as any,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("blocks git commit from dirty main checkout via bash tool", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    // Create a dirty file to make the checkout dirty
+    const { writeFileSync } = await import("fs");
+    writeFileSync(`${tempDir}/dirty-file.ts`, "dirty");
+
+    // git commit from dirty main should throw
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: "git commit -m 'test'" } } as any,
+      ),
+    ).rejects.toThrow("Git mutation guard");
+  });
+
+  test("allows non-git bash commands", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: "echo hello" } } as any,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("allows git worktree commands", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: "git worktree list --porcelain" } } as any,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("guard does not interfere with existing hook responsibilities", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    // Change tracking should still work
+    await hooks["tool.execute.before"]!(
+      { tool: "adv_task_list", sessionID: "test" } as any,
+      { args: { changeId: "guardTest" } } as any,
+    );
+    expect(getStatus().activeChangeId).toBe("guardTest");
+  });
+});
