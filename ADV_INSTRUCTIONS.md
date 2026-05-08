@@ -213,23 +213,13 @@ If a tool-name call fails, copy the exact name from the available-tools list and
 
 ### Structural Correctness (P33)
 
-Make correctness structural before heuristic. Prefer machine-checkable mechanisms — types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests — over heuristic inference or prose-only rules.
+Make correctness structural before heuristic: prefer types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests. Fully recognize/normalize untrusted input before processing.
 
-ADV-specific boundary:
-
-| Area | Structural source of truth | Heuristic allowed only for |
+| Area | Structural owner | Heuristic allowed only for |
 | --- | --- | --- |
-| Gate completion | `adv_gate_status`, `adv_gate_complete`, tasks, validation tools | Discovery of missing context |
-| Task classification | `metadata.tdd_intent`, validator schema | Legacy fallback / warning text |
-| Backlog triage | Stable refs, issue IDs, typed project fields, explicit user assignments | Ranking candidates, kind hints, possible duplicate discovery |
-| Spec compliance | Specs, validators, conformance verdicts | Research leads / advisory risk flags |
+| Gates/tasks/backlog/specs | `adv_gate_*`, tasks, `metadata.tdd_intent`, validators, specs, conformance, exact refs, typed fields, user assignments | discovery, ranking, triage hints, legacy fallback, advisory risks |
 
-Rules:
-
-- Fully recognize and normalize untrusted input at boundaries before processing it.
-- Heuristics may assist discovery, ranking, triage, or advisory guidance.
-- Heuristics MUST NOT be the sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance.
-- If a heuristic is unavoidable, isolate it, document assumptions, add deterministic guardrails, and verify it with edge-case or property-based tests.
+Heuristics MUST NOT be sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. If unavoidable: isolate, document assumptions, add deterministic guardrails, test edge cases/properties.
 
 ### ADV State Access
 
@@ -429,22 +419,19 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 **State location:** `~/.local/share/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
 
-**Enforcement layers:** (1) bash guard blocks git clone/curl/wget on locked sibling paths, (2) tool.execute.before blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories.
+**Enforcement layers:** (1) bash guard blocks git clone/curl/wget on locked sibling paths, (2) tool.execute.before blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) git mutation guard (`plugin/src/tools/git-guard.ts`) intercepts raw-bash git mutations via `tool.execute.before` and enforces worktree-scope and dirty-tree constraints.
+
+### Git Mutation Guard
+
+**Spec:** `rq-gm01` in advance-meta.
+
+`tool.execute.before` intercepts bash git mutations/staging. Allow in ADV worktrees and clean main; block main+dirty mutations/staging and main pushes; warn on other branches; always allow read-only/worktree management. Pipeline: split shell ops → extract git subcommand → resolve aliases → classify → fact-check mutation/staging → decide.
+
+Residual risk: shell aliases/functions and script-internal git calls are undetectable. Mitigation: ADV forbids raw-bash git mutations; guard enforces detectable patterns. Must not block read-only/worktree mgmt, mutate peers, add Temporal coordination, or claim snapshot-index contention solved.
 
 ### Cross-Repo Execution
 
-| × Invalid Cancellation        | ✓ Correct                 |
-| ----------------------------- | ------------------------- |
-| "Out of scope for this repo"  | Switch `workdir`, execute |
-| "Different repository"        | Switch `workdir`, execute |
-| "Cannot modify external code" | Use `workdir` parameter   |
-
-Rules:
-
-1. Tasks with `target_repo`/`target_path` → execute in target directory
-2. Switch `workdir` for all tool calls on that task
-3. "Different repo" is × NEVER valid cancellation
-4. Task hints at another repo but lacks metadata → confirm via `question`
+"Out of scope for this repo" / "different repository" / "cannot modify external code" are invalid cancellation reasons. Correct action: switch `workdir` to the task's `target_repo`/`target_path` and execute. If a task hints at another repo but lacks metadata, confirm via `question`.
 
 Config: `related_repos` in `project.json` maps repo IDs to paths.
 

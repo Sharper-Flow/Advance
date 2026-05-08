@@ -1,0 +1,179 @@
+{
+  "id": "cavemanCompressAdvInstruction",
+  "title": "Caveman-compress ADV instruction surfaces",
+  "status": "archived",
+  "created_at": "2026-05-08T19:19:00.635Z",
+  "tasks": [
+    {
+      "id": "tk-a6d6924b32be",
+      "title": "T1 — Document caveman/terse composition in `docs/command-voice-standard.md`: add concise rules showing terse/caveman-lite as wording-density layer over existing prose-load reduction templates; preserve exact contract-token exceptions. Verification: targeted asset test or existing docs assertion covers new rule.",
+      "type": "code",
+      "section": "planning",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T19:24:10.711Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:27:15.968Z",
+      "verification": "T1 complete. Checkpoint commit 81844c3bcf28b85fba79a29d0919fe1689773e67.",
+      "summary": "Added `### Terse/caveman-lite composition` to command voice standard and asset test asserting composition wording and exact contract-token preservation.",
+      "implementation_summary": "Added `### Terse/caveman-lite composition` to command voice standard and asset test asserting composition wording and exact contract-token preservation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:28:26.276Z",
+      "completed_at": "2026-05-08T19:28:26.276Z"
+    },
+    {
+      "id": "tk-210f6e29031f",
+      "title": "T2 — Add phrase-preservation and compression-guard tests for `ADV_INSTRUCTIONS.md`: assert critical safety/workflow tokens survive compression and composition docs exist; avoid brittle prose snapshots. Verification: tests fail before docs/compression where possible, pass after.",
+      "type": "code",
+      "section": "planning",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T19:24:20.095Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a6d6924b32be"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:28:42.738Z",
+      "verification": "T2 complete. Checkpoint commit a1a6f12d38427fe8f47bcbf5c09c03dd1a5b303c.",
+      "summary": "Added `ADV_INSTRUCTIONS.md compression guards` asset test and matching `### Instruction Compression Guard` text preserving exact contract tokens through compression.",
+      "implementation_summary": "Added `ADV_INSTRUCTIONS.md compression guards` asset test and matching `### Instruction Compression Guard` text preserving exact contract tokens through compression.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:29:13.603Z",
+      "completed_at": "2026-05-08T19:29:13.603Z"
+    },
+    {
+      "id": "tk-2a8d7a43f8d5",
+      "title": "T3 — Compress `ADV_INSTRUCTIONS.md` using approved design: tables/fragments over paragraphs; remove duplication; keep exact tool names, gates, statuses, commands, `MUST`/`NEVER`, approval boundaries, cancellation/archive clarity, JSON/code examples. Verification: focused asset tests pass and line count decreases under guard.",
+      "type": "code",
+      "section": "planning",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T19:24:24.810Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-210f6e29031f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:29:28.896Z",
+      "verification": "T3 complete. Checkpoint commit 9727dd23dfb331e809fb97e423a924db5f701c42.",
+      "summary": "Compressed `ADV_INSTRUCTIONS.md` from 953 to 868 lines by reducing sub-agent, skill, command/skill boundary, and worktree sections into tables/fragments while preserving tested contract tokens and safety wording.",
+      "implementation_summary": "Compressed `ADV_INSTRUCTIONS.md` from 953 to 868 lines by reducing sub-agent, skill, command/skill boundary, and worktree sections into tables/fragments while preserving tested contract tokens and safety wording.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T19:30:44.544Z",
+      "completed_at": "2026-05-08T19:30:44.544Z"
+    },
+    {
+      "id": "tk-ebb2cc11b7ea",
+      "title": "T4 — Update post-compression budget/sync artifacts and verify: adjust `.opencode/token-budgets.json` baseline to new `ADV_INSTRUCTIONS.md` line count if reduced, run focused tests, run `./scripts/sync-global.sh --fix`, then `./scripts/sync-global.sh --check`. Verification: all commands pass; no runtime code/schema/state changes.",
+      "type": "code",
+      "section": "planning",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T19:24:29.950Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2a8d7a43f8d5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T19:30:59.419Z",
+      "verification": "Final line count 871; updated advInstructionsLineBaseline to 871. Focused line guard/slop assets passed: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/adv-slop-scan-assets.test.ts (52 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/token-budgets.json"
+      ],
+      "touched_files": [
+        ".opencode/token-budgets.json"
+      ],
+      "checkpointSha": "ece4916686bf6727fdafc27f20334a0bc18739ea",
+      "completedAt": "2026-05-08T19:35:49.679Z",
+      "completed_at": "2026-05-08T19:35:49.679Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-BD95UV",
+      "type": "gotcha",
+      "content": "`scripts/sync-global.sh --fix/--check` reports canonical primary checkout path for ADV_INSTRUCTIONS.md prompt scoping even when invoked from an ADV worktree. Worktree-local instruction edits are not loaded into live global provider prompts until merge/archive sync + OpenCode restart.",
+      "source_task": "tk-ebb2cc11b7ea",
+      "recorded_at": "2026-05-08T19:36:10.138Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:20:15.328Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved proposal/problem/scope with reply: approve"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:21:46.495Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Agreement approved by user continuation reply. Current-state evidence, objectives, acceptance criteria, non-goals, and constraints captured in agreement. Proposal/problem statement repaired to remove scaffold ambiguity before gate completion."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:24:05.104Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design completed after independent adv-researcher validator returned VALIDATED. Required refinement applied: terse/caveman-lite composes with existing prose-load infrastructure; no competing profile. No user-value/product tradeoff or contract-compromise risk remains."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:26:57.747Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep/task graph. Tasks: tk-a6d6924b32be docs composition rule; tk-210f6e29031f phrase/compression tests; tk-2a8d7a43f8d5 compress ADV_INSTRUCTIONS.md; tk-ebb2cc11b7ea budget/sync verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:32:58.384Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "All four planned tasks completed with checkpoint commits. Worktree clean. Verification passed: focused Vitest asset tests (66 tests), sync-global --fix, sync-global --check, and pnpm run check. ADV_INSTRUCTIONS.md compressed to 868 lines."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:41:08.481Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Re-applying acceptance completion against current project Temporal after archive reported Temporal incomplete despite disk gates done. User accepted delivered work. Verification passed: focused tests, full pnpm test, pnpm run check, pnpm run build, sync-global check."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-08T19:41:08.482Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Re-applying release completion against current project Temporal after archive reported Temporal incomplete despite disk gates done. User signed off archive/release. Validation passed with warnings only; conformance has no locked specs."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-08T19:49:23.378Z"
+    }
+  ]
+}

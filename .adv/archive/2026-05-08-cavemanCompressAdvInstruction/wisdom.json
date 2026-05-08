@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-BD95UV",
+      "type": "gotcha",
+      "content": "`scripts/sync-global.sh --fix/--check` reports canonical primary checkout path for ADV_INSTRUCTIONS.md prompt scoping even when invoked from an ADV worktree. Worktree-local instruction edits are not loaded into live global provider prompts until merge/archive sync + OpenCode restart.",
+      "source_task": "tk-ebb2cc11b7ea",
+      "recorded_at": "2026-05-08T19:36:10.138Z"
+    }
+  ],
+  "count": 1
+}

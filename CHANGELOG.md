@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documented recommended `P33 structural-correctness` rule in `SETUP.md` and `ADV_INSTRUCTIONS.md`: structural sources of truth (types, schemas, parsers, state machines, validators, exact refs, explicit user assignments) own correctness; heuristics may assist discovery/ranking/triage only.
 - Tightened `/adv-triage` duplicate detection: exact stable-ref/body matches may mark backlog items represented, but title-similarity matches are only candidate duplicates and must remain in the user-confirmation list.
+- Added scanner coverage for P33: `/adv-arch-scan` now checks structural-correctness boundaries (`rq-archp33`), and `/adv-slop-scan` reports heuristic-owned correctness-boundary overreach as `QUAL-012` (`rq-ss009`).
 
 ### Removed — Investment Governance v1 (retireInvestmentGovernanceDeadweight)
 

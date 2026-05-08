@@ -1205,6 +1205,105 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-gm01",
+      "title": "Bash Git Mutation Interception",
+      "body": "The plugin MUST intercept bash-tool git mutations via the tool.execute.before hook and enforce worktree-scope and dirty-tree constraints. Raw-bash git commit/push/merge/rebase on non-worktree checkouts MUST be blocked with actionable error messages. The guard MUST handle git aliases (via config resolution), compound commands (via shell operator splitting), and -C flag overrides. Shell aliases/functions and script-internal git calls are accepted residual risk documented in specs. Read-only git commands and worktree management commands MUST always be allowed.",
+      "priority": "must",
+      "tags": ["git", "guard", "bash", "safety", "mutation"],
+      "scenarios": [
+        {
+          "id": "rq-gm01.1",
+          "title": "Mutation from dirty default branch blocked",
+          "given": [
+            "The working directory is the main checkout on the default branch",
+            "The git working tree has uncommitted changes (dirty)"
+          ],
+          "when": "A bash tool call containing git commit, merge, rebase, push, or staging commands is intercepted",
+          "then": [
+            "The tool execution is blocked with an actionable error message",
+            "The error message suggests using adv_task_checkpoint or working from a worktree branch",
+            "No git mutation is performed"
+          ]
+        },
+        {
+          "id": "rq-gm01.2",
+          "title": "Mutation from ADV worktree allowed",
+          "given": [
+            "The working directory is inside a known ADV worktree path"
+          ],
+          "when": "A bash tool call containing git commit or other mutations is intercepted",
+          "then": [
+            "The tool execution is allowed",
+            "No blocking error is thrown"
+          ]
+        },
+        {
+          "id": "rq-gm01.3",
+          "title": "Read-only git commands always allowed",
+          "given": [
+            "Any working directory context"
+          ],
+          "when": "A bash tool call containing git status, log, diff, rev-parse, show, or other read-only subcommands is intercepted",
+          "then": [
+            "The tool execution is allowed without any git fact checks",
+            "No blocking error is thrown"
+          ]
+        },
+        {
+          "id": "rq-gm01.4",
+          "title": "Git aliases resolved before classification",
+          "given": [
+            "A user has configured a git alias (e.g., alias.ci = commit)"
+          ],
+          "when": "A bash tool call uses the alias (e.g., git ci -m 'test')",
+          "then": [
+            "The guard resolves the alias via git config --get-regexp '^alias.'",
+            "The resolved subcommand is classified correctly (MUTATION in this case)",
+            "The appropriate ALLOW/BLOCK/WARN decision is applied"
+          ]
+        },
+        {
+          "id": "rq-gm01.5",
+          "title": "Push from default branch blocked even when clean",
+          "given": [
+            "The working directory is the main checkout on the default branch",
+            "The git working tree is clean"
+          ],
+          "when": "A bash tool call containing git push to the default branch is intercepted",
+          "then": [
+            "The tool execution is blocked with an actionable error",
+            "The error message references commit-range verification requirement"
+          ]
+        },
+        {
+          "id": "rq-gm01.6",
+          "title": "Compound commands analyzed per-segment",
+          "given": [
+            "A bash command contains multiple git commands joined by shell operators (&&, ||, ;, |)"
+          ],
+          "when": "The guard analyzes the command",
+          "then": [
+            "Each segment is split on shell operators",
+            "Each segment is classified independently",
+            "The highest-severity classification is used for the decision"
+          ]
+        },
+        {
+          "id": "rq-gm01.7",
+          "title": "Residual risk documented: shell aliases and scripts",
+          "given": [
+            "A bash command invokes a shell alias (e.g., gcmsg from .bashrc) or a script that internally runs git push"
+          ],
+          "when": "The guard analyzes the command string",
+          "then": [
+            "The guard does not detect the git mutation (fundamentally undetectable from plugin hook)",
+            "This limitation is documented in ADV_INSTRUCTIONS.md as accepted residual risk",
+            "Mitigation: ADV instruction surfaces prohibit raw-bash git mutations"
+          ]
+        }
+      ]
     }
   ]
 }
