@@ -377,9 +377,7 @@ export const ContractReviewMatrixSchema = z.object({
   reviewedAt: z.string(),
   rows: z.array(ContractReviewMatrixRowSchema),
 });
-export type ContractReviewMatrix = z.infer<
-  typeof ContractReviewMatrixSchema
->;
+export type ContractReviewMatrix = z.infer<typeof ContractReviewMatrixSchema>;
 
 export const ContractAmendmentSchema = z.object({
   id: z.string(),

@@ -1,4 +1,9 @@
-import type { ChangeClosure, ChangeContract, FastFollowOf, Gates } from "../types";
+import type {
+  ChangeClosure,
+  ChangeContract,
+  FastFollowOf,
+  Gates,
+} from "../types";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";

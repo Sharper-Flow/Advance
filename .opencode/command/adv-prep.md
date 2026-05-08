@@ -59,6 +59,8 @@ All steps must be executed. Skipping requires explicit justification.
 ## Phase 1: Load Context
 `adv_change_show changeId: <target> include: { snapshot: true, readyTasks: true }` collapses change + gate snapshot + ready-queue into one call. Add `include.ledger: true` only when picking up after a partial execution (re-entry path). When a fresh structured per-gate breakdown is needed (e.g. for prep-checklist enforcement), fall back to `adv_gate_status changeId: <target>`.
 
+If `change.contract` exists, load it as planning input. Contract items are the obligation source of truth; legacy `acceptanceCriteria` is only a projection.
+
 Then `adv_spec action: "list"` + `adv_spec action: "show"` for each affected capability.
 
 Stop if discovery or design gates are incomplete. `/adv-prep` analyzes validated design decisions — it must not backfill pre-implementation gates.
@@ -86,6 +88,20 @@ Prioritize gaps via MoSCoW. Proceed immediately — invocation is implicit appro
 
 Fix gaps: `adv_task_add` for missing tasks, `adv_task_cancel` (with approval) for absorption/merges, document N/A for non-applicable concerns. Assign `metadata.tdd_intent` to every task.
 
+### Contract Traceability
+
+When `ChangeContract` exists, `/adv-prep` must synthesize task refs alongside task graph decisions:
+
+- Add `contract_refs.implements` for tasks that build behavior required by `AC*`, `SC*`, or `C*` items.
+- Add `contract_refs.verifies` for tasks whose RED/GREEN or verification plan proves an item.
+- Add `contract_refs.respects` for tasks that must preserve `DONT*`, `OOS*`, or constraint items.
+- Add `contract_refs.not_applicable_reason` for mechanical tasks that do not implement, verify, or respect a contract item.
+- Unknown IDs are invalid; copy exact IDs from `change.contract.items`.
+- For `standard` and `strict` rigor, each code task needs contract refs or an explicit not-applicable reason.
+- Every required `AC*` item needs at least one implementing or verifying task before planning gate completion.
+
+When creating tasks, include the structured `contract_refs` payload in the task mutation path supported by the current tool layer. Do not rely on prose-only labels as the source of truth.
+
 ### Delegation Hints
 When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal execution routing:
 - `inline_required` — task must execute inline (complex, multi-file, architectural)
@@ -105,6 +121,8 @@ The task graph MUST include tasks covering touched-scope obligations:
 ---
 ## Phase 3: Validation + Completion
 `adv_change_validate strict: true` → fix errors → re-validate. `adv_gate_complete gateId: planning` → handle failure codes (`SCENARIO_MISSING`, `TASK_TDD_INVERSION`, `CROSS_REPO_MISSING_METADATA`).
+
+If contract validation returns `CONTRACT_*` issues, fix the task graph or contract refs before completing planning. Do not downgrade missing refs into future work.
 
 Agent self-assesses readiness (requirements clarity, technical approach, edge cases). Resolve gaps inline or ask user.
 

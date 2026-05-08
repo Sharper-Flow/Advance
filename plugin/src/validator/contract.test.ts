@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { createDefaultGates, type Change, type Spec, type Task } from "../types";
+import {
+  createDefaultGates,
+  type Change,
+  type Spec,
+  type Task,
+} from "../types";
 import { validateChange } from "./validator";
 
 const createdAt = "2026-05-08T00:00:00.000Z";
@@ -68,7 +73,9 @@ describe("contract validation", () => {
   });
 
   test("errors on standard code task without contract refs or exemption", async () => {
-    const result = await validate({ tasks: [task({ contract_refs: undefined })] });
+    const result = await validate({
+      tasks: [task({ contract_refs: undefined })],
+    });
 
     expect(result.errors.map((error) => error.code)).toContain(
       "CONTRACT_TASK_REFS_MISSING",
@@ -110,7 +117,9 @@ describe("contract validation", () => {
   });
 
   test("warns when legacy acceptanceCriteria projection diverges", async () => {
-    const result = await validate({ acceptanceCriteria: ["Different AC"] } as any);
+    const result = await validate({
+      acceptanceCriteria: ["Different AC"],
+    } as any);
 
     expect(result.warnings.map((warning) => warning.code)).toContain(
       "CONTRACT_ACCEPTANCE_CRITERIA_DRIFT",

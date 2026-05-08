@@ -394,6 +394,40 @@ describe("thin-command shape enforcement", () => {
     );
   });
 
+  test("adv-discover mints typed contract items from approved agreement", () => {
+    const content = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+      "utf8",
+    );
+
+    expect(content).toContain("contractSetSignal");
+    expect(content).toContain("ChangeContract");
+    expect(content).toContain("SC1..n");
+    expect(content).toContain("AC1..n");
+    expect(content).toContain("DONT1..n");
+    expect(content).toContain("OOS1..n");
+    expect(content).toMatch(/acceptanceCriteria.*projection/i);
+  });
+
+  test("adv-prep requires contract refs when synthesizing tasks", () => {
+    const command = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+    const checklist = readFileSync(
+      join(REPO_ROOT, "docs/checklists/prep-checklist.md"),
+      "utf8",
+    );
+
+    expect(command).toContain("contract_refs");
+    expect(command).toContain("implements");
+    expect(command).toContain("verifies");
+    expect(command).toContain("respects");
+    expect(command).toContain("not_applicable_reason");
+    expect(checklist).toContain("Contract Traceability");
+    expect(checklist).toContain("contract_refs");
+  });
+
   test("harden and slop-scan retain shared adv-slop-detection skill reference", () => {
     const hardenContent = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-harden.md"),

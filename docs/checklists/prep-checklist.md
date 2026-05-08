@@ -91,6 +91,16 @@ Every scenario MUST be translatable to a test:
 - [ ] **No orphan branches** `TASK_ORPHAN` _(machine-enforced warning)_ — Every task should connect to others via dependencies or be a dependency of another task
 - [ ] **No false dependencies** — `blocked_by` relationships are genuine
 
+### Contract Traceability
+
+When `change.contract` exists, task synthesis MUST keep the typed contract spine connected to the task graph:
+
+- [ ] **Task refs present** — Every code task has `contract_refs` (`implements`, `verifies`, or `respects`) or `not_applicable_reason`.
+- [ ] **Known IDs only** — Every referenced ID exists in `change.contract.items`.
+- [ ] **AC coverage** — Every required `AC*` item has at least one implementing or verifying task.
+- [ ] **Constraint coverage** — `C*`, `DONT*`, and `OOS*` items are represented via `respects`, verification tasks, or explicit not-applicable rationale.
+- [ ] **Typed source of truth** — Contract refs are persisted as structured task fields, not prose-only notes.
+
 ### Cross-Cutting Concerns
 
 For every feature in the change, verify these are addressed (or explicitly marked N/A):
@@ -126,6 +136,7 @@ Analysis is complete when ALL of the following are true:
 - [ ] All deployed specs scanned for conflicts via `adv_spec action: "search"`
 - [ ] Cross-cutting concerns checklist completed
 - [ ] Task sequencing validated (no inversions, no unnecessary splits)
+- [ ] Contract Traceability checklist completed when `change.contract` exists
 - [ ] `adv_change_validate` passes in strict mode
 - [ ] `adv_gate_complete gateId: planning` passes (no must-failures from machine-enforced checks)
 

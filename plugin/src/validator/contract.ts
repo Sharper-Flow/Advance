@@ -14,7 +14,9 @@ function taskContractRefs(task: Task): TaskWithContractRefs["contract_refs"] {
   return (task as TaskWithContractRefs).contract_refs;
 }
 
-function allTaskRefs(refs: NonNullable<TaskWithContractRefs["contract_refs"]>): string[] {
+function allTaskRefs(
+  refs: NonNullable<TaskWithContractRefs["contract_refs"]>,
+): string[] {
   return [
     ...(refs.implements ?? []),
     ...(refs.verifies ?? []),
@@ -37,7 +39,8 @@ function hasTaskCoverage(change: Change, contractId: string): boolean {
 }
 
 function legacyAcceptanceCriteria(change: Change): string[] | undefined {
-  return (change as Change & { acceptanceCriteria?: string[] }).acceptanceCriteria;
+  return (change as Change & { acceptanceCriteria?: string[] })
+    .acceptanceCriteria;
 }
 
 export function runContractChecks(change: Change): ValidationIssue[] {
