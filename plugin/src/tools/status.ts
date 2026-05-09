@@ -311,15 +311,16 @@ async function computeExternalStateHygiene(
     }
   }
 
-  // In-repo legacy state: .adv/changes/ and .adv/archive/ should not persist
-  // after migration to Temporal. Specs (.adv/specs/) are always in-repo and OK.
+  // In-repo .adv/archive/ is valid (addagentmeshandinrepoarchive policy).
+  // Only flag .adv/changes/ as a recommendation if present — pre-Temporal
+  // migrations may have left stale data there, but the dir itself is the
+  // configured changes_dir and expected to exist.
   const repoRoot = store.paths.root;
   const inRepoChanges = repoRoot
     ? await pathExists(join(repoRoot, ".adv", "changes"))
     : false;
-  const inRepoArchive = repoRoot
-    ? await pathExists(join(repoRoot, ".adv", "archive"))
-    : false;
+  // .adv/archive/ is intentional in-repo state; skip legacy flagging.
+  const inRepoArchive = false;
 
   if (nestedAdvDir)
     recommendations.push("dry-run: nested external .adv/ detected");
@@ -332,12 +333,9 @@ async function computeExternalStateHygiene(
       "dry-run: synthetic test state/worktree dirs detected",
     );
   }
-  if (inRepoChanges || inRepoArchive) {
-    const parts: string[] = [];
-    if (inRepoChanges) parts.push(".adv/changes/");
-    if (inRepoArchive) parts.push(".adv/archive/");
+  if (inRepoChanges) {
     recommendations.push(
-      `legacy in-repo state detected (${parts.join(", ")}): confirm specs are preserved, then remove manually. Specs (.adv/specs/) are always in-repo and OK.`,
+      `in-repo .adv/changes/ detected: if this contains pre-Temporal data, confirm specs are preserved and remove stale entries. Specs (.adv/specs/) are always in-repo and OK.`,
     );
   }
 
