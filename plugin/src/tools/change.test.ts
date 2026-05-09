@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
     fireSignalAndRefresh: vi.fn(async () => {}),
+    querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     removeChangeDir: vi.fn(async () => {}),
     sweepClosedChangesFromDisk: vi.fn(async () => ({
@@ -56,6 +57,7 @@ vi.mock("../utils/project-id", async () => {
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
   fireSignalAndRefresh: mocks.fireSignalAndRefresh,
+  querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
 
@@ -101,6 +103,9 @@ function createMockStore(
     paths: {
       root: "/tmp/test",
       changes: "/tmp/test/.adv/changes",
+      archive: "/tmp/test/.adv/archive",
+      specs: "/tmp/test/.adv/specs",
+      docs: "/tmp/test/docs/specs",
     } as Store["paths"],
     config: null,
     init: vi.fn(),
@@ -141,6 +146,21 @@ function createMockStore(
     status: vi.fn(),
   } as unknown as Store;
 }
+
+const completeGates = {
+  proposal: { status: "done" },
+  discovery: { status: "done" },
+  design: { status: "done" },
+  planning: { status: "done" },
+  execution: { status: "done" },
+  acceptance: { status: "done" },
+  release: { status: "done" },
+} as Change["gates"];
+
+const incompleteGates = {
+  ...completeGates,
+  release: { status: "pending" },
+} as Change["gates"];
 
 const existingSpec: Spec = {
   name: "existing-capability",
@@ -568,6 +588,44 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.passed).toBe(true);
       expect(parsed.errors).toEqual([]);
       expect(parsed.warnings).toEqual([]);
+    });
+  });
+
+  describe("adv_change_archive", () => {
+    test("uses authoritative workflow gates when store projection is stale", async () => {
+      const store = createMockStore({
+        gates: incompleteGates,
+        tasks: [] as Change["tasks"],
+      });
+      mocks.querySignal.mockResolvedValueOnce(completeGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(mocks.querySignal).toHaveBeenCalled();
+    });
+
+    test("still blocks archive when authoritative workflow gates are incomplete", async () => {
+      const store = createMockStore({
+        gates: completeGates,
+        tasks: [] as Change["tasks"],
+      });
+      mocks.querySignal.mockResolvedValueOnce(incompleteGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("incomplete gates");
+      expect(parsed.incompleteGates).toEqual(["release"]);
+      expect(mocks.querySignal).toHaveBeenCalled();
     });
   });
 

@@ -68,10 +68,15 @@ import {
 } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { getService } from "../temporal/service";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  getChangeHandle,
+  querySignal,
+} from "./_adapters";
 import {
   changeCancelledSignal,
   gateReenteredSignal,
+  getGateStatusQuery,
 } from "../temporal/messages";
 
 /**
@@ -615,6 +620,31 @@ function getArchivePreflightError(
   }
 
   return null;
+}
+
+async function applyAuthoritativeArchiveGates(
+  store: Store,
+  changeId: string,
+  change: Change,
+): Promise<Change> {
+  const bundle = getService();
+  if (!bundle) return change;
+
+  const projectId = await getProjectId(store.paths.root);
+  if (!projectId) return change;
+
+  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  const queriedGates = await querySignal<ReturnType<typeof createDefaultGates>>(
+    handle,
+    getGateStatusQuery,
+    undefined,
+  );
+
+  if (!queriedGates || typeof queriedGates !== "object") {
+    return change;
+  }
+
+  return { ...change, gates: queriedGates };
 }
 
 /**
@@ -1944,7 +1974,11 @@ export const changeTools = {
         return formatToolOutput({ error: `Change not found: ${changeId}` });
       }
 
-      const change = result.data;
+      const change = await applyAuthoritativeArchiveGates(
+        store,
+        changeId,
+        result.data,
+      );
       const preflightError = getArchivePreflightError(changeId, change);
       if (preflightError) {
         // Detect disk/Temporal divergence for incomplete gates so the user
