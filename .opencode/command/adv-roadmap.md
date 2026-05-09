@@ -80,13 +80,13 @@ After the tables, surface 1–3 actionable next steps based on what was found:
 
 | Found | Recommendation |
 |---|---|
-| Top feature has no `active_change` | `/adv-proposal "{summary}" --origin roadmap --issue #{n}` |
-| Critical bug has no `active_change` | `/adv-proposal "Fix {title}" --origin roadmap --issue #{n}` |
+| Top feature has no `active_change` | `/adv-proposal #{n}` |
+| Critical bug has no `active_change` | `/adv-proposal #{n}` |
 | Item already in flight (`active_change` present) | `/adv-status` (or named `change-id`) to inspect progress |
 | Snapshot is older than 7 days (file source) | `/adv-triage --execute` to refresh |
 | Many deferred features (≥3) | `/adv-triage --execute` and use `autofill` for the Value prompt |
 
-The proposal recommendation syntax (`--origin roadmap --issue #N`) is forward-looking — the `/adv-proposal` flag wiring lands in a follow-up change. Until then, agents pass `origin_kind: 'roadmap'` and `origin_issue_number: N` directly when calling `adv_change_create`.
+The `/adv-proposal #N` positional syntax is the canonical form (rq-issueChangeLinkage01). It auto-fetches the GH issue body, sanitizes scoring trailers (rq-roadmapOriginSanitize01), prefills the problem statement, and sets `origin_kind: 'roadmap'` + `origin_issue_number: N` on the created change. Agents do NOT need to pass origin args directly when using `#N` — the wiring is automatic.
 
 ---
 
@@ -102,7 +102,7 @@ If the user asks "what should I work on?" or "pick the top item", recommend the 
 |---|---|---|
 | `/adv-status` | Operational health: in-flight ADV state, Temporal/worker, worktrees, session debt | Disjoint scope. `/adv-status` answers "is the system OK and what am I doing?"; `/adv-roadmap` answers "what's next?". Both surface roadmap freshness (last `/adv-triage` mtime). |
 | `/adv-triage` | Regenerates `ROADMAP.md` + `.adv/roadmap-snapshot.json` from GitHub Project | Upstream of `/adv-roadmap`. Without a `/adv-triage --execute` run, `source: 'file'` returns an actionable error. |
-| `/adv-proposal` | Starts a new ADV change | Downstream of `/adv-roadmap`. Pass `origin_kind: 'roadmap'` and `origin_issue_number: N` to link the change to the roadmap item. |
+| `/adv-proposal` | Starts a new ADV change | Downstream of `/adv-roadmap`. Use `/adv-proposal #N` to auto-link the new change to roadmap item `#N` via `change.origin` (rq-issueChangeLinkage01). |
 | `/adv-atc` | Autonomous through-change execution | Downstream of `/adv-roadmap`. Same linkage path applies. |
 
 ---
