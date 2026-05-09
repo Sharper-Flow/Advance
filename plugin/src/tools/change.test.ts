@@ -9,6 +9,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { changeTools } from "./change";
 import type { Store } from "../storage/store";
+import type { Change, Spec } from "../types";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -72,9 +73,10 @@ vi.mock("../storage/disk-sweep", () => ({
 }));
 
 function createMockStore(
-  changeOverrides: Partial<import("../types").Change> = {},
+  changeOverrides: Partial<Change> = {},
+  specs: Spec[] = [],
 ): Store {
-  const change: import("../types").Change = {
+  const change: Change = {
     id: "test-change",
     title: "Test Change",
     status: "active",
@@ -91,7 +93,7 @@ function createMockStore(
       execution: { status: "done" },
       acceptance: { status: "done" },
       release: { status: "pending" },
-    } as import("../types").Gates,
+    } as Change["gates"],
     ...changeOverrides,
   };
 
@@ -105,7 +107,17 @@ function createMockStore(
     sync: vi.fn(),
     close: vi.fn(),
     flush: vi.fn(),
-    specs: {} as Store["specs"],
+    specs: {
+      list: vi.fn(async () => ({
+        specs: specs.map((spec) => ({ name: spec.name, title: spec.title })),
+      })),
+      get: vi.fn(async (name: string) => {
+        const spec = specs.find((candidate) => candidate.name === name);
+        return spec
+          ? { success: true, data: spec }
+          : { success: false, error: `Spec not found: ${name}` };
+      }),
+    } as unknown as Store["specs"],
     changes: {
       list: vi.fn(async () => ({
         changes: [
@@ -129,6 +141,31 @@ function createMockStore(
     status: vi.fn(),
   } as unknown as Store;
 }
+
+const existingSpec: Spec = {
+  name: "existing-capability",
+  title: "Existing Capability",
+  purpose: "Test fixture spec",
+  version: "1.0.0",
+  updated_at: "2026-01-01T00:00:00Z",
+  requirements: [
+    {
+      id: "rq-existing1",
+      title: "Existing requirement",
+      body: "Existing requirement body",
+      priority: "must",
+      scenarios: [
+        {
+          id: "rq-existing1.1",
+          title: "Existing scenario",
+          given: ["Existing state"],
+          when: "Validated",
+          then: ["It passes"],
+        },
+      ],
+    },
+  ],
+};
 
 describe("change tools — signal-driven lifecycle", () => {
   beforeEach(() => {
@@ -383,6 +420,144 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("not supported");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("adv_change_validate", () => {
+    beforeEach(() => {
+      vi.mocked(mocks.removeChangeDir).mockReset();
+      vi.mocked(mocks.removeChangeDir).mockResolvedValue(undefined);
+    });
+
+    test("strict mode passes when validation has warnings only", async () => {
+      const store = createMockStore({ tasks: [{ id: "tk-1", title: "Task", status: "done" }] as Change["tasks"] });
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "test-change", strict: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.passed).toBe(true);
+      expect(parsed.errors).toEqual([]);
+      expect(parsed.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "NO_DELTAS", severity: "warning" }),
+        ]),
+      );
+    });
+
+    test("strictWarnings opt-in fails warnings-only validation", async () => {
+      const store = createMockStore({ tasks: [{ id: "tk-1", title: "Task", status: "done" }] as Change["tasks"] });
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "test-change", strict: true, strictWarnings: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.errors).toEqual([]);
+      expect(parsed.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "NO_DELTAS", severity: "warning" }),
+        ]),
+      );
+    });
+
+    test("strict mode fails when validation has errors", async () => {
+      const store = createMockStore(
+        {
+          tasks: [{ id: "tk-1", title: "Task", status: "done" }] as Change["tasks"],
+          deltas: {
+            "existing-capability": [
+              {
+                id: "dl-duplicate1",
+                operation: "add",
+                requirement: {
+                  id: "rq-existing1",
+                  title: "Duplicate requirement",
+                  body: "Duplicate requirement body",
+                  priority: "must",
+                  scenarios: [
+                    {
+                      id: "rq-existing1.1",
+                      title: "Duplicate scenario",
+                      given: ["Duplicate state"],
+                      when: "Validated",
+                      then: ["It fails"],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        [existingSpec],
+      );
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "test-change", strict: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.passed).toBe(false);
+      expect(parsed.errors).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "DUPLICATE_REQUIREMENT_ID",
+            severity: "error",
+          }),
+        ]),
+      );
+    });
+
+    test("non-strict mode preserves clean validation result", async () => {
+      const store = createMockStore({
+        title: "Implement new requirement",
+        tasks: [
+          {
+            id: "tk-1",
+            title: "Implement new requirement intent scope",
+            status: "done",
+            verification: "Red and green tests passed.",
+          },
+        ] as Change["tasks"],
+        deltas: {
+          "new-capability": [
+            {
+              id: "dl-add1",
+              operation: "add",
+              requirement: {
+                id: "rq-new1",
+                title: "New requirement",
+                body: "New requirement body",
+                priority: "must",
+                scenarios: [
+                  {
+                    id: "rq-new1.1",
+                    title: "New scenario",
+                    given: ["New state"],
+                    when: "Validated",
+                    then: ["It passes"],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      });
+
+      const result = await changeTools.adv_change_validate.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.passed).toBe(true);
+      expect(parsed.errors).toEqual([]);
+      expect(parsed.warnings).toEqual([]);
     });
   });
 

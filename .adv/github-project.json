@@ -1,0 +1,25 @@
+{
+  "owner": "Sharper-Flow",
+  "project_number": 2,
+  "project_id": "PVT_kwDOBrdsJs4BXIj_",
+  "title": "ADV: Advance",
+  "fields": {
+    "adv_type": "PVTSSF_lADOBrdsJs4BXIj_zhSXmQ0",
+    "priority": "PVTSSF_lADOBrdsJs4BXIj_zhSXmSg",
+    "value": "PVTF_lADOBrdsJs4BXIj_zhSXlzQ",
+    "time_criticality": "PVTF_lADOBrdsJs4BXIj_zhSXmTY",
+    "rroe": "PVTF_lADOBrdsJs4BXIj_zhSXmTc",
+    "effort": "PVTF_lADOBrdsJs4BXIj_zhSXmTg",
+    "wsjf": "PVTF_lADOBrdsJs4BXIj_zhSXmTk"
+  },
+  "adv_type_options": {
+    "bug": "a42cca1a",
+    "feature": "543ddbc4"
+  },
+  "priority_options": {
+    "critical": "d3ea9235",
+    "high": "1fbe3aee",
+    "medium": "a46e9512",
+    "low": "9103d09d"
+  }
+}

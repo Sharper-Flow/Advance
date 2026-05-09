@@ -37,14 +37,6 @@ import { createLogger } from "../utils/debug-log";
 import { validateCrossRepoTarget } from "../temporal/activities";
 
 const logger = createLogger("change");
-// Warning codes that may still surface during archive-time validation but do
-// not, by themselves, indicate broken or unsafe release state. Keep this set
-// intentionally narrow: errors and all other warnings continue to block strict
-// validation until explicitly reviewed and reclassified.
-const ARCHIVE_SAFE_STRICT_WARNING_CODES = new Set([
-  "NO_DELTAS",
-  "PROPOSAL_TASK_DRIFT",
-]);
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import {
   loadProposalWithFallback,
@@ -1838,10 +1830,23 @@ export const changeTools = {
       "Validate change against existing specs (specs as laws) and check for conflicts with other active changes",
     args: {
       changeId: z.string().describe("Change ID to validate"),
-      strict: z.boolean().optional().describe("Treat warnings as errors"),
+      strict: z
+        .boolean()
+        .optional()
+        .describe("Run strict validation checks; only errors block by default"),
+      strictWarnings: z
+        .boolean()
+        .optional()
+        .describe(
+          "Opt in to treating warnings as blocking failures during strict validation",
+        ),
     },
     execute: async (
-      { changeId, strict }: { changeId: string; strict?: boolean },
+      {
+        changeId,
+        strict,
+        strictWarnings,
+      }: { changeId: string; strict?: boolean; strictWarnings?: boolean },
       store: Store,
     ) => {
       const result = await store.changes.get(changeId);
@@ -1868,14 +1873,11 @@ export const changeTools = {
       const smellIssues = checkRequirementSmells(change);
       const hasSmells = smellIssues.length > 0;
 
-      // In strict mode, fail on errors and on warnings that are not explicitly
-      // safe for archive-time validation. Archive-safe warnings still surface in
-      // tool output but do not block strict validation by themselves.
+      // In strict mode, fail on blocking errors by default. Warnings remain
+      // advisory unless caller explicitly opts into warning escalation.
       const passed = strict
         ? validationResult.errors.length === 0 &&
-          validationResult.warnings.every((warning) =>
-            ARCHIVE_SAFE_STRICT_WARNING_CODES.has(warning.code),
-          )
+          (!strictWarnings || validationResult.warnings.length === 0)
         : validationResult.passed;
 
       const formatted = formatValidationOutput({
@@ -1901,6 +1903,7 @@ export const changeTools = {
         passed,
         errors: validationResult.errors,
         warnings: validationResult.warnings,
+        strictWarnings: strict ? Boolean(strictWarnings) : undefined,
         checksPerformed: validationResult.checksPerformed,
         checkedAt: validationResult.checkedAt,
         formatted,
