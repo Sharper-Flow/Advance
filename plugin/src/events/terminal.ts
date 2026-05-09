@@ -824,38 +824,40 @@ export const updateTerminalStatus = (
   const previousStatus = lastAlertedStatus;
   lastAlertedStatus = status;
 
-  // ATTN/IDLE transitions from active work (armed idle, permission pending, or
-  // agent-finished). Both markers participate in the bell debounce/ring state
-  // machine identically — see rq-idleMarker01.
+  // Permission-ATTN vs idle-IDLE bell policy (#86):
   //
-  //   - WORK/TOOLING → ATTN: ring (immediate or debounced)
-  //   - WORK/TOOLING → IDLE: ring (immediate or debounced)
-  //   - ATTN → IDLE / IDLE → ATTN: no ring (already user-visible state)
-  //   - IDLE → IDLE / ATTN → ATTN: no ring (no transition)
+  // ATTN = permission pending (user must approve). Always rings immediately.
+  // IDLE = agent finished. Uses armed/debounce state machine.
+  //
+  //   - WORK/TOOLING → ATTN: ring immediately (permission pending)
+  //   - WORK/TOOLING → IDLE: ring (immediate or debounced via armed gate)
+  //   - ATTN → IDLE / IDLE → ATTN: ring (permission-ATTN always rings)
+  //   - IDLE → IDLE: no ring (no transition)
+  //   - ATTN → ATTN: ring immediately (new permission while pending)
   //   - BLOCKED → ATTN: debounce-ring (recovery prompt)
-  //   - BLOCKED → IDLE: NO ring (recovery without user action — distinct from BLOCKED→ATTN)
+  //   - BLOCKED → IDLE: NO ring (recovery without user action)
+
+  // ATTN (permission pending): always ring immediately.
   if (
-    (status === "ATTN" || status === "IDLE") &&
+    status === "ATTN" &&
+    previousStatus !== null
+  ) {
+    cancelPendingBell();
+    pendingFinalAlert = false;
+    ringBell();
+    return;
+  }
+
+  // IDLE transitions from active work (armed idle or agent-finished).
+  if (
+    status === "IDLE" &&
     previousStatus !== null &&
     previousStatus !== "ATTN" &&
     previousStatus !== "IDLE"
   ) {
-    // BLOCKED exception: debounce-ring only on blocked→ATTN (user must see
-    // recovery prompt). blocked→IDLE is silent (recovery completed without
-    // user input).
+    // BLOCKED → IDLE: silent (recovery completed without user action).
     if (previousStatus === "BLOCKED") {
-      if (status !== "ATTN") {
-        // BLOCKED → IDLE: no ring
-        cancelPendingBell();
-        return;
-      }
       cancelPendingBell();
-      bellDebounceTimer = setTimeout(() => {
-        bellDebounceTimer = null;
-        if (lastAlertedStatus === "ATTN") {
-          ringBell();
-        }
-      }, BELL_DEBOUNCE_MS);
       return;
     }
 
@@ -868,10 +870,9 @@ export const updateTerminalStatus = (
       }
       cancelPendingBell();
       const messageId = lastArmedMessageId;
-      const expectedStatus = status;
       bellDebounceTimer = setTimeout(() => {
         bellDebounceTimer = null;
-        if (lastAlertedStatus === expectedStatus) {
+        if (lastAlertedStatus === "IDLE") {
           lastRungMessageId = messageId;
           pendingFinalAlert = false;
           ringBell();
@@ -880,8 +881,7 @@ export const updateTerminalStatus = (
       return;
     }
 
-    // Non-armed ATTN/IDLE: ring immediately (permission pending, agent finished,
-    // or other transitions from active work).
+    // Non-armed IDLE: ring immediately (agent finished without sub-agent).
     cancelPendingBell();
     pendingFinalAlert = false;
     ringBell();
