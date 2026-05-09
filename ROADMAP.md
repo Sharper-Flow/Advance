@@ -1,6 +1,6 @@
 # Roadmap
 
-<!-- adv-triage generated: 2026-05-09T18:09:02Z | DO NOT EDIT MANUALLY -->
+<!-- adv-triage generated: 2026-05-09T18:09:55Z | DO NOT EDIT MANUALLY -->
 <!-- Source of truth: GitHub Project #2 owned by @Sharper-Flow -->
 
 Regenerate with `/adv-triage --execute`. Manual edits are overwritten.
@@ -62,7 +62,7 @@ Regenerate with `/adv-triage --execute`. Manual edits are overwritten.
 | #87 | Wire scanFileOverlaps into prep validator when async checks exist | 8 | 3 | 5 | 3 | 5.3 | — |
 | #85 | Programmatic git mutation guard | 13 | 5 | 8 | 5 | 5.2 | — |
 | #42 | Stub JSON schemas provide zero validation — generate from Zod or delete | 5 | 2 | 3 | 2 | 5.0 | priority:low |
-| #104 | Expose stable ADV — cdae139e…      ID                        TITLE                                    TASKS  GATES          LAST ACTIVITY ⏰  branchAwareAdvOcaSession  Branch-aware ADV/OCA session management   7/10  ✓ ✓ ✓ ✓ ○ ○ ○  4d ago  1 active · 39 archived · 0 closed read surface for OCA consumption (O2) | 8 | 8 | 8 | 5 | 4.8 | — |
+| #104 | Expose stable ADV read surface for OCA consumption (O2) | 8 | 8 | 8 | 5 | 4.8 | — |
 | #59 | Multi-repo product linking: design model for ADV state across separate front/backend repos | 13 | 8 | 13 | 8 | 4.3 | priority:medium |
 | #93 | adv_status: surface reflection friction signal in hygiene view | 5 | 3 | 5 | 3 | 4.3 | priority:medium |
 | #103 | Permission-first config for ADV agents | 8 | 5 | 8 | 5 | 4.2 | — |
@@ -85,7 +85,7 @@ Regenerate with `/adv-triage --execute`. Manual edits are overwritten.
 
 ## Triage Run Summary
 
-- Run timestamp: 2026-05-09T18:09:02Z
+- Run timestamp: 2026-05-09T18:09:55Z
 - Sources scanned: gh (47 open issues), agenda (17), wisdom (0), notes (0), changes (17), todos (1 implementation-path candidate)
 - Issues opened this run: 1 (#105)
 - Field assignments this run: 12

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-09T18:09:02Z",
+  "generated_at": "2026-05-09T18:09:55Z",
   "project": {
     "owner": "Sharper-Flow",
     "number": 2,
@@ -311,7 +311,7 @@
     },
     {
       "number": 104,
-      "title": "Expose stable ADV \u2014 cdae139e\u2026      ID                        TITLE                                    TASKS  GATES          LAST ACTIVITY \u23f0  branchAwareAdvOcaSession  Branch-aware ADV/OCA session management   7/10  \u2713 \u2713 \u2713 \u2713 \u25cb \u25cb \u25cb  4d ago  1 active \u00b7 39 archived \u00b7 0 closed read surface for OCA consumption (O2)",
+      "title": "Expose stable ADV read surface for OCA consumption (O2)",
       "value": 8,
       "time_criticality": 8,
       "rroe": 8,
