@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
     fireSignalAndRefresh: vi.fn(async () => {}),
+    querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     removeChangeDir: vi.fn(async () => {}),
     sweepClosedChangesFromDisk: vi.fn(async () => ({
@@ -56,6 +57,7 @@ vi.mock("../utils/project-id", async () => {
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
   fireSignalAndRefresh: mocks.fireSignalAndRefresh,
+  querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
 
@@ -165,6 +167,16 @@ const existingSpec: Spec = {
       ],
     },
   ],
+};
+
+const allDoneGates: NonNullable<Change["gates"]> = {
+  proposal: { status: "done" },
+  discovery: { status: "done" },
+  design: { status: "done" },
+  planning: { status: "done" },
+  execution: { status: "done" },
+  acceptance: { status: "done" },
+  release: { status: "done" },
 };
 
 describe("change tools — signal-driven lifecycle", () => {
@@ -568,6 +580,49 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.passed).toBe(true);
       expect(parsed.errors).toEqual([]);
       expect(parsed.warnings).toEqual([]);
+    });
+  });
+
+  describe("adv_change_archive", () => {
+    test("uses live gate status for archive preflight when cached gates are stale", async () => {
+      const staleStoreGates: NonNullable<Change["gates"]> = {
+        ...allDoneGates,
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      };
+      const store = createMockStore({ gates: staleStoreGates });
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(mocks.querySignal).toHaveBeenCalledTimes(1);
+      expect(parsed.error).not.toContain("incomplete gates");
+      expect(parsed.incompleteGates).toBeUndefined();
+    });
+
+    test("blocks archive when live gate status is incomplete", async () => {
+      const liveIncompleteGates: NonNullable<Change["gates"]> = {
+        ...allDoneGates,
+        release: { status: "pending" },
+      };
+      const store = createMockStore({ gates: allDoneGates });
+      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error).toContain("incomplete gates");
+      expect(parsed.incompleteGates).toEqual(["release"]);
+      expect(parsed.gateStateSource).toBe("live");
+      expect(parsed.storeIncompleteGates).toEqual([]);
+      expect(parsed.liveIncompleteGates).toEqual(["release"]);
     });
   });
 
