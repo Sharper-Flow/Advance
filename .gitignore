@@ -2,7 +2,9 @@
 node_modules/
 plugin/node_modules/
 plugin/node_modules
+# pnpm is authoritative for plugin dependencies; CI rejects Bun lockfiles.
 plugin/bun.lock
+plugin/bun.lockb
 .pnpm-store/
 
 # Build output
