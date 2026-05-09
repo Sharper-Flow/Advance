@@ -445,6 +445,24 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.error).toContain("approvalEvidence");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    test("rejects cancellation without reasons instead of throwing", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-abc"],
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+        } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Missing cancellation reason");
+      expect(parsed.missingReasons).toEqual(["tk-abc"]);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
   });
 
   describe("adv_task_reclassify_tdd", () => {

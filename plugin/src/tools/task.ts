@@ -723,17 +723,18 @@ export const taskTools = {
     ) => {
       const {
         taskIds,
-        reasons,
         approvedByUser,
         approvalEvidence,
         supersededBy: _supersededBy,
       } = args;
+      const reasons = args.reasons ?? {};
 
       // Validate every task has a reason
       const missingReasons = taskIds.filter((id) => !reasons[id]);
       if (missingReasons.length > 0) {
         return formatToolOutput({
           error: `Missing cancellation reason for tasks: ${missingReasons.join(", ")}. Every task requires a per-task reason.`,
+          missingReasons,
         });
       }
 
