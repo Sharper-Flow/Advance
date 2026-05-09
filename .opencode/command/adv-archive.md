@@ -22,7 +22,7 @@ Archive change → apply deltas to specs → canonical ship/finalize path via ma
   $ARGUMENTS
 </UserRequest>
 ## Target Resolution
-Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional).
+Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional), `--close-issue` (optional, see Phase 9.6).
 If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain.
 
 ---
@@ -361,6 +361,34 @@ Only if running in a worktree AND merge verified in Step 6: `worktree_delete bra
 ### Step 8: Temp Artifacts
 
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
+
+### Step 8.5: Optional GitHub Issue Close (rq-issueChangeLinkage02)
+
+**Trigger:** All of the following must be true (otherwise SKIP this step):
+
+- `--close-issue` was passed in the original `$ARGUMENTS`.
+- The change has `origin.kind ∈ {'roadmap', 'triage'}`.
+- The change has `origin.issue_number` set (positive integer).
+- Step 6 verification succeeded (push confirmed).
+
+**Sequence (each step gates the next):**
+
+1. `gh issue comment <N> -b "Shipped via {change-id} — archived $(date -u +%Y-%m-%dT%H:%M:%SZ)"` — post the shipping marker.
+2. `gh issue close <N> --reason completed` — close. `gh` is natively idempotent: an already-closed issue returns exit 0 with an informational stderr; no failure, no API mutation.
+
+**Failure handling (exit-code-only — no stderr string matching):**
+
+- Exit 0 from either step → success; record `gh_issue_closed: <N>` in the Phase 8 report.
+- Exit non-zero from either step → emit `[ADV:ATTN] Failed to close linked issue #<N>: <stderr>. Run `gh issue close <N> --reason completed` manually.` Archive state is canonical; do NOT roll back. Continue to Step 9.
+
+**Anti-patterns:**
+
+| × Bad | ✓ Good |
+|---|---|
+| Auto-close issue without `--close-issue` flag | Default-off; require explicit opt-in. First-time surprise = bug. |
+| Close issue when `origin.kind === 'discovery'` or `'adhoc'` | Only roadmap- and triage-origin changes have a meaningful upstream issue to close. |
+| Match stderr for "already closed" string | gh CLI returns exit 0 for already-closed; just check the exit code. |
+| Roll back archive on close failure | Local archive state is canonical; close failure is non-fatal `[ADV:ATTN]`. |
 
 ### Completion
 
