@@ -15,6 +15,27 @@ import { createLogger } from "../../utils/debug-log";
 
 const logger = createLogger("store-temporal-changes");
 
+/**
+ * Detect Temporal errors indicating the workflow is already completed,
+ * terminated, or otherwise not accepting signals. When a workflow is in
+ * a terminal state (Completed, Terminated, Failed, Cancelled), signaling
+ * throws with messages like "workflow execution already completed".
+ * These are safe to treat as disk-only close — the disk write already
+ * succeeded, and the workflow state is effectively closed.
+ */
+function isWorkflowCompletedError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message?.toLowerCase() ?? "";
+  const name = err.name?.toLowerCase() ?? "";
+  return (
+    msg.includes("already completed") ||
+    msg.includes("workflow execution already completed") ||
+    name.includes("workflowexecutionalreadycompleted") ||
+    msg.includes("workflow is not running") ||
+    msg.includes("cannot signal a completed")
+  );
+}
+
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {
     input,
@@ -287,20 +308,33 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       invalidateChange(changeId);
 
-      await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).signal(
-          closeChangeSignal,
-          closure,
-        ),
-      );
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
-      indexTasksFromState(result);
-      updateOverlay(changeId, { status: "closed", closure });
-      const change = setCachedChange(result);
-      emitChangeSummarySignal(changeId, result);
-      return change;
+      // Try Temporal signal; if workflow is already completed/terminated,
+      // the disk write already succeeded — return disk-backed close result.
+      try {
+        await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).signal(
+            closeChangeSignal,
+            closure,
+          ),
+        );
+        const result = (await runTemporal(async () =>
+          (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+        )) as import("../../temporal/contracts").ChangeWorkflowState;
+        indexTasksFromState(result);
+        updateOverlay(changeId, { status: "closed", closure });
+        const change = setCachedChange(result);
+        emitChangeSummarySignal(changeId, result);
+        return change;
+      } catch (err) {
+        if (!isWorkflowCompletedError(err)) throw err;
+        // Workflow already terminated — disk save succeeded, return
+        // the disk-backed closed change. Log for observability.
+        logger.info(
+          `Change ${changeId} workflow already completed; closed on disk only.`,
+        );
+        updateOverlay(changeId, { status: "closed", closure });
+        return updated;
+      }
     },
 
     closeBatch: async (
@@ -377,19 +411,30 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
           invalidateChange(id);
 
-          await runTemporal(async () =>
-            (await getGuardedChangeHandle(input, id)).signal(
-              closeChangeSignal,
-              closure,
-            ),
-          );
-          const result = (await runTemporal(async () =>
-            (await getGuardedChangeHandle(input, id)).query(changeStateQuery),
-          )) as import("../../temporal/contracts").ChangeWorkflowState;
-          indexTasksFromState(result);
-          updateOverlay(id, { status: "closed", closure });
-          setCachedChange(result);
-          emitChangeSummarySignal(id, result);
+          // Try Temporal signal; if workflow already completed, treat
+          // as disk-only close (disk save already succeeded).
+          try {
+            await runTemporal(async () =>
+              (await getGuardedChangeHandle(input, id)).signal(
+                closeChangeSignal,
+                closure,
+              ),
+            );
+            const result = (await runTemporal(async () =>
+              (await getGuardedChangeHandle(input, id)).query(changeStateQuery),
+            )) as import("../../temporal/contracts").ChangeWorkflowState;
+            indexTasksFromState(result);
+            updateOverlay(id, { status: "closed", closure });
+            setCachedChange(result);
+            emitChangeSummarySignal(id, result);
+          } catch (err) {
+            if (!isWorkflowCompletedError(err)) throw err;
+            // Workflow already terminated — disk save succeeded.
+            logger.info(
+              `Change ${id} workflow already completed; closed on disk only (batch).`,
+            );
+            updateOverlay(id, { status: "closed", closure });
+          }
           results.push({ changeId: id, success: true });
           closed++;
         } catch (err) {
