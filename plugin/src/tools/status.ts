@@ -493,8 +493,9 @@ function appendClarifyRecommendation(
 
 function appendRecencyRecommendation(
   recommendations: string[],
-  rc: ChangeRecency,
+  rc: ChangeRecency & { workerSessionId?: string },
   changeId: string,
+  currentSessionId?: string,
 ): void {
   const minutesSinceActivity = Number(rc.minutesSinceActivity ?? 0);
   if (minutesSinceActivity >= 180) {
@@ -508,11 +509,19 @@ function appendRecencyRecommendation(
   }
 
   if (minutesSinceActivity <= 60) {
+    const isSelfOwned =
+      Boolean(currentSessionId) && rc.workerSessionId === currentSessionId;
     recommendations.push(
-      `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`,
+      isSelfOwned
+        ? `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — you are the active worker`
+        : `🔥 Change \`${changeId}\` is hot (active ${minutesSinceActivity}m ago) — likely in-flight by another agent`,
     );
   }
 }
+
+export const _test = {
+  appendRecencyRecommendation,
+};
 
 async function loadMigrationStatus(_store: Store) {
   // Migration ledger retired with projectWorkflow.

@@ -199,6 +199,55 @@ describe("Status Tools", () => {
       expect(followRec).toContain(parentParsed.changeId);
     });
 
+    test("hot change recommendation distinguishes current worker from peer-owned work", async () => {
+      const { _test } = await import("./status");
+      const recommendations: string[] = [];
+
+      _test.appendRecencyRecommendation(
+        recommendations,
+        {
+          id: "selfHotChange",
+          title: "Self hot change",
+          status: "active",
+          completedTasks: 0,
+          taskCount: 1,
+          lastActivityAt: new Date().toISOString(),
+          minutesSinceActivity: 2,
+          workerSessionId: "current-session",
+        } as any,
+        "selfHotChange",
+        "current-session",
+      );
+
+      _test.appendRecencyRecommendation(
+        recommendations,
+        {
+          id: "peerHotChange",
+          title: "Peer hot change",
+          status: "active",
+          completedTasks: 0,
+          taskCount: 1,
+          lastActivityAt: new Date().toISOString(),
+          minutesSinceActivity: 2,
+          workerSessionId: "peer-session",
+        } as any,
+        "peerHotChange",
+        "current-session",
+      );
+
+      expect(recommendations).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("selfHotChange` is hot"),
+          expect.stringContaining("you are the active worker"),
+          expect.stringContaining("peerHotChange` is hot"),
+          expect.stringContaining("another agent"),
+        ]),
+      );
+      expect(
+        recommendations.find((r) => r.includes("selfHotChange")),
+      ).not.toContain("another agent");
+    });
+
     test("suppresses clarify recommendation when all gates complete", async () => {
       // Vague proposal that triggers ≥2 clarify-readiness findings:
       // missing Success Criteria + missing Scope sections.
