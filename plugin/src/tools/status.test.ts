@@ -438,9 +438,17 @@ Vague in-flight work.
       const summary = parseToolOutput(summaryResult);
       expect(
         (summary.recommendations as string[] | undefined)?.find((r: string) =>
-          r.includes("Stale OpenCode blank assistant messages"),
+          r.includes("OpenCode blank assistant session debt detected"),
         ),
       ).toBeDefined();
+      expect(summary.recommendations as string[]).not.toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("Stale OpenCode blank assistant messages"),
+        ]),
+      );
+      expect(summary.recommendations as string[]).not.toEqual(
+        expect.arrayContaining([expect.stringContaining("before deletion")]),
+      );
     });
 
     test("does not emit debt recommendation for live-only blank rows", async () => {

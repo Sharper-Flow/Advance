@@ -919,7 +919,7 @@ export const statusTools = {
             opencodeSessionDebt.repairable_stale.length > 0
           ) {
             status.recommendations.push(
-              `[doctor] Stale OpenCode blank assistant messages detected (${opencodeSessionDebt.repairable_stale.length} sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` before deletion.`,
+              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.repairable_stale.length} repairable sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
             );
           }
 
