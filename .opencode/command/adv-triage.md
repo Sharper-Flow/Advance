@@ -369,6 +369,31 @@ Bugs do **not** get `Value`/`TC`/`RROE`/`Effort`/`WSJF`. They use `priority:*` l
 
 Read final state from the project: `gh project item-list <N> --owner <owner> --format json --limit 500` filtered to open issues only. **This must be a fresh read** — do NOT reuse the Phase 1 or Phase 4 cached state, since Phase 4 mutations may have changed field values. Correctness of the generated ROADMAP depends on reflecting the actual post-mutation project state.
 
+### Two outputs from one read (mandatory)
+
+Phase 5 emits BOTH artifacts from the fresh project state:
+
+| Artifact | Path | Audience |
+|---|---|---|
+| `ROADMAP.md` | repo root | Humans + agents reading prose |
+| `.adv/roadmap-snapshot.json` | `.adv/roadmap-snapshot.json` | `adv_roadmap` MCP tool, programmatic agent reads |
+
+Both files MUST be written before the Phase 5.5 echo and Phase 5 commit/push. The snapshot is the structured mirror — `adv_roadmap source: 'file'` reads it without parsing markdown. Schema (version `1`):
+
+```jsonc
+{
+  "version": 1,
+  "generated_at": "<ISO-8601 UTC>",
+  "project": { "owner": "<owner>", "number": <N>, "title": "ADV: <repo-name>" },
+  "counts": { "total": <N>, "bugs": <N>, "features": <N>, "deferred": <N> },
+  "bugs": [ { "number": 89, "title": "...", "priority": "high", "labels": [] }, ... ],
+  "features": [ { "number": 51, "title": "...", "value": 8, "time_criticality": 3, "rroe": 13, "effort": 3, "wsjf": 8.0, "labels": [] }, ... ],
+  "deferred": [ { "number": 90, "title": "...", "reason": "user-deferred (Value)" }, ... ]
+}
+```
+
+Sort the `features` array by WSJF descending (ties broken by Value desc, then issue number asc) before writing. The `bugs` array stays in priority-tier order (critical → high → medium → low → unprioritized). Both files commit together in the Phase 5 commit step (`git add ROADMAP.md .adv/roadmap-snapshot.json`).
+
 ### Layout
 
 ```markdown
@@ -480,8 +505,8 @@ Anything else → re-prompt with the same options.
 
 1. Resolve default branch: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`
 2. Verify current branch is the default branch. If not, abort with explicit error: ROADMAP commit must run on default branch (P32 trunk-is-prod alignment — generated artifact only).
-3. Verify clean working tree except for ROADMAP.md: `git status --porcelain` must show only `ROADMAP.md`. If anything else is dirty, abort with the offending paths listed.
-4. `git add ROADMAP.md` (explicit path — never `git add -A`)
+3. Verify clean working tree except for `ROADMAP.md` and `.adv/roadmap-snapshot.json`: `git status --porcelain` must show only those two paths. If anything else is dirty, abort with the offending paths listed.
+4. `git add ROADMAP.md .adv/roadmap-snapshot.json` (explicit paths — never `git add -A`)
 5. `git commit -m "chore(roadmap): /adv-triage update $(date -u +%Y-%m-%d)"`
 6. `git pull --rebase --autostash origin <default-branch>` — abort and surface error if rebase has conflicts (extremely unlikely for ROADMAP.md only)
 7. `git push origin <default-branch>`

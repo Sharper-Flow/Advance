@@ -14,6 +14,7 @@ import type {
   FeatureFlags,
   CrossProjectOrigin,
   FastFollowOf,
+  ChangeOrigin,
 } from "../types";
 import {
   createDefaultGates,
@@ -21,6 +22,7 @@ import {
   allGatesSatisfied,
   GateIdSchema,
   ChangeListStatusFilterSchema,
+  ChangeOriginKindSchema,
   type GateId,
   type Change,
   type ClarifyFindingSnapshot,
@@ -1198,6 +1200,30 @@ export const changeTools = {
             "Mutually exclusive with target_path (cross-project follow-up). " +
             "Parent must exist in the current project.",
         ),
+      origin_kind: ChangeOriginKindSchema.optional().describe(
+        "Origin provenance kind. " +
+          "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
+          "'discovery' = surfaced mid-session (bug found, drive-by improvement). " +
+          "'triage' = promoted by /adv-triage from agenda/wisdom/notes (origin_source_artifact recommended). " +
+          "'adhoc' = explicit, no upstream artifact. " +
+          "Omit to leave origin unset (legacy/backward-compatible).",
+      ),
+      origin_issue_number: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe(
+          "GitHub issue number for kind=roadmap (required) or post-hoc backlinking. " +
+            "Behavior automation (auto-create issue / auto-close on archive) lands in a follow-up change.",
+        ),
+      origin_source_artifact: z
+        .string()
+        .optional()
+        .describe(
+          "Stable reference to the upstream artifact for kind=triage or kind=discovery. " +
+            "Examples: agenda-id ('ag-...'), wisdom-id, task-id, or note-line ref.",
+        ),
     },
     execute: async (
       {
@@ -1211,6 +1237,9 @@ export const changeTools = {
         source_project,
         source_change_id,
         parent_change_id,
+        origin_kind,
+        origin_issue_number,
+        origin_source_artifact,
       }: {
         summary: string;
         capability?: string;
@@ -1222,6 +1251,9 @@ export const changeTools = {
         source_project?: string;
         source_change_id?: string;
         parent_change_id?: string;
+        origin_kind?: ChangeOrigin["kind"];
+        origin_issue_number?: number;
+        origin_source_artifact?: string;
       },
       store: Store,
     ) => {
@@ -1232,6 +1264,35 @@ export const changeTools = {
       if (target_path && parent_change_id) {
         return formatToolOutput({
           error: "target_path and parent_change_id are mutually exclusive",
+        });
+      }
+
+      // Origin validation: kind=roadmap requires an issue number; other kinds
+      // accept it optionally. Origin is typed-state only — behavior automation
+      // (auto-create issue, auto-close on archive) lands in a follow-up change.
+      let origin: ChangeOrigin | undefined;
+      if (origin_kind) {
+        if (origin_kind === "roadmap" && origin_issue_number === undefined) {
+          return formatToolOutput({
+            error:
+              "origin_issue_number is required when origin_kind is 'roadmap'",
+            hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
+          });
+        }
+        origin = {
+          kind: origin_kind,
+          ...(origin_issue_number !== undefined
+            ? { issue_number: origin_issue_number }
+            : {}),
+          ...(origin_source_artifact
+            ? { source_artifact: origin_source_artifact }
+            : {}),
+        };
+      } else if (origin_issue_number !== undefined || origin_source_artifact) {
+        return formatToolOutput({
+          error:
+            "origin_issue_number / origin_source_artifact require origin_kind to be set",
+          hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside the linkage fields.",
         });
       }
 
@@ -1307,6 +1368,17 @@ export const changeTools = {
           };
           await store.changes.save(updatedChange);
           output.fast_follow_of = updatedChange.fast_follow_of;
+        }
+      }
+
+      // Persist origin provenance onto the created change. Behavior automation
+      // (auto-create issue / auto-close on archive) is intentionally NOT
+      // performed here — it ships in a follow-up change.
+      if (origin) {
+        const changeResult = await store.changes.get(result.changeId);
+        if (changeResult.success && changeResult.data) {
+          await store.changes.save({ ...changeResult.data, origin });
+          output.origin = origin;
         }
       }
 

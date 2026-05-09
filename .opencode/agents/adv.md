@@ -156,7 +156,8 @@ Before doing anything, classify what the user is asking for:
 | **Start a change**    | "let's build X", idea discussion | Clarify scope → `/adv-proposal` workflow       |
 | **Complete a change** | "complete {id}", "finish {id}"   | Load state → resume from first incomplete gate |
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
-| **Check status**      | "status {id}", "where are we"    | `adv_change_show` + `adv_gate_status` → report |
+| **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; or `/adv-status` for project-wide health |
+| **What's next**       | "what's next", "what should I work on", "pick the top item", "show roadmap", "open critical bugs" | `/adv-roadmap` (NOT `/adv-status`) — read backlog, surface top item, recommend `/adv-proposal #N` if no active change linked |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
 | **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `librarian` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
 

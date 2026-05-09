@@ -404,6 +404,46 @@ export type ChangeContract = z.infer<typeof ChangeContractSchema>;
 // Change
 // =============================================================================
 
+/**
+ * Origin provenance — captures the trigger context for a change.
+ *
+ * `kind` semantics (see ADV_INSTRUCTIONS.md § Change Origin Linkage Strategy):
+ *   - `roadmap`   — promoted from a GitHub Project / ROADMAP.md item
+ *                   (`issue_number` required)
+ *   - `discovery` — surfaced mid-session (bug found, drive-by improvement);
+ *                   issue may be opened post-hoc but is not required
+ *   - `triage`    — promoted by `/adv-triage` from a non-GH source artifact
+ *                   (agenda, wisdom, notes); `issue_number` set after promotion
+ *   - `adhoc`     — explicit, no upstream artifact (default for ad-hoc work)
+ *
+ * The schema is typed-state only at this layer; behavior automation
+ * (auto-create issue on `/adv-proposal #N`, auto-close on archive) lands
+ * in a follow-up change.
+ */
+export const ChangeOriginKindSchema = z.enum([
+  "roadmap",
+  "discovery",
+  "triage",
+  "adhoc",
+]);
+
+export type ChangeOriginKind = z.infer<typeof ChangeOriginKindSchema>;
+
+export const ChangeOriginSchema = z.object({
+  kind: ChangeOriginKindSchema,
+  /** GitHub issue number when kind=roadmap (required) or backlinked later. */
+  issue_number: z.number().int().positive().optional(),
+  /**
+   * Stable reference to the upstream artifact that triggered this change.
+   * For kind=triage: agenda-id (`ag-...`), wisdom-id, or note-line ref.
+   * For kind=discovery: optional task-id or wisdom-id created at the same time.
+   * For kind=adhoc: omitted.
+   */
+  source_artifact: z.string().optional(),
+});
+
+export type ChangeOrigin = z.infer<typeof ChangeOriginSchema>;
+
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
@@ -459,6 +499,15 @@ export const ChangeSchema = z
      * signals to /adv-discover that lineage validation is required.
      */
     fast_follow_of: FastFollowOfSchema.optional(),
+
+    /**
+     * Origin provenance — captures whether this change was triggered by a
+     * roadmap item, a mid-session discovery, a triage promotion, or ad-hoc
+     * work. Optional for backward compatibility; legacy changes default to
+     * `adhoc` semantics on read. See ADV_INSTRUCTIONS.md § Change Origin
+     * Linkage Strategy for resolution rules.
+     */
+    origin: ChangeOriginSchema.optional(),
 
     /**
      * Temporal project ID that owns this change. Persisted on disk snapshots

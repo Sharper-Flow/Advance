@@ -72,11 +72,27 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-status": {
     name: "adv-status",
     description:
-      "Show project overview: specs, active changes, and next-step recommendations",
+      "Show operational health: in-flight changes, Temporal, worktrees, session debt",
     phase: "core",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-proposal", "adv-apply"],
+    successors: ["adv-proposal", "adv-apply", "adv-roadmap"],
+  },
+  "adv-roadmap": {
+    name: "adv-roadmap",
+    description: "Show prioritized backlog with active-change cross-reference",
+    phase: "core",
+    requiresChangeId: false,
+    prerequisites: [],
+    successors: ["adv-proposal", "adv-triage"],
+    scope: {
+      creates: [],
+      reads: ["roadmap-snapshot", "github-project", "changes"],
+      modifies: [],
+      gates: [],
+    },
+    args_hint:
+      "[--live] [--top N] [--kind bug|feature|all] [--priority c|h|m|l]",
   },
   "adv-proposal": {
     name: "adv-proposal",

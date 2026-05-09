@@ -22,6 +22,7 @@ import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
+import { roadmapTools } from "./tools/roadmap";
 import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
 import { wisdomTools } from "./tools/wisdom";
@@ -152,6 +153,9 @@ export function createToolMap(
   return {
     // Spec Tools
     adv_spec: bindTool(specTools.adv_spec, "adv_spec", store),
+
+    // Roadmap Tool
+    adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
 
     // Change Tools
     adv_change_list: bindTool(
@@ -558,6 +562,7 @@ export function createToolMap(
  */
 export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_spec",
+  "adv_roadmap",
   "adv_change_list",
   "adv_change_show",
   "adv_change_create",

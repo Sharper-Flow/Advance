@@ -259,7 +259,8 @@ This design also enables model competition: run the same change on two providers
 
 | Command           | Description                                                                       |
 | ----------------- | --------------------------------------------------------------------------------- |
-| `/adv-status`     | Show project overview: specs, active changes, and next-step recommendations       |
+| `/adv-status`     | Show operational health: in-flight changes, Temporal, worktrees, session debt     |
+| `/adv-roadmap`    | Show prioritized backlog with active-change cross-reference                       |
 | `/adv-idea`       | Explore rough ideas before drafting a proposal                                    |
 | `/adv-problem`    | Triage issues before fixing or drafting a proposal                                |
 | `/adv-proposal`   | Extract problem statement, success criteria, and constraints without creating tasks |
