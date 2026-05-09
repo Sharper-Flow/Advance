@@ -491,6 +491,34 @@ If any step fails: stop, surface the failing command + stderr, do not retry. The
 
 ---
 
+## Phase 5.5: Roadmap echo (mandatory)
+
+After ROADMAP.md is written (whether or not the commit step ran), the agent MUST emit the full generated content as a fenced markdown block in chat. This applies to every mode that produces a roadmap artifact:
+
+| Mode | Echo trigger |
+|---|---|
+| `--execute` (file written + committed) | Echo after Phase 5 commit step (or after the write step if `--no-commit`) |
+| `--execute dry run` (Tier B `dry run` reply) | Echo in place of the write — explicitly substitutes for the file |
+| dry-run scan (no flags) | Skip echo — no ROADMAP.md was generated |
+
+Echo format:
+
+````
+## ROADMAP.md (generated)
+
+```markdown
+{full ROADMAP.md content}
+```
+````
+
+The echo is NOT optional and MUST NOT be replaced by a "see ROADMAP.md" pointer or a top-N truncation. The user reads the table directly in the chat transcript; the file write and the chat echo are two surfaces of the same canonical artifact.
+
+× Anti-pattern: emitting only "Top 5 features" or "Top 10 features" in lieu of the full table.
+× Anti-pattern: linking to ROADMAP.md on disk without the inline echo.
+✓ Correct: echo the full markdown, then proceed to Phase 6 final report.
+
+---
+
 ## Phase 6: Final Report
 
 After all phases (or after a dry-run scan), emit:
@@ -521,9 +549,7 @@ Project: #{N} ({owner}/ADV: {repo-name})
 ### Roadmap
 - Bugs: {critical}/{high}/{medium}/{low}
 - Features: {N} ranked by WSJF
-- Top 5 features:
-  1. #{num} — {title} — WSJF {n}
-  …
+- Full table: see Phase 5.5 echo above (mandatory chat output)
 
 ### Local sources deprecated
 - {N} TODOs replaced with `// see #{num}`
@@ -576,6 +602,8 @@ If dry-run: append `Re-run with `--execute` to apply mutations.`
 | Use `gh project item-edit` for bulk writes (1 field/call) | Use `gh api graphql` batched mutations (4 fields/call via aliased mutations) |
 | Ignore `x-ratelimit-remaining` response header | Check after each batch via `--include` flag; stop if < 10 |
 | Use `rateLimit` query for every post-mutation check | Use response headers (primary); `rateLimit` query only for initial gate and fallback when headers missing |
+| Emit only "Top 5 features" summary in chat after a regen | Phase 5.5 mandates echoing the full ROADMAP.md as a fenced markdown block |
+| Replace the Phase 5.5 echo with a "see ROADMAP.md" pointer | Echo + file are two surfaces of the same artifact; both are required |
 
 ---
 
