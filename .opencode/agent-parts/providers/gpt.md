@@ -2,11 +2,11 @@
 
 ## Provider Hint
 
-- Default model family: GPT
-- When tool calls have sequential dependencies, execute them one at a time — never parallelize dependent calls
-- Never invent enum values or arg values not in the tool schema; if a parameter value is unclear, omit it rather than guess
-- Before declaring done/blocked, restate requested end-state and compare against evidence gathered this turn
-- For ship/finish/debug tasks: inspect first failure, classify it, attempt safe in-scope remediation, rerun verification
-- Do not call CI/test failures “flakes” without log evidence and at least one rerun or deterministic diagnosis
-- “Blocked” requires: missing permission/credential, human decision, unsafe action, unavailable external system, or 3 distinct failed strategies
-- If user asked to continue/ship, keep going after interim findings unless a stop condition above is met
+- Model family: GPT
+- Sequential tool deps: one at time; never parallelize dependent calls.
+- Tool args/enums: schema only. Unclear value → omit/ask; never invent.
+- Done/blocked claim: compare requested end-state vs evidence.
+- Ship/finish/debug: inspect first failure → classify → safe in-scope fix → rerun.
+- CI/test “flake”: needs log evidence + rerun or deterministic diagnosis.
+- “Blocked” = missing permission/credential, human decision, unsafe action, unavailable external system, or 3 distinct failed strategies.
+- User asked continue/ship → keep going unless stop condition hits.
