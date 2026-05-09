@@ -1,0 +1,269 @@
+{
+  "id": "replacegitguardwithtrunkwritef",
+  "title": "replaceGitGuardWithTrunkWriteFirewall",
+  "status": "archived",
+  "created_at": "2026-05-08T23:29:30.490Z",
+  "tasks": [
+    {
+      "id": "tk-5a5f9acf600d",
+      "title": "Phase A — Extract reusable helpers to utils/. Move `parseWorktreePaths` from plugin/src/tools/git-guard.ts:656 → plugin/src/utils/worktree-paths.ts (with co-located test file ported from git-guard.test.ts:225-238). Move `isSameOrChildPath` from plugin/src/tools/git-guard.ts → plugin/src/utils/path.ts (with co-located test). Re-export from original location to maintain compat during phase A/B/C. Verification: `pnpm test plugin/src/utils/worktree-paths.test.ts` and `pnpm test plugin/src/utils/path.test.ts` both green; `pnpm run typecheck` clean.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-08T23:51:19.988Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T23:55:40.658Z",
+      "verification": "Completed Phase A. RED: utility tests failed on missing modules. GREEN: utility tests pass. Incremental typecheck passes. Checkpoint commit bcf92673c2192cab36a36ee34aeacf9ec6155235 recorded.",
+      "summary": "Extracted parseWorktreePaths to plugin/src/utils/worktree-paths.ts and isSameOrChildPath to plugin/src/utils/path.ts. Added co-located tests and updated git-guard.ts to import/re-export transitional helpers.",
+      "implementation_summary": "Extracted parseWorktreePaths to plugin/src/utils/worktree-paths.ts and isSameOrChildPath to plugin/src/utils/path.ts. Added co-located tests and updated git-guard.ts to import/re-export transitional helpers.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-08T23:57:56.285Z",
+      "completed_at": "2026-05-08T23:57:56.285Z"
+    },
+    {
+      "id": "tk-a5f19874870b",
+      "title": "Phase B — Extend detectRepoState in plugin/src/tools/checkpoint.ts:115-148 to return `\"rebasing\" | \"cherry-picking\" | \"reverting\"` in addition to existing `\"ok\" | \"detached\" | \"merging\" | \"not_git\"`. Add `rev-parse --verify` checks for REBASE_HEAD, .git/rebase-merge/, .git/rebase-apply/, CHERRY_PICK_HEAD, REVERT_HEAD. Update return-type union. Add 3 unit tests in plugin/src/tools/checkpoint.test.ts covering each new state (red→green). Verify TypeScript exhaustiveness errors surface for any caller switch — fix call sites by treating new states the same as existing \"merging\" (R3 mitigation in design.md). Verification: `pnpm test plugin/src/tools/checkpoint.test.ts` green; `pnpm run typecheck` clean.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-08T23:51:25.711Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-08T23:58:22.819Z",
+      "verification": "Completed Phase B. RED: checkpoint tests failed for missing rebase/cherry-pick/revert states. GREEN: checkpoint tests pass. Incremental typecheck passes. Checkpoint commit e29fdeb92bb958fdab6a9a63abc89fc87e39a13c recorded.",
+      "summary": "Extended detectRepoState with RepoState union and support for rebasing, cherry-picking, and reverting states. Added git-path checks for rebase-merge/rebase-apply plus unit tests for new states.",
+      "implementation_summary": "Extended detectRepoState with RepoState union and support for rebasing, cherry-picking, and reverting states. Added git-path checks for rebase-merge/rebase-apply plus unit tests for new states.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T00:00:30.635Z",
+      "completed_at": "2026-05-09T00:00:30.635Z"
+    },
+    {
+      "id": "tk-b4a6aaf8f050",
+      "title": "Phase C — Build plugin/src/tools/trunk-write-firewall.ts (~250 lines) + plugin/src/tools/trunk-write-firewall.test.ts (~400 lines, ~30 cases). Pure-DI pattern matching git-guard's GuardDeps interface. Public surface: `checkTrunkWrite(targetPath, deps): Decision` and `checkTrunkWriteBash(cmd, workdir, deps): Decision`. Internal: `resolveTrunkContext`, `isPathInTrunkCheckout`, `isPathInWorktree`, `detectInProgressOp` (uses extended detectRepoState from Phase B), `classifyDestructiveBash` (matches `>` `>>` `tee` `sed -i` `cp` `mv` `rm` per KD4), port `stripHeredocs` from git-guard.ts. TDD red→green: write all 30 test cases first covering AC2/3/4/5/6 (block-on-trunk-default, allow-in-worktree, allow-in-each-of-4-recovery-states, allow-on-non-default, allow-outside-repo, destructive-bash-block, destructive-bash-allow-in-worktree, heredoc-stripped). Verification: `pnpm test plugin/src/tools/trunk-write-firewall.test.ts` green (30+ cases); `pnpm run typecheck` clean.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-08T23:51:47.813Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5a5f9acf600d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a5f19874870b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T00:01:03.859Z",
+      "verification": "Completed Phase C. RED: firewall tests failed on missing module. GREEN: firewall tests pass. Incremental typecheck passes. Checkpoint commit 8fc31eb3762c7e1dfcccc7b291b84ba8bbeb095a recorded.",
+      "summary": "Added trunk-write-firewall.ts with file-tool and destructive-bash write detection, DI context resolution, worktree/default-branch/recovery-state allow/block logic, heredoc stripping, and comprehensive tests for AC2-AC6.",
+      "implementation_summary": "Added trunk-write-firewall.ts with file-tool and destructive-bash write detection, DI context resolution, worktree/default-branch/recovery-state allow/block logic, heredoc stripping, and comprehensive tests for AC2-AC6.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T00:03:09.033Z",
+      "completed_at": "2026-05-09T00:03:09.033Z"
+    },
+    {
+      "id": "tk-0b8d8127cd7e",
+      "title": "Phase D — Rewire plugin/src/index.ts hook dispatch (replace lines 503-544 git-guard branch with new firewall dispatch ~40 lines). Add `case \"write\" | \"edit\" | \"morph_edit\"` calling checkTrunkWrite with args.filePath. Replace existing `if (toolName === \"bash\")` git-only branch with checkTrunkWriteBash on every bash command (not gated by /\\bgit\\b/ regex anymore). Update plugin/src/integration.test.ts: replace 7 existing git-guard hook tests (lines 64, 230, 259, 307, 337, 353, 369, 385) with firewall hook tests covering: write to trunk-default → throw; write to worktree path → ok; bash `echo x > /trunk/file` → throw; bash `git commit` → ok (no classification); bash `git pull` → ok; merge-in-progress write → ok. Verification: `pnpm test plugin/src/integration.test.ts` green; `pnpm test plugin/src/__tests__/compaction.test.ts` green (existing task/question branches untouched); `pnpm run typecheck` clean.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-08T23:52:06.644Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b4a6aaf8f050"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T00:05:36.222Z",
+      "verification": "Completed Phase D. RED: integration tests failed under old hook. GREEN: integration + compaction tests pass. Incremental typecheck passes. One semantic retry used to fix projectRoot/defaultBranch/fixture issues. Checkpoint commit 850edeb9f2b67f2dbcfd2b6bfafb1d24a55a8981 recorded.",
+      "summary": "Rewired tool.execute.before to call trunk-write-firewall for write/edit/morph_edit and all bash commands. Removed git-command gating from hook path. Replaced integration tests with file-write firewall behavior and preserved existing hook responsibilities.",
+      "implementation_summary": "Rewired tool.execute.before to call trunk-write-firewall for write/edit/morph_edit and all bash commands. Removed git-command gating from hook path. Replaced integration tests with file-write firewall behavior and preserved existing hook responsibilities.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T00:10:58.305Z",
+      "completed_at": "2026-05-09T00:10:58.305Z"
+    },
+    {
+      "id": "tk-12c466a5efd9",
+      "title": "Phase E — Delete plugin/src/tools/git-guard.ts (717 lines) and plugin/src/tools/git-guard.test.ts (879 lines). Remove `parseWorktreePaths` re-export shim from old location (added in Phase A for transitional compat). Remove `GuardDeps` import from plugin/src/index.ts:63. Verification: `grep -rn \"git-guard\\\\|gitGuard\\\\|GuardDeps\\\\|checkBashCommand\" plugin/src/` returns ZERO matches; `pnpm test` full suite green; `pnpm run check` (typecheck + lint + format) clean; `pnpm run build` produces working dist/index.js.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-08T23:52:15.119Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b4a6aaf8f050"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T00:11:16.392Z",
+      "verification": "Completed Phase E. TDD not applicable: mechanical deletion + verification. Grep confirms zero git-guard references in plugin/src. Full tests, check, and build pass. Checkpoint commit 10bb7a2e6fe67bebae5f8f3e1c0037c6b5ea3974 recorded.",
+      "summary": "Deleted plugin/src/tools/git-guard.ts and git-guard.test.ts. Removed remaining transitional references. Applied formatting, regenerated build output, and verified full test/check/build success.",
+      "implementation_summary": "Deleted plugin/src/tools/git-guard.ts and git-guard.test.ts. Removed remaining transitional references. Applied formatting, regenerated build output, and verified full test/check/build success.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T00:13:04.388Z",
+      "completed_at": "2026-05-09T00:13:04.388Z"
+    },
+    {
+      "id": "tk-a8241789935d",
+      "title": "Phase F — Spec lifecycle: retire rq-gm01, mint rq-twf01. Edit .adv/specs/advance-meta/spec.json: (1) delete the `rq-gm01` requirement object at lines 1210-1307; (2) append the new `rq-twf01` requirement (Trunk Write Firewall) with 7 scenarios as drafted in discovery report — covers block-on-trunk-default (rq-twf01.1), allow-in-worktree (rq-twf01.2), 4-state in-progress escape (rq-twf01.3), destructive-bash-block (rq-twf01.4), git-commands-unrestricted (rq-twf01.5), outside-repo-allowed (rq-twf01.6), residual-risk-shell-indirection (rq-twf01.7); (3) bump spec version 1.7.2 → 1.8.0. Then update ADV_INSTRUCTIONS.md: replace the `<!-- rq-gm01 -->` Git Mutation Guard section at lines 447-452 with new `<!-- rq-twf01 -->` Trunk Write Firewall description (1-line summary + intercept layer + escape hatch + residual risk). Verification: `adv_spec action: \"show\" capability: \"advance-meta\"` returns rq-twf01 (no rq-gm01); `pnpm test` green (no spec-validation failures).",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-08T23:52:17.495Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T00:13:29.005Z",
+      "verification": "Completed Phase F. TDD not applicable: spec/instruction law update. rq-gm01 retired, rq-twf01 minted with 7 scenarios, spec version bumped to 1.8.0, ADV_INSTRUCTIONS.md updated to Trunk Write Firewall. Full tests and check pass. Checkpoint commit 218c7c77fea73eeb4239b0dfe459a8d10b3e2e16 recorded.",
+      "summary": "Updated advance-meta spec and ADV instructions to replace Bash Git Mutation Interception with Trunk Write Firewall requirement and guidance.",
+      "implementation_summary": "Updated advance-meta spec and ADV instructions to replace Bash Git Mutation Interception with Trunk Write Firewall requirement and guidance.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T00:14:54.280Z",
+      "completed_at": "2026-05-09T00:14:54.280Z"
+    },
+    {
+      "id": "tk-da479da9ab69",
+      "title": "Phase G — Documentation: AC8/AC9/AC10 in docs/worktree-guide.md. Add 3 new sections covering existing-but-undocumented worktree mechanisms: (1) **Worktree Include (AC8)** — document `.opencode/worktree.jsonc` `sync.copyFiles` field, default `[]`, recommend opt-in `[\".env\", \".env.local\"]` for projects using dotenv; reference loadWorktreeConfig at tools/worktree/index.ts:1589-1653 and copyFiles invocation at lines 1864-1871; (2) **Setup Hook (AC9)** — document `hooks.postCreate` field with examples (`[\"pnpm install\", \"docker compose up -d\"]`); reference runHooks at tools/worktree/index.ts:1559-1583 and invocation at line 1885; warning surfaces but does not hard-block per existing implementation; (3) **Port & Resource Isolation (AC10)** — pure docs; per-worktree port offset patterns (e.g. `BASE_PORT + worktree_index`), DB instance separation guidance (sqlite-per-worktree, named docker volumes), recommended .opencode/worktree.jsonc setup hook example wiring port assignment. Verification: `pnpm run format:check` green; manual review confirms 3 sections present with code examples.",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-08T23:52:21.623Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T00:15:57.652Z",
+      "verification": "Completed Phase G. TDD not applicable: documentation. Created docs/worktree-guide.md because target file did not exist. Grep confirmed AC8/AC9/AC10 sections. Format check passes. Checkpoint commit 65020ff09eab32e976cc2b8f54de80df93a8f376 recorded.",
+      "summary": "Added worktree guide documenting worktree include (copyFiles), setup hooks (postCreate/preDelete), and port/resource isolation patterns with examples and implementation references.",
+      "implementation_summary": "Added worktree guide documenting worktree include (copyFiles), setup hooks (postCreate/preDelete), and port/resource isolation patterns with examples and implementation references.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T00:16:38.056Z",
+      "completed_at": "2026-05-09T00:16:38.056Z"
+    },
+    {
+      "id": "tk-286ec0f21a40",
+      "title": "Phase H — Issue #101 closure (post-archive). After `/adv-archive` ships and produces `.adv/archive/{date}-replacegitguardwithtrunkwritef/`, run: `gh issue close 101 --repo Sharper-Flow/Advance --comment \"$(cat <<'EOF'\\nClosed as fixed by `replacegitguardwithtrunkwritef` (archive bundle: .adv/archive/{date}-replacegitguardwithtrunkwritef/).\\n\\nThe friction reported here — post-merge sync of trunk via `pull --ff-only`, plumbing recovery, etc. — is resolved by replacing the git-command classifier guard with a file-write firewall. Git commands now run with zero ADV-imposed friction; only direct file edits to the trunk checkout on the default branch are blocked.\\n\\nSee ADV_INSTRUCTIONS.md § Trunk Write Firewall for details.\\nEOF\\n)\"` — substitute actual archive date in the path before running. Verification: `gh issue view 101 --repo Sharper-Flow/Advance --json state` returns `\"state\":\"CLOSED\"`.",
+      "type": "code",
+      "section": "Release",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-08T23:52:40.743Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b4a6aaf8f050"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T00:17:09.741Z",
+      "verification": "Harden remediation verified: targeted tests green (161 files, 1937 tests), pnpm run check green, pnpm run build green, strict ADV validation passed with warnings only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md"
+      ],
+      "checkpointSha": "b333855595f1894ec3fd8edc70075bbcf0908d24",
+      "completedAt": "2026-05-09T00:50:58.805Z",
+      "completed_at": "2026-05-09T00:50:58.805Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:34:24.804Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:41:09.656Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:48:41.868Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-08T23:54:07.170Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T00:19:41.056Z",
+      "completed_by": "agent",
+      "approval_evidence": "All planned tasks done. Final verification in ADV worktree passed: pnpm test (161 files, 1934 tests), pnpm run check (typecheck/lint/format), pnpm run build. Strict change validation passed with warnings only; git status clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T00:35:28.060Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied `accept` after approved review. Delivered work satisfies agreement after review remediation. Verification passed: pnpm test (161 files, 1937 tests), pnpm run check, pnpm run build, strict ADV validation passed with warnings only; worktree clean after checkpoint ba21e300."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T01:28:24.961Z",
+      "completed_by": "agent",
+      "approval_evidence": "Idempotent recovery: archive tool reports Temporal still sees release incomplete after prior release completion. User already signed off with exact Tier-B whitelist `sign off`; harden READY; archive preflight passed."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-09T01:37:02.034Z"
+    }
+  ]
+}
