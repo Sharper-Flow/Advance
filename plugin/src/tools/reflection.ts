@@ -128,6 +128,49 @@ function formatRetryOutcome(
   return "retried";
 }
 
+type ReflectionFrictionCategory =
+  ReflectionEntry["plane2"]["friction_items"][number]["category"];
+
+const CATEGORY_IMPROVEMENT_SUGGESTIONS: Partial<
+  Record<ReflectionFrictionCategory, string>
+> = {
+  tool_gap:
+    "Tooling gap detected — add or improve MCP/ADV tool support so future agents can complete this step without manual workaround.",
+  docs_gap:
+    "Documentation gap detected — update command docs, AGENTS.md, or relevant spec text with the discovered rule or gotcha.",
+  missing_capability:
+    "Missing capability detected — consider a focused follow-up change that turns the repeated pattern into a first-class ADV capability.",
+  ux_friction:
+    "UX friction detected — simplify the agent/user workflow or clarify prompts so future operators have an obvious next action.",
+  provider_specific:
+    "Provider-specific friction detected — document provider caveat or add provider-aware guardrails/tests.",
+};
+
+function getImprovementSuggestionForCategory(
+  category: ReflectionFrictionCategory,
+): string {
+  return (
+    CATEGORY_IMPROVEMENT_SUGGESTIONS[category] ??
+    "Unclassified friction detected — review the reflection item and convert it into docs, tooling, or workflow follow-up if it repeats."
+  );
+}
+
+function buildImprovementSuggestions(
+  retryTotal: number,
+  frictionItems: ReflectionEntry["plane2"]["friction_items"],
+): string[] {
+  const suggestions = new Set<string>();
+  if (retryTotal > 0) {
+    suggestions.add(
+      "Retry events detected — inspect error_recovery attempts and promote recurring failures into deterministic tests or guardrails.",
+    );
+  }
+  for (const item of frictionItems) {
+    suggestions.add(getImprovementSuggestionForCategory(item.category));
+  }
+  return [...suggestions];
+}
+
 // =============================================================================
 // Wisdom Reuse Hits Heuristic
 // =============================================================================
@@ -485,17 +528,10 @@ export const reflectionTools = {
       }
 
       // Improvement suggestions
-      const improvementSuggestions: string[] = [];
-      if (retryTotal > 0) {
-        improvementSuggestions.push(
-          "Retry events detected — review error_recovery patterns",
-        );
-      }
-      if (frictionItems.length > 0) {
-        improvementSuggestions.push(
-          `${frictionItems.length} friction items identified — review for process/tool improvements`,
-        );
-      }
+      const improvementSuggestions = buildImprovementSuggestions(
+        retryTotal,
+        frictionItems,
+      );
 
       // =====================================================================
       // Wisdom Reuse Hits
