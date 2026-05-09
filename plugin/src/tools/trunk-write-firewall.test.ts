@@ -208,4 +208,10 @@ describe("checkTrunkWriteBash", () => {
       ),
     ).resolves.toMatchObject({ decision: "ALLOW" });
   });
+
+  it("allows canonical archive push from the default branch", async () => {
+    await expect(
+      checkTrunkWriteBash("git -C /repo push origin main", "/repo", deps()),
+    ).resolves.toMatchObject({ decision: "ALLOW" });
+  });
 });

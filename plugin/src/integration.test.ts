@@ -389,6 +389,25 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).resolves.toBeUndefined();
   });
 
+  test("allows canonical archive push command from trunk checkout", async () => {
+    await initGitRepo();
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        {
+          args: { command: `git -C ${tempDir} push origin main` },
+        } as any,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
   test("allows trunk writes during merge recovery", async () => {
     const { execSync } = await import("child_process");
     const { writeFileSync } = await import("fs");
