@@ -16,7 +16,7 @@ OpenCode plugin repo implementing ADV — a spec-driven development orchestrator
 | Runtime state | Temporal workflows + JSON projections |
 | DB compatibility | `db_dir` accepted as deprecated config only |
 | Schema validation | Zod v4 |
-| Package manager | pnpm |
+| Package manager | pnpm (`plugin/pnpm-lock.yaml` is authoritative; `bun.lock`/`bun.lockb` are ignored and rejected by `scripts/check-lockfile-policy.ts`) |
 | Build | tsup |
 
 **Runtime ≠ test environment.** OpenCode runs under Bun, while tests run on Node. `@opencode-ai/plugin` is mocked in tests via vitest aliases in `vitest.config.ts`; runtime storage is Temporal-only.
