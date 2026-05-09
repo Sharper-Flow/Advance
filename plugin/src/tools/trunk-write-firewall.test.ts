@@ -90,6 +90,15 @@ describe("checkTrunkWrite", () => {
       ),
     ).resolves.toMatchObject({ decision: "ALLOW" });
   });
+
+  it("blocks trunk writes when the default branch cannot be resolved", async () => {
+    await expect(
+      checkTrunkWrite(
+        "/repo/src/index.ts",
+        deps({ getDefaultBranch: vi.fn(async () => "") }),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
 });
 
 describe("classifyDestructiveBash", () => {

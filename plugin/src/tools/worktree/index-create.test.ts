@@ -11,7 +11,14 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
@@ -359,6 +366,36 @@ describe.skipIf(!isLinux)(
       // Worktree should exist
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).toContain("change/feature");
+    });
+
+    it("copies configured files and runs postCreate hooks during creation", async () => {
+      writeFileSync(join(repoRoot, ".env.local"), "PORT=5173\n");
+      mkdirSync(join(repoRoot, ".opencode"));
+      writeFileSync(
+        join(repoRoot, ".opencode", "worktree.jsonc"),
+        JSON.stringify({
+          sync: { copyFiles: [".env.local"], symlinkDirs: [], exclude: [] },
+          hooks: { postCreate: ["pnpm install"], preDelete: [] },
+        }),
+      );
+
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+
+      const result = await advWorktreeCreate("change/include-hook", {}, deps);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      cleanupPaths.push(result.path);
+      expect(readFileSync(join(result.path, ".env.local"), "utf8")).toBe(
+        "PORT=5173\n",
+      );
+      expect(runHooksWithSafety).toHaveBeenCalledWith(
+        "postCreate",
+        result.path,
+        ["pnpm install"],
+      );
     });
 
     it("SETUP_FAILED — blocks ADV routing when postCreate hook fails", async () => {

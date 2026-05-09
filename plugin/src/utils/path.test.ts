@@ -19,4 +19,10 @@ describe("isSameOrChildPath", () => {
   it("does not match path prefixes that are not children", () => {
     expect(isSameOrChildPath("/repo-other/file.ts", "/repo")).toBe(false);
   });
+
+  it("resolves traversal before checking containment", () => {
+    expect(isSameOrChildPath("/repo/../repo-other/file.ts", "/repo")).toBe(
+      false,
+    );
+  });
 });

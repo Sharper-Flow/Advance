@@ -25,6 +25,7 @@ interface TrunkContext {
   targetPath: string;
   gitRoot: string | null;
   branch: string;
+  defaultBranchKnown: boolean;
   isDefaultBranch: boolean;
   isWorktree: boolean;
   repoState: RepoState;
@@ -67,6 +68,7 @@ async function resolveTrunkContext(
       targetPath: normalizedTarget,
       gitRoot: null,
       branch: "HEAD",
+      defaultBranchKnown: false,
       isDefaultBranch: false,
       isWorktree: false,
       repoState: "not_git",
@@ -106,6 +108,7 @@ async function resolveTrunkContext(
     targetPath: normalizedTarget,
     gitRoot,
     branch,
+    defaultBranchKnown: Boolean(defaultBranch),
     isDefaultBranch: Boolean(defaultBranch) && branch === defaultBranch,
     isWorktree,
     repoState,
@@ -121,6 +124,15 @@ function evaluateTarget(
   }
   if (context.isWorktree)
     return { decision: "ALLOW", targetPath: context.targetPath };
+  const projectRoot = deps.getProjectRoot();
+  const isTrunkCheckout = isSameOrChildPath(context.targetPath, projectRoot);
+  if (!context.defaultBranchKnown && isTrunkCheckout) {
+    return {
+      decision: "BLOCK",
+      targetPath: context.targetPath,
+      reason: `Trunk write firewall: direct file write to trunk checkout is blocked because the default branch could not be verified (${context.targetPath}). Create or use an ADV worktree instead.`,
+    };
+  }
   if (!context.isDefaultBranch) {
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
@@ -128,8 +140,6 @@ function evaluateTarget(
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
 
-  const projectRoot = deps.getProjectRoot();
-  const isTrunkCheckout = isSameOrChildPath(context.targetPath, projectRoot);
   if (!isTrunkCheckout)
     return { decision: "ALLOW", targetPath: context.targetPath };
 

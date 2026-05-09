@@ -25,10 +25,12 @@ import {
   copyFile,
   cp,
   mkdir,
+  readFile,
   rm,
   rmdir,
   stat,
   symlink,
+  writeFile,
 } from "node:fs/promises";
 import * as path from "node:path";
 import { execFile } from "child_process";
@@ -944,11 +946,32 @@ export async function advWorktreeCreate(
 
     const headSha = (await execGit(["rev-parse", "HEAD"], worktreePath)).trim();
 
-    // Step 6: postCreate hooks (T12 — best-effort; failure logs but does not abort).
-    const hooks = deps.hooks;
-    if (hooks?.postCreate?.length) {
+    const worktreeConfig = await loadWorktreeConfig(repoRoot, deps.log);
+    if (worktreeConfig.sync.copyFiles.length > 0) {
+      await copyFiles(
+        repoRoot,
+        worktreePath,
+        worktreeConfig.sync.copyFiles,
+        deps.log,
+      );
+    }
+    if (worktreeConfig.sync.symlinkDirs.length > 0) {
+      await symlinkDirs(
+        repoRoot,
+        worktreePath,
+        worktreeConfig.sync.symlinkDirs,
+        deps.log,
+      );
+    }
+
+    // Step 6: postCreate hooks (T12 — setup failure blocks ADV routing).
+    const postCreateHooks = [
+      ...worktreeConfig.hooks.postCreate,
+      ...(deps.hooks?.postCreate ?? []),
+    ];
+    if (postCreateHooks.length) {
       try {
-        await runHooksWithSafety("postCreate", worktreePath, hooks.postCreate);
+        await runHooksWithSafety("postCreate", worktreePath, postCreateHooks);
       } catch (err) {
         const reason = String(err instanceof Error ? err.message : err);
         await updateWorktreeRecord(deps.database, {
@@ -1486,8 +1509,8 @@ async function copyFiles(
     const targetPath = path.join(targetDir, file);
 
     try {
-      const sourceFile = Bun.file(sourcePath);
-      if (!(await sourceFile.exists())) {
+      const sourceStat = await stat(sourcePath).catch(() => null);
+      if (!sourceStat?.isFile()) {
         log.debug(`[worktree] Skipping missing file: ${file}`);
         continue;
       }
@@ -1496,8 +1519,7 @@ async function copyFiles(
       const targetFileDir = path.dirname(targetPath);
       await mkdir(targetFileDir, { recursive: true });
 
-      // Copy file
-      await Bun.write(targetPath, sourceFile);
+      await copyFile(sourcePath, targetPath);
       log.info(`[worktree] Copied: ${file}`);
     } catch (error) {
       const isNotFound =
@@ -1554,35 +1576,6 @@ async function symlinkDirs(
 }
 
 /**
- * Run hook commands in the worktree directory.
- */
-async function runHooks(
-  cwd: string,
-  commands: string[],
-  log: Logger,
-): Promise<void> {
-  for (const command of commands) {
-    log.info(`[worktree] Running hook: ${command}`);
-    try {
-      // Use shell to properly handle quoted arguments and complex commands
-      const result = Bun.spawnSync(["bash", "-c", command], {
-        cwd,
-        stdout: "inherit",
-        stderr: "pipe",
-      });
-      if (result.exitCode !== 0) {
-        const stderr = result.stderr?.toString() || "";
-        log.warn(
-          `[worktree] Hook failed (exit ${result.exitCode}): ${command}${stderr ? `\n${stderr}` : ""}`,
-        );
-      }
-    } catch (error) {
-      log.warn(`[worktree] Hook error: ${error}`);
-    }
-  }
-}
-
-/**
  * Load worktree-specific configuration from .opencode/worktree.jsonc
  * Auto-creates config file with helpful defaults if it doesn't exist.
  */
@@ -1593,8 +1586,9 @@ async function loadWorktreeConfig(
   const configPath = path.join(directory, ".opencode", "worktree.jsonc");
 
   try {
-    const file = Bun.file(configPath);
-    if (!(await file.exists())) {
+    try {
+      await access(configPath);
+    } catch {
       // Auto-create config with helpful defaults and comments
       const defaultConfig = `{
   "$schema": "https://registry.kdco.dev/schemas/worktree.json",
@@ -1633,12 +1627,12 @@ async function loadWorktreeConfig(
 `;
       // Ensure .opencode directory exists
       await mkdir(path.join(directory, ".opencode"), { recursive: true });
-      await Bun.write(configPath, defaultConfig);
+      await writeFile(configPath, defaultConfig);
       log.info(`[worktree] Created default config: ${configPath}`);
       return worktreeConfigSchema.parse({});
     }
 
-    const content = await file.text();
+    const content = await readFile(configPath, "utf8");
     // Use proper JSONC parser (handles comments in strings correctly)
     const parsed = parseJsonc(content);
     if (parsed === undefined) {
@@ -1856,34 +1850,9 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
           const worktreePath = createResult.path;
 
-          // Sync files from main worktree
+          // Read config for inline-mode session behavior. File sync and
+          // postCreate hooks already ran inside advWorktreeCreate.
           const worktreeConfig = await loadWorktreeConfig(directory, log);
-          const mainWorktreePath = directory; // The repo root is the main worktree
-
-          // Copy files
-          if (worktreeConfig.sync.copyFiles.length > 0) {
-            await copyFiles(
-              mainWorktreePath,
-              worktreePath,
-              worktreeConfig.sync.copyFiles,
-              log,
-            );
-          }
-
-          // Symlink directories
-          if (worktreeConfig.sync.symlinkDirs.length > 0) {
-            await symlinkDirs(
-              mainWorktreePath,
-              worktreePath,
-              worktreeConfig.sync.symlinkDirs,
-              log,
-            );
-          }
-
-          // Run postCreate hooks
-          if (worktreeConfig.hooks.postCreate.length > 0) {
-            await runHooks(worktreePath, worktreeConfig.hooks.postCreate, log);
-          }
 
           // Inline mode: skip session fork and terminal spawn
           if (worktreeConfig.inline) {

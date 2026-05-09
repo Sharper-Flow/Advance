@@ -20,8 +20,9 @@ worktree via `.opencode/worktree.jsonc`:
 ```
 
 Defaults stay conservative: `copyFiles: []`. Do not auto-copy secret-bearing
-files unless the project opts in. For dotenv-based apps, add only the files
-needed for local development, usually `.env` and `.env.local`.
+files unless the project opts in. Do **not** include `.env` or `.env.local`
+unless those files contain only non-sensitive local-development defaults; prefer
+`.env.example` or `.env.template` for shared setup where possible.
 
 Implementation refs:
 
@@ -42,8 +43,10 @@ ADV worktrees can run project setup commands after creation via
 }
 ```
 
-`postCreate` hook failures are warnings, not hard blocks. This preserves the
-worktree path for manual remediation while still surfacing the setup failure.
+`postCreate` hook failures mark the worktree `setup_failed` and block ADV
+routing into that worktree until setup is remediated. This preserves the
+worktree path for manual repair while preventing agents from running in a
+half-configured workspace.
 
 Implementation refs:
 
