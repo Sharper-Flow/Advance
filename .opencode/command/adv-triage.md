@@ -179,7 +179,7 @@ For each approved item:
 
 Skip items where `kind_hint` is still `unknown` after reclassify and no user override — surface in the final report under "skipped: ambiguous kind".
 
-### 3b. User-only field assignments
+### 3b. User-only field assignments (question tool, one-by-one)
 
 Build the assignment matrix from open GH issues (existing + just-created):
 
@@ -188,33 +188,87 @@ Build the assignment matrix from open GH issues (existing + just-created):
 | `priority:*` label on bug | issue has `bug` label, no `priority:*` label |
 | `Value` field on feature | issue has `feature` label, project `Value` field is null |
 
-If the matrix is non-empty:
+If the matrix is non-empty, use the `question` tool — **never plain-text chat** — to collect user assignments. Two-stage flow: batch control question first, then per-item questions.
+
+#### Stage 1: Batch control
+
+Present a single `question` call offering batch actions before entering the per-item loop:
 
 ```
-{N} issue(s) need user-only field assignments:
-
-Bugs (priority):
-1. #{num} — {title}
-2. #{num} — {title}
-
-Features (Value 1-13):
-3. #{num} — {title}
-4. #{num} — {title}
-
-Reply EXACTLY one of:
-- `assign 1=high 2=critical 3=8 4=5 ...` — space-separated `id=value` pairs (priority labels for bugs; integer 1-13 for features)
-- `autofill` — agent assigns all listed values from issue body content using the rubric in Phase 4. Each autofilled value is recorded with a `<!-- adv-triage:scoring v1 ... -->` evidence block on the issue and `scored_by=agent`. User can override individual values in a follow-up `assign` reply before commit.
-- `autofill N` (or `autofill N,M`) — agent autofills only the listed numbers; remaining items defer
-- `defer N` (or `defer N,M`) — leave listed items unscored, exclude from roadmap this run
-- `defer all` — leave all listed items unscored
-- `stop` / `abort` — halt the entire /adv-triage run
-
-Anything else → re-prompt with the same options.
+question({
+  questions: [{
+    header: "Batch assignment: {N} item(s)",
+    question: "{N} issue(s) need user-only field assignments:\n\n{numbered list of all items with issue numbers and titles}\n\nChoose how to proceed:",
+    options: [
+      { label: "One by one (Recommended)", description: "Prompt for each item individually using structured questions" },
+      { label: "Autofill all features", description: "Agent assigns Value for all features from issue body content. Bug priority still prompted individually." },
+      { label: "Defer all", description: "Leave all items unscored, exclude from roadmap this run" },
+      { label: "Stop", description: "Halt the entire /adv-triage run" }
+    ]
+  }]
+})
 ```
 
-**Anchor phrase:** `Reply EXACTLY one of:`
+| Choice | Action |
+|---|---|
+| `One by one` | Enter per-item loop (Stage 2) for all items |
+| `Autofill all features` | Apply autofill to all feature items per Autofill semantics below; then enter per-item loop for bug priorities only |
+| `Defer all` | Skip all items, exclude from roadmap, proceed to Phase 4 |
+| `Stop` | Halt the entire `/adv-triage` run |
 
-Validation:
+#### Stage 2: Per-item loop
+
+Iterate items one at a time: bugs first (by issue number ascending), then features. Each item gets its own `question` call.
+
+**Bug priority items:**
+
+```
+question({
+  questions: [{
+    header: "Bug #{num}: {title}",
+    question: "Set priority for bug #{num}:\n{body excerpt, 1-2 lines if available}",
+    options: [
+      { label: "critical", description: "System down, data loss, security vulnerability" },
+      { label: "high", description: "Major functionality broken, no workaround" },
+      { label: "medium", description: "Workaround exists, notable friction" },
+      { label: "low", description: "Minor, cosmetic, or deferrable" },
+      { label: "Defer", description: "Skip this item for now, exclude from roadmap this run" }
+    ]
+  }]
+})
+```
+
+**Feature Value items:**
+
+```
+question({
+  questions: [{
+    header: "Feature #{num}: {title}",
+    question: "Set business Value (1-13) for feature #{num}:\n{body excerpt, 1-2 lines if available}\n\nRubric: 1-2 cosmetic/niche · 3 quality-of-life · 5 active workflow improvement · 8 core differentiator · 13 strategic/foundational",
+    options: [
+      { label: "1", description: "Cosmetic, niche, single-user, easily-deferrable" },
+      { label: "2", description: "Slightly above cosmetic" },
+      { label: "3", description: "Quality-of-life, narrow surface, no growth multiplier" },
+      { label: "5", description: "Active workflow improvement, recurring friction signal" },
+      { label: "8", description: "Core differentiator, unblocks roadmap stream, broad surface" },
+      { label: "13", description: "Strategic, foundational, blocks multiple workflows" },
+      { label: "Defer", description: "Skip this item for now, exclude from roadmap this run" },
+      { label: "Autofill", description: "Agent assigns Value from issue body using rubric" }
+    ]
+  }]
+})
+```
+
+#### Per-item response handling
+
+1. On concrete value → record assignment, continue to next item.
+2. On `Defer` → exclude from roadmap this run, continue to next item.
+3. On `Autofill` (features only) → apply autofill per Autofill semantics below, record evidence block, continue to next item.
+4. On write-in/custom value → validate per rules below; if invalid, inline error message and re-prompt same item (not the whole batch).
+5. After all items processed → apply recorded assignments as a batch via GraphQL mutations.
+
+#### Validation
+
 - Bug values must be one of `critical`, `high`, `medium`, `low` (case-insensitive). Apply via `gh issue edit <num> --add-label "priority:<value>"`.
 - Feature values must be integer in `[1,13]`. Apply via single-field `gh api graphql --include` mutation:
 
@@ -227,7 +281,7 @@ gh api graphql --include -f query="
 ```
 
 - Check `x-ratelimit-remaining` from response headers after each write. If `< 10`, stop and report reset time.
-- Any invalid pair → reject the entire reply, re-prompt unchanged.
+- Invalid write-in value → inline error message + re-prompt same item.
 
 ### GraphQL budget gate (before Value writes)
 
@@ -247,7 +301,7 @@ Items deferred or skipped due to ambiguity are excluded from Phase 5 roadmap ren
 
 ### Autofill semantics (Phase 3b only)
 
-When the user replies `autofill` or `autofill N,M`, the agent assigns Value (1-13) for each listed feature using the same modified-Fibonacci rubric as Phase 4. Anti-hallucination evidence is mandatory: every autofilled Value MUST be backed by a quote from the issue body (or `(no body content)` marker) and recorded in the `<!-- adv-triage:scoring v1 ... -->` block alongside `scored_by=agent` and `scored_at`.
+When the user selects `Autofill all features` in the Stage 1 batch control, or `Autofill` on a per-item feature question, the agent assigns Value (1-13) using the same modified-Fibonacci rubric as Phase 4. Anti-hallucination evidence is mandatory: every autofilled Value MUST be backed by a quote from the issue body (or `(no body content)` marker) and recorded in the `<!-- adv-triage:scoring v1 ... -->` block alongside `scored_by=agent` and `scored_at`.
 
 Autofill rubric for Value:
 | Anchor | Signal in issue body |
@@ -623,8 +677,9 @@ If dry-run: append `Re-run with `--execute` to apply mutations.`
 | Write WSJF for bugs | Bugs use `priority:*` labels only |
 | Recompute WSJF on every run for already-scored features | Only fill missing fields unless `--rescore` is set |
 | Drop low-priority TODOs on the floor without surfacing | All inventory items appear in the final report, even if deferred |
-| LLM fallback on ambiguous Tier B reply | Whitelist + regex only; re-prompt unchanged |
-| Use `gh project item-edit` for bulk writes (1 field/call) | Use `gh api graphql` batched mutations (4 fields/call via aliased mutations) |
+| Use plain-text chat for Phase 3b priority/Value assignments | Use `question` tool with structured options, one item at a time |
+| Dump all items in a single text blob asking for `id=value` pairs | Batch control question first, then per-item `question` calls |
+| Skip the batch control question and go straight to per-item | Stage 1 (batch control) always runs first when matrix is non-empty |
 | Ignore `x-ratelimit-remaining` response header | Check after each batch via `--include` flag; stop if < 10 |
 | Use `rateLimit` query for every post-mutation check | Use response headers (primary); `rateLimit` query only for initial gate and fallback when headers missing |
 | Emit only "Top 5 features" summary in chat after a regen | Phase 5.5 mandates echoing the full ROADMAP.md as a fenced markdown block |
@@ -651,5 +706,6 @@ If dry-run: append `Re-run with `--execute` to apply mutations.`
 | Agenda | `adv_agenda_list`, `adv_agenda_complete` |
 | Wisdom | `adv_wisdom_list` |
 | Local source scan | `glob`, `read`, `lgrep_search_text` |
+| Phase 3b user assignments | `question` tool (batch control + per-item structured questions) |
 | Roadmap edit | `write` (whole file each run; deterministic from project state) |
 | Git ops | `bash` (`git status`, `git add ROADMAP.md`, `git commit`, `git pull --rebase`, `git push`) |
