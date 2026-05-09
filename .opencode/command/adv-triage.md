@@ -177,6 +177,14 @@ For each approved item:
 - Capture the new issue number; add to project via `gh project item-add <N> --owner <owner> --url <issue-url>`
 - Set the project `ADV Type` field to `bug` or `feature` accordingly
 
+> **Triage-origin tagging (rq-issueChangeLinkage01):** if the user immediately starts a new ADV change for one of these promoted issues via `/adv-proposal` afterwards, that proposal MUST pass:
+>
+> - `origin_kind: 'triage'`
+> - `origin_source_artifact: '<promoted-from-ref>'` (e.g. `ag-abc123` for an agenda item, `ws-xyz` for a wisdom entry, `path/to/file.ts:42` for a TODO)
+> - `origin_issue_number: <created-issue-number>`
+>
+> The triage promotion itself does NOT auto-create an ADV change — change creation is always user-initiated. The origin args record the promotion lineage so archive flows (`/adv-archive --close-issue`) and roadmap surfaces (`/adv-roadmap` active-change cross-reference) can act on the linkage.
+
 Skip items where `kind_hint` is still `unknown` after reclassify and no user override — surface in the final report under "skipped: ambiguous kind".
 
 ### 3b. User-only field assignments (question tool, one-by-one)
