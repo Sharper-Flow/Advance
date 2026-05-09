@@ -61,6 +61,17 @@ async function validate(changeOverride: Partial<Change> = {}) {
   });
 }
 
+async function validateProposalDrift(
+  proposalText: string,
+  changeOverride: Partial<Change> = {},
+) {
+  return await validateChange(change(changeOverride), {
+    specs: [] as Spec[],
+    skipChecks: ["completeness", "conflicts"],
+    proposalText,
+  });
+}
+
 describe("contract validation", () => {
   test("errors on task refs to unknown contract IDs", async () => {
     const result = await validate({
@@ -150,5 +161,33 @@ describe("contract validation", () => {
       (issue) => issue.code.startsWith("CONTRACT_"),
     );
     expect(contractIssues).toEqual([]);
+  });
+});
+
+describe("proposal-task drift validation", () => {
+  test("ignores narrative proposal sections", async () => {
+    const result = await validateProposalDrift(
+      `# Proposal\n\n## Intent\n\nFix status wording.\n\n## Scope\n\nKeep change local.\n\n## Risks / Unknowns\n\nOutput wording may need care.\n\n## Coordinated With\n\nRelated change handles shared contract.\n\n## What Changes\n\nFormatter prose changes only.\n\n## Avoidances\n\nNo schema redesign.\n`,
+    );
+
+    expect(result.warnings.map((warning) => warning.code)).not.toContain(
+      "PROPOSAL_TASK_DRIFT",
+    );
+  });
+
+  test("warns when explicit task-bearing section has no matching task", async () => {
+    const result = await validateProposalDrift(
+      `# Proposal\n\n## Tasks\n\n- Update session debt wording.\n- Add formatter coverage.\n`,
+      {
+        tasks: [task({ title: "Implement unrelated cache invalidation" })],
+      },
+    );
+
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({
+        code: "PROPOSAL_TASK_DRIFT",
+        path: "proposal.sections.Tasks",
+      }),
+    );
   });
 });

@@ -199,8 +199,9 @@ export async function validateChange(
 
 /**
  * Detect drift between proposal section headers and task titles.
- * Extracts keywords from proposal "## Section Name" headers and checks if any
- * task title contains at least one keyword. Sections with no task matches are flagged.
+ * Only sections that structurally declare work items are checked. Narrative
+ * sections such as Intent, Scope, Risks, or coordination notes are proposal
+ * context, not task contracts, and must not create drift warnings.
  */
 function runProposalDriftCheck(
   change: Change,
@@ -224,34 +225,22 @@ function runProposalDriftCheck(
     .filter((t) => t.status !== "cancelled")
     .map((t) => t.title.toLowerCase());
 
-  // Skip generic headers that are boilerplate
-  const skipHeaders = new Set([
-    "summary",
-    "motivation",
-    "objective",
-    "overview",
-    "background",
-    "acceptance criteria",
-    "success criteria",
-    "constraints",
-    "risks",
-    "implementation",
-    "next steps",
-    "references",
-    "why",
-    "what",
-    "how",
-    "prior decisions",
-    "rejected approaches",
-    "open questions",
+  const taskBearingHeaders = new Set([
+    "task",
+    "tasks",
+    "planned task",
+    "planned tasks",
+    "implementation task",
+    "implementation tasks",
+    "work items",
+    "work plan",
   ]);
 
   for (const match of sectionMatches) {
     const headerText = match.replace(/^#{2,3}\s+/, "").trim();
     const headerLower = headerText.toLowerCase();
 
-    // Skip boilerplate section names
-    if (skipHeaders.has(headerLower)) continue;
+    if (!taskBearingHeaders.has(headerLower)) continue;
 
     // Extract keywords: split on spaces/punctuation, filter short words
     const keywords = headerLower
