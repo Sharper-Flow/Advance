@@ -18,6 +18,8 @@
  */
 
 import { execFile } from "child_process";
+import { access } from "fs/promises";
+import { isAbsolute, resolve } from "path";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
@@ -69,6 +71,15 @@ interface CheckpointResult {
 
 type ErrorClass = "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT";
 
+export type RepoState =
+  | "ok"
+  | "detached"
+  | "merging"
+  | "rebasing"
+  | "cherry-picking"
+  | "reverting"
+  | "not_git";
+
 // ─── Internal helpers (exported for testability) ────────────────────────────
 
 /**
@@ -112,16 +123,30 @@ export function runGit(
   });
 }
 
+async function gitPathExists(cwd: string, gitPathName: string): Promise<boolean> {
+  try {
+    const gitPath = (
+      await runGit(["rev-parse", "--git-path", gitPathName], cwd)
+    ).stdout.trim();
+    if (!gitPath) return false;
+    await access(isAbsolute(gitPath) ? gitPath : resolve(cwd, gitPath));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Detect the state of the git repo. Returns:
  * - "ok" — normal repo on a branch
  * - "detached" — detached HEAD
  * - "merging" — MERGE_HEAD exists
+ * - "rebasing" — REBASE_HEAD or rebase state directory exists
+ * - "cherry-picking" — CHERRY_PICK_HEAD exists
+ * - "reverting" — REVERT_HEAD exists
  * - "not_git" — not a git repo (or git unavailable)
  */
-export async function detectRepoState(
-  cwd: string,
-): Promise<"ok" | "detached" | "merging" | "not_git"> {
+export async function detectRepoState(cwd: string): Promise<RepoState> {
   try {
     // Check if we're in a git repo
     await runGit(["rev-parse", "--git-dir"], cwd);
@@ -142,6 +167,34 @@ export async function detectRepoState(
     return "merging";
   } catch {
     // MERGE_HEAD doesn't exist — normal state
+  }
+
+  try {
+    await runGit(["rev-parse", "--verify", "REBASE_HEAD"], cwd);
+    return "rebasing";
+  } catch {
+    // REBASE_HEAD doesn't exist — check rebase state directories below
+  }
+
+  if (
+    (await gitPathExists(cwd, "rebase-merge")) ||
+    (await gitPathExists(cwd, "rebase-apply"))
+  ) {
+    return "rebasing";
+  }
+
+  try {
+    await runGit(["rev-parse", "--verify", "CHERRY_PICK_HEAD"], cwd);
+    return "cherry-picking";
+  } catch {
+    // CHERRY_PICK_HEAD doesn't exist — normal state so far
+  }
+
+  try {
+    await runGit(["rev-parse", "--verify", "REVERT_HEAD"], cwd);
+    return "reverting";
+  } catch {
+    // REVERT_HEAD doesn't exist — normal state
   }
 
   return "ok";

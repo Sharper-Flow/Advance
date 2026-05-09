@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { checkpointTools } from "./checkpoint";
+import { checkpointTools, detectRepoState } from "./checkpoint";
 import type { Store } from "../storage/store-types";
 
 const mocks = vi.hoisted(() => {
@@ -171,6 +171,34 @@ describe("checkpoint tools — signal-driven", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("detectRepoState", () => {
+    test("detects rebase state", async () => {
+      mockGitResponses({
+        "rev-parse --verify REBASE_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("rebasing");
+    });
+
+    test("detects cherry-pick state", async () => {
+      mockGitResponses({
+        "rev-parse --verify CHERRY_PICK_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe(
+        "cherry-picking",
+      );
+    });
+
+    test("detects revert state", async () => {
+      mockGitResponses({
+        "rev-parse --verify REVERT_HEAD": { stdout: "abc123\n" },
+      });
+
+      await expect(detectRepoState("/tmp/test")).resolves.toBe("reverting");
+    });
   });
 
   describe("adv_task_checkpoint", () => {
