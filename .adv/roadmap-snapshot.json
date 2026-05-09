@@ -1,0 +1,495 @@
+{
+  "version": 1,
+  "generated_at": "2026-05-09T18:09:02Z",
+  "project": {
+    "owner": "Sharper-Flow",
+    "number": 2,
+    "title": "ADV: Advance"
+  },
+  "counts": {
+    "total": 51,
+    "bugs": 19,
+    "features": 32,
+    "deferred": 0
+  },
+  "bugs": [
+    {
+      "number": 88,
+      "title": "ADV archive sees incomplete gates despite gate status complete",
+      "priority": "critical",
+      "labels": []
+    },
+    {
+      "number": 102,
+      "title": "Git mutation guard blocks canonical archive push from default branch",
+      "priority": "critical",
+      "labels": []
+    },
+    {
+      "number": 48,
+      "title": "ADV worktree tools fail with WorkflowUpdateFailedError after repair and clean diagnostics",
+      "priority": "high",
+      "labels": [
+        "needs-verify"
+      ]
+    },
+    {
+      "number": 60,
+      "title": "Post-Temporal-cutover external-state hygiene leftovers + test-isolation leak",
+      "priority": "high",
+      "labels": []
+    },
+    {
+      "number": 91,
+      "title": "Doctor script: classify blank rows by orphan-vs-live, not just by age",
+      "priority": "high",
+      "labels": []
+    },
+    {
+      "number": 53,
+      "title": "adv_change_archive recovery path skips createInRepoArchive when external bundle pre-exists",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 54,
+      "title": "adv_change_close fails on terminated workflows with no disk-only fallback",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 62,
+      "title": "adv_change_validate over-triggers MISSING_TDD_EVIDENCE on data/constant tasks",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 63,
+      "title": "adv_change_validate returns passed:false on warnings-only state in strict mode",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 86,
+      "title": "Fix terminal.ts permission-ATTN vs idle-ATTN distinction",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 92,
+      "title": "adv_status [doctor] recommendation: replace 'Stale OpenCode blank assistant messages detected' framing",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 95,
+      "title": "Hot-change recommendation falsely attributes work to 'another agent' when caller is the worker",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 97,
+      "title": "Reflection improvement_suggestions are generic \u2014 replace with category-specific guidance",
+      "priority": "medium",
+      "labels": []
+    },
+    {
+      "number": 33,
+      "title": "Temporal worker health check reports false-negative: worker alive but diagnose shows dead",
+      "priority": "low",
+      "labels": [
+        "needs-verify"
+      ]
+    },
+    {
+      "number": 43,
+      "title": "Delete stale bun.lock \u2014 dual lockfile drift risk",
+      "priority": "low",
+      "labels": []
+    },
+    {
+      "number": 56,
+      "title": "adv_status first-call bootstrap nondeterminism (TMPRL1100 race against scopeAdvInstructionLoadAdv)",
+      "priority": "low",
+      "labels": []
+    },
+    {
+      "number": 57,
+      "title": "adv_status visibility memo holds deleted change entries until session restart",
+      "priority": "low",
+      "labels": []
+    },
+    {
+      "number": 67,
+      "title": "adv_temporal_diagnose reports false projectWorkflow NOT_FOUND when workflow is healthy",
+      "priority": "low",
+      "labels": [
+        "needs-verify"
+      ]
+    },
+    {
+      "number": 73,
+      "title": "Validator emits PROPOSAL_TASK_DRIFT warnings for narrative proposal sections",
+      "priority": "low",
+      "labels": []
+    }
+  ],
+  "features": [
+    {
+      "number": 98,
+      "title": "Temporal-cutover stabilization tracker (umbrella)",
+      "value": 8,
+      "time_criticality": 8,
+      "rroe": 13,
+      "effort": 2,
+      "wsjf": 14.5,
+      "labels": [
+        "priority:high"
+      ]
+    },
+    {
+      "number": 100,
+      "title": "Harden phase should validate and implement review suggestions/questions",
+      "value": 8,
+      "time_criticality": 3,
+      "rroe": 8,
+      "effort": 2,
+      "wsjf": 9.5,
+      "labels": []
+    },
+    {
+      "number": 51,
+      "title": "ADV backlog primitive: prioritized, sortable list of unstarted work",
+      "value": 8,
+      "time_criticality": 3,
+      "rroe": 13,
+      "effort": 3,
+      "wsjf": 8.0,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 79,
+      "title": "Add must-not section to future ADV proposals",
+      "value": 5,
+      "time_criticality": 1,
+      "rroe": 2,
+      "effort": 1,
+      "wsjf": 8.0,
+      "labels": []
+    },
+    {
+      "number": 80,
+      "title": "Make worktree.deps.store required",
+      "value": 8,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 2,
+      "wsjf": 7.5,
+      "labels": []
+    },
+    {
+      "number": 105,
+      "title": "Update /adv-triage Phase 3b to use question tool one-by-one instead of text-only batch prompt",
+      "value": 5,
+      "time_criticality": 5,
+      "rroe": 5,
+      "effort": 2,
+      "wsjf": 7.5,
+      "labels": []
+    },
+    {
+      "number": 72,
+      "title": "Scope ADV instruction load to ADV-using sessions (~17k tokens per non-ADV session)",
+      "value": 13,
+      "time_criticality": 8,
+      "rroe": 13,
+      "effort": 5,
+      "wsjf": 6.8,
+      "labels": [
+        "priority:high"
+      ]
+    },
+    {
+      "number": 66,
+      "title": "ADV clarify/design must surface 'imported assumptions from research' as scope decisions",
+      "value": 8,
+      "time_criticality": 3,
+      "rroe": 8,
+      "effort": 3,
+      "wsjf": 6.3,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 64,
+      "title": "Add adv_delta_add MCP tool \u2014 agent-facing path to encode spec deltas",
+      "value": 8,
+      "time_criticality": 2,
+      "rroe": 8,
+      "effort": 3,
+      "wsjf": 6.0,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 61,
+      "title": "Telemetry & Temporal follow-ups from fixTemporalContextMismatch",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 2,
+      "wsjf": 6.0,
+      "labels": [
+        "priority:high"
+      ]
+    },
+    {
+      "number": 78,
+      "title": "Verify Phase J + Phase 1.5 functional intent before final retirement",
+      "value": 3,
+      "time_criticality": 1,
+      "rroe": 2,
+      "effort": 1,
+      "wsjf": 6.0,
+      "labels": []
+    },
+    {
+      "number": 81,
+      "title": "Document tdd_intent reclassification workaround for cached-dist self-update sessions",
+      "value": 3,
+      "time_criticality": 1,
+      "rroe": 2,
+      "effort": 1,
+      "wsjf": 6.0,
+      "labels": []
+    },
+    {
+      "number": 84,
+      "title": "Sweep unused type exports flagged by knip",
+      "value": 3,
+      "time_criticality": 1,
+      "rroe": 2,
+      "effort": 1,
+      "wsjf": 6.0,
+      "labels": []
+    },
+    {
+      "number": 87,
+      "title": "Wire scanFileOverlaps into prep validator when async checks exist",
+      "value": 8,
+      "time_criticality": 3,
+      "rroe": 5,
+      "effort": 3,
+      "wsjf": 5.3,
+      "labels": []
+    },
+    {
+      "number": 85,
+      "title": "Programmatic git mutation guard",
+      "value": 13,
+      "time_criticality": 5,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 5.2,
+      "labels": []
+    },
+    {
+      "number": 42,
+      "title": "Stub JSON schemas provide zero validation \u2014 generate from Zod or delete",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 3,
+      "effort": 2,
+      "wsjf": 5.0,
+      "labels": [
+        "priority:low"
+      ]
+    },
+    {
+      "number": 104,
+      "title": "Expose stable ADV \u2014 cdae139e\u2026      ID                        TITLE                                    TASKS  GATES          LAST ACTIVITY \u23f0  branchAwareAdvOcaSession  Branch-aware ADV/OCA session management   7/10  \u2713 \u2713 \u2713 \u2713 \u25cb \u25cb \u25cb  4d ago  1 active \u00b7 39 archived \u00b7 0 closed read surface for OCA consumption (O2)",
+      "value": 8,
+      "time_criticality": 8,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 4.8,
+      "labels": []
+    },
+    {
+      "number": 59,
+      "title": "Multi-repo product linking: design model for ADV state across separate front/backend repos",
+      "value": 13,
+      "time_criticality": 8,
+      "rroe": 13,
+      "effort": 8,
+      "wsjf": 4.3,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 93,
+      "title": "adv_status: surface reflection friction signal in hygiene view",
+      "value": 5,
+      "time_criticality": 3,
+      "rroe": 5,
+      "effort": 3,
+      "wsjf": 4.3,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 103,
+      "title": "Permission-first config for ADV agents",
+      "value": 8,
+      "time_criticality": 5,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 4.2,
+      "labels": []
+    },
+    {
+      "number": 45,
+      "title": "Add runtime Zod parse validation at SDK boundary in tests",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 3,
+      "wsjf": 4.0,
+      "labels": [
+        "priority:low"
+      ]
+    },
+    {
+      "number": 94,
+      "title": "Add adv_friction_query MCP tool \u2014 agent-queryable reflection friction",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 3,
+      "wsjf": 4.0,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 96,
+      "title": "adv_session_list: cross-project view (v2 promotion)",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 3,
+      "wsjf": 4.0,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 65,
+      "title": "Replace prose-based MCP arg validation with declarative Zod refinements at schema boundary",
+      "value": 13,
+      "time_criticality": 5,
+      "rroe": 13,
+      "effort": 8,
+      "wsjf": 3.9,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 99,
+      "title": "Make change-contract traceability structural across review and archive",
+      "value": 13,
+      "time_criticality": 5,
+      "rroe": 13,
+      "effort": 8,
+      "wsjf": 3.9,
+      "labels": []
+    },
+    {
+      "number": 50,
+      "title": "Project capability index: searchable, indexed reference of truth",
+      "value": 8,
+      "time_criticality": 3,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 3.8,
+      "labels": [
+        "priority:medium"
+      ]
+    },
+    {
+      "number": 68,
+      "title": "Pre-flight dryRun mode for mutating ADV tools",
+      "value": 8,
+      "time_criticality": 3,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 3.8,
+      "labels": [
+        "priority:low"
+      ]
+    },
+    {
+      "number": 69,
+      "title": "Bucket C / KD-8: switch Node default to OOP worker (or confirm Bun-only direction)",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 3,
+      "effort": 3,
+      "wsjf": 3.3,
+      "labels": [
+        "priority:low",
+        "needs-verify"
+      ]
+    },
+    {
+      "number": 82,
+      "title": "Reduce ESLint complexity violations across plugin/src",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 3,
+      "effort": 3,
+      "wsjf": 3.3,
+      "labels": []
+    },
+    {
+      "number": 71,
+      "title": "F10 Phase 2: build scripts/opencode-adv.sh CLI helper for non-LLM cross-project tool exec",
+      "value": 5,
+      "time_criticality": 3,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 3.2,
+      "labels": [
+        "priority:low"
+      ]
+    },
+    {
+      "number": 83,
+      "title": "Decompose long factory closures",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 5,
+      "wsjf": 2.4,
+      "labels": []
+    },
+    {
+      "number": 90,
+      "title": "Investigate: replace N-provider-variant model with single adv + runtime-injected provider hints",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 5,
+      "effort": 5,
+      "wsjf": 2.4,
+      "labels": []
+    }
+  ],
+  "deferred": []
+}
