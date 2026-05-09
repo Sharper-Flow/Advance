@@ -24,6 +24,7 @@ import {
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
   type GateId,
+  type Gates,
   type Change,
   type ClarifyFindingSnapshot,
 } from "../types";
@@ -68,10 +69,11 @@ import {
 } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { getService } from "../temporal/service";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle, querySignal } from "./_adapters";
 import {
   changeCancelledSignal,
   gateReenteredSignal,
+  getGateStatusQuery,
 } from "../temporal/messages";
 
 /**
@@ -584,11 +586,9 @@ async function computeChangedSpecFiles(
   }
 }
 
-function getArchivePreflightError(
-  changeId: string,
+function getArchiveTaskPreflightError(
   change: {
     tasks: { id: string; title: string; status: string }[];
-    gates?: ReturnType<typeof createDefaultGates>;
   },
 ): string | null {
   const incompleteTasks = change.tasks.filter(
@@ -604,13 +604,88 @@ function getArchivePreflightError(
     });
   }
 
-  const gates = change.gates ?? createDefaultGates();
+  return null;
+}
+
+type ArchiveGateState = {
+  effectiveGates: Gates;
+  storeGates: Gates;
+  source: "store" | "live";
+  liveGates?: Gates;
+  liveQueryError?: string;
+};
+
+async function resolveArchiveGateState(
+  store: Store,
+  changeId: string,
+  change: { gates?: Gates },
+): Promise<ArchiveGateState> {
+  const storeGates = change.gates ?? createDefaultGates();
+  const bundle = getService();
+  const projectId = bundle ? await getProjectId(store.paths.root) : null;
+
+  if (!bundle || !projectId) {
+    return { effectiveGates: storeGates, storeGates, source: "store" };
+  }
+
+  try {
+    const handle = getChangeHandle(bundle.client, projectId, changeId);
+    const queriedGates = await querySignal<Gates>(
+      handle,
+      getGateStatusQuery,
+      undefined,
+    );
+    if (queriedGates && typeof queriedGates === "object") {
+      return {
+        effectiveGates: queriedGates,
+        storeGates,
+        source: "live",
+        liveGates: queriedGates,
+      };
+    }
+  } catch (error) {
+    return {
+      effectiveGates: storeGates,
+      storeGates,
+      source: "store",
+      liveQueryError: collectErrorText(error),
+    };
+  }
+
+  return { effectiveGates: storeGates, storeGates, source: "store" };
+}
+
+function getArchiveGatePreflightError(
+  changeId: string,
+  gateState: ArchiveGateState,
+  divergenceHint?: string | null,
+): string | null {
+  const gates = gateState.effectiveGates;
   if (!allGatesSatisfied(gates)) {
+    const fallbackHint = `Run /adv-gate-status ${changeId} to see gate details`;
+    const hint = [
+      fallbackHint,
+      gateState.liveQueryError
+        ? `Live gate-status query failed: ${gateState.liveQueryError}`
+        : null,
+      divergenceHint ?? null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return formatToolOutput({
       error:
         "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
       incompleteGates: getIncompleteGates(gates),
-      hint: `Run /adv-gate-status ${changeId} to see gate details`,
+      gateStateSource: gateState.source,
+      storeIncompleteGates: getIncompleteGates(gateState.storeGates),
+      ...(gateState.liveGates
+        ? { liveIncompleteGates: getIncompleteGates(gateState.liveGates) }
+        : {}),
+      ...(gateState.liveQueryError
+        ? { liveQueryError: gateState.liveQueryError }
+        : {}),
+      hint,
     });
   }
 
@@ -1945,27 +2020,23 @@ export const changeTools = {
       }
 
       const change = result.data;
-      const preflightError = getArchivePreflightError(changeId, change);
-      if (preflightError) {
-        // Detect disk/Temporal divergence for incomplete gates so the user
-        // gets a repair hint instead of a generic block message.
-        const gates = change.gates ?? createDefaultGates();
-        if (!allGatesSatisfied(gates)) {
-          const divergenceHint = await getGateDivergenceHint(
-            store,
-            changeId,
-            change,
-          );
-          if (divergenceHint) {
-            return formatToolOutput({
-              error:
-                "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
-              incompleteGates: getIncompleteGates(gates),
-              hint: divergenceHint,
-            });
-          }
-        }
-        return preflightError;
+      const taskPreflightError = getArchiveTaskPreflightError(change);
+      if (taskPreflightError) {
+        return taskPreflightError;
+      }
+
+      const gateState = await resolveArchiveGateState(store, changeId, change);
+      const divergenceHint =
+        gateState.source === "store" && !allGatesSatisfied(gateState.storeGates)
+          ? await getGateDivergenceHint(store, changeId, change)
+          : null;
+      const gatePreflightError = getArchiveGatePreflightError(
+        changeId,
+        gateState,
+        divergenceHint,
+      );
+      if (gatePreflightError) {
+        return gatePreflightError;
       }
 
       // rq-archiveValidate01: run completeness validation before bundle creation.

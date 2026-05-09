@@ -103,6 +103,7 @@ function createMockStore(
     paths: {
       root: "/tmp/test",
       changes: "/tmp/test/.adv/changes",
+      archive: "/tmp/test/.adv/archive",
     } as Store["paths"],
     config: null,
     init: vi.fn(),
@@ -600,7 +601,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
 
       expect(mocks.querySignal).toHaveBeenCalledTimes(1);
-      expect(parsed.error).not.toContain("incomplete gates");
+      expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
     });
 
