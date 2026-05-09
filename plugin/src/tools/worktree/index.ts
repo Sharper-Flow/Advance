@@ -1333,10 +1333,16 @@ export async function advWorktreeDelete(
     if (missingFromDisk) return missingFromDisk;
   }
 
-  // 2. Branch integration check. ADV-owned branches keep the archived+merged+clean
-  // contract. Non-ADV branches (registry entries without changeId) require only
-  // merged-to-default here; clean/dirty is enforced by the existing worktree
-  // status checks below.
+  // 2. Branch integration check. Three cases:
+  //
+  //    (a) ADV-owned branch (registry + changeId): archived+merged+clean
+  //    (b) Non-ADV registered branch (registry, no changeId): merged-only
+  //    (c) Branch not in registry, opts.force=true: merged-only (rq-forceUnregisteredDelete01)
+  //    (d) Branch not in registry, no force: branch_not_in_registry (existing safety)
+  //
+  // The (c) bypass is intentionally narrow: it requires the branch to be
+  // merged into the default branch. Force does NOT skip merged-to-default;
+  // this preserves P32 trunk-is-prod by refusing to delete unmerged work.
   if (registryEntry && !registryEntry.changeId) {
     const integration = await verifyNonAdvBranchIntegration(branch, deps);
     if (!integration.ok) {
@@ -1347,6 +1353,24 @@ export async function advWorktreeDelete(
         hint: integration.hint,
       };
     }
+  } else if (!registryEntry && opts.force) {
+    // rq-forceUnregisteredDelete01: branches outside the registry can be
+    // deleted with `force: true` provided they are already merged into the
+    // default branch. This unblocks /adv-triage-style workflows that
+    // create+merge+delete worktree branches without registering them.
+    const integration = await verifyNonAdvBranchIntegration(branch, deps);
+    if (!integration.ok) {
+      return {
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+        reason: integration.reason,
+        hint: integration.hint,
+      };
+    }
+    appendDebugLog(
+      "worktree-delete",
+      `force-deleting non-registered branch ${branch} (merged-to-default verified)`,
+    );
   } else {
     const integrationFn = deps.integrationCheck ?? verifyBranchIntegration;
     const integration = await integrationFn(branch, deps.projectRoot);

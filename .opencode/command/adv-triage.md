@@ -203,6 +203,8 @@ Features (Value 1-13):
 
 Reply EXACTLY one of:
 - `assign 1=high 2=critical 3=8 4=5 ...` — space-separated `id=value` pairs (priority labels for bugs; integer 1-13 for features)
+- `autofill` — agent assigns all listed values from issue body content using the rubric in Phase 4. Each autofilled value is recorded with a `<!-- adv-triage:scoring v1 ... -->` evidence block on the issue and `scored_by=agent`. User can override individual values in a follow-up `assign` reply before commit.
+- `autofill N` (or `autofill N,M`) — agent autofills only the listed numbers; remaining items defer
 - `defer N` (or `defer N,M`) — leave listed items unscored, exclude from roadmap this run
 - `defer all` — leave all listed items unscored
 - `stop` / `abort` — halt the entire /adv-triage run
@@ -242,6 +244,23 @@ fi
 ```
 
 Items deferred or skipped due to ambiguity are excluded from Phase 5 roadmap rendering and surfaced in the final report under "deferred / unscored".
+
+### Autofill semantics (Phase 3b only)
+
+When the user replies `autofill` or `autofill N,M`, the agent assigns Value (1-13) for each listed feature using the same modified-Fibonacci rubric as Phase 4. Anti-hallucination evidence is mandatory: every autofilled Value MUST be backed by a quote from the issue body (or `(no body content)` marker) and recorded in the `<!-- adv-triage:scoring v1 ... -->` block alongside `scored_by=agent` and `scored_at`.
+
+Autofill rubric for Value:
+| Anchor | Signal in issue body |
+|---|---|
+| 1-2 | Cosmetic, niche, single-user, easily-deferrable |
+| 3 | Quality-of-life, narrow surface, no growth multiplier |
+| 5 | Active workflow improvement, recurring friction signal |
+| 8 | Core differentiator, unblocks a roadmap stream, broad surface |
+| 13 | Strategic, foundational, blocks multiple workflows or external commitments |
+
+Failure mode: if the issue body is empty or insufficient to anchor a Value, log `autofill_failed: insufficient_signal` and defer the item — do not guess. After autofill, the report's "Updated" count includes autofilled items separately as `Autofilled: {N}`.
+
+× Autofill MUST NOT be applied to bug `priority:*` labels — bug priority remains user-only because it encodes user-judgement on impact severity, not an issue-content heuristic.
 
 ---
 
@@ -494,8 +513,10 @@ Project: #{N} ({owner}/ADV: {repo-name})
 ### Issues
 - Created: {N} (with numbers and titles)
 - Updated (priority/Value/scoring): {N}
+- Autofilled (Phase 3b agent-assigned Value): {N}
 - Deferred: {N}
 - Skipped (ambiguous kind): {N}
+- Skipped (autofill_failed: insufficient_signal): {N}
 
 ### Roadmap
 - Bugs: {critical}/{high}/{medium}/{low}

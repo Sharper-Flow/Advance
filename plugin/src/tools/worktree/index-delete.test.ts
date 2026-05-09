@@ -246,6 +246,8 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     writeFileSync(join(wtPath, "uncommitted.txt"), "do not lose");
 
     const deps = createMockDeps(repoRoot, wtPath);
+    // ADV-registered worktree (changeId set) — uses integrationCheck seam.
+    deps.registry = [{ branch, path: wtPath, changeId: "test-change" }];
     const result = await advWorktreeDelete(branch, { force: true }, deps);
 
     expect(result).toEqual({
@@ -375,6 +377,83 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).toContain(branch);
+  });
+
+  // rq-forceUnregisteredDelete01: force:true bypasses branch_not_in_registry
+  // for branches outside the worktree registry, provided they are merged
+  // into the default branch. This unblocks ad-hoc worktrees created by
+  // /adv-triage and similar helper flows.
+  it("#55 force:true succeeds on non-registered merged branch", async () => {
+    const branch = "chore/roadmap-2026-05-09";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = []; // not in registry
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    deps.integrationCheck = async () => {
+      throw new Error(
+        "ADV integration check must be skipped for force-unregistered path",
+      );
+    };
+
+    const result = await advWorktreeDelete(branch, { force: true }, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(appendDebugLog).toHaveBeenCalledWith(
+      "worktree-delete",
+      expect.stringContaining("force-deleting non-registered branch"),
+    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("#55 force:true on non-registered unmerged branch is still blocked", async () => {
+    const branch = "chore/unmerged";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "unmerged.txt"), "unmerged");
+    execSync("git add unmerged.txt", { cwd: wtPath });
+    execSync("git commit -m 'unmerged work'", { cwd: wtPath });
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = []; // not in registry
+    deps.mergedBranches = async () => ["main"];
+    deps.integrationCheck = async () => {
+      throw new Error("integration check should not run on force path");
+    };
+
+    const result = await advWorktreeDelete(branch, { force: true }, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "branch_not_merged",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("#55 non-registered branch without force still fails branch_not_in_registry", async () => {
+    const branch = "chore/no-force";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = []; // not in registry
+    // integrationCheck is the default mock (which would pass), but the
+    // non-force path runs verifyBranchIntegration via the seam — override
+    // it to confirm we hit the registry-check branch.
+    deps.integrationCheck = async () => ({
+      ok: false,
+      reason: "branch_not_in_registry",
+      detail: "branch not registered",
+      hint: "registry hint",
+    });
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "branch_not_in_registry",
+    });
   });
 });
 
