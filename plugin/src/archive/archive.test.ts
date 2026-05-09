@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -7,6 +7,7 @@ import {
   archiveChange,
   generateContractTraceability,
   getArchiveContractProofErrors,
+  reconcileInRepoArchive,
 } from "./archive";
 
 const createdAt = "2026-05-08T00:00:00.000Z";
@@ -142,5 +143,28 @@ describe("contract archive traceability", () => {
     );
     expect(trace).toContain("# Contract Traceability");
     expect(trace).toContain("AC1");
+  });
+
+  test("archiveChange reconciles missing in-repo archive when external bundle already exists", async () => {
+    const root = await tempProject();
+    const change = changeWithContract();
+    const archiveDir = join(root, "external-archive");
+    const inRepoArchiveDir = join(root, "repo", ".adv", "archive");
+    const today = new Date().toISOString().split("T")[0];
+    const externalBundle = join(archiveDir, `${today}-${change.id}`);
+
+    await mkdir(externalBundle, { recursive: true });
+    await writeFile(
+      join(externalBundle, "change.json"),
+      JSON.stringify({ ...change, status: "archived" }, null, 2),
+    );
+
+    await reconcileInRepoArchive(change, inRepoArchiveDir);
+
+    const inRepoChange = await readFile(
+      join(inRepoArchiveDir, `${today}-${change.id}`, "change.json"),
+      "utf8",
+    );
+    expect(JSON.parse(inRepoChange).status).toBe("archived");
   });
 });
