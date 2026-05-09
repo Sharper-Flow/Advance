@@ -1,4 +1,4 @@
-import { basename, dirname, isAbsolute, relative, resolve } from "path";
+import { dirname, isAbsolute, relative, resolve, sep } from "path";
 import { pathToFileURL } from "url";
 import { isSameOrChildPath } from "../utils/path.js";
 import type { RepoState } from "./checkpoint.js";
@@ -13,23 +13,31 @@ export type TrunkWriteDecision = "ALLOW" | "BLOCK";
  * ROADMAP.md as a deterministic mirror of the canonical Project board).
  *
  * Allowlist semantics:
- * - Match by exact basename only.
- * - Path must be DIRECTLY at the project root — nested paths are NOT exempt.
+ * - Match by relative path from project root, POSIX-normalized.
+ * - Exact path match — nested paths matching only the basename are NOT exempt.
  * - Allowlist applies to file-tool writes AND destructive bash commands.
+ *
+ * rq-issueChangeLinkage03 / wireIssueChangeLinkage: extended to allow the
+ * `.adv/` namespace entries that are deterministic mirrors of canonical
+ * external state (`.adv/github-project.json`, `.adv/roadmap-snapshot.json`).
  */
 const TRUNK_GENERATED_ARTIFACTS = new Set<string>([
   "ROADMAP.md",
   "CHANGELOG.md",
+  ".adv/github-project.json",
+  ".adv/roadmap-snapshot.json",
 ]);
 
 function isAllowlistedTrunkArtifact(
   targetPath: string,
   projectRoot: string,
 ): boolean {
-  const rel = relative(projectRoot, targetPath);
-  // Reject nested paths: rel must be the basename itself, no directory parts.
-  if (rel === "" || rel.includes("/") || rel.startsWith("..")) return false;
-  return TRUNK_GENERATED_ARTIFACTS.has(basename(targetPath));
+  // POSIX-normalize the relative path so allowlist entries (which use `/`)
+  // match cross-platform. On Linux `sep === '/'` so this is a no-op; on
+  // Windows it converts `\` to `/`.
+  const rel = relative(projectRoot, targetPath).split(sep).join("/");
+  if (rel === "" || rel.startsWith("..")) return false;
+  return TRUNK_GENERATED_ARTIFACTS.has(rel);
 }
 
 export interface TrunkWriteResult {

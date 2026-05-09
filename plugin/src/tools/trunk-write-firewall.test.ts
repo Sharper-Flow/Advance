@@ -112,11 +112,39 @@ describe("checkTrunkWrite", () => {
     },
   );
 
+  // rq-issueChangeLinkage03 (wireIssueChangeLinkage): .adv/ namespace
+  // mirrors of canonical external state are also allowlisted on trunk.
+  it.each([
+    ".adv/github-project.json",
+    ".adv/roadmap-snapshot.json",
+  ])(
+    "allows .adv/ trunk-mirror artifact: %s",
+    async (artifact) => {
+      await expect(
+        checkTrunkWrite(`/repo/${artifact}`, deps()),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+    },
+  );
+
   it("does NOT exempt allowlisted artifact names in nested paths", async () => {
     // A file named ROADMAP.md inside a subdirectory must NOT bypass the
     // firewall — only the project-root canonical artifact is exempt.
     await expect(
       checkTrunkWrite("/repo/docs/ROADMAP.md", deps()),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
+  it("does NOT exempt unrelated .adv/ paths", async () => {
+    await expect(
+      checkTrunkWrite("/repo/.adv/random.json", deps()),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
+  it("does NOT exempt nested .adv/ paths matching the allowlist basename", async () => {
+    // A file at `/repo/sub/.adv/github-project.json` is NOT the canonical
+    // project-root artifact — different parent path, must be blocked.
+    await expect(
+      checkTrunkWrite("/repo/sub/.adv/github-project.json", deps()),
     ).resolves.toMatchObject({ decision: "BLOCK" });
   });
 });
