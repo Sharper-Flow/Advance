@@ -69,7 +69,11 @@ import {
 } from "./target-project";
 import { buildExternalDependencyStatus } from "./external-dependency-status";
 import { getService } from "../temporal/service";
-import { fireSignalAndRefresh, getChangeHandle, querySignal } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  getChangeHandle,
+  querySignal,
+} from "./_adapters";
 import {
   changeCancelledSignal,
   gateReenteredSignal,
@@ -586,11 +590,9 @@ async function computeChangedSpecFiles(
   }
 }
 
-function getArchiveTaskPreflightError(
-  change: {
-    tasks: { id: string; title: string; status: string }[];
-  },
-): string | null {
+function getArchiveTaskPreflightError(change: {
+  tasks: { id: string; title: string; status: string }[];
+}): string | null {
   const incompleteTasks = change.tasks.filter(
     (t) => t.status !== "done" && t.status !== "cancelled",
   );
