@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   classifyBlankAssistantRows,
+  getDeletableBlankAssistantIds,
   getDefaultOpenCodeDbPath,
   scanOpenCodeSessionDebt,
   STALE_BLANK_ASSISTANT_THRESHOLD_MS,
@@ -20,7 +21,7 @@ describe("opencode-session-debt", () => {
     }
   });
 
-  test("classifies old blank assistant rows as repairable stale debt", () => {
+  test("classifies old blank assistant rows without liveness as idle active debt", () => {
     const rows: BlankAssistantRow[] = [
       {
         id: "msg-stale",
@@ -32,9 +33,56 @@ describe("opencode-session-debt", () => {
 
     const result = classifyBlankAssistantRows(rows, { nowMs });
 
-    expect(result.repairable_stale).toHaveLength(1);
-    expect(result.repairable_stale[0]).toMatchObject({ id: "msg-stale" });
+    expect(result.repairable_stale).toHaveLength(0);
+    expect(result.idle_active_session).toHaveLength(1);
+    expect(result.idle_active_session[0]).toMatchObject({ id: "msg-stale" });
     expect(result.live_in_flight).toHaveLength(0);
+  });
+
+  test("classifies blank assistant rows by liveness before age", () => {
+    const rows: BlankAssistantRow[] = [
+      {
+        id: "msg-live-in-flight",
+        session_id: "ses-live-in-flight",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 1,
+        part_count: 0,
+      },
+      {
+        id: "msg-idle-active",
+        session_id: "ses-idle-active",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 1,
+        part_count: 0,
+      },
+      {
+        id: "msg-orphan-ghost",
+        session_id: "ses-orphan-ghost",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 1,
+        part_count: 0,
+      },
+    ];
+
+    const result = classifyBlankAssistantRows(rows, {
+      nowMs,
+      resolveSessionLiveness: (row) => {
+        if (row.session_id === "ses-live-in-flight") return "live_in_flight";
+        if (row.session_id === "ses-idle-active") return "idle_active_session";
+        return "orphan_ghost";
+      },
+    });
+
+    expect(result.live_in_flight.map((row) => row.id)).toEqual([
+      "msg-live-in-flight",
+    ]);
+    expect(result.idle_active_session.map((row) => row.id)).toEqual([
+      "msg-idle-active",
+    ]);
+    expect(result.orphan_ghost.map((row) => row.id)).toEqual([
+      "msg-orphan-ghost",
+    ]);
+    expect(getDeletableBlankAssistantIds(result)).toEqual(["msg-orphan-ghost"]);
+    expect(result.repairable_stale.map((row) => row.id)).toEqual([
+      "msg-orphan-ghost",
+    ]);
   });
 
   test("classifies young blank assistant rows as live in-flight", () => {
@@ -131,7 +179,8 @@ describe("opencode-session-debt", () => {
     expect(constructorArgs).toEqual([[dbPath, { readonly: true }]]);
     expect(result.available).toBe(true);
     expect(result.total_blank).toBe(1);
-    expect(result.repairable_stale).toHaveLength(1);
-    expect(result.repairable_stale[0]?.id).toBe("msg-valid");
+    expect(result.repairable_stale).toHaveLength(0);
+    expect(result.idle_active_session).toHaveLength(1);
+    expect(result.idle_active_session[0]?.id).toBe("msg-valid");
   });
 });
