@@ -318,7 +318,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           ),
         );
         const result = (await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+          (await getGuardedChangeHandle(input, changeId)).query(
+            changeStateQuery,
+          ),
         )) as import("../../temporal/contracts").ChangeWorkflowState;
         indexTasksFromState(result);
         updateOverlay(changeId, { status: "closed", closure });

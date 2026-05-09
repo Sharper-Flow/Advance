@@ -838,10 +838,7 @@ export const updateTerminalStatus = (
   //   - BLOCKED → IDLE: NO ring (recovery without user action)
 
   // ATTN (permission pending): always ring immediately.
-  if (
-    status === "ATTN" &&
-    previousStatus !== null
-  ) {
+  if (status === "ATTN" && previousStatus !== null) {
     cancelPendingBell();
     pendingFinalAlert = false;
     ringBell();

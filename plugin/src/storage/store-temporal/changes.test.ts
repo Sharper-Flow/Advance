@@ -56,9 +56,9 @@ describe("isWorkflowCompletedError", () => {
   });
 
   test("workflow is not running → true", () => {
-    expect(
-      isWorkflowCompletedError(new Error("Workflow is not running")),
-    ).toBe(true);
+    expect(isWorkflowCompletedError(new Error("Workflow is not running"))).toBe(
+      true,
+    );
   });
 
   test("cannot signal a completed → true", () => {
