@@ -34,14 +34,20 @@ export function stripCommentsAndStrings(source: string): string {
 
 export function hasApiCall(source: string): boolean {
   const cleaned = stripCommentsAndStrings(source);
-  return /\badv_change_create\b/.test(cleaned) || /\bchangeCreate\b/.test(cleaned);
+  return (
+    /\badv_change_create\b/.test(cleaned) ||
+    /\bchangeCreate\b/.test(cleaned) ||
+    /\bgetWorktreeBase\b/.test(cleaned) ||
+    /\bgetDataHome\b/.test(cleaned)
+  );
 }
 
 export function hasIsolation(source: string): boolean {
   return (
     /\bcreateTempDir\b/.test(source) ||
     /\btmpdir\b/.test(source) ||
-    /\bos\.tmpdir\b/.test(source)
+    /\bos\.tmpdir\b/.test(source) ||
+    /\bXDG_DATA_HOME\b/.test(source)
   );
 }
 
