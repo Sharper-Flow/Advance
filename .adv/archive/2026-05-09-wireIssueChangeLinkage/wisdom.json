@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "id": "ws-FtVJIg",
+      "type": "gotcha",
+      "content": "Source-vs-dist reload caveat (AGENTS.md): OpenCode caches plugin/dist/index.js at session start. Drive-by source patches do NOT activate via `pnpm run build` alone. Sequence: (1) source edit, (2) build dist, (3) restart OpenCode. Hit this 4× in one session because (a) post-merge `dist/` was stale (only worktree had fresh build), (b) restart-then-build leaves stale loaded code. Correct order: build → restart → validate. If you've restarted but the fix still doesn't activate, check `ls -la plugin/dist/index.js` mtime against the commit time, and `grep -c '<new-symbol>' plugin/dist/index.js` to verify the fix is bundled.",
+      "recorded_at": "2026-05-09T05:30:13.708Z"
+    },
+    {
+      "id": "ws-CWMQpm",
+      "type": "failure",
+      "content": "project_metadata schema (`summary: z.string().max(200)`) silently rejects entries on read via `safeParse`. Writing a 563-char JSON blob via `adv_project_metadata write` SUCCEEDS at the tool layer (no validation on the long-summary path) but fails the storage-layer `ProjectMetadataEntrySchema.safeParse` on read. The entry persists on disk but is invisible to readers. Symptom: `adv_project_metadata read` returns `{entry: null}` for an entry that's clearly present in the JSON file. Lesson: don't use `project_metadata` as a typed-config store. The 200-char `summary` is a brevity contract for scan-result summaries, not a free-form payload field. Typed config (like `github_project` linkage) needs its own file with its own schema (P33: structural correctness).",
+      "recorded_at": "2026-05-09T05:30:19.479Z"
+    },
+    {
+      "id": "ws-mVr1yM",
+      "type": "pattern",
+      "content": "Cross-session change coordination via proposal cross-reference. When two agent sessions are working adjacent ADV changes, each change's proposal should explicitly reference the other under a \"Coordinated With\" header. Pattern: identify the relationship (sanitizer contract, schema dependency, format ownership), name the requirement IDs (`rq-XXX`), state the ship order. Both `enforcescoreblindproposaldesig` (proposal complete 2026-05-09T05:18) and `wireIssueChangeLinkage` (this change) reference each other. Their `rq-roadmapOriginSanitize01` ships first; our consumption ships second. Prevents drive-by overlap and clarifies sequencing without requiring synchronous coordination between agents.",
+      "recorded_at": "2026-05-09T05:30:25.254Z"
+    },
+    {
+      "id": "ws-EINTwP",
+      "type": "gotcha",
+      "content": "trunk-write-firewall allowlist matches by basename at project root only. Allowlisted paths: ROADMAP.md, CHANGELOG.md (commit `82db02d`). Nested paths under `.adv/` are still blocked even if the basename matches an allowlisted name. Specifically: `.adv/roadmap-snapshot.json` (the agent-readable mirror sidecar) write is firewall-blocked despite being a legitimate generated artifact. Workarounds: use a worktree for the write+commit (loses the on-trunk invariant for the snapshot); OR extend the allowlist to include specific nested paths (the firewall fix tracked here under wireIssueChangeLinkage scope item 5). Discovered during /adv-triage --execute validation cycle.",
+      "recorded_at": "2026-05-09T05:30:30.636Z"
+    }
+  ],
+  "count": 4
+}

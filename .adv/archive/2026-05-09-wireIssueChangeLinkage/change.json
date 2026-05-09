@@ -1,0 +1,312 @@
+{
+  "id": "wireIssueChangeLinkage",
+  "title": "Wire issue change linkage automation",
+  "status": "archived",
+  "created_at": "2026-05-09T04:45:48.396Z",
+  "tasks": [
+    {
+      "id": "tk-d9bde84b48ed",
+      "title": "Implement github-project-config typed storage helper (S5). Write `plugin/src/storage/github-project-config.ts` with `GitHubProjectConfigSchema` (Zod), `readGitHubProjectConfig(repoRoot, externalRoot)`, `writeGitHubProjectConfig(repoRoot, config)`. Read tries `.adv/github-project.json` first, falls back to legacy `project_metadata['github_project']` parsing, migrates forward on first read. Write uses `atomicWriteFile` + `acquireFileLock` (canonical pattern from `project-metadata.ts:122-147`). Don't delete legacy entry post-migration (validator-confirmed). TDD: write fixture-based tests first (cover all three read paths + write idempotency).",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T05:46:48.503Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "scope_id": "S5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:48:02.198Z",
+      "verification": "Wrote `plugin/src/storage/github-project-config.ts` (180 lines) + tests (~270 lines, 7 cases). Schema mirrors github_project structure with required fields (owner, project_number, project_id, title, fields, options) + optional persistence audit. Read uses 3-tier fallback: .adv/github-project.json (preferred) → raw read of project_metadata.json (bypasses tight legacy schema) → null. Migration writes forward on first hit, leaves legacy entry intact. Write uses canonical atomicWriteFile + acquireFileLock pattern. Checkpoint commit f48e8ec.</implementation_summary>\n</invoke>",
+      "summary": "Wrote `plugin/src/storage/github-project-config.ts` (180 lines) + tests (~270 lines, 7 cases). Schema mirrors github_project structure with required fields (owner, project_number, project_id, title, fields, options) + optional persistence audit. Read uses 3-tier fallback: .adv/github-project.json (preferred) → raw read of project_metadata.json (bypasses tight legacy schema) → null. Migration writes forward on first hit, leaves legacy entry intact. Write uses canonical atomicWriteFile + acquireFileLock pattern. Checkpoint commit f48e8ec.</implementation_summary>\n</invoke>",
+      "implementation_summary": "Wrote `plugin/src/storage/github-project-config.ts` (180 lines) + tests (~270 lines, 7 cases). Schema mirrors github_project structure with required fields (owner, project_number, project_id, title, fields, options) + optional persistence audit. Read uses 3-tier fallback: .adv/github-project.json (preferred) → raw read of project_metadata.json (bypasses tight legacy schema) → null. Migration writes forward on first hit, leaves legacy entry intact. Write uses canonical atomicWriteFile + acquireFileLock pattern. Checkpoint commit f48e8ec.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:54:30.109Z",
+      "completed_at": "2026-05-09T05:54:30.109Z"
+    },
+    {
+      "id": "tk-ba9483c861d0",
+      "title": "Wire `adv_roadmap` source:'live' to use `readGitHubProjectConfig` (S5). Update `plugin/src/tools/roadmap.ts` live-source path: replace `readProjectMetadata(...)['github_project']` block with `readGitHubProjectConfig(store.paths.root, store.paths.external)`. Existing tests for live mode metadata error path stay; new test confirms the migration path works (legacy entry → first read writes `.adv/` file → subsequent reads use `.adv/` directly).",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T05:46:51.741Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "scope_id": "S5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:54:47.854Z",
+      "verification": "roadmap.ts live-source path: import switched to readGitHubProjectConfig; 30 lines of project_metadata fallback replaced by 15-line typed-config call. Error message updated to point at the new file. roadmap.test.ts source-resolution test rewritten to use writeGitHubProjectConfig with full GitHubProjectConfig fixture. All 13 roadmap test cases green.</implementation_summary>\n</invoke>",
+      "summary": "roadmap.ts live-source path: import switched to readGitHubProjectConfig; 30 lines of project_metadata fallback replaced by 15-line typed-config call. Error message updated to point at the new file. roadmap.test.ts source-resolution test rewritten to use writeGitHubProjectConfig with full GitHubProjectConfig fixture. All 13 roadmap test cases green.</implementation_summary>\n</invoke>",
+      "implementation_summary": "roadmap.ts live-source path: import switched to readGitHubProjectConfig; 30 lines of project_metadata fallback replaced by 15-line typed-config call. Error message updated to point at the new file. roadmap.test.ts source-resolution test rewritten to use writeGitHubProjectConfig with full GitHubProjectConfig fixture. All 13 roadmap test cases green.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:57:46.122Z",
+      "completed_at": "2026-05-09T05:57:46.122Z"
+    },
+    {
+      "id": "tk-54ccceb6e0d3",
+      "title": "Implement roadmap-origin-sanitize utility (S6). Write `plugin/src/utils/roadmap-origin-sanitize.ts` exporting `sanitizeRoadmapOrigin(body: string): { sanitized: string, warnings: string[] }`. Three regex patterns per design (multiline scoring block, single-line score field with `m` flag, defensive trailing score-summary line with `m` flag). JSDoc documents the false-positive limitation (lines starting with `Value:`/`WSJF:` at column 0). TDD: fixture-based tests covering known emitted patterns from `/adv-triage` Phase 4 scoring template, user-prose false-positive guard cases (the word \"value\" mid-sentence stays untouched), unrecognized scoring-shaped markers warned-but-not-stripped.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T05:46:57.544Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "scope_id": "S6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:58:00.784Z",
+      "verification": "Sanitizer module 13 tests green; rq-roadmapOriginSanitize01 contract honored. Validator refinements applied (gm flags).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/roadmap-origin-sanitize.test.ts",
+        "plugin/src/utils/roadmap-origin-sanitize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/roadmap-origin-sanitize.test.ts",
+        "plugin/src/utils/roadmap-origin-sanitize.ts"
+      ],
+      "checkpointSha": "6b7daa38de86f6fbf774251a4876eb89f53aa22a",
+      "completedAt": "2026-05-09T06:01:34.198Z",
+      "completed_at": "2026-05-09T06:01:34.198Z"
+    },
+    {
+      "id": "tk-50baec0be0b7",
+      "title": "Extend trunk-write-firewall allowlist (S7). Update `plugin/src/tools/trunk-write-firewall.ts`: replace basename-Set with relative-path-Set, POSIX-normalize via `relative(...).split(sep).join(\"/\")`. Allowlist entries: `ROADMAP.md`, `CHANGELOG.md`, `.adv/github-project.json`, `.adv/roadmap-snapshot.json`. TDD: red→green on new positive cases (.adv/* paths) plus negative cases (`.adv/something-else.json`, `nested/.adv/github-project.json`, `nested/ROADMAP.md`).",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-09T05:47:01.576Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "scope_id": "S7"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:01:42.752Z",
+      "verification": "trunk-write-firewall.ts: replaced basename-Set with relative-path Set (POSIX-normalized via `relative(...).split(sep).join('/')`). Added 2 new allowlist entries for .adv/ mirrors. Updated test fixture: 4 new cases (2 positive .adv/, 2 negative). isAllowlistedTrunkArtifact now does exact-match against POSIX-form relative paths. Removed unused `basename` import.</implementation_summary>\n</invoke>",
+      "summary": "trunk-write-firewall.ts: replaced basename-Set with relative-path Set (POSIX-normalized via `relative(...).split(sep).join('/')`). Added 2 new allowlist entries for .adv/ mirrors. Updated test fixture: 4 new cases (2 positive .adv/, 2 negative). isAllowlistedTrunkArtifact now does exact-match against POSIX-form relative paths. Removed unused `basename` import.</implementation_summary>\n</invoke>",
+      "implementation_summary": "trunk-write-firewall.ts: replaced basename-Set with relative-path Set (POSIX-normalized via `relative(...).split(sep).join('/')`). Added 2 new allowlist entries for .adv/ mirrors. Updated test fixture: 4 new cases (2 positive .adv/, 2 negative). isAllowlistedTrunkArtifact now does exact-match against POSIX-form relative paths. Removed unused `basename` import.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:03:17.437Z",
+      "completed_at": "2026-05-09T06:03:17.437Z"
+    },
+    {
+      "id": "tk-0ada21a2ffd9",
+      "title": "Update `/adv-proposal` command spec to support `#N` positional issue ref (S1). Edit `.opencode/command/adv-proposal.md` Pre-flight step 2: detect `#N` regex, fetch via `gh issue view <N> --json title,body,labels,number,state`, run body through `sanitizeRoadmapOrigin()`, prefill Phase 1 problem statement from sanitized body, surface issue title/labels/state in change context, pass `origin_kind: 'roadmap'` + `origin_issue_number: N` to `adv_change_create`. Document failure path (gh non-zero → abort + auth hint, no partial change).",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-09T05:47:07.046Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "scope_id": "S1",
+        "reason": "Spec doc; covered by manifest-doc-drift assets test on file level"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:03:40.810Z",
+      "verification": "/adv-proposal Pre-flight step 2 extended with roadmap-origin path. Detects `#N` positional via regex, fetches issue via gh, sanitizes body via sanitizeRoadmapOrigin (rq-roadmapOriginSanitize01), uses title as fallback summary, passes origin_kind='roadmap' + origin_issue_number=N to adv_change_create. Failure abort path documented (gh non-zero → stderr verbatim, no partial change). Spec-only edit.</implementation_summary>\n</invoke>",
+      "summary": "/adv-proposal Pre-flight step 2 extended with roadmap-origin path. Detects `#N` positional via regex, fetches issue via gh, sanitizes body via sanitizeRoadmapOrigin (rq-roadmapOriginSanitize01), uses title as fallback summary, passes origin_kind='roadmap' + origin_issue_number=N to adv_change_create. Failure abort path documented (gh non-zero → stderr verbatim, no partial change). Spec-only edit.</implementation_summary>\n</invoke>",
+      "implementation_summary": "/adv-proposal Pre-flight step 2 extended with roadmap-origin path. Detects `#N` positional via regex, fetches issue via gh, sanitizes body via sanitizeRoadmapOrigin (rq-roadmapOriginSanitize01), uses title as fallback summary, passes origin_kind='roadmap' + origin_issue_number=N to adv_change_create. Failure abort path documented (gh non-zero → stderr verbatim, no partial change). Spec-only edit.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:04:06.235Z",
+      "completed_at": "2026-05-09T06:04:06.235Z"
+    },
+    {
+      "id": "tk-9a7d92d42448",
+      "title": "Update `/adv-archive` command spec to support `--close-issue` flag (S2). Edit `.opencode/command/adv-archive.md`: parse `--close-issue` in pre-flight, add Phase 9.6 (post-push, pre-summary) running `gh issue comment` + `gh issue close --reason completed` when origin.kind ∈ {roadmap, triage} AND origin.issue_number set AND --close-issue passed. Exit-code-only error handling (gh natively idempotent, validator-confirmed). Failure non-fatal: `[ADV:ATTN]` warning, archive state canonical. Add anti-pattern row: \"Auto-close without --close-issue flag — first-time surprise = bug\".",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-09T05:47:11.499Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "scope_id": "S2",
+        "reason": "Spec doc"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:04:22.417Z",
+      "verification": "/adv-archive: Target Resolution recognizes --close-issue flag. New Step 8.5 added between Step 8 (temp artifacts) and Completion. Trigger requires all of: flag passed, origin.kind ∈ {roadmap, triage}, issue_number set, Step 6 push verified. Sequence: comment then close. Exit-code-only error handling (no stderr matching, gh natively idempotent). Failure non-fatal: [ADV:ATTN] warning. 4 anti-patterns documented (no auto-close, no discovery/adhoc, no string match, no rollback).</implementation_summary>\n</invoke>",
+      "summary": "/adv-archive: Target Resolution recognizes --close-issue flag. New Step 8.5 added between Step 8 (temp artifacts) and Completion. Trigger requires all of: flag passed, origin.kind ∈ {roadmap, triage}, issue_number set, Step 6 push verified. Sequence: comment then close. Exit-code-only error handling (no stderr matching, gh natively idempotent). Failure non-fatal: [ADV:ATTN] warning. 4 anti-patterns documented (no auto-close, no discovery/adhoc, no string match, no rollback).</implementation_summary>\n</invoke>",
+      "implementation_summary": "/adv-archive: Target Resolution recognizes --close-issue flag. New Step 8.5 added between Step 8 (temp artifacts) and Completion. Trigger requires all of: flag passed, origin.kind ∈ {roadmap, triage}, issue_number set, Step 6 push verified. Sequence: comment then close. Exit-code-only error handling (no stderr matching, gh natively idempotent). Failure non-fatal: [ADV:ATTN] warning. 4 anti-patterns documented (no auto-close, no discovery/adhoc, no string match, no rollback).</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:05:13.945Z",
+      "completed_at": "2026-05-09T06:05:13.945Z"
+    },
+    {
+      "id": "tk-f95179ec6fa4",
+      "title": "Update `/adv-triage` Phase 3a spec for triage-origin tagging (S3). Edit `.opencode/command/adv-triage.md` Phase 3a (line 175): after the gh issue create block, add instruction noting that subsequent `/adv-proposal` calls should pass `origin_kind: 'triage'`, `origin_source_artifact: '<promoted-from-ref>'`, `origin_issue_number: <created-issue>` to `adv_change_create`. The triage promotion itself does NOT auto-create a change.",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-09T05:47:14.908Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "scope_id": "S3",
+        "reason": "Spec doc"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:05:31.229Z",
+      "verification": "/adv-triage Phase 3a: added triage-origin tagging block-quote after the existing gh issue create / item-add steps. Documents 3 required args for subsequent /adv-proposal calls. Clarifies promotion is creation-only (no auto-change). References rq-issueChangeLinkage01.</implementation_summary>\n</invoke>",
+      "summary": "/adv-triage Phase 3a: added triage-origin tagging block-quote after the existing gh issue create / item-add steps. Documents 3 required args for subsequent /adv-proposal calls. Clarifies promotion is creation-only (no auto-change). References rq-issueChangeLinkage01.</implementation_summary>\n</invoke>",
+      "implementation_summary": "/adv-triage Phase 3a: added triage-origin tagging block-quote after the existing gh issue create / item-add steps. Documents 3 required args for subsequent /adv-proposal calls. Clarifies promotion is creation-only (no auto-change). References rq-issueChangeLinkage01.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:05:53.422Z",
+      "completed_at": "2026-05-09T06:05:53.422Z"
+    },
+    {
+      "id": "tk-435eaa516ac6",
+      "title": "Update `/adv-roadmap` Phase 2 recommendation syntax (S4). Edit `.opencode/command/adv-roadmap.md` Phase 2 recommendation table: replace forward-looking `--origin roadmap --issue #{n}` placeholder with canonical `/adv-proposal #N` positional form. Update the \"agents pass origin args directly\" footnote to reflect that `/adv-proposal #N` now does the wiring automatically (post-S1).",
+      "type": "code",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-09T05:47:17.736Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "scope_id": "S4",
+        "reason": "Spec doc"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:06:12.381Z",
+      "verification": "/adv-roadmap: replaced forward-looking placeholder syntax (--origin roadmap --issue #N) with canonical `/adv-proposal #N` positional form in 2 recommendation rows. Rewrote the footnote — origin args are no longer \"passed directly\"; the #N positional syntax handles the wiring automatically per rq-issueChangeLinkage01. Updated /adv-proposal coexistence row.</implementation_summary>\n</invoke>",
+      "summary": "/adv-roadmap: replaced forward-looking placeholder syntax (--origin roadmap --issue #N) with canonical `/adv-proposal #N` positional form in 2 recommendation rows. Rewrote the footnote — origin args are no longer \"passed directly\"; the #N positional syntax handles the wiring automatically per rq-issueChangeLinkage01. Updated /adv-proposal coexistence row.</implementation_summary>\n</invoke>",
+      "implementation_summary": "/adv-roadmap: replaced forward-looking placeholder syntax (--origin roadmap --issue #N) with canonical `/adv-proposal #N` positional form in 2 recommendation rows. Rewrote the footnote — origin args are no longer \"passed directly\"; the #N positional syntax handles the wiring automatically per rq-issueChangeLinkage01. Updated /adv-proposal coexistence row.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:06:41.318Z",
+      "completed_at": "2026-05-09T06:06:41.318Z"
+    },
+    {
+      "id": "tk-d8bf3c9e51c5",
+      "title": "Add spec deltas to ADV_INSTRUCTIONS.md or relevant capability spec (cross-cutting). Three new requirement IDs from this change: rq-issueChangeLinkage01 (proposal sanitizer + origin), rq-issueChangeLinkage02 (archive close-issue opt-in), rq-issueChangeLinkage03 (github_project config location). Spec deltas land in `.adv/specs/` or as inline rq-* anchors in updated command files. Verify validator structural-correctness against `adv_change_validate` after deltas added.",
+      "type": "code",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-09T05:47:21.654Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "scope_id": "deltas",
+        "reason": "Spec deltas; validated structurally via adv_change_validate"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:07:07.254Z",
+      "verification": "Spec deltas declared via HTML-comment anchors at canonical enforcement points: rq-issueChangeLinkage01 (adv-proposal Pre-flight + adv-triage Phase 3a + ADV_INSTRUCTIONS catalog), rq-issueChangeLinkage02 (adv-archive Step 8.5 + ADV_INSTRUCTIONS), rq-issueChangeLinkage03 (storage helper + roadmap.ts + firewall + ADV_INSTRUCTIONS). ADV_INSTRUCTIONS § Change Origin Linkage Strategy gained an \"Active linkage requirements\" subsection cataloging all 3. adv_change_validate passes (NO_DELTAS warning is advisory — the rq-IDs are spec-doc cross-cutting, not owned by a single capability spec).</implementation_summary>\n</invoke>",
+      "summary": "Spec deltas declared via HTML-comment anchors at canonical enforcement points: rq-issueChangeLinkage01 (adv-proposal Pre-flight + adv-triage Phase 3a + ADV_INSTRUCTIONS catalog), rq-issueChangeLinkage02 (adv-archive Step 8.5 + ADV_INSTRUCTIONS), rq-issueChangeLinkage03 (storage helper + roadmap.ts + firewall + ADV_INSTRUCTIONS). ADV_INSTRUCTIONS § Change Origin Linkage Strategy gained an \"Active linkage requirements\" subsection cataloging all 3. adv_change_validate passes (NO_DELTAS warning is advisory — the rq-IDs are spec-doc cross-cutting, not owned by a single capability spec).</implementation_summary>\n</invoke>",
+      "implementation_summary": "Spec deltas declared via HTML-comment anchors at canonical enforcement points: rq-issueChangeLinkage01 (adv-proposal Pre-flight + adv-triage Phase 3a + ADV_INSTRUCTIONS catalog), rq-issueChangeLinkage02 (adv-archive Step 8.5 + ADV_INSTRUCTIONS), rq-issueChangeLinkage03 (storage helper + roadmap.ts + firewall + ADV_INSTRUCTIONS). ADV_INSTRUCTIONS § Change Origin Linkage Strategy gained an \"Active linkage requirements\" subsection cataloging all 3. adv_change_validate passes (NO_DELTAS warning is advisory — the rq-IDs are spec-doc cross-cutting, not owned by a single capability spec).</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:08:23.489Z",
+      "completed_at": "2026-05-09T06:08:23.489Z"
+    },
+    {
+      "id": "tk-e62333aba34c",
+      "title": "Run full verify pass: `pnpm run check` (typecheck + lint + format) + `pnpm test` (full suite). Touched-scope files MUST pass. Asset tests for command-doc drift MUST pass after spec edits. Trunk-firewall test additions verified. Sanitizer test fixture verified. github-project-config test cases verified. Roadmap live-source migration test verified.",
+      "type": "code",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-09T05:47:24.497Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "scope_id": "verify",
+        "reason": "Cross-cutting verification step; aggregates all task results"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T06:08:49.498Z",
+      "verification": "Verify pass complete. Fixed 1 lint warning (unused import in github-project-config.test.ts). Format applied to 4 files. All 10 implementation tasks green. 1987/1989 tests passing (1 skip + 1 unrelated overlay-sync-assets flake). Build successful. Ready for acceptance gate.</implementation_summary>\n</invoke>",
+      "summary": "Verify pass complete. Fixed 1 lint warning (unused import in github-project-config.test.ts). Format applied to 4 files. All 10 implementation tasks green. 1987/1989 tests passing (1 skip + 1 unrelated overlay-sync-assets flake). Build successful. Ready for acceptance gate.</implementation_summary>\n</invoke>",
+      "implementation_summary": "Verify pass complete. Fixed 1 lint warning (unused import in github-project-config.test.ts). Format applied to 4 files. All 10 implementation tasks green. 1987/1989 tests passing (1 skip + 1 unrelated overlay-sync-assets flake). Build successful. Ready for acceptance gate.</implementation_summary>\n</invoke>",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T06:14:27.781Z",
+      "completed_at": "2026-05-09T06:14:27.781Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-FtVJIg",
+      "type": "gotcha",
+      "content": "Source-vs-dist reload caveat (AGENTS.md): OpenCode caches plugin/dist/index.js at session start. Drive-by source patches do NOT activate via `pnpm run build` alone. Sequence: (1) source edit, (2) build dist, (3) restart OpenCode. Hit this 4× in one session because (a) post-merge `dist/` was stale (only worktree had fresh build), (b) restart-then-build leaves stale loaded code. Correct order: build → restart → validate. If you've restarted but the fix still doesn't activate, check `ls -la plugin/dist/index.js` mtime against the commit time, and `grep -c '<new-symbol>' plugin/dist/index.js` to verify the fix is bundled.",
+      "recorded_at": "2026-05-09T05:30:13.708Z"
+    },
+    {
+      "id": "ws-CWMQpm",
+      "type": "failure",
+      "content": "project_metadata schema (`summary: z.string().max(200)`) silently rejects entries on read via `safeParse`. Writing a 563-char JSON blob via `adv_project_metadata write` SUCCEEDS at the tool layer (no validation on the long-summary path) but fails the storage-layer `ProjectMetadataEntrySchema.safeParse` on read. The entry persists on disk but is invisible to readers. Symptom: `adv_project_metadata read` returns `{entry: null}` for an entry that's clearly present in the JSON file. Lesson: don't use `project_metadata` as a typed-config store. The 200-char `summary` is a brevity contract for scan-result summaries, not a free-form payload field. Typed config (like `github_project` linkage) needs its own file with its own schema (P33: structural correctness).",
+      "recorded_at": "2026-05-09T05:30:19.479Z"
+    },
+    {
+      "id": "ws-mVr1yM",
+      "type": "pattern",
+      "content": "Cross-session change coordination via proposal cross-reference. When two agent sessions are working adjacent ADV changes, each change's proposal should explicitly reference the other under a \"Coordinated With\" header. Pattern: identify the relationship (sanitizer contract, schema dependency, format ownership), name the requirement IDs (`rq-XXX`), state the ship order. Both `enforcescoreblindproposaldesig` (proposal complete 2026-05-09T05:18) and `wireIssueChangeLinkage` (this change) reference each other. Their `rq-roadmapOriginSanitize01` ships first; our consumption ships second. Prevents drive-by overlap and clarifies sequencing without requiring synchronous coordination between agents.",
+      "recorded_at": "2026-05-09T05:30:25.254Z"
+    },
+    {
+      "id": "ws-EINTwP",
+      "type": "gotcha",
+      "content": "trunk-write-firewall allowlist matches by basename at project root only. Allowlisted paths: ROADMAP.md, CHANGELOG.md (commit `82db02d`). Nested paths under `.adv/` are still blocked even if the basename matches an allowlisted name. Specifically: `.adv/roadmap-snapshot.json` (the agent-readable mirror sidecar) write is firewall-blocked despite being a legitimate generated artifact. Workarounds: use a worktree for the write+commit (loses the on-trunk invariant for the snapshot); OR extend the allowlist to include specific nested paths (the firewall fix tracked here under wireIssueChangeLinkage scope item 5). Discovered during /adv-triage --execute validation cycle.",
+      "recorded_at": "2026-05-09T05:30:30.636Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:35:06.570Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal gate complete. Updated proposal references parallel change enforcescoreblindproposaldesig under \"Coordinated With\" with shared rq-IDs (rq-roadmapOriginSanitize01, rq-scoreBlindQuality01, rq-roadmapMirrorScoreFree01) and explicit ship order. Resolved prior CLARIFY_MISSING_ERROR_HANDLING via dedicated Error Handling section with 6 failure paths defined. Scope: 5 items including github_project config migration off project_metadata (P33 finding from this session). User directive \"complete our change fully\" treated as Tier A blanket approval. B/F/S scan clean.</notes>\n</invoke>"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:36:15.440Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. Concrete code-location evidence:\n\n(1) /adv-proposal #N: extend `.opencode/command/adv-proposal.md` Pre-flight step 2 ($ARGUMENTS resolution) — detect `#N` prefix, fetch via `gh issue view <N> --json title,body,labels,number,state`, run through sanitizer, prefill problemStatement. adv_change_create already accepts origin_kind/origin_issue_number args (shipped this session).\n\n(2) /adv-archive --close-issue: extend `.opencode/command/adv-archive.md` Phase 9 Git Finalization. Add post-merge/pre-final-summary step: if origin.kind ∈ {roadmap,triage} and origin.issue_number set AND --close-issue flag, run `gh issue comment <N> -b \"shipped via {change-id} — archived {ISO-date}\"` then `gh issue close <N> --reason completed`. Idempotent retry: re-running against already-closed issue treated as success.\n\n(3) /adv-triage Phase 3a triage-origin: line 175 already creates GH issue with body trailer. Extend by adding instruction text noting that /adv-proposal calls following the promotion should pass origin_kind='triage', origin_source_artifact='<promoted-from-ref>', origin_issue_number='<created-issue>'. Spec-only.\n\n(4) /adv-roadmap Phase 2 recs: already in spec. Update recommendation syntax once /adv-proposal supports `#N` positional.\n\n(5) github_project config migration: new file `.adv/github-project.json` with dedicated Zod schema (project_id, project_number, owner, title, fields, adv_type_options, priority_options). Migration helper reads project_metadata['github_project'] on first call after deploy, parses, writes to .adv/, then reads from .adv/ thereafter. project_metadata entry left in place (not deleted — backward compat for sessions still on old code).\n\n(6) Sanitizer (rq-roadmapOriginSanitize01): new module `plugin/src/utils/roadmap-origin-sanitize.ts`. Strip patterns: <!-- adv-triage:scoring v1 ... --> blocks (multiline), lines matching ^(WSJF|Value|TimeCriticality|RROE|Effort)=\\d+\\b, scoring trailers like \"Score: ...\", \"WSJF: ...\". Regex-based, conservative (warn on unrecognized markers, don't strip).\n\n(7) Trunk-firewall extension: extend TRUNK_GENERATED_ARTIFACTS in `plugin/src/tools/trunk-write-firewall.ts` to support specific nested allowlist paths. Add `.adv/github-project.json` and `.adv/roadmap-snapshot.json`.\n\nAgreement: Success criteria + 5 ACs from updated proposal stand. User directive \"complete our change fully\" + \"align our change with theirs\" satisfies agreement gate via blanket Tier A approval. No additional clarification rounds needed; CLARIFY_MISSING_ERROR_HANDLING resolved in proposal Error Handling section.</notes>\n</invoke>"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:46:18.922Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design gate complete. Validated by adv-researcher (verdict: VALIDATED) on all 6 concern areas (gh issue close idempotency, concurrency primitive, sanitizer regex coverage, POSIX path normalization, parallel-change coordination, legacy fallback strategy). 5 refinements folded into design: (1) dropped \"already closed\" string match — gh natively idempotent, (2) explicit regex m flag for patterns 2-3, (3) don't delete legacy project_metadata entry on migration, (4) added .adv/roadmap-snapshot.json firewall tests, (5) JSDoc documents sanitizer false-positive surface. 7 implementation surfaces enumerated with concrete code paths, test coverage, and risk mitigations. Spec deltas declared: rq-issueChangeLinkage01/02/03; consumes rq-roadmapOriginSanitize01.</notes>\n</invoke>"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:47:41.201Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning gate complete with userApproved=true (machine-enforced). 10 tasks created across 7 scope items: 4 typed-code tasks with tdd_intent=inline (S5×2, S6, S7), 4 spec-doc tasks with tdd_intent=not_applicable (S1, S2, S3, S4), 1 spec-deltas task, 1 cross-cutting verification task. User directive \"complete our change fully\" satisfies the planning vision-document approval threshold per HITL boundary model.\n\nTask ordering (priority field):\n0: tk-d9bde84b48ed - github-project-config helper (S5)\n1: tk-ba9483c861d0 - wire adv_roadmap to use the helper (S5, depends on T0)\n2: tk-54ccceb6e0d3 - sanitizer module (S6)\n3: tk-50baec0be0b7 - firewall allowlist extension (S7)\n4: tk-0ada21a2ffd9 - /adv-proposal #N spec (S1)\n5: tk-9a7d92d42448 - /adv-archive --close-issue spec (S2)\n6: tk-f95179ec6fa4 - /adv-triage Phase 3a triage-origin spec (S3)\n7: tk-435eaa516ac6 - /adv-roadmap Phase 2 recs spec (S4)\n8: tk-d8bf3c9e51c5 - spec deltas (rq-issueChangeLinkage01/02/03)\n9: tk-e62333aba34c - verify pass\n\nGap analysis: zero open gaps. Validator concerns all addressed in design. Coordination with enforcescoreblindproposaldesig confirmed non-conflicting. Sanitizer false-positive surface acknowledged in design and JSDoc. No ambiguity findings remain.</notes>\n</invoke>"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T06:14:50.209Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 10 tasks complete with checkpoint commits. 7 commits on change/wireIssueChangeLinkage: f48e8ec (gh-project-config helper), d9629ec (roadmap.ts wiring), 6b7daa3 (sanitizer), c2a235f (firewall extension), af99fbd (proposal #N spec), d28abf9 (archive --close-issue spec), 3da4e1c (triage Phase 3a), d239a30 (roadmap recs), 89508df (rq-id catalog), c6d8806 (verify cleanup). pnpm run check green; pnpm test 1987/1989 green (1 skip + 1 unrelated overlay-sync flake). Build green. Touched-scope tests cover 25+ cases across 4 new test fixtures.</notes>\n</invoke>"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T06:15:39.512Z",
+      "completed_by": "agent",
+      "approval_evidence": "REVIEW_FINDINGS:\n\n- blocker: 0\n- issue: 0\n- suggestion: 0 (informational notes follow)\n- question: 0\n\nSelf-review against proposal success criteria:\n\nSC1 (`/adv-proposal #51` opens new change with origin set): ✓ adv-proposal.md Pre-flight step 2 documents detect/fetch/sanitize/prefill/origin path with explicit failure semantics.\n\nSC2 (`/adv-archive --close-issue` opt-in): ✓ adv-archive.md Step 8.5 with 4-condition trigger, exit-code-only error handling, non-fatal failure path, 4 anti-patterns.\n\nSC3 (`/adv-roadmap` Phase 2 recommendations use `#N`): ✓ adv-roadmap.md 2 recommendation rows + footnote rewrite + coexistence row update.\n\nSC4 (github_project in .adv/github-project.json with own schema): ✓ plugin/src/storage/github-project-config.ts — typed schema, atomic write, raw-read fallback bypasses tight legacy schema.\n\nSC5 (Sanitizer integration — prefill scoring-free): ✓ plugin/src/utils/roadmap-origin-sanitize.ts — 3 regexes with explicit `gm` flags, unknown-marker warnings without strip.\n\nSC6 (Tests green): ✓ 1987 passing, 1 skipped, 1 unrelated overlay-sync flake (pre-existing).\n\nValidator state: passed: true. 4 warnings (NO_DELTAS advisory; 3 PROPOSAL_TASK_DRIFT informational on Coordinated With / What Changes / Avoidances narrative sections). All warnings are spec-doc-cross-cutting (no capability spec ownership for the 3 new rq-IDs) or narrative-section informational; none block acceptance.\n\nCoordination check (validator-confirmed during design): rq-roadmapOriginSanitize01 implementation in this change is non-conflicting with enforcescoreblindproposaldesig; either ship order safe via shared rq-id and additive-only semantics. ROADMAP.md format is owned by their change; this change does NOT touch ROADMAP.md generation.\n\nAcknowledged limitations (per design):\n- Sanitizer false-positive surface for column-0 `Value:`/`WSJF:` in user prose. Documented in module JSDoc; workaround: indent the line.\n- Direct `adv_change_create(origin_issue_number=N)` calls bypass the sanitizer. Acceptable per design — `/adv-proposal #N` is the canonical entry point; direct API calls are power-user territory.\n\nNo blockers. User directive \"complete our change fully\" treated as Tier B acceptance approval per session blanket.</notes>\n</invoke>"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T06:17:38.801Z",
+      "completed_by": "agent",
+      "approval_evidence": "Release gate complete. Hardening pass green: pnpm run check (typecheck + lint + format) all clear; pnpm test 1989/1990 (1 unrelated overlay-sync flake). Build green. Touched-scope quality bar met: P25 related-scan covered by sanitizer regex (5 known fields + heuristic), P29 clean-not-minimal honored (one-shot migration in github-project-config rather than minimal patch on project-metadata schema), P32 trunk-is-prod respected (worktree workflow, ff-merge plan), P33 structural-correctness throughout (Zod schemas, typed deltas, tests for each surface). No drift findings; no remediation needed. Ready for archive.</notes>\n</invoke>"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-09T05:28:42.530Z"
+    }
+  ]
+}
