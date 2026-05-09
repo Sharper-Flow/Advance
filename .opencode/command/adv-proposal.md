@@ -29,6 +29,7 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 1. **Verify ADV tools are live** — call `adv_status` once. If it returns `ADV_PLUGIN_INIT_FAILED`, stop immediately, report the `error` + `remediation` fields verbatim, and ask the user how to proceed. × Do NOT self-block by declaring adv\_\* tools "unavailable" based on prior assumption — verify first.
 2. **Resolve summary from `$ARGUMENTS`**:
+<!-- rq-issueChangeLinkage01 -->
    - **Roadmap-origin path (`#N` positional)** — if the first token in `$ARGUMENTS` matches `/^#(\d+)\b/` (rq-issueChangeLinkage01):
      - Run `gh issue view <N> --json title,body,labels,number,state`. On non-zero exit, abort with the exact stderr + hint to run `gh auth status` and verify the issue exists. Do **not** create a partial change.
      - Run the issue body through `sanitizeRoadmapOrigin()` (`plugin/src/utils/roadmap-origin-sanitize.ts`) to strip ADV scoring trailers per `rq-roadmapOriginSanitize01`. Surface any `warnings` from the sanitizer in the change context for human review.

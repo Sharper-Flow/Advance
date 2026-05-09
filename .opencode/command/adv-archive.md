@@ -362,6 +362,7 @@ Only if running in a worktree AND merge verified in Step 6: `worktree_delete bra
 
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
+<!-- rq-issueChangeLinkage02 -->
 ### Step 8.5: Optional GitHub Issue Close (rq-issueChangeLinkage02)
 
 **Trigger:** All of the following must be true (otherwise SKIP this step):

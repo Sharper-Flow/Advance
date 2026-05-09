@@ -497,10 +497,21 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 
 **Agent picks `origin_kind` at create:**
 
-- From `/adv-roadmap` rec → `roadmap` + `origin_issue_number: N`
+- From `/adv-roadmap` rec → `roadmap` + `origin_issue_number: N` (or use `/adv-proposal #N` which sets these automatically — `rq-issueChangeLinkage01`)
 - From mid-session bug → `discovery`
-- From `/adv-triage` promotion → `triage` + `origin_source_artifact: <ag-id|wisdom-id|...>` + `origin_issue_number: <created-issue>`
+- From `/adv-triage` promotion → `triage` + `origin_source_artifact: <ag-id|wisdom-id|...>` + `origin_issue_number: <created-issue>` (`rq-issueChangeLinkage01`)
 - Ad-hoc, no upstream → `adhoc` (or omit)
+
+**Active linkage requirements:**
+
+<!-- rq-issueChangeLinkage01 -->
+- `rq-issueChangeLinkage01`: `/adv-proposal #N` MUST resolve issue body via `gh issue view`, sanitize via `rq-roadmapOriginSanitize01`, set `origin.kind='roadmap'` + `origin.issue_number=N` on the created change. Same contract used by `/adv-triage` triage-origin tagging (with `kind='triage'`).
+
+<!-- rq-issueChangeLinkage02 -->
+- `rq-issueChangeLinkage02`: `/adv-archive --close-issue` MUST be opt-in. Default-off MUST NOT mutate GH state. Exit-code-only error handling (gh natively idempotent). Failure non-fatal (`[ADV:ATTN]`); archive state canonical, no rollback.
+
+<!-- rq-issueChangeLinkage03 -->
+- `rq-issueChangeLinkage03`: `github_project` linkage config MUST live in `.adv/github-project.json` with dedicated Zod schema (`plugin/src/storage/github-project-config.ts`). Legacy `project_metadata['github_project']` is read-only fallback that migrates forward on first read; legacy entry NOT deleted post-migration.
 
 Uncertain? Omit. Legacy semantics safe.
 
