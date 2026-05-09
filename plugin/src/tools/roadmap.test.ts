@@ -234,9 +234,8 @@ describe("Roadmap Tool", () => {
       // config via `.adv/github-project.json` (preferred) with legacy
       // fallback. Verify the live source no longer trips the
       // "config not persisted" error when a valid config exists.
-      const { writeGitHubProjectConfig } = await import(
-        "../storage/github-project-config"
-      );
+      const { writeGitHubProjectConfig } =
+        await import("../storage/github-project-config");
       await writeGitHubProjectConfig(store.paths.root, {
         owner: "TestOrg",
         project_number: 1,

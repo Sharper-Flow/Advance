@@ -48,7 +48,13 @@ interface SanitizeResult {
 // Score field names ADV currently emits via /adv-triage Phase 4
 // scoring template. Lock these to the canonical set; expand only via
 // rq-roadmapOriginSanitize01 amendments.
-const KNOWN_SCORE_FIELDS = ["WSJF", "Value", "TimeCriticality", "RROE", "Effort"] as const;
+const KNOWN_SCORE_FIELDS = [
+  "WSJF",
+  "Value",
+  "TimeCriticality",
+  "RROE",
+  "Effort",
+] as const;
 
 // Pattern 1: multi-line HTML-comment scoring block.
 // Matches `<!-- adv-triage:scoring v1 ... -->`, including any content

@@ -114,10 +114,7 @@ describe("checkTrunkWrite", () => {
 
   // rq-issueChangeLinkage03 (wireIssueChangeLinkage): .adv/ namespace
   // mirrors of canonical external state are also allowlisted on trunk.
-  it.each([
-    ".adv/github-project.json",
-    ".adv/roadmap-snapshot.json",
-  ])(
+  it.each([".adv/github-project.json", ".adv/roadmap-snapshot.json"])(
     "allows .adv/ trunk-mirror artifact: %s",
     async (artifact) => {
       await expect(

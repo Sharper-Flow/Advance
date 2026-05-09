@@ -18,7 +18,6 @@ import {
   writeGitHubProjectConfig,
   type GitHubProjectConfig,
 } from "./github-project-config";
-import { writeProjectMetadataEntry } from "./project-metadata";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 
 const SAMPLE_CONFIG: GitHubProjectConfig = {

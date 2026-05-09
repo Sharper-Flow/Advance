@@ -134,11 +134,7 @@ export async function readGitHubProjectConfig(
     return null;
   }
 
-  if (
-    !legacyDoc ||
-    typeof legacyDoc !== "object" ||
-    Array.isArray(legacyDoc)
-  ) {
+  if (!legacyDoc || typeof legacyDoc !== "object" || Array.isArray(legacyDoc)) {
     return null;
   }
 
