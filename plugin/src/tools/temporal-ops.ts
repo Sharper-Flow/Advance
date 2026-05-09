@@ -15,6 +15,7 @@ import {
 } from "../temporal/client";
 import { checkAdvSearchAttributes } from "../temporal/observability";
 import { registerMissingAdvSearchAttributes } from "../temporal/observability";
+import { CHANGE_WORKFLOW_COMPAT_QUERY_NAMES } from "../temporal/contracts";
 import { formatToolOutput } from "../utils/tool-output";
 
 import {
@@ -249,7 +250,7 @@ export const temporalOpsTools = {
           const handle = bundle.client.workflow.getHandle(
             buildChangeWorkflowId(projectId, args.changeId),
           );
-          await handle.query("bootstrap");
+          await handle.query(CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.bootstrap);
           changeWorkflow = { reachable: true };
         } catch (err) {
           changeWorkflow = {
