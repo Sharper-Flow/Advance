@@ -9,6 +9,7 @@ export {
   archiveChange,
   archiveBundleExists,
   findArchiveBundle,
+  reconcileInRepoArchive,
   generateContractTraceability,
   getArchiveContractProofErrors,
 } from "./archive";

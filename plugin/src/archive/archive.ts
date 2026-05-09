@@ -566,6 +566,23 @@ export async function createInRepoArchive(
 }
 
 /**
+ * Reconcile in-repo archive after a previous attempt already wrote external
+ * archive bundle but skipped/failed before in-repo bundle creation.
+ */
+export async function reconcileInRepoArchive(
+  change: Change,
+  inRepoArchiveDir: string,
+  sourceChangeDir?: string,
+): Promise<string> {
+  const existing = await findArchiveBundle(inRepoArchiveDir, change.id);
+  if (existing) {
+    return existing;
+  }
+
+  return createInRepoArchive(change, inRepoArchiveDir, sourceChangeDir);
+}
+
+/**
  * Check whether an archive bundle already exists on disk for a given change.
  *
  * Bundles are written by createArchive() at `{archiveDir}/{date}-{changeId}/`.

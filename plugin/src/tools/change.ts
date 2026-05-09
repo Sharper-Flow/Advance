@@ -49,6 +49,7 @@ import {
   archiveChange,
   findArchiveBundle,
   getArchiveContractProofErrors,
+  reconcileInRepoArchive,
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
@@ -2148,6 +2149,16 @@ export const changeTools = {
       let archiveResult: import("../archive/types").ArchiveOperationResult;
 
       if (existingBundlePath !== null) {
+        if (!dryRun && archivePaths.inRepoArchive) {
+          await reconcileInRepoArchive(
+            change,
+            archivePaths.inRepoArchive,
+            archivePaths.changes
+              ? join(archivePaths.changes, changeId)
+              : undefined,
+          );
+        }
+
         archiveResult = {
           success: true,
           changeId,
