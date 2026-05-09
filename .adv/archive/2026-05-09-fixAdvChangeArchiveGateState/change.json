@@ -1,0 +1,158 @@
+{
+  "id": "fixAdvChangeArchiveGateState",
+  "title": "Fix adv_change_archive gate-state mismatch when gate status reports archive-ready",
+  "status": "archived",
+  "created_at": "2026-05-09T18:12:01.230Z",
+  "tasks": [
+    {
+      "id": "tk-25bf52fe465f",
+      "title": "T1 RED: add archive preflight regression tests in `plugin/src/tools/change.test.ts` for stale store gates with live complete gates and live incomplete gates. TDD intent: inline; red phase must fail before implementation.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T19:36:20.719Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:59:11.290Z",
+      "verification": "RED regression tests added. Targeted run failed before implementation as expected (new archive gate-state tests fail). Checkpoint c3e1b79.",
+      "summary": "Added tests in `plugin/src/tools/change.test.ts` for stale cached gates with live complete gates and live incomplete gates. The RED run failed before implementation, proving the regression is exposed.",
+      "implementation_summary": "Added tests in `plugin/src/tools/change.test.ts` for stale cached gates with live complete gates and live incomplete gates. The RED run failed before implementation, proving the regression is exposed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T20:02:24.164Z",
+      "completed_at": "2026-05-09T20:02:24.164Z"
+    },
+    {
+      "id": "tk-913a5b683ccc",
+      "title": "T2 GREEN: implement `resolveArchiveGateState` in `plugin/src/tools/change.ts`, use live `getGateStatusQuery` for archive gate preflight, keep conservative fallback, and enrich incomplete-gate diagnostics. TDD intent: inline; depends on T1 red tests.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T19:36:30.359Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-25bf52fe465f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T20:02:44.693Z",
+      "verification": "Implemented archive gate-state resolver and diagnostics. Targeted tests pass. Checkpoint a8c5b96.",
+      "summary": "Implemented `resolveArchiveGateState` in `plugin/src/tools/change.ts`, querying live `getGateStatusQuery` with the same adapter path as `adv_gate_status`, falling back to store gates, and enriching incomplete-gate diagnostics with source-specific fields. Updated tests now pass.",
+      "implementation_summary": "Implemented `resolveArchiveGateState` in `plugin/src/tools/change.ts`, querying live `getGateStatusQuery` with the same adapter path as `adv_gate_status`, falling back to store gates, and enriching incomplete-gate diagnostics with source-specific fields. Updated tests now pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T20:04:45.141Z",
+      "completed_at": "2026-05-09T20:04:45.141Z"
+    },
+    {
+      "id": "tk-e45dcb080ba8",
+      "title": "T3 VERIFY: run targeted test `pnpm test -- src/tools/change.test.ts` and repo check `pnpm run check` from `plugin/`; fix in-scope failures. TDD intent: separate_verification.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T19:36:37.643Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-913a5b683ccc"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-09T19:58:53.497Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T20:04:58.508Z",
+      "verification": "Verification passed. Checkpoint baeef87.",
+      "summary": "Ran targeted archive tests and full repo check from `plugin/`. Initial check failed on Prettier formatting for `src/tools/change.ts`; formatted changed files and reran. Final verification passed: targeted tests 17/17 and `pnpm run check` green.",
+      "implementation_summary": "Ran targeted archive tests and full repo check from `plugin/`. Initial check failed on Prettier formatting for `src/tools/change.ts`; formatted changed files and reran. Final verification passed: targeted tests 17/17 and `pnpm run check` green.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T20:06:38.895Z",
+      "completed_at": "2026-05-09T20:06:38.895Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-PKoOw1",
+      "type": "gotcha",
+      "content": "Full `pnpm test` currently fails on trunk and worktree for pre-existing environment-sensitive tests unrelated to touched files: overlay runtime canary PATH expectation and trunk-write firewall integration tests timing out at 5s during Temporal worker startup. Targeted change tests, `pnpm run check`, and build pass.",
+      "source_task": "tk-e45dcb080ba8",
+      "recorded_at": "2026-05-09T20:19:23.388Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:24:44.170Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved proposal with reply `approve`."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:30:36.741Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved discovery agreement with reply `approve`."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:35:54.205Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design validated by adv-researcher with verdict VALIDATED; minor refinements incorporated. No user design approval required because no tradeoff, validator conflict, or contract risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:58:59.015Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep task graph with reply `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T20:06:56.847Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "All implementation and verification tasks complete. Targeted tests and `pnpm run check` passed in worktree."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T20:09:37.894Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work with reply `accept`. REVIEW_FINDINGS had no blockers/issues/suggestions/questions."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T20:19:33.155Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Harden/release verification: targeted tests pass, `pnpm run check` passes, `pnpm run build` passes. Full `pnpm test` failures reproduced on trunk for same tests and classified as pre-existing environment-sensitive failures outside touched scope."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-09T19:24:40.669Z",
+      "resolved": true,
+      "resolved_at": "2026-05-09T19:30:41.358Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-09T19:30:41.358Z",
+      "resolved": true,
+      "resolved_at": "2026-05-09T20:19:39.805Z"
+    }
+  ]
+}

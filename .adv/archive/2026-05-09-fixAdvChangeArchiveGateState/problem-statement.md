@@ -1,0 +1,1 @@
+`adv_change_archive` currently can refuse to archive with incomplete `acceptance`/`release` gates even when other authoritative surfaces (`adv_gate_status`, `adv_change_show`) say all gates are complete and `canArchive: true`. This creates a release-blocking contradiction in ADV's finalization path and undermines trust in gate state consistency.

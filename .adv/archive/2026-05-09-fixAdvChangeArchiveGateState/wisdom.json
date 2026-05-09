@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-PKoOw1",
+      "type": "gotcha",
+      "content": "Full `pnpm test` currently fails on trunk and worktree for pre-existing environment-sensitive tests unrelated to touched files: overlay runtime canary PATH expectation and trunk-write firewall integration tests timing out at 5s during Temporal worker startup. Targeted change tests, `pnpm run check`, and build pass.",
+      "source_task": "tk-e45dcb080ba8",
+      "recorded_at": "2026-05-09T20:19:23.388Z"
+    }
+  ],
+  "count": 1
+}
