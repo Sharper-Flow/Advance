@@ -1,0 +1,127 @@
+{
+  "id": "fixGitMutationGuardBlocking",
+  "title": "Fix git mutation guard blocking canonical archive push from default branch",
+  "status": "archived",
+  "created_at": "2026-05-09T20:42:30.608Z",
+  "tasks": [
+    {
+      "id": "tk-0d800d7ee345",
+      "title": "T1 RED/GREEN: add focused `git push origin main` pass-through regression assertions to `plugin/src/tools/trunk-write-firewall.test.ts` for both `classifyDestructiveBash` and `checkTrunkWriteBash`. TDD intent: inline; no production change expected unless test exposes mismatch.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T21:00:13.664Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T21:03:09.311Z",
+      "verification": "Added git push pass-through regression assertions. Targeted test passes. Checkpoint dd47a03.",
+      "summary": "Updated `plugin/src/tools/trunk-write-firewall.test.ts` to assert `classifyDestructiveBash(\"git push origin main\")` returns no targets and `checkTrunkWriteBash` allows a chained git command including `git push origin main`. No production code change needed; current behavior already allowed the push path.",
+      "implementation_summary": "Updated `plugin/src/tools/trunk-write-firewall.test.ts` to assert `classifyDestructiveBash(\"git push origin main\")` returns no targets and `checkTrunkWriteBash` allows a chained git command including `git push origin main`. No production code change needed; current behavior already allowed the push path.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:03:38.373Z",
+      "completed_at": "2026-05-09T21:03:38.373Z"
+    },
+    {
+      "id": "tk-c5daaed4ecb6",
+      "title": "T2 VERIFY: run `pnpm exec vitest run src/tools/trunk-write-firewall.test.ts` and `pnpm run check` from `plugin/`; fix in-scope failures only. TDD intent: separate_verification.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T21:00:17.687Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d800d7ee345"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-09T21:00:23.183Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T21:04:04.956Z",
+      "verification": "Verification passed. No new file changes; checkpoint clean at dd47a03.",
+      "summary": "Ran targeted trunk-write firewall tests and repo check from `plugin/`. Targeted test passed 35/35; `pnpm run check` passed typecheck, test isolation, lint, and format check.",
+      "implementation_summary": "Ran targeted trunk-write firewall tests and repo check from `plugin/`. Targeted test passed 35/35; `pnpm run check` passed typecheck, test isolation, lint, and format check.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:04:58.939Z",
+      "completed_at": "2026-05-09T21:04:58.939Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T20:55:26.544Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved proposal with reply `approve`."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T20:57:21.100Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved revised discovery agreement with reply `approve`."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T20:59:58.885Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design validated by adv-researcher with verdict VALIDATED. No user design approval required: stale bug report verification/test-only change, no tradeoff, no validator conflict, no contract risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:02:59.731Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep task graph with reply `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:05:15.490Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "All tasks complete. Regression test added and verification passed: trunk-write-firewall tests and `pnpm run check` green."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:06:12.868Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work with reply `accept`. REVIEW_FINDINGS had no blockers/issues; optional follow-up noted for dead guards/bash.ts deletion later."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:06:43.532Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Release verification: targeted trunk-write firewall tests pass, `pnpm run check` passes, and `pnpm run build` passes. No production code change; regression test-only stale issue resolution."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-09T20:55:21.715Z",
+      "resolved": true,
+      "resolved_at": "2026-05-09T20:58:09.018Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-09T20:55:21.715Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-09T20:58:09.018Z"
+    }
+  ]
+}
