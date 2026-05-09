@@ -430,7 +430,11 @@ describe("change tools — signal-driven lifecycle", () => {
     });
 
     test("strict mode passes when validation has warnings only", async () => {
-      const store = createMockStore({ tasks: [{ id: "tk-1", title: "Task", status: "done" }] as Change["tasks"] });
+      const store = createMockStore({
+        tasks: [
+          { id: "tk-1", title: "Task", status: "done" },
+        ] as Change["tasks"],
+      });
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId: "test-change", strict: true },
@@ -448,7 +452,11 @@ describe("change tools — signal-driven lifecycle", () => {
     });
 
     test("strictWarnings opt-in fails warnings-only validation", async () => {
-      const store = createMockStore({ tasks: [{ id: "tk-1", title: "Task", status: "done" }] as Change["tasks"] });
+      const store = createMockStore({
+        tasks: [
+          { id: "tk-1", title: "Task", status: "done" },
+        ] as Change["tasks"],
+      });
 
       const result = await changeTools.adv_change_validate.execute(
         { changeId: "test-change", strict: true, strictWarnings: true },
@@ -468,7 +476,9 @@ describe("change tools — signal-driven lifecycle", () => {
     test("strict mode fails when validation has errors", async () => {
       const store = createMockStore(
         {
-          tasks: [{ id: "tk-1", title: "Task", status: "done" }] as Change["tasks"],
+          tasks: [
+            { id: "tk-1", title: "Task", status: "done" },
+          ] as Change["tasks"],
           deltas: {
             "existing-capability": [
               {
