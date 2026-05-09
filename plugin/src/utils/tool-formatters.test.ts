@@ -147,6 +147,32 @@ describe("tool-formatters", () => {
       expect(result.activeSection).toContain("testChange");
     });
 
+    it("renders serviceable peer-owned Temporal queue as informational, not degraded", () => {
+      const result = formatStatusOutput({
+        specCount: 1,
+        requirementCount: 1,
+        activeChanges: [],
+        archivedCount: 0,
+        recommendations: [],
+        temporalAlive: true,
+        temporalHealth: {
+          worker_alive: true,
+          worker_process_alive: false,
+        },
+        temporalQueueServiceability: {
+          status: "serviceable",
+          confidence: "server",
+          expectedQueue: "advance-project",
+          blockers: [],
+        },
+      });
+
+      expect(result.healthSection).toContain(
+        "Worker process: peer-owned, serviceable",
+      );
+      expect(result.healthSection).not.toContain("Worker process: degraded");
+    });
+
     it("prepends ↳ to active changes with parent_change_id", () => {
       const result = formatStatusOutput({
         specCount: 1,
