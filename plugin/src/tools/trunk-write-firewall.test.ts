@@ -165,6 +165,7 @@ describe("classifyDestructiveBash", () => {
       [],
     );
     expect(classifyDestructiveBash("git reset --hard origin/main")).toEqual([]);
+    expect(classifyDestructiveBash("git push origin main")).toEqual([]);
   });
 
   it("strips heredoc bodies before scanning", () => {
@@ -201,7 +202,7 @@ describe("checkTrunkWriteBash", () => {
   it("allows git commands without classification", async () => {
     await expect(
       checkTrunkWriteBash(
-        "git commit -m test && git pull --ff-only",
+        "git commit -m test && git pull --ff-only && git push origin main",
         "/repo",
         deps(),
       ),
