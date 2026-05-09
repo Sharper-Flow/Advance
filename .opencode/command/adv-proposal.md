@@ -28,7 +28,14 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 ## Pre-flight
 
 1. **Verify ADV tools are live** — call `adv_status` once. If it returns `ADV_PLUGIN_INIT_FAILED`, stop immediately, report the `error` + `remediation` fields verbatim, and ask the user how to proceed. × Do NOT self-block by declaring adv\_\* tools "unavailable" based on prior assumption — verify first.
-2. Resolve summary from `$ARGUMENTS` or derive a 2-5 word summary from the conversation
+2. **Resolve summary from `$ARGUMENTS`**:
+   - **Roadmap-origin path (`#N` positional)** — if the first token in `$ARGUMENTS` matches `/^#(\d+)\b/` (rq-issueChangeLinkage01):
+     - Run `gh issue view <N> --json title,body,labels,number,state`. On non-zero exit, abort with the exact stderr + hint to run `gh auth status` and verify the issue exists. Do **not** create a partial change.
+     - Run the issue body through `sanitizeRoadmapOrigin()` (`plugin/src/utils/roadmap-origin-sanitize.ts`) to strip ADV scoring trailers per `rq-roadmapOriginSanitize01`. Surface any `warnings` from the sanitizer in the change context for human review.
+     - Use the issue title as the change summary if no other summary was supplied. Use the sanitized body as the basis for the Phase 1 problem statement synthesis.
+     - At Phase 2 `adv_change_create`, pass `origin_kind: 'roadmap'` and `origin_issue_number: N`. The created change is now linked to issue `#N` via `change.origin.issue_number`.
+     - Surface issue title + labels + state in the resulting change context output.
+   - **Standard path** — otherwise derive a 2-5 word summary from `$ARGUMENTS` or the conversation. No origin set (legacy / `adhoc` semantics).
 3. `adv_change_list` → detect overlapping changes; reuse/reference an obvious existing match, ask only if overlap is still ambiguous
 4. Read any `./temp/brainstorm-*.md` notes if present
 
