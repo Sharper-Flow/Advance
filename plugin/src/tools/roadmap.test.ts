@@ -234,9 +234,8 @@ describe("Roadmap Tool", () => {
       // store.paths.projectMetadata, but readProjectMetadata's default path
       // computation appends `.adv/` and silently returns {} for projects
       // whose metadata lives at <external>/project-metadata.json.
-      const { writeProjectMetadataEntry } = await import(
-        "../storage/project-metadata"
-      );
+      const { writeProjectMetadataEntry } =
+        await import("../storage/project-metadata");
       await writeProjectMetadataEntry(
         store.paths.root,
         {
