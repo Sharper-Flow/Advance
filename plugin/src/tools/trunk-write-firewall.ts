@@ -56,7 +56,9 @@ async function resolveTrunkContext(
   let gitRoot: string | null = null;
   const probeCwd = dirname(normalizedTarget);
   try {
-    gitRoot = (await deps.execGit(["rev-parse", "--show-toplevel"], probeCwd)).trim();
+    gitRoot = (
+      await deps.execGit(["rev-parse", "--show-toplevel"], probeCwd)
+    ).trim();
   } catch (error) {
     deps.onWarning?.(
       `trunk-write-firewall: git root detection failed for ${normalizedTarget}; allowing (${error instanceof Error ? error.message : String(error)})`,
@@ -80,7 +82,9 @@ async function resolveTrunkContext(
 
   let branch = "HEAD";
   try {
-    branch = (await deps.execGit(["rev-parse", "--abbrev-ref", "HEAD"], gitRoot)).trim();
+    branch = (
+      await deps.execGit(["rev-parse", "--abbrev-ref", "HEAD"], gitRoot)
+    ).trim();
   } catch (error) {
     deps.onWarning?.(
       `trunk-write-firewall: branch detection failed for ${gitRoot}; using HEAD (${error instanceof Error ? error.message : String(error)})`,
@@ -108,11 +112,15 @@ async function resolveTrunkContext(
   };
 }
 
-function evaluateTarget(context: TrunkContext, deps: TrunkWriteFirewallDeps): TrunkWriteResult {
+function evaluateTarget(
+  context: TrunkContext,
+  deps: TrunkWriteFirewallDeps,
+): TrunkWriteResult {
   if (context.gitRoot === null || context.repoState === "not_git") {
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
-  if (context.isWorktree) return { decision: "ALLOW", targetPath: context.targetPath };
+  if (context.isWorktree)
+    return { decision: "ALLOW", targetPath: context.targetPath };
   if (!context.isDefaultBranch) {
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
@@ -122,7 +130,8 @@ function evaluateTarget(context: TrunkContext, deps: TrunkWriteFirewallDeps): Tr
 
   const projectRoot = deps.getProjectRoot();
   const isTrunkCheckout = isSameOrChildPath(context.targetPath, projectRoot);
-  if (!isTrunkCheckout) return { decision: "ALLOW", targetPath: context.targetPath };
+  if (!isTrunkCheckout)
+    return { decision: "ALLOW", targetPath: context.targetPath };
 
   return {
     decision: "BLOCK",
@@ -181,25 +190,36 @@ export function classifyDestructiveBash(
     if (!commandName) continue;
 
     if (commandName === "tee") {
-      for (const token of tokens.slice(1).filter((token) => !token.startsWith("-"))) {
+      for (const token of tokens
+        .slice(1)
+        .filter((token) => !token.startsWith("-"))) {
         targets.push(resolveCommandPath(token, workdir));
       }
     }
 
-    if (commandName === "sed" && tokens.some((token) => token === "-i" || token.startsWith("-i"))) {
-      const positional = tokens.slice(1).filter((token) => !token.startsWith("-"));
+    if (
+      commandName === "sed" &&
+      tokens.some((token) => token === "-i" || token.startsWith("-i"))
+    ) {
+      const positional = tokens
+        .slice(1)
+        .filter((token) => !token.startsWith("-"));
       const target = positional.at(-1);
       if (target) targets.push(resolveCommandPath(target, workdir));
     }
 
     if (commandName === "cp" || commandName === "mv") {
-      const positional = tokens.slice(1).filter((token) => !token.startsWith("-"));
+      const positional = tokens
+        .slice(1)
+        .filter((token) => !token.startsWith("-"));
       const target = positional.at(-1);
       if (target) targets.push(resolveCommandPath(target, workdir));
     }
 
     if (commandName === "rm") {
-      for (const token of tokens.slice(1).filter((token) => !token.startsWith("-"))) {
+      for (const token of tokens
+        .slice(1)
+        .filter((token) => !token.startsWith("-"))) {
         targets.push(resolveCommandPath(token, workdir));
       }
     }

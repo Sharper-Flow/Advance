@@ -9,7 +9,9 @@ import {
 } from "./trunk-write-firewall.js";
 import type { RepoState } from "./checkpoint.js";
 
-function deps(overrides: Partial<TrunkWriteFirewallDeps> = {}): TrunkWriteFirewallDeps {
+function deps(
+  overrides: Partial<TrunkWriteFirewallDeps> = {},
+): TrunkWriteFirewallDeps {
   return {
     getDefaultBranch: vi.fn(async () => "main"),
     execGit: vi.fn(async (args: string[]) => {
@@ -33,7 +35,9 @@ describe("checkTrunkWrite", () => {
   });
 
   it("allows file-tool writes inside known worktree paths", async () => {
-    await expect(checkTrunkWrite("/repo-wt/src/index.ts", deps())).resolves.toMatchObject({
+    await expect(
+      checkTrunkWrite("/repo-wt/src/index.ts", deps()),
+    ).resolves.toMatchObject({
       decision: "ALLOW",
     });
   });
@@ -43,14 +47,17 @@ describe("checkTrunkWrite", () => {
     "rebasing",
     "cherry-picking",
     "reverting",
-  ] as RepoState[])("allows trunk writes while repo state is %s", async (state) => {
-    await expect(
-      checkTrunkWrite(
-        "/repo/src/index.ts",
-        deps({ getRepoState: vi.fn(async () => state) }),
-      ),
-    ).resolves.toMatchObject({ decision: "ALLOW" });
-  });
+  ] as RepoState[])(
+    "allows trunk writes while repo state is %s",
+    async (state) => {
+      await expect(
+        checkTrunkWrite(
+          "/repo/src/index.ts",
+          deps({ getRepoState: vi.fn(async () => state) }),
+        ),
+      ).resolves.toMatchObject({ decision: "ALLOW" });
+    },
+  );
 
   it("allows writes on non-default branches", async () => {
     await expect(
@@ -59,7 +66,8 @@ describe("checkTrunkWrite", () => {
         deps({
           execGit: vi.fn(async (args: string[]) => {
             if (args.join(" ") === "rev-parse --show-toplevel") return "/repo";
-            if (args.join(" ") === "rev-parse --abbrev-ref HEAD") return "change/test";
+            if (args.join(" ") === "rev-parse --abbrev-ref HEAD")
+              return "change/test";
             return "";
           }),
         }),
@@ -99,12 +107,15 @@ describe("classifyDestructiveBash", () => {
   });
 
   it("does not classify git commands as destructive writes", () => {
-    expect(classifyDestructiveBash("git pull --ff-only origin main")).toEqual([]);
+    expect(classifyDestructiveBash("git pull --ff-only origin main")).toEqual(
+      [],
+    );
     expect(classifyDestructiveBash("git reset --hard origin/main")).toEqual([]);
   });
 
   it("strips heredoc bodies before scanning", () => {
-    const command = "cat <<'EOF'\ngit reset --hard\necho x > /repo/file.txt\nEOF\n";
+    const command =
+      "cat <<'EOF'\ngit reset --hard\necho x > /repo/file.txt\nEOF\n";
     expect(stripHeredocs(command)).not.toContain("/repo/file.txt");
     expect(classifyDestructiveBash(command)).toEqual([]);
   });
@@ -120,7 +131,9 @@ describe("checkTrunkWriteBash", () => {
     "mv /tmp/a /repo/file.txt",
     "rm /repo/file.txt",
   ])("blocks destructive bash command: %s", async (command) => {
-    await expect(checkTrunkWriteBash(command, "/repo", deps())).resolves.toMatchObject({
+    await expect(
+      checkTrunkWriteBash(command, "/repo", deps()),
+    ).resolves.toMatchObject({
       decision: "BLOCK",
     });
   });
@@ -133,7 +146,11 @@ describe("checkTrunkWriteBash", () => {
 
   it("allows git commands without classification", async () => {
     await expect(
-      checkTrunkWriteBash("git commit -m test && git pull --ff-only", "/repo", deps()),
+      checkTrunkWriteBash(
+        "git commit -m test && git pull --ff-only",
+        "/repo",
+        deps(),
+      ),
     ).resolves.toMatchObject({ decision: "ALLOW" });
   });
 });

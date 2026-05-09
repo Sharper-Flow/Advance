@@ -123,7 +123,10 @@ export function runGit(
   });
 }
 
-async function gitPathExists(cwd: string, gitPathName: string): Promise<boolean> {
+async function gitPathExists(
+  cwd: string,
+  gitPathName: string,
+): Promise<boolean> {
   try {
     const gitPath = (
       await runGit(["rev-parse", "--git-path", gitPathName], cwd)

@@ -511,7 +511,9 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
             ["worktree", "list", "--porcelain"],
             projectRoot,
           );
-          return parseWorktreePaths(output).filter((path) => path !== projectRoot);
+          return parseWorktreePaths(output).filter(
+            (path) => path !== projectRoot,
+          );
         } catch (error) {
           debugLog(
             `trunk-write-firewall WARN: worktree path lookup failed for ${projectRoot}: ${error instanceof Error ? error.message : String(error)}`,
@@ -523,7 +525,11 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       onWarning: (message: string) => debugLog(message),
     };
 
-    if (toolName === "write" || toolName === "edit" || toolName === "morph_edit") {
+    if (
+      toolName === "write" ||
+      toolName === "edit" ||
+      toolName === "morph_edit"
+    ) {
       const targetPath =
         typeof args.filePath === "string"
           ? args.filePath
@@ -535,17 +541,26 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       if (targetPath) {
         const result = await checkTrunkWrite(targetPath, firewallDeps);
         if (result.decision === "BLOCK") {
-          throw new Error(result.reason ?? "Trunk write firewall blocked file write.");
+          throw new Error(
+            result.reason ?? "Trunk write firewall blocked file write.",
+          );
         }
       }
     }
 
     if (toolName === "bash") {
       const command = typeof args.command === "string" ? args.command : "";
-      const argsWorkdir = typeof args.workdir === "string" ? args.workdir : undefined;
-      const result = await checkTrunkWriteBash(command, argsWorkdir, firewallDeps);
+      const argsWorkdir =
+        typeof args.workdir === "string" ? args.workdir : undefined;
+      const result = await checkTrunkWriteBash(
+        command,
+        argsWorkdir,
+        firewallDeps,
+      );
       if (result.decision === "BLOCK") {
-        throw new Error(result.reason ?? "Trunk write firewall blocked bash write.");
+        throw new Error(
+          result.reason ?? "Trunk write firewall blocked bash write.",
+        );
       }
     }
 

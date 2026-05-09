@@ -333,7 +333,9 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
 
     await initGitRepo();
     const worktreePath = `${tempDir}-wt`;
-    execSync(`git worktree add -b change/test ${worktreePath}`, { cwd: tempDir });
+    execSync(`git worktree add -b change/test ${worktreePath}`, {
+      cwd: tempDir,
+    });
     mkdirSync(join(worktreePath, "src"), { recursive: true });
 
     hooks = await AdvancePlugin({
@@ -380,7 +382,9 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     await expect(
       hooks["tool.execute.before"]!(
         { tool: "bash", sessionID: "test" } as any,
-        { args: { command: "git commit -m 'test' && git pull --ff-only" } } as any,
+        {
+          args: { command: "git commit -m 'test' && git pull --ff-only" },
+        } as any,
       ),
     ).resolves.toBeUndefined();
   });
