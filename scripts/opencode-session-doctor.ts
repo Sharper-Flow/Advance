@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
   classifyBlankAssistantRows,
+  getDeletableBlankAssistantIds,
   getDefaultOpenCodeDbPath,
   STALE_BLANK_ASSISTANT_THRESHOLD_MS,
   type BlankAssistantRow,
@@ -67,7 +68,7 @@ function printUsage(): void {
   bun scripts/opencode-session-doctor.ts --dry-run [--db <path>] [--threshold-ms <ms>]
   bun scripts/opencode-session-doctor.ts --apply --backup-dir <dir> [--db <path>] [--threshold-ms <ms>]
 
-Repairs only stale blank assistant messages: role=assistant, finish=null, zero parts, age >= threshold.
+Repairs only orphan ghost blank assistant messages: role=assistant, finish=null, zero parts, and liveness classified as orphan_ghost.
 Default DB: $OPENCODE_DB or ~/.local/share/opencode/opencode.db
 Default threshold: ${STALE_BLANK_ASSISTANT_THRESHOLD_MS}ms`);
 }
@@ -157,7 +158,7 @@ async function main(): Promise<void> {
   const classification = classifyBlankAssistantRows(rows, {
     thresholdMs: args.thresholdMs,
   });
-  const ids = classification.repairable_stale.map((row) => row.id);
+  const ids = getDeletableBlankAssistantIds(classification);
 
   if (args.dryRun) {
     console.log(

@@ -18,11 +18,20 @@ export interface ClassifiedBlankAssistantRow extends BlankAssistantRow {
   age_ms: number;
 }
 
+export type BlankAssistantLiveness =
+  | "live_in_flight"
+  | "idle_active_session"
+  | "orphan_ghost"
+  | "unknown";
+
 export interface OpenCodeSessionDebtClassification {
   threshold_ms: number;
   total_blank: number;
+  /** @deprecated Use orphan_ghost. Kept for existing status/report callers. */
   repairable_stale: ClassifiedBlankAssistantRow[];
   live_in_flight: ClassifiedBlankAssistantRow[];
+  idle_active_session: ClassifiedBlankAssistantRow[];
+  orphan_ghost: ClassifiedBlankAssistantRow[];
   ignored_with_parts: ClassifiedBlankAssistantRow[];
 }
 
@@ -41,6 +50,8 @@ export type OpenCodeSessionDebtScan =
       total_blank: 0;
       repairable_stale: [];
       live_in_flight: [];
+      idle_active_session: [];
+      orphan_ghost: [];
       ignored_with_parts: [];
     };
 
@@ -48,6 +59,9 @@ interface ClassifyOptions {
   nowMs?: number;
   thresholdMs?: number;
   sampleLimit?: number;
+  resolveSessionLiveness?: (
+    row: BlankAssistantRow,
+  ) => BlankAssistantLiveness | undefined;
 }
 
 interface ScanOptions extends ClassifyOptions {
@@ -89,6 +103,8 @@ export function classifyBlankAssistantRows(
     total_blank: rows.length,
     repairable_stale: [],
     live_in_flight: [],
+    idle_active_session: [],
+    orphan_ghost: [],
     ignored_with_parts: [],
   };
 
@@ -103,14 +119,35 @@ export function classifyBlankAssistantRows(
       continue;
     }
 
-    if (classified.age_ms >= thresholdMs) {
+    const liveness = options.resolveSessionLiveness?.(row);
+    if (liveness === "orphan_ghost") {
+      pushSample(result.orphan_ghost, classified, sampleLimit);
       pushSample(result.repairable_stale, classified, sampleLimit);
+      continue;
+    }
+    if (liveness === "live_in_flight") {
+      pushSample(result.live_in_flight, classified, sampleLimit);
+      continue;
+    }
+    if (liveness === "idle_active_session" || liveness === "unknown") {
+      pushSample(result.idle_active_session, classified, sampleLimit);
+      continue;
+    }
+
+    if (classified.age_ms >= thresholdMs) {
+      pushSample(result.idle_active_session, classified, sampleLimit);
     } else {
       pushSample(result.live_in_flight, classified, sampleLimit);
     }
   }
 
   return result;
+}
+
+export function getDeletableBlankAssistantIds(
+  classification: OpenCodeSessionDebtClassification,
+): string[] {
+  return classification.orphan_ghost.map((row) => row.id);
 }
 
 export async function scanOpenCodeSessionDebt(
@@ -226,6 +263,8 @@ function unavailable(
     total_blank: 0,
     repairable_stale: [],
     live_in_flight: [],
+    idle_active_session: [],
+    orphan_ghost: [],
     ignored_with_parts: [],
   };
 }
