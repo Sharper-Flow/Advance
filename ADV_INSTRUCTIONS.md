@@ -460,6 +460,49 @@ Config: `related_repos` in `project.json` maps repo IDs to paths.
 
 Review/Harden gates block if cross-repo tasks incomplete or cancelled without approval.
 
+### Change Origin Linkage Strategy
+
+ADV changes and GitHub issues both represent "work to do," but they are not the same shape and they do not reduce to each other. ADV changes are *workflow state machines* (gates, tasks, validation, archived state) backed by Temporal; GitHub issues are *registered intents* backed by GitHub. They reference each other but neither is the canonical form of the other.
+
+Real work flows in three directions, and the architecture must respect all of them:
+
+| Origin kind | When it happens | Issue creation | Auto-close on archive |
+|---|---|---|---|
+| `roadmap` | Promoted from a GH Project / ROADMAP.md item via `/adv-roadmap` → `/adv-proposal` | **Issue exists upstream** — `change.origin.issue_number` required | Yes (opt-in via flag once behavior automation lands) |
+| `discovery` | Surfaced mid-session (bug found while doing other work, drive-by improvement, `/adv-improve` finding) | Optional, post-hoc — open if the work is broadly interesting; not required | No |
+| `triage` | Promoted by `/adv-triage` from a non-GH source artifact (agenda, wisdom, cross-session note, TODO comment) | Created BY `/adv-triage` from the source artifact; `change.origin.issue_number` set after promotion | Yes (it's a tracked promotion path) |
+| `adhoc` | Explicit, no upstream artifact (default for ad-hoc work, spikes, and pre-origin-field legacy changes) | Never | Never |
+
+The typed primitive is `change.origin = { kind, issue_number?, source_artifact? }` (see `plugin/src/types/changes.ts`). It is optional for backward compatibility; legacy changes default to `adhoc` semantics on read.
+
+**Source-of-truth split:**
+
+| Surface | Source of truth | Why |
+|---|---|---|
+| Ranked backlog (what's worth picking up next) | GitHub Project v2 + `ROADMAP.md` mirror | Multi-stakeholder visibility, public history, score fields (V/TC/RROE/E/WSJF). Moving this into Temporal would sacrifice the stakeholder surface for an agent-only one. |
+| In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal workflow state + on-disk projection | Single-session-coordinated, gate-machine-validated, replay-safe. GH cannot model this. |
+| Linkage between the two (origin, reverse-index) | `change.origin` (Temporal-projected via `change.json`) | Linkage IS ADV state; lives where the rest of ADV state lives. |
+
+**Behavior boundaries (current):** The schema layer is shipped (`change.origin` typed field, `adv_change_create` accepts origin args, `adv_roadmap` cross-references active changes by `origin.issue_number`). Behavior automation (`/adv-proposal #N` reading issue body and prefilling, auto-closing the linked issue when the change archives, reverse-indexed roadmap recommendations) is a follow-up change — do NOT short-circuit it inline.
+
+**Anti-patterns:**
+
+| × Bad | ✓ Good |
+|---|---|
+| Auto-create a GH issue from every `/adv-proposal` call | Only when `origin.kind === 'roadmap'` (post-hoc promotion is a `/adv-triage` decision) |
+| Treat `linked_issues[]` as the canonical link | Use `change.origin.issue_number` (single, typed, queryable); free-form arrays are advisory only |
+| Move the ranked-backlog state into Temporal | Keep it in GH Project; `.adv/roadmap-snapshot.json` is the agent-readable mirror |
+| Ship behavior automation alongside the schema | Schema and behavior automation are separable; ship the schema first, validate it with `adv_roadmap` cross-references, then add automation |
+| Default new changes to `origin.kind = 'roadmap'` | Default is omitted (legacy compat) or explicit; `roadmap` requires `issue_number` |
+
+**For agents:** When invoking `adv_change_create`, ask "where did this work come from?":
+- From `/adv-roadmap` recommendation → `origin_kind: 'roadmap'`, `origin_issue_number: N`
+- From mid-session bug discovery → `origin_kind: 'discovery'`
+- From `/adv-triage` promotion → `origin_kind: 'triage'`, `origin_source_artifact: '<ag-id|wisdom-id|...>'`, `origin_issue_number: <created-issue>`
+- From explicit ad-hoc work with no upstream → `origin_kind: 'adhoc'` (or omit)
+
+When uncertain, omit `origin_kind` rather than guessing — legacy semantics are safe.
+
 ### Cross-Project Coordination
 
 Use when a source ADV change references/contributes to another ADV-enabled project via `target_path`.
