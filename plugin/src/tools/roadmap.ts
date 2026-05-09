@@ -429,16 +429,17 @@ export const roadmapTools = {
         snapshot = result.snapshot;
         snapshotPath = result.path;
       } else {
-        const externalPath = store.paths.external;
-        if (!externalPath) {
-          return formatToolOutput({
-            error:
-              "Project external state path is not configured; cannot read github_project metadata.",
-            hint: "Live source requires the ADV external-state directory; ensure the project is initialized via plugin init.",
-            source,
-          });
-        }
-        const allMetadata = await readProjectMetadata(externalPath);
+        // Path resolution: store.paths.projectMetadata is the canonical
+        // location for project metadata (resolves to <external>/project-metadata.json
+        // when external state is configured, otherwise <root>/.adv/project-metadata.json).
+        // We MUST pass it as the override to readProjectMetadata, because
+        // the default behavior of readProjectMetadata is to append `.adv/`
+        // to its first arg — which mismatches the external-state convention
+        // and silently returns an empty record.
+        const allMetadata = await readProjectMetadata(
+          store.paths.root,
+          store.paths.projectMetadata,
+        );
         const entry = allMetadata["github_project"];
         if (!entry?.summary) {
           return formatToolOutput({

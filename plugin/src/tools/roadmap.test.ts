@@ -228,6 +228,46 @@ describe("Roadmap Tool", () => {
     });
   });
 
+  describe("source: live metadata resolution", () => {
+    test("reads github_project metadata from store.paths.projectMetadata (not the .adv/ default)", async () => {
+      // Reproduces the bug: adv_project_metadata writes to
+      // store.paths.projectMetadata, but readProjectMetadata's default path
+      // computation appends `.adv/` and silently returns {} for projects
+      // whose metadata lives at <external>/project-metadata.json.
+      const { writeProjectMetadataEntry } = await import(
+        "../storage/project-metadata"
+      );
+      await writeProjectMetadataEntry(
+        store.paths.root,
+        {
+          key: "github_project",
+          timestamp: new Date().toISOString(),
+          count: 1,
+          summary: JSON.stringify({
+            owner: "TestOrg",
+            project_number: 1,
+            project_id: "PVT_test",
+            title: "ADV: Test",
+          }),
+          written_by: "agent",
+        },
+        store.paths.projectMetadata,
+      );
+
+      const result = await roadmapTools.adv_roadmap.execute(
+        { source: "live" },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      // Must NOT be the "metadata not persisted" error — that means we
+      // failed to find the entry on disk despite it existing.
+      expect(parsed.error).not.toMatch(/metadata not persisted/);
+      // Downstream errors are acceptable (gh CLI not available in test env);
+      // only the metadata-resolution path is what we're guarding here.
+    });
+  });
+
   describe("active-change cross-reference", () => {
     test("annotates roadmap items that have an active change via origin.issue_number", async () => {
       await writeSnapshot(SAMPLE_SNAPSHOT);
