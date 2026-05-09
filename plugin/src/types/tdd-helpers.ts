@@ -63,6 +63,18 @@ export const TDD_TRIVIAL_PATTERNS = [
   /\bremove unused\b/i,
   /\bupdate version\b/i,
   /\bbump version\b/i,
+  // Data/constant tasks (rq-TDD004cls data exemption — #62)
+  /\bdenylist\b/i,
+  /\ballowlist\b/i,
+  /\bblocklist\b/i,
+  /\bdata file\b/i,
+  /\bmapping table\b/i,
+  /\bmanifest\b/i,
+  /\bschema.stub\b/i,
+  /\bseed data\b/i,
+  /\bfixture\b/i,
+  /\bconstant(s)?\b/i,
+  /\bentry to\b/i,
 ];
 
 /**
