@@ -3,7 +3,7 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.7.2",
+  "version": "1.8.0",
   "updated_at": "2026-05-08T00:00:00.000Z",
   "requirements": [
     {
@@ -1207,100 +1207,101 @@
       ]
     },
     {
-      "id": "rq-gm01",
-      "title": "Bash Git Mutation Interception",
-      "body": "The plugin MUST intercept bash-tool git mutations via the tool.execute.before hook and enforce worktree-scope and dirty-tree constraints. Raw-bash git commit/push/merge/rebase on non-worktree checkouts MUST be blocked with actionable error messages. The guard MUST handle git aliases (via config resolution), compound commands (via shell operator splitting), and -C flag overrides. Shell aliases/functions and script-internal git calls are accepted residual risk documented in specs. Read-only git commands and worktree management commands MUST always be allowed.",
+      "id": "rq-twf01",
+      "title": "Trunk Write Firewall",
+      "body": "The plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. The firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
       "priority": "must",
-      "tags": ["git", "guard", "bash", "safety", "mutation"],
+      "tags": ["git", "worktree", "firewall", "trunk", "safety"],
       "scenarios": [
         {
-          "id": "rq-gm01.1",
-          "title": "Mutation from dirty default branch blocked",
+          "id": "rq-twf01.1",
+          "title": "Trunk file write blocked on default branch",
           "given": [
-            "The working directory is the main checkout on the default branch",
-            "The git working tree has uncommitted changes (dirty)"
+            "A tool call targets a path inside the trunk checkout",
+            "HEAD is on the default branch",
+            "No git recovery state is active"
           ],
-          "when": "A bash tool call containing git commit, merge, rebase, push, or staging commands is intercepted",
+          "when": "A write, edit, morph_edit, or known destructive bash write pattern is intercepted",
           "then": [
             "The tool execution is blocked with an actionable error message",
-            "The error message suggests using adv_task_checkpoint or working from a worktree branch",
-            "No git mutation is performed"
+            "The error message directs the agent to create or use an ADV worktree",
+            "No file write is performed"
           ]
         },
         {
-          "id": "rq-gm01.2",
-          "title": "Mutation from ADV worktree allowed",
+          "id": "rq-twf01.2",
+          "title": "Worktree file write allowed",
           "given": [
-            "The working directory is inside a known ADV worktree path"
+            "A tool call targets a path inside an active ADV worktree"
           ],
-          "when": "A bash tool call containing git commit or other mutations is intercepted",
+          "when": "A write, edit, morph_edit, or known destructive bash write pattern is intercepted",
           "then": [
             "The tool execution is allowed",
             "No blocking error is thrown"
           ]
         },
         {
-          "id": "rq-gm01.3",
-          "title": "Read-only git commands always allowed",
+          "id": "rq-twf01.3",
+          "title": "Git recovery states allow trunk edits",
           "given": [
-            "Any working directory context"
+            "The trunk checkout is on the default branch",
+            "A merge, rebase, cherry-pick, or revert recovery state is active"
           ],
-          "when": "A bash tool call containing git status, log, diff, rev-parse, show, or other read-only subcommands is intercepted",
+          "when": "A file-write tool call targets a trunk-checkout path",
           "then": [
-            "The tool execution is allowed without any git fact checks",
-            "No blocking error is thrown"
+            "The tool execution is allowed",
+            "The recovery edit is not blocked by the trunk write firewall"
           ]
         },
         {
-          "id": "rq-gm01.4",
-          "title": "Git aliases resolved before classification",
+          "id": "rq-twf01.4",
+          "title": "Known destructive bash writes blocked on trunk",
           "given": [
-            "A user has configured a git alias (e.g., alias.ci = commit)"
+            "A bash command writes to a trunk-checkout path on the default branch via redirect, tee, sed -i, cp, mv, or rm",
+            "No git recovery state is active"
           ],
-          "when": "A bash tool call uses the alias (e.g., git ci -m 'test')",
+          "when": "The tool.execute.before hook analyzes the bash command string",
           "then": [
-            "The guard resolves the alias via git config --get-regexp '^alias.'",
-            "The resolved subcommand is classified correctly (MUTATION in this case)",
-            "The appropriate ALLOW/BLOCK/WARN decision is applied"
+            "The tool execution is blocked with an actionable error message",
+            "The destructive write target is surfaced in the reason"
           ]
         },
         {
-          "id": "rq-gm01.5",
-          "title": "Push from default branch blocked even when clean",
+          "id": "rq-twf01.5",
+          "title": "Git commands unrestricted by write firewall",
           "given": [
-            "The working directory is the main checkout on the default branch",
-            "The git working tree is clean"
+            "A bash command contains any git subcommand, including commit, merge, pull, push, reset, read-tree, update-ref, or other plumbing"
           ],
-          "when": "A bash tool call containing git push to the default branch is intercepted",
+          "when": "The tool.execute.before hook analyzes the bash command string",
           "then": [
-            "The tool execution is blocked with an actionable error",
-            "The error message references commit-range verification requirement"
+            "The command is not classified as a git mutation by ADV",
+            "The trunk write firewall does not block the command merely because it invokes git",
+            "Any safety enforcement for remote publication remains outside this firewall"
           ]
         },
         {
-          "id": "rq-gm01.6",
-          "title": "Compound commands analyzed per-segment",
+          "id": "rq-twf01.6",
+          "title": "Outside-repo paths allowed",
           "given": [
-            "A bash command contains multiple git commands joined by shell operators (&&, ||, ;, |)"
+            "A tool call targets a path outside any git checkout"
           ],
-          "when": "The guard analyzes the command",
+          "when": "The trunk write firewall cannot resolve a git root for the target path",
           "then": [
-            "Each segment is split on shell operators",
-            "Each segment is classified independently",
-            "The highest-severity classification is used for the decision"
+            "The tool execution is allowed",
+            "The firewall does not apply trunk-checkout rules to non-repo paths"
           ]
         },
         {
-          "id": "rq-gm01.7",
-          "title": "Residual risk documented: shell aliases and scripts",
+          "id": "rq-twf01.7",
+          "title": "Residual risk documented for shell indirection",
           "given": [
-            "A bash command invokes a shell alias (e.g., gcmsg from .bashrc) or a script that internally runs git push"
+            "A bash command writes via shell-variable indirection, shell aliases, functions, or external scripts"
           ],
-          "when": "The guard analyzes the command string",
+          "when": "The trunk write firewall analyzes the command string",
           "then": [
-            "The guard does not detect the git mutation (fundamentally undetectable from plugin hook)",
+            "The firewall may not detect the indirect write target",
             "This limitation is documented in ADV_INSTRUCTIONS.md as accepted residual risk",
-            "Mitigation: ADV instruction surfaces prohibit raw-bash git mutations"
+            "ADV instruction surfaces still prohibit intentional trunk-checkout file writes outside worktrees"
           ]
         }
       ]

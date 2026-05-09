@@ -444,12 +444,12 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 **State location:** `~/.local/share/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
 
-<!-- rq-gm01 -->
-**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) git mutation guard (`plugin/src/tools/git-guard.ts`) intercepts bash-tool git mutations and enforces worktree/dirty-tree constraints.
+<!-- rq-twf01 -->
+**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes to the trunk checkout on the default branch.
 
-### Git Mutation Guard
+### Trunk Write Firewall
 
-`tool.execute.before` classifies bash git commands (split shell ops → skip git global flags like `-C`/`--git-dir` → resolve aliases → classify). Read-only + worktree management always allowed. Mutations/staging allowed only in ADV worktrees or clean default-branch archive paths; dirty default branch, default-branch push, and non-worktree feature branches block. Residual risk: shell aliases/functions and script-internal git calls are undetectable from the plugin hook; ADV still forbids raw-bash git mutations. The guard must not block read-only/worktree mgmt, mutate peers, add Temporal coordination, or claim snapshot-index contention solved.
+`tool.execute.before` checks `write`/`edit`/`morph_edit` targets plus known destructive bash write patterns (`>`/`>>`, `tee`, `sed -i`, `cp`, `mv`, `rm`). Writes to ADV worktrees, outside repos, or active git recovery states (`MERGE_HEAD`, `REBASE_HEAD`/rebase dirs, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) are allowed. Git commands are not classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Residual risk: shell-variable indirection, shell aliases/functions, and script-internal writes may evade string parsing; ADV still forbids intentional trunk-checkout file writes outside worktrees.
 
 ### Cross-Repo Execution
 
