@@ -79,4 +79,80 @@ describe("reflection tool", () => {
     });
     expect(efficiency.active_work_ms).toBe(12 * 60 * 1000);
   });
+
+  test("uses category-specific improvement suggestions with fallback for unknown categories", async () => {
+    const change = {
+      id: "suggestion-reflection-change",
+      title: "Suggestion reflection change",
+      status: "archived",
+      created_at: "2026-01-01T00:00:00.000Z",
+      gates: {},
+      tasks: [
+        {
+          id: "tk-retry",
+          title: "Retrying task",
+          status: "done",
+          metadata: { tdd_intent: "inline" },
+          error_recovery: {
+            attempts: [
+              {
+                outcome: "failed",
+                fix_tried: "tool timeout required manual retry",
+              },
+            ],
+          },
+        },
+        {
+          id: "tk-cancel",
+          title: "Cancelled task",
+          status: "cancelled",
+          metadata: { tdd_intent: "inline" },
+          cancellation: { reason: "confusing user flow" },
+        },
+      ],
+      wisdom: [
+        {
+          id: "w-docs",
+          type: "gotcha",
+          content: "Missing docs for release handoff",
+        },
+        {
+          id: "w-pattern",
+          type: "pattern",
+          content: "Repeated manual evidence collection",
+        },
+      ],
+    };
+
+    const store = {
+      paths: {
+        root: tempDir,
+        external: tempDir,
+        archive: join(tempDir, "archive"),
+        reflections: join(tempDir, "reflections.jsonl"),
+      },
+      changes: {
+        get: async () => ({ success: true, data: change }),
+      },
+    } as unknown as Store;
+
+    const output = await reflectionTools.adv_reflect.execute(
+      { changeId: change.id },
+      store,
+    );
+    const parsed = JSON.parse(output);
+    const suggestions = parsed.reflection.plane2.improvement_suggestions;
+
+    expect(suggestions).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Tooling"),
+        expect.stringContaining("Documentation"),
+        expect.stringContaining("capability"),
+        expect.stringContaining("UX"),
+      ]),
+    );
+    expect(suggestions).not.toContain(
+      "4 friction items identified — review for process/tool improvements",
+    );
+  });
 });
