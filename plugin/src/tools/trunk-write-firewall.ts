@@ -30,6 +30,10 @@ interface TrunkContext {
   repoState: RepoState;
 }
 
+function isSamePath(left: string, right: string): boolean {
+  return left.replace(/\/+$/, "") === right.replace(/\/+$/, "");
+}
+
 const IN_PROGRESS_STATES = new Set<RepoState>([
   "merging",
   "rebasing",
@@ -48,9 +52,6 @@ async function resolveTrunkContext(
   const projectRoot = deps.getProjectRoot();
   const normalizedTarget = normalizeTargetPath(targetPath, projectRoot);
   const worktreePaths = await deps.getWorktreePaths();
-  const isWorktree = worktreePaths.some((worktreePath) =>
-    isSameOrChildPath(normalizedTarget, worktreePath),
-  );
 
   let gitRoot: string | null = null;
   const probeCwd = dirname(normalizedTarget);
@@ -65,10 +66,17 @@ async function resolveTrunkContext(
       gitRoot: null,
       branch: "HEAD",
       isDefaultBranch: false,
-      isWorktree,
+      isWorktree: false,
       repoState: "not_git",
     };
   }
+
+  const isWorktree = worktreePaths.some(
+    (worktreePath) =>
+      !isSamePath(worktreePath, projectRoot) &&
+      (isSameOrChildPath(normalizedTarget, worktreePath) ||
+        isSameOrChildPath(gitRoot, worktreePath)),
+  );
 
   let branch = "HEAD";
   try {

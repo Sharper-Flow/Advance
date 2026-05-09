@@ -57,10 +57,11 @@ import {
   isLongRunningTool,
 } from "./plugin-output";
 import {
-  checkBashCommand,
-  parseWorktreePaths,
-  type GuardDeps,
-} from "./tools/git-guard";
+  checkTrunkWrite,
+  checkTrunkWriteBash,
+  type TrunkWriteFirewallDeps,
+} from "./tools/trunk-write-firewall";
+import { parseWorktreePaths } from "./utils/worktree-paths";
 import { execGit, getDefaultBranch } from "./utils/git";
 
 const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
@@ -500,46 +501,51 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       setFlags({ permissionPending: true, sessionIdle: false });
     }
 
-    // Git mutation guard: intercept bash commands containing git mutations
+    const projectRoot = directory;
+    const firewallDeps: TrunkWriteFirewallDeps = {
+      getDefaultBranch: (cwd: string) => getDefaultBranch(cwd),
+      execGit: (gitArgs: string[], cwd: string) => execGit(gitArgs, cwd),
+      getWorktreePaths: async () => {
+        try {
+          const output = await execGit(
+            ["worktree", "list", "--porcelain"],
+            projectRoot,
+          );
+          return parseWorktreePaths(output).filter((path) => path !== projectRoot);
+        } catch (error) {
+          debugLog(
+            `trunk-write-firewall WARN: worktree path lookup failed for ${projectRoot}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          return [];
+        }
+      },
+      getProjectRoot: () => projectRoot,
+      onWarning: (message: string) => debugLog(message),
+    };
+
+    if (toolName === "write" || toolName === "edit" || toolName === "morph_edit") {
+      const targetPath =
+        typeof args.filePath === "string"
+          ? args.filePath
+          : typeof args.target_filepath === "string"
+            ? args.target_filepath
+            : typeof args.path === "string"
+              ? args.path
+              : undefined;
+      if (targetPath) {
+        const result = await checkTrunkWrite(targetPath, firewallDeps);
+        if (result.decision === "BLOCK") {
+          throw new Error(result.reason ?? "Trunk write firewall blocked file write.");
+        }
+      }
+    }
+
     if (toolName === "bash") {
       const command = typeof args.command === "string" ? args.command : "";
-      if (command && /\bgit\b/.test(command)) {
-        const argsWorkdir =
-          typeof args.workdir === "string" ? args.workdir : undefined;
-        const projectRoot = store?.paths.root ?? directory;
-        const deps: GuardDeps = {
-          getDefaultBranch: (cwd: string) => getDefaultBranch(cwd),
-          execGit: (gitArgs: string[], cwd: string) => execGit(gitArgs, cwd),
-          getWorktreePaths: async () => {
-            try {
-              const output = await execGit(
-                ["worktree", "list", "--porcelain"],
-                projectRoot,
-              );
-              return parseWorktreePaths(output).filter(
-                (path) => path !== projectRoot,
-              );
-            } catch (error) {
-              debugLog(
-                `git-guard WARN: worktree path lookup failed for ${projectRoot}: ${error instanceof Error ? error.message : String(error)}`,
-              );
-              return [];
-            }
-          },
-          getProjectRoot: () => projectRoot,
-          onWarning: (message: string) => debugLog(message),
-        };
-        const result = await checkBashCommand(command, argsWorkdir, deps);
-        if (result.decision === "BLOCK") {
-          throw new Error(
-            `Git mutation guard: ${result.reason ?? `Blocked git ${result.subcommand} command.`}`,
-          );
-        }
-        if (result.decision === "WARN") {
-          debugLog(
-            `git-guard WARN: ${result.reason ?? `Git ${result.subcommand} on unrecognized path.`}`,
-          );
-        }
+      const argsWorkdir = typeof args.workdir === "string" ? args.workdir : undefined;
+      const result = await checkTrunkWriteBash(command, argsWorkdir, firewallDeps);
+      if (result.decision === "BLOCK") {
+        throw new Error(result.reason ?? "Trunk write firewall blocked bash write.");
       }
     }
 

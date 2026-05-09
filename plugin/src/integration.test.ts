@@ -271,7 +271,7 @@ describe("Active Change Title Update on adv_change_create", () => {
   });
 });
 
-describe("Git Mutation Guard: bash tool interception", () => {
+describe("Trunk Write Firewall: tool.execute.before interception", () => {
   let tempDir: string;
   let hooks: any;
 
@@ -294,35 +294,47 @@ describe("Git Mutation Guard: bash tool interception", () => {
     await cleanupTempDir(tempDir);
   });
 
-  test("allows git status via bash tool", async () => {
-    hooks = await AdvancePlugin({
-      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
-      directory: tempDir,
-      worktree: tempDir,
-      serverUrl: new URL("http://localhost"),
-    } as any);
-
-    // git status is read-only — should NOT throw even without a real store
-    await expect(
-      hooks["tool.execute.before"]!(
-        { tool: "bash", sessionID: "test" } as any,
-        { args: { command: "git status" } } as any,
-      ),
-    ).resolves.toBeUndefined();
-  });
-
-  test("blocks git commit from dirty main checkout via bash tool", async () => {
+  async function initGitRepo() {
     const { execSync } = await import("child_process");
-    const { rmSync, writeFileSync } = await import("fs");
+    const { mkdirSync, writeFileSync } = await import("fs");
     const { join } = await import("path");
 
-    rmSync(join(tempDir, ".git"), { recursive: true, force: true });
     execSync("git init -b main", { cwd: tempDir });
     execSync("git config user.email 'test@test.com'", { cwd: tempDir });
     execSync("git config user.name 'Test'", { cwd: tempDir });
+    execSync("git config init.defaultBranch main", { cwd: tempDir });
+    mkdirSync(join(tempDir, "src"), { recursive: true });
     writeFileSync(join(tempDir, "README.md"), "initial");
     execSync("git add README.md", { cwd: tempDir });
     execSync("git commit -m 'initial'", { cwd: tempDir });
+  }
+
+  test("blocks write tool targeting trunk checkout on default branch", async () => {
+    await initGitRepo();
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: `${tempDir}/src/file.ts` } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  });
+
+  test("allows write tool targeting an active worktree path", async () => {
+    const { execSync } = await import("child_process");
+    const { mkdirSync } = await import("fs");
+    const { join } = await import("path");
+
+    await initGitRepo();
+    const worktreePath = `${tempDir}-wt`;
+    execSync(`git worktree add -b change/test ${worktreePath}`, { cwd: tempDir });
+    mkdirSync(join(worktreePath, "src"), { recursive: true });
 
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
@@ -331,17 +343,16 @@ describe("Git Mutation Guard: bash tool interception", () => {
       serverUrl: new URL("http://localhost"),
     } as any);
 
-    writeFileSync(join(tempDir, "dirty-file.ts"), "dirty");
-
     await expect(
       hooks["tool.execute.before"]!(
-        { tool: "bash", sessionID: "test" } as any,
-        { args: { command: "git commit -m 'test'" } } as any,
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(worktreePath, "src/file.ts") } } as any,
       ),
-    ).rejects.toThrow(/Git mutation guard: Git commit .*blocked/);
+    ).resolves.toBeUndefined();
   }, 15_000);
 
-  test("allows non-git bash commands", async () => {
+  test("blocks destructive bash targeting trunk checkout", async () => {
+    await initGitRepo();
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
@@ -352,12 +363,38 @@ describe("Git Mutation Guard: bash tool interception", () => {
     await expect(
       hooks["tool.execute.before"]!(
         { tool: "bash", sessionID: "test" } as any,
-        { args: { command: "echo hello" } } as any,
+        { args: { command: `echo hello > ${tempDir}/src/file.ts` } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  });
+
+  test("allows all git commands without firewall classification", async () => {
+    await initGitRepo();
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: "git commit -m 'test' && git pull --ff-only" } } as any,
       ),
     ).resolves.toBeUndefined();
   });
 
-  test("allows git worktree commands", async () => {
+  test("allows trunk writes during merge recovery", async () => {
+    const { execSync } = await import("child_process");
+    const { writeFileSync } = await import("fs");
+    const { join } = await import("path");
+
+    await initGitRepo();
+    const headSha = execSync("git rev-parse HEAD", { cwd: tempDir })
+      .toString()
+      .trim();
+    writeFileSync(join(tempDir, ".git", "MERGE_HEAD"), `${headSha}\n`);
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
@@ -367,8 +404,8 @@ describe("Git Mutation Guard: bash tool interception", () => {
 
     await expect(
       hooks["tool.execute.before"]!(
-        { tool: "bash", sessionID: "test" } as any,
-        { args: { command: "git worktree list --porcelain" } } as any,
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(tempDir, "src/file.ts") } } as any,
       ),
     ).resolves.toBeUndefined();
   });
