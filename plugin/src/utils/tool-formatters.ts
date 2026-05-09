@@ -220,6 +220,25 @@ export function formatWorkerRunError(
   return `${error.queue}: ${error.message} @ ${error.at}`;
 }
 
+function formatWorkerProcessStatus(input: StatusInput): string {
+  if (input.temporalHealth?.worker_process_alive) {
+    return "healthy";
+  }
+
+  const queueServiceability = input.temporalQueueServiceability;
+  const hasServiceabilityBlockers =
+    (queueServiceability?.blockers?.length ?? 0) > 0;
+
+  if (
+    queueServiceability?.status === "serviceable" &&
+    !hasServiceabilityBlockers
+  ) {
+    return "peer-owned, serviceable";
+  }
+
+  return "degraded";
+}
+
 // =============================================================================
 // Formatters
 // =============================================================================
@@ -302,9 +321,7 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   ];
   const queueServiceability = input.temporalQueueServiceability;
   if (queueServiceability) {
-    healthLines.push(
-      `Worker process: ${input.temporalHealth?.worker_process_alive ? "healthy" : "degraded"}`,
-    );
+    healthLines.push(`Worker process: ${formatWorkerProcessStatus(input)}`);
     healthLines.push(
       `Queue serviceability: ${queueServiceability.status} (${queueServiceability.confidence}) ${queueServiceability.expectedQueue}`,
     );
