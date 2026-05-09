@@ -238,4 +238,25 @@ describe("getTaskTddCompliance", () => {
       }),
     ).toBe("not_required");
   });
+
+  // Regression: data/constant tasks should not trigger MISSING_TDD_EVIDENCE (#62)
+  test.each([
+    ["Add new entry to denylist", "not_required"],
+    ["Update manifest entry for plugin", "not_required"],
+    ["Bump dependency version", "not_required"],
+    ["Update schema stub for types", "not_required"],
+    ["Add data file for region mapping", "not_required"],
+    ["Update constant values in config", "not_required"],
+    ["Add new entry to allowlist", "not_required"],
+    ["Update seed data for tests", "not_required"],
+    ["Update fixture data", "not_required"],
+    ["Add mapping table entry", "not_required"],
+    // Behavior tasks must still require TDD evidence
+    ["Implement new feature", "missing"],
+    ["Fix edge case in parser", "missing"],
+    ["Create handler for auth flow", "missing"],
+    ["Build retry logic for API calls", "missing"],
+  ] as const)("title-heuristic %s → %s", (title, expected) => {
+    expect(getTaskTddCompliance({ title })).toBe(expected);
+  });
 });
