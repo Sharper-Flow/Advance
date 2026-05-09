@@ -23,7 +23,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
-import { readProjectMetadata } from "../storage/project-metadata";
+import { readGitHubProjectConfig } from "../storage/github-project-config";
 
 const execFileP = promisify(execFile);
 
@@ -429,39 +429,30 @@ export const roadmapTools = {
         snapshot = result.snapshot;
         snapshotPath = result.path;
       } else {
-        // Path resolution: store.paths.projectMetadata is the canonical
-        // location for project metadata (resolves to <external>/project-metadata.json
-        // when external state is configured, otherwise <root>/.adv/project-metadata.json).
-        // We MUST pass it as the override to readProjectMetadata, because
-        // the default behavior of readProjectMetadata is to append `.adv/`
-        // to its first arg — which mismatches the external-state convention
-        // and silently returns an empty record.
-        const allMetadata = await readProjectMetadata(
+        // rq-issueChangeLinkage03: read GitHub Project linkage config from
+        // the dedicated typed-config file (`.adv/github-project.json`),
+        // falling back to legacy `project_metadata['github_project']` raw
+        // and migrating forward on first read. The legacy `summary: max(200)`
+        // schema rejected long config blobs silently — readGitHubProjectConfig
+        // bypasses that constraint by reading the legacy file raw and
+        // validating against GitHubProjectConfigSchema directly.
+        const config = await readGitHubProjectConfig(
           store.paths.root,
-          store.paths.projectMetadata,
+          store.paths.external,
         );
-        const entry = allMetadata["github_project"];
-        if (!entry?.summary) {
+        if (!config) {
           return formatToolOutput({
             error:
-              "github_project metadata not persisted. Run /adv-triage --execute once to bootstrap the project link.",
+              "github_project config not persisted. Run /adv-triage --execute once to bootstrap the project link.",
+            hint: "Config lives at `.adv/github-project.json` (preferred) or legacy `project_metadata['github_project']` (auto-migrated on first read).",
             source,
           });
         }
-        let metadata: { owner: string; number: number; title: string };
-        try {
-          const parsed = JSON.parse(entry.summary);
-          metadata = {
-            owner: parsed.owner,
-            number: parsed.project_number ?? parsed.number,
-            title: parsed.title,
-          };
-        } catch (err) {
-          return formatToolOutput({
-            error: `github_project metadata is not valid JSON: ${(err as Error).message}`,
-            source,
-          });
-        }
+        const metadata = {
+          owner: config.owner,
+          number: config.project_number,
+          title: config.title,
+        };
         const result = await readLiveProject(metadata);
         if (!result.ok) {
           return formatToolOutput({

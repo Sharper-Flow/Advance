@@ -228,30 +228,37 @@ describe("Roadmap Tool", () => {
     });
   });
 
-  describe("source: live metadata resolution", () => {
-    test("reads github_project metadata from store.paths.projectMetadata (not the .adv/ default)", async () => {
-      // Reproduces the bug: adv_project_metadata writes to
-      // store.paths.projectMetadata, but readProjectMetadata's default path
-      // computation appends `.adv/` and silently returns {} for projects
-      // whose metadata lives at <external>/project-metadata.json.
-      const { writeProjectMetadataEntry } =
-        await import("../storage/project-metadata");
-      await writeProjectMetadataEntry(
-        store.paths.root,
-        {
-          key: "github_project",
-          timestamp: new Date().toISOString(),
-          count: 1,
-          summary: JSON.stringify({
-            owner: "TestOrg",
-            project_number: 1,
-            project_id: "PVT_test",
-            title: "ADV: Test",
-          }),
-          written_by: "agent",
-        },
-        store.paths.projectMetadata,
+  describe("source: live config resolution", () => {
+    test("resolves github_project config via readGitHubProjectConfig (rq-issueChangeLinkage03)", async () => {
+      // After rq-issueChangeLinkage03 the live-source path reads typed
+      // config via `.adv/github-project.json` (preferred) with legacy
+      // fallback. Verify the live source no longer trips the
+      // "config not persisted" error when a valid config exists.
+      const { writeGitHubProjectConfig } = await import(
+        "../storage/github-project-config"
       );
+      await writeGitHubProjectConfig(store.paths.root, {
+        owner: "TestOrg",
+        project_number: 1,
+        project_id: "PVT_test",
+        title: "ADV: Test",
+        fields: {
+          adv_type: "PVTSSF_advtype",
+          priority: "PVTSSF_priority",
+          value: "PVTF_value",
+          time_criticality: "PVTF_tc",
+          rroe: "PVTF_rroe",
+          effort: "PVTF_effort",
+          wsjf: "PVTF_wsjf",
+        },
+        adv_type_options: { bug: "opt_b", feature: "opt_f" },
+        priority_options: {
+          critical: "opt_c",
+          high: "opt_h",
+          medium: "opt_m",
+          low: "opt_l",
+        },
+      });
 
       const result = await roadmapTools.adv_roadmap.execute(
         { source: "live" },
@@ -259,11 +266,10 @@ describe("Roadmap Tool", () => {
       );
       const parsed = JSON.parse(result);
 
-      // Must NOT be the "metadata not persisted" error — that means we
-      // failed to find the entry on disk despite it existing.
-      expect(parsed.error).not.toMatch(/metadata not persisted/);
+      // Must NOT be the "config not persisted" error — config exists on disk.
+      expect(parsed.error).not.toMatch(/config not persisted/);
       // Downstream errors are acceptable (gh CLI not available in test env);
-      // only the metadata-resolution path is what we're guarding here.
+      // only the config-resolution path is what we're guarding here.
     });
   });
 
