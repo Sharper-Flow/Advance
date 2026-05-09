@@ -5,6 +5,17 @@ All notable changes to ADV (Advance) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed — /adv-triage Phase 3b UX improvement
+
+- Replaced Phase 3b text-only `Reply EXACTLY one of: assign 1=high 2=critical...` batch prompt with structured `question` tool calls
+- Two-stage flow: batch control question first (one-by-one / autofill all / defer all / stop), then per-item questions with context-specific options
+- Bug priority items get `critical` / `high` / `medium` / `low` / `Defer` options
+- Feature Value items get `1`-`13` rubric options + `Defer` + `Autofill`
+- Invalid write-in values now re-prompt same item (not the whole batch)
+- Updated anti-patterns table and Key Tools table
+
 ## [Unreleased] - retireInvestmentGovernanceDeadweight
 
 ### Added — Structural correctness guidance
