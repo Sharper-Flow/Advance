@@ -100,6 +100,32 @@ describe("Status Tools", () => {
       );
     });
 
+    test("recovers when first two status loads hit bootstrap errors", async () => {
+      const originalStatus = store.status.bind(store);
+      const bootstrapError = new Error(
+        "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
+      );
+      const statusSpy = vi
+        .fn()
+        .mockRejectedValueOnce(bootstrapError)
+        .mockRejectedValueOnce(bootstrapError)
+        .mockImplementation(() => originalStatus());
+      store.status = statusSpy;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(3);
+      expect(parsed.view).toBe("summary");
+      expect(parsed.bootstrap_retry).toMatchObject({
+        recovered: true,
+        lastErrorClass: "bootstrap_in_progress",
+      });
+      expect(parsed.recommendations).not.toContain(
+        "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
+      );
+    });
+
     test("degrades structurally when bootstrap retry hits poisoned history again", async () => {
       const bootstrapError = new Error(
         "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
@@ -110,7 +136,7 @@ describe("Status Tools", () => {
       const result = await statusTools.adv_status.execute({}, store);
       const parsed = parseToolOutput(result);
 
-      expect(statusSpy).toHaveBeenCalledTimes(2);
+      expect(statusSpy).toHaveBeenCalledTimes(3);
       expect(parsed.view).toBe("summary");
       expect(parsed.changes.recent).toEqual([]);
       expect(parsed.diagnostics?.lastErrorClass).toBe("bootstrap_in_progress");
@@ -119,7 +145,7 @@ describe("Status Tools", () => {
         lastErrorClass: "bootstrap_in_progress",
       });
       expect(parsed.recommendations).toContain(
-        "⚠️ Temporal bootstrap in progress — status read hit a replay recovery error twice; retry shortly.",
+        "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
       );
     });
 

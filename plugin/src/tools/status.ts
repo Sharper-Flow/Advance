@@ -520,6 +520,7 @@ async function loadMigrationStatus(_store: Store) {
 }
 
 const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
+const STATUS_BOOTSTRAP_MAX_ATTEMPTS = 3;
 
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -533,51 +534,61 @@ async function loadStatusWithBootstrapRetry(store: Store): Promise<{
     error: string;
   };
 }> {
-  try {
-    return { status: await store.status() };
-  } catch (error) {
-    if (classifyTemporalError(error) !== "fallback") throw error;
-    const message = error instanceof Error ? error.message : String(error);
-    await delay(STATUS_BOOTSTRAP_RETRY_DELAY_MS);
+  let lastBootstrapError: unknown;
+
+  for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
     try {
-      return {
-        status: await store.status(),
-        bootstrapDiagnostic: {
-          recovered: true,
-          lastErrorClass: "bootstrap_in_progress",
-          error: message,
-        },
-      };
-    } catch (retryError) {
-      if (classifyTemporalError(retryError) !== "fallback") throw retryError;
-      const retryMessage =
-        retryError instanceof Error ? retryError.message : String(retryError);
-      return {
-        status: {
-          specs: { count: 0, capabilities: [] },
-          changes: {
-            active: 0,
-            byStatus: {
-              draft: 0,
-              pending: 0,
-              active: 0,
-              archived: 0,
-              closed: 0,
+      const status = await store.status();
+      return lastBootstrapError
+        ? {
+            status,
+            bootstrapDiagnostic: {
+              recovered: true,
+              lastErrorClass: "bootstrap_in_progress",
+              error:
+                lastBootstrapError instanceof Error
+                  ? lastBootstrapError.message
+                  : String(lastBootstrapError),
             },
-            recent: [],
-          },
-          recommendations: [
-            "⚠️ Temporal bootstrap in progress — status read hit a replay recovery error twice; retry shortly.",
-          ],
-        },
-        bootstrapDiagnostic: {
-          recovered: false,
-          lastErrorClass: "bootstrap_in_progress",
-          error: retryMessage,
-        },
-      };
+          }
+        : { status };
+    } catch (error) {
+      if (classifyTemporalError(error) !== "fallback") throw error;
+      lastBootstrapError = error;
+      if (attempt < STATUS_BOOTSTRAP_MAX_ATTEMPTS) {
+        await delay(STATUS_BOOTSTRAP_RETRY_DELAY_MS);
+      }
     }
   }
+
+  const error =
+    lastBootstrapError instanceof Error
+      ? lastBootstrapError.message
+      : String(lastBootstrapError);
+  return {
+    status: {
+      specs: { count: 0, capabilities: [] },
+      changes: {
+        active: 0,
+        byStatus: {
+          draft: 0,
+          pending: 0,
+          active: 0,
+          archived: 0,
+          closed: 0,
+        },
+        recent: [],
+      },
+      recommendations: [
+        "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
+      ],
+    },
+    bootstrapDiagnostic: {
+      recovered: false,
+      lastErrorClass: "bootstrap_in_progress",
+      error,
+    },
+  };
 }
 
 // =============================================================================
