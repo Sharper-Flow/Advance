@@ -1,0 +1,244 @@
+{
+  "id": "enforcescoreblindproposaldesig",
+  "title": "enforceScoreBlindProposalDesign",
+  "status": "archived",
+  "created_at": "2026-05-09T05:18:05.220Z",
+  "tasks": [
+    {
+      "id": "tk-7ee0ca1721af",
+      "title": "Add red asset tests for score-blind invariant and ROADMAP.md score-free layout: assert ADV_INSTRUCTIONS contains Score-Blind Quality Invariant; assert adv-triage ROADMAP layout lacks V/TC/RROE/E/WSJF columns and lacks WSJF run-summary wording; preserve existing roadmap sorting tests as baseline.",
+      "type": "code",
+      "section": "tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T05:32:14.721Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:34:00.703Z",
+      "verification": "Red asset tests added and committed at ec72d24425f4c2e26eab9799d356a042f0a505c0.",
+      "summary": "Added tests in adv-instructions-assets.test.ts for Score-Blind Quality Invariant presence/scope, and manifest-doc-drift.test.ts tests for adv-triage ROADMAP.md score-free layout while preserving score-rich snapshot schema. Red run failed as expected on missing invariant/layout updates.",
+      "implementation_summary": "Added tests in adv-instructions-assets.test.ts for Score-Blind Quality Invariant presence/scope, and manifest-doc-drift.test.ts tests for adv-triage ROADMAP.md score-free layout while preserving score-rich snapshot schema. Red run failed as expected on missing invariant/layout updates.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:35:28.929Z",
+      "completed_at": "2026-05-09T05:35:28.929Z"
+    },
+    {
+      "id": "tk-fe632ee005f6",
+      "title": "Implement score-blind invariant in ADV_INSTRUCTIONS.md and update Change Origin/roadmap wording so ROADMAP.md is rank-only while GH Project v2 and .adv/roadmap-snapshot.json remain score-rich.",
+      "type": "code",
+      "section": "instructions",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T05:32:20.898Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7ee0ca1721af"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:35:35.782Z",
+      "verification": "Completed and checkpointed at 9cf5b522071a85fede06b3a207343fe25924ee99.",
+      "summary": "Added Score-Blind Quality Invariant to ADV_INSTRUCTIONS.md. Updated Change Origin source-of-truth split and anti-pattern wording so ROADMAP.md is rank-only while GH Project v2 and .adv/roadmap-snapshot.json remain score-rich.",
+      "implementation_summary": "Added Score-Blind Quality Invariant to ADV_INSTRUCTIONS.md. Updated Change Origin source-of-truth split and anti-pattern wording so ROADMAP.md is rank-only while GH Project v2 and .adv/roadmap-snapshot.json remain score-rich.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:36:44.769Z",
+      "completed_at": "2026-05-09T05:36:44.769Z"
+    },
+    {
+      "id": "tk-78477e4c6af2",
+      "title": "Update command docs: adv-triage Phase 5 ROADMAP.md layout to rank-only; adv-roadmap sequencing-only side-quest warning; adv-proposal/discover/design/prep references to score-blind invariant.",
+      "type": "code",
+      "section": "command-docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T05:32:27.933Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fe632ee005f6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:36:53.162Z",
+      "verification": "Completed and checkpointed at ead02b30316d4e95920866ac277dad43a8836ab6.",
+      "summary": "Updated adv-triage Phase 5 to generate a rank-only score-free ROADMAP.md while preserving score-rich snapshot schema. Updated adv-roadmap with sequencing-only side-quest warning and anti-pattern. Added score-blind invariant references to proposal/discover/design/prep. Updated current ROADMAP.md to rank-only. Focused asset tests pass.",
+      "implementation_summary": "Updated adv-triage Phase 5 to generate a rank-only score-free ROADMAP.md while preserving score-rich snapshot schema. Updated adv-roadmap with sequencing-only side-quest warning and anti-pattern. Added score-blind invariant references to proposal/discover/design/prep. Updated current ROADMAP.md to rank-only. Focused asset tests pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:37:51.558Z",
+      "completed_at": "2026-05-09T05:37:51.558Z"
+    },
+    {
+      "id": "tk-6162f41a1b84",
+      "title": "Define future roadmap-origin issue-body sanitizer contract: strip ADV scoring trailers and obvious V/TC/RROE/E/WSJF score-field lines before proposal synthesis; add coordination note for wireIssueChangeLinkage without implementing /adv-proposal #N.",
+      "type": "code",
+      "section": "sanitizer-contract",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-09T05:32:33.634Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fe632ee005f6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:38:04.333Z",
+      "verification": "Completed and checkpointed at d50a0547255919cb932a68dcc9cada2cfbe90d23.",
+      "summary": "Defined concrete future roadmap-origin issue import sanitizer contract in ADV_INSTRUCTIONS.md: strip adv-triage scoring trailers, V/TC/RROE/E/WSJF score headers, and matching score rows before /adv-proposal #N synthesis. Added asset test coverage referencing wireIssueChangeLinkage. Focused test passes.",
+      "implementation_summary": "Defined concrete future roadmap-origin issue import sanitizer contract in ADV_INSTRUCTIONS.md: strip adv-triage scoring trailers, V/TC/RROE/E/WSJF score headers, and matching score rows before /adv-proposal #N synthesis. Added asset test coverage referencing wireIssueChangeLinkage. Focused test passes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:38:42.392Z",
+      "completed_at": "2026-05-09T05:38:42.392Z"
+    },
+    {
+      "id": "tk-33900d304d8a",
+      "title": "Run focused tests for updated asset guards, then run pnpm run check from plugin/ and record verification evidence.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-09T05:32:37.480Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-78477e4c6af2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6162f41a1b84"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-09T05:33:47.104Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:38:51.545Z",
+      "verification": "Completed and checkpointed at fe94b20d1999185aad5bd95f3f8d7b01faab0656.",
+      "summary": "Ran focused verification: 59 tests passed across manifest-doc-drift, adv-instructions-assets, roadmap tool tests. Initial pnpm run check failed due Prettier formatting in manifest-doc-drift.test.ts and roadmap.test.ts; formatted flagged files and reran. Final pnpm run check passed: typecheck, test-isolation, lint, and format:check clean.",
+      "implementation_summary": "Ran focused verification: 59 tests passed across manifest-doc-drift, adv-instructions-assets, roadmap tool tests. Initial pnpm run check failed due Prettier formatting in manifest-doc-drift.test.ts and roadmap.test.ts; formatted flagged files and reran. Final pnpm run check passed: typecheck, test-isolation, lint, and format:check clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:40:02.254Z",
+      "completed_at": "2026-05-09T05:40:02.254Z"
+    },
+    {
+      "id": "tk-7ceee720ba70",
+      "title": "Add formal .adv/specs requirements for score-blind quality invariant, ROADMAP.md score-free mirror, and roadmap-origin issue-import sanitizer; update mirrored docs/specs if required; add/extend tests verifying spec requirement IDs exist.",
+      "type": "code",
+      "section": "specs",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-09T05:41:20.944Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T05:42:52.144Z",
+      "verification": "Completed and checkpointed at 1394ea42a658b52abddfd65ea01f56a799054ff3.",
+      "summary": "Added formal advance-workflow requirements rq-scoreBlindQuality01, rq-roadmapMirrorScoreFree01, and rq-roadmapOriginSanitize01 to .adv/specs/advance-workflow/spec.json and docs/specs/advance-workflow.md. Bumped spec version to 1.7.0. Added manifest-doc-drift test assertions for IDs and MUST priority. Red test failed before spec update; final focused tests (60) and pnpm run check pass.",
+      "implementation_summary": "Added formal advance-workflow requirements rq-scoreBlindQuality01, rq-roadmapMirrorScoreFree01, and rq-roadmapOriginSanitize01 to .adv/specs/advance-workflow/spec.json and docs/specs/advance-workflow.md. Bumped spec version to 1.7.0. Added manifest-doc-drift test assertions for IDs and MUST priority. Red test failed before spec update; final focused tests (60) and pnpm run check pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T05:46:03.894Z",
+      "completed_at": "2026-05-09T05:46:03.894Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-W8mF-B",
+      "type": "gotcha",
+      "content": "When using adv_change_update, passing empty strings for artifact fields can overwrite/restage artifacts and trigger scaffold projection on later reads. Only include artifact fields that should be written, and pass non-empty restored content when repairing.",
+      "source_task": "tk-7ceee720ba70",
+      "recorded_at": "2026-05-09T05:46:24.235Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:18:28.457Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal gate completed. Confirmed problem statement, captured prior decisions (WSJF=sequencing not quality, /adv-roadmap is command-not-role, strip ROADMAP.md WSJF columns), rejected approaches (prose-only rule, hide WSJF from triage, score-aware quality scaling), and 6 open Discovery Agenda items. B/F/S scan: all Clear, no CRITICAL/HIGH findings. One MEDIUM on rule section naming flexibility — defer to design."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:26:00.084Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed. Findings persisted in proposal. Agreement persisted with user-approved AC1-AC9, objectives, constraints, avoidances, and contract spine. User decisions: ROADMAP.md rank-only; invariant applies to quality gates except triage/roadmap; sanitize future imports only. No blocking ambiguity findings (B:C F:C S:C M:C)."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:31:55.435Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Independent adv-researcher validator returned VALIDATED. Incorporated validator recommendations: ADV_INSTRUCTIONS roadmap wording must change; ROADMAP.md tests must cover run-summary wording; sanitizer contract includes concrete scoring-trailer/table examples. No CONFLICT, no user-value tradeoff unresolved, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:42:41.371Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved re-entry prep with reply `approve`. Added spec task tk-7ceee720ba70 to formalize score-blind invariant, ROADMAP.md score-free mirror, and roadmap-origin sanitizer requirements in .adv/specs with tests."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:46:24.297Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete after planning re-entry: all 6 tasks done with checkpoint commits. Final verification after spec task: focused tests passed (60 tests) and pnpm run check passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:47:38.146Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted implementation with reply `accept`. Acceptance evidence: all 6 tasks done with checkpoint commits; focused tests passed (60 tests); pnpm run check passed; adv_change_validate strict passed with warnings only; review findings none."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T05:48:36.402Z",
+      "completed_by": "agent",
+      "approval_evidence": "Release sign-off by user: `sign off`. Release readiness verified: all prior gates complete, all 6 tasks done, worktree clean, focused tests passed (60 tests), pnpm run check passed, strict validation passed with warnings only, conformance status has no configured specs."
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "planning",
+      "reason": "Review found an in-scope gap before acceptance: agreement/avoidances require score-blindness backed by specs and tests, but task graph omitted a concrete .adv/specs requirement update. Re-enter planning to add spec task; preserve completed implementation tasks.",
+      "scope_delta": "Add one in-scope task to update .adv/specs (likely advance-workflow or advance-meta) with score-blind quality invariant, ROADMAP.md score-free mirror, and roadmap-origin sanitizer requirements plus asset/spec validation as needed.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-09T05:41:13.499Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-09T05:26:12.279Z",
+      "resolved": true,
+      "resolved_at": "2026-05-09T05:28:31.903Z"
+    }
+  ]
+}

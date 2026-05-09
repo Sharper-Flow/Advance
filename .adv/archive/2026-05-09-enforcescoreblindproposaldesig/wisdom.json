@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-W8mF-B",
+      "type": "gotcha",
+      "content": "When using adv_change_update, passing empty strings for artifact fields can overwrite/restage artifacts and trigger scaffold projection on later reads. Only include artifact fields that should be written, and pass non-empty restored content when repairing.",
+      "source_task": "tk-7ceee720ba70",
+      "recorded_at": "2026-05-09T05:46:24.235Z"
+    }
+  ],
+  "count": 1
+}
