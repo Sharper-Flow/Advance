@@ -442,7 +442,7 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 **Override audit:** Every unlock or override requires `{user, reason, re_verify_deadline}`. Recorded permanently in conformance state.
 
-**State location:** `~/.local/share/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
+**State location:** `$XDG_DATA_HOME/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
 
 <!-- rq-twf01 -->
 **Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes to the trunk checkout on the default branch.
@@ -849,6 +849,10 @@ ADV always isolates mutating work in per-change worktrees.
 ### Worktree Reuse
 
 Before creating: `git worktree list --porcelain` → find `change/{change-id}`. Path exists → reuse; missing → `git worktree prune` → fresh.
+
+### Worktree Setup Hooks
+
+Worktree setup lives in `.opencode/worktree.jsonc`. `sync.copyFiles` copies explicit opt-in files; `hooks.postCreate` runs setup commands after creation. `postCreate` failure marks the worktree `setup_failed` and blocks ADV routing until remediated; `hooks.preDelete` runs before deletion. See `docs/worktree-guide.md` for examples and secret-handling guidance.
 
 ### Spec Divergence
 
