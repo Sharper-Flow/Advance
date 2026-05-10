@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — 2026-05-09 ATC bug drain (19 bugs)
+
+ADV ATC autonomous pipeline drained the bug backlog, archiving 19 changes in a single session. All fixes verified via TDD with red→green tests and `pnpm run check`.
+
+**Validator / archive correctness:**
+- `adv_change_validate` no longer treats warnings-only state as failure in strict mode (`strictWarnings: true` opt-in for warnings-as-errors) (#63)
+- `adv_change_archive` now queries authoritative live Temporal gate status; surfaces store/disk divergence via hint instead of swapping authoritative source (#88)
+- `adv_change_archive` recovery path runs `createInRepoArchive` even when external bundle pre-exists (#53)
+- `adv_change_close` falls back to disk-only path when Temporal workflow is terminated (#54)
+- Validator `PROPOSAL_TASK_DRIFT` only checks explicit task-bearing sections; narrative sections no longer warn (#73)
+- Task classifier exempts data/constant trivial patterns from `MISSING_TDD_EVIDENCE` (#62)
+
+**Status / diagnostics:**
+- `adv_status` first-call bootstrap race fixed (#56)
+- `adv_status` visibility memo invalidates deleted change entries (#57)
+- `adv_status` doctor reframes "stale OpenCode blank assistant messages" recommendation (#92)
+- Hot-change recommendation no longer falsely attributes work to "another agent" when caller is the worker (#95)
+- Reflection `improvement_suggestions` use category-specific guidance instead of generic prose (#97)
+- `adv_temporal_diagnose` no longer reports false `projectWorkflow NOT_FOUND` when workflow is healthy; uses `CHANGE_WORKFLOW_COMPAT_QUERY_NAMES` for bootstrap query (#67)
+- Temporal worker health display fixed false-negative diagnostics (#33)
+- Doctor script classifies blank rows by orphan-vs-live, not just by age (#91)
+- `terminal.ts` distinguishes permission-ATTN (immediate ring) from idle-ATTN (armed/debounce) (#86)
+
+**Tooling / hygiene:**
+- `adv_task_cancel` no longer crashes on `reasons[id]` when `reasons` field is omitted; defaults to `{}` and returns structured `missingReasons`
+- Lockfile drift guard added: `plugin/scripts/check-lockfile-policy.ts` wired into `pnpm run check`; `bun.lockb` ignored; `pnpm-lock.yaml` is authoritative (#43)
+- Git mutation guard verified to allow canonical archive push from default branch (#102)
+- Worktree `WorkflowUpdateFailedError` after repair verified resolved (#48)
+- External-state hygiene leftovers + test-isolation leak detected/prevented via `check-test-isolation.ts` extension (#60)
+
 ### Changed — /adv-triage Phase 3b UX improvement
 
 - Replaced Phase 3b text-only `Reply EXACTLY one of: assign 1=high 2=critical...` batch prompt with structured `question` tool calls
