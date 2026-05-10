@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-MJbjKx",
+      "type": "gotcha",
+      "content": "adv_change_update writes every provided artifact field, including empty strings. During refinement, omit unchanged fields rather than passing empty strings, or previously approved proposal/agreement/design content can be clobbered and must be restored from tool output.",
+      "source_task": "tk-e9e46a4a7e5a",
+      "recorded_at": "2026-05-10T02:33:24.632Z"
+    },
+    {
+      "id": "ws-Z1EOHT",
+      "type": "gotcha",
+      "content": "Product-linked wisdom/reflection tools must route Temporal change handles through store.productContext.productProjectId when present. Using repo-local getProjectId(store.paths.root) from a secondary repo can miss the canonical product-state workflow.",
+      "source_task": "tk-a58b4c457d48",
+      "recorded_at": "2026-05-10T07:07:08.422Z"
+    },
+    {
+      "id": "ws-nBKcfR",
+      "type": "pattern",
+      "content": "Archive multi-repo safety should collect and validate every scoped repo before writing bundles or merging. Sort scope_repos by merge_order, capture immutable before/after refs, and fail before side effects when any required repo fails ff-only ancestry preflight.",
+      "source_task": "tk-b70e84d7d49e",
+      "recorded_at": "2026-05-10T07:13:41.612Z"
+    },
+    {
+      "id": "ws-bGroR3",
+      "type": "gotcha",
+      "content": "Integration tests that instantiate AdvancePlugin can exceed Vitest's 5s default under full-suite Temporal worker/bundle load even when they pass individually. Give plugin-init/worker-startup integration tests explicit timeout budgets instead of treating first full-suite timeout as behavior failure.",
+      "source_task": "tk-d1e6d714f47f",
+      "recorded_at": "2026-05-10T07:39:30.838Z"
+    },
+    {
+      "id": "ws-CltEBl",
+      "type": "gotcha",
+      "content": "Product-linked config schemas can expose degradation modes before runtime honors them. Every enum branch like missing_primary_policy must have explicit resolver behavior and tests; otherwise schema-valid configs silently collapse to default blocking behavior.",
+      "source_task": "tk-d1e6d714f47f",
+      "recorded_at": "2026-05-10T07:55:02.208Z"
+    }
+  ],
+  "count": 5
+}

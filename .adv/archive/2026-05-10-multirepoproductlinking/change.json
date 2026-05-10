@@ -1,0 +1,379 @@
+{
+  "id": "multirepoproductlinking",
+  "title": "multiRepoProductLinking",
+  "status": "archived",
+  "created_at": "2026-05-07T17:38:59.582Z",
+  "tasks": [
+    {
+      "id": "tk-e9e46a4a7e5a",
+      "title": "T1 — Add product config schemas and resolver. Extend ProjectConfigSchema with optional product metadata and RelatedRepoSchema with repo_project_id/product_role. Implement resolveProductContext(root) with single_repo/primary/secondary modes, default missing_primary_policy=block, read_only/isolated warnings, duplicate/unknown repo validation. TDD: red tests for no config, primary, secondary, missing primary policies, duplicate repo IDs, invalid primary refs.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-10T02:27:42.709Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T02:30:42.199Z",
+      "verification": "Completed T1 with checkpoint commit 4f4be070830fd3a655272e18f499c40ed0b2702b.",
+      "summary": "Added ProductLink schema and product-aware RelatedRepo fields. Added resolveProductContext with single_repo/primary/secondary modes, missing-primary block/read_only/isolated handling, duplicate repo validation, and primary ref validation. Added product-context tests covering schema parse and resolver modes/failures. Verification passed: product-context tests, target-project regression, typecheck.",
+      "implementation_summary": "Added ProductLink schema and product-aware RelatedRepo fields. Added resolveProductContext with single_repo/primary/secondary modes, missing-primary block/read_only/isolated handling, duplicate repo validation, and primary ref validation. Added product-context tests covering schema parse and resolver modes/failures. Verification passed: product-context tests, target-project regression, typecheck.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T02:33:13.930Z",
+      "completed_at": "2026-05-10T02:33:13.930Z"
+    },
+    {
+      "id": "tk-5213e97713b9",
+      "title": "T2 — Wire product context into plugin init/store runtime. Resolve ProductContext before createStore; route product-state store with productProjectId; ensure secondary init registers/service-checks primary product Temporal queue; expose both repoProjectId and productProjectId to tools. Add regression tests that worktree base still uses repoProjectId and product workflow IDs use productProjectId.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-10T02:27:46.908Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e9e46a4a7e5a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T02:35:12.855Z",
+      "verification": "Completed T2 with checkpoint commit ae150d93b89e02b7e8ff79cfc4a963f4f2c2dfaf.",
+      "summary": "Wired product context through store runtime: Store exposes productContext; createStore accepts productContext and still routes Temporal workflows by projectIdOverride. Plugin init now resolves ProductContext and uses productProjectId for Temporal runtime/store external root while retaining repoProjectId in productContext for repo-local tools. Added store-product-context test. Verification passed: product-context/store-product-context tests and typecheck.",
+      "implementation_summary": "Wired product context through store runtime: Store exposes productContext; createStore accepts productContext and still routes Temporal workflows by projectIdOverride. Plugin init now resolves ProductContext and uses productProjectId for Temporal runtime/store external root while retaining repoProjectId in productContext for repo-local tools. Added store-product-context test. Verification passed: product-context/store-product-context tests and typecheck.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T02:36:53.841Z",
+      "completed_at": "2026-05-10T02:36:53.841Z"
+    },
+    {
+      "id": "tk-0d260a70b489",
+      "title": "T3 — Add structural scope_repos to ChangeSchema and change tools. Implement ChangeRepoScopeSchema, adv_change_create scope_repos input/defaulting, validation against ProductContext.repos, and adv_change_show/list output. Cover backend-only, web-only, and backend+web changes with tests.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-10T02:27:51.180Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e9e46a4a7e5a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5213e97713b9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T02:37:06.839Z",
+      "verification": "Completed T3 with checkpoint commit e569ee663ebd456aa5c302bda4da7e18395f68cb.",
+      "summary": "Added ChangeRepoScope schema and scope_repos to ChangeSchema. adv_change_create now accepts scope_repos, defaults linked-product changes to current repo, validates unknown/duplicate repo IDs and duplicate merge_order, enriches entries from ProductContext, returns scope_repos in tool output, and saves scope metadata. Added product-linked create tests. Verification passed: cross-project coordination tests, product/store related tests, typecheck.",
+      "implementation_summary": "Added ChangeRepoScope schema and scope_repos to ChangeSchema. adv_change_create now accepts scope_repos, defaults linked-product changes to current repo, validates unknown/duplicate repo IDs and duplicate merge_order, enriches entries from ProductContext, returns scope_repos in tool output, and saves scope metadata. Added product-linked create tests. Verification passed: cross-project coordination tests, product/store related tests, typecheck.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T02:42:18.679Z",
+      "completed_at": "2026-05-10T02:42:18.679Z"
+    },
+    {
+      "id": "tk-7942cbfb0367",
+      "title": "T4 — Update adv_status and change list filtering for product scope. From linked secondary, default to current repo scoped changes; add explicit product-wide mode. Include product context summary in status output. Test current repo default, product-wide view, single-repo unchanged behavior, and stale/hot recommendations under scoped filtering.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-10T02:27:56.691Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d260a70b489"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Completed T4 with checkpoint commit cc6027f5e36b75df99567efbc5ccc6db5695082e.",
+      "summary": "Added product-linked `scope: repo|product` visibility to adv_change_list and adv_status. Default repo scope filters scoped changes to current product repo while retaining unscoped legacy changes; product scope shows all product changes. Added product context output for both tools and status view projection. Tests cover repo-default filtering and product-wide visibility. Verification passed: cross-project/status suites, related regressions, typecheck.",
+      "implementation_summary": "Added product-linked `scope: repo|product` visibility to adv_change_list and adv_status. Default repo scope filters scoped changes to current product repo while retaining unscoped legacy changes; product scope shows all product changes. Added product context output for both tools and status view projection. Tests cover repo-default filtering and product-wide visibility. Verification passed: cross-project/status suites, related regressions, typecheck.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T06:56:07.503Z",
+      "completed_at": "2026-05-10T06:56:07.503Z"
+    },
+    {
+      "id": "tk-a58b4c457d48",
+      "title": "T5 — Add product wisdom/reflection origin tags and query filtering. Persist origin_repo_id, origin_repo_project_id, origin_repo_path, and product_id on new entries. Default linked repo queries to current-repo-relevant plus promoted/global entries; add explicit product-wide query mode. Test legacy untagged entries remain visible safely.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-10T02:28:01.642Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e9e46a4a7e5a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5213e97713b9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T06:56:18.168Z",
+      "verification": "T5 complete. Checkpoint commit 8f44562055b797a66fe9f8cdc4db9d020abcb64c.",
+      "summary": "Added linked-product origin tags to wisdom and reflection records: product_id, origin_repo_id, origin_repo_project_id, origin_repo_path. adv_wisdom_add now tags change-level and promoted wisdom entries, routes workflow handles through productProjectId when present, and fallback disk storage accepts origin tags. adv_wisdom_list/adv_project_wisdom_list now support scope: repo|product; linked repo default filters change-level wisdom to current repo while retaining legacy untagged and promoted project entries, and product scope returns all product wisdom. Reflection entries now persist origin tags and listReflections supports product/repo filters. Added RED/GREEN tests for wisdom tagging/filtering and reflection tagging; format normalized touched prior product-link files.",
+      "implementation_summary": "Added linked-product origin tags to wisdom and reflection records: product_id, origin_repo_id, origin_repo_project_id, origin_repo_path. adv_wisdom_add now tags change-level and promoted wisdom entries, routes workflow handles through productProjectId when present, and fallback disk storage accepts origin tags. adv_wisdom_list/adv_project_wisdom_list now support scope: repo|product; linked repo default filters change-level wisdom to current repo while retaining legacy untagged and promoted project entries, and product scope returns all product wisdom. Reflection entries now persist origin tags and listReflections supports product/repo filters. Added RED/GREEN tests for wisdom tagging/filtering and reflection tagging; format normalized touched prior product-link files.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T07:07:01.560Z",
+      "completed_at": "2026-05-10T07:07:01.560Z"
+    },
+    {
+      "id": "tk-b70e84d7d49e",
+      "title": "T6 — Implement multi-repo archive/preflight metadata for scoped changes. Resolve scope_repos, collect per-repo before/after refs and verification evidence, run all ff-only merge preflights before any merge, honor merge_order, and fail safely with no merge on preflight failure. Add archive bundle tests for single repo unchanged and backend+web refs captured.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-10T02:28:06.118Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d260a70b489"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7942cbfb0367"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T07:07:18.440Z",
+      "verification": "T6 complete. Checkpoint commit fc04a1a07e1acfa7f714820a68719d24da53e364.",
+      "summary": "Implemented multi-repo archive metadata for changes with scope_repos. Archive now sorts scoped repos by merge_order, captures branch/default branch/default head/head_before/head_after per repo, collects done-task verification evidence, writes multi-repo-archive.json to external and in-repo archive bundles, and returns multiRepo metadata from adv_change_archive. Added all-repo ff-only preflight before bundle writes; required repo preflight failure returns success:false with no archive bundle written. Added robust default branch ref fallback to main/master when configured default ref is unavailable. Single-repo archive bundles remain unchanged with no multi-repo metadata file. Added archive tests for unchanged single repo, backend+web ordered refs/evidence, and fail-safe diverged default branch.",
+      "implementation_summary": "Implemented multi-repo archive metadata for changes with scope_repos. Archive now sorts scoped repos by merge_order, captures branch/default branch/default head/head_before/head_after per repo, collects done-task verification evidence, writes multi-repo-archive.json to external and in-repo archive bundles, and returns multiRepo metadata from adv_change_archive. Added all-repo ff-only preflight before bundle writes; required repo preflight failure returns success:false with no archive bundle written. Added robust default branch ref fallback to main/master when configured default ref is unavailable. Single-repo archive bundles remain unchanged with no multi-repo metadata file. Added archive tests for unchanged single repo, backend+web ordered refs/evidence, and fail-safe diverged default branch.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T07:13:34.990Z",
+      "completed_at": "2026-05-10T07:13:34.990Z"
+    },
+    {
+      "id": "tk-5679e2bdda2a",
+      "title": "T7 — Update specs, command docs, and PokeEdge adoption guidance. Add advance-workflow requirements for product linking, scope_repos, product status filtering, product wisdom tags, and multi-repo archive evidence. Update adv-proposal/discover/prep/apply/archive docs. Add PokeEdge example config snippets and note additive migration/legacy state behavior.",
+      "type": "code",
+      "section": "Documentation / Specs",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-10T02:28:11.769Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e9e46a4a7e5a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0d260a70b489"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a58b4c457d48"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b70e84d7d49e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T07:14:03.893Z",
+      "verification": "T7 complete. Checkpoint commit 52304497b05f535a0319dd3146eac52ef9f3eba0.",
+      "summary": "Updated advance-workflow spec and rendered docs with product-linked ADV state requirements: product/repo identity planes, structural scope_repos, product-scoped list/status behavior, wisdom/reflection origin tags, and multi-repo archive evidence/preflight requirements. Updated adv-proposal, adv-discover, adv-prep, adv-apply, and adv-archive command docs with product-linked scope handoffs and archive metadata expectations. Added docs/pokeedge-product-linking.md with primary backend + secondary web project.json examples, scope behavior, wisdom/reflection origin notes, multi-repo archive evidence, and additive legacy-state behavior. Added asset tests pinning spec/doc anchors.",
+      "implementation_summary": "Updated advance-workflow spec and rendered docs with product-linked ADV state requirements: product/repo identity planes, structural scope_repos, product-scoped list/status behavior, wisdom/reflection origin tags, and multi-repo archive evidence/preflight requirements. Updated adv-proposal, adv-discover, adv-prep, adv-apply, and adv-archive command docs with product-linked scope handoffs and archive metadata expectations. Added docs/pokeedge-product-linking.md with primary backend + secondary web project.json examples, scope behavior, wisdom/reflection origin notes, multi-repo archive evidence, and additive legacy-state behavior. Added asset tests pinning spec/doc anchors.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T07:18:30.942Z",
+      "completed_at": "2026-05-10T07:18:30.942Z"
+    },
+    {
+      "id": "tk-d1e6d714f47f",
+      "title": "T8 — Run full verification and PokeEdge product-link simulation. Execute targeted tests added by T1-T7, then `pnpm run check`, full relevant test suite, and build from plugin/. Validate example PokeEdge primary/secondary configs in temp fixtures: secondary resolves product state, status filters repo scope, cross-cutting change visible from both repos, wisdom origin tags query correctly.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-10T02:28:18.900Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5213e97713b9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7942cbfb0367"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a58b4c457d48"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b70e84d7d49e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5679e2bdda2a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T07:18:54.616Z",
+      "verification": "Review remediation passed: product-context tests, status/wisdom/cross-project tests, archive tests, pnpm run check, pnpm test rerun, pnpm run build.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/product-context.test.ts",
+        "plugin/src/storage/product-context.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/product-context.test.ts",
+        "plugin/src/storage/product-context.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/wisdom.ts"
+      ],
+      "checkpointSha": "0401b2446410a9f02482d3c556acc75ada33be08",
+      "completedAt": "2026-05-10T07:54:56.193Z",
+      "completed_at": "2026-05-10T07:54:56.193Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-MJbjKx",
+      "type": "gotcha",
+      "content": "adv_change_update writes every provided artifact field, including empty strings. During refinement, omit unchanged fields rather than passing empty strings, or previously approved proposal/agreement/design content can be clobbered and must be restored from tool output.",
+      "source_task": "tk-e9e46a4a7e5a",
+      "recorded_at": "2026-05-10T02:33:24.632Z"
+    },
+    {
+      "id": "ws-Z1EOHT",
+      "type": "gotcha",
+      "content": "Product-linked wisdom/reflection tools must route Temporal change handles through store.productContext.productProjectId when present. Using repo-local getProjectId(store.paths.root) from a secondary repo can miss the canonical product-state workflow.",
+      "source_task": "tk-a58b4c457d48",
+      "recorded_at": "2026-05-10T07:07:08.422Z"
+    },
+    {
+      "id": "ws-nBKcfR",
+      "type": "pattern",
+      "content": "Archive multi-repo safety should collect and validate every scoped repo before writing bundles or merging. Sort scope_repos by merge_order, capture immutable before/after refs, and fail before side effects when any required repo fails ff-only ancestry preflight.",
+      "source_task": "tk-b70e84d7d49e",
+      "recorded_at": "2026-05-10T07:13:41.612Z"
+    },
+    {
+      "id": "ws-bGroR3",
+      "type": "gotcha",
+      "content": "Integration tests that instantiate AdvancePlugin can exceed Vitest's 5s default under full-suite Temporal worker/bundle load even when they pass individually. Give plugin-init/worker-startup integration tests explicit timeout budgets instead of treating first full-suite timeout as behavior failure.",
+      "source_task": "tk-d1e6d714f47f",
+      "recorded_at": "2026-05-10T07:39:30.838Z"
+    },
+    {
+      "id": "ws-CltEBl",
+      "type": "gotcha",
+      "content": "Product-linked config schemas can expose degradation modes before runtime honors them. Every enum branch like missing_primary_policy must have explicit resolver behavior and tests; otherwise schema-valid configs silently collapse to default blocking behavior.",
+      "source_task": "tk-d1e6d714f47f",
+      "recorded_at": "2026-05-10T07:55:02.208Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:15:48.355Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Existing proposal and problem statement loaded for GitHub issue #59. User explicitly requested investigation/discovery for this issue; treating as approval to proceed from proposal into discovery."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:21:08.805Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Discovery agreement approved by command-as-approval: user invoked /adv-design immediately after discovery approval prompt. Agreement captures objectives O1-O7, AC1-AC9, constraints, and PokeEdge evidence."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:27:36.511Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design complete. Validator verdict CAUTION; caution findings resolved inline by documenting Temporal queue coupling and replacing duplicate product.repos registry with hybrid product metadata + related_repos registry. No unresolved conflict or contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:30:18.910Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Prep approved by command-as-approval: user invoked adv-prep after prep approval prompt. Task graph has 8 tasks with dependencies and inline TDD intent. Strict validation passed with only NO_DELTAS warning (expected until spec task)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-10T07:39:40.548Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Execution complete. All 8 tasks done with checkpoint commits. T8 full verification passed: targeted regression tests, pnpm run check, pnpm test, and pnpm run build. Worktree clean after checkpoint."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-10T07:55:47.476Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work with explicit reply `accept`. Review blockers and issues resolved. Verification passed: pnpm run check, pnpm test, pnpm run build; ADV validation passed with NO_DELTAS warning only."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-10T07:56:41.718Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Release sign-off received from user: `sign off`. Pre-archive validation passed strict with NO_DELTAS warning only. Conformance status checked; no configured conformance specs. Worktree clean before archive. Final verification evidence: pnpm run check, pnpm test, pnpm run build passed."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-10T02:14:22.778Z",
+      "resolved": true,
+      "resolved_at": "2026-05-10T02:16:18.867Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-10T02:16:18.867Z",
+      "resolved": true,
+      "resolved_at": "2026-05-10T02:20:59.749Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-10T02:20:59.749Z",
+      "resolved": true,
+      "resolved_at": "2026-05-10T02:22:27.119Z"
+    }
+  ]
+}
