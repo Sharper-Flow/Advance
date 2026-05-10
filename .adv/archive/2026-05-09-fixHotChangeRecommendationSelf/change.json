@@ -1,0 +1,125 @@
+{
+  "id": "fixHotChangeRecommendationSelf",
+  "title": "Fix hot-change recommendation self-worker attribution",
+  "status": "archived",
+  "created_at": "2026-05-09T07:54:03.838Z",
+  "tasks": [
+    {
+      "id": "tk-3cf85a20a421",
+      "title": "Implement self-vs-peer hot-change attribution before rendering another-agent warning while preserving privacy boundaries.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:27.012Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Implemented self-vs-peer attribution in appendRecencyRecommendation through optional `workerSessionId` and `currentSessionId`. Missing identity still falls back conservatively to peer-style warning. Exported `_test` seam for deterministic coverage without exposing peer-private details.",
+      "summary": "Updated hot recency recommendation logic to distinguish self-owned from peer-owned work when session identity is available.",
+      "implementation_summary": "Updated hot recency recommendation logic to distinguish self-owned from peer-owned work when session identity is available.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:43:24.534Z",
+      "completed_at": "2026-05-09T18:43:24.534Z"
+    },
+    {
+      "id": "tk-7a0e548a55f2",
+      "title": "Add failing status/session regression for caller-owned hot change rendered as self-owned and peer-owned change still warning appropriately.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:27.013Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:41:21.893Z",
+      "verification": "Added failing-then-green self-vs-peer regression for hot recency recommendations. Red phase: no `_test.appendRecencyRecommendation` seam/self attribution. Green: self-owned hot change says `you are the active worker`; peer-owned hot change preserves `another agent`; self rec does not contain `another agent`.",
+      "summary": "Added status test for caller-owned vs peer-owned hot change recommendation wording.",
+      "implementation_summary": "Added status test for caller-owned vs peer-owned hot change recommendation wording.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:43:24.502Z",
+      "completed_at": "2026-05-09T18:43:24.502Z"
+    },
+    {
+      "id": "tk-856add665d5f",
+      "title": "Run focused status/session tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T18:16:27.036Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "pnpm vitest run src/tools/status.test.ts --reporter=verbose; pnpm run check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "295144fe21e65729b3109f0f725edbf88b83f13d",
+      "completedAt": "2026-05-09T18:43:33.220Z",
+      "completed_at": "2026-05-09T18:43:33.220Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:10:29.881Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #95."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:15:24.823Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed from issue #95 and session attribution scope. Caller-owned work must be framed as self-owned, while peer-owned warnings remain. No conflict or tradeoff found."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:16:09.199Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan adds self-vs-peer attribution tests and fixes rendering while preserving privacy and peer warnings. No HITL tradeoff, conflict, or contract compromise."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:34:17.694Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #95."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:43:33.183Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. Added self-vs-peer hot change attribution in recency recommendation helper using optional worker/current session IDs. Self-owned hot work says `you are the active worker`; peer/unknown identity preserves conservative `another agent` warning. Verification: `pnpm vitest run src/tools/status.test.ts --reporter=verbose` passed (26 tests); `pnpm run check` passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:28.864Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:31:00.640Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/95"
+  ]
+}

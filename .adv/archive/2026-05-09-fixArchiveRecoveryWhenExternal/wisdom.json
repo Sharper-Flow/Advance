@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-d1a4WP",
+      "type": "pattern",
+      "content": "Archive retry recovery must reconcile both planes: if external archive bundle already exists, still ensure in-repo archive bundle exists before synthesizing archive success/status transition. Treat in-repo reconciliation as idempotent create-if-missing, return-existing-if-present.",
+      "source_task": "tk-0ec151ffe12e",
+      "recorded_at": "2026-05-09T18:58:50.310Z"
+    }
+  ],
+  "count": 1
+}

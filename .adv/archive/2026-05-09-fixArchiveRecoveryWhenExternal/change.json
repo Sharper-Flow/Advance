@@ -1,0 +1,138 @@
+{
+  "id": "fixArchiveRecoveryWhenExternal",
+  "title": "Fix archive recovery when external bundle already exists",
+  "status": "archived",
+  "created_at": "2026-05-09T02:46:27.436Z",
+  "tasks": [
+    {
+      "id": "tk-abec3b925069",
+      "title": "Add failing regression coverage for external-bundle-present recovery creating/reconciling missing in-repo archive.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:49:22.140Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:56:49.034Z",
+      "verification": "Added regression coverage for recovery when an external archive bundle already exists but in-repo archive is missing. Initial attempt exposed test setup import issue; corrected red/green path and added reconcileInRepoArchive coverage. Test now passes after implementation.",
+      "summary": "Added regression coverage for recovery when an external archive bundle already exists but in-repo archive is missing. Initial attempt exposed test setup import issue; corrected red/green path and added reconcileInRepoArchive coverage. Test now passes after implementation.",
+      "implementation_summary": "Added regression coverage for recovery when an external archive bundle already exists but in-repo archive is missing. Initial attempt exposed test setup import issue; corrected red/green path and added reconcileInRepoArchive coverage. Test now passes after implementation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:58:36.869Z",
+      "completed_at": "2026-05-09T18:58:36.869Z"
+    },
+    {
+      "id": "tk-0ec151ffe12e",
+      "title": "Implement idempotent archive recovery ordering so in-repo archive reconciliation is not skipped.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:49:22.140Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:58:41.134Z",
+      "verification": "Implemented idempotent archive recovery ordering. Added reconcileInRepoArchive helper that returns an existing in-repo archive bundle if present or creates one if missing. Updated adv_change_archive existing-external-bundle recovery path to call reconciliation before synthesizing archive success, preserving state-transition recovery while ensuring in-repo archive is not skipped.",
+      "summary": "Implemented idempotent archive recovery ordering. Added reconcileInRepoArchive helper that returns an existing in-repo archive bundle if present or creates one if missing. Updated adv_change_archive existing-external-bundle recovery path to call reconciliation before synthesizing archive success, preserving state-transition recovery while ensuring in-repo archive is not skipped.",
+      "implementation_summary": "Implemented idempotent archive recovery ordering. Added reconcileInRepoArchive helper that returns an existing in-repo archive bundle if present or creates one if missing. Updated adv_change_archive existing-external-bundle recovery path to call reconciliation before synthesizing archive success, preserving state-transition recovery while ensuring in-repo archive is not skipped.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:58:45.574Z",
+      "completed_at": "2026-05-09T18:58:45.574Z"
+    },
+    {
+      "id": "tk-5b1697022173",
+      "title": "Run focused archive recovery tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:49:22.148Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:58:53.693Z",
+      "verification": "pnpm test --run src/archive/archive.test.ts src/tools/change.test.ts exited 0; pnpm run check exited 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/index.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/archive/archive.test.ts",
+        "plugin/src/archive/archive.ts",
+        "plugin/src/archive/index.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "48f3883e15d0d0a54d508ccbd726b9739240437f",
+      "completedAt": "2026-05-09T18:59:43.247Z",
+      "completed_at": "2026-05-09T18:59:43.247Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-d1a4WP",
+      "type": "pattern",
+      "content": "Archive retry recovery must reconcile both planes: if external archive bundle already exists, still ensure in-repo archive bundle exists before synthesizing archive success/status transition. Treat in-repo reconciliation as idempotent create-if-missing, return-existing-if-present.",
+      "source_task": "tk-0ec151ffe12e",
+      "recorded_at": "2026-05-09T18:58:50.310Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.428Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:49:18.536Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #53, proposal, project context, and archive wisdom. This is archive recovery ordering/idempotence bug; no HITL tradeoff or conflict detected."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:49:18.638Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan ensures external bundle presence does not skip in-repo archive reconciliation while preserving idempotence."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:46:03.907Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #53."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:59:47.907Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. Added idempotent reconcileInRepoArchive helper and wired adv_change_archive existing-external-bundle recovery path to reconcile missing in-repo archive before synthesizing success/status transition. Added regression coverage. Verification: pnpm test --run src/archive/archive.test.ts src/tools/change.test.ts passed; pnpm run check passed. Checkpoint commit 48f3883e15d0d0a54d508ccbd726b9739240437f."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:14.954Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:49.213Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

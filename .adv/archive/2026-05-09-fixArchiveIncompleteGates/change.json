@@ -1,0 +1,137 @@
+{
+  "id": "fixArchiveIncompleteGates",
+  "title": "Fix archive incomplete gates despite complete gate status",
+  "status": "archived",
+  "created_at": "2026-05-09T07:54:03.881Z",
+  "tasks": [
+    {
+      "id": "tk-a3e46432d4c0",
+      "title": "Add failing regression coverage for authoritative complete gates with stale/incomplete archive projection and for genuinely incomplete gates still blocking archive.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:16.407Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:20:41.465Z",
+      "verification": "Added RED regression coverage for archive gate source mismatch: stale store projection with authoritative workflow gates complete must not block archive; authoritative workflow incomplete gates still block. RED confirmed stale-projection test failed before implementation with incomplete-gates error. GREEN after authoritative gate overlay: focused change tests pass (17/17).",
+      "summary": "Extended change.test.ts with complete/incomplete gate fixtures, querySignal mock, and adv_change_archive tests for stale projection vs authoritative workflow gates.",
+      "implementation_summary": "Extended change.test.ts with complete/incomplete gate fixtures, querySignal mock, and adv_change_archive tests for stale projection vs authoritative workflow gates.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:23:01.025Z",
+      "completed_at": "2026-05-09T18:23:01.025Z"
+    },
+    {
+      "id": "tk-8734d9497e7a",
+      "title": "Implement archive gate-state source-of-truth refresh/overlay so stale cache/projection does not block valid archive while unknown/incomplete state remains blocked.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T18:16:16.430Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:23:06.352Z",
+      "verification": "Implemented archive authoritative gate overlay. adv_change_archive now queries the change workflow gate-status query using the same source path as adv_gate_status before running archive preflight. If queried gates exist, archive preflight and validation use that authoritative gate state; genuinely incomplete authoritative gates still block.",
+      "summary": "Imported querySignal/getGateStatusQuery and added applyAuthoritativeArchiveGates helper in change.ts. adv_change_archive now applies queried workflow gates to the change object before getArchivePreflightError.",
+      "implementation_summary": "Imported querySignal/getGateStatusQuery and added applyAuthoritativeArchiveGates helper in change.ts. adv_change_archive now applies queried workflow gates to the change object before getArchivePreflightError.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:23:11.660Z",
+      "completed_at": "2026-05-09T18:23:11.660Z"
+    },
+    {
+      "id": "tk-cc89cedc78fd",
+      "title": "Run focused archive tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T18:16:16.474Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:23:23.572Z",
+      "verification": "pnpm vitest run src/tools/change.test.ts --reporter=verbose; pnpm run check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "cea1d5df6753d443a343b2c4a89923f4ffb0f6c8",
+      "completedAt": "2026-05-09T18:24:44.774Z",
+      "completed_at": "2026-05-09T18:24:44.774Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-zPMYHD",
+      "type": "pattern",
+      "content": "Archive preflight must query workflow gate status via the same getGateStatusQuery path as adv_gate_status before enforcing allGatesSatisfied. Store/disk projections can lag after recovery; authoritative workflow gates should drive archive readiness while incomplete queried gates still block.",
+      "source_task": "tk-8734d9497e7a",
+      "recorded_at": "2026-05-09T18:23:17.857Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:10:29.814Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #88."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:15:24.569Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed from issue #88, proposal, and project wisdom. Core fact: archive should rely on authoritative gate state or refresh stale projection/cache before blocking; stale cache/projection mismatch is likely failure mode. No conflict or user tradeoff found."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:16:09.108Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan uses authoritative gate-state overlay/refresh plus stale-cache and true-incomplete regression coverage. No HITL tradeoff, conflict, or contract compromise."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:19:16.472Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #88."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:24:49.975Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Implemented archive authoritative gate-state overlay. adv_change_archive now queries workflow gate status via getGateStatusQuery before preflight, matching adv_gate_status source-of-truth behavior. Verification: RED stale-projection regression failed before fix; GREEN pnpm vitest run src/tools/change.test.ts --reporter=verbose passed; pnpm run check passed. Checkpoint commit cea1d5df6753d443a343b2c4a89923f4ffb0f6c8."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:24.772Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:54.082Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/88"
+  ]
+}

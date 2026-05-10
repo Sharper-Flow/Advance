@@ -1,0 +1,145 @@
+{
+  "id": "fixProposalTaskDriftWarnings",
+  "title": "Fix proposal-task drift warnings for narrative proposal sections",
+  "status": "archived",
+  "created_at": "2026-05-09T02:46:27.499Z",
+  "tasks": [
+    {
+      "id": "tk-a3d25d9e8510",
+      "title": "Add failing regression tests for narrative proposal sections not emitting PROPOSAL_TASK_DRIFT and explicit task-bearing sections still detecting drift.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:50:50.726Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:12:22.443Z",
+      "verification": "Added failing RED regression for narrative proposal sections not emitting PROPOSAL_TASK_DRIFT plus explicit Tasks section still warning. RED confirmed: narrative test failed before implementation; after implementation focused validator tests pass.",
+      "summary": "Extended contract.test.ts with validateProposalDrift helper and two regression cases: narrative sections ignored, explicit task-bearing section warns when unmatched.",
+      "implementation_summary": "Extended contract.test.ts with validateProposalDrift helper and two regression cases: narrative sections ignored, explicit task-bearing section warns when unmatched.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:13:11.106Z",
+      "completed_at": "2026-05-09T18:13:11.106Z"
+    },
+    {
+      "id": "tk-e818f84d1e60",
+      "title": "Implement structural task-bearing section detection for proposal drift validation.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T07:50:50.738Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:13:14.997Z",
+      "verification": "Implemented structural task-bearing section detection by replacing broad header keyword heuristic with allowlist of explicit task/work-plan headers. Narrative sections no longer participate in drift validation; explicit Tasks/Planned Tasks/Implementation Tasks/Work Items/Work Plan remain checked.",
+      "summary": "Updated runProposalDriftCheck to gate checks on explicit task-bearing headers only and clarified function documentation.",
+      "implementation_summary": "Updated runProposalDriftCheck to gate checks on explicit task-bearing headers only and clarified function documentation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:13:28.925Z",
+      "completed_at": "2026-05-09T18:13:28.925Z"
+    },
+    {
+      "id": "tk-48b4482f38e5",
+      "title": "Run focused validator tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T07:50:52.420Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:13:38.466Z",
+      "verification": "pnpm vitest run src/validator/contract.test.ts --reporter=verbose; pnpm run check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/validator/contract.test.ts",
+        "plugin/src/validator/validator.ts"
+      ],
+      "touched_files": [
+        "plugin/src/validator/contract.test.ts",
+        "plugin/src/validator/validator.ts"
+      ],
+      "checkpointSha": "4df0572c30ae83d76ba08faaaa8dabc7614471eb",
+      "completedAt": "2026-05-09T18:14:45.845Z",
+      "completed_at": "2026-05-09T18:14:45.845Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-hPyS0r",
+      "type": "pattern",
+      "content": "Proposal-task drift validation should be opt-in to structurally task-bearing sections (Tasks, Planned Tasks, Implementation Tasks, Work Items, Work Plan), not opt-out from narrative headers. Header keyword matching over arbitrary proposal sections creates false positives on Intent/Scope/coordination prose.",
+      "source_task": "tk-e818f84d1e60",
+      "recorded_at": "2026-05-09T18:13:34.432Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.428Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:50:46.170Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #73, proposal, and observed validator warnings in active changes. This is a drift-validator false-positive bug; no HITL tradeoff/conflict detected."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:50:46.264Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan adds structural task-bearing section detection with regression coverage for narrative false positives and real drift."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:11:13.918Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #73."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:14:50.763Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Implemented proposal-task drift fix. Narrative proposal sections are no longer considered task-bearing; explicit task/work-plan sections still warn on unmatched tasks. Verification: RED focused test failed before implementation; GREEN pnpm vitest run src/validator/contract.test.ts --reporter=verbose passed; pnpm run check passed. Checkpoint commit 4df0572c30ae83d76ba08faaaa8dabc7614471eb."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:20.512Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:26:10.778Z",
+      "completed_by": "user",
+      "approval_evidence": "Release/archive approved via structured ADV_ATC_RESPONSE on GitHub issue #73."
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "release",
+      "reason": "ATC protocol correction: release/archive sign-off is separate HITL and must be deferred to GitHub; acceptance approval did not explicitly approve release/archive.",
+      "scope_delta": "No scope change. Reset release gate to await structured GitHub release approval.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-09T18:25:10.335Z",
+      "gates_reset": [
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

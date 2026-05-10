@@ -1,0 +1,125 @@
+{
+  "id": "fixReflectionImprovement",
+  "title": "Fix reflection improvement suggestions generic guidance",
+  "status": "archived",
+  "created_at": "2026-05-09T07:54:03.744Z",
+  "tasks": [
+    {
+      "id": "tk-4e03186f81b8",
+      "title": "Implement category-specific reflection improvement suggestion mapping with safe generic fallback for unknown categories.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:27.032Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Implemented category-specific improvement suggestion mapping for tool_gap, docs_gap, missing_capability, ux_friction, and provider_specific with a safe unclassified fallback. Suggestions are deduplicated and retry events now get actionable guardrail/test guidance.",
+      "summary": "Added deterministic category-to-suggestion mapping and buildImprovementSuggestions helper; replaced generic friction-count suggestion.",
+      "implementation_summary": "Added deterministic category-to-suggestion mapping and buildImprovementSuggestions helper; replaced generic friction-count suggestion.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:40:52.550Z",
+      "completed_at": "2026-05-09T18:40:52.550Z"
+    },
+    {
+      "id": "tk-90a28a491a06",
+      "title": "Add failing reflection tests for representative known categories producing category-specific actionable improvement suggestions and unknown category fallback.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:27.033Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:39:03.376Z",
+      "verification": "Added failing-then-green reflection regression for category-specific suggestions. Red phase showed generic suggestions only (`Retry events detected...`, `4 friction items identified...`). Green verifies tooling, documentation, capability, and UX suggestions and rejects generic friction-count boilerplate.",
+      "summary": "Added reflection test covering representative known categories and unknown fallback path through deterministic suggestion mapping.",
+      "implementation_summary": "Added reflection test covering representative known categories and unknown fallback path through deterministic suggestion mapping.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:40:52.549Z",
+      "completed_at": "2026-05-09T18:40:52.549Z"
+    },
+    {
+      "id": "tk-89604e2a1525",
+      "title": "Run focused reflection tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:27.054Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "pnpm vitest run src/tools/reflection.test.ts --reporter=verbose; pnpm run check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/reflection.test.ts",
+        "plugin/src/tools/reflection.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/reflection.test.ts",
+        "plugin/src/tools/reflection.ts"
+      ],
+      "checkpointSha": "c5230d23212c3ae4408794d0813e0283f4633f89",
+      "completedAt": "2026-05-09T18:41:00.774Z",
+      "completed_at": "2026-05-09T18:41:00.774Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:10:29.811Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #97."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:15:24.866Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed from issue #97 and reflection output scope. Known reflection categories need actionable category-specific suggestions; unknown categories keep safe generic fallback. No conflict or tradeoff found."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:16:09.198Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan adds category-specific reflection suggestions with safe fallback and regression coverage. No HITL tradeoff, conflict, or contract compromise."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:34:17.754Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #97."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:41:00.768Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. Added category-specific reflection improvement suggestion mapping for known friction categories with safe fallback for unknown/unclassified categories. Replaced generic friction-count guidance. Verification: `pnpm vitest run src/tools/reflection.test.ts --reporter=verbose` passed (2 tests); `pnpm run check` passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:30.221Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:31:01.899Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/97"
+  ]
+}

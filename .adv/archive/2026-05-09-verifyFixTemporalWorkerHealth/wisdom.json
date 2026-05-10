@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-OcHivp",
+      "type": "pattern",
+      "content": "Temporal health UI should be serviceability-first: if queue_serviceability.status is serviceable and blockers are empty, local worker_process_alive=false is peer/informational, not user-facing degraded. Keep raw field for diagnostics; format summary from queue serviceability verdict.",
+      "source_task": "tk-ac2ac1ac37c9",
+      "recorded_at": "2026-05-09T18:54:43.892Z"
+    }
+  ],
+  "count": 1
+}

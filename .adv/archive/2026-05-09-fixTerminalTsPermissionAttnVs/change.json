@@ -1,0 +1,144 @@
+{
+  "id": "fixTerminalTsPermissionAttnVs",
+  "title": "Fix terminal.ts permission-ATTN vs idle-ATTN distinction",
+  "status": "archived",
+  "created_at": "2026-05-09T21:18:16.114Z",
+  "tasks": [
+    {
+      "id": "tk-f958b66727ef",
+      "title": "Add failing regression tests for permission-ATTN (immediate ring) vs idle-ATTN (debounce/armed) distinction.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T21:20:42.440Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T21:21:03.360Z",
+      "verification": "Regression tests updated: ATTN always rings immediately, IDLE uses armed/debounce. TODO comment removed. Committed in worktree.",
+      "summary": "Regression tests updated: ATTN always rings immediately, IDLE uses armed/debounce. TODO comment removed. Committed in worktree.",
+      "implementation_summary": "Regression tests updated: ATTN always rings immediately, IDLE uses armed/debounce. TODO comment removed. Committed in worktree.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:25:47.116Z",
+      "completed_at": "2026-05-09T21:25:47.116Z"
+    },
+    {
+      "id": "tk-48c68ec834f4",
+      "title": "Implement separated ATTN/IDLE bell logic in updateTerminalStatus.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T21:20:48.005Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f958b66727ef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Implemented: separated ATTN (permission, always immediate) from IDLE (armed/debounce) in updateTerminalStatus bell logic.",
+      "summary": "Implemented: separated ATTN (permission, always immediate) from IDLE (armed/debounce) in updateTerminalStatus bell logic.",
+      "implementation_summary": "Implemented: separated ATTN (permission, always immediate) from IDLE (armed/debounce) in updateTerminalStatus bell logic.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:25:48.247Z",
+      "completed_at": "2026-05-09T21:25:48.247Z"
+    },
+    {
+      "id": "tk-fb74008e8354",
+      "title": "Run focused terminal tests and verify bell behavior.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T21:20:52.681Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-48c68ec834f4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Verification: typecheck clean, lint clean, all 1993 tests pass. Only pre-existing overlay-sync failure.",
+      "summary": "Verification: typecheck clean, lint clean, all 1993 tests pass. Only pre-existing overlay-sync failure.",
+      "implementation_summary": "Verification: typecheck clean, lint clean, all 1993 tests pass. Only pre-existing overlay-sync failure.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:25:49.094Z",
+      "completed_at": "2026-05-09T21:25:49.094Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:18:33.818Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Proposal created from issue #86 TODO comment. Clear scope: distinguish permission-ATTN from idle-ATTN in terminal.ts. No HITL tradeoff."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:18:38.532Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery from issue #86 and TODO comment in events.test.ts:712. Well-scoped terminal.ts fix. No HITL tradeoff."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:20:35.075Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design: separate ATTN (permission pending) from IDLE (agent finished) in bell logic. ATTN always rings immediately. IDLE uses armed/debounce."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:20:58.799Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Planning complete: 3 tasks (validation, implementation, verification). ATTN=permission rings immediately. IDLE=agent-finished uses armed/debounce."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:25:58.834Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "All 3 tasks done. ATTN (permission) always rings immediately. IDLE (agent-finished) uses armed/debounce. TODO removed. Typecheck + lint clean. All tests pass."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T22:29:48.043Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Batch user approval. All 3 tasks done: ATTN=permission rings immediately, IDLE=agent-finished uses armed/debounce. TODO removed. All tests pass."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T22:29:53.551Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "All gates complete. Ready to archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/86"
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-09T22:29:31.938Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-09T22:29:31.938Z"
+    }
+  ]
+}

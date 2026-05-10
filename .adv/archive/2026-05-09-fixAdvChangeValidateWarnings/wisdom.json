@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-SZvS8l",
+      "type": "gotcha",
+      "content": "adv_change_validate focused tests using createMockStore need proposal drift controlled. Missing proposal.md falls back to scaffold with Intent/Scope headers, causing PROPOSAL_TASK_DRIFT warnings unless task titles include those keywords or proposal loading is explicitly mocked/avoided. Also completed logic tasks need verification/tdd_evidence or MISSING_TDD_EVIDENCE errors fire.",
+      "source_task": "tk-7674ea4d2fad",
+      "recorded_at": "2026-05-09T07:41:59.580Z"
+    },
+    {
+      "id": "ws-_taT-t",
+      "type": "convention",
+      "content": "When changing ADV tool source behavior, unit/source tests can prove implementation in-session, but live adv_* tool invocations still use cached plugin/dist from session startup. Final notes should state pnpm run build + OpenCode restart needed before live tool behavior reflects source changes.",
+      "source_task": "tk-c386b4b0fa35",
+      "recorded_at": "2026-05-09T07:43:26.778Z"
+    }
+  ],
+  "count": 2
+}

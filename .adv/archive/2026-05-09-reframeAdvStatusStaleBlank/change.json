@@ -1,0 +1,125 @@
+{
+  "id": "reframeAdvStatusStaleBlank",
+  "title": "Reframe adv_status stale blank assistant message recommendation",
+  "status": "archived",
+  "created_at": "2026-05-09T07:54:03.837Z",
+  "tasks": [
+    {
+      "id": "tk-37b6764ee979",
+      "title": "Add failing status/session-debt formatter test proving blank assistant message recommendation does not frame active-session rows as stale/deletable.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:26.881Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:37:38.199Z",
+      "verification": "Added failing-then-green status recommendation regression. Red phase failed because recommendation still used `Stale OpenCode blank assistant messages`; green asserts neutral `OpenCode blank assistant session debt detected` and no `before deletion` wording.",
+      "summary": "Updated status recommendation tests to reject stale/deletion framing and require dry-run classification wording.",
+      "implementation_summary": "Updated status recommendation tests to reject stale/deletion framing and require dry-run classification wording.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:38:33.037Z",
+      "completed_at": "2026-05-09T18:38:33.037Z"
+    },
+    {
+      "id": "tk-1423c1fe40e5",
+      "title": "Update adv_status doctor wording to distinguish active-session debt from orphan/repairable rows and keep deletion guidance safety-gated.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T18:16:26.991Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Updated adv_status doctor recommendation to neutral safety wording: `OpenCode blank assistant session debt detected` and `classify live vs orphan rows before any cleanup`. This avoids implying all rows are stale/deletable.",
+      "summary": "Reframed doctor recommendation text in status tool to distinguish session debt from deletion-safe rows.",
+      "implementation_summary": "Reframed doctor recommendation text in status tool to distinguish session debt from deletion-safe rows.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:38:33.090Z",
+      "completed_at": "2026-05-09T18:38:33.090Z"
+    },
+    {
+      "id": "tk-35943e56aa5a",
+      "title": "Run focused status/session-debt tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T18:16:26.992Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "pnpm vitest run src/tools/status.test.ts --reporter=verbose; pnpm run check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "f0d760d96036edd839a8b014e162fe8c127a7b33",
+      "completedAt": "2026-05-09T18:38:41.004Z",
+      "completed_at": "2026-05-09T18:38:41.004Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:10:29.815Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #92."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:15:24.800Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed from issue #92 and relation to #91. Status wording should not imply all blank assistant rows are stale/deletable; it should distinguish active-session debt from repairable orphan rows where possible. No conflict found."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:16:09.109Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan updates status wording to be safety-preserving and aligned with #91 classification. No HITL tradeoff, conflict, or contract compromise."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:34:17.693Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #92."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:38:41.002Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. Reframed adv_status doctor recommendation from stale/deletion framing to neutral session-debt wording: `OpenCode blank assistant session debt detected` and dry-run classification of live vs orphan rows before cleanup. Verification: `pnpm vitest run src/tools/status.test.ts --reporter=verbose` passed (25 tests); `pnpm run check` passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:27.651Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:59.412Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/92"
+  ]
+}

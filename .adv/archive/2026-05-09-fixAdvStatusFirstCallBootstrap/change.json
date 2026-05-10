@@ -1,0 +1,134 @@
+{
+  "id": "fixAdvStatusFirstCallBootstrap",
+  "title": "Fix adv_status first-call bootstrap nondeterminism",
+  "status": "archived",
+  "created_at": "2026-05-09T02:47:08.279Z",
+  "tasks": [
+    {
+      "id": "tk-b56c43c65713",
+      "title": "Add failing deterministic regression coverage for first-call adv_status bootstrap race against scoped ADV instruction loading.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:52:22.402Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:03:43.507Z",
+      "verification": "Added deterministic regression coverage for first-call adv_status bootstrap race: status now recovers when the first two status loads hit TMPRL1100/bootstrap fallback errors and only degrades after three repeated bootstrap failures. Focused status tests pass after retry expansion implementation.",
+      "summary": "Added deterministic regression coverage for first-call adv_status bootstrap race: status now recovers when the first two status loads hit TMPRL1100/bootstrap fallback errors and only degrades after three repeated bootstrap failures. Focused status tests pass after retry expansion implementation.",
+      "implementation_summary": "Added deterministic regression coverage for first-call adv_status bootstrap race: status now recovers when the first two status loads hit TMPRL1100/bootstrap fallback errors and only degrades after three repeated bootstrap failures. Focused status tests pass after retry expansion implementation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:05:05.104Z",
+      "completed_at": "2026-05-09T19:05:05.104Z"
+    },
+    {
+      "id": "tk-af6df2a9b44e",
+      "title": "Implement deterministic readiness ordering/retry/fallback for first-call status bootstrap.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T07:52:22.473Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:05:10.708Z",
+      "verification": "Implemented deterministic bounded bootstrap retry: adv_status now attempts status load up to three times with fixed 50ms backoff for Temporal fallback/bootstrap errors, reports recovered diagnostics when a retry succeeds, and only returns structural bootstrap-in-progress fallback after all attempts fail. Non-bootstrap errors still propagate.",
+      "summary": "Implemented deterministic bounded bootstrap retry: adv_status now attempts status load up to three times with fixed 50ms backoff for Temporal fallback/bootstrap errors, reports recovered diagnostics when a retry succeeds, and only returns structural bootstrap-in-progress fallback after all attempts fail. Non-bootstrap errors still propagate.",
+      "implementation_summary": "Implemented deterministic bounded bootstrap retry: adv_status now attempts status load up to three times with fixed 50ms backoff for Temporal fallback/bootstrap errors, reports recovered diagnostics when a retry succeeds, and only returns structural bootstrap-in-progress fallback after all attempts fail. Non-bootstrap errors still propagate.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:05:15.862Z",
+      "completed_at": "2026-05-09T19:05:15.862Z"
+    },
+    {
+      "id": "tk-b6e035f095d0",
+      "title": "Run focused status/bootstrap tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T07:52:22.521Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:05:23.312Z",
+      "verification": "pnpm test --run src/tools/status.test.ts exited 0; pnpm run check exited 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "25eb39f5c75408a6c93ab231b27145aaffe9676b",
+      "completedAt": "2026-05-09T19:06:01.698Z",
+      "completed_at": "2026-05-09T19:06:01.698Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-3f-3zq",
+      "type": "pattern",
+      "content": "For first-call adv_status bootstrap races, bounded multi-attempt retry (3 attempts, fixed short backoff) is safer than single retry: recover transient TMPRL1100/bootstrap errors, but still return structured bootstrap-in-progress fallback after repeated failures.",
+      "source_task": "tk-af6df2a9b44e",
+      "recorded_at": "2026-05-09T19:05:52.437Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.433Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:52:18.675Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #56, proposal, and current healthy status. This is startup/bootstrap determinism bug; no HITL tradeoff/conflict detected."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:52:18.748Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan uses deterministic readiness/timing regression and targeted bootstrap ordering/retry/fallback while preserving scoped ADV instruction loading."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:46:03.966Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #56."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:06:07.307Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. Added bounded 3-attempt adv_status bootstrap retry for Temporal fallback/TMPRL1100 errors with fixed 50ms backoff; returns recovered diagnostics when later attempt succeeds and structural bootstrap-in-progress fallback only after repeated failures. Added deterministic regression for recovery after first two status loads fail. Verification: pnpm test --run src/tools/status.test.ts passed; pnpm run check passed. Checkpoint commit 25eb39f5c75408a6c93ab231b27145aaffe9676b. Live OpenCode session may require plugin reload/rebuild for live tool behavior."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:07.904Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:44.412Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-DQMK3R",
+      "type": "pattern",
+      "content": "Status/list memo fast paths must exclude terminal summaries unless caller explicitly requests terminal statuses. Keep archived/closed reads on slow path so visibility/disk/archive sources can reconcile true terminal state without pinning same-session active lists.",
+      "source_task": "tk-2299b3367dfa",
+      "recorded_at": "2026-05-09T19:08:10.181Z"
+    }
+  ],
+  "count": 1
+}

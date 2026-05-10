@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-zPMYHD",
+      "type": "pattern",
+      "content": "Archive preflight must query workflow gate status via the same getGateStatusQuery path as adv_gate_status before enforcing allGatesSatisfied. Store/disk projections can lag after recovery; authoritative workflow gates should drive archive readiness while incomplete queried gates still block.",
+      "source_task": "tk-8734d9497e7a",
+      "recorded_at": "2026-05-09T18:23:17.857Z"
+    }
+  ],
+  "count": 1
+}

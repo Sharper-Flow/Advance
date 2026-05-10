@@ -1,0 +1,124 @@
+{
+  "id": "fixExternalStateHygiene",
+  "title": "Fix external-state hygiene leftovers and test-isolation leak",
+  "status": "archived",
+  "created_at": "2026-05-09T02:44:07.398Z",
+  "tasks": [
+    {
+      "id": "tk-c27d332c8f48",
+      "title": "Add failing regression tests for synthetic external-state/worktree leak and valid in-repo archive hygiene output.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T04:00:00.190Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T21:11:50.315Z",
+      "verification": "Added regression test expectations: hygiene detector no longer flags in-repo archive as legacy. Extended check-test-isolation with getWorktreeBase/getDataHome detection.",
+      "summary": "Added regression test expectations: hygiene detector no longer flags in-repo archive as legacy. Extended check-test-isolation with getWorktreeBase/getDataHome detection.",
+      "implementation_summary": "Added regression test expectations: hygiene detector no longer flags in-repo archive as legacy. Extended check-test-isolation with getWorktreeBase/getDataHome detection.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:17:43.471Z",
+      "completed_at": "2026-05-09T21:17:43.471Z"
+    },
+    {
+      "id": "tk-a391c38c1eed",
+      "title": "Fix hygiene/test isolation logic so synthetic dirs are temp/marker scoped and current archive policy is not flagged as drift.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T04:00:03.331Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c27d332c8f48"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Implemented: A5 hygiene detector update (in-repo archive no longer flagged). A4 prevention via extended check-test-isolation. Status tests pass, typecheck clean, pnpm run check clean.",
+      "summary": "Implemented: A5 hygiene detector update (in-repo archive no longer flagged). A4 prevention via extended check-test-isolation. Status tests pass, typecheck clean, pnpm run check clean.",
+      "implementation_summary": "Implemented: A5 hygiene detector update (in-repo archive no longer flagged). A4 prevention via extended check-test-isolation. Status tests pass, typecheck clean, pnpm run check clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:17:44.894Z",
+      "completed_at": "2026-05-09T21:17:44.894Z"
+    },
+    {
+      "id": "tk-254950eaa6dd",
+      "title": "Run focused tests and plugin check; document any required live-session rebuild/restart caveat.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T04:00:06.129Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a391c38c1eed"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Verification: typecheck clean, lint clean, format clean, all status tests pass. check-test-isolation tests pass. Only pre-existing overlay-sync failure.",
+      "summary": "Verification: typecheck clean, lint clean, format clean, all status tests pass. check-test-isolation tests pass. Only pre-existing overlay-sync failure.",
+      "implementation_summary": "Verification: typecheck clean, lint clean, format clean, all status tests pass. check-test-isolation tests pass. Only pre-existing overlay-sync failure.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T21:17:45.906Z",
+      "completed_at": "2026-05-09T21:17:45.906Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.293Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:59:47.409Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from linked issue #60, proposal, project context, and project wisdom. No user-value tradeoff or conflict found; implementation scope remains bug-fix local."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:59:57.558Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. No HITL tradeoff, conflict, or contract compromise detected; safety constraints align with existing project wisdom and issue acceptance."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:46:03.965Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #60."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:17:53.661Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "All 3 tasks done. A5: hygiene detector no longer flags in-repo archive. A4 prevention: check-test-isolation extended with getWorktreeBase/getDataHome detection. Full check passes."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:11.121Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:46.707Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

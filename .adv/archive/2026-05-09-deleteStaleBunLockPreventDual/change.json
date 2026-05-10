@@ -1,0 +1,140 @@
+{
+  "id": "deleteStaleBunLockPreventDual",
+  "title": "Delete stale bun.lock and prevent dual lockfile drift",
+  "status": "archived",
+  "created_at": "2026-05-09T02:47:08.279Z",
+  "tasks": [
+    {
+      "id": "tk-c9279c0a06db",
+      "title": "Verify package-manager authority and whether bun.lock is stale/unneeded; add failing drift-prevention check if appropriate.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:52:50.865Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:47:50.080Z",
+      "verification": "Verified plugin has no tracked bun.lock, uses plugin/pnpm-lock.yaml in CI/release, and package scripts are pnpm-based. Added a failing-first Vitest coverage path and CI check script that rejects bun.lock/bun.lockb beside authoritative plugin/pnpm-lock.yaml; initial focused test failed because the guard did not exist, then passed after implementation.",
+      "summary": "Verified plugin has no tracked bun.lock, uses plugin/pnpm-lock.yaml in CI/release, and package scripts are pnpm-based. Added a failing-first Vitest coverage path and CI check script that rejects bun.lock/bun.lockb beside authoritative plugin/pnpm-lock.yaml; initial focused test failed because the guard did not exist, then passed after implementation.",
+      "implementation_summary": "Verified plugin has no tracked bun.lock, uses plugin/pnpm-lock.yaml in CI/release, and package scripts are pnpm-based. Added a failing-first Vitest coverage path and CI check script that rejects bun.lock/bun.lockb beside authoritative plugin/pnpm-lock.yaml; initial focused test failed because the guard did not exist, then passed after implementation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:49:48.852Z",
+      "completed_at": "2026-05-09T18:49:48.852Z"
+    },
+    {
+      "id": "tk-70f3e16f1620",
+      "title": "Remove stale bun.lock or add explicit retention justification plus prevention against accidental dual-lock drift.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T07:52:50.914Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:49:55.799Z",
+      "verification": "No tracked bun.lock existed to delete. Added explicit stale Bun lockfile prevention by ignoring plugin/bun.lockb in addition to plugin/bun.lock, documenting pnpm/pnpm-lock authority in project.md, and wiring scripts/check-lockfile-policy.ts into pnpm run check so accidental Bun lockfiles fail CI.",
+      "summary": "No tracked bun.lock existed to delete. Added explicit stale Bun lockfile prevention by ignoring plugin/bun.lockb in addition to plugin/bun.lock, documenting pnpm/pnpm-lock authority in project.md, and wiring scripts/check-lockfile-policy.ts into pnpm run check so accidental Bun lockfiles fail CI.",
+      "implementation_summary": "No tracked bun.lock existed to delete. Added explicit stale Bun lockfile prevention by ignoring plugin/bun.lockb in addition to plugin/bun.lock, documenting pnpm/pnpm-lock authority in project.md, and wiring scripts/check-lockfile-policy.ts into pnpm run check so accidental Bun lockfiles fail CI.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:50:17.162Z",
+      "completed_at": "2026-05-09T18:50:17.162Z"
+    },
+    {
+      "id": "tk-0b47940dd4c3",
+      "title": "Run package/check verification and document lockfile policy evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T07:52:50.960Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:50:20.499Z",
+      "verification": "pnpm test --run scripts/check-lockfile-policy.test.ts exited 0; pnpm run check exited 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".gitignore",
+        "plugin/package.json",
+        "plugin/scripts/check-lockfile-policy.test.ts",
+        "plugin/scripts/check-lockfile-policy.ts",
+        "project.md"
+      ],
+      "touched_files": [
+        ".gitignore",
+        "plugin/package.json",
+        "plugin/scripts/check-lockfile-policy.test.ts",
+        "plugin/scripts/check-lockfile-policy.ts",
+        "project.md"
+      ],
+      "checkpointSha": "4b4f405c5b1a9383a7523d97f0e7d5e12d489b81",
+      "completedAt": "2026-05-09T18:50:57.863Z",
+      "completed_at": "2026-05-09T18:50:57.863Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-jcpe-J",
+      "type": "pattern",
+      "content": "Lockfile drift prevention can be structural: CI already treats plugin/pnpm-lock.yaml as authoritative via setup-node cache and frozen pnpm install, so add a small check script that fails if bun.lock/bun.lockb appears beside pnpm-lock.yaml rather than relying only on .gitignore.",
+      "source_task": "tk-c9279c0a06db",
+      "recorded_at": "2026-05-09T18:49:52.532Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.458Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:52:47.235Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #43, proposal, and project context. Repo docs identify pnpm as development package manager; lockfile removal still requires verification in execution. No HITL tradeoff/conflict detected."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:52:47.329Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan verifies package-manager authority before deleting bun.lock and adds drift prevention/verification as appropriate."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:46:03.898Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #43."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:51:03.281Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. No tracked bun.lock existed; plugin/pnpm-lock.yaml authority verified through CI/release/package scripts/project context. Added scripts/check-lockfile-policy.ts and tests to reject bun.lock/bun.lockb beside authoritative pnpm lockfile; wired script into pnpm run check; updated .gitignore and project.md. Verification: pnpm test --run scripts/check-lockfile-policy.test.ts passed; pnpm run check passed. Checkpoint commit: 4b4f405c5b1a9383a7523d97f0e7d5e12d489b81."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:34.558Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:02:57.513Z",
+      "completed_by": "user",
+      "approval_evidence": "Release approved via structured ADV_ATC_RESPONSE on GitHub issue #43."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

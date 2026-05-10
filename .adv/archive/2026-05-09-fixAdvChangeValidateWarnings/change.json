@@ -1,0 +1,158 @@
+{
+  "id": "fixAdvChangeValidateWarnings",
+  "title": "Fix adv_change_validate warnings-only strict-mode result",
+  "status": "archived",
+  "created_at": "2026-05-09T02:45:20.254Z",
+  "tasks": [
+    {
+      "id": "tk-7674ea4d2fad",
+      "title": "Add failing regression tests for adv_change_validate strict-mode warning aggregation and strictWarnings opt-in behavior.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:35:11.752Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T07:35:27.832Z",
+      "verification": "Added focused adv_change_validate regression coverage for warnings-only strict mode, strictWarnings opt-in warning escalation, errors-present failure, and clean validation pass. Implemented strictWarnings argument and changed strict-mode aggregation to fail only on errors unless warning escalation is explicitly requested. Focused green test passed: pnpm vitest run src/tools/change.test.ts --reporter=verbose. Checkpoint commit de8d89d9bfdbf25b20563120d9d9fe02894d908f.",
+      "summary": "Added focused adv_change_validate regression coverage for warnings-only strict mode, strictWarnings opt-in warning escalation, errors-present failure, and clean validation pass. Implemented strictWarnings argument and changed strict-mode aggregation to fail only on errors unless warning escalation is explicitly requested. Focused green test passed: pnpm vitest run src/tools/change.test.ts --reporter=verbose. Checkpoint commit de8d89d9bfdbf25b20563120d9d9fe02894d908f.",
+      "implementation_summary": "Added focused adv_change_validate regression coverage for warnings-only strict mode, strictWarnings opt-in warning escalation, errors-present failure, and clean validation pass. Implemented strictWarnings argument and changed strict-mode aggregation to fail only on errors unless warning escalation is explicitly requested. Focused green test passed: pnpm vitest run src/tools/change.test.ts --reporter=verbose. Checkpoint commit de8d89d9bfdbf25b20563120d9d9fe02894d908f.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T07:41:54.929Z",
+      "completed_at": "2026-05-09T07:41:54.929Z"
+    },
+    {
+      "id": "tk-eac41f5ff4dc",
+      "title": "Implement strictWarnings schema/aggregation changes so default strict mode passes warnings-only and errors remain blocking.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T07:35:14.758Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7674ea4d2fad"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T07:42:08.695Z",
+      "verification": "Implemented strictWarnings schema/aggregation in adv_change_validate. strict:true now means strict checks run but pass/fail blocks on errors only by default; strictWarnings:true explicitly escalates warnings to blocking failures. Removed prior hardcoded archive-safe warning allowlist. Focused verification passed: pnpm vitest run src/tools/change.test.ts --reporter=verbose. No new commit needed; implementation included in checkpoint de8d89d9bfdbf25b20563120d9d9fe02894d908f.",
+      "summary": "Implemented strictWarnings schema/aggregation in adv_change_validate. strict:true now means strict checks run but pass/fail blocks on errors only by default; strictWarnings:true explicitly escalates warnings to blocking failures. Removed prior hardcoded archive-safe warning allowlist. Focused verification passed: pnpm vitest run src/tools/change.test.ts --reporter=verbose. No new commit needed; implementation included in checkpoint de8d89d9bfdbf25b20563120d9d9fe02894d908f.",
+      "implementation_summary": "Implemented strictWarnings schema/aggregation in adv_change_validate. strict:true now means strict checks run but pass/fail blocks on errors only by default; strictWarnings:true explicitly escalates warnings to blocking failures. Removed prior hardcoded archive-safe warning allowlist. Focused verification passed: pnpm vitest run src/tools/change.test.ts --reporter=verbose. No new commit needed; implementation included in checkpoint de8d89d9bfdbf25b20563120d9d9fe02894d908f.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T07:42:21.763Z",
+      "completed_at": "2026-05-09T07:42:21.763Z"
+    },
+    {
+      "id": "tk-c386b4b0fa35",
+      "title": "Run focused validation/tool tests and plugin check; document behavior and any live-session rebuild caveat.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T07:35:19.068Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-eac41f5ff4dc"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T07:42:28.132Z",
+      "verification": "Ran final verification for adv_change_validate strict warning semantics. First pnpm run check failed only Prettier format on src/tools/change.test.ts; formatted src/tools/change.test.ts and src/tools/change.ts, then pnpm run check passed. Focused validation test passed after formatting: pnpm vitest run src/tools/change.test.ts --reporter=verbose. Live OpenCode tool behavior requires pnpm run build + session restart because plugin dist is cached at session startup. Checkpoint commit 5e4aae528958e028f24f0bc97018c0c3e1c43dfb.",
+      "summary": "Ran final verification for adv_change_validate strict warning semantics. First pnpm run check failed only Prettier format on src/tools/change.test.ts; formatted src/tools/change.test.ts and src/tools/change.ts, then pnpm run check passed. Focused validation test passed after formatting: pnpm vitest run src/tools/change.test.ts --reporter=verbose. Live OpenCode tool behavior requires pnpm run build + session restart because plugin dist is cached at session startup. Checkpoint commit 5e4aae528958e028f24f0bc97018c0c3e1c43dfb.",
+      "implementation_summary": "Ran final verification for adv_change_validate strict warning semantics. First pnpm run check failed only Prettier format on src/tools/change.test.ts; formatted src/tools/change.test.ts and src/tools/change.ts, then pnpm run check passed. Focused validation test passed after formatting: pnpm vitest run src/tools/change.test.ts --reporter=verbose. Live OpenCode tool behavior requires pnpm run build + session restart because plugin dist is cached at session startup. Checkpoint commit 5e4aae528958e028f24f0bc97018c0c3e1c43dfb.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T07:43:21.664Z",
+      "completed_at": "2026-05-09T07:43:21.664Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-SZvS8l",
+      "type": "gotcha",
+      "content": "adv_change_validate focused tests using createMockStore need proposal drift controlled. Missing proposal.md falls back to scaffold with Intent/Scope headers, causing PROPOSAL_TASK_DRIFT warnings unless task titles include those keywords or proposal loading is explicitly mocked/avoided. Also completed logic tasks need verification/tdd_evidence or MISSING_TDD_EVIDENCE errors fire.",
+      "source_task": "tk-7674ea4d2fad",
+      "recorded_at": "2026-05-09T07:41:59.580Z"
+    },
+    {
+      "id": "ws-_taT-t",
+      "type": "convention",
+      "content": "When changing ADV tool source behavior, unit/source tests can prove implementation in-session, but live adv_* tool invocations still use cached plugin/dist from session startup. Final notes should state pnpm run build + OpenCode restart needed before live tool behavior reflects source changes.",
+      "source_task": "tk-c386b4b0fa35",
+      "recorded_at": "2026-05-09T07:43:26.778Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.408Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:35:06.974Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #63, proposal, project context, and specs. Strict-mode warnings-only false result is a validator aggregation bug; issue acceptance asks for explicit strictWarnings opt-in. No user-value tradeoff or conflict found."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:35:07.005Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan adds strictWarnings opt-in and regression coverage while preserving structured warning visibility. No contract-compromise risk detected."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:35:25.085Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved by user command `/adv-atc bugs --auto-prove --yolo`; --yolo treated as GH-response equivalent for planning only in this ATC run. Validation passed with warnings only (NO_DELTAS, proposal drift on narrative sections)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:43:31.509Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "All three planned tasks completed. Source behavior implemented and verified via focused tests and pnpm run check. Live adv_change_validate behavior needs pnpm run build + OpenCode restart because current session uses cached dist."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:33.153Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:19:16.455Z",
+      "completed_by": "user",
+      "approval_evidence": "Release/archive approved via structured ADV_ATC_RESPONSE on GitHub issue #63."
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "release",
+      "reason": "ATC protocol correction: release/archive sign-off is separate HITL and must be deferred to GitHub; acceptance approval did not explicitly approve release/archive.",
+      "scope_delta": "No scope change. Reset release gate to await structured GitHub release approval.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-09T18:17:25.403Z",
+      "gates_reset": [
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

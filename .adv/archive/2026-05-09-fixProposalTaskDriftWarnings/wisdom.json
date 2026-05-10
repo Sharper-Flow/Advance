@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-hPyS0r",
+      "type": "pattern",
+      "content": "Proposal-task drift validation should be opt-in to structurally task-bearing sections (Tasks, Planned Tasks, Implementation Tasks, Work Items, Work Plan), not opt-out from narrative headers. Header keyword matching over arbitrary proposal sections creates false positives on Intent/Scope/coordination prose.",
+      "source_task": "tk-e818f84d1e60",
+      "recorded_at": "2026-05-09T18:13:34.432Z"
+    }
+  ],
+  "count": 1
+}

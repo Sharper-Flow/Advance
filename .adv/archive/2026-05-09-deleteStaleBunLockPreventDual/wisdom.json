@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-jcpe-J",
+      "type": "pattern",
+      "content": "Lockfile drift prevention can be structural: CI already treats plugin/pnpm-lock.yaml as authoritative via setup-node cache and frozen pnpm install, so add a small check script that fails if bun.lock/bun.lockb appears beside pnpm-lock.yaml rather than relying only on .gitignore.",
+      "source_task": "tk-c9279c0a06db",
+      "recorded_at": "2026-05-09T18:49:52.532Z"
+    }
+  ],
+  "count": 1
+}

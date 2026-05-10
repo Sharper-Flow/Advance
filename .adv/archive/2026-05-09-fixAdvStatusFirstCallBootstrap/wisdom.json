@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-3f-3zq",
+      "type": "pattern",
+      "content": "For first-call adv_status bootstrap races, bounded multi-attempt retry (3 attempts, fixed short backoff) is safer than single retry: recover transient TMPRL1100/bootstrap errors, but still return structured bootstrap-in-progress fallback after repeated failures.",
+      "source_task": "tk-af6df2a9b44e",
+      "recorded_at": "2026-05-09T19:05:52.437Z"
+    }
+  ],
+  "count": 1
+}

@@ -1,0 +1,137 @@
+{
+  "id": "verifyFixWorktree",
+  "title": "Verify or fix worktree WorkflowUpdateFailedError after repair",
+  "status": "archived",
+  "created_at": "2026-05-09T02:44:49.209Z",
+  "tasks": [
+    {
+      "id": "tk-a08c73b972ae",
+      "title": "Verify current worktree create/resume path no longer uses workflow updates and capture evidence.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T04:00:57.068Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:55:21.266Z",
+      "verification": "Verified worktree create/resume source path no longer relies on project workflow updates for registration/session record mutation. Evidence: worktree/index.ts uses fireSignalAndRefresh for change workflow signals; no WorkflowUpdateFailedError references in worktree tools; source search found defineUpdate only in guard/tests and executeUpdate references in worktree tests are mocks/comments asserting no retired update use. Existing index-create tests assert project-workflow executeUpdate is retired and not called.",
+      "summary": "Verified worktree create/resume source path no longer relies on project workflow updates for registration/session record mutation. Evidence: worktree/index.ts uses fireSignalAndRefresh for change workflow signals; no WorkflowUpdateFailedError references in worktree tools; source search found defineUpdate only in guard/tests and executeUpdate references in worktree tests are mocks/comments asserting no retired update use. Existing index-create tests assert project-workflow executeUpdate is retired and not called.",
+      "implementation_summary": "Verified worktree create/resume source path no longer relies on project workflow updates for registration/session record mutation. Evidence: worktree/index.ts uses fireSignalAndRefresh for change workflow signals; no WorkflowUpdateFailedError references in worktree tools; source search found defineUpdate only in guard/tests and executeUpdate references in worktree tests are mocks/comments asserting no retired update use. Existing index-create tests assert project-workflow executeUpdate is retired and not called.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:55:32.436Z",
+      "completed_at": "2026-05-09T18:55:32.436Z"
+    },
+    {
+      "id": "tk-feb366459017",
+      "title": "Run safe worktree create/resume reproduction or add regression coverage if failure still reproduces.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T04:01:02.620Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a08c73b972ae"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:55:36.466Z",
+      "verification": "Safe live reproduction did not reproduce WorkflowUpdateFailedError: adv_worktree_resume succeeded for verifyFixWorktree (reused existing) and verifyFixFalseProjectworkflow (materialized new worktree). Focused worktree create tests passed (14 tests), covering retired project-workflow update path assertions. No code changes needed.",
+      "summary": "Safe live reproduction did not reproduce WorkflowUpdateFailedError: adv_worktree_resume succeeded for verifyFixWorktree (reused existing) and verifyFixFalseProjectworkflow (materialized new worktree). Focused worktree create tests passed (14 tests), covering retired project-workflow update path assertions. No code changes needed.",
+      "implementation_summary": "Safe live reproduction did not reproduce WorkflowUpdateFailedError: adv_worktree_resume succeeded for verifyFixWorktree (reused existing) and verifyFixFalseProjectworkflow (materialized new worktree). Focused worktree create tests passed (14 tests), covering retired project-workflow update path assertions. No code changes needed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:55:49.252Z",
+      "completed_at": "2026-05-09T18:55:49.252Z"
+    },
+    {
+      "id": "tk-0e12d84b3647",
+      "title": "Run relevant verification checks and document closure or remaining failure evidence.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T04:01:05.127Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-feb366459017"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:55:58.188Z",
+      "verification": "pnpm test --run src/tools/worktree/index-create.test.ts src/tools/worktree/index-delete.test.ts src/tools/worktree/state-session-lifecycle.test.ts exited 0; live adv_worktree_resume succeeded; no code changes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5b0c52ae541dcadbe25485c67c5950da2f649d31",
+      "completedAt": "2026-05-09T18:56:16.154Z",
+      "completed_at": "2026-05-09T18:56:16.154Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-2D9OXF",
+      "type": "success",
+      "content": "Worktree WorkflowUpdateFailedError path did not reproduce after signal-driven workflow refactor: live adv_worktree_resume succeeded for existing and newly materialized change worktrees, and focused index-create tests already assert project-workflow executeUpdate is retired/not called.",
+      "source_task": "tk-feb366459017",
+      "recorded_at": "2026-05-09T18:55:54.825Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.331Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T04:00:40.998Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from linked issue #48, prior verification comments, project context, and project wisdom. Verify-first path selected; no HITL tradeoff detected."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T04:00:52.164Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Verify-first plan has no user-value tradeoff or contract compromise."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:46:03.908Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #48."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:56:22.805Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete as verification-only closure. Source inspection confirmed worktree create/resume path uses signals and existing tests assert retired project-workflow executeUpdate path is not called. Live reproduction did not reproduce: adv_worktree_resume succeeded for verifyFixWorktree (reused) and verifyFixFalseProjectworkflow (newly materialized). Focused tests passed: pnpm test --run src/tools/worktree/index-create.test.ts src/tools/worktree/index-delete.test.ts src/tools/worktree/state-session-lifecycle.test.ts. No code changes; checkpoint status clean at 5b0c52ae541dcadbe25485c67c5950da2f649d31."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:17.415Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:51.684Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

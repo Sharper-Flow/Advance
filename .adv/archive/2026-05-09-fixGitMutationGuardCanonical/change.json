@@ -1,0 +1,137 @@
+{
+  "id": "fixGitMutationGuardCanonical",
+  "title": "Fix git mutation guard canonical archive push block",
+  "status": "archived",
+  "created_at": "2026-05-09T07:54:03.857Z",
+  "tasks": [
+    {
+      "id": "tk-79c6c0a6b47a",
+      "title": "Add failing allow/deny regression tests for canonical archive mutation on default branch versus unrelated default-branch git mutation.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:16.488Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:29:24.788Z",
+      "verification": "Regression coverage added. Red phase could not be reproduced because current trunk-write firewall already allows git commands, including canonical archive push; focused tests prove allow path and existing deny cases remain covered.",
+      "summary": "Added trunk-write-firewall unit regression and integration hook regression for `git -C <repo> push origin main` from default-branch checkout. Existing destructive write deny tests remain in place.",
+      "implementation_summary": "Added trunk-write-firewall unit regression and integration hook regression for `git -C <repo> push origin main` from default-branch checkout. Existing destructive write deny tests remain in place.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:31:36.818Z",
+      "completed_at": "2026-05-09T18:31:36.818Z"
+    },
+    {
+      "id": "tk-88ad17cdcbc4",
+      "title": "Implement narrow auditable archive-operation allow path in git mutation guard while preserving unrelated default-branch mutation blocking.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:16.494Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:32:33.818Z",
+      "verification": "No production-code mutation required: retired git-guard no longer exists in plugin/src, and trunk-write-firewall already allows all git commands while blocking direct destructive file writes to trunk. Regression tests now lock canonical archive push allow path plus existing deny behavior.",
+      "summary": "Preserved current trunk-write-firewall implementation. The safe fix is regression coverage, not reintroducing a git-command classifier or broad archive allowlist.",
+      "implementation_summary": "Preserved current trunk-write-firewall implementation. The safe fix is regression coverage, not reintroducing a git-command classifier or broad archive allowlist.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T18:32:39.824Z",
+      "completed_at": "2026-05-09T18:32:39.824Z"
+    },
+    {
+      "id": "tk-cb78c87c9941",
+      "title": "Run focused git guard/archive tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T18:16:16.514Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T18:32:35.397Z",
+      "verification": "pnpm vitest run src/tools/trunk-write-firewall.test.ts src/integration.test.ts --reporter=verbose; pnpm run check",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/integration.test.ts",
+        "plugin/src/tools/trunk-write-firewall.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/integration.test.ts",
+        "plugin/src/tools/trunk-write-firewall.test.ts"
+      ],
+      "checkpointSha": "580a98ea68f092ce5b0d77a1bf9b27a4bbcccd5a",
+      "completedAt": "2026-05-09T18:32:49.595Z",
+      "completed_at": "2026-05-09T18:32:49.595Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:10:29.817Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #102."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:15:24.680Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed from issue #102, proposal, and project rules. Core fact: default-branch mutation guard must preserve trunk-is-prod safety while allowing the specific canonical archive operation. No conflict or user tradeoff found."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:16:09.108Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan uses narrow archive-operation allow path plus allow/deny regression tests. No HITL tradeoff, conflict, or contract compromise."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:19:16.491Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #102."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:32:53.792Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete. Added regression coverage proving canonical archive push command from trunk checkout passes through trunk-write-firewall while existing direct file-write/destructive bash deny tests remain. No production code change required because retired git-guard no longer exists and current firewall deliberately allows git commands. Verification: `pnpm vitest run src/tools/trunk-write-firewall.test.ts src/integration.test.ts --reporter=verbose` passed (49 tests); `pnpm run check` passed. Checkpoint commit 580a98ea68f092ce5b0d77a1bf9b27a4bbcccd5a."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:31.679Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:44:43.549Z",
+      "completed_by": "user",
+      "approval_evidence": "Release approved via structured ADV_ATC_RESPONSE on GitHub issue #102."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Advance/issues/102"
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-09T18:29:02.143Z"
+    }
+  ]
+}

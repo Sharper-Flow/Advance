@@ -1,0 +1,135 @@
+{
+  "id": "fixAdvStatusVisibilityMemo",
+  "title": "Fix adv_status visibility memo stale deleted change entries",
+  "status": "archived",
+  "created_at": "2026-05-09T02:47:08.208Z",
+  "tasks": [
+    {
+      "id": "tk-9be31226095b",
+      "title": "Add failing regression coverage for same-session adv_status after change deletion/removal or terminal visibility invalidation.",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:51:55.544Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:06:33.345Z",
+      "verification": "Added regression coverage for terminal summaries in ChangeSummaryMemo and implemented active-fast-path filtering so archived/closed memo entries cannot pin deleted/terminal changes in same-session status/list output. Focused memo tests pass.",
+      "summary": "Added regression coverage for terminal summaries in ChangeSummaryMemo and implemented active-fast-path filtering so archived/closed memo entries cannot pin deleted/terminal changes in same-session status/list output. Focused memo tests pass.",
+      "implementation_summary": "Added regression coverage for terminal summaries in ChangeSummaryMemo and implemented active-fast-path filtering so archived/closed memo entries cannot pin deleted/terminal changes in same-session status/list output. Focused memo tests pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:07:52.516Z",
+      "completed_at": "2026-05-09T19:07:52.516Z"
+    },
+    {
+      "id": "tk-2299b3367dfa",
+      "title": "Implement scoped visibility memo invalidation/reconciliation for deleted/archived/closed change entries.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T07:51:55.617Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:07:58.372Z",
+      "verification": "Implemented scoped memo reconciliation in listResolvedChanges: default active-list fast path filters memo summaries to non-terminal statuses before returning, so archived/closed entries no longer remain visible until session restart. Terminal-inclusive list calls still take slow path and can include archive/closed data when explicitly requested.",
+      "summary": "Implemented scoped memo reconciliation in listResolvedChanges: default active-list fast path filters memo summaries to non-terminal statuses before returning, so archived/closed entries no longer remain visible until session restart. Terminal-inclusive list calls still take slow path and can include archive/closed data when explicitly requested.",
+      "implementation_summary": "Implemented scoped memo reconciliation in listResolvedChanges: default active-list fast path filters memo summaries to non-terminal statuses before returning, so archived/closed entries no longer remain visible until session restart. Terminal-inclusive list calls still take slow path and can include archive/closed data when explicitly requested.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:08:03.694Z",
+      "completed_at": "2026-05-09T19:08:03.694Z"
+    },
+    {
+      "id": "tk-40b9e69e6ed2",
+      "title": "Run focused status/cache tests and plugin check; document verification evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T07:51:55.634Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:08:16.044Z",
+      "verification": "Verification passed. Focused status/cache tests passed (38 tests). pnpm run check passed (typecheck, check-test-isolation, lint, format:check). Live current session may require plugin reload/rebuild before live adv_status uses changed source.",
+      "summary": "Verification passed. Focused status/cache tests passed (38 tests). pnpm run check passed (typecheck, check-test-isolation, lint, format:check). Live current session may require plugin reload/rebuild before live adv_status uses changed source.",
+      "implementation_summary": "Verification passed. Focused status/cache tests passed (38 tests). pnpm run check passed (typecheck, check-test-isolation, lint, format:check). Live current session may require plugin reload/rebuild before live adv_status uses changed source.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:08:40.285Z",
+      "completed_at": "2026-05-09T19:08:40.285Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-DQMK3R",
+      "type": "pattern",
+      "content": "Status/list memo fast paths must exclude terminal summaries unless caller explicitly requests terminal statuses. Keep archived/closed reads on slow path so visibility/disk/archive sources can reconcile true terminal state without pinning same-session active lists.",
+      "source_task": "tk-2299b3367dfa",
+      "recorded_at": "2026-05-09T19:08:10.181Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.432Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:51:51.727Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #57, proposal, project context, and cache-invalidation wisdom. This is a status cache invalidation bug; no HITL tradeoff/conflict detected."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:51:51.854Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan adds same-session stale-entry regression and scoped visibility memo invalidation/reconciliation."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:46:03.966Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning approved via structured ADV_ATC_RESPONSE on GitHub issue #57."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:00:17.458Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "All 3 tasks done: regression coverage for terminal summaries in ChangeSummaryMemo, scoped active-fast-path filtering for memo entries, and verification (38 tests passed, pnpm run check passed)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:09.564Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:45.540Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-09T07:46:50.710Z"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "id": "verifyFixFalseProjectworkflow",
+  "title": "Verify or fix false projectWorkflow NOT_FOUND diagnosis",
+  "status": "archived",
+  "created_at": "2026-05-09T02:46:27.544Z",
+  "tasks": [
+    {
+      "id": "tk-ea290c2e9d17",
+      "title": "Verify current live diagnose/status behavior and inspect source/test coverage for false projectWorkflow NOT_FOUND path.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T07:51:27.393Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:00:24.213Z",
+      "verification": "Captured live diagnose/status evidence: adv_temporal_diagnose for verifyFixFalseProjectworkflow returned success true, serverReachable true, workerAlive true, recommendedNextAction 'Temporal is healthy'; adv_status view=health reported Temporal server alive, Worker process healthy, Queue serviceability serviceable (combined). Source/test inspection shows projectWorkflow is retired; no runtime 'projectWorkflow NOT_FOUND' diagnostic string remains, and no-psw-references tests guard retired symbols. Existing diagnose output still has a benign changeWorkflow bootstrap-handler mismatch, but recommended action remains healthy rather than projectWorkflow NOT_FOUND.",
+      "summary": "Captured live diagnose/status evidence: adv_temporal_diagnose for verifyFixFalseProjectworkflow returned success true, serverReachable true, workerAlive true, recommendedNextAction 'Temporal is healthy'; adv_status view=health reported Temporal server alive, Worker process healthy, Queue serviceability serviceable (combined). Source/test inspection shows projectWorkflow is retired; no runtime 'projectWorkflow NOT_FOUND' diagnostic string remains, and no-psw-references tests guard retired symbols. Existing diagnose output still has a benign changeWorkflow bootstrap-handler mismatch, but recommended action remains healthy rather than projectWorkflow NOT_FOUND.",
+      "implementation_summary": "Captured live diagnose/status evidence: adv_temporal_diagnose for verifyFixFalseProjectworkflow returned success true, serverReachable true, workerAlive true, recommendedNextAction 'Temporal is healthy'; adv_status view=health reported Temporal server alive, Worker process healthy, Queue serviceability serviceable (combined). Source/test inspection shows projectWorkflow is retired; no runtime 'projectWorkflow NOT_FOUND' diagnostic string remains, and no-psw-references tests guard retired symbols. Existing diagnose output still has a benign changeWorkflow bootstrap-handler mismatch, but recommended action remains healthy rather than projectWorkflow NOT_FOUND.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:00:37.077Z",
+      "completed_at": "2026-05-09T19:00:37.077Z"
+    },
+    {
+      "id": "tk-1174a5fd6820",
+      "title": "Add regression/fix only if false NOT_FOUND path remains uncovered or reproducible.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T07:51:27.467Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:00:41.952Z",
+      "verification": "No code change needed: false projectWorkflow NOT_FOUND path did not reproduce and projectWorkflow runtime references are retired/guarded by tests. Kept implementation task as verification-only no-op with captured evidence rather than adding redundant code.",
+      "summary": "No code change needed: false projectWorkflow NOT_FOUND path did not reproduce and projectWorkflow runtime references are retired/guarded by tests. Kept implementation task as verification-only no-op with captured evidence rather than adding redundant code.",
+      "implementation_summary": "No code change needed: false projectWorkflow NOT_FOUND path did not reproduce and projectWorkflow runtime references are retired/guarded by tests. Kept implementation task as verification-only no-op with captured evidence rather than adding redundant code.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-09T19:00:47.194Z",
+      "completed_at": "2026-05-09T19:00:47.194Z"
+    },
+    {
+      "id": "tk-b73154708a3c",
+      "title": "Run focused diagnose/status verification and plugin check; document closure or remaining failure evidence.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-09T07:51:27.497Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-09T19:00:52.136Z",
+      "verification": "adv_temporal_diagnose and adv_status healthy/serviceable; pnpm test --run src/__tests__/no-psw-references.test.ts src/tools/status-temporal-health.test.ts src/tools/temporal-ops.test.ts exited 0; pnpm run check exited 0; no code changes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5b0c52ae541dcadbe25485c67c5950da2f649d31",
+      "completedAt": "2026-05-09T19:01:27.314Z",
+      "completed_at": "2026-05-09T19:01:27.314Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T03:54:37.429Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch accepted by user in OpenCode chat; structured GH response posted."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:51:22.011Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Discovery completed autonomously from issue #67, proposal, and live diagnose evidence. Current adv_temporal_diagnose reports Temporal healthy; verify-first path selected with no HITL tradeoff."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T07:51:22.073Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Design completed autonomously. Plan captures live evidence, inspects coverage, and only adds code/tests if false NOT_FOUND remains reproducible or uncovered."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-09T18:11:13.918Z",
+      "completed_by": "user",
+      "approval_evidence": "Approved via structured ADV_ATC_RESPONSE on GitHub issue #67."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-09T19:01:32.295Z",
+      "completed_by": "adv-atc",
+      "approval_evidence": "Execution complete as verification-only closure. Live adv_temporal_diagnose returned success/serverReachable/workerAlive with recommendedNextAction 'Temporal is healthy'; adv_status view=health reported worker healthy and queue serviceable. Source/test scan found projectWorkflow runtime path retired/guarded and no projectWorkflow NOT_FOUND runtime diagnostic. Focused guard test and pnpm run check passed. No code changes; checkpoint clean at 5b0c52ae541dcadbe25485c67c5950da2f649d31."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:18.974Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch acceptance approved via GH ATC_RESPONSE for all bug changes"
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-09T21:30:52.816Z",
+      "completed_by": "user",
+      "approval_evidence": "Batch release approved via GH ATC_RESPONSE for all bug changes"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

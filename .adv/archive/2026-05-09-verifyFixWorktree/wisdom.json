@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-2D9OXF",
+      "type": "success",
+      "content": "Worktree WorkflowUpdateFailedError path did not reproduce after signal-driven workflow refactor: live adv_worktree_resume succeeded for existing and newly materialized change worktrees, and focused index-create tests already assert project-workflow executeUpdate is retired/not called.",
+      "source_task": "tk-feb366459017",
+      "recorded_at": "2026-05-09T18:55:54.825Z"
+    }
+  ],
+  "count": 1
+}
