@@ -59,6 +59,39 @@ export interface ArchiveOperationResult {
   archivedAt: string;
   /** Number of wisdom entries auto-promoted to project level */
   wisdomPromoted?: number;
+  /** Multi-repo archive refs/preflight metadata, when change has scope_repos */
+  multiRepo?: MultiRepoArchiveMetadata;
+}
+
+export interface MultiRepoArchiveRepoMetadata {
+  repo_id: string;
+  role?: "primary" | "secondary";
+  path: string;
+  repo_project_id?: string;
+  required: boolean;
+  merge_order?: number;
+  branch: string;
+  default_branch: string;
+  default_head?: string;
+  head_before: string;
+  head_after: string;
+  ff_only_preflight: {
+    passed: boolean;
+    command: string;
+    error?: string;
+  };
+}
+
+export interface MultiRepoArchiveVerificationEvidence {
+  task_id: string;
+  verification: string;
+}
+
+export interface MultiRepoArchiveMetadata {
+  product_id?: string;
+  collected_at: string;
+  repos: MultiRepoArchiveRepoMetadata[];
+  verification_evidence: MultiRepoArchiveVerificationEvidence[];
 }
 
 // =============================================================================
@@ -108,4 +141,6 @@ export interface ArchiveContext {
   };
   /** Whether to perform a dry run (no writes) */
   dryRun?: boolean;
+  /** Product id for multi-repo archive metadata. */
+  productId?: string;
 }

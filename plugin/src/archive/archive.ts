@@ -21,6 +21,159 @@ import {
   listProjectWisdom,
   compactProjectWisdom,
 } from "../storage/project-wisdom";
+import { execGit, getDefaultBranch } from "../utils/git";
+import type {
+  MultiRepoArchiveMetadata,
+  MultiRepoArchiveRepoMetadata,
+} from "./types";
+
+function archiveBundlePath(archiveDir: string, changeId: string): string {
+  return join(
+    archiveDir,
+    `${new Date().toISOString().split("T")[0]}-${changeId}`,
+  );
+}
+
+function sortedScopeRepos(change: Change): NonNullable<Change["scope_repos"]> {
+  return [...(change.scope_repos ?? [])].sort((a, b) => {
+    const aOrder = a.merge_order ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = b.merge_order ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.repo_id.localeCompare(b.repo_id);
+  });
+}
+
+function collectVerificationEvidence(
+  change: Change,
+): MultiRepoArchiveMetadata["verification_evidence"] {
+  return change.tasks
+    .filter((task) => task.status === "done" && task.verification)
+    .map((task) => ({
+      task_id: task.id,
+      verification: task.verification as string,
+    }));
+}
+
+async function gitTrim(args: string[], cwd: string): Promise<string> {
+  return (await execGit(args, cwd)).trim();
+}
+
+async function revParseOptional(
+  repoPath: string,
+  ref: string,
+): Promise<string | undefined> {
+  try {
+    return await gitTrim(["rev-parse", ref], repoPath);
+  } catch {
+    return undefined;
+  }
+}
+
+async function resolveDefaultBranchRef(
+  repoPath: string,
+): Promise<{ branch: string; head?: string }> {
+  const configured = await getDefaultBranch(repoPath);
+  const candidates = [...new Set([configured, "main", "master"])]
+    .map((candidate) => candidate.trim())
+    .filter(Boolean);
+
+  for (const candidate of candidates) {
+    const head =
+      (await revParseOptional(repoPath, candidate)) ??
+      (await revParseOptional(repoPath, `origin/${candidate}`));
+    if (head) return { branch: candidate, head };
+  }
+
+  return { branch: configured };
+}
+
+async function collectRepoArchiveMetadata(
+  repo: NonNullable<Change["scope_repos"]>[number],
+): Promise<MultiRepoArchiveRepoMetadata> {
+  if (!repo.path) {
+    throw new Error(`scope_repos entry ${repo.repo_id} is missing path`);
+  }
+
+  const branch = await gitTrim(["branch", "--show-current"], repo.path);
+  const headBefore = await gitTrim(["rev-parse", "HEAD"], repo.path);
+  const defaultRef = await resolveDefaultBranchRef(repo.path);
+  const defaultBranch = defaultRef.branch;
+  const defaultHead = defaultRef.head;
+
+  let passed = false;
+  let error: string | undefined;
+  const command = defaultHead
+    ? `git merge-base --is-ancestor ${defaultHead} ${headBefore}`
+    : `git rev-parse ${defaultBranch}`;
+
+  if (!defaultHead) {
+    error = `default branch ref ${defaultBranch} could not be resolved`;
+  } else {
+    try {
+      await execGit(
+        ["merge-base", "--is-ancestor", defaultHead, headBefore],
+        repo.path,
+      );
+      passed = true;
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  const headAfter = await gitTrim(["rev-parse", "HEAD"], repo.path);
+
+  return {
+    repo_id: repo.repo_id,
+    role: repo.role,
+    path: repo.path,
+    repo_project_id: repo.repo_project_id,
+    required: repo.required ?? true,
+    merge_order: repo.merge_order,
+    branch,
+    default_branch: defaultBranch,
+    default_head: defaultHead,
+    head_before: headBefore,
+    head_after: headAfter,
+    ff_only_preflight: {
+      passed,
+      command,
+      ...(error ? { error } : {}),
+    },
+  };
+}
+
+async function collectMultiRepoArchiveMetadata(
+  change: Change,
+  productId?: string,
+): Promise<{ metadata?: MultiRepoArchiveMetadata; errors: string[] }> {
+  const repos = sortedScopeRepos(change);
+  if (repos.length === 0) return { errors: [] };
+
+  const metadata: MultiRepoArchiveMetadata = {
+    product_id: productId,
+    collected_at: new Date().toISOString(),
+    repos: [],
+    verification_evidence: collectVerificationEvidence(change),
+  };
+  const errors: string[] = [];
+
+  for (const repo of repos) {
+    try {
+      const repoMetadata = await collectRepoArchiveMetadata(repo);
+      metadata.repos.push(repoMetadata);
+      if ((repo.required ?? true) && !repoMetadata.ff_only_preflight.passed) {
+        errors.push(
+          `Repo ${repo.repo_id} ff-only preflight failed: ${repoMetadata.ff_only_preflight.error ?? "unknown error"}`,
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(`Repo ${repo.repo_id} archive metadata failed: ${message}`);
+    }
+  }
+
+  return { metadata, errors };
+}
 
 function contractTaskRefs(task: Change["tasks"][number]): string[] {
   const refs = task.contract_refs;
@@ -201,6 +354,7 @@ export async function archiveChange(
   const errors: string[] = [];
   const specsUpdated: SpecUpdateResult[] = [];
   const docsGenerated: string[] = [];
+  const targetArchivePath = archiveBundlePath(paths.archive, change.id);
 
   const contractProofErrors = getArchiveContractProofErrors(change);
   if (contractProofErrors.length > 0) {
@@ -209,12 +363,26 @@ export async function archiveChange(
       changeId: change.id,
       specsUpdated,
       docsGenerated,
-      archivePath: join(
-        paths.archive,
-        `${new Date().toISOString().split("T")[0]}-${change.id}`,
-      ),
+      archivePath: targetArchivePath,
       errors: contractProofErrors,
       archivedAt: new Date().toISOString(),
+    };
+  }
+
+  const multiRepo = await collectMultiRepoArchiveMetadata(
+    change,
+    context.productId,
+  );
+  if (multiRepo.errors.length > 0) {
+    return {
+      success: false,
+      changeId: change.id,
+      specsUpdated,
+      docsGenerated,
+      archivePath: targetArchivePath,
+      errors: multiRepo.errors,
+      archivedAt: new Date().toISOString(),
+      ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
     };
   }
 
@@ -332,12 +500,18 @@ export async function archiveChange(
     dryRun,
     sourceChangeDir,
     errors,
+    multiRepo.metadata,
   );
 
   // In-repo archive: write identical bundle to in-repo path (warning-only on failure)
   if (paths.inRepoArchive && !dryRun) {
     try {
-      await createInRepoArchive(change, paths.inRepoArchive, sourceChangeDir);
+      await createInRepoArchive(
+        change,
+        paths.inRepoArchive,
+        sourceChangeDir,
+        multiRepo.metadata,
+      );
     } catch {
       // In-repo failure is warning-only — do NOT add to errors array
       // to avoid failing the overall archive operation. Error binding is
@@ -353,6 +527,7 @@ export async function archiveChange(
     archivePath,
     errors,
     archivedAt: new Date().toISOString(),
+    ...(multiRepo.metadata ? { multiRepo: multiRepo.metadata } : {}),
     ...(wisdomPromoted > 0 && { wisdomPromoted }),
   };
 }
@@ -376,9 +551,9 @@ async function createArchive(
   dryRun: boolean,
   sourceChangeDir?: string,
   errors?: string[],
+  multiRepo?: MultiRepoArchiveMetadata,
 ): Promise<string> {
-  const date = new Date().toISOString().split("T")[0];
-  const archivePath = join(archiveDir, `${date}-${change.id}`);
+  const archivePath = archiveBundlePath(archiveDir, change.id);
 
   if (!dryRun) {
     // Write the change as archived
@@ -412,6 +587,13 @@ async function createArchive(
           null,
           2,
         ),
+      );
+    }
+
+    if (multiRepo) {
+      await atomicWriteFile(
+        join(archivePath, "multi-repo-archive.json"),
+        JSON.stringify(multiRepo, null, 2),
       );
     }
 
@@ -504,9 +686,9 @@ export async function createInRepoArchive(
   change: Change,
   inRepoArchiveDir: string,
   sourceChangeDir?: string,
+  multiRepo?: MultiRepoArchiveMetadata,
 ): Promise<string> {
-  const date = new Date().toISOString().split("T")[0];
-  const archivePath = join(inRepoArchiveDir, `${date}-${change.id}`);
+  const archivePath = archiveBundlePath(inRepoArchiveDir, change.id);
 
   const archivedChange: Change = {
     ...change,
@@ -538,6 +720,13 @@ export async function createInRepoArchive(
         null,
         2,
       ),
+    );
+  }
+
+  if (multiRepo) {
+    await atomicWriteFile(
+      join(archivePath, "multi-repo-archive.json"),
+      JSON.stringify(multiRepo, null, 2),
     );
   }
 
@@ -573,13 +762,19 @@ export async function reconcileInRepoArchive(
   change: Change,
   inRepoArchiveDir: string,
   sourceChangeDir?: string,
+  multiRepo?: MultiRepoArchiveMetadata,
 ): Promise<string> {
   const existing = await findArchiveBundle(inRepoArchiveDir, change.id);
   if (existing) {
     return existing;
   }
 
-  return createInRepoArchive(change, inRepoArchiveDir, sourceChangeDir);
+  return createInRepoArchive(
+    change,
+    inRepoArchiveDir,
+    sourceChangeDir,
+    multiRepo,
+  );
 }
 
 /**

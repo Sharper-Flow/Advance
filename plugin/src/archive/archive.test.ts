@@ -1,3 +1,5 @@
+import { existsSync } from "fs";
+import { execSync } from "child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -24,6 +26,27 @@ async function tempProject(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "adv-archive-contract-"));
   tempDirs.push(dir);
   return dir;
+}
+
+async function gitRepo(name: string): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), `adv-archive-${name}-`));
+  tempDirs.push(dir);
+  execSync("git init", { cwd: dir });
+  execSync("git config user.email 'test@test.com'", { cwd: dir });
+  execSync("git config user.name 'Test'", { cwd: dir });
+  execSync("git branch -m main", { cwd: dir });
+  await writeFile(join(dir, "README.md"), `# ${name}\n`);
+  execSync("git add README.md", { cwd: dir });
+  execSync("git commit -m 'initial'", { cwd: dir });
+  execSync("git checkout -b change/test", { cwd: dir });
+  await writeFile(join(dir, `${name}.txt`), `${name}\n`);
+  execSync(`git add ${name}.txt`, { cwd: dir });
+  execSync("git commit -m 'change'", { cwd: dir });
+  return dir;
+}
+
+function gitHead(repo: string): string {
+  return execSync("git rev-parse HEAD", { cwd: repo }).toString().trim();
 }
 
 function changeWithContract(overrides: Partial<Change> = {}): Change {
@@ -166,5 +189,136 @@ describe("contract archive traceability", () => {
       "utf8",
     );
     expect(JSON.parse(inRepoChange).status).toBe("archived");
+  });
+
+  test("single-repo archive bundle remains unchanged without scope_repos", async () => {
+    const root = await tempProject();
+    const result = await archiveChange({
+      change: changeWithContract(),
+      specs: new Map(),
+      paths: {
+        specs: join(root, "specs"),
+        docs: join(root, "docs"),
+        archive: join(root, "archive"),
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(
+      existsSync(join(result.archivePath, "multi-repo-archive.json")),
+    ).toBe(false);
+  });
+
+  test("multi-repo archive bundle captures ordered repo refs and verification evidence", async () => {
+    const root = await tempProject();
+    const backend = await gitRepo("backend");
+    const web = await gitRepo("web");
+    const backendHead = gitHead(backend);
+    const webHead = gitHead(web);
+    const change = changeWithContract({
+      id: "multi-repo-change",
+      scope_repos: [
+        {
+          repo_id: "web",
+          path: web,
+          repo_project_id: "w".repeat(40),
+          required: true,
+          merge_order: 2,
+        },
+        {
+          repo_id: "backend",
+          path: backend,
+          repo_project_id: "b".repeat(40),
+          required: true,
+          merge_order: 1,
+        },
+      ],
+      tasks: [
+        {
+          id: "tk-verify",
+          title: "Verify both repos",
+          type: "code",
+          status: "done",
+          priority: 0,
+          created_at: createdAt,
+          verification: "backend and web checks passed",
+        },
+      ],
+      contract: undefined,
+    });
+
+    const result = await archiveChange({
+      change,
+      specs: new Map(),
+      paths: {
+        specs: join(root, "specs"),
+        docs: join(root, "docs"),
+        archive: join(root, "archive"),
+      },
+    });
+
+    expect(result.success).toBe(true);
+    const metadata = JSON.parse(
+      await readFile(
+        join(result.archivePath, "multi-repo-archive.json"),
+        "utf8",
+      ),
+    );
+    expect(
+      metadata.repos.map((repo: { repo_id: string }) => repo.repo_id),
+    ).toEqual(["backend", "web"]);
+    expect(metadata.repos[0]).toMatchObject({
+      repo_id: "backend",
+      head_before: backendHead,
+      head_after: backendHead,
+      ff_only_preflight: { passed: true },
+    });
+    expect(metadata.repos[1]).toMatchObject({
+      repo_id: "web",
+      head_before: webHead,
+      head_after: webHead,
+      ff_only_preflight: { passed: true },
+    });
+    expect(metadata.verification_evidence).toEqual([
+      expect.objectContaining({
+        task_id: "tk-verify",
+        verification: "backend and web checks passed",
+      }),
+    ]);
+  });
+
+  test("multi-repo archive preflight fails before writing bundle when default branch diverged", async () => {
+    const root = await tempProject();
+    const backend = await gitRepo("backend-diverged");
+    execSync("git checkout main", { cwd: backend });
+    await writeFile(join(backend, "main-only.txt"), "main moved\n");
+    execSync("git add main-only.txt", { cwd: backend });
+    execSync("git commit -m 'main moved'", { cwd: backend });
+    execSync("git checkout change/test", { cwd: backend });
+
+    const result = await archiveChange({
+      change: changeWithContract({
+        id: "multi-repo-diverged",
+        scope_repos: [
+          {
+            repo_id: "backend",
+            path: backend,
+            required: true,
+            merge_order: 0,
+          },
+        ],
+        contract: undefined,
+      }),
+      specs: new Map(),
+      paths: {
+        specs: join(root, "specs"),
+        docs: join(root, "docs"),
+        archive: join(root, "archive"),
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errors.join("\n")).toContain("ff-only preflight failed");
+    expect(existsSync(join(root, "archive"))).toBe(false);
   });
 });

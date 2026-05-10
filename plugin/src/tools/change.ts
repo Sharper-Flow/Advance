@@ -2288,6 +2288,7 @@ export const changeTools = {
           specs,
           paths: archivePaths,
           dryRun,
+          productId: store.productContext?.productId,
         });
       }
 
@@ -2355,6 +2356,9 @@ export const changeTools = {
         archivePath: archiveResult.archivePath,
         errors: archiveResult.errors,
         dryRun: dryRun ?? false,
+        ...(archiveResult.multiRepo
+          ? { multiRepo: archiveResult.multiRepo }
+          : {}),
         ...(validationResult.warnings.length > 0
           ? {
               validationWarnings: validationResult.warnings.map((w) => ({
