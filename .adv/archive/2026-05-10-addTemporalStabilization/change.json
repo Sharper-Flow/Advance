@@ -1,0 +1,86 @@
+{
+  "id": "addTemporalStabilization",
+  "title": "Add Temporal stabilization tracker checklist",
+  "status": "archived",
+  "created_at": "2026-05-10T01:59:02.464Z",
+  "tasks": [
+    {
+      "id": "tk-4aaa45d26722",
+      "title": "T1 UPDATE: edit GitHub issue #98 body to insert/replace bounded Temporal stabilization tracker block between `## Summary` and `## Evidence`. Preserve all existing content and leave issue open. TDD intent: not_applicable (external issue content update, no code behavior).",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-10T02:03:25.524Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "updatedAt": "2026-05-10T02:03:29.972Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T02:05:02.529Z",
+      "verification": "Issue #98 tracker block updated and verified. Checkpoint clean because no repo files changed.",
+      "summary": "Updated GitHub issue #98 with a bounded Temporal stabilization tracker block between Summary and Evidence. The block includes Last assessed date, all six criteria, current statuses, evidence, next actions, and explicit note preserving the Proposed exit criteria prose. Verified issue remains OPEN, markers exist, six criteria present, unknowns marked, and repo worktree stayed clean.",
+      "implementation_summary": "Updated GitHub issue #98 with a bounded Temporal stabilization tracker block between Summary and Evidence. The block includes Last assessed date, all six criteria, current statuses, evidence, next actions, and explicit note preserving the Proposed exit criteria prose. Verified issue remains OPEN, markers exist, six criteria present, unknowns marked, and repo worktree stayed clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T02:05:38.252Z",
+      "completed_at": "2026-05-10T02:05:38.252Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-10T01:59:42.119Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved proposal with reply `approve`. Scope: update issue #98 into actionable Temporal stabilization checklist/status tracker; no code behavior change."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:00:45.659Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved discovery agreement with reply `approve`. Evidence: #98 live issue, live roadmap priority, adv_status health, open Temporal-related issues, recent Temporal-related fixes, and unobservable criteria called out explicitly."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:03:20.457Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design validated by adv-researcher with verdict VALIDATED. Minor refinements applied: exact marker placement between Summary and Evidence, Last assessed header, and explicit preservation of existing Proposed exit criteria prose. No user design approval required: no unresolved tradeoff, no validator conflict, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:04:53.899Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep task graph with reply `approve`. One not_applicable external issue update task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:05:45.785Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Task complete. Issue #98 updated with bounded stabilization tracker block and verified: OPEN, markers present, dated header present, six criteria present, Proposed exit criteria preserved, unknown statuses explicit, no repo file changes."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:06:21.632Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work with reply `accept`. REVIEW_FINDINGS had no blockers, issues, suggestions, or questions."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-10T02:06:33.869Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Release verification passed: issue #98 remains OPEN, tracker markers present, dated header present, six criteria present, Proposed exit criteria preserved, worktree clean, and strict validation passed with warnings only `NO_DELTAS` and `PROPOSAL_TASK_DRIFT`. No repo file changes."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-10T02:01:16.219Z"
+    }
+  ]
+}
