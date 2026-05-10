@@ -1,0 +1,113 @@
+{
+  "id": "fixWorktreeDeleteRegistryDrift",
+  "title": "Fix worktree delete registry drift",
+  "status": "archived",
+  "created_at": "2026-05-09T22:31:05.449Z",
+  "tasks": [
+    {
+      "id": "tk-d0949b992667",
+      "title": "T1 RED/GREEN: add missing-registry `change/*` delete regression coverage in `plugin/src/tools/worktree/index-delete.test.ts`, then implement narrow recovery in `plugin/src/tools/worktree/index.ts`. Include success archived+merged+clean/no-force, no-store fail-closed, unarchived block, unmerged block, and dirty block. TDD intent: inline.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-09T22:34:56.718Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T01:47:25.043Z",
+      "verification": "Checkpoint 78ace1f created after RED/GREEN.",
+      "summary": "Added missing-registry `change/*` worktree delete regression coverage and implemented a narrow recovery path in `advWorktreeDelete`. Recovery requires inferred change id, durable Store/Temporal change status `archived`, merged-to-default verification, then existing clean/hook/remove flow. Kept non-ADV force path unchanged and fail-closed when Store is unavailable.",
+      "implementation_summary": "Added missing-registry `change/*` worktree delete regression coverage and implemented a narrow recovery path in `advWorktreeDelete`. Recovery requires inferred change id, durable Store/Temporal change status `archived`, merged-to-default verification, then existing clean/hook/remove flow. Kept non-ADV force path unchanged and fail-closed when Store is unavailable.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T01:49:13.194Z",
+      "completed_at": "2026-05-10T01:49:13.194Z"
+    },
+    {
+      "id": "tk-061d788d2101",
+      "title": "T2 VERIFY: run `pnpm exec vitest run src/tools/worktree/index-delete.test.ts src/utils/branch-integration.test.ts` and `pnpm run check` from `plugin/`; fix only in-scope failures. TDD intent: separate_verification.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-09T22:35:02.305Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d0949b992667"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-10T01:47:13.553Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-10T01:49:19.759Z",
+      "verification": "Verification passed; checkpoint clean at 78ace1f.",
+      "summary": "Ran targeted worktree delete/branch integration tests and full `pnpm run check` from `plugin/`. Targeted tests passed 31/31; check passed typecheck, test isolation, lockfile policy, lint, and format check. No additional file changes.",
+      "implementation_summary": "Ran targeted worktree delete/branch integration tests and full `pnpm run check` from `plugin/`. Targeted tests passed 31/31; check passed typecheck, test isolation, lockfile policy, lint, and format check. No additional file changes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-10T01:50:05.241Z",
+      "completed_at": "2026-05-10T01:50:05.241Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-09T22:31:16.955Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Proposal carried forward from stale fixForcedWorktreeDelete after its workflow mutation failed. User requested continuing backlog and fixing worktree issue if still exists; user approved revised discovery/problem with reply `approve`."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-09T22:31:20.905Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Discovery evidence recorded from live failure, issue #55 state, passing existing #55 tests, adv_worktree_triage registry drift, and code inspection. User approved with reply `approve`."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-09T22:34:46.476Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design validated by adv-researcher with verdict VALIDATED. Required refinements applied: change/* recovery before force path, store-required fail-closed reason, signal dispatch unchanged. No user design approval required: no product tradeoff, no validator conflict, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-10T01:47:13.481Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep task graph with reply `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-10T01:50:22.678Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "All tasks complete. T1 checkpoint 78ace1f added tests and implementation. T2 verification passed: targeted worktree tests 31/31 and `pnpm run check` green."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-10T01:53:43.105Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work with reply `accept`. REVIEW_FINDINGS had no blockers or issues; optional suggestion only for queued cleanup store plumbing outside current acceptance scope."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-10T01:54:07.055Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Release verification passed: targeted worktree/branch-integration tests 31/31, `pnpm run check`, `pnpm run build`, and strict validation passed with warning only `NO_DELTAS`. Worktree clean; branch has checkpoint commit 78ace1f ahead of trunk."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-10T01:50:14.053Z"
+    }
+  ]
+}
