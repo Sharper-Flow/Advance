@@ -184,7 +184,7 @@ describe("Roadmap Tool", () => {
       const parsed = JSON.parse(result);
 
       expect(parsed.error).toMatch(/Roadmap snapshot not found/);
-      expect(parsed.hint).toContain("/adv-triage --execute");
+      expect(parsed.hint).toContain("/adv-triage");
       expect(parsed.source).toBe("file");
     });
 

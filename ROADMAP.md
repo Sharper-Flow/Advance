@@ -3,7 +3,7 @@
 <!-- adv-triage generated: 2026-05-09T18:09:55Z | DO NOT EDIT MANUALLY -->
 <!-- Source of truth: GitHub Project #2 owned by @Sharper-Flow -->
 
-Regenerate with `/adv-triage --execute`. Manual edits are overwritten.
+Regenerate with `/adv-triage`. Manual edits are overwritten.
 
 ## Bugs (by priority)
 

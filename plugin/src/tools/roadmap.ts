@@ -98,7 +98,7 @@ async function readSnapshotFile(repoRoot: string): Promise<
       return {
         ok: false,
         error: `Roadmap snapshot not found at ${SNAPSHOT_RELATIVE_PATH}.`,
-        hint: 'Run `/adv-triage --execute` to generate the snapshot, or pass `source: "live"` to query the GitHub Project directly.',
+        hint: 'Run `/adv-triage` to generate the snapshot, or pass `source: "live"` to query the GitHub Project directly.',
       };
     }
     return {
@@ -115,7 +115,7 @@ async function readSnapshotFile(repoRoot: string): Promise<
     return {
       ok: false,
       error: `Snapshot is not valid JSON: ${(err as Error).message}`,
-      hint: "Re-run /adv-triage --execute to regenerate the snapshot.",
+      hint: "Re-run /adv-triage to regenerate the snapshot.",
     };
   }
 
@@ -135,7 +135,7 @@ async function readSnapshotFile(repoRoot: string): Promise<
       ok: false,
       error:
         "Snapshot has unexpected shape (version mismatch or missing required arrays).",
-      hint: "Re-run /adv-triage --execute to regenerate with the current schema.",
+      hint: "Re-run /adv-triage to regenerate with the current schema.",
     };
   }
 
@@ -516,7 +516,7 @@ export const roadmapTools = {
         if (!config) {
           return formatToolOutput({
             error:
-              "github_project config not persisted. Run /adv-triage --execute once to bootstrap the project link.",
+              "github_project config not persisted. Run /adv-triage once to bootstrap the project link.",
             hint: "Config lives at `.adv/github-project.json` (preferred) or legacy `project_metadata['github_project']` (auto-migrated on first read).",
             source,
           });

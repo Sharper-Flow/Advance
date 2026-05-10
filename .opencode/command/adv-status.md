@@ -20,7 +20,7 @@ Call `adv_status` for the operational overview. Format defined by `plugin/src/ut
 | **WORKTREES** | active worktree count; stale worktrees (>7d inactive) with branch + last activity |
 | **ARCHIVED CHANGES** | total count + last 5 (date/id/title) |
 | **CROSS-CHANGE HEALTH** | hot files (2+ changes), stale worktrees, merge-queue blockers (auto-emerges when ≥2 active changes) |
-| **ROADMAP FRESHNESS** | mtime of `.adv/roadmap-snapshot.json` (or "never generated"); recommends `/adv-triage --execute` if stale >7 days |
+| **ROADMAP FRESHNESS** | mtime of `.adv/roadmap-snapshot.json` (or "never generated"); recommends `/adv-triage` if stale >7 days |
 | **TEMPORAL HEALTH** | server liveness, worker process health, queue serviceability |
 | **SESSION DEBT** | OpenCode blank-row counts (informational; see `/adv-doctor` for cleanup) |
 | **PEER SESSIONS** | other ADV sessions in the same project (privacy-defensive: opaque session_id only) |
@@ -57,7 +57,7 @@ If <2 active changes, emit "Cross-change health: N/A (single change in flight)".
 
 ### Roadmap Freshness Section
 
-Read mtime of `<repo-root>/.adv/roadmap-snapshot.json`. If file is missing, emit `Roadmap snapshot: never generated. Run /adv-triage --execute to bootstrap.` If file mtime is >7 days old, emit `Roadmap snapshot: <N> days old (last regenerated <ISO-date>). Consider /adv-triage --execute.` Otherwise emit `Roadmap snapshot: <N>h old (current).` This section is **informational only** — `/adv-status` does NOT regenerate or echo the roadmap.
+Read mtime of `<repo-root>/.adv/roadmap-snapshot.json`. If file is missing, emit `Roadmap snapshot: never generated. Run /adv-triage to bootstrap.` If file mtime is >7 days old, emit `Roadmap snapshot: <N> days old (last regenerated <ISO-date>). Consider /adv-triage.` Otherwise emit `Roadmap snapshot: <N>h old (current).` This section is **informational only** — `/adv-status` does NOT regenerate or echo the roadmap.
 
 ---
 

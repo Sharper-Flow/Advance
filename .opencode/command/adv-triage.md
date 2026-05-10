@@ -7,7 +7,7 @@ description: Triage all backlog sources, score features with WSJF, regenerate RO
 
 Reconcile every backlog source into GitHub Issues, score features with WSJF, and regenerate the prioritized `ROADMAP.md` at repo root. Storage of truth is a GitHub Projects v2 board (typed NUMBER fields); ROADMAP.md is a generated mirror committed and pushed at the end of the run. Hybrid HITL: agent fills RROE / Time Criticality / Effort autonomously, pauses only for user-only assignments (bug Priority, feature Value).
 
-> **CHECKLIST**: Default to dry-run. Apply requires `--execute`. Tier B inline approval required before opening GH issues, before writing/pushing ROADMAP.md, and before deprecating local sources. Bug priority uses existing `priority:{critical,high,medium,low}` labels; features use Projects v2 number fields (Value, TimeCriticality, RROE, Effort, WSJF). WSJF formula = `(Value + TimeCriticality + RROE) / Effort`.
+> **CHECKLIST**: Default to execute. Use `--dry-run` to preview without mutations. Tier B inline approval required before opening GH issues, before writing/pushing ROADMAP.md, and before deprecating local sources — these gates run in execute mode regardless of how the command was invoked. Bug priority uses existing `priority:{critical,high,medium,low}` labels; features use Projects v2 number fields (Value, TimeCriticality, RROE, Effort, WSJF). WSJF formula = `(Value + TimeCriticality + RROE) / Effort`.
 
 <UserRequest>
   $ARGUMENTS
@@ -17,8 +17,8 @@ Reconcile every backlog source into GitHub Issues, score features with WSJF, and
 
 Extract from `$ARGUMENTS`:
 
-- `--execute` — apply mutations after Tier B approval (default: dry-run)
-- `--no-commit` — generate ROADMAP.md but skip the commit/push step (still requires `--execute` to write the file)
+- `--dry-run` — preview only: scan inventory, show planned mutations, skip all GH/file/git mutations and Tier B approval prompts (default: execute)
+- `--no-commit` — generate and write ROADMAP.md but skip the commit/push step (ignored when `--dry-run` is set)
 - `--source <name>` — limit Phase 1 scan to one source: `gh` / `agenda` / `wisdom` / `notes` / `changes` / `todos`
 - `--rescore` — recompute WSJF for all features even if all fields are already populated (otherwise only missing fields are filled)
 
@@ -464,7 +464,7 @@ Sort the `features` array by WSJF descending (ties broken by Value desc, then is
 <!-- adv-triage generated: {ISO-8601 UTC} | DO NOT EDIT MANUALLY -->
 <!-- Source of truth: GitHub Project #{N} owned by @{owner} -->
 
-Regenerate with `/adv-triage --execute`. Manual edits are overwritten.
+Regenerate with `/adv-triage`. Manual edits are overwritten.
 
 ## Bugs (by priority)
 
@@ -536,7 +536,7 @@ Anything else → re-prompt with the same options.
 | Cross-session note line | `edit` to prefix the line with `~~` and append ` → #{num}` (markdown strikethrough) |
 | Active ADV change | no deprecation; the change continues normally — issue is informational link |
 
-### ROADMAP.md write + commit (when `--execute` and not `--no-commit`)
+### ROADMAP.md write + commit (execute mode, when not `--no-commit`)
 
 Final Tier B inline approval before any git mutation:
 
@@ -584,9 +584,9 @@ After ROADMAP.md is written (whether or not the commit step ran), the agent MUST
 
 | Mode | Echo trigger |
 |---|---|
-| `--execute` (file written + committed) | Echo after Phase 5 commit step (or after the write step if `--no-commit`) |
-| `--execute dry run` (Tier B `dry run` reply) | Echo in place of the write — explicitly substitutes for the file |
-| dry-run scan (no flags) | Skip echo — no ROADMAP.md was generated |
+| Default execute (file written + committed) | Echo after Phase 5 commit step (or after the write step if `--no-commit`) |
+| Execute with Tier B `dry run` reply at the commit prompt | Echo in place of the write — explicitly substitutes for the file |
+| `--dry-run` flag (no mutations) | Skip echo — no ROADMAP.md was generated |
 
 Echo format:
 
@@ -608,7 +608,7 @@ The echo is NOT optional and MUST NOT be replaced by a "see ROADMAP.md" pointer 
 
 ## Phase 6: Final Report
 
-After all phases (or after a dry-run scan), emit:
+After all phases (or after a `--dry-run` scan), emit:
 
 ```
 ## /adv-triage report
@@ -657,7 +657,7 @@ Project: #{N} ({owner}/ADV: {repo-name})
 - Items skipped (already correct): {N}
 ```
 
-If dry-run: append `Re-run with `--execute` to apply mutations.`
+If `--dry-run`: append `Re-run without `--dry-run` to apply mutations.`
 
 ---
 
