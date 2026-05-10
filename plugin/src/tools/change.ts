@@ -639,34 +639,9 @@ async function resolveArchiveGateState(
       undefined,
     );
     if (queriedGates && typeof queriedGates === "object") {
-      // When live Temporal gates are incomplete but store gates are all
-      // satisfied, the Temporal workflow state is stale — typically after
-      // manual gate fixes or recovery. Trust store gates as effective source.
-      if (!allGatesSatisfied(queriedGates) && allGatesSatisfied(storeGates)) {
-        return {
-          effectiveGates: storeGates,
-          storeGates,
-          source: "store",
-          liveGates: queriedGates,
-        };
-      }
-      // When both Temporal and store gates are incomplete, check raw disk as
-      // last resort — the store backend may itself be reading from Temporal
-      // (stateMode: temporal) while disk change.json has all gates done.
-      if (!allGatesSatisfied(queriedGates) && !allGatesSatisfied(storeGates)) {
-        const diskResult = await loadChange(store.paths.changes, changeId);
-        if (diskResult.success && diskResult.data) {
-          const diskGates = diskResult.data.gates ?? createDefaultGates();
-          if (allGatesSatisfied(diskGates)) {
-            return {
-              effectiveGates: diskGates,
-              storeGates,
-              source: "store",
-              liveGates: queriedGates,
-            };
-          }
-        }
-      }
+      // Live Temporal gates are authoritative. When they disagree with store
+      // gates, getGateDivergenceHint surfaces the mismatch so the user can
+      // recover (e.g., manual /adv-gate-complete to sync stale state).
       return {
         effectiveGates: queriedGates,
         storeGates,
