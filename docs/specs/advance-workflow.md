@@ -306,6 +306,180 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 ---
 
+### Product-Linked ADV State
+
+**ID:** `rq-productLinking01` | **Priority:** **[MUST]**
+
+ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: `repo_project_id` for repo-local git/spec/worktree mechanics, and `product_project_id` for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST live in `project.json` via `product` metadata plus `related_repos`; single-repo projects without product config stay unchanged. Missing primary resolution MUST fail structurally unless `missing_primary_policy` explicitly allows `read_only` or `isolated` degradation.
+
+**Tags:** `workflow`, `product`, `multi-repo`, `state`
+
+#### Scenarios
+
+**Secondary resolves canonical product state** (`rq-productLinking01.1`)
+
+**Given:**
+- A secondary repo has `product.role = secondary`
+- `related_repos` identifies the primary repo with `repo_project_id` or resolvable path
+
+**When:** ADV initializes product context
+
+**Then:**
+- `product_project_id` resolves to the primary repo ADV project id
+- `repo_project_id` remains the secondary repo ADV project id
+- Product changes, wisdom, reflections, agenda, and status queries use the product state plane
+
+**Single repo remains unchanged** (`rq-productLinking01.2`)
+
+**Given:**
+- A project has no product config
+
+**When:** ADV initializes project context
+
+**Then:**
+- `product_project_id` equals `repo_project_id`
+- No product filtering, origin tags, or multi-repo archive metadata is required
+
+**Missing primary handled structurally** (`rq-productLinking01.3`)
+
+**Given:**
+- A secondary repo cannot resolve the primary repo project id
+
+**When:** `missing_primary_policy` is `block`, `read_only`, or `isolated`
+
+**Then:**
+- `block` rejects initialization
+- `read_only` reports degraded product state
+- `isolated` reports degraded repo-local state
+
+---
+
+### Product Change Repo Scope
+
+**ID:** `rq-productScopedChanges01` | **Priority:** **[MUST]**
+
+Product-linked changes MUST declare repository scope structurally with `scope_repos`. Entries MUST reference product repo ids from `ProductContext.repos` and MAY include `path`, `repo_project_id`, `required`, `role`, and `merge_order`. When product linking is enabled and no explicit `scope_repos` is provided, change creation MUST default to the current repo. `adv_change_list` and `adv_status` MUST default to current-repo scope while exposing explicit product-wide mode.
+
+**Tags:** `workflow`, `product`, `scope`, `status`
+
+#### Scenarios
+
+**Create defaults to current repo scope** (`rq-productScopedChanges01.1`)
+
+**Given:**
+- ADV is running from a linked secondary repo
+
+**When:** `adv_change_create` is called without `scope_repos`
+
+**Then:**
+- The change has one `scope_repos` entry for the current repo
+
+**List/status default to current repo** (`rq-productScopedChanges01.2`)
+
+**Given:**
+- Product state contains backend-scoped and web-scoped changes
+
+**When:** `adv_change_list` or `adv_status` runs without `scope: product`
+
+**Then:**
+- Current repo scoped changes are shown
+- Other repo scoped changes are hidden
+- Legacy unscoped changes remain visible
+
+**Product-wide mode shows all product changes** (`rq-productScopedChanges01.3`)
+
+**Given:**
+- Product state contains changes scoped to multiple repos
+
+**When:** `scope: product` is requested
+
+**Then:**
+- All product-scoped changes are visible with product context metadata
+
+---
+
+### Product Wisdom and Reflection Origins
+
+**ID:** `rq-productLearning01` | **Priority:** **[MUST]**
+
+Wisdom and reflection entries created in linked-product state MUST persist origin tags: `product_id`, `origin_repo_id`, `origin_repo_project_id`, and `origin_repo_path`. Default linked-repo wisdom queries MUST return current-repo-relevant change wisdom plus promoted/global project wisdom and legacy untagged entries. Explicit product-wide query mode MUST return all matching product wisdom. Reflection storage MUST preserve origin tags and support repo/product filtering for future query surfaces.
+
+**Tags:** `workflow`, `product`, `wisdom`, `reflection`
+
+#### Scenarios
+
+**New wisdom has origin tags** (`rq-productLearning01.1`)
+
+**Given:**
+- ADV runs from a linked product repo
+
+**When:** `adv_wisdom_add` records or promotes an entry
+
+**Then:**
+- The entry includes `product_id`, `origin_repo_id`, `origin_repo_project_id`, and `origin_repo_path`
+
+**Repo query includes safe legacy and promoted entries** (`rq-productLearning01.2`)
+
+**Given:**
+- Product wisdom contains current repo entries, other repo entries, promoted entries, and legacy untagged entries
+
+**When:** `adv_wisdom_list` runs with default scope
+
+**Then:**
+- Current repo entries are returned
+- Promoted/global entries are returned
+- Legacy untagged entries are returned
+- Other repo change-level entries are hidden
+
+**Product query includes all product wisdom** (`rq-productLearning01.3`)
+
+**Given:**
+- Product wisdom contains entries from multiple repos
+
+**When:** `adv_wisdom_list` runs with `scope: product`
+
+**Then:**
+- All matching product wisdom entries are returned
+
+---
+
+### Multi-Repo Archive Evidence
+
+**ID:** `rq-multiRepoArchive01` | **Priority:** **[MUST]**
+
+When a change has `scope_repos`, archive MUST collect multi-repo evidence before bundle write or merge. It MUST sort repos by `merge_order`, capture branch, default branch, before/after HEAD refs, `repo_project_id`, required flag, and verification evidence into `multi-repo-archive.json`. All required repos MUST pass ff-only ancestry preflight before any archive write or merge side effect. If any required repo fails preflight, archive MUST fail safely and write no archive bundle.
+
+**Tags:** `workflow`, `archive`, `product`, `multi-repo`, `git`
+
+#### Scenarios
+
+**Archive writes multi-repo metadata** (`rq-multiRepoArchive01.1`)
+
+**Given:**
+- A change has backend and web `scope_repos` with `merge_order`
+
+**When:** `adv_change_archive` creates the archive bundle
+
+**Then:**
+- `multi-repo-archive.json` exists in the bundle
+- Repos are ordered by `merge_order`
+- Each repo has branch, `default_branch`, `head_before`, `head_after`, and `ff_only_preflight` fields
+- Done-task verification evidence is included
+
+**Preflight failure has no archive side effects** (`rq-multiRepoArchive01.2`)
+
+**Given:**
+- A required scoped repo cannot fast-forward merge to the default branch
+
+**When:** `adv_change_archive` runs preflight
+
+**Then:**
+- The tool returns `success: false`
+- The error names the repo and ff-only preflight failure
+- No archive bundle is written
+
+---
+
 ### Archive Retirement Removes Active Source State After Durable Archive
 
 **ID:** `rq-archiveRetirement01` | **Priority:** **[MUST]**

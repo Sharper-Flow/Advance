@@ -213,6 +213,31 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/push fails/);
   });
 
+  test("advance-workflow spec encodes product-linked multi-repo state", () => {
+    const content = readAsset(ADVANCE_WORKFLOW_SPEC);
+    expect(content).toMatch(/rq-productLinking01/);
+    expect(content).toMatch(/scope_repos/);
+    expect(content).toMatch(/origin_repo_id/);
+    expect(content).toMatch(/multi-repo-archive\.json/);
+  });
+
+  test("workflow command docs mention product-linked repo scope handoffs", () => {
+    const docs = [
+      "adv-proposal.md",
+      "adv-discover.md",
+      "adv-prep.md",
+      "adv-apply.md",
+      "adv-archive.md",
+    ]
+      .map((file) => readAsset(join(COMMAND_DIR, file)))
+      .join("\n");
+
+    expect(docs).toMatch(/product-linked/i);
+    expect(docs).toMatch(/scope_repos/);
+    expect(docs).toMatch(/multi-repo-archive\.json/);
+    expect(docs).toMatch(/legacy state/i);
+  });
+
   test("adv-archive.md Phase 9 keeps main checkout on default branch (no git checkout/switch)", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     // Resolve $MAIN once at start of Phase 9

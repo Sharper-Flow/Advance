@@ -70,6 +70,7 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 - `adv_change_show changeId: <target> include: { snapshot: true }` — single call returns change + rendered gate snapshot (replaces separate `adv_gate_status` round trip)
 - `adv_spec action: "list"` and `adv_spec action: "show"` for affected capabilities
 - Use `lgrep`/`read` to inspect the relevant code paths, interfaces, and constraints
+- Product-linked projects: capture product id, current repo id, primary repo id, related repo registry, existing `scope_repos`, and legacy state location. Agreement must say whether work is current-repo scoped or product-wide.
 
 If the proposal gate is still pending → stop and direct the user to `/adv-proposal` first.
 

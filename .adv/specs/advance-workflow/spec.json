@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.6.0",
-  "updated_at": "2026-05-08T22:54:42.097Z",
+  "version": "1.7.0",
+  "updated_at": "2026-05-10T07:15:00.000Z",
   "requirements": [
     {
       "id": "rq-R3v13wR1",
@@ -333,6 +333,151 @@
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-productLinking01",
+      "title": "Product-Linked ADV State",
+      "body": "ADV MAY link separate repositories into one product state plane. Linked products MUST keep two identity planes: repo_project_id for repo-local git/spec/worktree mechanics, and product_project_id for canonical product state (changes, agenda, wisdom, reflections, status aggregation). Product topology MUST be declared in project.json via product metadata plus related_repos entries; single-repo projects without product config MUST keep existing behavior unchanged. Missing or invalid primary repo resolution MUST fail structurally unless the explicit missing_primary_policy allows read_only or isolated degradation.",
+      "priority": "must",
+      "tags": ["workflow", "product", "multi-repo", "state"],
+      "scenarios": [
+        {
+          "id": "rq-productLinking01.1",
+          "title": "Secondary resolves canonical product state",
+          "given": [
+            "A secondary repo has product.role = secondary",
+            "related_repos identifies the primary repo with repo_project_id or resolvable path"
+          ],
+          "when": "ADV initializes product context",
+          "then": [
+            "product_project_id resolves to the primary repo ADV project id",
+            "repo_project_id remains the secondary repo ADV project id",
+            "Product changes, wisdom, reflections, agenda, and status queries use the product state plane"
+          ]
+        },
+        {
+          "id": "rq-productLinking01.2",
+          "title": "Single repo remains unchanged",
+          "given": ["A project has no product config"],
+          "when": "ADV initializes project context",
+          "then": [
+            "product_project_id equals repo_project_id",
+            "No product filtering, origin tags, or multi-repo archive metadata is required"
+          ]
+        },
+        {
+          "id": "rq-productLinking01.3",
+          "title": "Missing primary handled structurally",
+          "given": ["A secondary repo cannot resolve the primary repo project id"],
+          "when": "missing_primary_policy is block, read_only, or isolated",
+          "then": [
+            "block rejects initialization",
+            "read_only reports degraded product state",
+            "isolated reports degraded repo-local state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-productScopedChanges01",
+      "title": "Product Change Repo Scope",
+      "body": "Product-linked changes MUST declare repository scope structurally with scope_repos. scope_repos entries MUST reference product repo ids from ProductContext.repos and MAY include path, repo_project_id, required, role, and merge_order. When product linking is enabled and no explicit scope_repos is provided, change creation MUST default to the current repo. adv_change_list and adv_status MUST default to current-repo scope while exposing explicit product-wide mode.",
+      "priority": "must",
+      "tags": ["workflow", "product", "scope", "status"],
+      "scenarios": [
+        {
+          "id": "rq-productScopedChanges01.1",
+          "title": "Create defaults to current repo scope",
+          "given": ["ADV is running from a linked secondary repo"],
+          "when": "adv_change_create is called without scope_repos",
+          "then": ["The change has one scope_repos entry for the current repo"]
+        },
+        {
+          "id": "rq-productScopedChanges01.2",
+          "title": "List/status default to current repo",
+          "given": ["Product state contains backend-scoped and web-scoped changes"],
+          "when": "adv_change_list or adv_status runs without scope: product",
+          "then": [
+            "Current repo scoped changes are shown",
+            "Other repo scoped changes are hidden",
+            "Legacy unscoped changes remain visible"
+          ]
+        },
+        {
+          "id": "rq-productScopedChanges01.3",
+          "title": "Product-wide mode shows all product changes",
+          "given": ["Product state contains changes scoped to multiple repos"],
+          "when": "scope: product is requested",
+          "then": ["All product-scoped changes are visible with product context metadata"]
+        }
+      ]
+    },
+    {
+      "id": "rq-productLearning01",
+      "title": "Product Wisdom and Reflection Origins",
+      "body": "Wisdom and reflection entries created in linked-product state MUST persist origin tags: product_id, origin_repo_id, origin_repo_project_id, and origin_repo_path. Default linked-repo wisdom queries MUST return current-repo-relevant change wisdom plus promoted/global project wisdom and legacy untagged entries. Explicit product-wide query mode MUST return all matching product wisdom. Reflection storage MUST preserve origin tags and support repo/product filtering for future query surfaces.",
+      "priority": "must",
+      "tags": ["workflow", "product", "wisdom", "reflection"],
+      "scenarios": [
+        {
+          "id": "rq-productLearning01.1",
+          "title": "New wisdom has origin tags",
+          "given": ["ADV runs from a linked product repo"],
+          "when": "adv_wisdom_add records or promotes an entry",
+          "then": ["The entry includes product_id, origin_repo_id, origin_repo_project_id, and origin_repo_path"]
+        },
+        {
+          "id": "rq-productLearning01.2",
+          "title": "Repo query includes safe legacy and promoted entries",
+          "given": ["Product wisdom contains current repo entries, other repo entries, promoted entries, and legacy untagged entries"],
+          "when": "adv_wisdom_list runs with default scope",
+          "then": [
+            "Current repo entries are returned",
+            "Promoted/global entries are returned",
+            "Legacy untagged entries are returned",
+            "Other repo change-level entries are hidden"
+          ]
+        },
+        {
+          "id": "rq-productLearning01.3",
+          "title": "Product query includes all product wisdom",
+          "given": ["Product wisdom contains entries from multiple repos"],
+          "when": "adv_wisdom_list runs with scope: product",
+          "then": ["All matching product wisdom entries are returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-multiRepoArchive01",
+      "title": "Multi-Repo Archive Evidence",
+      "body": "When a change has scope_repos, archive MUST collect multi-repo evidence before bundle write or merge. It MUST sort repos by merge_order, capture branch, default branch, before/after HEAD refs, repo_project_id, required flag, and verification evidence into multi-repo-archive.json. All required repos MUST pass ff-only ancestry preflight before any archive write or merge side effect. If any required repo fails preflight, archive MUST fail safely and write no archive bundle.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "product", "multi-repo", "git"],
+      "scenarios": [
+        {
+          "id": "rq-multiRepoArchive01.1",
+          "title": "Archive writes multi-repo metadata",
+          "given": ["A change has backend and web scope_repos with merge_order"],
+          "when": "adv_change_archive creates the archive bundle",
+          "then": [
+            "multi-repo-archive.json exists in the bundle",
+            "Repos are ordered by merge_order",
+            "Each repo has branch, default_branch, head_before, head_after, and ff_only_preflight fields",
+            "Done-task verification evidence is included"
+          ]
+        },
+        {
+          "id": "rq-multiRepoArchive01.2",
+          "title": "Preflight failure has no archive side effects",
+          "given": ["A required scoped repo cannot fast-forward merge to the default branch"],
+          "when": "adv_change_archive runs preflight",
+          "then": [
+            "The tool returns success: false",
+            "The error names the repo and ff-only preflight failure",
+            "No archive bundle is written"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-archiveRetirement01",

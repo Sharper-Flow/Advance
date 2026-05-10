@@ -55,6 +55,8 @@ On pass, plan generation of `CONTRACT_TRACEABILITY.md` in the archive bundle wit
 
 Display: change ID/title, task count, delta count per capability, affected spec files, docs to generate, archive location, and `CONTRACT_TRACEABILITY.md` when a contract exists.
 
+Product-linked archive: if the change has `scope_repos`, display repo order, required flags, target paths, and planned `multi-repo-archive.json` evidence. All required repos must pass ff-only preflight before any archive bundle write or merge side effect. Failure stops archive with no bundle.
+
 ---
 
 ## Phase 3: Dry Run
@@ -147,7 +149,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 ## Phase 6: Execute Archive
 
-`adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes.
+`adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
 
 When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on the change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
 

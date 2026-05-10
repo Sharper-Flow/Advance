@@ -18,7 +18,7 @@ Implement an ADV change using TDD. Produce the agreed deliverables — code, doc
 | 🔁 Doom Loop     | 3 genuine fix attempts failed with documented diagnosis |
 | 🌍 Environmental | Missing external dependency → escalate immediately      |
 
-Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit.
+Cross-repo tasks: switch `workdir` to target path. "Different repo" is × never a valid exit. Product-linked tasks must respect `scope_repos`; record wisdom from the executing repo so entries keep `origin_repo_id`, `origin_repo_project_id`, `origin_repo_path`, and `product_id`.
 
 Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
 | × Bad | ✓ Good |

@@ -40,6 +40,10 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 3. `adv_change_list` → detect overlapping changes; reuse/reference an obvious existing match, ask only if overlap is still ambiguous
 4. Read any `./temp/brainstorm-*.md` notes if present
 
+### Product-linked preflight
+
+If `project.json` has `product`, mention product-linked context in the proposal: current repo id, primary repo id, likely affected repos, and legacy state behavior. Do not choose `scope_repos` yet unless user already gave explicit repo scope; carry repo-scope uncertainty into discovery.
+
 ---
 
 ## Phase 1: Problem Statement Agreement
