@@ -597,6 +597,9 @@ function productContextOutput(
     primaryRepoId: context.primaryRepoId,
     mode: context.mode,
     scope: scope ?? "repo",
+    ...(context.degraded !== undefined && { degraded: context.degraded }),
+    ...(context.readOnly !== undefined && { readOnly: context.readOnly }),
+    ...(context.warning !== undefined && { warning: context.warning }),
   };
 }
 

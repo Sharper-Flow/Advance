@@ -28,6 +28,7 @@ export interface ProductContext {
   mode: ProductMode;
   missingPrimaryPolicy: MissingPrimaryPolicy;
   degraded?: boolean;
+  readOnly?: boolean;
   warning?: string;
 }
 
@@ -119,14 +120,26 @@ async function resolvePrimaryProjectId(input: {
 }): Promise<{
   productProjectId: string;
   degraded?: boolean;
+  readOnly?: boolean;
   warning?: string;
 }> {
+  const missingPrimaryPolicy = input.product.missing_primary_policy ?? "block";
   const configured = input.primary.repoProjectId;
   const derived = await getProjectId(input.primary.root);
   const primaryProjectId = derived ?? configured;
   if (primaryProjectId) return { productProjectId: primaryProjectId };
 
-  if (input.product.missing_primary_policy === "isolated") {
+  if (missingPrimaryPolicy === "read_only") {
+    return {
+      productProjectId: input.repoProjectId,
+      degraded: true,
+      readOnly: true,
+      warning:
+        "Product primary could not be resolved; read_only policy reports degraded product state using the current repo state plane.",
+    };
+  }
+
+  if (missingPrimaryPolicy === "isolated") {
     return {
       productProjectId: input.repoProjectId,
       degraded: true,
@@ -178,6 +191,7 @@ export async function resolveProductContext(
 
   const repos = buildRepoMap({ config, product, currentRoot, repoProjectId });
   const primary = requirePrimaryRepo(repos, product.primary_repo_id);
+  const missingPrimaryPolicy = product.missing_primary_policy ?? "block";
 
   if (
     product.role === "primary" &&
@@ -186,6 +200,14 @@ export async function resolveProductContext(
     throw new ProductContextError(
       "primary product config must use current repo_id as primary_repo_id",
     );
+  }
+
+  if (product.primary_repo_id !== product.repo_id) {
+    if (primary.productRole !== "primary") {
+      throw new ProductContextError(
+        `product.primary_repo_id "${product.primary_repo_id}" must reference a related repo with primary role`,
+      );
+    }
   }
 
   const primaryResolution = await resolvePrimaryProjectId({
@@ -204,8 +226,9 @@ export async function resolveProductContext(
     primaryRepoId: primary.id,
     repos: Object.fromEntries(repos.entries()),
     mode: product.role,
-    missingPrimaryPolicy: product.missing_primary_policy,
+    missingPrimaryPolicy,
     degraded: primaryResolution.degraded,
+    readOnly: primaryResolution.readOnly,
     warning: primaryResolution.warning,
   };
 }

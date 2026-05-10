@@ -138,7 +138,9 @@ describe("resolveProductContext", () => {
         repo_id: "web",
         primary_repo_id: "backend",
       },
-      related_repos: [{ id: "backend", path: PRIMARY }],
+      related_repos: [
+        { id: "backend", path: PRIMARY, product_role: "primary" },
+      ],
     });
 
     await expect(resolveProductContext(ROOT)).rejects.toThrow(
@@ -159,7 +161,9 @@ describe("resolveProductContext", () => {
         primary_repo_id: "backend",
         missing_primary_policy: "isolated",
       },
-      related_repos: [{ id: "backend", path: PRIMARY }],
+      related_repos: [
+        { id: "backend", path: PRIMARY, product_role: "primary" },
+      ],
     });
 
     const context = await resolveProductContext(ROOT);
@@ -169,6 +173,35 @@ describe("resolveProductContext", () => {
       productProjectId: WEB_ID,
       degraded: true,
       warning: expect.stringContaining("isolated"),
+    });
+  });
+
+  test("read_only policy reports degraded product state with warning", async () => {
+    mocks.getProjectId.mockImplementation(async (path: string) =>
+      path === ROOT ? WEB_ID : null,
+    );
+    mocks.loadProjectConfig.mockResolvedValue({
+      name: "pokeedge-web",
+      product: {
+        id: "pokeedge",
+        role: "secondary",
+        repo_id: "web",
+        primary_repo_id: "backend",
+        missing_primary_policy: "read_only",
+      },
+      related_repos: [
+        { id: "backend", path: PRIMARY, product_role: "primary" },
+      ],
+    });
+
+    const context = await resolveProductContext(ROOT);
+
+    expect(context).toMatchObject({
+      mode: "secondary",
+      productProjectId: WEB_ID,
+      degraded: true,
+      readOnly: true,
+      warning: expect.stringContaining("read_only"),
     });
   });
 
@@ -205,5 +238,22 @@ describe("resolveProductContext", () => {
     await expect(resolveProductContext(ROOT)).rejects.toThrow(
       /primary_repo_id/,
     );
+  });
+
+  test("rejects secondary primary repo without primary product role", async () => {
+    mocks.loadProjectConfig.mockResolvedValue({
+      name: "pokeedge-web",
+      product: {
+        id: "pokeedge",
+        role: "secondary",
+        repo_id: "web",
+        primary_repo_id: "backend",
+      },
+      related_repos: [
+        { id: "backend", path: PRIMARY, product_role: "secondary" },
+      ],
+    });
+
+    await expect(resolveProductContext(ROOT)).rejects.toThrow(/primary role/);
   });
 });
