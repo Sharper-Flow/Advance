@@ -13,6 +13,7 @@ import {
   roadmapTools,
   type RoadmapSnapshot,
   filterOpenItemsOnly,
+  assessRoadmapFreshness,
   type LiveProjectItem,
 } from "./roadmap";
 import { createLegacyStore, type Store } from "../storage/store";
@@ -188,6 +189,24 @@ describe("Roadmap Tool", () => {
       expect(parsed.source).toBe("file");
     });
 
+    test("reports stale file freshness and closure-drift warning", async () => {
+      await writeSnapshot({
+        ...SAMPLE_SNAPSHOT,
+        generated_at: "2026-01-01T00:00:00.000Z",
+      });
+      const result = await roadmapTools.adv_roadmap.execute({}, store);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.freshness.status).toBe("stale");
+      expect(parsed.freshness.needs_refresh).toBe(true);
+      expect(parsed.warnings).toContainEqual(
+        expect.stringContaining("run /adv-roadmap --live"),
+      );
+      expect(parsed.warnings).toContainEqual(
+        expect.stringContaining("recent ATC/archive closures"),
+      );
+    });
+
     test("malformed JSON returns actionable error", async () => {
       await mkdir(join(tempDir, ".adv"), { recursive: true });
       await writeFile(
@@ -230,6 +249,32 @@ describe("Roadmap Tool", () => {
         explicit.features.map((f: { number: number }) => f.number),
       ).toEqual(omitted.features.map((f: { number: number }) => f.number));
       expect(explicit.counts).toEqual(omitted.counts);
+    });
+  });
+
+  describe("assessRoadmapFreshness", () => {
+    test("marks file snapshots older than two hours stale", () => {
+      const freshness = assessRoadmapFreshness(
+        "file",
+        "2026-05-10T00:00:00.000Z",
+        new Date("2026-05-10T02:00:01.000Z"),
+      );
+
+      expect(freshness.status).toBe("stale");
+      expect(freshness.stale_after_hours).toBe(2);
+      expect(freshness.needs_refresh).toBe(true);
+    });
+
+    test("marks live results as fresh regardless of generated_at", () => {
+      const freshness = assessRoadmapFreshness(
+        "live",
+        "2026-01-01T00:00:00.000Z",
+        new Date("2026-05-10T02:00:01.000Z"),
+      );
+
+      expect(freshness.status).toBe("live");
+      expect(freshness.needs_refresh).toBe(false);
+      expect(freshness.age_hours).toBe(0);
     });
   });
 

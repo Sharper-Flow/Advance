@@ -71,6 +71,58 @@ export interface RoadmapSnapshot {
 }
 
 const SNAPSHOT_RELATIVE_PATH = ".adv/roadmap-snapshot.json";
+const FILE_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
+const MS_PER_HOUR = 60 * 60 * 1000;
+
+export interface RoadmapFreshness {
+  status: "live" | "fresh" | "stale" | "unknown";
+  checked_at: string;
+  generated_at: string;
+  age_hours: number | null;
+  stale_after_hours: number;
+  needs_refresh: boolean;
+}
+
+export function assessRoadmapFreshness(
+  source: "file" | "live",
+  generatedAt: string,
+  now = new Date(),
+): RoadmapFreshness {
+  const staleAfterHours = FILE_SNAPSHOT_STALE_AFTER_MS / MS_PER_HOUR;
+  if (source === "live") {
+    return {
+      status: "live",
+      checked_at: now.toISOString(),
+      generated_at: generatedAt,
+      age_hours: 0,
+      stale_after_hours: staleAfterHours,
+      needs_refresh: false,
+    };
+  }
+
+  const generatedTime = Date.parse(generatedAt);
+  if (!Number.isFinite(generatedTime)) {
+    return {
+      status: "unknown",
+      checked_at: now.toISOString(),
+      generated_at: generatedAt,
+      age_hours: null,
+      stale_after_hours: staleAfterHours,
+      needs_refresh: true,
+    };
+  }
+
+  const ageMs = Math.max(0, now.getTime() - generatedTime);
+  const stale = ageMs > FILE_SNAPSHOT_STALE_AFTER_MS;
+  return {
+    status: stale ? "stale" : "fresh",
+    checked_at: now.toISOString(),
+    generated_at: generatedAt,
+    age_hours: Number((ageMs / MS_PER_HOUR).toFixed(2)),
+    stale_after_hours: staleAfterHours,
+    needs_refresh: stale,
+  };
+}
 
 // =============================================================================
 // File-mode reader
@@ -448,7 +500,7 @@ function applyFilters(
 export const roadmapTools = {
   adv_roadmap: {
     description:
-      "Read the prioritized backlog (bugs by priority, features ranked by WSJF). Defaults to reading the file snapshot emitted by /adv-triage; pass `source: 'live'` to query the GitHub Project directly. Filter via `kind`, `top` (features), `priority` (bugs).",
+      "Read the prioritized backlog (bugs by priority, features ranked by WSJF). Defaults to reading the file snapshot emitted by /adv-triage and reports freshness warnings after 2h; pass `source: 'live'` to query the GitHub Project directly. Filter via `kind`, `top` (features), `priority` (bugs).",
     args: {
       source: z
         .enum(["file", "live"])
@@ -538,6 +590,7 @@ export const roadmapTools = {
       }
 
       const filtered = applyFilters(snapshot, args);
+      const freshness = assessRoadmapFreshness(source, snapshot.generated_at);
 
       // Cross-reference: which roadmap items already have an active ADV change
       // pointing at them via origin.issue_number? Surfaces "already in flight".
@@ -575,11 +628,29 @@ export const roadmapTools = {
             : b,
         ),
       };
+      const warnings: string[] = [];
+      if (freshness.needs_refresh) {
+        warnings.push(
+          `Roadmap ${source} snapshot is ${freshness.status}; run /adv-roadmap --live before starting work and /adv-triage to refresh the mirror.`,
+        );
+      }
+      if (
+        source === "file" &&
+        freshness.needs_refresh &&
+        snapshot.counts.bugs > 0 &&
+        activeByIssue.size === 0
+      ) {
+        warnings.push(
+          "Snapshot lists bugs but no in-flight changes; recent ATC/archive closures may have made this bug list stale.",
+        );
+      }
 
       return formatToolOutput({
         source,
         snapshot_path: snapshotPath,
         generated_at: snapshot.generated_at,
+        freshness,
+        warnings,
         project: snapshot.project,
         counts: snapshot.counts,
         applied_filters: filtered.applied_filters,

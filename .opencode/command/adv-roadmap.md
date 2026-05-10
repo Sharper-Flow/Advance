@@ -37,7 +37,7 @@ adv_roadmap({
 
 | Source | Behavior |
 |---|---|
-| `file` (default) | Reads `.adv/roadmap-snapshot.json`. Returns actionable error if missing — recommend `/adv-triage` to regenerate. |
+| `file` (default) | Reads `.adv/roadmap-snapshot.json`. Returns actionable error if missing — recommend `/adv-triage` to regenerate. Emits freshness metadata and warnings after 2h so post-ATC/archive churn cannot look like untouched backlog. |
 | `live` | Calls `gh project item-list <N> --owner <owner>`. Requires `github_project` metadata persisted (run `/adv-triage` once to bootstrap). |
 
 The tool also walks active ADV changes (`status ∈ {draft, pending, active}`) and annotates roadmap items with their in-flight change ID via `change.origin.issue_number` lookup. Items already being worked carry `active_change: <id>` in the response.
@@ -54,7 +54,11 @@ Emit the ranked backlog as inline tables. Cross-referenced items show their acti
 ## Roadmap (source: {file|live}, generated: {ISO-8601})
 
 Project: #{N} ({owner}/{title})
+Freshness: {freshness.status}; age {freshness.age_hours}h; refresh after {freshness.stale_after_hours}h
 Total: {bugs}/{features}/{deferred} (bugs/features/deferred), {active_changes_indexed} active change(s) cross-referenced
+
+Warnings:
+- {warnings[]}
 
 ### Bugs — {priority tier}
 | # | Title | Active change |
@@ -74,6 +78,8 @@ Total: {bugs}/{features}/{deferred} (bugs/features/deferred), {active_changes_in
 
 If `kind=feature`, drop the bugs section. If `kind=bug`, drop the features section. If `priority` is set, only show that bug tier.
 
+Omit the Warnings block when `warnings` is empty. If `freshness.needs_refresh === true`, render the freshness line and warnings before recommendations. Do not recommend starting `/adv-proposal #N` from a stale file snapshot until the user has checked `/adv-roadmap --live` or refreshed via `/adv-triage`.
+
 ### Recommendations
 
 After the tables, surface 1–3 actionable next steps based on what was found:
@@ -83,7 +89,7 @@ After the tables, surface 1–3 actionable next steps based on what was found:
 | Top feature has no `active_change` | `/adv-proposal #{n}` |
 | Critical bug has no `active_change` | `/adv-proposal #{n}` |
 | Item already in flight (`active_change` present) | `/adv-status` (or named `change-id`) to inspect progress |
-| Snapshot is older than 7 days (file source) | `/adv-triage` to refresh |
+| Snapshot is older than 2 hours (file source) or `freshness.needs_refresh` | `/adv-roadmap --live` before acting; `/adv-triage` to refresh mirror |
 | Many deferred features (≥3) | `/adv-triage` and use `autofill` for the Value prompt |
 
 The `/adv-proposal #N` positional syntax is the canonical form (rq-issueChangeLinkage01). It auto-fetches the GH issue body, sanitizes scoring trailers (rq-roadmapOriginSanitize01), prefills the problem statement, and sets `origin_kind: 'roadmap'` + `origin_issue_number: N` on the created change. Agents do NOT need to pass origin args directly when using `#N` — the wiring is automatic.
@@ -116,6 +122,7 @@ If the user asks "what should I work on?" or "pick the top item", recommend the 
 | Auto-start a change ("I'll begin with #51 now") | Read-only command; surface the recommendation, let the user invoke `/adv-proposal` |
 | Always use `--live` to be safe | File mode is the canonical default; `--live` only when staleness is a concern |
 | Skip the active-change cross-reference | The `active_change` annotation is the primary differentiator from raw ROADMAP.md — always render it |
+| Treat stale file bugs with zero active changes as unstarted work | Render freshness warning; live-check before proposing bug fixes |
 
 ---
 
