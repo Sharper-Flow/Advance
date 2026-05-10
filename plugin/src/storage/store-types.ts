@@ -29,6 +29,13 @@ import type {
 import type { ProjectPaths, LoadResult } from "./json";
 import type { ProductContext } from "./product-context";
 
+export interface ProductOriginTags {
+  product_id?: string;
+  origin_repo_id?: string;
+  origin_repo_project_id?: string;
+  origin_repo_path?: string;
+}
+
 // Inlined from former ./sqlite module (deleted in P2.7).
 export interface WisdomSearchResult {
   id: string;
@@ -173,6 +180,7 @@ export interface Store {
       type: WisdomType,
       content: string,
       sourceTask?: string,
+      origin?: ProductOriginTags,
     ) => Promise<WisdomEntry>;
     list: (changeId: string) => Promise<WisdomEntry[]>;
     search: (

@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import type { Store } from "../storage/store";
+import type { ProductOriginTags, Store } from "../storage/store";
 import { WisdomTypeSchema } from "../types";
 import {
   addProjectWisdom,
@@ -32,9 +32,58 @@ async function getChangeHandleForChangeId(
 ): Promise<ReturnType<typeof getChangeHandle> | null> {
   const bundle = getService();
   if (!bundle) return null;
-  const projectId = await getProjectId(store.paths.root);
+  const projectId =
+    store.productContext?.productProjectId ??
+    (await getProjectId(store.paths.root));
   if (!projectId) return null;
   return getChangeHandle(bundle.client, projectId, changeId);
+}
+
+function getProductOriginTags(store: Store): ProductOriginTags | undefined {
+  const context = store.productContext;
+  if (!context || context.mode === "single_repo") return undefined;
+  return {
+    product_id: context.productId,
+    origin_repo_id: context.currentRepoId,
+    origin_repo_project_id: context.repoProjectId,
+    origin_repo_path: context.currentRoot,
+  };
+}
+
+function isProjectLevelWisdom(entry: { scope?: string }): boolean {
+  return entry.scope === "project";
+}
+
+function isWisdomVisibleForProductScope(
+  entry: ProductOriginTags & { scope?: string },
+  store: Store,
+  scope: "repo" | "product" | undefined,
+): boolean {
+  const context = store.productContext;
+  if (!context || context.mode === "single_repo") return true;
+  if (entry.product_id && entry.product_id !== context.productId) return false;
+  if (scope === "product") return true;
+  if (isProjectLevelWisdom(entry)) return true;
+  if (!entry.product_id && !entry.origin_repo_id) return true;
+  if (!entry.origin_repo_id) return true;
+  return entry.origin_repo_id === context.currentRepoId;
+}
+
+function productContextOutput(
+  store: Store,
+  scope: "repo" | "product" | undefined,
+): Record<string, unknown> | undefined {
+  const context = store.productContext;
+  if (!context || context.mode === "single_repo") return undefined;
+  return {
+    productId: context.productId,
+    productProjectId: context.productProjectId,
+    currentRepoId: context.currentRepoId,
+    repoProjectId: context.repoProjectId,
+    primaryRepoId: context.primaryRepoId,
+    mode: context.mode,
+    scope: scope ?? "repo",
+  };
 }
 
 // =============================================================================
@@ -80,12 +129,14 @@ export const wisdomTools = {
       store: Store,
     ) => {
       try {
+        const origin = getProductOriginTags(store);
         const entry = {
           id: `ws-${nanoid(6)}`,
           type,
           content,
           source_task: sourceTask,
           recorded_at: new Date().toISOString(),
+          ...origin,
         };
 
         // Signal-driven: fire wisdomAddedSignal to change workflow.
@@ -106,7 +157,7 @@ export const wisdomTools = {
           );
         } else {
           // Fallback to disk store when Temporal is unavailable
-          await store.wisdom.add(changeId, type, content, sourceTask);
+          await store.wisdom.add(changeId, type, content, sourceTask, origin);
         }
 
         let promoted: unknown | undefined;
@@ -132,6 +183,7 @@ export const wisdomTools = {
             content: entry.content,
             sourceChange: changeId,
             sourceTask: entry.source_task,
+            ...origin,
             wisdomPath: store.paths.wisdom,
           });
 
@@ -185,13 +237,25 @@ export const wisdomTools = {
         .string()
         .optional()
         .describe("FTS search term for relevance-ranked results"),
+      scope: z
+        .enum(["repo", "product"])
+        .optional()
+        .describe(
+          "For linked products: repo (default) filters to current repo plus promoted/global wisdom; product returns all product wisdom",
+        ),
     },
     execute: async (
       {
         changeId,
         type,
         query,
-      }: { changeId?: string; type?: string; query?: string },
+        scope,
+      }: {
+        changeId?: string;
+        type?: string;
+        query?: string;
+        scope?: "repo" | "product";
+      },
       store: Store,
     ) => {
       try {
@@ -240,6 +304,14 @@ export const wisdomTools = {
           }
         }
 
+        wisdom = wisdom.filter((entry) =>
+          isWisdomVisibleForProductScope(
+            entry as ProductOriginTags & { scope?: string },
+            store,
+            scope,
+          ),
+        );
+
         // Calculate summary by type
         const byType: Record<string, number> = {};
         for (const entry of wisdom as { type: string }[]) {
@@ -250,6 +322,9 @@ export const wisdomTools = {
           wisdom,
           count: wisdom.length,
           byType,
+          ...(productContextOutput(store, scope)
+            ? { _productContext: productContextOutput(store, scope) }
+            : {}),
         });
       } catch (error) {
         return formatToolOutput({
@@ -271,8 +346,20 @@ export const wisdomTools = {
         .max(200)
         .optional()
         .describe("Maximum entries to return (default: all)"),
+      scope: z
+        .enum(["repo", "product"])
+        .optional()
+        .describe(
+          "For linked products: repo (default) returns promoted/global entries relevant to this product; product returns all product wisdom",
+        ),
     },
-    execute: async ({ maxEntries }: { maxEntries?: number }, store: Store) => {
+    execute: async (
+      {
+        maxEntries,
+        scope,
+      }: { maxEntries?: number; scope?: "repo" | "product" },
+      store: Store,
+    ) => {
       try {
         let entries: Array<{
           id: string;
@@ -281,12 +368,22 @@ export const wisdomTools = {
           source_change?: string;
           source_task?: string;
           promoted_at?: string;
+          product_id?: string;
+          origin_repo_id?: string;
+          origin_repo_project_id?: string;
+          origin_repo_path?: string;
+          scope?: string;
         }> = [];
 
         entries = await listProjectWisdom(store.paths.root, {
           maxEntries,
           wisdomPath: store.paths.wisdom,
         });
+        entries = entries
+          .map((entry) => ({ ...entry, scope: "project" }))
+          .filter((entry) =>
+            isWisdomVisibleForProductScope(entry, store, scope),
+          );
 
         // Build byType summary — mirrors adv_wisdom_list shape (KD1)
         const byType: Record<string, number> = {};
@@ -298,6 +395,9 @@ export const wisdomTools = {
           entries,
           count: entries.length,
           byType,
+          ...(productContextOutput(store, scope)
+            ? { _productContext: productContextOutput(store, scope) }
+            : {}),
         });
       } catch (error) {
         return formatToolOutput({

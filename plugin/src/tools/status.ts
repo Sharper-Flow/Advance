@@ -1081,7 +1081,12 @@ export const statusTools = {
           const fullOutput = {
             ...status,
             ...(buildProductContextOutput(activeStore, scope)
-              ? { product_context: buildProductContextOutput(activeStore, scope) }
+              ? {
+                  product_context: buildProductContextOutput(
+                    activeStore,
+                    scope,
+                  ),
+                }
               : {}),
             ...(featureFlags ? { feature_flags: featureFlags } : {}),
             temporal_health: temporalHealth,

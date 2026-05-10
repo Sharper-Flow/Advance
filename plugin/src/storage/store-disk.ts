@@ -719,7 +719,7 @@ export async function createDiskStore(
     // Wisdom
     // -------------------------------------------------------------------
     wisdom: {
-      add: async (changeId, type: WisdomType, content, sourceTask) => {
+      add: async (changeId, type: WisdomType, content, sourceTask, origin) => {
         const result = await loadChange(paths.changes, changeId);
         if (!result.success || !result.data) {
           throw new Error(`Change not found: ${changeId}`);
@@ -730,6 +730,7 @@ export async function createDiskStore(
           content,
           source_task: sourceTask,
           recorded_at: new Date().toISOString(),
+          ...origin,
         });
         result.data.wisdom = [...(result.data.wisdom ?? []), entry];
         await saveChange(paths.changes, result.data);
@@ -751,6 +752,27 @@ export async function createDiskStore(
           for (const entry of result.data.wisdom ?? []) {
             all.push({ ...entry, scope: "change", change_id: id });
           }
+        }
+        try {
+          const projectEntries = await listProjectWisdom(paths.root, {
+            wisdomPath: paths.wisdom,
+          });
+          for (const entry of projectEntries) {
+            all.push({
+              id: entry.id,
+              type: entry.type,
+              content: entry.content,
+              source_task: entry.source_task,
+              recorded_at: entry.promoted_at,
+              scope: "project",
+              product_id: entry.product_id,
+              origin_repo_id: entry.origin_repo_id,
+              origin_repo_project_id: entry.origin_repo_project_id,
+              origin_repo_path: entry.origin_repo_path,
+            } as WisdomEntry & { scope: string });
+          }
+        } catch {
+          // Empty/missing project wisdom is fine.
         }
         return searchWisdom(all, query, options) as never;
       },
@@ -780,6 +802,10 @@ export async function createDiskStore(
               source_task: entry.source_task,
               recorded_at: entry.promoted_at,
               scope: "project",
+              product_id: entry.product_id,
+              origin_repo_id: entry.origin_repo_id,
+              origin_repo_project_id: entry.origin_repo_project_id,
+              origin_repo_path: entry.origin_repo_path,
             } as WisdomEntry & { scope: string });
           }
         } catch {

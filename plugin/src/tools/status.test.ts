@@ -241,9 +241,9 @@ describe("Status Tools", () => {
       const repoScoped = parseToolOutput(
         await statusTools.adv_status.execute({}, store),
       );
-      expect(repoScoped.changes.recent.map((c: { id: string }) => c.id)).toContain(
-        "webScoped",
-      );
+      expect(
+        repoScoped.changes.recent.map((c: { id: string }) => c.id),
+      ).toContain("webScoped");
       expect(
         repoScoped.changes.recent.map((c: { id: string }) => c.id),
       ).not.toContain("backendScoped");
@@ -256,9 +256,9 @@ describe("Status Tools", () => {
       const productWide = parseToolOutput(
         await statusTools.adv_status.execute({ scope: "product" }, store),
       );
-      expect(productWide.changes.recent.map((c: { id: string }) => c.id)).toEqual(
-        expect.arrayContaining(["webScoped", "backendScoped"]),
-      );
+      expect(
+        productWide.changes.recent.map((c: { id: string }) => c.id),
+      ).toEqual(expect.arrayContaining(["webScoped", "backendScoped"]));
     });
 
     test("hot change recommendation distinguishes current worker from peer-owned work", async () => {

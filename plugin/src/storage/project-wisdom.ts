@@ -38,6 +38,14 @@ interface ProjectWisdomEntry {
   tags?: string[];
   /** If set, identifies the change that superseded this wisdom (soft-delete marker) */
   invalidated_by?: string;
+  /** Product id when promoted inside linked-product state. */
+  product_id?: string;
+  /** Product repo id where this entry originated. */
+  origin_repo_id?: string;
+  /** Repo-local ADV project id where this entry originated. */
+  origin_repo_project_id?: string;
+  /** Repo root path where this entry originated. */
+  origin_repo_path?: string;
 }
 
 /**
@@ -54,6 +62,10 @@ const ProjectWisdomEntrySchema = z.object({
   // Optional staleness metadata — new fields, backwards compatible
   tags: z.array(z.string()).optional(),
   invalidated_by: z.string().optional(),
+  product_id: z.string().optional(),
+  origin_repo_id: z.string().optional(),
+  origin_repo_project_id: z.string().optional(),
+  origin_repo_path: z.string().optional(),
 });
 
 // =============================================================================
@@ -101,6 +113,10 @@ export async function addProjectWisdom(
     tags?: string[];
     /** If set, marks this entry as superseding a prior wisdom entry */
     invalidated_by?: string;
+    product_id?: string;
+    origin_repo_id?: string;
+    origin_repo_project_id?: string;
+    origin_repo_path?: string;
     /** Override path — pass ProjectPaths.wisdom for external state support */
     wisdomPath?: string;
   },
@@ -136,6 +152,16 @@ export async function addProjectWisdom(
     ...(input.tags !== undefined && { tags: input.tags }),
     ...(input.invalidated_by !== undefined && {
       invalidated_by: input.invalidated_by,
+    }),
+    ...(input.product_id !== undefined && { product_id: input.product_id }),
+    ...(input.origin_repo_id !== undefined && {
+      origin_repo_id: input.origin_repo_id,
+    }),
+    ...(input.origin_repo_project_id !== undefined && {
+      origin_repo_project_id: input.origin_repo_project_id,
+    }),
+    ...(input.origin_repo_path !== undefined && {
+      origin_repo_path: input.origin_repo_path,
     }),
   };
 

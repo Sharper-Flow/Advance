@@ -20,7 +20,7 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
 
   return {
     ...legacy.wisdom,
-    add: async (changeId, type: WisdomType, content, sourceTask) => {
+    add: async (changeId, type: WisdomType, content, sourceTask, origin) => {
       invalidateChange(changeId);
       const now = new Date().toISOString();
       await runTemporal(async () =>
@@ -33,6 +33,7 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
               content,
               source_task: sourceTask,
               recorded_at: now,
+              ...origin,
             },
             addedAt: now,
           },

@@ -10,7 +10,7 @@ import { z } from "zod";
 import { join } from "path";
 import { readdir } from "fs/promises";
 import { formatToolOutput } from "../utils/tool-output";
-import type { Store } from "../storage/store";
+import type { ProductOriginTags, Store } from "../storage/store";
 import { appendReflection, type ReflectionEntry } from "../storage/reflection";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { GATE_ORDER } from "../types";
@@ -153,6 +153,17 @@ function getImprovementSuggestionForCategory(
     CATEGORY_IMPROVEMENT_SUGGESTIONS[category] ??
     "Unclassified friction detected — review the reflection item and convert it into docs, tooling, or workflow follow-up if it repeats."
   );
+}
+
+function getProductOriginTags(store: Store): ProductOriginTags | undefined {
+  const context = store.productContext;
+  if (!context || context.mode === "single_repo") return undefined;
+  return {
+    product_id: context.productId,
+    origin_repo_id: context.currentRepoId,
+    origin_repo_project_id: context.repoProjectId,
+    origin_repo_path: context.currentRoot,
+  };
 }
 
 function buildImprovementSuggestions(
@@ -552,6 +563,7 @@ export const reflectionTools = {
         id: "", // appendReflection will generate
         change_id: change.id,
         created_at: new Date().toISOString(),
+        ...getProductOriginTags(store),
         plane1: {
           efficiency: {
             task_count: taskCounts.total,
@@ -603,7 +615,9 @@ export const reflectionTools = {
       try {
         const bundle = getService();
         if (bundle) {
-          const projectId = await getProjectId(store.paths.root);
+          const projectId =
+            store.productContext?.productProjectId ??
+            (await getProjectId(store.paths.root));
           if (projectId) {
             const handle = getChangeHandle(bundle.client, projectId, change.id);
             await fireSignalAndRefresh(

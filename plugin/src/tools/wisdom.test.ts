@@ -118,4 +118,131 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
     // applies to signals without a changeId — none currently exist).
     expect(mocks.fireSignal).not.toHaveBeenCalled();
   });
+
+  test("tags new linked-product wisdom with origin repo metadata", async () => {
+    const store = createMockStore();
+    store.productContext = {
+      currentRoot: "/repo/web",
+      currentRepoId: "web",
+      repoProjectId: "w".repeat(40),
+      productId: "pokeedge",
+      productProjectId: "b".repeat(40),
+      primaryRoot: "/repo/backend",
+      primaryRepoId: "backend",
+      repos: {
+        web: { id: "web", root: "/repo/web", repoProjectId: "w".repeat(40) },
+        backend: {
+          id: "backend",
+          root: "/repo/backend",
+          repoProjectId: "b".repeat(40),
+        },
+      },
+      mode: "secondary",
+      missingPrimaryPolicy: "block",
+    };
+
+    await wisdomTools.adv_wisdom_add.execute(
+      {
+        changeId: "chg-test",
+        type: "gotcha",
+        content: "linked repo gotcha",
+      },
+      store,
+    );
+
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.handle,
+      store,
+      "chg-test",
+      expect.objectContaining({ name: expect.any(String) }),
+      expect.objectContaining({
+        entry: expect.objectContaining({
+          product_id: "pokeedge",
+          origin_repo_id: "web",
+          origin_repo_project_id: "w".repeat(40),
+          origin_repo_path: "/repo/web",
+        }),
+      }),
+    );
+  });
+});
+
+describe("adv_wisdom_list — product-linked filtering", () => {
+  test("defaults to current repo plus legacy and promoted entries", async () => {
+    const store = createMockStore();
+    store.productContext = {
+      currentRoot: "/repo/web",
+      currentRepoId: "web",
+      repoProjectId: "w".repeat(40),
+      productId: "pokeedge",
+      productProjectId: "b".repeat(40),
+      primaryRoot: "/repo/backend",
+      primaryRepoId: "backend",
+      repos: {
+        web: { id: "web", root: "/repo/web", repoProjectId: "w".repeat(40) },
+        backend: {
+          id: "backend",
+          root: "/repo/backend",
+          repoProjectId: "b".repeat(40),
+        },
+      },
+      mode: "secondary",
+      missingPrimaryPolicy: "block",
+    };
+    store.wisdom.listAll = vi.fn(async () => [
+      {
+        id: "ws-web",
+        type: "pattern",
+        content: "web scoped",
+        recorded_at: "2026-01-01T00:00:00.000Z",
+        scope: "change",
+        product_id: "pokeedge",
+        origin_repo_id: "web",
+      },
+      {
+        id: "ws-backend",
+        type: "pattern",
+        content: "backend scoped",
+        recorded_at: "2026-01-01T00:00:00.000Z",
+        scope: "change",
+        product_id: "pokeedge",
+        origin_repo_id: "backend",
+      },
+      {
+        id: "ws-legacy",
+        type: "gotcha",
+        content: "legacy untagged",
+        recorded_at: "2026-01-01T00:00:00.000Z",
+        scope: "change",
+      },
+      {
+        id: "pw-backend",
+        type: "convention",
+        content: "promoted backend knowledge",
+        recorded_at: "2026-01-01T00:00:00.000Z",
+        scope: "project",
+        product_id: "pokeedge",
+        origin_repo_id: "backend",
+      },
+    ]);
+
+    const repoScoped = JSON.parse(
+      await wisdomTools.adv_wisdom_list.execute({}, store),
+    );
+    expect(repoScoped.wisdom.map((entry: { id: string }) => entry.id)).toEqual([
+      "ws-web",
+      "ws-legacy",
+      "pw-backend",
+    ]);
+
+    const productWide = JSON.parse(
+      await wisdomTools.adv_wisdom_list.execute(
+        { scope: "product" } as never,
+        store,
+      ),
+    );
+    expect(productWide.wisdom.map((entry: { id: string }) => entry.id)).toEqual(
+      ["ws-web", "ws-backend", "ws-legacy", "pw-backend"],
+    );
+  });
 });

@@ -109,7 +109,9 @@ describe("resolveProductContext", () => {
         repo_id: "web",
         primary_repo_id: "backend",
       },
-      related_repos: [{ id: "backend", path: PRIMARY, product_role: "primary" }],
+      related_repos: [
+        { id: "backend", path: PRIMARY, product_role: "primary" },
+      ],
     });
 
     const context = await resolveProductContext(ROOT);
@@ -200,6 +202,8 @@ describe("resolveProductContext", () => {
       related_repos: [{ id: "backend", path: PRIMARY }],
     });
 
-    await expect(resolveProductContext(ROOT)).rejects.toThrow(/primary_repo_id/);
+    await expect(resolveProductContext(ROOT)).rejects.toThrow(
+      /primary_repo_id/,
+    );
   });
 });

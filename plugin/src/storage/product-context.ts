@@ -179,7 +179,10 @@ export async function resolveProductContext(
   const repos = buildRepoMap({ config, product, currentRoot, repoProjectId });
   const primary = requirePrimaryRepo(repos, product.primary_repo_id);
 
-  if (product.role === "primary" && product.primary_repo_id !== product.repo_id) {
+  if (
+    product.role === "primary" &&
+    product.primary_repo_id !== product.repo_id
+  ) {
     throw new ProductContextError(
       "primary product config must use current repo_id as primary_repo_id",
     );

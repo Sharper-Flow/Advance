@@ -155,4 +155,60 @@ describe("reflection tool", () => {
       "4 friction items identified — review for process/tool improvements",
     );
   });
+
+  test("tags linked-product reflections with origin repo metadata", async () => {
+    const change = {
+      id: "product-reflection-change",
+      title: "Product reflection change",
+      status: "archived",
+      created_at: "2026-01-01T00:00:00.000Z",
+      gates: {},
+      tasks: [],
+      wisdom: [],
+    };
+
+    const store = {
+      paths: {
+        root: tempDir,
+        external: tempDir,
+        archive: join(tempDir, "archive"),
+        reflections: join(tempDir, "reflections.jsonl"),
+      },
+      changes: {
+        get: async () => ({ success: true, data: change }),
+      },
+      productContext: {
+        currentRoot: "/repo/web",
+        currentRepoId: "web",
+        repoProjectId: "w".repeat(40),
+        productId: "pokeedge",
+        productProjectId: "b".repeat(40),
+        primaryRoot: "/repo/backend",
+        primaryRepoId: "backend",
+        repos: {
+          web: { id: "web", root: "/repo/web", repoProjectId: "w".repeat(40) },
+          backend: {
+            id: "backend",
+            root: "/repo/backend",
+            repoProjectId: "b".repeat(40),
+          },
+        },
+        mode: "secondary",
+        missingPrimaryPolicy: "block",
+      },
+    } as unknown as Store;
+
+    const output = await reflectionTools.adv_reflect.execute(
+      { changeId: change.id },
+      store,
+    );
+    const parsed = JSON.parse(output);
+
+    expect(parsed.reflection).toMatchObject({
+      product_id: "pokeedge",
+      origin_repo_id: "web",
+      origin_repo_project_id: "w".repeat(40),
+      origin_repo_path: "/repo/web",
+    });
+  });
 });

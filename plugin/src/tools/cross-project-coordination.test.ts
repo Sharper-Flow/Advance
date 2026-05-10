@@ -89,7 +89,10 @@ describe("cross-project coordination metadata", () => {
     ]);
 
     expect(parsed.scope_repos).toEqual([
-      expect.objectContaining({ repo_id: "web", repo_project_id: "w".repeat(40) }),
+      expect.objectContaining({
+        repo_id: "web",
+        repo_project_id: "w".repeat(40),
+      }),
     ]);
   });
 

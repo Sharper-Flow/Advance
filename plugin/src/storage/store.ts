@@ -21,6 +21,7 @@ import { createDiskStore } from "./store-disk";
 // Re-export public types and helpers
 export {
   type Store,
+  type ProductOriginTags,
   type SearchResult,
   computeLastActivity,
   buildChangeRecency,

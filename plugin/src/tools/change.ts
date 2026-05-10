@@ -510,7 +510,9 @@ function resolveScopeRepos(
 ): { ok: true; scope?: ChangeRepoScope[] } | { ok: false; error: string } {
   const productContext = store.productContext;
   if (!productContext || productContext.mode === "single_repo") {
-    return explicitScope?.length ? { ok: true, scope: explicitScope } : { ok: true };
+    return explicitScope?.length
+      ? { ok: true, scope: explicitScope }
+      : { ok: true };
   }
 
   try {

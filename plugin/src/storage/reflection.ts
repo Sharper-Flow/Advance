@@ -25,6 +25,14 @@ export interface ReflectionEntry {
   change_id: string;
   /** ISO8601 timestamp when reflection was created */
   created_at: string;
+  /** Product id when recorded inside linked-product state. */
+  product_id?: string;
+  /** Product repo id where this reflection originated. */
+  origin_repo_id?: string;
+  /** Repo-local ADV project id where this reflection originated. */
+  origin_repo_project_id?: string;
+  /** Repo root path where this reflection originated. */
+  origin_repo_path?: string;
 
   plane1: {
     efficiency: {
@@ -107,6 +115,10 @@ const ReflectionEntrySchema = z.object({
   id: z.string().startsWith("rf-"),
   change_id: z.string().min(1),
   created_at: z.string().datetime({ offset: true }),
+  product_id: z.string().optional(),
+  origin_repo_id: z.string().optional(),
+  origin_repo_project_id: z.string().optional(),
+  origin_repo_path: z.string().optional(),
   plane1: z.object({
     efficiency: z
       .object({
@@ -296,6 +308,9 @@ export async function listReflections(
   projectDir: string,
   options?: {
     changeId?: string;
+    productId?: string;
+    originRepoId?: string;
+    scope?: "repo" | "product";
     _skipLock?: boolean;
     reflectionsPath?: string;
   },
@@ -314,6 +329,18 @@ export async function listReflections(
 
   if (options?.changeId) {
     entries = entries.filter((e) => e.change_id === options.changeId);
+  }
+
+  if (options?.productId) {
+    entries = entries.filter(
+      (e) => !e.product_id || e.product_id === options.productId,
+    );
+  }
+
+  if (options?.scope !== "product" && options?.originRepoId) {
+    entries = entries.filter(
+      (e) => !e.origin_repo_id || e.origin_repo_id === options.originRepoId,
+    );
   }
 
   return entries;
