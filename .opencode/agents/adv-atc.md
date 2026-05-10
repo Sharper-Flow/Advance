@@ -37,6 +37,8 @@ tools:
   adv_session_list: true
   adv_session_show: true
   adv_project_context: true
+  # Roadmap
+  adv_roadmap: true
   # Changes
   adv_change_list: true
   adv_change_show: true
