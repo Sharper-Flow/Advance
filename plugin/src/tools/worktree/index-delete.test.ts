@@ -117,6 +117,22 @@ function createMockDeps(
   };
 }
 
+function attachChangeStatus(
+  deps: AdvWorktreeDeleteDeps,
+  status: string | null,
+): void {
+  deps.store = {
+    changes: {
+      get: vi.fn(async () =>
+        status === null
+          ? { success: false, error: "missing change", type: "not_found" }
+          : { success: true, data: { status } },
+      ),
+      refresh: vi.fn(async () => undefined),
+    },
+  } as any;
+}
+
 describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
   let repoRoot: string;
 
@@ -217,6 +233,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const wtPath = addWorktree(repoRoot, branch);
 
     const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath, changeId: "clean" }];
     const result = await advWorktreeDelete(branch, {}, deps);
 
     expect(result).toEqual({
@@ -373,6 +390,111 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       ok: false,
       error: "INTEGRATION_REQUIRED",
       reason: "branch_not_merged",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("#55 follow-up deletes missing-registry archived merged clean change branch without force", async () => {
+    const branch = "change/archived-clean";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    deps.integrationCheck = async () => {
+      throw new Error("registry-drift recovery must skip registry integration");
+    };
+    attachChangeStatus(deps, "archived");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(appendDebugLog).toHaveBeenCalledWith(
+      "worktree-delete",
+      expect.stringContaining("missing-registry change branch"),
+    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("#55 follow-up blocks missing-registry change branch when store is unavailable", async () => {
+    const branch = "change/no-store";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "registry_drift_recovery_requires_store",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("#55 follow-up blocks missing-registry change branch when change is not archived", async () => {
+    const branch = "change/not-archived";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    attachChangeStatus(deps, "active");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "change_not_archived",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("#55 follow-up blocks missing-registry archived change branch when unmerged", async () => {
+    const branch = "change/unmerged-archived";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "unmerged.txt"), "unmerged");
+    execSync("git add unmerged.txt", { cwd: wtPath });
+    execSync("git commit -m 'unmerged work'", { cwd: wtPath });
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => ["main"];
+    attachChangeStatus(deps, "archived");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "INTEGRATION_REQUIRED",
+      reason: "branch_not_merged",
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("#55 follow-up blocks missing-registry archived merged change branch when dirty", async () => {
+    const branch = "change/dirty-archived";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "dirty.txt"), "dirty");
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    attachChangeStatus(deps, "archived");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "UNCOMMITTED_WORK",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),

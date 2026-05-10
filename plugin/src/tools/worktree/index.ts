@@ -1270,6 +1270,39 @@ async function verifyNonAdvBranchIntegration(
   return { ok: true };
 }
 
+async function verifyMissingRegistryChangeBranchIntegration(
+  branch: string,
+  changeId: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<{ ok: true } | { ok: false; reason: string; hint: string }> {
+  if (!deps.store) {
+    return {
+      ok: false,
+      reason: "registry_drift_recovery_requires_store",
+      hint: "Missing-registry change branch cleanup requires the durable ADV store to verify archived state.",
+    };
+  }
+
+  try {
+    const loaded = await deps.store.changes.get(changeId);
+    if (!loaded.success || !loaded.data || loaded.data.status !== "archived") {
+      return {
+        ok: false,
+        reason: "change_not_archived",
+        hint: `Archive change ${changeId} before deleting its worktree.`,
+      };
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "git_failed",
+      hint: `Failed to verify archived state for change ${changeId}: ${String(err)}`,
+    };
+  }
+
+  return verifyNonAdvBranchIntegration(branch, deps);
+}
+
 async function maybeRemoveMissingFromDiskRegistryEntry(
   branch: string,
   worktreePath: string,
@@ -1333,16 +1366,22 @@ export async function advWorktreeDelete(
     if (missingFromDisk) return missingFromDisk;
   }
 
-  // 2. Branch integration check. Three cases:
+  // 2. Branch integration check. Four cases:
   //
   //    (a) ADV-owned branch (registry + changeId): archived+merged+clean
   //    (b) Non-ADV registered branch (registry, no changeId): merged-only
-  //    (c) Branch not in registry, opts.force=true: merged-only (rq-forceUnregisteredDelete01)
-  //    (d) Branch not in registry, no force: branch_not_in_registry (existing safety)
+  //    (c) change/* branch not in registry: archived from store + merged-only
+  //    (d) Branch not in registry, opts.force=true: merged-only (rq-forceUnregisteredDelete01)
+  //    (e) Branch not in registry, no force: branch_not_in_registry (existing safety)
   //
-  // The (c) bypass is intentionally narrow: it requires the branch to be
+  // The (c) recovery is intentionally before (d): change/* branches must
+  // prove archived state through the durable ADV store and must not fall back
+  // to weaker force-only non-ADV semantics.
+  //
+  // The (d) bypass is intentionally narrow: it requires the branch to be
   // merged into the default branch. Force does NOT skip merged-to-default;
   // this preserves P32 trunk-is-prod by refusing to delete unmerged work.
+  const inferredChangeId = inferChangeIdFromBranch(branch);
   if (registryEntry && !registryEntry.changeId) {
     const integration = await verifyNonAdvBranchIntegration(branch, deps);
     if (!integration.ok) {
@@ -1353,6 +1392,26 @@ export async function advWorktreeDelete(
         hint: integration.hint,
       };
     }
+  } else if (!registryEntry && inferredChangeId) {
+    // Registry drift recovery for ADV change branches. The registry is
+    // bookkeeping; archived state from Store/Temporal is the structural gate.
+    const integration = await verifyMissingRegistryChangeBranchIntegration(
+      branch,
+      inferredChangeId,
+      deps,
+    );
+    if (!integration.ok) {
+      return {
+        ok: false,
+        error: "INTEGRATION_REQUIRED",
+        reason: integration.reason,
+        hint: integration.hint,
+      };
+    }
+    appendDebugLog(
+      "worktree-delete",
+      `deleting missing-registry change branch ${branch} (archived+merged verified)`,
+    );
   } else if (!registryEntry && opts.force) {
     // rq-forceUnregisteredDelete01: branches outside the registry can be
     // deleted with `force: true` provided they are already merged into the
