@@ -153,6 +153,8 @@ export {
 export {
   RelatedRepoSchema,
   type RelatedRepo,
+  ProductLinkSchema,
+  type ProductLink,
   FeatureFlagsSchema,
   type FeatureFlags,
   ProjectConfigSchema,

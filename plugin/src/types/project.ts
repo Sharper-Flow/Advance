@@ -30,6 +30,13 @@ export const RelatedRepoSchema = z
       .string()
       .regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/)
       .optional(),
+    /** Stable ADV repo project ID, when known, for product-linked resolution. */
+    repo_project_id: z
+      .string()
+      .regex(/^[0-9a-f]{40}$/)
+      .optional(),
+    /** Role this related repo plays in a product-linked topology. */
+    product_role: z.enum(["primary", "secondary"]).optional(),
   })
   .passthrough();
 
@@ -151,6 +158,27 @@ export const FeatureFlagsSchema = z
 export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
 
 // =============================================================================
+// Product Linking
+// =============================================================================
+
+export const ProductLinkSchema = z.object({
+  /** Logical product identifier, e.g. "pokeedge". */
+  id: z.string().min(1),
+  /** Role this repo plays inside the product. */
+  role: z.enum(["primary", "secondary"]),
+  /** Repo identifier for the current checkout within the product. */
+  repo_id: z.string().min(1),
+  /** Repo identifier for the product's canonical primary repo. */
+  primary_repo_id: z.string().min(1),
+  /** Behavior when a secondary cannot resolve the primary repo/project. */
+  missing_primary_policy: z
+    .enum(["block", "read_only", "isolated"])
+    .default("block"),
+});
+
+export type ProductLink = z.infer<typeof ProductLinkSchema>;
+
+// =============================================================================
 // Project Configuration
 // =============================================================================
 
@@ -167,6 +195,8 @@ export const ProjectConfigSchema = z
     project_file: z.string().default("project.md"),
     /** Related repositories for cross-repo task routing */
     related_repos: z.array(RelatedRepoSchema).optional(),
+    /** Optional product-link topology metadata. Reuses related_repos as repo registry. */
+    product: ProductLinkSchema.optional(),
     /** Per-project feature flag overrides. All flags default to current ADV behavior. */
     features: FeatureFlagsSchema.default(() => FeatureFlagsSchema.parse({})),
   })
