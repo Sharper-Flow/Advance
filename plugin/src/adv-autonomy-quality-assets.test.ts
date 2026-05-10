@@ -214,6 +214,7 @@ describe("Archive and spec assets", () => {
   });
 
   test("advance-workflow spec encodes product-linked multi-repo state", () => {
+    // rq-productLinking01 rq-productScopedChanges01 rq-productLearning01 rq-multiRepoArchive01
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);
     expect(content).toMatch(/rq-productLinking01/);
     expect(content).toMatch(/scope_repos/);

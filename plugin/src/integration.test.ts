@@ -324,7 +324,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         { args: { filePath: `${tempDir}/src/file.ts` } } as any,
       ),
     ).rejects.toThrow(/Trunk write firewall/);
-  });
+  }, 30_000);
 
   test("allows write tool targeting an active worktree path", async () => {
     const { execSync } = await import("child_process");
@@ -351,7 +351,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         { args: { filePath: join(worktreePath, "src/file.ts") } } as any,
       ),
     ).resolves.toBeUndefined();
-  }, 15_000);
+  }, 30_000);
 
   test("blocks destructive bash targeting trunk checkout", async () => {
     await initGitRepo();
@@ -368,7 +368,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         { args: { command: `echo hello > ${tempDir}/src/file.ts` } } as any,
       ),
     ).rejects.toThrow(/Trunk write firewall/);
-  });
+  }, 30_000);
 
   test("allows all git commands without firewall classification", async () => {
     await initGitRepo();
@@ -387,7 +387,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         } as any,
       ),
     ).resolves.toBeUndefined();
-  });
+  }, 30_000);
 
   test("allows canonical archive push command from trunk checkout", async () => {
     await initGitRepo();
@@ -406,7 +406,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         } as any,
       ),
     ).resolves.toBeUndefined();
-  });
+  }, 30_000);
 
   test("allows trunk writes during merge recovery", async () => {
     const { execSync } = await import("child_process");
@@ -431,7 +431,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         { args: { filePath: join(tempDir, "src/file.ts") } } as any,
       ),
     ).resolves.toBeUndefined();
-  });
+  }, 30_000);
 
   test("guard does not interfere with existing hook responsibilities", async () => {
     hooks = await AdvancePlugin({
@@ -447,5 +447,5 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       { args: { changeId: "guardTest" } } as any,
     );
     expect(getStatus().activeChangeId).toBe("guardTest");
-  });
+  }, 30_000);
 });

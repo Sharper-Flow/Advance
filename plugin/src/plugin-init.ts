@@ -102,20 +102,21 @@ export async function tryInitStore(
   _externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
   const initStartedAt = performance.now();
-  const projectIdStartedAt = performance.now();
-  const productContext = await resolveProductContext(effectiveDir);
-  const projectId = productContext.productProjectId;
-  const productExternalRoot = getExternalRoot(projectId);
-  profilePluginInit("project_id_resolved", {
-    duration_ms: Number((performance.now() - projectIdStartedAt).toFixed(3)),
-    hasProjectId: Boolean(projectId),
-    repoProjectId: productContext.repoProjectId,
-    productProjectId: productContext.productProjectId,
-    productMode: productContext.mode,
-  });
   let worker: InProcessWorker | undefined;
 
   try {
+    const projectIdStartedAt = performance.now();
+    const productContext = await resolveProductContext(effectiveDir);
+    const projectId = productContext.productProjectId;
+    const productExternalRoot = getExternalRoot(projectId);
+    profilePluginInit("project_id_resolved", {
+      duration_ms: Number((performance.now() - projectIdStartedAt).toFixed(3)),
+      hasProjectId: Boolean(projectId),
+      repoProjectId: productContext.repoProjectId,
+      productProjectId: productContext.productProjectId,
+      productMode: productContext.mode,
+    });
+
     let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
     profilePluginInit("backend_mode_detected", {
       backend_mode: "temporal",
