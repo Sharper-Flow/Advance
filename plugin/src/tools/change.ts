@@ -23,9 +23,11 @@ import {
   GateIdSchema,
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
+  ChangeRepoScopeSchema,
   type GateId,
   type Gates,
   type Change,
+  type ChangeRepoScope,
   type ClarifyFindingSnapshot,
 } from "../types";
 import type { Store } from "../storage/store";
@@ -500,6 +502,56 @@ async function validateParentChange(
     ok: false,
     validParentIds: list.changes.map((change) => change.id),
   };
+}
+
+function resolveScopeRepos(
+  store: Store,
+  explicitScope?: ChangeRepoScope[],
+): { ok: true; scope?: ChangeRepoScope[] } | { ok: false; error: string } {
+  const productContext = store.productContext;
+  if (!productContext || productContext.mode === "single_repo") {
+    return explicitScope?.length ? { ok: true, scope: explicitScope } : { ok: true };
+  }
+
+  try {
+    const requested = explicitScope?.length
+      ? explicitScope
+      : [{ repo_id: productContext.currentRepoId, required: true }];
+    const seen = new Set<string>();
+    const mergeOrders = new Set<number>();
+    const scope = requested.map((entry) => {
+      if (seen.has(entry.repo_id)) {
+        throw new Error(`Duplicate scope_repos repo_id: ${entry.repo_id}`);
+      }
+      seen.add(entry.repo_id);
+
+      if (entry.merge_order !== undefined) {
+        if (mergeOrders.has(entry.merge_order)) {
+          throw new Error(
+            `Duplicate scope_repos merge_order: ${entry.merge_order}`,
+          );
+        }
+        mergeOrders.add(entry.merge_order);
+      }
+
+      const repo = productContext.repos[entry.repo_id];
+      if (!repo) {
+        throw new Error(`Unknown scope_repos repo_id: ${entry.repo_id}`);
+      }
+
+      return {
+        ...entry,
+        path: entry.path ?? repo.root,
+        repo_project_id: entry.repo_project_id ?? repo.repoProjectId,
+        role: entry.role ?? repo.productRole,
+        required: entry.required ?? true,
+      };
+    });
+
+    return { ok: true, scope };
+  } catch (error) {
+    return { ok: false, error: (error as Error).message };
+  }
 }
 
 /**
@@ -1273,6 +1325,12 @@ export const changeTools = {
             "Mutually exclusive with target_path (cross-project follow-up). " +
             "Parent must exist in the current project.",
         ),
+      scope_repos: z
+        .array(ChangeRepoScopeSchema)
+        .optional()
+        .describe(
+          "Product-linked repo scope for this change. Repo IDs must exist in the product config. Defaults to the current repo when product linking is enabled.",
+        ),
       origin_kind: ChangeOriginKindSchema.optional().describe(
         "Origin provenance kind. " +
           "'roadmap' = promoted from a GitHub Project / ROADMAP.md item (origin_issue_number required). " +
@@ -1310,6 +1368,7 @@ export const changeTools = {
         source_project,
         source_change_id,
         parent_change_id,
+        scope_repos,
         origin_kind,
         origin_issue_number,
         origin_source_artifact,
@@ -1324,6 +1383,7 @@ export const changeTools = {
         source_project?: string;
         source_change_id?: string;
         parent_change_id?: string;
+        scope_repos?: ChangeRepoScope[];
         origin_kind?: ChangeOrigin["kind"];
         origin_issue_number?: number;
         origin_source_artifact?: string;
@@ -1402,6 +1462,11 @@ export const changeTools = {
         };
       }
 
+      const scopeResolution = resolveScopeRepos(store, scope_repos);
+      if (!scopeResolution.ok) {
+        return formatToolOutput({ error: scopeResolution.error });
+      }
+
       // ----- Local creation path (unchanged) -----
       const result = await store.changes.create(
         summary,
@@ -1452,6 +1517,18 @@ export const changeTools = {
         if (changeResult.success && changeResult.data) {
           await store.changes.save({ ...changeResult.data, origin });
           output.origin = origin;
+        }
+      }
+
+      if (scopeResolution.scope) {
+        const changeResult = await store.changes.get(result.changeId);
+        if (changeResult.success && changeResult.data) {
+          await store.changes.save({
+            ...changeResult.data,
+            scope_repos: scopeResolution.scope,
+          });
+          await store.changes.refresh(result.changeId);
+          output.scope_repos = scopeResolution.scope;
         }
       }
 

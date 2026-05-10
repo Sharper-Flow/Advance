@@ -270,6 +270,26 @@ export const ExternalDependencySchema = z.object({
 
 export type ExternalDependency = z.infer<typeof ExternalDependencySchema>;
 
+export const ChangeRepoScopeSchema = z.object({
+  /** Product repo identifier from ProductContext.repos. */
+  repo_id: z.string().min(1),
+  /** Optional role snapshot for display/filtering. */
+  role: z.enum(["primary", "secondary"]).optional(),
+  /** Optional repo path snapshot. */
+  path: z.string().min(1).optional(),
+  /** Optional stable repo project id snapshot. */
+  repo_project_id: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  /** Whether this repo is required for verification/archive. */
+  required: z.boolean().default(true),
+  /** Optional ordered multi-repo merge position. */
+  merge_order: z.number().int().nonnegative().optional(),
+});
+
+export type ChangeRepoScope = z.infer<typeof ChangeRepoScopeSchema>;
+
 // =============================================================================
 // Fast Follow (Same-Project Follow-up Lineage)
 // =============================================================================
@@ -483,6 +503,8 @@ export const ChangeSchema = z
     cross_project_links: z.array(CrossProjectLinkSchema).optional(),
     /** Advisory external dependencies on changes/gates/tasks in other projects. */
     external_dependencies: z.array(ExternalDependencySchema).optional(),
+    /** Product-linked repo scope for this change. */
+    scope_repos: z.array(ChangeRepoScopeSchema).optional(),
     /** Project IDs affected by this change for cross-workflow discovery. */
     affectedProjects: z.array(z.string()).optional(),
     /** Path hints affected by this change for collision discovery. */

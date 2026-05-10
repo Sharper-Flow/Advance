@@ -58,6 +58,69 @@ describe("cross-project coordination metadata", () => {
     ]);
   });
 
+  test("product-linked create defaults scope_repos to current repo", async () => {
+    sourceStore.productContext = {
+      currentRoot: sourceDir,
+      currentRepoId: "web",
+      repoProjectId: "w".repeat(40),
+      productId: "pokeedge",
+      productProjectId: "b".repeat(40),
+      primaryRoot: targetDir,
+      primaryRepoId: "backend",
+      repos: {
+        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        backend: {
+          id: "backend",
+          root: targetDir,
+          repoProjectId: "b".repeat(40),
+        },
+      },
+      mode: "secondary",
+      missingPrimaryPolicy: "block",
+    };
+
+    const output = await changeTools.adv_change_create.execute(
+      { summary: "Add scoped change", capability: "test-capability" },
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.scope_repos).toEqual([
+      expect.objectContaining({ repo_id: "web" }),
+    ]);
+
+    expect(parsed.scope_repos).toEqual([
+      expect.objectContaining({ repo_id: "web", repo_project_id: "w".repeat(40) }),
+    ]);
+  });
+
+  test("product-linked create validates explicit scope_repos", async () => {
+    sourceStore.productContext = {
+      currentRoot: sourceDir,
+      currentRepoId: "web",
+      repoProjectId: "w".repeat(40),
+      productId: "pokeedge",
+      productProjectId: "b".repeat(40),
+      primaryRoot: targetDir,
+      primaryRepoId: "backend",
+      repos: {
+        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+      },
+      mode: "secondary",
+      missingPrimaryPolicy: "block",
+    };
+
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Add bad scoped change",
+        capability: "test-capability",
+        scope_repos: [{ repo_id: "backend" }],
+      },
+      sourceStore,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.error).toContain("Unknown scope_repos repo_id");
+  });
+
   test("change show summarizes advisory external dependency status", async () => {
     const sourceChange = await sourceStore.changes.get("addFeature");
     expect(sourceChange.success).toBe(true);

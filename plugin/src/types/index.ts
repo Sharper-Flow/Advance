@@ -115,6 +115,8 @@ export {
   ExternalDependencyRelationshipSchema,
   ExternalDependencySchema,
   type ExternalDependency,
+  ChangeRepoScopeSchema,
+  type ChangeRepoScope,
   FastFollowOfSchema,
   type FastFollowOf,
   ChangeOriginKindSchema,
