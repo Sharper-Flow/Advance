@@ -9,7 +9,12 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
-import { roadmapTools, type RoadmapSnapshot } from "./roadmap";
+import {
+  roadmapTools,
+  type RoadmapSnapshot,
+  filterOpenItemsOnly,
+  type LiveProjectItem,
+} from "./roadmap";
 import { createLegacyStore, type Store } from "../storage/store";
 import {
   createTempDir,
@@ -269,6 +274,37 @@ describe("Roadmap Tool", () => {
       expect(parsed.error).not.toMatch(/config not persisted/);
       // Downstream errors are acceptable (gh CLI not available in test env);
       // only the config-resolution path is what we're guarding here.
+    });
+  });
+
+  describe("filterOpenItemsOnly (live source closed-issue filter)", () => {
+    test("removes items whose issue number is in the closed set", () => {
+      const items: LiveProjectItem[] = [
+        { content: { type: "Issue", number: 100, title: "open bug" } },
+        { content: { type: "Issue", number: 101, title: "closed bug" } },
+        { content: { type: "Issue", number: 102, title: "another open" } },
+      ];
+      const closed = new Set([101]);
+      const filtered = filterOpenItemsOnly(items, closed);
+      expect(filtered.map((i) => i.content?.number)).toEqual([100, 102]);
+    });
+
+    test("keeps items missing a number (defensive)", () => {
+      const items: LiveProjectItem[] = [
+        { content: { type: "Issue" } as { number?: number; title?: string } },
+        { content: { type: "Issue", number: 200, title: "ok" } },
+      ];
+      const filtered = filterOpenItemsOnly(items, new Set([200]));
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].content?.number).toBeUndefined();
+    });
+
+    test("returns all items when closed set is empty", () => {
+      const items: LiveProjectItem[] = [
+        { content: { type: "Issue", number: 1, title: "a" } },
+        { content: { type: "Issue", number: 2, title: "b" } },
+      ];
+      expect(filterOpenItemsOnly(items, new Set())).toEqual(items);
     });
   });
 

@@ -146,8 +146,13 @@ async function readSnapshotFile(repoRoot: string): Promise<
 // Live-mode reader
 // =============================================================================
 
-interface LiveProjectItem {
-  content?: { number?: number; title?: string; type?: string };
+export interface LiveProjectItem {
+  content?: {
+    number?: number;
+    title?: string;
+    type?: string;
+    repository?: string;
+  };
   labels?: string[];
   // Project custom fields surface as plain top-level keys with
   // lower-cased field names. The single-select Priority field surfaces
@@ -160,6 +165,67 @@ interface LiveProjectItem {
   effort?: number;
   wSJF?: number;
   ["aDV Type"]?: string;
+}
+
+/**
+ * Filter live project items, removing those whose GitHub issue number
+ * appears in `closedNumbers`. Items without a number are preserved
+ * (defensive — surface upstream rather than silently drop).
+ *
+ * Pure function for testability — closed-set lookup happens upstream
+ * via `gh issue list -s closed --json number`.
+ */
+export function filterOpenItemsOnly(
+  items: LiveProjectItem[],
+  closedNumbers: Set<number>,
+): LiveProjectItem[] {
+  return items.filter((item) => {
+    const n = item.content?.number;
+    if (n === undefined) return true;
+    return !closedNumbers.has(n);
+  });
+}
+
+/**
+ * Query closed issue numbers for every distinct repository observed in
+ * `items`. Returns a single Set keyed by issue number — adequate when
+ * all items live under the same repo (current ADV Project layout). If
+ * multiple repos are observed, numbers across repos collapse into one
+ * Set; collision risk is low but documented here.
+ */
+async function fetchClosedIssueNumbers(
+  items: LiveProjectItem[],
+): Promise<Set<number>> {
+  const repos = new Set<string>();
+  for (const item of items) {
+    const repo = item.content?.repository;
+    if (repo) repos.add(repo);
+  }
+  const closed = new Set<number>();
+  for (const repo of repos) {
+    try {
+      const { stdout } = await execFileP("gh", [
+        "issue",
+        "list",
+        "-R",
+        repo,
+        "-s",
+        "closed",
+        "--json",
+        "number",
+        "--limit",
+        "1000",
+      ]);
+      const parsed = JSON.parse(stdout) as Array<{ number?: number }>;
+      for (const row of parsed) {
+        if (typeof row.number === "number") closed.add(row.number);
+      }
+    } catch {
+      // Non-fatal — closed filter degrades to "no filter" rather than
+      // blocking the whole roadmap query. Caller still gets results.
+    }
+  }
+  return closed;
 }
 
 async function readLiveProject(metadata: {
@@ -210,7 +276,14 @@ async function readLiveProject(metadata: {
     };
   }
 
-  const items = parsed.items ?? [];
+  const allItems = parsed.items ?? [];
+
+  // Filter out closed GH issues — `gh project item-list` returns the
+  // full Project board including done/closed issues, but the roadmap
+  // is a backlog (open work only).
+  const closedNumbers = await fetchClosedIssueNumbers(allItems);
+  const items = filterOpenItemsOnly(allItems, closedNumbers);
+
   const bugs: RoadmapBug[] = [];
   const features: RoadmapFeature[] = [];
   const deferred: RoadmapDeferred[] = [];
