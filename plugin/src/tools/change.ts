@@ -554,6 +554,50 @@ function resolveScopeRepos(
   }
 }
 
+async function filterChangesForProductScope<T extends { id: string }>(
+  changes: T[],
+  store: Store,
+  scope: "repo" | "product" | undefined,
+): Promise<T[]> {
+  const productContext = store.productContext;
+  if (!productContext || productContext.mode === "single_repo") return changes;
+  if (scope === "product") return changes;
+
+  const scoped: T[] = [];
+  for (const change of changes) {
+    const full = await store.changes.get(change.id);
+    if (!full.success || !full.data?.scope_repos?.length) {
+      scoped.push(change);
+      continue;
+    }
+    if (
+      full.data.scope_repos.some(
+        (repo) => repo.repo_id === productContext.currentRepoId,
+      )
+    ) {
+      scoped.push(change);
+    }
+  }
+  return scoped;
+}
+
+function productContextOutput(
+  store: Store,
+  scope: "repo" | "product" | undefined,
+): Record<string, unknown> | undefined {
+  const context = store.productContext;
+  if (!context || context.mode === "single_repo") return undefined;
+  return {
+    productId: context.productId,
+    productProjectId: context.productProjectId,
+    currentRepoId: context.currentRepoId,
+    repoProjectId: context.repoProjectId,
+    primaryRepoId: context.primaryRepoId,
+    mode: context.mode,
+    scope: scope ?? "repo",
+  };
+}
+
 /**
  * Build the validator input bundle for a change.
  *
@@ -882,6 +926,13 @@ export const changeTools = {
         .describe(
           "Optional absolute path to another ADV project. When provided, reads that project as a disk snapshot and returns _projectContext.",
         ),
+      scope: z
+        .enum(["repo", "product"])
+        .optional()
+        .default("repo")
+        .describe(
+          "Product-linked visibility scope. `repo` (default) shows changes scoped to the current repo; `product` shows all product changes.",
+        ),
     },
     execute: async (
       {
@@ -892,6 +943,7 @@ export const changeTools = {
         limit,
         offset,
         target_path,
+        scope = "repo",
       }: {
         status?: string;
         includeArchived?: boolean;
@@ -900,6 +952,7 @@ export const changeTools = {
         limit?: number;
         offset?: number;
         target_path?: string;
+        scope?: "repo" | "product";
       },
       store: Store,
     ) => {
@@ -930,7 +983,11 @@ export const changeTools = {
             };
           });
 
-          let filtered = withLastActivity;
+          let filtered = await filterChangesForProductScope(
+            withLastActivity,
+            activeStore,
+            scope,
+          );
           if (status === "in-flight") {
             const inFlightStatuses = new Set(["draft", "pending", "active"]);
             filtered = filtered.filter((c) => inFlightStatuses.has(c.status));
@@ -960,6 +1017,9 @@ export const changeTools = {
           return formatToolOutput({
             changes: paged.items,
             pagination: paged.pagination,
+            ...(productContextOutput(activeStore, scope)
+              ? { _productContext: productContextOutput(activeStore, scope) }
+              : {}),
             ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         },

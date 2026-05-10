@@ -521,6 +521,52 @@ export const _test = {
   appendRecencyRecommendation,
 };
 
+async function filterRecentChangesForProductScope(
+  recentChanges: ChangeRecency[],
+  store: Store,
+  scope: "repo" | "product" | undefined,
+): Promise<ChangeRecency[]> {
+  const productContext = store.productContext;
+  if (!productContext || productContext.mode === "single_repo") {
+    return recentChanges;
+  }
+  if (scope === "product") return recentChanges;
+
+  const scoped: ChangeRecency[] = [];
+  for (const change of recentChanges) {
+    const full = await store.changes.get(String(change.id));
+    if (!full.success || !full.data?.scope_repos?.length) {
+      scoped.push(change);
+      continue;
+    }
+    if (
+      full.data.scope_repos.some(
+        (repo) => repo.repo_id === productContext.currentRepoId,
+      )
+    ) {
+      scoped.push(change);
+    }
+  }
+  return scoped;
+}
+
+function buildProductContextOutput(
+  store: Store,
+  scope: "repo" | "product" | undefined,
+): Record<string, unknown> | undefined {
+  const context = store.productContext;
+  if (!context || context.mode === "single_repo") return undefined;
+  return {
+    productId: context.productId,
+    productProjectId: context.productProjectId,
+    currentRepoId: context.currentRepoId,
+    repoProjectId: context.repoProjectId,
+    primaryRepoId: context.primaryRepoId,
+    mode: context.mode,
+    scope: scope ?? "repo",
+  };
+}
+
 async function loadMigrationStatus(_store: Store) {
   // Migration ledger retired with projectWorkflow.
   return null;
@@ -633,6 +679,7 @@ export function applyStatusView(
   const projection: Record<string, unknown> = {
     formatted: full.formatted,
     ...(full._projectContext ? { _projectContext: full._projectContext } : {}),
+    ...(full.product_context ? { product_context: full.product_context } : {}),
     view,
   };
 
@@ -749,14 +796,23 @@ export const statusTools = {
             "`changes` returns the full recent-change list; " +
             "`hygiene` surfaces archived/closed leaks + recommendations + project metadata.",
         ),
+      scope: z
+        .enum(["repo", "product"])
+        .optional()
+        .default("repo")
+        .describe(
+          "Product-linked visibility scope. `repo` (default) shows changes scoped to the current repo; `product` shows all product changes.",
+        ),
     },
     execute: async (
       {
         target_path,
         view = "summary",
+        scope = "repo",
       }: {
         target_path?: string;
         view?: "summary" | "health" | "changes" | "hygiene";
+        scope?: "repo" | "product";
       },
       store: Store,
     ) => {
@@ -883,7 +939,12 @@ export const statusTools = {
           // Single-pass over recent changes: context snapshot, gate recommendation,
           // clarify readiness, and recency labels — all built in one traversal.
           // First active/draft/pending change gets full-box snapshot; others get ticker.
-          const recentChanges = status.changes.recent ?? [];
+          const recentChanges = await filterRecentChangesForProductScope(
+            status.changes.recent ?? [],
+            activeStore,
+            scope,
+          );
+          status.changes.recent = recentChanges;
           const features = activeStore.config?.features as
             | FeatureFlags
             | undefined;
@@ -1019,6 +1080,9 @@ export const statusTools = {
 
           const fullOutput = {
             ...status,
+            ...(buildProductContextOutput(activeStore, scope)
+              ? { product_context: buildProductContextOutput(activeStore, scope) }
+              : {}),
             ...(featureFlags ? { feature_flags: featureFlags } : {}),
             temporal_health: temporalHealth,
             ...(queueServiceability

@@ -121,6 +121,72 @@ describe("cross-project coordination metadata", () => {
     expect(parsed.error).toContain("Unknown scope_repos repo_id");
   });
 
+  test("product-linked change list defaults to current repo scope", async () => {
+    sourceStore.productContext = {
+      currentRoot: sourceDir,
+      currentRepoId: "web",
+      repoProjectId: "w".repeat(40),
+      productId: "pokeedge",
+      productProjectId: "b".repeat(40),
+      primaryRoot: targetDir,
+      primaryRepoId: "backend",
+      repos: {
+        web: { id: "web", root: sourceDir, repoProjectId: "w".repeat(40) },
+        backend: {
+          id: "backend",
+          root: targetDir,
+          repoProjectId: "b".repeat(40),
+        },
+      },
+      mode: "secondary",
+      missingPrimaryPolicy: "block",
+    };
+
+    await sourceStore.changes.save({
+      id: "addWebScoped",
+      title: "Add web scoped",
+      status: "draft",
+      created_at: "2026-05-10T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      scope_repos: [{ repo_id: "web", required: true }],
+    } as never);
+    await sourceStore.changes.save({
+      id: "addBackendScoped",
+      title: "Add backend scoped",
+      status: "draft",
+      created_at: "2026-05-10T00:00:01.000Z",
+      tasks: [],
+      deltas: {},
+      scope_repos: [{ repo_id: "backend", required: true }],
+    } as never);
+
+    const repoScoped = parseToolOutput(
+      await changeTools.adv_change_list.execute({}, sourceStore),
+    );
+    expect(repoScoped.changes.map((c: { id: string }) => c.id)).toContain(
+      "addWebScoped",
+    );
+    expect(repoScoped.changes.map((c: { id: string }) => c.id)).not.toContain(
+      "addBackendScoped",
+    );
+
+    const productWide = parseToolOutput(
+      await changeTools.adv_change_list.execute(
+        { scope: "product" },
+        sourceStore,
+      ),
+    );
+    expect(productWide.changes.map((c: { id: string }) => c.id)).toEqual(
+      expect.arrayContaining(["addWebScoped", "addBackendScoped"]),
+    );
+    expect(productWide._productContext).toMatchObject({
+      productId: "pokeedge",
+      currentRepoId: "web",
+      scope: "product",
+    });
+  });
+
   test("change show summarizes advisory external dependency status", async () => {
     const sourceChange = await sourceStore.changes.get("addFeature");
     expect(sourceChange.success).toBe(true);

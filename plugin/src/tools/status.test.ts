@@ -199,6 +199,68 @@ describe("Status Tools", () => {
       expect(followRec).toContain(parentParsed.changeId);
     });
 
+    test("product-linked status defaults to current repo scoped changes", async () => {
+      store.productContext = {
+        currentRoot: tempDir,
+        currentRepoId: "web",
+        repoProjectId: "w".repeat(40),
+        productId: "pokeedge",
+        productProjectId: "b".repeat(40),
+        primaryRoot: "/repo/backend",
+        primaryRepoId: "backend",
+        repos: {
+          web: { id: "web", root: tempDir, repoProjectId: "w".repeat(40) },
+          backend: {
+            id: "backend",
+            root: "/repo/backend",
+            repoProjectId: "b".repeat(40),
+          },
+        },
+        mode: "secondary",
+        missingPrimaryPolicy: "block",
+      };
+      await store.changes.save({
+        id: "webScoped",
+        title: "Web scoped",
+        status: "draft",
+        created_at: "2026-05-10T00:00:00.000Z",
+        tasks: [],
+        deltas: {},
+        scope_repos: [{ repo_id: "web", required: true }],
+      } as never);
+      await store.changes.save({
+        id: "backendScoped",
+        title: "Backend scoped",
+        status: "draft",
+        created_at: "2026-05-10T00:00:01.000Z",
+        tasks: [],
+        deltas: {},
+        scope_repos: [{ repo_id: "backend", required: true }],
+      } as never);
+
+      const repoScoped = parseToolOutput(
+        await statusTools.adv_status.execute({}, store),
+      );
+      expect(repoScoped.changes.recent.map((c: { id: string }) => c.id)).toContain(
+        "webScoped",
+      );
+      expect(
+        repoScoped.changes.recent.map((c: { id: string }) => c.id),
+      ).not.toContain("backendScoped");
+      expect(repoScoped.product_context).toMatchObject({
+        productId: "pokeedge",
+        currentRepoId: "web",
+        scope: "repo",
+      });
+
+      const productWide = parseToolOutput(
+        await statusTools.adv_status.execute({ scope: "product" }, store),
+      );
+      expect(productWide.changes.recent.map((c: { id: string }) => c.id)).toEqual(
+        expect.arrayContaining(["webScoped", "backendScoped"]),
+      );
+    });
+
     test("hot change recommendation distinguishes current worker from peer-owned work", async () => {
       const { _test } = await import("./status");
       const recommendations: string[] = [];
