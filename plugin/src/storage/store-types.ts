@@ -27,6 +27,7 @@ import type {
   BulkCloseResult,
 } from "../types";
 import type { ProjectPaths, LoadResult } from "./json";
+import type { ProductContext } from "./product-context";
 
 // Inlined from former ./sqlite module (deleted in P2.7).
 export interface WisdomSearchResult {
@@ -43,6 +44,8 @@ export interface WisdomSearchResult {
 export interface Store {
   paths: ProjectPaths;
   config: ProjectConfig | null;
+  /** Product-link identity context. Omitted for legacy/mock stores. */
+  productContext?: ProductContext;
 
   // Lifecycle
   init: () => Promise<void>;

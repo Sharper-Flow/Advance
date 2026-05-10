@@ -27,11 +27,13 @@ export {
 } from "./store-types";
 
 import type { Store } from "./store-types";
+import type { ProductContext } from "./product-context";
 
 export interface CreateStoreOptions {
   externalRoot?: string;
   temporalBundle: TemporalClientBundle;
   projectIdOverride?: string;
+  productContext?: ProductContext;
 }
 
 export async function createStore(
@@ -57,11 +59,13 @@ export async function createStore(
     );
   }
 
-  return createTemporalStoreBackend({
+  const store = createTemporalStoreBackend({
     legacy,
     temporal: options.temporalBundle,
     projectId,
   });
+  store.productContext = options.productContext;
+  return store;
 }
 
 // Back-compat: tools/change.ts cross-project flow needs a non-Temporal

@@ -41,6 +41,7 @@ import {
 } from "./utils/debug-log";
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
+import { resolveProductContext } from "./storage/product-context";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -98,14 +99,19 @@ function resolveWorkerScriptPath(): string {
 
 export async function tryInitStore(
   effectiveDir: string,
-  externalRoot: string | undefined,
+  _externalRoot: string | undefined,
 ): Promise<StoreInitResult> {
   const initStartedAt = performance.now();
   const projectIdStartedAt = performance.now();
-  const projectId = await getProjectId(effectiveDir);
+  const productContext = await resolveProductContext(effectiveDir);
+  const projectId = productContext.productProjectId;
+  const productExternalRoot = getExternalRoot(projectId);
   profilePluginInit("project_id_resolved", {
     duration_ms: Number((performance.now() - projectIdStartedAt).toFixed(3)),
     hasProjectId: Boolean(projectId),
+    repoProjectId: productContext.repoProjectId,
+    productProjectId: productContext.productProjectId,
+    productMode: productContext.mode,
   });
   let worker: InProcessWorker | undefined;
 
@@ -130,7 +136,7 @@ export async function tryInitStore(
 
       // Signal-driven workflows allow multiple local workers to share the
       // project queue. No peer lock / heartbeat coordination is needed here.
-      const projectStateDir = externalRoot ?? getExternalRoot(projectId);
+      const projectStateDir = productExternalRoot;
       const expectedQueue = buildProjectTaskQueue(projectId);
       const shouldSpawnWorker = true;
 
@@ -204,8 +210,9 @@ export async function tryInitStore(
 
     const storeCreateStartedAt = performance.now();
     const store = await createStore(effectiveDir, {
-      externalRoot,
+      externalRoot: productExternalRoot,
       projectIdOverride: projectId ?? undefined,
+      productContext,
       temporalBundle: temporalBundle!,
     });
     profilePluginInit("store_created", {
