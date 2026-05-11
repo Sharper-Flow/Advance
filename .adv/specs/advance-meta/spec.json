@@ -1349,6 +1349,54 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-clarifyEnforcementAudit01",
+      "title": "clarify_enforcement flag extends to /adv-audit ambiguity detection",
+      "body": "The clarify_enforcement configuration flag (off | advisory | strict) MUST extend to /adv-audit ambiguity detection. When off, ambiguity detection is skipped. When advisory, findings are informational only and do not affect quality gates. When strict, ambiguity findings participate in quality gate evaluation and health status promotion. Cross-reference: advance-workflow rq-ambiguityScan01..rq-ambiguityScan05.",
+      "priority": "must",
+      "tags": ["audit", "ambiguity", "clarify", "configuration"],
+      "scenarios": [
+        {
+          "id": "rq-clarifyEnforcementAudit01.1",
+          "title": "off mode skips ambiguity detection in audit",
+          "given": [
+            "clarify_enforcement is set to 'off' in project configuration"
+          ],
+          "when": "/adv-audit executes Phase 3 Synthesis",
+          "then": [
+            "runSpecAmbiguityChecks is NOT invoked",
+            "No ambiguity findings appear in the audit report",
+            "Quality gate evaluation ignores ambiguity thresholds"
+          ]
+        },
+        {
+          "id": "rq-clarifyEnforcementAudit01.2",
+          "title": "advisory mode includes findings without gate enforcement",
+          "given": [
+            "clarify_enforcement is set to 'advisory'"
+          ],
+          "when": "/adv-audit completes and applies quality gates",
+          "then": [
+            "Ambiguity findings appear in the report's ambiguity section",
+            "Ambiguity findings do NOT promote health status",
+            "Quality gate table shows ambiguity metrics as informational (not pass/fail)"
+          ]
+        },
+        {
+          "id": "rq-clarifyEnforcementAudit01.3",
+          "title": "strict mode enforces ambiguity gates",
+          "given": [
+            "clarify_enforcement is set to 'strict'"
+          ],
+          "when": "/adv-audit applies quality gates",
+          "then": [
+            "CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT",
+            "HIGH ambiguity > 3 (standard) or any HIGH (strict) promotes to DRIFT_DETECTED",
+            "Ambiguity thresholds appear in the quality gate table with pass/fail status"
+          ]
+        }
+      ]
     }
   ]
 }
