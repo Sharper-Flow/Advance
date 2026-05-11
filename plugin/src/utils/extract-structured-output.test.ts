@@ -5,7 +5,7 @@
  * multiple tags (last wins), fences, oversized, tag in second field,
  * extra fields passthrough, empty tag, whitespace-only tag.
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { extractStructuredOutput } from "./extract-structured-output";
 
 describe("extractStructuredOutput", () => {

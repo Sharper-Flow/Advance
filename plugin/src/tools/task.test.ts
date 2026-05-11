@@ -325,7 +325,7 @@ describe("task tools — signal/query adapters", () => {
         status: "done",
       });
 
-      const implementationSummary = `Implemented feature.\n\n<adv-output>\n{\n  \"filesChanged\": [{\"path\": \"src/foo.ts\", \"linesAdded\": 10}],\n  \"testsAdded\": 2\n}\n</adv-output>`;
+      const implementationSummary = `Implemented feature.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/foo.ts", "linesAdded": 10}],\n  "testsAdded": 2\n}\n</adv-output>`;
 
       const result = await taskTools.adv_task_update.execute(
         {

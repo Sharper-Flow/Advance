@@ -357,10 +357,7 @@ export const taskTools = {
             },
           );
         } else if (args.status === "done") {
-          const combinedText = [
-            args.implementation_summary,
-            args.notes,
-          ]
+          const combinedText = [args.implementation_summary, args.notes]
             .filter(Boolean)
             .join("\n");
           const structuredOutput = extractStructuredOutput(combinedText);

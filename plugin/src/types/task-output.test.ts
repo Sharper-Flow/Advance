@@ -9,15 +9,12 @@ import {
   FileChangeSchema,
   DecisionSchema,
   STRUCTURED_OUTPUT_MAX_BYTES,
-  type TaskStructuredOutput,
 } from "./task-output";
 
 describe("TaskStructuredOutputSchema", () => {
   it("parses a full valid object", () => {
     const result = TaskStructuredOutputSchema.parse({
-      filesChanged: [
-        { path: "src/foo.ts", linesAdded: 10, linesRemoved: 5 },
-      ],
+      filesChanged: [{ path: "src/foo.ts", linesAdded: 10, linesRemoved: 5 }],
       testsAdded: 3,
       testsModified: 1,
       decisions: [{ decision: "use Zod", why: "type safety" }],
@@ -115,7 +112,9 @@ describe("FileChangeSchema", () => {
   });
 
   it("rejects negative linesAdded", () => {
-    expect(() => FileChangeSchema.parse({ path: "a.ts", linesAdded: -1 })).toThrow();
+    expect(() =>
+      FileChangeSchema.parse({ path: "a.ts", linesAdded: -1 }),
+    ).toThrow();
   });
 });
 
