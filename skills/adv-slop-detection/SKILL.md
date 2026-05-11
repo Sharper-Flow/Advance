@@ -87,6 +87,20 @@ Text report includes `SLOP SCAN REPORT`, scope, phase counts, severity summary, 
 
 JSON report includes `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, and `findings[]` with diagnostic fields.
 
+## False-Positive Control
+
+Context Boundary: context packets are orientation only, not finding locations. Do not report findings against ADV change summaries, task evidence, examples, or fixture descriptions unless same issue exists in target source.
+
+Source Evidence Requirement: Every finding must cite a target source file via `file:line` or scoped source evidence. If evidence is unavailable, omit or return low confidence.
+
+Low-confidence findings are non-blocking by default. Preserve them for JSON/audit output, but separate them from actionable findings in text reports.
+
+Confidence anchors: AST-backed structural findings default to `confidence: high`; Regex-only defensive-overkill findings default to `confidence: medium`; Degraded fallback findings default to `confidence: low`.
+
+<!-- rq-ss009 -->
+
+Report `QUAL-012 structural_correctness_bypass` when Heuristic/fuzzy/LLM decisions owning correctness boundaries decide security, persistence, workflow state, gate completion, or spec compliance.
+
 ## Constraints
 
 - Read-only guidance only — no ADV state mutation.

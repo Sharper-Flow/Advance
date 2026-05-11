@@ -33,7 +33,7 @@ describe("adv-tron assets", () => {
   test("sync script installs the bundled adv-tron skill globally", () => {
     const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
 
-    expect(content).toContain('REPO_SKILLS="$REPO_ROOT/skills"');
+    expect(content).toContain('REPO_SKILLS="$ASSET_ROOT/skills"');
     expect(content).toContain('GLOBAL_SKILLS="$HOME/.config/opencode/skills"');
     expect(content).toContain('for skill_dir in "$REPO_SKILLS"/adv-*/; do');
     // ADR-002: whole-directory sync (cp -R) preserves sibling docs + subdirs

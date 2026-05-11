@@ -101,7 +101,7 @@ fi
 REPO_COMMANDS="$ASSET_ROOT/.opencode/command"
 REPO_AGENTS="$ASSET_ROOT/.opencode/agents"
 REPO_OVERLAYS="$ASSET_ROOT/.opencode/overlays"
-REPO_SKILLS="$REPO_ROOT/skills"
+REPO_SKILLS="$ASSET_ROOT/skills"
 GLOBAL_COMMANDS="$HOME/.config/opencode/command"
 GLOBAL_AGENTS="$HOME/.config/opencode/agents"
 GLOBAL_SKILLS="$HOME/.config/opencode/skills"

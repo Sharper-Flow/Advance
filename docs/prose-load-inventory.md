@@ -26,7 +26,7 @@ In scope:
 - `docs/command-voice-standard.md` (706 lines, post-T0a)
 - `.opencode/agents/adv.md` (371 lines)
 - `.opencode/command/adv-*.md` (27 files, 5,373 lines)
-- `skills/*/SKILL.md` (19 tracked files, ~2,208 lines)
+- `skills/*/SKILL.md` (19 tracked files, ~2,222 lines)
 
 Out of scope (constraints):
 
@@ -159,7 +159,7 @@ Canonical columns: `| Section | Lines | Class | Code Reference | Gap Rationale |
 
 ---
 
-## Inventory: skills/\*/SKILL.md (19 tracked files, ~2,208 lines)
+## Inventory: skills/\*/SKILL.md (19 tracked files, ~2,222 lines)
 
 | File                            | Lines | Dominant Class | Code Reference          | Gap Rationale                                                | Pass | Status |
 | ------------------------------- | ----- | -------------- | ----------------------- | ------------------------------------------------------------ | ---- | ------ |
@@ -167,7 +167,7 @@ Canonical columns: `| Section | Lines | Class | Code Reference | Gap Rationale |
 | skills/adv-ci-release/SKILL.md  | 78    | inherent       | GitHub Actions | Post-split index; CI/release/commit/troubleshooting detail lives in sibling docs | P4.2 | done   |
 | skills/adv-backend-stack-eval/SKILL.md | 119 | partial | Context7/Kagi/GH-grep | Post-split index; language/database/async/API dimensions live in sibling docs | P4.4 | done |
 | adv-cost-governance-methodology | 291   | partial        | `adv_investment_report` | Methodology + worked example; tool exists for thresholds     | T4   | done   |
-| skills/adv-slop-detection/SKILL.md | 96 | partial        | slop scan command       | Post-split index; categories/structural-correctness/dead-code detail lives in sibling docs | P4.3 | done  |
+| skills/adv-slop-detection/SKILL.md | 110 | partial        | slop scan command       | Post-split index; categories/structural-correctness/dead-code detail lives in sibling docs | P4.3+P7 | done  |
 | skills/adv-audit/SKILL.md       | 98    | inherent       | `adv_spec`              | Post-split cohesive summary; report schema lives in sibling doc | P4.5 | done   |
 | skills/adv-reflect/SKILL.md     | 181   | inherent       | `adv_reflect`           | Reflection rubric/template; tool persists                    | T6   | done   |
 | skills/adv-improve/SKILL.md     | 181   | inherent       | Context7/Kagi tools     | Improvement research methodology                             | T6   | done   |
