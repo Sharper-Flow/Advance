@@ -295,6 +295,28 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.error).toContain("supersededBy is required");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    test("dryRun validates close request without firing signal or cleanup", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "test-change",
+          reason: "cancelled",
+          approvedByUser: true,
+          approvalEvidence: "user confirmed cancellation",
+          dryRun: true,
+        } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      expect(parsed.message).toContain("Would close change test-change");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+    });
   });
 
   describe("adv_change_bulk_close", () => {
@@ -433,6 +455,57 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("not supported");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("dryRun resolves bulk close selection without firing signals or sweeping disk", async () => {
+      const store = createMockStore();
+      store.changes.list = vi.fn(async () => ({
+        changes: [
+          { id: "chg-1", title: "Change 1", status: "draft" },
+          { id: "chg-2", title: "Change 2", status: "draft" },
+        ],
+      }));
+      store.changes.get = vi.fn(async (id: string) => ({
+        success: true,
+        data: {
+          id,
+          title: `Change ${id}`,
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "pending" },
+            discovery: { status: "pending" },
+            design: { status: "pending" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+        } as import("../types").Change,
+      }));
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: { kind: "explicit", changeIds: ["chg-1", "chg-2"] },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user approved bulk close",
+          dryRun: true,
+        } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      expect(parsed.closed).toBe(0);
+      expect(parsed.wouldClose).toEqual(["chg-1", "chg-2"]);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
     });
   });
 
@@ -690,6 +763,27 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Temporal service not available");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("dryRun validates reenter request without firing gateReenteredSignal", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_reenter.execute(
+        {
+          changeId: "test-change",
+          fromGate: "execution",
+          reason: "Scope expanded",
+          scopeDelta: "Add new module",
+          dryRun: true,
+        } as Parameters<typeof changeTools.adv_change_reenter.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      expect(parsed.message).toContain("Would reenter change test-change");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });

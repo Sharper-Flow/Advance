@@ -1888,6 +1888,10 @@ export const changeTools = {
         .string()
         .optional()
         .describe("Surviving change ID when reason is superseded"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview close without firing signals or removing files."),
     },
     execute: async (
       {
@@ -1896,12 +1900,14 @@ export const changeTools = {
         approvedByUser: _approvedByUser,
         approvalEvidence,
         supersededBy,
+        dryRun,
       }: {
         changeId: string;
         reason: "cancelled" | "superseded" | "not_planned";
         approvedByUser: true;
         approvalEvidence: string;
         supersededBy?: string;
+        dryRun?: boolean;
       },
       store: Store,
     ) => {
@@ -1925,6 +1931,17 @@ export const changeTools = {
           error: "approvalEvidence is required for change close",
           changeId,
           hint: "Obtain user approval via question tool, then call adv_change_close with approvalEvidence.",
+        });
+      }
+
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId,
+          reason,
+          supersededBy,
+          message: `Would close change ${changeId} as ${reason}.`,
         });
       }
 
@@ -2009,6 +2026,10 @@ export const changeTools = {
         .string()
         .optional()
         .describe("Surviving change ID when reason is superseded (max 1)"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview bulk close without firing signals or removing files."),
     },
     execute: async (
       {
@@ -2017,12 +2038,14 @@ export const changeTools = {
         approvedByUser: _approvedByUser,
         approvalEvidence,
         supersededBy,
+        dryRun,
       }: {
         selector: import("../types").BulkCloseSelector;
         reason: "cancelled" | "superseded" | "not_planned";
         approvedByUser: true;
         approvalEvidence: string;
         supersededBy?: string;
+        dryRun?: boolean;
       },
       store: Store,
     ) => {
@@ -2052,6 +2075,23 @@ export const changeTools = {
       if (selection.changeIds.length === 0) {
         return formatToolOutput({
           error: "SELECTION_ERROR: No changes matched the provided criteria.",
+        });
+      }
+
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          closed: 0,
+          wouldClose: selection.changeIds,
+          results: selection.changeIds.map((id) => ({
+            changeId: id,
+            success: true,
+            dryRun: true,
+          })),
+          diskRemoved: [],
+          diskFailed: [],
+          message: `Would close ${selection.changeIds.length} change(s).`,
         });
       }
 
@@ -2578,6 +2618,10 @@ export const changeTools = {
         .describe(
           "Optional audit evidence when re-entry follows an explicit user instruction.",
         ),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview re-entry without firing gate reset signal."),
     },
     execute: async (
       {
@@ -2586,6 +2630,7 @@ export const changeTools = {
         reason,
         scopeDelta,
         approvalEvidence: _approvalEvidence,
+        dryRun,
       }: {
         changeId: string;
         fromGate: GateId;
@@ -2593,6 +2638,7 @@ export const changeTools = {
         scopeDelta?: string;
         approvedByUser?: boolean;
         approvalEvidence?: string;
+        dryRun?: boolean;
       },
       store: Store,
     ) => {
@@ -2615,6 +2661,18 @@ export const changeTools = {
         return formatToolOutput({
           error: `Cannot reenter ${result.data.status} change ${changeId}. Reenter is for scope expansion on active changes; archived/closed changes cannot be reopened. Use adv_temporal_diagnose if workflow recovery is needed.`,
           changeId,
+        });
+      }
+
+      if (dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId,
+          fromGate,
+          reason,
+          scopeDelta,
+          message: `Would reenter change ${changeId} from ${fromGate}.`,
         });
       }
 
