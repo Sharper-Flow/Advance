@@ -3,6 +3,8 @@
  *
  * Tool-layer code fires signals and runs queries against change workflows,
  * replacing the old store.executeUpdate-based mutation path.
+ * rq-crossProjectTaskMutation01: target_path task mutations must route all
+ * validation, signals, cache refresh, and snapshots through target store.
  */
 
 import { z } from "zod";
@@ -568,10 +570,16 @@ export const taskTools = {
             : {}),
         };
 
-        await fireSignalAndRefresh(handle, activeStore, changeId, taskAddedSignal, {
-          task,
-          addedAt: now,
-        });
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          taskAddedSignal,
+          {
+            task,
+            addedAt: now,
+          },
+        );
 
         const snapshot = await fetchChangeContextTicker(activeStore, changeId);
         return formatToolOutput({
@@ -749,7 +757,9 @@ export const taskTools = {
       dryRun: z
         .boolean()
         .optional()
-        .describe("Preview cancellation without firing task cancellation signals."),
+        .describe(
+          "Preview cancellation without firing task cancellation signals.",
+        ),
       ...targetPathSchema.shape,
     },
     execute: async (
@@ -902,7 +912,10 @@ export const taskTools = {
           const firstTask = await activeStore.tasks.show(cancelledTasks[0].id);
           const changeId = firstTask?.changeId;
           if (changeId) {
-            const snapshot = await fetchChangeContextTicker(activeStore, changeId);
+            const snapshot = await fetchChangeContextTicker(
+              activeStore,
+              changeId,
+            );
             if (snapshot) {
               output._contextSnapshot = snapshot;
             }
@@ -977,7 +990,10 @@ export const taskTools = {
           });
         }
 
-        if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
+        if (
+          !args.approvalEvidence ||
+          args.approvalEvidence.trim().length === 0
+        ) {
           return formatToolOutput({
             error:
               "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
@@ -1011,16 +1027,22 @@ export const taskTools = {
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
 
-        await fireSignalAndRefresh(handle, activeStore, changeId, taskUpdatedSignal, {
-          taskId: args.taskId,
-          partial: {
-            metadata: {
-              ...task.metadata,
-              tdd_intent: args.toIntent,
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          taskUpdatedSignal,
+          {
+            taskId: args.taskId,
+            partial: {
+              metadata: {
+                ...task.metadata,
+                tdd_intent: args.toIntent,
+              },
             },
+            updatedAt: now,
           },
-          updatedAt: now,
-        });
+        );
 
         const reclassification: TddReclassification = {
           from_intent: currentIntent ?? "none",

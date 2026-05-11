@@ -20,6 +20,8 @@
  *
  * Drift triage on DRIFT (rq-confTriage01): the tool reports the verdict;
  * the agent halts and presents 3 user options. No auto-resolve.
+ * rq-dryRunMutation01: dry-run mutation previews validate normally and skip
+ * conformance audit writes plus workflow signals.
  */
 
 import { z } from "zod";
