@@ -252,21 +252,21 @@ const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
 );
 // Update definitions removed — signal-only architecture (R1.1)
 /**
- * Wrap a workflow update handler so domain errors propagate as
- * `wf.ApplicationFailure` (non-retryable, surfaces as a clean update
- * rejection on the client) instead of escaping as
+ * Wrap a workflow mutation handler so domain errors propagate as
+ * `wf.ApplicationFailure` (non-retryable, surfaces as a clean client-side
+ * rejection for update-style callers) instead of escaping as
  * `WorkflowWorkerUnhandledFailure` (which permanently wedges the
  * workflow).
  *
- * **Why this exists:** Temporal Update handlers that throw a plain
- * `Error` mark the workflow task as failed. The workflow then loops
+ * **Why this exists:** Temporal workflow handlers that throw a plain
+ * `Error` can mark the workflow task as failed. The workflow then loops
  * trying to replay the same input, fails again, and becomes
  * permanently unqueryable. A single bad input could brick an entire change.
  *
  * `wf.ApplicationFailure` is the Temporal-native way to signal
- * "this update failed for a domain reason, do not retry, surface to
+ * "this mutation failed for a domain reason, do not retry, surface to
  * the client". The workflow continues running normally; only the
- * specific update call rejects with the error.
+ * specific call rejects with the error.
  *
  * Reliability rationale: this is defense-in-depth. Even if a future
  * domain validator throws, the workflow stays healthy and the agent
@@ -274,7 +274,7 @@ const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
  *
  * Usage:
  * ```
- * wf.setHandler(myUpdate, safeUpdateHandler("myUpdate", (...args) => {
+ * wf.setHandler(mySignal, safeUpdateHandler("mySignal", (...args) => {
  *   return doSomethingThatMightThrow(args);
  * }));
  * ```
@@ -291,8 +291,8 @@ function safeUpdateHandler<Args extends unknown[], R>(
     try {
       return handler(...args);
     } catch (err) {
-      // Re-throw as ApplicationFailure (non-retryable) so the caller's
-      // executeUpdate rejects cleanly. ApplicationFailure does NOT
+      // Re-throw as ApplicationFailure (non-retryable) so callers observe a
+      // clean domain failure. ApplicationFailure does NOT
       // count as a workflow task failure — the workflow keeps running.
       const message = err instanceof Error ? err.message : String(err);
       throw wf.ApplicationFailure.nonRetryable(

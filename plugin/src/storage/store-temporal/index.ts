@@ -108,9 +108,9 @@ export function createTemporalStoreBackend(
       },
       lastActivityAt: state.createdAt,
       fast_follow_of: state.fast_follow_of,
-      sourceVersion: 0, // Updated by PSW signals; 0 = direct-query sourced (pre-PSW state)
-      // When sourceVersion > 0, the change state was reconstructed from a
-      // ProjectStateWorkflow signal rather than a direct Temporal query.
+      sourceVersion: 0, // PSW retired; direct-query sourced summary.
+      // Reserved legacy field. Non-zero PSW signal versions are no longer
+      // produced after the per-change workflow cutover.
     };
   };
 
@@ -133,7 +133,7 @@ export function createTemporalStoreBackend(
    * Dual-write the latest workflow state to the disk snapshot
    * (`change.json`). Best-effort, fire-and-forget.
    *
-   * Why this exists: Temporal Updates mutate workflow state but never
+   * Why this exists: Temporal signals mutate workflow state but never
    * touch the disk file. If the workflow is terminated/evicted between
    * sessions, `reseedChangeFromDisk` rebuilds workflow state from the
    * disk snapshot — and any tasks/gates/wisdom updates persisted only
@@ -180,7 +180,7 @@ export function createTemporalStoreBackend(
   /**
    * Helper for task-level mutations that don't already fetch post-mutation
    * state. Queries the workflow once for the latest state, refreshes the
-   * cache + memo + projectWorkflow signal, then dual-writes to disk.
+   * cache + memo, then dual-writes to disk.
    *
    * Best-effort: if the post-mutation query fails we skip the dual-write
    * rather than fail the original mutation. The workflow update has
@@ -218,10 +218,11 @@ export function createTemporalStoreBackend(
   };
 
   /**
-   * Fire-and-forget signal to projectWorkflow with updated ChangeSummary.
-   * Best-effort: logs errors but never throws. Skipped if no projectWorkflow
-   * handle is available (e.g., STSL not initialized, PSW not started).
-   * PSW retired: no-op.
+   * Retired projectWorkflow summary signal hook.
+   *
+   * ProjectStateWorkflow (PSW) no longer owns change summaries after the
+   * per-change workflow cutover; summaries now live in workflow state and the
+   * local memo. Keep this no-op until callers no longer share the old hook.
    */
   const emitChangeSummarySignal = (
     _changeId: string,
@@ -775,7 +776,7 @@ export function createTemporalStoreBackend(
 
   // P2.2: activity-backed specs surface. Reads disk via listSpecsActivity
   // and showSpecActivity instead of routing through legacy.specs.* (which
-  // hit SQLite FTS). search/save still delegate to legacy until the spec
+  // hit disk content search). search/save still delegate to legacy until the spec
   // FTS replacement (P2.3) and write path (future task) land.
   const buildSpecsSurface = (): Store["specs"] => ({
     list: async (filter) => {

@@ -1,9 +1,9 @@
 /**
  * Launch Context (T11 — KD-6 split, AC-3).
  *
- * Plain-mode-only port from upstream `kdcokenny/ocx/.../worktree/launch-context.ts`.
+ * Plain-mode-only port from the upstream worktree launch-context helper.
  * The upstream module supports two modes: `plain` (vanilla opencode) and
- * `ocx` (the kdco wrapper). ADV does not need OCX-mode since it owns the
+ * wrapper-managed mode. ADV does not need wrapper mode since it owns the
  * launch flow end-to-end via `worktree_create` + plugin init, so we keep
  * the `plain` discriminant only.
  *
@@ -12,7 +12,7 @@
  * tmux/terminal window). Inline mode (default) does not invoke this.
  *
  * **Dropped from upstream:**
- *   - `mode: "ocx"` discriminant + all OCX_CONTEXT / OCX_BIN / OCX_PROFILE env handling
+ *   - wrapper-mode discriminant + all wrapper-specific env handling
  *   - `parsePersistedLaunchMetadata` / `serializePersistedLaunchMetadata` /
  *     `toPersistedLaunchMetadata` — not needed when only one mode exists
  *
@@ -44,7 +44,7 @@ export function buildSessionLaunchArgv(sessionID: string): string[] {
 /**
  * Parse the active launch context from process env.
  *
- * In v1, ADV always returns `{mode: "plain"}` — env-based OCX detection
+ * In v1, ADV always returns `{mode: "plain"}` — env-based wrapper detection
  * is dropped. The `env` parameter is accepted for API parity with
  * upstream and is intentionally unused; future modes may inspect it.
  */

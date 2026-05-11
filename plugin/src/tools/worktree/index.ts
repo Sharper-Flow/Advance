@@ -1,7 +1,7 @@
 /// <reference types="bun-types" />
 
 /**
- * OCX Worktree Plugin
+ * ADV Worktree Tools
  *
  * Creates isolated git worktrees for AI development sessions with
  * seamless terminal spawning across macOS, Windows, and Linux.
@@ -10,11 +10,11 @@
  * https://github.com/felixAnhalt/opencode-worktree-session
  * License: MIT
  *
- * Rewritten for OCX with production-proven patterns.
+ * Adapted for ADV with production-proven worktree patterns.
  */
 
-// T13: SQLite Database type replaced by WorktreeStateAccess token.
-// The legacy `Database` symbol survives only as a type alias so the
+// T13: WorktreeStateAccess replaced the old local state handle.
+// The legacy `Database` alias survives only as a type alias so the
 // large amount of existing code in this file (call sites that pass
 // `db` around) keeps compiling. Behavioral rewrites (T9/T10) will
 // drop these adapters as flows are migrated to the Temporal-backed
@@ -560,7 +560,7 @@ function registerCleanupHandlers(_database: Database): void {
   if (cleanupRegistered) return; // Early exit guard
   cleanupRegistered = true;
 
-  // T13: SQLite cleanup (wal_checkpoint, close) is no-op now —
+  // T13: legacy local-state cleanup is no-op now —
   // state lives in the project workflow, not in a local database.
   // Cleanup hooks remain registered for back-compat with future
   // session-shutdown work that may need to flush pending updates.
@@ -1813,7 +1813,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
         .catch(() => {}),
   };
 
-  // Initialize SQLite database
+  // Initialize worktree state access
   const database = await initDb(directory, log);
 
   async function processPendingDeletes(
