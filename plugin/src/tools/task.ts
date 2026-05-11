@@ -746,6 +746,10 @@ export const taskTools = {
         .describe(
           "Optional per-task superseding task ID mapping (e.g., { 'tk-abc': 'tk-xyz' }). Populate only when a cancelled task is replaced by another task in the same change.",
         ),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview cancellation without firing task cancellation signals."),
       ...targetPathSchema.shape,
     },
     execute: async (
@@ -755,6 +759,7 @@ export const taskTools = {
         approvedByUser: true;
         approvalEvidence: string;
         supersededBy?: Record<string, string>;
+        dryRun?: boolean;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -798,10 +803,16 @@ export const taskTools = {
 
         // P1.12 Scope C: pre-flight relational validation of task IDs.
         const unknownTaskIds: string[] = [];
+        const existingTasks: Array<{ id: string; title: string }> = [];
         for (const taskId of taskIds) {
           const existing = await activeStore.tasks.show(taskId);
           if (!existing) {
             unknownTaskIds.push(taskId);
+          } else {
+            existingTasks.push({
+              id: taskId,
+              title: existing.task.title,
+            });
           }
         }
         if (unknownTaskIds.length > 0) {
@@ -812,6 +823,22 @@ export const taskTools = {
                 : `Task IDs not found: ${unknownTaskIds.map((id) => `'${id}'`).join(", ")}. No tasks were cancelled.`,
             hint: "Confirm each task ID with 'adv_task_list changeId: <id>' before retrying. Cancellations are atomic — all IDs must be valid or none are cancelled.",
             unknownTaskIds,
+          });
+        }
+
+        if (args.dryRun) {
+          return formatToolOutput({
+            success: true,
+            dryRun: true,
+            wouldCancel: existingTasks,
+            results: taskIds.map((taskId) => ({
+              taskId,
+              success: true,
+              dryRun: true,
+              reason: reasons[taskId],
+            })),
+            message: `Would cancel ${taskIds.length} task(s) with user approval.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
           });
         }
 
@@ -891,6 +918,7 @@ export const taskTools = {
             currentProjectPath: store.paths.root,
             target_path: args.target_path,
             stateRequirement: "temporal-required",
+            mutation: args.dryRun ? false : undefined,
             target_confirmed: args.target_confirmed,
             confirmationEvidence: args.confirmationEvidence,
           },

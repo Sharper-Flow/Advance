@@ -666,6 +666,68 @@ describe("task tools — signal/query adapters", () => {
         }),
       );
     });
+
+    test("dryRun validates cancellation without firing signals", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-abc"],
+          reasons: { "tk-abc": "No longer needed" },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+          dryRun: true,
+        } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      expect(parsed.wouldCancel).toEqual([{ id: "tk-abc", title: "Test Task" }]);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("target_path dryRun uses target store without mutation trust", async () => {
+      const store = createMockStore();
+      mocks.targetStore.tasks.show.mockResolvedValue({
+        task: {
+          id: "tk-target",
+          title: "Target Task",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+        },
+        changeId: "target-change",
+      });
+
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-target"],
+          reasons: { "tk-target": "No longer needed" },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+          target_path: "/tmp/target",
+          dryRun: true,
+        } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.dryRun).toBe(true);
+      expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          mutation: false,
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
   });
 
   describe("adv_task_reclassify_tdd", () => {
