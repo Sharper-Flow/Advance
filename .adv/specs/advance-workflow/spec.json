@@ -1843,6 +1843,165 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-ambiguityScan01",
+      "title": "Project-wide ambiguity scanning in /adv-audit",
+      "body": "/adv-audit MUST detect ambiguity in committed spec laws using the B/F/S/Q/E taxonomy. Detection runs inline during Phase 3 Synthesis via runSpecAmbiguityChecks(markdown, capability) — not a sub-agent stage. Categories: B (Boundaries), F (Functional), S (Completion Signals), Q (Quality Attributes), E (Error Handling).",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-ambiguityScan01.1",
+          "title": "Ambiguity detection runs for each spec audited",
+          "given": [
+            "An /adv-audit execution targeting one or more specs"
+          ],
+          "when": "Phase 3 Synthesis executes",
+          "then": [
+            "runSpecAmbiguityChecks is called for each spec's markdown content",
+            "Findings use B/F/S/Q/E taxonomy categories",
+            "Each finding includes category, severity, spec ref, verbatim specText, issue, and fix"
+          ]
+        },
+        {
+          "id": "rq-ambiguityScan01.2",
+          "title": "Ambiguity detection is pure-function and inline",
+          "given": [
+            "The audit command is executing Phase 3"
+          ],
+          "when": "Ambiguity checks are invoked",
+          "then": [
+            "No sub-agent is spawned for ambiguity detection",
+            "The scan completes synchronously as a pure function call",
+            "Results are aggregated with other synthesis data"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ambiguityScan02",
+      "title": "Ambiguity findings in audit reports",
+      "body": "Ambiguity findings MUST appear as a distinct section in audit reports. Each finding MUST include: category (B|F|S|Q|E), severity (CRITICAL|HIGH|MEDIUM|LOW), spec reference, verbatim evidence (specText), issue description, and fix suggestion.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-ambiguityScan02.1",
+          "title": "Text report includes ambiguity section",
+          "given": [
+            "An audit produces ambiguity findings"
+          ],
+          "when": "The text report is rendered",
+          "then": [
+            "A distinct ambiguity section appears in the report",
+            "Each finding shows category, severity, spec ref, verbatim text, issue, and fix"
+          ]
+        },
+        {
+          "id": "rq-ambiguityScan02.2",
+          "title": "JSON report includes ambiguity array",
+          "given": [
+            "An audit produces ambiguity findings and --json is requested"
+          ],
+          "when": "The JSON report is emitted",
+          "then": [
+            "The root object contains an ambiguity array",
+            "Each element has id, category, severity, spec, specText, issue, and fix fields"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ambiguityScan03",
+      "title": "Ambiguity-aware quality gates",
+      "body": "Quality gates MUST promote health status based on ambiguity severity. CRITICAL ambiguity ≥ 1 promotes to MAJOR_DRIFT. HIGH ambiguity > 3 (standard mode) or any HIGH (strict mode) promotes to DRIFT_DETECTED.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-ambiguityScan03.1",
+          "title": "CRITICAL ambiguity promotes to MAJOR_DRIFT",
+          "given": [
+            "An audit detects at least one CRITICAL ambiguity finding"
+          ],
+          "when": "Quality gates are applied",
+          "then": [
+            "Health status is MAJOR_DRIFT regardless of other gate results"
+          ]
+        },
+        {
+          "id": "rq-ambiguityScan03.2",
+          "title": "HIGH ambiguity threshold promotes to DRIFT_DETECTED",
+          "given": [
+            "Standard mode audit detects > 3 HIGH ambiguity findings"
+          ],
+          "when": "Quality gates are applied",
+          "then": [
+            "Health status is DRIFT_DETECTED"
+          ]
+        },
+        {
+          "id": "rq-ambiguityScan03.3",
+          "title": "Strict mode enforces zero HIGH ambiguity",
+          "given": [
+            "Strict mode audit detects any HIGH ambiguity finding"
+          ],
+          "when": "Quality gates are applied",
+          "then": [
+            "Health status is DRIFT_DETECTED or MAJOR_DRIFT"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ambiguityScan04",
+      "title": "clarify_enforcement disables ambiguity detection",
+      "body": "When clarify_enforcement is 'off', ambiguity detection MUST be skipped entirely. When 'advisory', findings appear in reports but do not affect health status. When 'strict', ambiguity gates are enforced.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-ambiguityScan04.1",
+          "title": "off mode skips ambiguity detection",
+          "given": [
+            "clarify_enforcement is set to 'off'"
+          ],
+          "when": "/adv-audit Phase 3 Synthesis runs",
+          "then": [
+            "runSpecAmbiguityChecks is NOT called",
+            "No ambiguity findings appear in the report"
+          ]
+        },
+        {
+          "id": "rq-ambiguityScan04.2",
+          "title": "advisory mode includes findings without gate enforcement",
+          "given": [
+            "clarify_enforcement is set to 'advisory'"
+          ],
+          "when": "Quality gates are applied",
+          "then": [
+            "Ambiguity findings appear in the report",
+            "Ambiguity findings do NOT affect health status promotion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-ambiguityScan05",
+      "title": "Informational remediation handoff for ambiguity",
+      "body": "Remediation handoff for ambiguity findings MUST be informational only. The audit report MAY suggest /adv-clarify as a resolution path, but MUST NOT mutate ADV change state or spawn clarification sub-agents directly.",
+      "priority": "must",
+      "scenarios": [
+        {
+          "id": "rq-ambiguityScan05.1",
+          "title": "Audit report suggests clarify handoff without state mutation",
+          "given": [
+            "An audit produces ambiguity findings"
+          ],
+          "when": "The remediation section is rendered",
+          "then": [
+            "The report contains informational text suggesting /adv-clarify",
+            "No ADV state is mutated (no task updates, no gate changes, no change creation)"
+          ]
+        }
+      ]
     }
   ]
 }
