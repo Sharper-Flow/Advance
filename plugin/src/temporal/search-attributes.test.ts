@@ -58,6 +58,8 @@ describe("ADV search attributes", () => {
       AdvCreatedAt: "Datetime",
       AdvWorktreeBranches: "KeywordList",
       AdvWorktreePaths: "KeywordList",
+      // rq-backlogCoord01: single-value Keyword (NOT KeywordList — no slot pressure on the 3-KeywordList dev-server limit).
+      AdvBacklogIssueNumber: "Keyword",
     });
   });
 
@@ -73,6 +75,7 @@ describe("ADV search attributes", () => {
       { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
       { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
       { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
+      { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
     ]);
   });
 
@@ -124,6 +127,7 @@ describe("ADV search attributes", () => {
       "AdvCreatedAt",
       "AdvWorktreeBranches",
       "AdvWorktreePaths",
+      "AdvBacklogIssueNumber",
     ]);
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
@@ -137,7 +141,49 @@ describe("ADV search attributes", () => {
         AdvCreatedAt: 6,
         AdvWorktreeBranches: 7,
         AdvWorktreePaths: 7,
+        AdvBacklogIssueNumber: 2,
       },
+    });
+  });
+
+  describe("rq-backlogCoord01: AdvBacklogIssueNumber population from state.origin", () => {
+    it("populates AdvBacklogIssueNumber when state.origin.issue_number is set", () => {
+      const state = makeState();
+      state.origin = { kind: "roadmap", issue_number: 42 };
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvBacklogIssueNumber).toEqual(["42"]);
+    });
+
+    it("omits AdvBacklogIssueNumber when state.origin is undefined", () => {
+      const state = makeState();
+      // state.origin remains undefined
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvBacklogIssueNumber).toBeUndefined();
+    });
+
+    it("omits AdvBacklogIssueNumber when state.origin.issue_number is undefined", () => {
+      const state = makeState();
+      // origin.kind set but issue_number not — legitimate for kind='discovery'/'adhoc'
+      state.origin = { kind: "discovery" };
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      expect(attrs.AdvBacklogIssueNumber).toBeUndefined();
+    });
+
+    it("stringifies the issue number as a Keyword value (Temporal Keyword requires string)", () => {
+      const state = makeState();
+      state.origin = { kind: "triage", issue_number: 7 };
+
+      const attrs = buildChangeSearchAttributes(state);
+
+      // Keyword search attributes carry string values, not numbers.
+      expect(attrs.AdvBacklogIssueNumber).toEqual(["7"]);
+      expect(typeof attrs.AdvBacklogIssueNumber?.[0]).toBe("string");
     });
   });
 });

@@ -9,6 +9,10 @@ import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 // visibility query. Removed to fit within the Temporal dev-server limit.
 // If a path-level filter is needed in the future, encode it as a single
 // `Keyword` (joined value) or replace one of the other KeywordLists.
+//
+// `AdvBacklogIssueNumber` (rq-backlogCoord01) is a single-value `Keyword`,
+// NOT a KeywordList — it carries one issue number per change. Adding it
+// does not consume any of the 3 KeywordList slots.
 export const ADV_SEARCH_ATTRIBUTES = {
   AdvChangeId: "Keyword",
   AdvChangeStatus: "Keyword",
@@ -20,6 +24,7 @@ export const ADV_SEARCH_ATTRIBUTES = {
   AdvCreatedAt: "Datetime",
   AdvWorktreeBranches: "KeywordList",
   AdvWorktreePaths: "KeywordList",
+  AdvBacklogIssueNumber: "Keyword",
 } as const;
 
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
@@ -203,6 +208,15 @@ export function buildChangeSearchAttributes(
   if (lastSignalAt) attrs.AdvLastSignalAt = [lastSignalAt];
   const createdAt = dateValue(state.createdAt);
   if (createdAt) attrs.AdvCreatedAt = [createdAt];
+
+  // rq-backlogCoord01: populate AdvBacklogIssueNumber from state.origin so
+  // peer agent sessions can detect claim collisions via Visibility queries
+  // (`AdvAffectedProjects = pid AND AdvBacklogIssueNumber = N AND
+  // AdvChangeStatus IN ("draft","pending","active")`). Keyword search
+  // attributes carry string values, so the issue number is stringified.
+  if (state.origin?.issue_number !== undefined) {
+    attrs.AdvBacklogIssueNumber = [String(state.origin.issue_number)];
+  }
 
   return attrs;
 }
