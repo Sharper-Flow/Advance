@@ -38,7 +38,7 @@ Produce a design covering:
 6. **Risks and mitigations**
 
 <!-- rq-domainContextADR01 -->
-> **ADR rubric (sparingly):** When recording a key decision, check the 3-criteria rubric: (1) hard-to-reverse, (2) surprising-without-context, (3) result-of-real-tradeoff. If all three are met, draft an ADR at `docs/adr/NNNN-slug.md` (numbering sequential, slug 3-5 hyphenated words). See `.adv/specs/domain-context/` for the rubric contract and ADR format. ADR drafts are advisory; they don't gate-block.
+> **ADR rubric (sparingly):** When recording a key decision, check the 3-criteria rubric: (1) hard-to-reverse, (2) surprising-without-context, (3) result-of-real-tradeoff. If all three are met, draft an ADR at `docs/adr/NNNN-slug.md` (numbering sequential, slug 3-5 hyphenated words). See `.adv/specs/domain-context/ADR-FORMAT.md` for format and `.adv/specs/domain-context/spec.json` (`rq-domainContextADR01`) for consumer contract. ADR drafts are advisory; they don't gate-block.
 
 Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not what files exist.
 
@@ -51,6 +51,8 @@ Suggested structure:
 # Design
 ## Architecture Overview
 ## Key Decisions
+## ADR Drafts
+Optional: candidate ADRs only when the Phase 2 3-criteria rubric is met. Drafts are advisory and do not gate-block.
 ## Implementation Strategy
 ## LBP Analysis
 ## Affected Components
