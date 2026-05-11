@@ -10,6 +10,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import {
+  buildProjectItemListArgs,
   roadmapTools,
   type RoadmapSnapshot,
   filterOpenItemsOnly,
@@ -116,6 +117,17 @@ describe("Roadmap Tool", () => {
       expect(parsed.bugs.high).toHaveLength(1);
       expect(parsed.bugs.unprioritized).toHaveLength(1);
       expect(parsed.deferred).toHaveLength(1);
+    });
+
+    test("surfaces repository_filter from snapshot metadata when present", async () => {
+      await writeSnapshot({
+        ...SAMPLE_SNAPSHOT,
+        repository_filter: "PokeEdge-Web",
+      });
+      const result = await roadmapTools.adv_roadmap.execute({}, store);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.repository_filter).toBe("PokeEdge-Web");
     });
 
     test("sorts features by WSJF descending; ties by Value desc, then issue number asc", async () => {
@@ -319,6 +331,34 @@ describe("Roadmap Tool", () => {
       expect(parsed.error).not.toMatch(/config not persisted/);
       // Downstream errors are acceptable (gh CLI not available in test env);
       // only the config-resolution path is what we're guarding here.
+    });
+  });
+
+  describe("buildProjectItemListArgs", () => {
+    test("omits --query when repository_filter is absent", () => {
+      expect(
+        buildProjectItemListArgs({ owner: "TestOrg", number: 1 }),
+      ).toEqual([
+        "project",
+        "item-list",
+        "1",
+        "--owner",
+        "TestOrg",
+        "--format",
+        "json",
+        "--limit",
+        "500",
+      ]);
+    });
+
+    test("adds server-side repo query when repository_filter is present", () => {
+      expect(
+        buildProjectItemListArgs({
+          owner: "Sharper-Flow",
+          number: 1,
+          repository_filter: "PokeEdge-Web",
+        }),
+      ).toContain("repo:Sharper-Flow/PokeEdge-Web");
     });
   });
 

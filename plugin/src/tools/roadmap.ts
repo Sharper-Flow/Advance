@@ -58,6 +58,9 @@ export interface RoadmapDeferred {
 export interface RoadmapSnapshot {
   version: 1;
   generated_at: string;
+  // rq-repoFilter01: optional bare repo name used when snapshot was produced
+  // from a shared GitHub Project with server-side repo scoping.
+  repository_filter?: string;
   project: { owner: string; number: number; title: string };
   counts: {
     total: number;
@@ -219,6 +222,31 @@ export interface LiveProjectItem {
   ["aDV Type"]?: string;
 }
 
+export function buildProjectItemListArgs(metadata: {
+  owner: string;
+  number: number;
+  repository_filter?: string;
+}): string[] {
+  const args = [
+    "project",
+    "item-list",
+    String(metadata.number),
+    "--owner",
+    metadata.owner,
+    "--format",
+    "json",
+    "--limit",
+    "500",
+  ];
+  if (metadata.repository_filter) {
+    args.push(
+      "--query",
+      `repo:${metadata.owner}/${metadata.repository_filter}`,
+    );
+  }
+  return args;
+}
+
 /**
  * Filter live project items, removing those whose GitHub issue number
  * appears in `closedNumbers`. Items without a number are preserved
@@ -284,6 +312,7 @@ async function readLiveProject(metadata: {
   owner: string;
   number: number;
   title: string;
+  repository_filter?: string;
 }): Promise<
   | {
       ok: true;
@@ -297,17 +326,7 @@ async function readLiveProject(metadata: {
 > {
   let stdout: string;
   try {
-    const result = await execFileP("gh", [
-      "project",
-      "item-list",
-      String(metadata.number),
-      "--owner",
-      metadata.owner,
-      "--format",
-      "json",
-      "--limit",
-      "500",
-    ]);
+    const result = await execFileP("gh", buildProjectItemListArgs(metadata));
     stdout = result.stdout;
   } catch (err) {
     return {
@@ -390,7 +409,12 @@ async function readLiveProject(metadata: {
     snapshot: {
       version: 1,
       generated_at: new Date().toISOString(),
-      project: metadata,
+      repository_filter: metadata.repository_filter,
+      project: {
+        owner: metadata.owner,
+        number: metadata.number,
+        title: metadata.title,
+      },
       counts: {
         total: bugs.length + features.length + deferred.length,
         bugs: bugs.length,
@@ -577,6 +601,7 @@ export const roadmapTools = {
           owner: config.owner,
           number: config.project_number,
           title: config.title,
+          repository_filter: config.repository_filter,
         };
         const result = await readLiveProject(metadata);
         if (!result.ok) {
@@ -652,6 +677,7 @@ export const roadmapTools = {
         freshness,
         warnings,
         project: snapshot.project,
+        repository_filter: snapshot.repository_filter ?? null,
         counts: snapshot.counts,
         applied_filters: filtered.applied_filters,
         active_changes_indexed: activeByIssue.size,
