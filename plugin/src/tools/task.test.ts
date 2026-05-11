@@ -13,6 +13,12 @@ const mocks = vi.hoisted(() => {
   const queryMock = vi.fn();
   const handleMock = { signal: signalMock, query: queryMock };
   const getHandleMock = vi.fn(() => handleMock);
+  const targetStore = {
+    paths: { root: "/tmp/target", changes: "/tmp/target/.adv/changes" },
+    gates: { get: vi.fn(), complete: vi.fn(), reopenFrom: vi.fn() },
+    tasks: { show: vi.fn(), get: vi.fn(), list: vi.fn() },
+    close: vi.fn(),
+  };
   const temporalBundle = {
     client: { workflow: { getHandle: getHandleMock } },
   };
@@ -21,6 +27,7 @@ const mocks = vi.hoisted(() => {
     signalMock,
     queryMock,
     handleMock,
+    targetStore,
     getHandleMock,
     temporalBundle,
     getService: vi.fn(() => temporalBundle),
@@ -30,6 +37,42 @@ const mocks = vi.hoisted(() => {
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     fetchChangeContextTicker: vi.fn(async () => null),
+    withTargetPathStore: vi.fn(async (_input, fn) =>
+      fn({
+        context: {
+          root: "/tmp/target",
+          projectId: "target-project-id",
+          externalRoot: "/tmp/target-external",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStore,
+      }),
+    ),
+    withOptionalTargetPathStore: vi.fn(async ({ store }, fn) => fn(store)),
+    formatTargetProjectContext: vi.fn((context) => ({
+      root: context.root,
+      projectId: context.projectId,
+      trusted: context.trusted,
+      trustSource: context.trustSource,
+      stateMode: context.stateMode,
+    })),
+  };
+});
+
+vi.mock("./target-project", async () => {
+  const { z } = await import("zod");
+  return {
+    targetPathSchema: z.object({
+      target_path: z.string().optional(),
+      target_confirmed: z.literal(true).optional(),
+      confirmationEvidence: z.string().optional(),
+    }),
+    withTargetPathStore: mocks.withTargetPathStore,
+    withOptionalTargetPathStore: mocks.withOptionalTargetPathStore,
+    formatTargetProjectContext: mocks.formatTargetProjectContext,
+    appendTargetProjectContextOutput: vi.fn((output: string) => output),
   };
 });
 
@@ -128,6 +171,15 @@ function createMockStore(
 describe("task tools — signal/query adapters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.targetStore.gates.get.mockResolvedValue({
+      proposal: { status: "done" },
+      discovery: { status: "done" },
+      design: { status: "done" },
+      planning: { status: "pending" },
+      execution: { status: "pending" },
+      acceptance: { status: "pending" },
+      release: { status: "pending" },
+    });
   });
 
   afterEach(() => {
@@ -409,6 +461,46 @@ describe("task tools — signal/query adapters", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("planning gate");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("routes target_path task creation through the target store", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "target-change",
+          content: "Target Task",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        } as Parameters<typeof taskTools.adv_task_add.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.taskId).toBeDefined();
+      expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.targetStore.gates.get).toHaveBeenCalledWith("target-change");
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({
+          task: expect.objectContaining({ title: "Target Task" }),
+        }),
+      );
     });
   });
 

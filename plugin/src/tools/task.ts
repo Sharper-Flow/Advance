@@ -22,6 +22,7 @@ import {
 } from "../utils/tool-formatters";
 import {
   formatTargetProjectContext,
+  targetPathSchema,
   type TargetProjectOutputContext,
   withOptionalTargetPathStore,
   withTargetPathStore,
@@ -478,6 +479,7 @@ export const taskTools = {
         .string()
         .optional()
         .describe("Section header (e.g., 'Testing')"),
+      ...targetPathSchema.shape,
     },
     execute: async (
       args: {
@@ -486,21 +488,27 @@ export const taskTools = {
         metadata?: Record<string, string>;
         blockedBy?: string[];
         section?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      try {
+      const runAdd = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
         const { changeId, content, metadata, blockedBy, section } = args;
 
         // Planning-gate lock: reject task creation after planning gate is complete
-        const gates = await store.gates.get(changeId);
+        const gates = await activeStore.gates.get(changeId);
         if (gates && gates.planning.status === "done") {
           return formatToolOutput({
             error: `Cannot add tasks after planning gate is complete. Use adv_task_reclassify_tdd to modify existing task TDD intent, or use adv_change_reenter to reopen the planning gate for scope expansion.`,
           });
         }
 
-        const handle = await getHandleForChangeId(store, changeId);
+        const handle = await getHandleForChangeId(activeStore, changeId);
 
         // P1.12 Scope C: validate blockedBy task IDs exist in this change
         if (blockedBy && blockedBy.length > 0) {
@@ -560,17 +568,36 @@ export const taskTools = {
             : {}),
         };
 
-        await fireSignalAndRefresh(handle, store, changeId, taskAddedSignal, {
+        await fireSignalAndRefresh(handle, activeStore, changeId, taskAddedSignal, {
           task,
           addedAt: now,
         });
 
-        const snapshot = await fetchChangeContextTicker(store, changeId);
+        const snapshot = await fetchChangeContextTicker(activeStore, changeId);
         return formatToolOutput({
           taskId: task.id,
           task,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
           ...(snapshot ? { _contextSnapshot: snapshot } : {}),
         });
+      };
+
+      try {
+        if (args.target_path) {
+          return withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path: args.target_path,
+              stateRequirement: "temporal-required",
+              target_confirmed: args.target_confirmed,
+              confirmationEvidence: args.confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runAdd(targetStore, formatTargetProjectContext(context)),
+          );
+        }
+
+        return runAdd(store);
       } catch (error) {
         return formatToolOutput({
           error: error instanceof Error ? error.message : "Failed to add task",
