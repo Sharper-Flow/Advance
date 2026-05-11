@@ -35,7 +35,7 @@ Methodology for structured clarification. Convert ambiguous requirements into an
 
 ## Findings-Driven Mode
 
-Triggered from `/adv-discover` Phase 2.5 when ambiguity threshold hits CRITICAL ≥ 1 or HIGH ≥ 2.
+Triggered from `/adv-discover` Phase 2.5 when ambiguity threshold hits CRITICAL ≥ 1 or HIGH ≥ 2. Also accepts findings from `/adv-audit` Phase 3 inline ambiguity scan.
 
 Input findings follow `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
 
@@ -46,12 +46,14 @@ Input findings follow `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
 ]
 ```
 
+When the source is a spec audit, findings include `specCapability` context (e.g., `"specCapability": "advance-workflow"`).
+
 Resolution procedure:
 
 1. Group findings by category and severity.
 2. Turn each `reason` into neutral Socratic question.
 3. Ask no more than 2-3 questions per turn.
-4. Write resolved content to right proposal.md section via command-owned update.
+4. Write resolved content to right proposal.md section (for change findings) or spec file (for spec-law findings) via command-owned update.
 5. Append `## Clarify Resolution Log` entries:
 
 ```markdown
@@ -59,7 +61,7 @@ Resolution procedure:
 - S1 (resolved {ISO timestamp}): {resolution text}
 ```
 
-6. Emit REQUIREMENTS DISCOVERY SUMMARY and return instruction: `Next: rerun /adv-discover {change-id}`.
+6. Emit REQUIREMENTS DISCOVERY SUMMARY and return instruction: `Next: rerun /adv-discover {change-id}` or `Next: rerun /adv-audit {capability}`.
 
 Do not write `agreement.md`; discovery owns agreement.
 
