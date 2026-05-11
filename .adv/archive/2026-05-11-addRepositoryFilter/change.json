@@ -1,0 +1,192 @@
+{
+  "id": "addRepositoryFilter",
+  "title": "Add repository_filter to GitHubProjectConfig for shared-project scoping",
+  "status": "archived",
+  "created_at": "2026-05-11T00:11:34.919Z",
+  "tasks": [
+    {
+      "id": "tk-1907b64daee2",
+      "title": "Implement `parseGitRemoteUrl(url: string): {owner: string; name: string} | null` pure utility.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T00:44:06.426Z",
+      "started_at": "2026-05-11T00:47:36.369Z",
+      "completed_at": "2026-05-11T00:49:39.585Z",
+      "implementation_summary": "Added pure GitHub remote parser with support for SSH scp-like, HTTPS, ssh://, .git suffix normalization, and null on unsupported/ambiguous remotes. Added Vitest coverage.",
+      "verification": "Completed parseGitRemoteUrl utility.",
+      "summary": "Added pure GitHub remote parser with support for SSH scp-like, HTTPS, ssh://, .git suffix normalization, and null on unsupported/ambiguous remotes. Added Vitest coverage.",
+      "filesTouched": [],
+      "completedAt": "2026-05-11T00:49:39.585Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-f75ce9bf7362",
+      "title": "Add `repository_filter: z.string().min(1).optional()` to `GitHubProjectConfigSchema`.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T00:44:10.760Z",
+      "started_at": "2026-05-11T00:49:46.417Z",
+      "completed_at": "2026-05-11T00:51:24.211Z",
+      "implementation_summary": "Added optional repository_filter to GitHubProjectConfigSchema with min length 1 and schema tests for present, absent, and empty-string rejection.",
+      "verification": "Completed repository_filter schema field.",
+      "summary": "Added optional repository_filter to GitHubProjectConfigSchema with min length 1 and schema tests for present, absent, and empty-string rejection.",
+      "filesTouched": [],
+      "completedAt": "2026-05-11T00:51:24.211Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-2bee4aaba3bf",
+      "title": "Plumb `repository_filter` through live read path: `readLiveProject` signature, `adv_roadmap` execute, and `RoadmapSnapshot` type.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f75ce9bf7362"
+        }
+      ],
+      "created_at": "2026-05-11T00:44:20.414Z",
+      "started_at": "2026-05-11T00:51:34.767Z",
+      "completed_at": "2026-05-11T00:53:46.092Z",
+      "implementation_summary": "Added buildProjectItemListArgs with server-side repo query, passed repository_filter from config into live read metadata, added optional RoadmapSnapshot.repository_filter, and surfaced it in adv_roadmap output. Added roadmap tests for unfiltered args, filtered args, and file snapshot transparency.",
+      "verification": "Completed live roadmap repository_filter plumbing.",
+      "summary": "Added buildProjectItemListArgs with server-side repo query, passed repository_filter from config into live read metadata, added optional RoadmapSnapshot.repository_filter, and surfaced it in adv_roadmap output. Added roadmap tests for unfiltered args, filtered args, and file snapshot transparency.",
+      "filesTouched": [],
+      "completedAt": "2026-05-11T00:53:46.092Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-253f34a6a204",
+      "title": "Update `/adv-triage` command doc with Phase 0 bootstrap auto-detect, Phase 1 `--query` filter on cached read, and Phase 5 `--query` filter on fresh write-side read.",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1907b64daee2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2bee4aaba3bf"
+        }
+      ],
+      "created_at": "2026-05-11T00:44:45.087Z",
+      "started_at": "2026-05-11T00:53:53.328Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Completed adv-triage doc updates for repository_filter.",
+      "summary": "Added Phase 0 repository_filter auto-detect protocol with precondition table, Phase 1 --query annotation on `gh project item-list`, Phase 5 server-side scoping note requiring matching --query on the fresh read, and snapshot schema example showing optional `repository_filter` mirror field. All updates anchored with rq-repoFilter01.",
+      "implementation_summary": "Added Phase 0 repository_filter auto-detect protocol with precondition table, Phase 1 --query annotation on `gh project item-list`, Phase 5 server-side scoping note requiring matching --query on the fresh read, and snapshot schema example showing optional `repository_filter` mirror field. All updates anchored with rq-repoFilter01.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T01:02:58.585Z",
+      "completed_at": "2026-05-11T01:02:58.585Z"
+    },
+    {
+      "id": "tk-7d44593220bf",
+      "title": "Final verification gate: run `pnpm run check && pnpm test` from `plugin/`, then optionally smoke-test live mode.",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1907b64daee2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f75ce9bf7362"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2bee4aaba3bf"
+        }
+      ],
+      "created_at": "2026-05-11T00:44:53.523Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T01:03:05.723Z",
+      "verification": "Final verification complete.",
+      "summary": "pnpm run check: PASS (typecheck, isolation, lockfile, eslint, prettier). pnpm test: PASS 169 files / 2079 tests / 2 skipped. Live smoke test skipped (out-of-scope for hermetic verify; covered manually during research probe).",
+      "implementation_summary": "pnpm run check: PASS (typecheck, isolation, lockfile, eslint, prettier). pnpm test: PASS 169 files / 2079 tests / 2 skipped. Live smoke test skipped (out-of-scope for hermetic verify; covered manually during research probe).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T01:05:10.183Z",
+      "completed_at": "2026-05-11T01:05:10.183Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T00:16:14.475Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T00:38:11.732Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T00:43:16.805Z",
+      "completed_by": "agent",
+      "approval_evidence": "Validator: CAUTION → resolved inline. Phase 5 fresh-read filter gap caught and amended in design. rq-cacheRefresh01 misattribution corrected. No unresolved CONFLICT, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T00:47:22.137Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied \"Continue\" after prep summary with next steps; Tier A prep approval accepted. Task graph already created and ready tasks available."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-11T01:05:12.486Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks done; check + test both green; 4 checkpoint commits on change/addRepositoryFilter."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-11T01:19:42.629Z",
+      "completed_by": "agent",
+      "approval_evidence": "User replied \"accept\" after execution handoff. Review pass: AC1-AC8 traced and covered; campsite-rule fix to adv-roadmap.md doc (commit 6d9c82d) noting server-side --query hint. No drift; all SC/AC/OOS unchanged."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-11T01:25:40.021Z",
+      "completed_by": "agent",
+      "approval_evidence": "User signed off. Validation passed (NO_DELTAS warning: change is additive code per agreement C4, no formal spec capability). Conformance: no specs locked. Ready to archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-11T01:02:50.514Z"
+    }
+  ]
+}
