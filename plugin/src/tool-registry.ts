@@ -23,6 +23,7 @@ import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
 import { roadmapTools } from "./tools/roadmap";
+import { backlogTools } from "./tools/backlog";
 import { changeTools } from "./tools/change";
 import { taskTools } from "./tools/task";
 import { wisdomTools } from "./tools/wisdom";
@@ -154,8 +155,17 @@ export function createToolMap(
     // Spec Tools
     adv_spec: bindTool(specTools.adv_spec, "adv_spec", store),
 
-    // Roadmap Tool
+    // Roadmap Tool (legacy — delegates internally to adv_backlog_state via
+    // Visibility query when Temporal reachable; kept for backward compat)
     adv_roadmap: bindTool(roadmapTools.adv_roadmap, "adv_roadmap", store),
+
+    // Backlog Coordination Tools (rq-backlogCoord01..07)
+    adv_backlog_state: bindTool(
+      backlogTools.adv_backlog_state,
+      "adv_backlog_state",
+      store,
+    ),
+    adv_wip_state: bindTool(backlogTools.adv_wip_state, "adv_wip_state", store),
 
     // Change Tools
     adv_change_list: bindTool(
@@ -563,6 +573,8 @@ export function createToolMap(
 export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_spec",
   "adv_roadmap",
+  "adv_backlog_state",
+  "adv_wip_state",
   "adv_change_list",
   "adv_change_show",
   "adv_change_create",

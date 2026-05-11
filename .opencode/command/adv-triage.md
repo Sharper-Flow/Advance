@@ -7,6 +7,8 @@ description: Triage all backlog sources, score features with WSJF, regenerate RO
 
 Reconcile backlog sources into GH Issues, score features with WSJF, regenerate `ROADMAP.md`. Roadmap issue flow uses GH Projects v2 (typed NUMBER fields) as truth. ROADMAP.md = generated mirror, committed and pushed at end. Hybrid HITL: agent fills RROE/TimeCriticality/Effort autonomously; pauses for user-only bug Priority + feature Value.
 
+> **rq-backlogCoord01 / AC7 note:** After the agentic-backlog-coordination cutover, `/adv-triage` focuses on **scoring, reordering, and adding items**. Active-change annotation freshness is no longer this command's responsibility — `adv_backlog_state` derives it on demand via Temporal Visibility (`AdvBacklogIssueNumber`) under a TTL-bounded contract (default 5 min). Routine "is the backlog fresh?" use no longer requires running `/adv-triage`.
+
 > **CHECKLIST**: Default execute. `--dry-run` previews without mutations. Tier B inline approval required before opening issues, before writing/pushing ROADMAP.md, before deprecating local sources — gates run in execute mode regardless of invocation. Bug priority via `priority:{critical,high,medium,low}` labels; features via Projects v2 number fields. WSJF = `(Value + TimeCriticality + RROE) / Effort`.
 
 <UserRequest>
