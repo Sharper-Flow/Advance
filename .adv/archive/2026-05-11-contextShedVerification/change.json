@@ -1,0 +1,75 @@
+{
+  "id": "contextShedVerification",
+  "title": "Context-shed verification evidence for noisy ADV operations",
+  "status": "archived",
+  "created_at": "2026-05-11T05:58:49.210Z",
+  "tasks": [
+    {
+      "id": "tk-e3e9dd77565a",
+      "title": "Implement smart truncation in `adv_run_test` with inline TDD: first add failing unit tests in `plugin/src/tools/test.test.ts` proving (a) late failure lines survive noisy failing output, (b) late summary lines survive noisy passing output, (c) output remains bounded near 2000 chars, and (d) `[adv_run_test]` diagnostic prefixes survive truncation. Then add exported pure helper `shapeCommandOutput` in `plugin/src/tools/test.ts`, replace head-only truncation with the helper, preserve exact `... (truncated)` suffix, preserve API/return shape/exitCode semantics, and run focused tests plus repo check.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T06:20:38.405Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T15:38:22.654Z",
+      "verification": "Focused tests: pnpm exec vitest run src/tools/test.test.ts → 7 passed. Repo check: pnpm run check → typecheck/lint/format:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts"
+      ],
+      "checkpointSha": "c6aab2d98b5fa8a3542dc638f44c7e434e83d60a",
+      "completedAt": "2026-05-11T15:42:22.151Z",
+      "completed_at": "2026-05-11T15:42:22.151Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T06:03:59.156Z",
+      "completed_by": "agent",
+      "approval_evidence": "B/F/S scan: B:C F:P S:C. No CRITICAL, no HIGH ≥ 2. Single MEDIUM (F1) — deliberate underspecification of capsule shape, addressed by discovery agenda item DA3."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T06:16:12.591Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed. User approved pivot from full context-shed to minimal smart truncation in adv_run_test. Agreement and AC approved: existing API unchanged, ~2000 char budget retained, no new tools/core changes/artifacts."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T06:20:17.934Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and independently validated (VALIDATED). No user-value tradeoff remains after approved pivot. Strategy: pure shapeCommandOutput helper in adv_run_test, exact suffix preservation, no API/tool/schema changes."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T15:38:09.561Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep approved by user. Task graph: one inline-TDD implementation task for smart truncation in adv_run_test, focused tests, repo check."
+    },
+    "execution": {
+      "status": "pending"
+    },
+    "acceptance": {
+      "status": "pending"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
