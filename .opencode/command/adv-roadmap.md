@@ -38,7 +38,7 @@ adv_roadmap({
 | Source | Behavior |
 |---|---|
 | `file` (default) | Reads `.adv/roadmap-snapshot.json`. Returns actionable error if missing — recommend `/adv-triage` to regenerate. Emits freshness metadata and warnings after 2h so post-ATC/archive churn cannot look like untouched backlog. |
-| `live` | Calls `gh project item-list <N> --owner <owner>`. Requires `github_project` metadata persisted (run `/adv-triage` once to bootstrap). |
+| `live` | Calls `gh project item-list <N> --owner <owner>` (appends `--query "repo:<owner>/<repository_filter>"` server-side when the typed config sets `repository_filter` — rq-repoFilter01). Requires `github_project` metadata persisted (run `/adv-triage` once to bootstrap). |
 
 The tool also walks active ADV changes (`status ∈ {draft, pending, active}`) and annotates roadmap items with their in-flight change ID via `change.origin.issue_number` lookup. Items already being worked carry `active_change: <id>` in the response.
 
