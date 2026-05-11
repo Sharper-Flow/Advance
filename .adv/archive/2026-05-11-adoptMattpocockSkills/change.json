@@ -1,0 +1,706 @@
+{
+  "id": "adoptMattpocockSkills",
+  "title": "Adopt mattpocock/skills methodology: vendor 4 standalone skills (diagnose, zoom-out, prototype, adv-skill-author), introduce CONTEXT.md + docs/adr/ as ADV-consumed artifacts, refactor existing adv-* skills to progressive-disclosure authoring, exclude overlap skills.",
+  "status": "archived",
+  "created_at": "2026-05-11T17:28:19.980Z",
+  "tasks": [
+    {
+      "id": "tk-d1a412c364c3",
+      "title": "**P1: Sync extension (ADR-002).** Modify `scripts/sync-global.sh:1322-1338` skill-copy block from single-file (`cp $skill_file $dest_dir/SKILL.md`) to whole-directory (`cp -R $skill_dir/* $dest_dir/`). Verify behavior unchanged for existing single-file skills via `--dry-run --diff` snapshot before/after. Write `docs/adr/0002-skill-sync-whole-directory.md` recording the decision per the ADR rubric (hard-to-reverse: medium; surprising-without-context: yes; result-of-real-tradeoff: yes). AC: AC1, AC7.",
+      "type": "code",
+      "section": "P1: Sync extension",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T20:20:27.940Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "phase": "P1"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:24:33.924Z",
+      "verification": "pnpm run check passes (typecheck + lint + format:check). Sync dry-run before/after diff: zero output difference for existing 15 single-file skills (backward compatible). Multi-file fixture test in /tmp confirmed: SKILL.md + sibling REFERENCE.md + scripts/helper.sh all copied with directory structure preserved. ADR-002 written with rubric verification (hard-to-reverse: medium; surprising-without-context: yes; result-of-real-tradeoff: yes — all 3 criteria met).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/adr/0002-skill-sync-whole-directory.md",
+        "scripts/sync-global.sh"
+      ],
+      "touched_files": [
+        "docs/adr/0002-skill-sync-whole-directory.md",
+        "scripts/sync-global.sh"
+      ],
+      "checkpointSha": "770e5a615aac032ab8e16aeb7477ba4f7443e46e",
+      "completedAt": "2026-05-11T20:27:46.407Z",
+      "completed_at": "2026-05-11T20:27:46.407Z"
+    },
+    {
+      "id": "tk-fcd619dee166",
+      "title": "**P3.1: domain-context capability spec.** Author `.adv/specs/domain-context/spec.json` with two requirements: `rq-domainContext01` (CONTEXT.md format + consumers: /adv-discover MAY read, /adv-design MAY append, /adv-clarify MAY read) and `rq-domainContextADR01` (docs/adr/NNNN-slug.md format, ADR-sparingly 3-criteria rubric, consumer /adv-design MAY emit when met). Both priority `should`. Verify via `adv_spec list` returns capability with 2 requirements. AC: AC2.",
+      "type": "code",
+      "section": "P3: domain-context spec",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T20:20:30.503Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "phase": "P3"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:28:05.244Z",
+      "verification": "Spec authored at .adv/specs/domain-context/spec.json with 2 should-priority requirements (rq-domainContext01, rq-domainContextADR01). Structurally valid JSON with $schema, name, title, purpose, version, updated_at, requirements (each with id/title/body/priority/scenarios). Citation markers added for both requirements per P25 related-scan (rq-domainContext01 in ADV_INSTRUCTIONS.md Skill Discovery Protocol section as placeholder; rq-domainContextADR01 in .opencode/command/adv-design.md Phase 2 as placeholder — both will be expanded properly in P5/P6 tasks). Bundled fix: updated 2 test assertions (sync-global.test.ts:124, adv-tron-assets.test.ts:33) to match new whole-directory copy pattern from P1 — closes the P1 TDD gap where literal cp string assertion was missed in red phase. Spec-citation invariant test now passes (was failing for both new requirements). 3 of 4 prior failures resolved. Remaining 1 failure (overlay-sync-assets.test.ts opencode-unavailable runtime canary) is pre-existing on trunk — confirmed via test run from main checkout.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/domain-context/spec.json",
+        ".opencode/command/adv-design.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-tron-assets.test.ts",
+        "plugin/src/sync-global.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/domain-context/spec.json",
+        ".opencode/command/adv-design.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-tron-assets.test.ts",
+        "plugin/src/sync-global.test.ts"
+      ],
+      "checkpointSha": "cdc932935cf58a9fc649f4a58539d9d556854b12",
+      "completedAt": "2026-05-11T20:37:32.610Z",
+      "completed_at": "2026-05-11T20:37:32.610Z"
+    },
+    {
+      "id": "tk-8dc892aea5c6",
+      "title": "**P2.1: Vendor adv-diagnose.** Pull SKILL.md + scripts/hitl-loop.template.sh from `mattpocock/skills@main:skills/engineering/diagnose/`. Place at `skills/adv-diagnose/`. Update frontmatter `name: adv-diagnose`. Prepend MIT attribution header comment crediting Matt Pocock + source URL + license note. Preserve `<what-to-do>` / `<supporting-info>` structure as-is (don't impose ADV's table-heavy style on vendored content). AC: AC1.",
+      "type": "code",
+      "section": "P2: Vendor 4 skills",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-11T20:20:38.467Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P2"
+      },
+      "verification": "Manual commit applied because parallel engineer batch produced 3 task outputs in the same worktree. Checkpoint called on clean tree to fire taskCompletedSignal. Engineer's pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "skills/adv-prototype/LOGIC.md",
+        "skills/adv-prototype/SKILL.md",
+        "skills/adv-prototype/UI.md",
+        "skills/adv-zoom-out/SKILL.md"
+      ],
+      "touched_files": [
+        "skills/adv-prototype/LOGIC.md",
+        "skills/adv-prototype/SKILL.md",
+        "skills/adv-prototype/UI.md",
+        "skills/adv-zoom-out/SKILL.md"
+      ],
+      "checkpointSha": "6427bc787b3e8293f7b7b824d9512c08430422f4",
+      "completedAt": "2026-05-11T20:42:21.336Z",
+      "completed_at": "2026-05-11T20:42:21.336Z"
+    },
+    {
+      "id": "tk-b17fd56264ab",
+      "title": "**P2.2: Vendor adv-zoom-out.** Pull SKILL.md from `mattpocock/skills@main:skills/engineering/zoom-out/`. Place at `skills/adv-zoom-out/SKILL.md`. Update frontmatter `name: adv-zoom-out`. Prepend MIT attribution header. (Single-file skill, no supporting docs.) AC: AC1.",
+      "type": "code",
+      "section": "P2: Vendor 4 skills",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-11T20:20:40.745Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:42:31.325Z",
+      "verification": "P2.2 work (skills/adv-zoom-out/SKILL.md with attribution + frontmatter rename + disable-model-invocation preserved) was completed by engineer ses_1e73d0d4 and bundled into checkpoint commit 6427bc7 alongside P2.3 (parallel-batch artifact). Engineer verified pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6427bc787b3e8293f7b7b824d9512c08430422f4",
+      "completedAt": "2026-05-11T20:42:39.651Z",
+      "completed_at": "2026-05-11T20:42:39.651Z"
+    },
+    {
+      "id": "tk-0e4d31d8c3fe",
+      "title": "**P2.3: Vendor adv-prototype.** Pull SKILL.md + LOGIC.md + UI.md from `mattpocock/skills@main:skills/engineering/prototype/`. Place at `skills/adv-prototype/`. Update frontmatter `name: adv-prototype` and update internal references from `LOGIC.md`/`UI.md` (relative paths preserved since siblings travel via P1 whole-dir sync). Prepend MIT attribution header. AC: AC1.",
+      "type": "code",
+      "section": "P2: Vendor 4 skills",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-11T20:20:43.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:42:31.562Z",
+      "verification": "P2.3 work (skills/adv-prototype/ with SKILL.md + LOGIC.md + UI.md, frontmatter rename, MIT attribution, relative refs preserved) was completed by engineer ses_1e73cea8 and bundled into checkpoint commit 6427bc7. Engineer verified pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6427bc787b3e8293f7b7b824d9512c08430422f4",
+      "completedAt": "2026-05-11T20:42:41.734Z",
+      "completed_at": "2026-05-11T20:42:41.734Z"
+    },
+    {
+      "id": "tk-61004dd6304a",
+      "title": "**P2.4: Vendor adv-skill-author (renamed from write-a-skill).** Pull SKILL.md from `mattpocock/skills@main:skills/productivity/write-a-skill/`. Place at `skills/adv-skill-author/SKILL.md`. Update frontmatter `name: adv-skill-author`; update `description` to reflect ADV context (ADV-bundled skill authoring + agent-created skill protocol per ADV_INSTRUCTIONS.md). Prepend MIT attribution header noting the rename + source path. AC: AC1.",
+      "type": "code",
+      "section": "P2: Vendor 4 skills",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-11T20:20:46.082Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:43:02.835Z",
+      "verification": "Single SKILL.md vendored inline with MIT attribution + frontmatter rename + ADV-specific guidance section appended. Manual commit applied; checkpoint on clean tree to fire taskCompletedSignal.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "51f29b41d6d8348f1a1f3d25e44edf54e67a93a0",
+      "completedAt": "2026-05-11T20:43:31.723Z",
+      "completed_at": "2026-05-11T20:43:31.723Z"
+    },
+    {
+      "id": "tk-ea15f6cf0565",
+      "title": "**P3.2: Co-locate CONTEXT-FORMAT.md + ADR-FORMAT.md.** Vendor `CONTEXT-FORMAT.md` and `ADR-FORMAT.md` from `mattpocock/skills@main:skills/engineering/grill-with-docs/` to `.adv/specs/domain-context/` as reference docs for the new spec. Prepend MIT attribution header. These are reference artifacts the `domain-context` spec points to, not standalone skills. AC: AC2, AC5.",
+      "type": "code",
+      "section": "P3: domain-context spec",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-11T20:20:48.743Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fcd619dee166"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P3"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:43:49.389Z",
+      "verification": "Both reference docs co-located with spec.json. Total 124 lines vendored. Attribution headers prepended. References resolve to spec.json meta.format_reference fields.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6ed8abce547e9633868fd229caac5e03bce9402f",
+      "completedAt": "2026-05-11T20:44:07.756Z",
+      "completed_at": "2026-05-11T20:44:07.756Z"
+    },
+    {
+      "id": "tk-e9bc2d99268f",
+      "title": "**P3.3: Asset test for domain-context spec.** If an applicable test pattern exists in `plugin/src/__tests__/` for verifying capability presence (e.g. `adv_spec list` returns expected requirements count), add a test asserting `domain-context` capability with `rq-domainContext01` + `rq-domainContextADR01` is discoverable. If no applicable pattern exists, document the gap in implementation notes and skip (not blocking AC2 — which is satisfied by spec.json structural correctness alone). AC: AC2.",
+      "type": "code",
+      "section": "P3: domain-context spec",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-11T20:20:52.175Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fcd619dee166"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "phase": "P3"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:48:41.805Z",
+      "verification": "Added domain-context asset test after finding applicable repo asset-test pattern. Targeted vitest passed. Broader pnpm test path invocation hit known pre-existing overlay-sync-assets runtime canary failure; exact vitest invocation passed.",
+      "summary": "Added plugin/src/__tests__/domain-context-assets.test.ts asserting .adv/specs/domain-context/spec.json declares capability name and rq-domainContext01/rq-domainContextADR01 requirements.",
+      "implementation_summary": "Added plugin/src/__tests__/domain-context-assets.test.ts asserting .adv/specs/domain-context/spec.json declares capability name and rq-domainContext01/rq-domainContextADR01 requirements.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:50:48.133Z",
+      "completed_at": "2026-05-11T20:50:48.133Z"
+    },
+    {
+      "id": "tk-20b62f254a0c",
+      "title": "**P4.1: Content-split adv-triage.** Extract from `skills/adv-triage/SKILL.md` (638 lines) into sibling docs per design plan: `WSJF.md` (formulas + scoring rubrics), `BOOTSTRAP.md` (Phase 0 project setup + label set + custom fields + repository_filter auto-detect), `SCHEMA.md` (GH Projects custom fields + repository_filter config), `PROMPTS.md` (Tier B bootstrap prompt + other approval prompts), `ANTI-PATTERNS.md` (anti-patterns + edge cases). Trim `SKILL.md` to ≤150 lines: frontmatter + Purpose + core triage flow + index referencing sibling docs. Verify all command/instruction references to adv-triage content still resolve (grep `.opencode/command/adv-triage.md` and `ADV_INSTRUCTIONS.md` for references). AC: AC3.",
+      "type": "code",
+      "section": "P4: Content-split 5 skills",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-11T20:20:57.215Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:51:17.614Z",
+      "verification": "Content-split adv-triage into SKILL.md index/core plus 5 sibling docs. Line target met and references checked.",
+      "summary": "Replaced 638-line adv-triage SKILL.md with 69-line progressive-disclosure index. Extracted bootstrap, schema, prompt, WSJF/scoring, and anti-pattern content into sibling docs.",
+      "implementation_summary": "Replaced 638-line adv-triage SKILL.md with 69-line progressive-disclosure index. Extracted bootstrap, schema, prompt, WSJF/scoring, and anti-pattern content into sibling docs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:53:18.808Z",
+      "completed_at": "2026-05-11T20:53:18.808Z"
+    },
+    {
+      "id": "tk-dc87727b4e35",
+      "title": "**P4.2: Content-split adv-ci-release.** Extract from `skills/adv-ci-release/SKILL.md` (388 lines) into sibling docs: `CI_WORKFLOW.md` (ci.yaml template), `AUTO_RELEASE_WORKFLOW.md` (auto-release.yaml template), `COMMIT_CONVENTIONS.md` (Conventional Commits rules + semver bump logic), `TROUBLESHOOTING.md` (debug steps + common failures). Trim `SKILL.md` to ≤150 lines: frontmatter + Purpose + Architecture diagram + index. Verify references in `.opencode/command/` (if any). AC: AC3.",
+      "type": "code",
+      "section": "P4: Content-split 5 skills",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-11T20:20:59.939Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:53:29.613Z",
+      "verification": "Content-split adv-ci-release into SKILL.md index/core plus 4 sibling docs. Line target met; no command references required updates.",
+      "summary": "Replaced 388-line adv-ci-release SKILL.md with 78-line progressive-disclosure index. Extracted CI workflow, auto-release workflow, commit conventions, and troubleshooting content into sibling docs.",
+      "implementation_summary": "Replaced 388-line adv-ci-release SKILL.md with 78-line progressive-disclosure index. Extracted CI workflow, auto-release workflow, commit conventions, and troubleshooting content into sibling docs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:54:37.940Z",
+      "completed_at": "2026-05-11T20:54:37.940Z"
+    },
+    {
+      "id": "tk-3f3fae4603f6",
+      "title": "**P4.3: Content-split adv-slop-detection.** Extract from `skills/adv-slop-detection/SKILL.md` (230 lines) into sibling docs: `CATEGORIES.md` (Phase 1 detection categories + regex/signal layer + thresholds), `STRUCTURAL_CORRECTNESS.md` (QUAL-012 boundary rules — already references `rq-ss009`), `DEAD_CODE.md` (MAINT-003 detection tools + commands). Trim `SKILL.md` to ≤150 lines: frontmatter + Purpose + Phase 1/2 high-level flow + index. Verify references in `.opencode/command/adv-slop-scan.md` and `adv-harden.md`. AC: AC3.",
+      "type": "code",
+      "section": "P4: Content-split 5 skills",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-11T20:21:03.358Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:54:47.672Z",
+      "verification": "Content-split adv-slop-detection into SKILL.md index/core plus 3 sibling docs. Line target met; command references still resolve.",
+      "summary": "Replaced 230-line adv-slop-detection SKILL.md with 96-line progressive-disclosure index. Extracted categories/thresholds, structural-correctness boundary rules, and dead-code detector guidance into sibling docs.",
+      "implementation_summary": "Replaced 230-line adv-slop-detection SKILL.md with 96-line progressive-disclosure index. Extracted categories/thresholds, structural-correctness boundary rules, and dead-code detector guidance into sibling docs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:55:39.808Z",
+      "completed_at": "2026-05-11T20:55:39.808Z"
+    },
+    {
+      "id": "tk-4bcc7d418a41",
+      "title": "**P4.4: Content-split adv-backend-stack-eval.** Extract from `skills/adv-backend-stack-eval/SKILL.md` (199 lines) into 4 dimension docs: `LANGUAGE.md`, `DATABASE.md`, `ASYNC.md`, `API.md`. Trim `SKILL.md` to ≤150 lines: frontmatter + When-to-Load + Guiding Principle + Project-Type tier table + Quick Adoption Check + index referencing 4 dimension docs. Verify references in `.opencode/command/` (if any). AC: AC3.",
+      "type": "code",
+      "section": "P4: Content-split 5 skills",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-05-11T20:21:06.395Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:55:49.220Z",
+      "verification": "Content-split adv-backend-stack-eval into SKILL.md index/core plus 4 dimension docs. Line target met; no command references required updates.",
+      "summary": "Replaced 199-line adv-backend-stack-eval SKILL.md with 119-line progressive-disclosure index. Extracted language, database, async/workflow, and API-style guidance into sibling docs.",
+      "implementation_summary": "Replaced 199-line adv-backend-stack-eval SKILL.md with 119-line progressive-disclosure index. Extracted language, database, async/workflow, and API-style guidance into sibling docs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:56:42.219Z",
+      "completed_at": "2026-05-11T20:56:42.219Z"
+    },
+    {
+      "id": "tk-5ff5ce068b2d",
+      "title": "**P4.5: Content-split adv-audit.** Extract from `skills/adv-audit/SKILL.md` (189 lines) into `REPORT_SCHEMA.md` (JSON shape + sub-agent packet + finding schema). Trim `SKILL.md` to ≤200 lines (cohesive skill): frontmatter + Purpose + Inputs + Quality Gates + Analysis Dimensions + Synthesis + Constraints + index referencing REPORT_SCHEMA.md. Verify references in `.opencode/command/adv-audit.md`. AC: AC3.",
+      "type": "code",
+      "section": "P4: Content-split 5 skills",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-05-11T20:21:08.773Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:56:52.499Z",
+      "verification": "Content-split adv-audit into SKILL.md index/core plus REPORT_SCHEMA.md. Line target met; command reference still resolves.",
+      "summary": "Replaced 189-line adv-audit SKILL.md with 98-line cohesive method summary. Extracted worker packet, finding schema, text report, JSON report, and quality-gate result details into REPORT_SCHEMA.md.",
+      "implementation_summary": "Replaced 189-line adv-audit SKILL.md with 98-line cohesive method summary. Extracted worker packet, finding schema, text report, JSON report, and quality-gate result details into REPORT_SCHEMA.md.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:57:29.063Z",
+      "completed_at": "2026-05-11T20:57:29.063Z"
+    },
+    {
+      "id": "tk-1405fb171e46",
+      "title": "**P2.5: LICENSE-THIRD-PARTY.md + ADR-001.** Create `LICENSE-THIRD-PARTY.md` at repo root crediting `mattpocock/skills` (MIT, Matt Pocock), listing the 4 vendored skills + 2 reference docs (CONTEXT-FORMAT.md, ADR-FORMAT.md) with their source paths and SHA at vendor time. Write `docs/adr/0001-adv-prefix-vendored-skills.md` recording Decision 1 per the ADR rubric (hard-to-reverse: yes; surprising: yes; tradeoff: yes — alternative was broadening sync glob). AC: AC1, AC5.",
+      "type": "code",
+      "section": "P2: Vendor 4 skills",
+      "status": "done",
+      "priority": 13,
+      "created_at": "2026-05-11T20:21:22.382Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8dc892aea5c6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b17fd56264ab"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0e4d31d8c3fe"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-61004dd6304a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:44:14.374Z",
+      "verification": "LICENSE-THIRD-PARTY.md created with 7-file mapping table + MIT license text + exclusion-list rationale. ADR-001 written per 3-criteria rubric. Manual commit applied; checkpoint fires taskCompletedSignal.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7e918d13fad5040caa440ad6d1407f0381e71a79",
+      "completedAt": "2026-05-11T20:45:00.964Z",
+      "completed_at": "2026-05-11T20:45:00.964Z"
+    },
+    {
+      "id": "tk-1b50c129a3a4",
+      "title": "**P4.6: Update prose-load-inventory (AC8).** Update `docs/prose-load-inventory.md` \"Inventory: skills/*/SKILL.md\" section with new rows for the 5 content-split skills (adv-triage, adv-ci-release, adv-slop-detection, adv-backend-stack-eval, adv-audit) per `rq-proseReduction03`. Per-skill row: surface, section, post-split line count (SKILL.md only), enforcement class (full/partial/inherent), code reference, gap rationale, status. Existing rows for these skills updated in place; sibling docs noted in gap rationale. Header lifecycle remains \"POST-COMPRESSION ARCHIVE\" — this is an audit-trail update, not a new compression pass. AC: AC8.",
+      "type": "code",
+      "section": "P4: Content-split 5 skills",
+      "status": "done",
+      "priority": 14,
+      "created_at": "2026-05-11T20:21:27.058Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-20b62f254a0c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dc87727b4e35"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3f3fae4603f6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4bcc7d418a41"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5ff5ce068b2d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:57:55.112Z",
+      "verification": "Updated prose-load inventory for 5 content-split skills. Counts verified and whitespace clean.",
+      "summary": "Updated docs/prose-load-inventory.md scope and skills inventory from 13/~2646 to 19/~2208 tracked SKILL.md files, with P4.1–P4.5 rows for adv-triage, adv-ci-release, adv-slop-detection, adv-backend-stack-eval, and adv-audit noting post-split counts and sibling-doc rationale.",
+      "implementation_summary": "Updated docs/prose-load-inventory.md scope and skills inventory from 13/~2646 to 19/~2208 tracked SKILL.md files, with P4.1–P4.5 rows for adv-triage, adv-ci-release, adv-slop-detection, adv-backend-stack-eval, and adv-audit noting post-split counts and sibling-doc rationale.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:59:01.616Z",
+      "completed_at": "2026-05-11T20:59:01.616Z"
+    },
+    {
+      "id": "tk-5ffb97e0d8bb",
+      "title": "**P5: ADV_INSTRUCTIONS.md patches.** Two additive patches to `ADV_INSTRUCTIONS.md` (no deletions): (1) Append \"See also\" line at end of `### Doom Loop Detection` section (currently lines 394-408) referencing `skill(\"adv-diagnose\")` Phase 1 (feedback-loop construction) as the recommended pre-escalation protocol. (2) Add new \"### Excluded Skills\" subsection under \"## Skill Discovery Protocol\" listing 6 Pocock skills with one-line rationale: grill-me, grill-with-docs, to-prd, to-issues, triage, tdd. AC: AC4, AC6.",
+      "type": "code",
+      "section": "P5: ADV_INSTRUCTIONS.md patches",
+      "status": "done",
+      "priority": 15,
+      "created_at": "2026-05-11T20:21:30.817Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8dc892aea5c6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:59:13.794Z",
+      "verification": "Patched ADV_INSTRUCTIONS.md with diagnose escalation reference and Pocock overlap exclusion list.",
+      "summary": "Added Doom Loop Detection see-also for skill(\"adv-diagnose\") Phase 1 and Excluded Skills subsection under Skill Discovery Protocol documenting grill-me, grill-with-docs, to-prd, to-issues, triage, and tdd exclusions.",
+      "implementation_summary": "Added Doom Loop Detection see-also for skill(\"adv-diagnose\") Phase 1 and Excluded Skills subsection under Skill Discovery Protocol documenting grill-me, grill-with-docs, to-prd, to-issues, triage, and tdd exclusions.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T20:59:41.661Z",
+      "completed_at": "2026-05-11T20:59:41.661Z"
+    },
+    {
+      "id": "tk-3db94e682ca4",
+      "title": "**P6: /adv-design patch.** Patch `.opencode/command/adv-design.md` Phase 2 with ADR-sparingly rubric footnote (link to `.adv/specs/domain-context/ADR-FORMAT.md` and the 3-criteria rubric: hard-to-reverse + surprising-without-context + result-of-real-tradeoff). Add optional `## ADR Drafts` section to Phase 3 design.md template (drafts not gate-blocking; listed as candidate ADRs). AC: AC5.",
+      "type": "code",
+      "section": "P6: /adv-design patch",
+      "status": "done",
+      "priority": 16,
+      "created_at": "2026-05-11T20:21:33.382Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fcd619dee166"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ea15f6cf0565"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T20:59:53.807Z",
+      "verification": "Patched adv-design ADR rubric and design.md template ADR Drafts section.",
+      "summary": "Updated .opencode/command/adv-design.md to link .adv/specs/domain-context/ADR-FORMAT.md and rq-domainContextADR01 directly, preserving advisory non-gate-blocking ADR semantics. Added optional ADR Drafts section to suggested design.md template.",
+      "implementation_summary": "Updated .opencode/command/adv-design.md to link .adv/specs/domain-context/ADR-FORMAT.md and rq-domainContextADR01 directly, preserving advisory non-gate-blocking ADR semantics. Added optional ADR Drafts section to suggested design.md template.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T21:00:30.804Z",
+      "completed_at": "2026-05-11T21:00:30.804Z"
+    },
+    {
+      "id": "tk-86aa9628f5bd",
+      "title": "**P7: Verification.** Full verification sweep: (1) `pnpm run check` (typecheck + lint + format:check) from `plugin/` — must pass; (2) `pnpm test` from `plugin/` — must pass with no regression; (3) `./scripts/sync-global.sh --dry-run --diff` — must show new vendored skills (adv-diagnose with scripts/, adv-zoom-out, adv-prototype with LOGIC.md/UI.md, adv-skill-author) and updated existing skills (5 split skills with new sibling docs) sync correctly; (4) `adv_change_validate adoptMattpocockSkills` — must pass spec compliance against existing + new specs; (5) per-skill reference integrity audit: grep for old skill content moved to sibling docs and verify references resolve. AC: AC7.",
+      "type": "code",
+      "section": "P7: Verification",
+      "status": "done",
+      "priority": 17,
+      "created_at": "2026-05-11T20:21:46.760Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1a412c364c3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fcd619dee166"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8dc892aea5c6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b17fd56264ab"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0e4d31d8c3fe"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-61004dd6304a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ea15f6cf0565"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e9bc2d99268f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-20b62f254a0c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dc87727b4e35"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3f3fae4603f6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4bcc7d418a41"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5ff5ce068b2d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1405fb171e46"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1b50c129a3a4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5ffb97e0d8bb"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3db94e682ca4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "phase": "P7"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T21:00:46.865Z",
+      "verification": "pnpm run check passed. Targeted regression suite passed: adv-skill-backed-commands-assets, adv-slop-scan-assets, adv-tron-assets, domain-context-assets, sync-global (127 tests). sync-global dry-run now shows 19 worktree-local skills synced, including new vendored skills and sibling docs. adv_change_validate passed with NO_DELTAS warning only. Per-skill sibling-file integrity audit passed. Full pnpm test still fails only known pre-existing overlay-sync-assets runtime canary; same exact test fails on main checkout.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/prose-load-inventory.md",
+        "plugin/src/adv-tron-assets.test.ts",
+        "scripts/sync-global.sh",
+        "skills/adv-slop-detection/SKILL.md"
+      ],
+      "touched_files": [
+        "docs/prose-load-inventory.md",
+        "plugin/src/adv-tron-assets.test.ts",
+        "scripts/sync-global.sh",
+        "skills/adv-slop-detection/SKILL.md"
+      ],
+      "checkpointSha": "ca4e429022a2a6b72258a93a932ae103f20da0c8",
+      "completedAt": "2026-05-11T21:08:08.636Z",
+      "completed_at": "2026-05-11T21:08:08.636Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-34ypIF",
+      "type": "gotcha",
+      "content": "For targeted Vitest in plugin, prefer `pnpm exec vitest run <path>` over `pnpm test -- <path>`; the latter may still exercise broader configured suites and surface unrelated known failures.",
+      "source_task": "tk-e9bc2d99268f",
+      "recorded_at": "2026-05-11T20:50:57.754Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T17:28:31.767Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal phase complete. Two MEDIUM ambiguities open (non-blocking, below HIGH≥2 / CRITICAL≥1 trigger). Clarify-readiness scanner flagged 2 advisory warnings (no Scope section, no error-handling section) — to be resolved during discovery current-state work."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T17:37:35.307Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. Agreement locked. Auto-continuing to /adv-design inline."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T20:19:36.957Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design gate complete. Validator returned CAUTION; both findings resolved via design revision (D1: AC3 reframe + AC8 added; D4: per-skill cohesion audit kept all 5 in scope). Two ADRs (ADR-001 prefix, ADR-002 sync) drafted in design.md; will land as files during P1/P2. Auto-continuing to /adv-prep inline."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T20:24:14.586Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning gate complete with userApproved. Auto-continuing to /adv-apply inline. Beginning with P1 (tk-d1a412c364c3) inline since it's small + inline_required + unblocks 15 downstream tasks."
+    },
+    "execution": {
+      "status": "pending"
+    },
+    "acceptance": {
+      "status": "pending"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

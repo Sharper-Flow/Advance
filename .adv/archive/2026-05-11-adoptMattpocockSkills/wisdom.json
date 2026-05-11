@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-34ypIF",
+      "type": "gotcha",
+      "content": "For targeted Vitest in plugin, prefer `pnpm exec vitest run <path>` over `pnpm test -- <path>`; the latter may still exercise broader configured suites and surface unrelated known failures.",
+      "source_task": "tk-e9bc2d99268f",
+      "recorded_at": "2026-05-11T20:50:57.754Z"
+    }
+  ],
+  "count": 1
+}
