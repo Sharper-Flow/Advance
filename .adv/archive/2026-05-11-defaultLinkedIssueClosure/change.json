@@ -1,0 +1,137 @@
+{
+  "id": "defaultLinkedIssueClosure",
+  "title": "Default linked issue closure on archive",
+  "status": "archived",
+  "created_at": "2026-05-11T02:59:07.514Z",
+  "tasks": [
+    {
+      "id": "tk-5ee008808b3c",
+      "title": "Update archive close-issue command/spec contract.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T03:04:06.667Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "updatedAt": "2026-05-11T03:04:53.232Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:19:35.812Z",
+      "verification": "Contract update complete. ADV_INSTRUCTIONS.md now says /adv-archive defaults to closing linked GitHub issues for roadmap/triage origins after push verification unless --no-close-issue is passed. adv-archive.md documents --no-close-issue, keeps --close-issue as backward-compatible explicit affirmative/no-op, and gates close on origin.kind, issue_number, and push verification. adv-triage.md wording updated to avoid implying --close-issue is required.",
+      "summary": "Updated archive issue-close command/spec contract and verified no active default-off opt-in wording remains outside historical archive bundles. Checkpoint clean because changes were included in prior GREEN commit beef304.",
+      "implementation_summary": "Updated archive issue-close command/spec contract and verified no active default-off opt-in wording remains outside historical archive bundles. Checkpoint clean because changes were included in prior GREEN commit beef304.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T03:20:01.355Z",
+      "completed_at": "2026-05-11T03:20:01.355Z"
+    },
+    {
+      "id": "tk-1cdb9ec551ab",
+      "title": "Update or add asset tests for issue-close default contract.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T03:04:06.718Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:12:22.198Z",
+      "verification": "Completed RED/GREEN asset test for default linked issue closure. Contract/docs were updated to make the test pass: default-on roadmap/triage linked issue close after push verification, --no-close-issue opt-out, --close-issue backward-compatible no-op.",
+      "summary": "Added asset coverage in plugin/src/adv-autonomy-quality-assets.test.ts and updated ADV_INSTRUCTIONS.md, .opencode/command/adv-archive.md, and .opencode/command/adv-triage.md to satisfy the default linked issue closure contract.",
+      "implementation_summary": "Added asset coverage in plugin/src/adv-autonomy-quality-assets.test.ts and updated ADV_INSTRUCTIONS.md, .opencode/command/adv-archive.md, and .opencode/command/adv-triage.md to satisfy the default linked issue closure contract.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T03:19:01.159Z",
+      "completed_at": "2026-05-11T03:19:01.159Z"
+    },
+    {
+      "id": "tk-8913059bb1d9",
+      "title": "Final verification for default linked issue closure.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-11T03:04:08.432Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-11T03:04:53.277Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:20:12.786Z",
+      "verification": "Final verification complete. Active-text search outside historical archive bundles found no stale default-off/opt-in contract wording except test negative assertions. Targeted asset test passed. pnpm run check passed.",
+      "summary": "Verified default linked issue closure contract change via active-text search, targeted asset tests, and repo-defined check command. Worktree clean at beef304.",
+      "implementation_summary": "Verified default linked issue closure contract change via active-text search, targeted asset tests, and repo-defined check command. Worktree clean at beef304.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T03:23:09.881Z",
+      "completed_at": "2026-05-11T03:23:09.881Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-o_Mnn-",
+      "type": "gotcha",
+      "content": "When updating archive issue-close contract, ignore historical `.adv/archive/**` references during active-text searches; they preserve old archived behavior and should not be rewritten for new command semantics.",
+      "source_task": "tk-1cdb9ec551ab",
+      "recorded_at": "2026-05-11T03:19:14.779Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:59:33.235Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User requested this change and replied `continue` after proposed behavior. Proposal defines default close for roadmap/triage linked issues, --no-close-issue opt-out, and non-fatal failure semantics."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:00:17.425Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Discovery completed. Current behavior is command/spec-owned. Agreement: flip rq-issueChangeLinkage02 to default-on for roadmap/triage linked origins, add --no-close-issue opt-out, keep --close-issue compatible, keep failure non-fatal and non-linked origins no-op."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:03:15.341Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design validated. Validator verdict VALIDATED. Command/spec-only update flips linked issue closure default for roadmap/triage origins after push verification, adds --no-close-issue opt-out, keeps --close-issue compatibility, no runtime tool changes."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:11:21.391Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep task graph by replying `approve`. Tasks: contract/docs update, asset tests, final verification. TDD intents approved: docs task not_applicable, tests inline, final verification separate_verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:23:28.981Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "All 3 execution tasks complete. Checkpoint commit beef304 includes command/spec/test updates. Verification: active stale-default-off search passed, targeted asset test passed (2080 passed, 2 skipped), pnpm run check passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:25:28.487Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered work by replying `accept`. Review findings: 0 blockers, 0 issues, 0 suggestions, 0 questions. Verification passed: RED/GREEN asset test, stale-text search, pnpm run check, ADV validation with only expected NO_DELTAS advisory."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:27:49.390Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User signed off release with `sign off`. Pre-archive checks passed: all tasks done, validation passed with expected NO_DELTAS advisory, investment report collected. Proceeding to archive and git finalization."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-11T03:01:04.379Z"
+    }
+  ]
+}

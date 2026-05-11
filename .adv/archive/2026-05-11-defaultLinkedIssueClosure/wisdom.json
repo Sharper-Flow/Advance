@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-o_Mnn-",
+      "type": "gotcha",
+      "content": "When updating archive issue-close contract, ignore historical `.adv/archive/**` references during active-text searches; they preserve old archived behavior and should not be rewritten for new command semantics.",
+      "source_task": "tk-1cdb9ec551ab",
+      "recorded_at": "2026-05-11T03:19:14.779Z"
+    }
+  ],
+  "count": 1
+}
