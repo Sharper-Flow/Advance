@@ -23,6 +23,8 @@ const execAsync = promisify(exec);
  */
 export const DEFAULT_TEST_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEST_MAX_BUFFER = 10 * 1024 * 1024;
+const DEFAULT_OUTPUT_MAX_LENGTH = 2000;
+const TRUNCATION_SUFFIX = "... (truncated)";
 
 interface ExecBounds {
   timeoutMs?: number;
@@ -50,6 +52,66 @@ interface ExecResult {
   timedOut: boolean;
   maxBufferExceeded: boolean;
 }
+
+const FAILURE_LINE =
+  /\b(?:fail(?:ed|ure|ures)?|error|exception|assert(?:ion)?|expected|received)\b|\b[\w./-]+:\d+:\d+\b|\bat\s+.*:\d+:\d+\b/i;
+const SUMMARY_LINE =
+  /\b(?:tests?|test files?|passed|failed|skipped|duration|time|pass|ok)\b/i;
+
+const appendUnique = (target: string[], seen: Set<string>, lines: string[]) => {
+  for (const line of lines) {
+    if (seen.has(line)) continue;
+    seen.add(line);
+    target.push(line);
+  }
+};
+
+const withTruncationSuffix = (output: string, maxLength: number): string => {
+  if (output.length > maxLength) {
+    return output.slice(0, maxLength) + TRUNCATION_SUFFIX;
+  }
+  return `${output}\n${TRUNCATION_SUFFIX}`;
+};
+
+/**
+ * Shape noisy command output for agent consumption without changing the
+ * `adv_run_test` API. Keep output bounded, but prefer high-signal failure or
+ * summary lines plus tail context over raw head-only truncation.
+ */
+export const shapeCommandOutput = (
+  rawOutput: string,
+  exitCode: number,
+  maxOutputLen = DEFAULT_OUTPUT_MAX_LENGTH,
+): string => {
+  if (rawOutput.length <= maxOutputLen) return rawOutput;
+
+  const lines = rawOutput.split(/\r?\n/);
+  const diagnosticLines = lines.filter((line) =>
+    line.startsWith("[adv_run_test]"),
+  );
+  const bodyLines = lines.filter((line) => !line.startsWith("[adv_run_test]"));
+  const signalPattern = exitCode === 0 ? SUMMARY_LINE : FAILURE_LINE;
+  const signalLines = bodyLines.filter((line) => signalPattern.test(line));
+  const selectedSignalLines =
+    exitCode === 0 ? signalLines.slice(-12) : signalLines.slice(-24);
+  const tailLines = bodyLines.slice(-20);
+
+  const shapedLines: string[] = [
+    "[adv_run_test] Output truncated; showing high-signal lines.",
+  ];
+  const seen = new Set<string>();
+  appendUnique(shapedLines, seen, diagnosticLines);
+
+  if (selectedSignalLines.length > 0) {
+    shapedLines.push(exitCode === 0 ? "[summary]" : "[diagnostics]");
+    appendUnique(shapedLines, seen, selectedSignalLines);
+  }
+
+  shapedLines.push("[tail]");
+  appendUnique(shapedLines, seen, tailLines);
+
+  return withTruncationSuffix(shapedLines.join("\n"), maxOutputLen);
+};
 
 const runCommand = async (
   command: string,
@@ -204,12 +266,7 @@ export const testTools = {
           .join("\n");
       }
 
-      const maxOutputLen = 2000;
-      let truncatedOutput = rawOutput;
-      if (truncatedOutput.length > maxOutputLen) {
-        truncatedOutput =
-          truncatedOutput.substring(0, maxOutputLen) + "... (truncated)";
-      }
+      const truncatedOutput = shapeCommandOutput(rawOutput, exitCode);
 
       return formatToolOutput({
         success: true,

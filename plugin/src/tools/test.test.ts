@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { testTools } from "./test";
+import { shapeCommandOutput, testTools } from "./test";
 import type { Store } from "../storage/store";
 
 function createMockStore(): Store {
@@ -122,5 +122,63 @@ describe("test tools — simplified adv_run_test", () => {
     const parsed = JSON.parse(result);
     expect(parsed.output).toContain("... (truncated)");
     expect(parsed.output.length).toBeLessThan(3000);
+  });
+
+  test("preserves late failure lines in noisy failing output", () => {
+    const noisyPrefix = Array.from(
+      { length: 260 },
+      (_, index) => `PASS src/noise-${index}.test.ts`,
+    ).join("\n");
+    const lateFailure =
+      "src/tools/test.test.ts:42:13 expected true received false";
+    const rawOutput = [
+      noisyPrefix,
+      lateFailure,
+      "Tests: 1 failed, 259 passed",
+    ].join("\n");
+
+    const shaped = shapeCommandOutput(rawOutput, 1, 500);
+
+    expect(shaped).toContain(lateFailure);
+    expect(shaped).toContain("Tests: 1 failed, 259 passed");
+    expect(shaped).toContain("... (truncated)");
+    expect(shaped.length).toBeLessThanOrEqual(500 + "... (truncated)".length);
+  });
+
+  test("preserves late summary lines in noisy passing output", () => {
+    const noisyPrefix = Array.from(
+      { length: 260 },
+      (_, index) => `PASS src/noise-${index}.test.ts`,
+    ).join("\n");
+    const summary = "Tests: 260 passed, 260 total";
+    const rawOutput = [noisyPrefix, summary, "Duration: 12.34s"].join("\n");
+
+    const shaped = shapeCommandOutput(rawOutput, 0, 500);
+
+    expect(shaped).toContain(summary);
+    expect(shaped).toContain("Duration: 12.34s");
+    expect(shaped).toContain("... (truncated)");
+  });
+
+  test("preserves adv_run_test diagnostic prefix when shaping output", () => {
+    const diagnostic =
+      "[adv_run_test] Command timed out after 30000ms: pnpm test";
+    const noisyBody = Array.from(
+      { length: 260 },
+      (_, index) => `PASS src/noise-${index}.test.ts`,
+    ).join("\n");
+    const rawOutput = [
+      diagnostic,
+      noisyBody,
+      "src/tools/test.test.ts:99:1 error timeout cleanup failed",
+    ].join("\n");
+
+    const shaped = shapeCommandOutput(rawOutput, 1, 500);
+
+    expect(shaped).toContain(diagnostic);
+    expect(shaped).toContain(
+      "src/tools/test.test.ts:99:1 error timeout cleanup failed",
+    );
+    expect(shaped).toContain("... (truncated)");
   });
 });
