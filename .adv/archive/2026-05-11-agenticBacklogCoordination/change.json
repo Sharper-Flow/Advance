@@ -1,0 +1,529 @@
+{
+  "id": "agenticBacklogCoordination",
+  "title": "Agentic backlog coordination model",
+  "status": "archived",
+  "created_at": "2026-05-11T02:21:19.747Z",
+  "tasks": [
+    {
+      "id": "tk-874cf9eb6f67",
+      "title": "Extend `ChangeWorkflowState` and `ChangeWorkflowInput.seedState` with optional `origin?: ChangeOrigin` field.",
+      "type": "code",
+      "section": "Phase A: Search attribute infrastructure",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T03:43:09.458Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "A0",
+        "ac_refs": "AC4 (prereq)"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:47:05.317Z",
+      "verification": "pnpm run check clean (typecheck + lint + format); scoped vitest run (change-state.test.ts + workflow-bundle-boundary.test.ts) → 10 tests pass including 2 new tests for state.origin and seedState.origin",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "da3ac1034efac8e2f63a4b324a70a62d3a8eb098",
+      "completedAt": "2026-05-11T03:51:16.957Z",
+      "completed_at": "2026-05-11T03:51:16.957Z"
+    },
+    {
+      "id": "tk-13ff5a2a1bc3",
+      "title": "Extend `.adv/roadmap-snapshot.json` schema with TTL freshness metadata.",
+      "type": "code",
+      "section": "Phase D: Snapshot TTL extension",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T03:43:17.461Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "D1",
+        "ac_refs": "AC1, AC11"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:57:24.234Z",
+      "verification": "pnpm run check clean; 7 new tests pass (assessAnnotationFreshness fresh/stale/missing/default cases + buildRefreshMetadata producer + ttl default + RoadmapSnapshot type accepts new fields). Schema additive — existing snapshots load unchanged; absence of last_refreshed triggers refresh; ttl_ms defaults to 300_000 (DEFAULT_ANNOTATION_TTL_MS, 5 min) per validator-approved budget. FILE_SNAPSHOT_STALE_AFTER_MS (2h WSJF-content staleness) preserved as orthogonal concern.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/roadmap.test.ts",
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/roadmap.test.ts",
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "checkpointSha": "203e5c76b00fb8777d9f6a5208185815382bbd4d",
+      "completedAt": "2026-05-11T04:00:27.191Z",
+      "completed_at": "2026-05-11T04:00:27.191Z"
+    },
+    {
+      "id": "tk-20065a139ca1",
+      "title": "Author `.adv/specs/backlog-coordination.md` capability spec.",
+      "type": "code",
+      "section": "Phase F: Specs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-11T03:43:29.262Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "phase": "F1",
+        "ac_refs": "Spec foundation"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:02:08.609Z",
+      "verification": "Spec authored at .adv/specs/backlog-coordination/spec.json. JSON parses cleanly: 7 must-priority requirements covering AC1-AC6+AC11 (cross-session claim visibility, atomic claim, race tolerance, single-call WIP aggregator, O(1) Visibility cross-ref, V human-authority, TTL contract); 18 G/W/T scenarios total. Format mirrors existing prep-readiness/spec.json. tdd_intent: not_applicable (no code; spec is the authoritative document).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "checkpointSha": "fc31c598158e8e22a61ece1587e8d89889fa9573",
+      "completedAt": "2026-05-11T04:03:45.709Z",
+      "completed_at": "2026-05-11T04:03:45.709Z"
+    },
+    {
+      "id": "tk-5442d24b8c63",
+      "title": "Add `adv_wip_state` tool — single-call aggregator over active changes + worktrees + peer sessions.",
+      "type": "code",
+      "section": "Phase C: Tools",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-11T03:43:37.648Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "C2",
+        "ac_refs": "AC5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:03:58.707Z",
+      "verification": "pnpm run check clean (typecheck + lint + format); 5 backlog.test.ts tests pass (aggregated response shape, empty-project, worktrees-fail isolation, sessions-unavailable warning, parallel-call ordering). Tool: adv_wip_state. Three sources via Promise.allSettled with per-source warning emission. Test seam via WipStateProviders injection — production uses defaults wiring to store.changes.list + listWorktreesAcrossChanges + listPeerSessions. Registration in tool-registry.ts is deferred to E1.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "checkpointSha": "65139a9a44fb23f15977ab084f800220693a37e5",
+      "completedAt": "2026-05-11T04:11:29.770Z",
+      "completed_at": "2026-05-11T04:11:29.770Z"
+    },
+    {
+      "id": "tk-31b813aed0a8",
+      "title": "Add `AdvBacklogIssueNumber: \"Keyword\"` to `ADV_SEARCH_ATTRIBUTES` and populate from `state.origin?.issue_number` in `buildChangeSearchAttributes`. Includes registration verification.",
+      "type": "code",
+      "section": "Phase A: Search attribute infrastructure",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-11T03:43:51.278Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-874cf9eb6f67"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "A1",
+        "ac_refs": "AC4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:51:39.208Z",
+      "verification": "pnpm run check clean; pnpm exec vitest run src/temporal/search-attributes.test.ts → 8 tests pass (5 new: rq-backlogCoord01 population scenarios + 3 updated for new attribute in declarations/registrations). RED→GREEN confirmed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/search-attributes.test.ts",
+        "plugin/src/temporal/search-attributes.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/search-attributes.test.ts",
+        "plugin/src/temporal/search-attributes.ts"
+      ],
+      "checkpointSha": "12fffcc8b90323126c1dad4905a2e8ca6dca9cd2",
+      "completedAt": "2026-05-11T03:53:29.325Z",
+      "completed_at": "2026-05-11T03:53:29.325Z"
+    },
+    {
+      "id": "tk-8efe1b94da07",
+      "title": "Implement `queryClaimsByIssueNumber(client, projectId, issueNumber)` Visibility helper.",
+      "type": "code",
+      "section": "Phase B: Visibility query helpers",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-11T03:44:03.993Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-31b813aed0a8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "B1",
+        "ac_refs": "AC2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:53:43.400Z",
+      "verification": "pnpm run check clean; pnpm exec vitest run src/temporal/visibility-claim-queries.test.ts → 12 tests pass (query construction × 4 incl. injection escape; single-issue lookup × 3 incl. project-prefix filter; bulk lookup × 5 incl. empty-input short-circuit, batching at 100 boundary, 250-issue → 3 batches). Single-file delivery covers both B1 (queryClaimsByIssueNumber) and B2 (queryActiveChangesByIssueNumbers) — paired Visibility helpers with shared infrastructure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/visibility-claim-queries.test.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/visibility-claim-queries.test.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "checkpointSha": "723d172fb9b37537cd668373a3a6b006aac1ecdd",
+      "completedAt": "2026-05-11T03:56:59.979Z",
+      "completed_at": "2026-05-11T03:56:59.979Z"
+    },
+    {
+      "id": "tk-f8419c8feed0",
+      "title": "Implement `queryActiveChangesByIssueNumbers(client, projectId, issueNumbers[])` bulk Visibility helper.",
+      "type": "code",
+      "section": "Phase B: Visibility query helpers",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-11T03:44:11.507Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-31b813aed0a8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "B2",
+        "ac_refs": "AC6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T03:57:05.744Z",
+      "verification": "queryActiveChangesByIssueNumbers implemented in plugin/src/temporal/visibility-claim-queries.ts alongside queryClaimsByIssueNumber (B1). 5 dedicated B2 tests passing: bulk Map lookup, empty-input short-circuit (no Temporal call), single Visibility call for ≤100 issues, 3-batch chunking for 250 issues, project-prefix filter. Already committed under B1 checkpoint sha 723d172fb9 — clean checkpoint expected.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "723d172fb9b37537cd668373a3a6b006aac1ecdd",
+      "completedAt": "2026-05-11T03:57:08.708Z",
+      "completed_at": "2026-05-11T03:57:08.708Z"
+    },
+    {
+      "id": "tk-8b43c228841a",
+      "title": "Add `adv_backlog_state` tool — ranked backlog + claim annotations + freshness metadata in one call.",
+      "type": "code",
+      "section": "Phase C: Tools",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-11T03:44:27.417Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f8419c8feed0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-13ff5a2a1bc3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "C1",
+        "ac_refs": "AC1, AC6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:11:43.014Z",
+      "verification": "pnpm run check clean; 7 adv_backlog_state tests pass (snapshot read + freshness fresh path, TTL-expired stale path, kind filter, top filter, missing-snapshot error, single-Visibility-call O(1) annotation, forceRefresh surfaces refresh_reason). Tool reads snapshot via existing readSnapshotFile (now exported), applies kind/top/priority filters mirroring adv_roadmap semantics, annotates active changes via injected provider seam wiring to queryActiveChangesByIssueNumbers in production. V1 reports freshness state but does NOT auto-trigger gh project item-list refresh — that is deferred to a follow-up workflow choice (the freshness contract per AC1 is satisfied by accurate metadata; caller decides whether to invoke /adv-triage for a real refresh).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "checkpointSha": "ce9a9bc0255807d1db9849e92412aa162e184ed1",
+      "completedAt": "2026-05-11T04:15:02.420Z",
+      "completed_at": "2026-05-11T04:15:02.420Z"
+    },
+    {
+      "id": "tk-fbdb844cf725",
+      "title": "Modify `adv_change_create` — pre-create + post-create claim checks for `origin.kind === 'roadmap'`; pass `origin` through `seedState`.",
+      "type": "code",
+      "section": "Phase C: Tools",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-11T03:44:40.226Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8efe1b94da07"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-874cf9eb6f67"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "C3",
+        "ac_refs": "AC2, AC3, AC4, AC11"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:15:11.099Z",
+      "verification": "RED: workflow-start.test.ts failed missing initial AdvBacklogIssueNumber and reimport origin. GREEN: workflow-start/observability fixes; pnpm run check passed; impacted tests passed (7 files, 52 tests); continue-as-new isolated passed; pnpm test passed (175 files, 2142 tests); pnpm run build passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/observability.ts",
+        "plugin/src/temporal/workflow-start.test.ts",
+        "plugin/src/temporal/workflow-start.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/observability.ts",
+        "plugin/src/temporal/workflow-start.test.ts",
+        "plugin/src/temporal/workflow-start.ts"
+      ],
+      "checkpointSha": "e360f2c2bcc7d3b11a1f19dd709b5cf0d43cfe32",
+      "completedAt": "2026-05-11T05:19:31.958Z",
+      "completed_at": "2026-05-11T05:19:31.958Z"
+    },
+    {
+      "id": "tk-1c5915fa9988",
+      "title": "Modify `adv_roadmap` — delegate to `adv_backlog_state` when Visibility reachable; remove `buildActiveChangeIndex`.",
+      "type": "code",
+      "section": "Phase C: Tools",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-11T03:44:54.451Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8b43c228841a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f8419c8feed0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "phase": "C4",
+        "ac_refs": "AC6, AC11"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:23:55.401Z",
+      "verification": "pnpm run check clean; 29 roadmap.test.ts tests pass (no regression — fallback path covers test env where Temporal unavailable). buildActiveChangeIndex replaced with resolveActiveChangeIndex: tries Visibility query first (O(1) using queryActiveChangesByIssueNumbers with all snapshot issue numbers) when getService() + projectId both available; falls back to legacy buildActiveChangeIndexFromStore (renamed from buildActiveChangeIndex) when Temporal unreachable. Legacy fallback preserved for offline/test/no-Temporal scenarios. AC6 (O(1) Visibility query) satisfied in production path; backward compatibility (AC11) preserved via fallback.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/roadmap.ts"
+      ],
+      "checkpointSha": "d5601a039965dc47fa65e787f0474fd55aa87c86",
+      "completedAt": "2026-05-11T04:26:23.256Z",
+      "completed_at": "2026-05-11T04:26:23.256Z"
+    },
+    {
+      "id": "tk-3794425adbdf",
+      "title": "Register new tools + update command docs.",
+      "type": "code",
+      "section": "Phase E: Tool registry + commands",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-11T03:45:04.920Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8b43c228841a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5442d24b8c63"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fbdb844cf725"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "phase": "E1",
+        "ac_refs": "AC7"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:26:33.801Z",
+      "verification": "pnpm run check clean; 16 tool-registry tests pass (added 2 new tool names to ADV_TOOL_NAMES). Registered adv_backlog_state + adv_wip_state with bindTool. Updated adv-roadmap.md with note pointing to adv_backlog_state as agent-canonical surface; updated adv-triage.md noting freshness is no longer this command's responsibility (AC7); updated adv-proposal.md with CLAIM_CONFLICT/CLAIM_RACE_DETECTED handling for #N form. tdd_intent: not_applicable — registration + docs only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-roadmap.md",
+        ".opencode/command/adv-triage.md",
+        "plugin/src/tool-registry.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-roadmap.md",
+        ".opencode/command/adv-triage.md",
+        "plugin/src/tool-registry.ts"
+      ],
+      "checkpointSha": "23126562697405b4c35efaa04b0c7a644817e72e",
+      "completedAt": "2026-05-11T04:29:44.828Z",
+      "completed_at": "2026-05-11T04:29:44.828Z"
+    },
+    {
+      "id": "tk-1ce55e666683",
+      "title": "Regression test coverage for RL-1 through RL-7 + `rq-aw-backlog01` extension to `advance-workflow` spec.",
+      "type": "code",
+      "section": "Phase F: Spec + regression coverage",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-05-11T03:45:27.632Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fbdb844cf725"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1c5915fa9988"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8b43c228841a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5442d24b8c63"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "phase": "F2",
+        "ac_refs": "AC10"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T04:29:58.829Z",
+      "verification": "pnpm exec vitest run src/temporal/service-reconnect.test.ts src/temporal/service.test.ts → 2 files passed, 39 tests passed",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/observability.test.ts",
+        "plugin/src/temporal/service-reconnect.test.ts",
+        "plugin/src/temporal/service.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/observability.test.ts",
+        "plugin/src/temporal/service-reconnect.test.ts",
+        "plugin/src/temporal/service.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "checkpointSha": "cc6b48fe857e30b699bad2bf8fbab7f2f1b12336",
+      "completedAt": "2026-05-11T04:49:23.828Z",
+      "completed_at": "2026-05-11T04:49:23.828Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-X46Jw0",
+      "type": "gotcha",
+      "content": "Temporal antipattern: long-lived project-level workflows holding cross-cutting shared state fight Temporal's per-entity-workflow design model. Symptoms: unbounded state growth, constant continue-as-new overhead, fragile replay determinism under code changes, queue throughput bottleneck (all mutations serialized), no natural cancellation semantics, search attributes lose meaning. The Temporal-native alternative for \"multi-agent shared coordination\" is structurally different: per-entity short-lived workflows (lease as workflow lifecycle), search attributes for cross-entity visibility, activities with idempotency keys for external sync, file-locked JSON or SQLite for read-mostly cached projections. Reuse-the-retired-workflow-under-a-different-name is the same antipattern with a fresh coat of paint. D3 retirement of `projectWorkflow` (with denylist test in `plugin/src/__tests__/no-psw-references.test.ts`) is the project's defense against this antipattern. Validate with research before introducing any new long-lived shared workflow.",
+      "recorded_at": "2026-05-11T03:11:58.707Z"
+    },
+    {
+      "id": "ws-4Z-IVn",
+      "type": "failure",
+      "content": "Design built on stale lgrep semantic-search results — central decision (D1: reuse existing `projectWorkflow`) was wrong because lgrep returned pre-D3 code that no longer exists in `plugin/src/temporal/workflows.ts`. Lesson: for architectural facts that gate a whole design (does X exist? is Y retired? is Z denylisted?), semantic search is not authoritative. Verify via direct `Read` or `Bash rg` on the actual current source before committing the design. Semantic indices can lag behind file state, especially after major migrations or retirements. The Phase 3.5 independent validator caught this — confirming the validator's value as a structural correctness check, not just a stylistic review.",
+      "recorded_at": "2026-05-11T03:12:01.858Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:22:28.447Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:28:40.435Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:39:44.193Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T03:46:36.734Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-11T04:53:35.137Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 12 planned tasks done and checkpointed. Post-task cleanup checkpoint cc6b48fe recorded search-attribute mock/citation fixes. Verification: pnpm run check passed; targeted backlog coordination suite passed (13 files, 159 tests); full pnpm test passed (173 files passed, 2137 tests passed, 1 skipped/2 skipped); pnpm run build passed including worker build."
+    },
+    "acceptance": {
+      "status": "pending"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Design phase exposed that substrate decision (the central D1 decision) requires foundational research that wasn't captured in initial discovery. Validator returned CONFLICT verdict on design v1 (projectWorkflow retired in D3, ChangeOriginSchema already exists). User directive: \"we are not ready to proceed, and we still need research on ideas for this... keep notes from your adv-improve suggestions\". Re-entering discovery to incorporate Temporal coordination patterns research, D3 retirement rationale, non-Temporal substrate evaluation, and narrower agentic-workflow re-survey, before returning to design with a substrate candidate grounded in evidence.",
+      "scope_delta": "Discovery agenda expanded with 4 architectural research areas: D3 retirement rationale + denylist context; Temporal-native patterns for shared coordination state (per-entity short-lived workflows, search attributes, activity-based external sync); non-Temporal substrate evaluation (file-locked JSON, SQLite, embedded KV); narrow re-survey of agentic-workflow prior art focused on cross-entity coordination without long-lived shared workflows.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-11T03:14:51.327Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-11T02:22:20.949Z"
+    }
+  ]
+}

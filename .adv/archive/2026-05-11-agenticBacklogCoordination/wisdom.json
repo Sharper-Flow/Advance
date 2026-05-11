@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "id": "ws-X46Jw0",
+      "type": "gotcha",
+      "content": "Temporal antipattern: long-lived project-level workflows holding cross-cutting shared state fight Temporal's per-entity-workflow design model. Symptoms: unbounded state growth, constant continue-as-new overhead, fragile replay determinism under code changes, queue throughput bottleneck (all mutations serialized), no natural cancellation semantics, search attributes lose meaning. The Temporal-native alternative for \"multi-agent shared coordination\" is structurally different: per-entity short-lived workflows (lease as workflow lifecycle), search attributes for cross-entity visibility, activities with idempotency keys for external sync, file-locked JSON or SQLite for read-mostly cached projections. Reuse-the-retired-workflow-under-a-different-name is the same antipattern with a fresh coat of paint. D3 retirement of `projectWorkflow` (with denylist test in `plugin/src/__tests__/no-psw-references.test.ts`) is the project's defense against this antipattern. Validate with research before introducing any new long-lived shared workflow.",
+      "recorded_at": "2026-05-11T03:11:58.707Z"
+    },
+    {
+      "id": "ws-4Z-IVn",
+      "type": "failure",
+      "content": "Design built on stale lgrep semantic-search results — central decision (D1: reuse existing `projectWorkflow`) was wrong because lgrep returned pre-D3 code that no longer exists in `plugin/src/temporal/workflows.ts`. Lesson: for architectural facts that gate a whole design (does X exist? is Y retired? is Z denylisted?), semantic search is not authoritative. Verify via direct `Read` or `Bash rg` on the actual current source before committing the design. Semantic indices can lag behind file state, especially after major migrations or retirements. The Phase 3.5 independent validator caught this — confirming the validator's value as a structural correctness check, not just a stylistic review.",
+      "recorded_at": "2026-05-11T03:12:01.858Z"
+    }
+  ],
+  "count": 2
+}
