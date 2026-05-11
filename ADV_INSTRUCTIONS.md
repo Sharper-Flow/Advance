@@ -28,17 +28,17 @@ Per-phase collaboration mode. Planning gate machine-enforced via `adv_gate_compl
 
 **Agent-side gap:** Only planning is machine-enforced. Other phase boundaries rely on command-doc adherence.
 
-| Phase           | Mode                         | Detail                                                                         |
-| --------------- | ---------------------------- | ------------------------------------------------------------------------------ |
-| `/adv-idea`     | Collaborative                | Fully collaborative; ideation loop before a proposal exists                    |
-| `/adv-problem`  | Collaborative                | Fully collaborative; issue triage before deciding fix path                     |
-| `/adv-proposal` | Collaborative                | Fully collaborative; approve at end                                            |
-| `/adv-research` | Collaborative                | Fully collaborative; approve at end                                            |
-| `/adv-prep`     | HITL hard gate               | Vision document → explicit user approval → `userApproved: true` on prep gate   |
-| `/adv-apply`    | Autonomous                   | No "Begin work" prompt; proceeds after prep approval. Escalate only on failure |
-| `/adv-review`   | Autonomous + drift detection | Auto-fix within scope; stop on drift                                           |
-| `/adv-harden`   | Autonomous + drift detection | Auto-fix scoped issues; stop on drift                                          |
-| `/adv-archive`  | Autonomous                   | Apply spec deltas, capture wisdom, finalize git                                |
+| Phase           | Mode                         | Detail                                                                                                                                                                                |
+| --------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/adv-idea`     | Collaborative                | Fully collaborative; ideation loop before a proposal exists                                                                                                                           |
+| `/adv-problem`  | Collaborative                | Fully collaborative; issue triage before deciding fix path                                                                                                                            |
+| `/adv-proposal` | Collaborative                | Fully collaborative; approve at end                                                                                                                                                   |
+| `/adv-research` | Collaborative                | Fully collaborative; approve at end                                                                                                                                                   |
+| `/adv-prep`     | HITL hard gate               | Vision document → explicit user approval → `userApproved: true` on prep gate                                                                                                          |
+| `/adv-apply`    | Autonomous                   | No "Begin work" prompt; proceeds after prep approval. Escalate only on failure                                                                                                        |
+| `/adv-review`   | Autonomous + drift detection | Auto-fix within scope; stop on drift                                                                                                                                                  |
+| `/adv-harden`   | Autonomous + drift detection | Auto-fix scoped issues; stop on drift                                                                                                                                                 |
+| `/adv-archive`  | Autonomous                   | Apply spec deltas, capture wisdom, finalize git                                                                                                                                       |
 | `/adv-atc`      | Autonomous with HITL-defer   | Defers all HITL moments to linked GitHub issues via structured comments. Never prompts inline. Auto-transitions gates when no HITL needed. Stops on system interrupts (defers to GH). |
 
 ### Drift Detection Rule
@@ -84,13 +84,13 @@ Tier A whitelist reply (continue, go, approve, yes, ok, proceed, accept, lgtm, e
 
 Only system-level interrupts cause pauses between checkpoints:
 
-| Interrupt                             | Trigger                                     |
-| ------------------------------------- | ------------------------------------------- |
-| Doom-loop                             | 3 failed task attempts                      |
-| Drift detection                       | auto-fix boundary exceeded in review/harden |
-| Contract-compromise risk              | identified during design                    |
-| Design validator `CONFLICT`           | verdict requires user resolution            |
-| Prep gate machine enforcement         | `userApproved` required                     |
+| Interrupt                     | Trigger                                     |
+| ----------------------------- | ------------------------------------------- |
+| Doom-loop                     | 3 failed task attempts                      |
+| Drift detection               | auto-fix boundary exceeded in review/harden |
+| Contract-compromise risk      | identified during design                    |
+| Design validator `CONFLICT`   | verdict requires user resolution            |
+| Prep gate machine enforcement | `userApproved` required                     |
 
 No other pauses or "shall I continue?" prompts permitted.
 
@@ -98,20 +98,19 @@ No other pauses or "shall I continue?" prompts permitted.
 
 Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`phaseGoal` field on `CommandDef`). Self-check: "Am I still working toward this phase's goal?"
 
-| Phase            | Goal                                                                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `/adv-proposal`  | Clarify the problem, user needs, and acceptance criteria scope. Establish _what_ and _why_ — no _how_.                        |
-| `/adv-research`  | Produce a defined, fully-researched proposed plan ready for user approval. Validate the _how_.                                |
-| `/adv-discover`  | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.               |
-| `/adv-design`    | Convert the approved agreement into a validated implementation strategy ready for planning.                                   |
-| `/adv-prep`      | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
-| `/adv-apply`     | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.                          |
-| `/adv-review`    | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
-| `/adv-harden`    | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
-| `/adv-archive`   | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
-| `/adv-atc` | Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries. |
-| `/adv-reflect`   | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
-
+| Phase           | Goal                                                                                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `/adv-proposal` | Clarify the problem, user needs, and acceptance criteria scope. Establish _what_ and _why_ — no _how_.                        |
+| `/adv-research` | Produce a defined, fully-researched proposed plan ready for user approval. Validate the _how_.                                |
+| `/adv-discover` | Gather current-state evidence, resolve agreement, and capture objectives and acceptance criteria before design.               |
+| `/adv-design`   | Convert the approved agreement into a validated implementation strategy ready for planning.                                   |
+| `/adv-prep`     | Complete the flight-check: every gap closed, every dependency mapped, every task ready — ready for autonomous implementation. |
+| `/adv-apply`    | Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure.                          |
+| `/adv-review`   | Verify implementation matches the approved plan. Auto-fix within scope. Stop on drift.                                        |
+| `/adv-harden`   | Verify production-readiness. Auto-fix scoped issues. Stop on drift.                                                           |
+| `/adv-archive`  | Promote the change from contract to law: apply spec deltas, capture wisdom, clean up.                                         |
+| `/adv-atc`      | Execute a full change pipeline autonomously, deferring HITL moments to GitHub issues while preserving all safety boundaries.  |
+| `/adv-reflect`  | Synthesize post-completion learnings into a durable reflection artifact for process improvement.                              |
 
 ## Commands
 
@@ -152,15 +151,15 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 ### Fast-Track / Advanced
 
-| Command                     | Purpose                                                                                         |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
-| `/adv-atc [target]`   | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
-| `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                      |
-| `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                         |
-| `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                     |
-| `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                               |
-| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates        |
+| Command                     | Purpose                                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `/adv-task`                 | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off      |
+| `/adv-atc [target]`         | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
+| `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
+| `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
+| `/adv-triage`               | Triage all backlog sources, score features with WSJF, regenerate ROADMAP.md                          |
+| `/adv-improve`              | Suggest targeted improvements to existing specs or implementation                                    |
+| `/adv-tron [target]`        | Investigate codebase structure, hotspots, risks, and suggest follow-up agenda candidates             |
 
 ## Command Boundaries
 
@@ -221,8 +220,8 @@ If a tool-name call fails, copy the exact name from the available-tools list and
 
 Make correctness structural before heuristic: prefer types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests. Fully recognize/normalize untrusted input before processing.
 
-| Area | Structural owner | Heuristic allowed only for |
-| --- | --- | --- |
+| Area                      | Structural owner                                                                                                       | Heuristic allowed only for                                        |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Gates/tasks/backlog/specs | `adv_gate_*`, tasks, `metadata.tdd_intent`, validators, specs, conformance, exact refs, typed fields, user assignments | discovery, ranking, triage hints, legacy fallback, advisory risks |
 
 Heuristics MUST NOT be sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. If unavoidable: isolate, document assumptions, add deterministic guardrails, test edge cases/properties.
@@ -357,15 +356,15 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 
 **Apply-loop ordering:**
 
-| Step | Action                                                                                                                                                                                     |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 3a   | Start — `adv_task_update status: "in_progress"`                                                                                                                                            |
-| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch                                                                                                                             |
-| 3b   | Red Phase — write failing test                                                                                                                                                             |
-| 3c   | Green Phase — implement, tests pass                                                                                                                                                        |
-| 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                                                                                       |
+| Step | Action                                                                                                                          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 3a   | Start — `adv_task_update status: "in_progress"`                                                                                 |
+| 3a.6 | Clean Baseline Capture — verify clean tree, record HEAD/branch                                                                  |
+| 3b   | Red Phase — write failing test                                                                                                  |
+| 3c   | Green Phase — implement, tests pass                                                                                             |
+| 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                            |
 | 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires `taskCompletedSignal` to mark the task `done` |
-| 3d   | Complete — `adv_task_update status: "done"`                                                                                                                                                |
+| 3d   | Complete — `adv_task_update status: "done"`                                                                                     |
 
 **Failure classification:**
 
@@ -428,6 +427,7 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 **State location:** `$XDG_DATA_HOME/opencode/plugins/advance/{pid}/conformance.json` (external, project-keyed).
 
 <!-- rq-twf01 -->
+
 **Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes to the trunk checkout on the default branch.
 
 ### Trunk Write Firewall
@@ -448,34 +448,34 @@ ADV change ≠ GH issue. ADV change = workflow state machine (gates, tasks, vali
 
 Three flow directions. All valid:
 
-| Kind | When | Issue creation | Auto-close on archive |
-|---|---|---|---|
-| `roadmap` | Promoted from GH Project / ROADMAP.md via `/adv-roadmap` → `/adv-proposal` | Issue upstream — `change.origin.issue_number` required | Yes (opt-in once automation ships) |
-| `discovery` | Mid-session find (bug, drive-by, `/adv-improve` hit) | Optional post-hoc | No |
-| `triage` | `/adv-triage` promotes non-GH artifact (agenda, wisdom, note, TODO) | Created by `/adv-triage`; `issue_number` set on promotion | Yes |
-| `adhoc` | Explicit, no upstream (spikes, legacy) | Never | Never |
+| Kind        | When                                                                       | Issue creation                                            | Auto-close on archive              |
+| ----------- | -------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- |
+| `roadmap`   | Promoted from GH Project / ROADMAP.md via `/adv-roadmap` → `/adv-proposal` | Issue upstream — `change.origin.issue_number` required    | Yes (opt-in once automation ships) |
+| `discovery` | Mid-session find (bug, drive-by, `/adv-improve` hit)                       | Optional post-hoc                                         | No                                 |
+| `triage`    | `/adv-triage` promotes non-GH artifact (agenda, wisdom, note, TODO)        | Created by `/adv-triage`; `issue_number` set on promotion | Yes                                |
+| `adhoc`     | Explicit, no upstream (spikes, legacy)                                     | Never                                                     | Never                              |
 
 Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`plugin/src/types/changes.ts`). Optional for back-compat; legacy → `adhoc` on read.
 
 **Source-of-truth split:**
 
-| Surface | Source of truth | Why |
-|---|---|---|
-| Ranked backlog | GH Project v2 + `ROADMAP.md` mirror | Multi-stakeholder, public, score fields (V/TC/RROE/E/WSJF). Moving to Temporal kills stakeholder surface. |
-| In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection | Session-coordinated, gate-validated, replay-safe. GH can't model. |
-| Linkage | `change.origin` (in `change.json`) | Linkage IS ADV state. Lives with rest of ADV state. |
+| Surface                                                     | Source of truth                     | Why                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Ranked backlog                                              | GH Project v2 + `ROADMAP.md` mirror | Multi-stakeholder, public, score fields (V/TC/RROE/E/WSJF). Moving to Temporal kills stakeholder surface. |
+| In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection       | Session-coordinated, gate-validated, replay-safe. GH can't model.                                         |
+| Linkage                                                     | `change.origin` (in `change.json`)  | Linkage IS ADV state. Lives with rest of ADV state.                                                       |
 
 **Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, `adv_roadmap` cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
 
 **Anti-patterns:**
 
-| × Bad | ✓ Good |
-|---|---|
+| × Bad                                           | ✓ Good                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ |
 | Auto-create GH issue from every `/adv-proposal` | Only when `origin.kind === 'roadmap'`; post-hoc promotion is `/adv-triage` job |
-| `linked_issues[]` as canonical link | `change.origin.issue_number` — single, typed, queryable. Arrays advisory only. |
-| Move ranked backlog into Temporal | Keep in GH Project. `.adv/roadmap-snapshot.json` = agent-readable mirror. |
-| Ship behavior + schema together | Schema first, validate via `adv_roadmap` cross-refs, then automation. |
-| Default new change to `origin.kind = 'roadmap'` | Default omitted or explicit. `roadmap` requires `issue_number`. |
+| `linked_issues[]` as canonical link             | `change.origin.issue_number` — single, typed, queryable. Arrays advisory only. |
+| Move ranked backlog into Temporal               | Keep in GH Project. `.adv/roadmap-snapshot.json` = agent-readable mirror.      |
+| Ship behavior + schema together                 | Schema first, validate via `adv_roadmap` cross-refs, then automation.          |
+| Default new change to `origin.kind = 'roadmap'` | Default omitted or explicit. `roadmap` requires `issue_number`.                |
 
 **Agent picks `origin_kind` at create:**
 
@@ -487,12 +487,15 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 **Active linkage requirements:**
 
 <!-- rq-issueChangeLinkage01 -->
+
 - `rq-issueChangeLinkage01`: `/adv-proposal #N` MUST resolve issue body via `gh issue view`, sanitize via `rq-roadmapOriginSanitize01`, set `origin.kind='roadmap'` + `origin.issue_number=N` on the created change. Same contract used by `/adv-triage` triage-origin tagging (with `kind='triage'`).
 
 <!-- rq-issueChangeLinkage02 -->
+
 - `rq-issueChangeLinkage02`: `/adv-archive` MUST default to closing linked GitHub issues after push verification when `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number` is positive, unless `--no-close-issue` is passed. `--close-issue` MUST remain accepted as backward-compatible explicit affirmative / no-op. Exit-code-only error handling (gh natively idempotent). Failure non-fatal (`[ADV:ATTN]`); archive state canonical, no rollback.
 
 <!-- rq-issueChangeLinkage03 -->
+
 - `rq-issueChangeLinkage03`: `github_project` linkage config MUST live in `.adv/github-project.json` with dedicated Zod schema (`plugin/src/storage/github-project-config.ts`). Legacy `project_metadata['github_project']` is read-only fallback that migrates forward on first read; legacy entry NOT deleted post-migration.
 
 Uncertain? Omit. Legacy semantics safe.
@@ -500,34 +503,25 @@ Uncertain? Omit. Legacy semantics safe.
 ### Cross-Project Coordination
 
 Use when a source ADV change references/contributes to another ADV-enabled project via `target_path`.
-Reads: use ADV tools in `snapshot-ok` mode; include `_projectContext`.
-Mutations: use ADV tools in `temporal-required` mode; target queue must be reachable.
-Untrusted mutation: require `target_confirmed: true` + `confirmationEvidence` citing approval.
-Never direct ADV state file reads/writes.
-`cross_project_links` records provenance; `external_dependencies` are advisory-only dependencies and never block gates/archive by default.
-Inspect `_externalDependencyStatus` for satisfied/warning/blocking counts and drilldown; target-project contribution flow is create/link → verify source link → monitor advisory dependencies → confirmed target mutation.
+Reads use `snapshot-ok` + `_projectContext`; mutations use `temporal-required` + reachable target queue. Untrusted mutation requires `target_confirmed: true` + `confirmationEvidence`. Never direct ADV state file reads/writes. `cross_project_links` records provenance; `external_dependencies` warn only and never block gates/archive by default. Inspect `_externalDependencyStatus`; flow: create/link → verify source link → monitor advisory dependencies → confirmed target mutation.
 
-#### `target_path` matrix (which tools support cross-project)
+#### `target_path`, `dryRun`, non-LLM exec
 
-Tools with `target_path` (read or mutation) accept the optional path argument and route through `resolveTargetProject` / `withTargetPathStore`. Tools NOT in the table operate on the current process project only.
+- `snapshot-ok`: `adv_change_show`, `adv_change_list`, `adv_change_validate`, `adv_status`, `adv_task_show`, `adv_task_list`, `adv_task_ready`.
+- `temporal-required`: `adv_change_update`, `adv_change_create`, `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`, `adv_task_update`, `adv_task_cancel`, `adv_task_add`, `adv_task_reclassify_tdd`, `adv_gate_status`, `adv_gate_complete`, `adv_temporal_reconnect`, `adv_run_test`.
+- Current-project only: `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
 
-| Tool                                                                                      | Mode                            | Notes                                                                              |
-| ----------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------- |
-| `adv_change_show`, `adv_change_list`, `adv_change_validate`                               | snapshot-ok                     | Read-only; no `target_confirmed` needed                                            |
-| `adv_status`                                                                              | snapshot-ok                     | Read-only; cross-project disk-snapshot view                                        |
-| `adv_task_show`, `adv_task_list`, `adv_task_ready`                                        | snapshot-ok                     | Read-only                                                                          |
-| `adv_change_update`, `adv_change_create`                                                  | temporal-required               | Mutation; `target_confirmed: true` + `confirmationEvidence` required for untrusted |
-| `adv_change_archive`, `adv_change_close`, `adv_change_bulk_close`                         | temporal-required               | Mutation                                                                           |
-| `adv_task_update`, `adv_task_cancel`, `adv_task_add`                                      | temporal-required               | Mutation                                                                           |
-| `adv_gate_status`, `adv_gate_complete`                                                    | temporal-required               | Read-status / mutation                                                             |
-| `adv_temporal_reconnect`                                                                  | temporal-required               | Mutation                                                                           |
-| `adv_run_test`                                                                            | temporal-required               | Mutation (records evidence)                                                        |
+Missing `target_path` and genuinely cross-project? Switch sessions: `cd <other-project> && opencode`.
 
-Tools without `target_path` (current-project only): `adv_temporal_register_search_attributes`, `adv_temporal_worker_restart`, `adv_reflect`, `adv_conformance`, `adv_agenda_*`, `adv_wisdom_*`, `adv_project_metadata`, `adv_project_context`.
-
-When a tool you need lacks `target_path` and the work is genuinely cross-project, switch sessions: `cd <other-project> && opencode`.
+<!-- rq-dryRunMutation01 rq-crossProjectTaskMutation01 -->
 
 **Cross-session ADV mutation:** `opencode run --dir <other> --agent build --dangerously-skip-permissions "Run X tool"` works but pays ~60–300s per call. Use sparingly; for >5 sequential ops, open a session in the target project.
+
+**Dry-run mutations:** same success shape + `dryRun: true`; no Temporal signals, ADV state writes, conformance audit writes, worktree deletion/hooks, or filesystem writes. `target_path` dry-runs may read target state without untrusted mutation confirmation because they do not mutate.
+
+<!-- rq-nonLlmToolExec01 -->
+
+No direct non-LLM ADV tool-exec helper ships until OpenCode exposes stable tool execution (or equivalent structural runtime path). Do not build ad-hoc CLI paths that duplicate STSL, Temporal workflow access, store lifecycle, target trust gates, or audit semantics. Track #71 / upstream `anomalyco/opencode#25478`.
 
 #### `status: "in-flight"` filter shorthand
 
@@ -545,11 +539,11 @@ Planned-and-structured size is valid. Once a change has completed the prep gate
 with `userApproved`, the agent MUST NOT suggest splitting based on size, complexity,
 or task count alone.
 
-| × Bad                                     | ✓ Good                                                   |
-| ----------------------------------------- | -------------------------------------------------------- |
-| "This seems large, want to split?"        | Trust the prep gate; execute                             |
-| "Maybe break this into smaller changes?"  | Execute as planned                                       |
-| Mid-execution split-suggestion            | Mid-execution scope discovery → scope-discovery protocol |
+| × Bad                                    | ✓ Good                                                   |
+| ---------------------------------------- | -------------------------------------------------------- |
+| "This seems large, want to split?"       | Trust the prep gate; execute                             |
+| "Maybe break this into smaller changes?" | Execute as planned                                       |
+| Mid-execution split-suggestion           | Mid-execution scope discovery → scope-discovery protocol |
 
 For the canonical scope-discovery protocol (when non-campsite scope is found
 mid-execution), see `docs/scope-discovery-protocol.md`.
@@ -582,12 +576,13 @@ Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsit
 
 **Two-surface taxonomy:**
 
-| Surface | Context | Categories | Source |
-|---|---|---|---|
-| Change artifacts | In-flight proposal/discovery/agreement/design | B, F, S, **M** | `/adv-proposal` Phase 2.6, `/adv-discover` B/F/S/M scan |
-| Spec laws | Committed `.adv/specs/*.md` files | B, F, S, **Q, E** | `/adv-audit` Phase 3 inline scan |
+| Surface          | Context                                       | Categories        | Source                                                  |
+| ---------------- | --------------------------------------------- | ----------------- | ------------------------------------------------------- |
+| Change artifacts | In-flight proposal/discovery/agreement/design | B, F, S, **M**    | `/adv-proposal` Phase 2.6, `/adv-discover` B/F/S/M scan |
+| Spec laws        | Committed `.adv/specs/*.md` files             | B, F, S, **Q, E** | `/adv-audit` Phase 3 inline scan                        |
 
 **Required-set difference:**
+
 - **M** (Missing Information) is change-artifact-only — it captures critical unknowns about the change itself.
 - **Q** (Quality Attributes) and **E** (Error Handling) are spec-law-specific — they capture NFR and failure-mode gaps in committed specifications.
 - B, F, S are shared across both surfaces.
@@ -705,12 +700,12 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 Use for 3+ independent scan dimensions. Single-level only.
 
-| Command | Inline | Sub-Agent |
-|---|---|---|
-| research/task | Context7 + Kagi + lgrep | librarian + adv-researcher |
-| review/harden/audit/slop-scan/refactor | Sequential scans | explore/general as command docs specify |
-| slop-scan | Sequential categories | explore × 9 (single-level only) |
-| tron | lgrep + read | adv-tron |
+| Command                                | Inline                  | Sub-Agent                               |
+| -------------------------------------- | ----------------------- | --------------------------------------- |
+| research/task                          | Context7 + Kagi + lgrep | librarian + adv-researcher              |
+| review/harden/audit/slop-scan/refactor | Sequential scans        | explore/general as command docs specify |
+| slop-scan                              | Sequential categories   | explore × 9 (single-level only)         |
+| tron                                   | lgrep + read            | adv-tron                                |
 
 Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
 
@@ -733,6 +728,7 @@ Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-
 
 <!-- rq-contextShed01 -->
 <!-- rq-contextShed02 -->
+
 Context-Shed Test = all four true + floor met (~5 files OR ~50 lines): decided HOW, HOW does not feed downstream decisions, AC defined, mechanical implementation. Unsure → `inline_required`. After delegation, P23 campsite scan touched scope.
 
 ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `general`.
@@ -765,26 +761,26 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 ### Agent Tiers
 
-| Tier | Agents | Loading |
-|---|---|---|
-| Primary (user-selectable) | `adv`, `plan`, `build` | Global agents |
-| Common subagents | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global agents |
-| ADV specialists | `adv-researcher`, `adv-engineer` | Bundled global |
-| Repo-local | `adv-tron` | `.opencode/agents/` |
+| Tier                      | Agents                                                       | Loading             |
+| ------------------------- | ------------------------------------------------------------ | ------------------- |
+| Primary (user-selectable) | `adv`, `plan`, `build`                                       | Global agents       |
+| Common subagents          | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global agents       |
+| ADV specialists           | `adv-researcher`, `adv-engineer`                             | Bundled global      |
+| Repo-local                | `adv-tron`                                                   | `.opencode/agents/` |
 
 Only `mode: subagent` agents spawn via Task. `adv`, `plan`, `build` are primary only.
 
 ### Agent Roster
 
-| Agent | Use |
-|---|---|
-| `librarian` | Docs, API refs, examples |
-| `adv-researcher` | Architecture validation |
-| `explore` | Code navigation |
-| `adv-engineer` | Delegated ADV code-writing; must use packet `workdir` |
-| `general` | Verify bursts + generic multi-step work |
-| `mechanic` | MCP/config/ADV diagnostics |
-| `adv-tron` | Recon + hotspots |
+| Agent            | Use                                                   |
+| ---------------- | ----------------------------------------------------- |
+| `librarian`      | Docs, API refs, examples                              |
+| `adv-researcher` | Architecture validation                               |
+| `explore`        | Code navigation                                       |
+| `adv-engineer`   | Delegated ADV code-writing; must use packet `workdir` |
+| `general`        | Verify bursts + generic multi-step work               |
+| `mechanic`       | MCP/config/ADV diagnostics                            |
+| `adv-tron`       | Recon + hotspots                                      |
 
 `adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/sync-global.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
 
@@ -803,20 +799,21 @@ Enabled in `/adv-research`. Filesystem-only, no API calls.
 Skill metadata: YAML frontmatter with `name`, `description`, `keywords`.
 
 <!-- rq-domainContext01 -->
+
 **Domain context artifacts:** Projects MAY maintain `CONTEXT.md` (root) or `CONTEXT-MAP.md` + per-context `CONTEXT.md` files as a domain glossary. `/adv-discover`, `/adv-design`, and `/adv-clarify` MAY read these for domain-language alignment. Lazy creation; advisory artifact. See `.adv/specs/domain-context/` for format and consumer contract.
 
 ### Excluded Skills
 
 Pocock overlap skills remain excluded from ADV skill selection:
 
-| Skill | Rationale |
-|---|---|
-| `grill-me` | Superseded by `/adv-clarify`; ADV owns clarification gates. |
-| `grill-with-docs` | Reference docs vendored into `domain-context`; workflow overlap excluded. |
-| `to-prd` | Superseded by `/adv-proposal`; proposal gate owns problem/criteria contract. |
-| `to-issues` | Superseded by `/adv-triage`; GH issue promotion stays HITL-governed. |
-| `triage` | Superseded by `/adv-triage`; WSJF + ROADMAP mirror already gate-aware. |
-| `tdd` | Superseded by RSTC TDD Protocol; task metadata and verification own correctness. |
+| Skill             | Rationale                                                                        |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `grill-me`        | Superseded by `/adv-clarify`; ADV owns clarification gates.                      |
+| `grill-with-docs` | Reference docs vendored into `domain-context`; workflow overlap excluded.        |
+| `to-prd`          | Superseded by `/adv-proposal`; proposal gate owns problem/criteria contract.     |
+| `to-issues`       | Superseded by `/adv-triage`; GH issue promotion stays HITL-governed.             |
+| `triage`          | Superseded by `/adv-triage`; WSJF + ROADMAP mirror already gate-aware.           |
+| `tdd`             | Superseded by RSTC TDD Protocol; task metadata and verification own correctness. |
 
 ## Skill Creation Protocol
 
@@ -868,12 +865,12 @@ When all trigger conditions are true, "no matches" → conditional creation trig
 
 Commands own workflow/state. Skills hold reusable read-only methodology.
 
-| Command | Skill |
-|---|---|
-| User-facing entry point | Reusable protocol |
-| Mutates ADV state | Read-only guidance |
-| Owns gate completion | Loaded by commands/sub-agents |
-| Explicit invocation | Domain knowledge |
+| Command                 | Skill                         |
+| ----------------------- | ----------------------------- |
+| User-facing entry point | Reusable protocol             |
+| Mutates ADV state       | Read-only guidance            |
+| Owns gate completion    | Loaded by commands/sub-agents |
+| Explicit invocation     | Domain knowledge              |
 
 ### Reference Pattern
 
@@ -881,13 +878,13 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 
 ### Classification
 
-| Class | Commands |
-|---|---|
-| Command-only | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design` |
-| Dedicated skill | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` |
-| Shared skill | `adv-harden`, `adv-slop-scan` → `adv-slop-detection` |
-| Embedded methodology | `adv-discover`, `adv-review` |
-| Dynamic discovery | `adv-discover`, `adv-research` |
+| Class                | Commands                                                                                                                                                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Command-only         | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design`                                                                                                             |
+| Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` |
+| Shared skill         | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                                                                         |
+| Embedded methodology | `adv-discover`, `adv-review`                                                                                                                                                                                                                 |
+| Dynamic discovery    | `adv-discover`, `adv-research`                                                                                                                                                                                                               |
 
 > **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
 

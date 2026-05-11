@@ -9,6 +9,22 @@
 **Status:** Investigation complete 2026-05-02. Recommendation below.
 **Origin:** Deferred from change `repairTemporalMigrationDebt` (archived `2026-05-02-repairtemporalmigrationdebt`) due to plugin-boundary scope.
 
+## 2026-05-11 revisit — #71 outcome
+
+Issue #71 asked for ergonomic non-LLM cross-project ADV tool execution. Recheck found no stable OpenCode endpoint for tool execution:
+
+- `/experimental/tool` is registry/list oriented, not a supported execute API.
+- `opencode run` / ACP remain LLM-mediated.
+- Upstream `anomalyco/opencode#25478` is still the right structural API request.
+
+Decision: do not ship a direct helper now. Any helper that bypasses OpenCode would duplicate ADV plugin startup, STSL/Temporal access, StoreBackend lifecycle, target trust gates, and audit semantics. That violates `rq-nonLlmToolExec01` and creates second-runtime drift.
+
+Supported paths until upstream changes:
+
+- Open a real session in target project for >5 sequential ops.
+- Use `opencode run --dir <other> --agent build ...` only for rare one-offs where 60–300s overhead is acceptable.
+- Reopen helper design only when OpenCode ships stable tool execution or cross-project ADV op volume justifies a carefully pinned `/tool`-endpoint experiment.
+
 ## Problem
 
 Cross-project ADV ops via `opencode run --dir <other> --agent build --dangerously-skip-permissions "..."` incur 60–300s LLM-loop overhead even for verification calls that just need to invoke a single MCP tool and exit. Observed during 2026-05-02 pokeedge cleanup: 8 sequential `adv_workflow_repair` calls cost ~30 minutes of agent loop time when the actual work was 8 single-tool invocations totaling <10s of compute.
