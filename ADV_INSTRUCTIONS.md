@@ -851,8 +851,8 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 
 | Class | Commands |
 |---|---|
-| Command-only | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-cleanup`, `adv-clarify`, `adv-refactor`, `adv-improve`, `adv-design`, `adv-audit` |
-| Dedicated skill | `adv-tron` → `adv-tron` |
+| Command-only | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design` |
+| Dedicated skill | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` |
 | Shared skill | `adv-harden`, `adv-slop-scan` → `adv-slop-detection` |
 | Embedded methodology | `adv-discover`, `adv-review` |
 | Dynamic discovery | `adv-discover`, `adv-research` |
