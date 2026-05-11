@@ -30,6 +30,9 @@ export const GitHubProjectConfigSchema = z.object({
   project_number: z.number().int().positive(),
   project_id: z.string().min(1),
   title: z.string().min(1),
+  // rq-repoFilter01: bare repository name used with config.owner to scope
+  // shared GitHub Project reads via server-side `repo:owner/name` query.
+  repository_filter: z.string().min(1).optional(),
   fields: z.object({
     adv_type: z.string(),
     priority: z.string(),

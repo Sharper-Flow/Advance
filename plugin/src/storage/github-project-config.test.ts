@@ -14,6 +14,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import {
+  GitHubProjectConfigSchema,
   readGitHubProjectConfig,
   writeGitHubProjectConfig,
   type GitHubProjectConfig,
@@ -58,6 +59,32 @@ describe("github-project-config", () => {
   afterEach(async () => {
     await cleanupTempDir(dir);
     await cleanupTempDir(externalDir);
+  });
+
+  describe("schema", () => {
+    test("accepts optional repository_filter", () => {
+      expect(
+        GitHubProjectConfigSchema.parse({
+          ...SAMPLE_CONFIG,
+          repository_filter: "PokeEdge-Web",
+        }).repository_filter,
+      ).toBe("PokeEdge-Web");
+    });
+
+    test("preserves backcompat when repository_filter is absent", () => {
+      expect(GitHubProjectConfigSchema.parse(SAMPLE_CONFIG)).toEqual(
+        SAMPLE_CONFIG,
+      );
+    });
+
+    test("rejects empty repository_filter", () => {
+      expect(() =>
+        GitHubProjectConfigSchema.parse({
+          ...SAMPLE_CONFIG,
+          repository_filter: "",
+        }),
+      ).toThrow();
+    });
   });
 
   describe("read", () => {
