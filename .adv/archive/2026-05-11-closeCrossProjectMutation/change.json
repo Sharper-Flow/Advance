@@ -1,0 +1,370 @@
+{
+  "id": "closeCrossProjectMutation",
+  "title": "Close cross-project mutation safety + ergonomics gaps: fix structural target_path routing on holdout task tools, add uniform dryRun preview, and ship non-LLM CLI for ergonomic cross-project ADV tool execution. Establishes the operational completeness of the multirepoproductlinking foundation so ADV agents can safely + fluently work across linked-product repos (e.g. pokeedge-web ↔ pokeedge) without context loss or per-call LLM tax.",
+  "status": "archived",
+  "created_at": "2026-05-11T20:41:59.191Z",
+  "tasks": [
+    {
+      "id": "tk-4cc36c6f6193",
+      "title": "T1 — Add shared target_path schema and dryRun-safe mutation override in target-project.ts.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T22:16:09.456Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:24:26.737Z",
+      "verification": "Verification passed: RED captured missing targetPathSchema and mutation override; GREEN passed `pnpm exec vitest run src/tools/target-project.test.ts` (12 tests) and `pnpm run typecheck`. Checkpoint commit 751d78d3dcb77a9b702f65cf1965749becd2e9f9.",
+      "summary": "Added shared `targetPathSchema` in target-project.ts and added dryRun-safe `mutation` override behavior to `withTargetPathStore`, scoped only to trust-gate resolution. Added target-project tests for temporal-required dry-run target reads without mutation confirmation and shared schema parsing.",
+      "implementation_summary": "Added shared `targetPathSchema` in target-project.ts and added dryRun-safe `mutation` override behavior to `withTargetPathStore`, scoped only to trust-gate resolution. Added target-project tests for temporal-required dry-run target reads without mutation confirmation and shared schema parsing.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:27:15.034Z",
+      "completed_at": "2026-05-11T22:27:15.034Z"
+    },
+    {
+      "id": "tk-6a21df8dbcbe",
+      "title": "T2 — Add target_path routing parity to adv_task_add.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T22:16:17.122Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4cc36c6f6193"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:27:23.148Z",
+      "verification": "Verification passed: RED captured missing target_path routing for adv_task_add; GREEN passed `pnpm exec vitest run src/tools/task.test.ts` (19 tests) and `pnpm run typecheck`. Checkpoint commit f58d355f2ad01c731c52fc68f6efb3317c321940.",
+      "summary": "Added shared `targetPathSchema` usage to `adv_task_add` and wrapped the entire add-task flow in `withTargetPathStore` when `target_path` is provided. Target routing now covers planning-gate lock, blockedBy validation, priority calculation, taskAddedSignal, and context snapshot, with `_projectContext` returned for target calls.",
+      "implementation_summary": "Added shared `targetPathSchema` usage to `adv_task_add` and wrapped the entire add-task flow in `withTargetPathStore` when `target_path` is provided. Target routing now covers planning-gate lock, blockedBy validation, priority calculation, taskAddedSignal, and context snapshot, with `_projectContext` returned for target calls.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:28:41.041Z",
+      "completed_at": "2026-05-11T22:28:41.041Z"
+    },
+    {
+      "id": "tk-14e2743af7f3",
+      "title": "T3 — Add target_path routing parity to adv_task_cancel and adv_task_reclassify_tdd.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-11T22:16:21.888Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4cc36c6f6193"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:28:48.260Z",
+      "verification": "Verification passed: RED captured missing target_path routing for cancel/reclassify; GREEN passed `pnpm exec vitest run src/tools/task.test.ts` (21 tests) and `pnpm run typecheck`. Checkpoint commit ae2ba2c05f62c4220b1a28204d0cb01b09e13e07.",
+      "summary": "Added shared `targetPathSchema` usage to `adv_task_cancel` and `adv_task_reclassify_tdd`. Wrapped both flows in target-store closures so validation, task lookup, change resolution, signals, and snapshots use the target store when `target_path` is provided. Added `_projectContext` output for target calls.",
+      "implementation_summary": "Added shared `targetPathSchema` usage to `adv_task_cancel` and `adv_task_reclassify_tdd`. Wrapped both flows in target-store closures so validation, task lookup, change resolution, signals, and snapshots use the target store when `target_path` is provided. Added `_projectContext` output for target calls.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:30:09.808Z",
+      "completed_at": "2026-05-11T22:30:09.808Z"
+    },
+    {
+      "id": "tk-40b1ba9fcd00",
+      "title": "T4 — Add same-shape dryRun to change mutation tools.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-11T22:16:28.230Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:30:17.265Z",
+      "verification": "Verification passed: RED captured missing dryRun behavior on close/bulk_close/reenter; GREEN passed `pnpm exec vitest run src/tools/change.test.ts` (20 tests) and `pnpm run typecheck`. Checkpoint commit 54df4ffadae5898d10bedf9fddd7221e580b3793.",
+      "summary": "Added same-shape `dryRun` support to `adv_change_close`, `adv_change_bulk_close`, and `adv_change_reenter`. DryRun branches now validate inputs/selection/status and return preview responses with `dryRun: true` while skipping Temporal signals and disk cleanup/sweep.",
+      "implementation_summary": "Added same-shape `dryRun` support to `adv_change_close`, `adv_change_bulk_close`, and `adv_change_reenter`. DryRun branches now validate inputs/selection/status and return preview responses with `dryRun: true` while skipping Temporal signals and disk cleanup/sweep.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:31:29.945Z",
+      "completed_at": "2026-05-11T22:31:29.945Z"
+    },
+    {
+      "id": "tk-fdd679f93159",
+      "title": "T5 — Add same-shape dryRun to adv_task_cancel, including target_path dryRun behavior.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-11T22:16:33.295Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4cc36c6f6193"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-14e2743af7f3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:31:37.183Z",
+      "verification": "Verification passed: RED captured missing adv_task_cancel dryRun and target_path dryRun mutation:false behavior; GREEN passed `pnpm exec vitest run src/tools/task.test.ts` (23 tests) and `pnpm run typecheck`. Checkpoint commit 1210fa5b6e885fda41b4a288a8028129e6ffb38a.",
+      "summary": "Added same-shape `dryRun` support to `adv_task_cancel`. DryRun validates approval, reasons, and task IDs, returns `wouldCancel` preview with `dryRun: true`, and skips taskCancelledSignal. Target-path dryRun now routes through target store with `mutation: false` so validation can read target Temporal state without untrusted mutation confirmation.",
+      "implementation_summary": "Added same-shape `dryRun` support to `adv_task_cancel`. DryRun validates approval, reasons, and task IDs, returns `wouldCancel` preview with `dryRun: true`, and skips taskCancelledSignal. Target-path dryRun now routes through target store with `mutation: false` so validation can read target Temporal state without untrusted mutation confirmation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:32:40.313Z",
+      "completed_at": "2026-05-11T22:32:40.313Z"
+    },
+    {
+      "id": "tk-cf839ee9295d",
+      "title": "T6 — Add same-shape dryRun to worktree deletion/cleanup tools.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-11T22:16:38.404Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:32:49.656Z",
+      "verification": "Verification passed: RED captured missing worktree dryRun pass-through; GREEN passed `pnpm exec vitest run src/tools/adv-worktree.test.ts` (6 tests) and `pnpm run typecheck`. Checkpoint commit 3ca4134eb17c57fcf587a5f9f86ccbda65b76ceb.",
+      "summary": "Added `dryRun` args to `adv_worktree_delete` and `adv_worktree_cleanup`, passed dryRun into underlying worktree functions, and added no-delete guards. Delete dryRun returns success preview after integration/uncommitted checks and before hooks/removal. Cleanup dryRun reports retained pending deletions without deleting or clearing registry entries.",
+      "implementation_summary": "Added `dryRun` args to `adv_worktree_delete` and `adv_worktree_cleanup`, passed dryRun into underlying worktree functions, and added no-delete guards. Delete dryRun returns success preview after integration/uncommitted checks and before hooks/removal. Cleanup dryRun reports retained pending deletions without deleting or clearing registry entries.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:34:36.115Z",
+      "completed_at": "2026-05-11T22:34:36.115Z"
+    },
+    {
+      "id": "tk-bb2e0eb7b225",
+      "title": "T7 — Add same-shape dryRun to conformance override/unlock actions.",
+      "type": "code",
+      "section": "Implementation Tasks",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-11T22:16:42.923Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:34:45.822Z",
+      "verification": "T7 complete. Checkpoint e1383d1aefc54a0aa8ab6b36fae24ba6bd65909b.",
+      "summary": "Added `dryRun?: boolean` support to `adv_conformance` unlock/override. DryRun now validates audit inputs and tracked spec, computes normal same-shape response plus `dryRun: true`, and skips state save, audit append persistence, and conformance signals. Added tests proving unlock dryRun leaves locked state/audit unchanged and override dryRun skips audit write/signal.",
+      "implementation_summary": "Added `dryRun?: boolean` support to `adv_conformance` unlock/override. DryRun now validates audit inputs and tracked spec, computes normal same-shape response plus `dryRun: true`, and skips state save, audit append persistence, and conformance signals. Added tests proving unlock dryRun leaves locked state/audit unchanged and override dryRun skips audit write/signal.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:37:40.636Z",
+      "completed_at": "2026-05-11T22:37:40.636Z"
+    },
+    {
+      "id": "tk-615b46e9fef1",
+      "title": "T8 — Add spec deltas for cross-project task mutation routing, dryRun mutation behavior, and non-LLM execution investigation outcome.",
+      "type": "code",
+      "section": "Specification / Documentation Tasks",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-11T22:16:49.716Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:37:52.514Z",
+      "verification": "T8 complete. Checkpoint affa49271847409a88b58671b8d700300d7ac824.",
+      "summary": "Added advance-workflow requirements `rq-crossProjectTaskMutation01`, `rq-dryRunMutation01`, and `rq-nonLlmToolExec01`; bumped spec version to 1.8.1. Added external citations in task/conformance implementation comments and F10 investigation doc so spec-citation invariant passes. Formatted touched files.",
+      "implementation_summary": "Added advance-workflow requirements `rq-crossProjectTaskMutation01`, `rq-dryRunMutation01`, and `rq-nonLlmToolExec01`; bumped spec version to 1.8.1. Added external citations in task/conformance implementation comments and F10 investigation doc so spec-citation invariant passes. Formatted touched files.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:41:26.612Z",
+      "completed_at": "2026-05-11T22:41:26.612Z"
+    },
+    {
+      "id": "tk-6cb489ac60c7",
+      "title": "T9 — Update ADV docs and GitHub issue context for F10/#71 and cross-project tool matrix.",
+      "type": "code",
+      "section": "Specification / Documentation Tasks",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-11T22:16:56.662Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-615b46e9fef1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "updatedAt": "2026-05-11T22:24:06.271Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:41:41.047Z",
+      "verification": "T9 complete. Checkpoint 2126298aabb912e840ae247fac409abd63116e85. GitHub #71 updated: https://github.com/Sharper-Flow/Advance/issues/71#issuecomment-4425748592.",
+      "summary": "Updated ADV_INSTRUCTIONS target_path support list to include adv_task_reclassify_tdd, added dryRun/non-LLM execution guidance, compressed Cross-Project Coordination to pass line guard. Updated AGENTS cross-project gotchas with task mutation routing, dryRun, and non-LLM execution notes. Updated docs/f10-investigation.md with 2026-05-11 #71 outcome and supported paths. Added GitHub issue #71 comment and corrected ADV linked issue URL from Opencode-Advance#71 to Advance#71.",
+      "implementation_summary": "Updated ADV_INSTRUCTIONS target_path support list to include adv_task_reclassify_tdd, added dryRun/non-LLM execution guidance, compressed Cross-Project Coordination to pass line guard. Updated AGENTS cross-project gotchas with task mutation routing, dryRun, and non-LLM execution notes. Updated docs/f10-investigation.md with 2026-05-11 #71 outcome and supported paths. Added GitHub issue #71 comment and corrected ADV linked issue URL from Opencode-Advance#71 to Advance#71.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:45:25.098Z",
+      "completed_at": "2026-05-11T22:45:25.098Z"
+    },
+    {
+      "id": "tk-061da16e97bc",
+      "title": "T10 — Cross-project integration and dogfood verification.",
+      "type": "code",
+      "section": "Verification / Acceptance Tasks",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-11T22:17:02.851Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6a21df8dbcbe"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-14e2743af7f3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-40b1ba9fcd00"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fdd679f93159"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-cf839ee9295d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bb2e0eb7b225"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6cb489ac60c7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-11T22:24:06.268Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T22:45:42.590Z",
+      "verification": "T10 complete. Checkpoint d90da443190fbce1d9ce1a6809dd4f03b0a7ad45. Live target_path dryRun mutation E2E needs fresh OpenCode session because current host cached pre-build dist; source integration/build passed.",
+      "summary": "Ran cross-project/product dogfood reads against `/home/jrede/dev/pokeedge` and `/home/jrede/dev/pokeedge-web` using target_path/product scope; both returned target project context and active changes/tasks. Ran full `pnpm run check`, targeted changed-surface Vitest suite (151 tests), instruction asset suite (70 tests), and `pnpm run build`. Repaired compressed ADV target_path matrix asset test and formatted source files flagged by repo check. Isolated remaining full-suite failure to known unrelated overlay runtime-canary environment test. Built plugin/worker dist successfully; live tool mutation E2E must be re-run in fresh host due OpenCode plugin dist caching.",
+      "implementation_summary": "Ran cross-project/product dogfood reads against `/home/jrede/dev/pokeedge` and `/home/jrede/dev/pokeedge-web` using target_path/product scope; both returned target project context and active changes/tasks. Ran full `pnpm run check`, targeted changed-surface Vitest suite (151 tests), instruction asset suite (70 tests), and `pnpm run build`. Repaired compressed ADV target_path matrix asset test and formatted source files flagged by repo check. Isolated remaining full-suite failure to known unrelated overlay runtime-canary environment test. Built plugin/worker dist successfully; live tool mutation E2E must be re-run in fresh host due OpenCode plugin dist caching.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T22:51:54.814Z",
+      "completed_at": "2026-05-11T22:51:54.814Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-PDMASO",
+      "type": "gotcha",
+      "content": "GitHub issue URLs in ADV change metadata can point at stale/renamed repositories. Before updating issue context, verify with `gh issue view` against the actual `git remote` repo; correct ADV links via `adv_change_update_issues` so archive automation targets the reachable issue.",
+      "source_task": "tk-6cb489ac60c7",
+      "recorded_at": "2026-05-11T22:45:32.002Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T20:47:33.596Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Proposal approved by user reply `continue`. Problem statement and full proposal written; ambiguity scan B/F/S passed with Coverage B:C F:C S:C M:C and no critical findings. Proceeding directly into discovery per post-approval auto-continue."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T22:12:15.962Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Discovery completed. LBP research found #110/#68 validated and #71 must be investigated rather than blindly implemented. User approved acceptance criteria with `approve`; agreement persisted."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T22:15:45.288Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design complete. Validator verdict VALIDATED with implementation cautions; all cautions incorporated into design. No unresolved conflict, no contract-compromise risk, and no user-value tradeoff remains after discovery decisions."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T22:24:11.462Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Prep approved by user reply `approve`. Task graph has 10 tasks with dependencies. TDD intents corrected for docs-only and cross-cutting verification tasks. Strict validation passed with expected NO_DELTAS warning before spec task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-11T22:52:06.968Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Execution complete: 10/10 tasks done with checkpoint commits. Verification: `pnpm run check` passed; targeted changed-surface suite passed (151 tests); instruction asset suite passed; `pnpm run build` passed. Full `pnpm test` has one known unrelated overlay runtime-canary environment failure; source integration/build passed. Cross-project read dogfood against pokeedge and pokeedge-web succeeded; live mutation E2E requires fresh OpenCode host due cached dist."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-11T23:20:23.578Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted delivered execution with reply `accept`. Review findings: no blockers; one known unrelated full-suite environment failure in overlay-sync runtime-canary test; live same-session target_path mutation E2E limited by cached pre-build plugin dist, with source tests/build passing and fresh-session E2E noted. Verification passed: pnpm run check, targeted changed-surface suite (151 tests), instruction asset suites (70 tests), pnpm run build, cross-project read dogfood against pokeedge and pokeedge-web."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-11T23:21:21.060Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Archive sign-off received from user reply `sign off`. Release checks passed: adv_change_validate strict passed with expected NO_DELTAS warning; conformance status has no required specs; worktree clean before archive. Remaining caveat documented: fresh OpenCode session needed for live tool E2E because current host cached pre-build plugin dist."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "github_issues": [
+    "https://github.com/Sharper-Flow/Opencode-Advance/issues/110",
+    "https://github.com/Sharper-Flow/Opencode-Advance/issues/68",
+    "https://github.com/Sharper-Flow/Opencode-Advance/issues/59",
+    "https://github.com/Sharper-Flow/Advance/issues/71"
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-11T20:49:02.166Z",
+      "resolved": true,
+      "resolved_at": "2026-05-11T22:35:48.436Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-11T20:49:02.166Z",
+      "resolved": true,
+      "resolved_at": "2026-05-11T22:35:48.436Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-11T22:35:48.436Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-11T22:35:48.436Z"
+    }
+  ]
+}
