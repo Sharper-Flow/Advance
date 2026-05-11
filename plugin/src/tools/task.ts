@@ -746,6 +746,7 @@ export const taskTools = {
         .describe(
           "Optional per-task superseding task ID mapping (e.g., { 'tk-abc': 'tk-xyz' }). Populate only when a cancelled task is replaced by another task in the same change.",
         ),
+      ...targetPathSchema.shape,
     },
     execute: async (
       args: {
@@ -754,126 +755,151 @@ export const taskTools = {
         approvedByUser: true;
         approvalEvidence: string;
         supersededBy?: Record<string, string>;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      const {
-        taskIds,
-        approvedByUser,
-        approvalEvidence,
-        supersededBy: _supersededBy,
-      } = args;
-      const reasons = args.reasons ?? {};
+      const runCancel = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const {
+          taskIds,
+          approvedByUser,
+          approvalEvidence,
+          supersededBy: _supersededBy,
+        } = args;
+        const reasons = args.reasons ?? {};
 
-      // Validate every task has a reason
-      const missingReasons = taskIds.filter((id) => !reasons[id]);
-      if (missingReasons.length > 0) {
-        return formatToolOutput({
-          error: `Missing cancellation reason for tasks: ${missingReasons.join(", ")}. Every task requires a per-task reason.`,
-          missingReasons,
-        });
-      }
-
-      if (!approvedByUser) {
-        return formatToolOutput({
-          error:
-            "approvedByUser must be true. You must present cancellations to the user and obtain explicit approval before calling this tool.",
-        });
-      }
-
-      if (!approvalEvidence || approvalEvidence.trim().length === 0) {
-        return formatToolOutput({
-          error:
-            "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
-        });
-      }
-
-      // P1.12 Scope C: pre-flight relational validation of task IDs.
-      const unknownTaskIds: string[] = [];
-      for (const taskId of taskIds) {
-        const existing = await store.tasks.show(taskId);
-        if (!existing) {
-          unknownTaskIds.push(taskId);
-        }
-      }
-      if (unknownTaskIds.length > 0) {
-        return formatToolOutput({
-          error:
-            unknownTaskIds.length === 1
-              ? `Task ID not found: '${unknownTaskIds[0]}'. No tasks were cancelled.`
-              : `Task IDs not found: ${unknownTaskIds.map((id) => `'${id}'`).join(", ")}. No tasks were cancelled.`,
-          hint: "Confirm each task ID with 'adv_task_list changeId: <id>' before retrying. Cancellations are atomic — all IDs must be valid or none are cancelled.",
-          unknownTaskIds,
-        });
-      }
-
-      const results: Array<{
-        taskId: string;
-        success: boolean;
-        error?: string;
-      }> = [];
-      const cancelledTasks: Array<{ id: string; title: string }> = [];
-      const now = new Date().toISOString();
-
-      for (const taskId of taskIds) {
-        const changeId = await resolveChangeId(store, taskId);
-        if (!changeId) {
-          results.push({
-            taskId,
-            success: false,
-            error: `Task not found: ${taskId}`,
-          });
-          continue;
-        }
-
-        try {
-          const handle = await getHandleForChangeId(store, changeId);
-          await fireSignalAndRefresh(
-            handle,
-            store,
-            changeId,
-            taskCancelledSignal,
-            {
-              taskId,
-              approvalEvidence,
-              reason: reasons[taskId],
-              cancelledAt: now,
-            },
-          );
-          results.push({ taskId, success: true });
-          cancelledTasks.push({ id: taskId, title: "(cancelled)" });
-        } catch (err) {
-          results.push({
-            taskId,
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
+        // Validate every task has a reason
+        const missingReasons = taskIds.filter((id) => !reasons[id]);
+        if (missingReasons.length > 0) {
+          return formatToolOutput({
+            error: `Missing cancellation reason for tasks: ${missingReasons.join(", ")}. Every task requires a per-task reason.`,
+            missingReasons,
           });
         }
-      }
 
-      const allSuccess = results.every((r) => r.success);
+        if (!approvedByUser) {
+          return formatToolOutput({
+            error:
+              "approvedByUser must be true. You must present cancellations to the user and obtain explicit approval before calling this tool.",
+          });
+        }
 
-      const output: Record<string, unknown> = {
-        success: allSuccess,
-        cancelled: cancelledTasks,
-        results,
-        message: allSuccess
-          ? `Cancelled ${cancelledTasks.length} task(s) with user approval.`
-          : `Partial cancellation: ${results.filter((r) => r.success).length}/${taskIds.length} succeeded.`,
-      };
+        if (!approvalEvidence || approvalEvidence.trim().length === 0) {
+          return formatToolOutput({
+            error:
+              "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
+          });
+        }
 
-      if (cancelledTasks.length > 0) {
-        const firstTask = await store.tasks.show(cancelledTasks[0].id);
-        const changeId = firstTask?.changeId;
-        if (changeId) {
-          const snapshot = await fetchChangeContextTicker(store, changeId);
-          if (snapshot) {
-            output._contextSnapshot = snapshot;
+        // P1.12 Scope C: pre-flight relational validation of task IDs.
+        const unknownTaskIds: string[] = [];
+        for (const taskId of taskIds) {
+          const existing = await activeStore.tasks.show(taskId);
+          if (!existing) {
+            unknownTaskIds.push(taskId);
           }
         }
+        if (unknownTaskIds.length > 0) {
+          return formatToolOutput({
+            error:
+              unknownTaskIds.length === 1
+                ? `Task ID not found: '${unknownTaskIds[0]}'. No tasks were cancelled.`
+                : `Task IDs not found: ${unknownTaskIds.map((id) => `'${id}'`).join(", ")}. No tasks were cancelled.`,
+            hint: "Confirm each task ID with 'adv_task_list changeId: <id>' before retrying. Cancellations are atomic — all IDs must be valid or none are cancelled.",
+            unknownTaskIds,
+          });
+        }
+
+        const results: Array<{
+          taskId: string;
+          success: boolean;
+          error?: string;
+        }> = [];
+        const cancelledTasks: Array<{ id: string; title: string }> = [];
+        const now = new Date().toISOString();
+
+        for (const taskId of taskIds) {
+          const changeId = await resolveChangeId(activeStore, taskId);
+          if (!changeId) {
+            results.push({
+              taskId,
+              success: false,
+              error: `Task not found: ${taskId}`,
+            });
+            continue;
+          }
+
+          try {
+            const handle = await getHandleForChangeId(activeStore, changeId);
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              taskCancelledSignal,
+              {
+                taskId,
+                approvalEvidence,
+                reason: reasons[taskId],
+                cancelledAt: now,
+              },
+            );
+            results.push({ taskId, success: true });
+            cancelledTasks.push({ id: taskId, title: "(cancelled)" });
+          } catch (err) {
+            results.push({
+              taskId,
+              success: false,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
+
+        const allSuccess = results.every((r) => r.success);
+
+        const output: Record<string, unknown> = {
+          success: allSuccess,
+          cancelled: cancelledTasks,
+          results,
+          message: allSuccess
+            ? `Cancelled ${cancelledTasks.length} task(s) with user approval.`
+            : `Partial cancellation: ${results.filter((r) => r.success).length}/${taskIds.length} succeeded.`,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        };
+
+        if (cancelledTasks.length > 0) {
+          const firstTask = await activeStore.tasks.show(cancelledTasks[0].id);
+          const changeId = firstTask?.changeId;
+          if (changeId) {
+            const snapshot = await fetchChangeContextTicker(activeStore, changeId);
+            if (snapshot) {
+              output._contextSnapshot = snapshot;
+            }
+          }
+        }
+
+        return formatToolOutput(output);
+      };
+
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runCancel(targetStore, formatTargetProjectContext(context)),
+        );
       }
 
-      return formatToolOutput(output);
+      return runCancel(store);
     },
   },
 
@@ -897,6 +923,7 @@ export const taskTools = {
         .describe(
           "Evidence of user approval (e.g., 'User approved via question tool')",
         ),
+      ...targetPathSchema.shape,
     },
     execute: async (
       args: {
@@ -905,76 +932,101 @@ export const taskTools = {
         reason: string;
         approvedByUser: true;
         approvalEvidence: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      if (!args.approvedByUser) {
-        return formatToolOutput({
-          error:
-            "approvedByUser must be true. You must present the reclassification to the user and obtain explicit approval before calling this tool.",
-        });
-      }
+      const runReclassify = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (!args.approvedByUser) {
+          return formatToolOutput({
+            error:
+              "approvedByUser must be true. You must present the reclassification to the user and obtain explicit approval before calling this tool.",
+          });
+        }
 
-      if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
-        return formatToolOutput({
-          error:
-            "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
-        });
-      }
+        if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
+          return formatToolOutput({
+            error:
+              "approvalEvidence is required. Describe how the user approved (e.g., question tool response).",
+          });
+        }
 
-      const taskResult = await store.tasks.show(args.taskId);
-      if (!taskResult) {
-        return formatToolOutput({
-          error: `Task not found: ${args.taskId}`,
-        });
-      }
+        const taskResult = await activeStore.tasks.show(args.taskId);
+        if (!taskResult) {
+          return formatToolOutput({
+            error: `Task not found: ${args.taskId}`,
+          });
+        }
 
-      const { task } = taskResult;
+        const { task } = taskResult;
 
-      if (task.status === "cancelled") {
-        return formatToolOutput({
-          error: `Task ${args.taskId} is cancelled. Cannot reclassify TDD intent on a cancelled task.`,
-        });
-      }
+        if (task.status === "cancelled") {
+          return formatToolOutput({
+            error: `Task ${args.taskId} is cancelled. Cannot reclassify TDD intent on a cancelled task.`,
+          });
+        }
 
-      const currentIntent = task.metadata?.tdd_intent;
+        const currentIntent = task.metadata?.tdd_intent;
 
-      if (currentIntent === args.toIntent) {
-        return formatToolOutput({
-          error: `Task ${args.taskId} already has tdd_intent="${args.toIntent}". No reclassification needed.`,
-        });
-      }
+        if (currentIntent === args.toIntent) {
+          return formatToolOutput({
+            error: `Task ${args.taskId} already has tdd_intent="${args.toIntent}". No reclassification needed.`,
+          });
+        }
 
-      const changeId = taskResult.changeId;
-      const handle = await getHandleForChangeId(store, changeId);
-      const now = new Date().toISOString();
+        const changeId = taskResult.changeId;
+        const handle = await getHandleForChangeId(activeStore, changeId);
+        const now = new Date().toISOString();
 
-      await fireSignalAndRefresh(handle, store, changeId, taskUpdatedSignal, {
-        taskId: args.taskId,
-        partial: {
-          metadata: {
-            ...task.metadata,
-            tdd_intent: args.toIntent,
+        await fireSignalAndRefresh(handle, activeStore, changeId, taskUpdatedSignal, {
+          taskId: args.taskId,
+          partial: {
+            metadata: {
+              ...task.metadata,
+              tdd_intent: args.toIntent,
+            },
           },
-        },
-        updatedAt: now,
-      });
+          updatedAt: now,
+        });
 
-      const reclassification: TddReclassification = {
-        from_intent: currentIntent ?? "none",
-        to_intent: args.toIntent,
-        reason: args.reason,
-        approved_by_user: true,
-        approval_evidence: args.approvalEvidence,
-        approved_at: now,
+        const reclassification: TddReclassification = {
+          from_intent: currentIntent ?? "none",
+          to_intent: args.toIntent,
+          reason: args.reason,
+          approved_by_user: true,
+          approval_evidence: args.approvalEvidence,
+          approved_at: now,
+        };
+
+        return formatToolOutput({
+          success: true,
+          taskId: args.taskId,
+          reclassification,
+          message: `Reclassified tdd_intent from "${currentIntent}" to "${args.toIntent}" with user approval.`,
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
       };
 
-      return formatToolOutput({
-        success: true,
-        taskId: args.taskId,
-        reclassification,
-        message: `Reclassified tdd_intent from "${currentIntent}" to "${args.toIntent}" with user approval.`,
-      });
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            stateRequirement: "temporal-required",
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+          },
+          async ({ context, store: targetStore }) =>
+            runReclassify(targetStore, formatTargetProjectContext(context)),
+        );
+      }
+
+      return runReclassify(store);
     },
   },
 };

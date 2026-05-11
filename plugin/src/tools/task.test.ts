@@ -614,6 +614,58 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.missingReasons).toEqual(["tk-abc"]);
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    test("routes target_path cancellation through the target store", async () => {
+      const store = createMockStore();
+      mocks.targetStore.tasks.show.mockResolvedValue({
+        task: {
+          id: "tk-target",
+          title: "Target Task",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+        },
+        changeId: "target-change",
+      });
+
+      const result = await taskTools.adv_task_cancel.execute(
+        {
+          taskIds: ["tk-target"],
+          reasons: { "tk-target": "No longer needed" },
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.targetStore.tasks.show).toHaveBeenCalledWith("tk-target");
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({
+          taskId: "tk-target",
+          reason: "No longer needed",
+        }),
+      );
+    });
   });
 
   describe("adv_task_reclassify_tdd", () => {
@@ -652,6 +704,60 @@ describe("task tools — signal/query adapters", () => {
           metadata: { tdd_intent: "not_applicable" },
         },
       });
+    });
+
+    test("routes target_path TDD reclassification through the target store", async () => {
+      const store = createMockStore();
+      const task = {
+        id: "tk-target",
+        title: "Target Task",
+        status: "pending",
+        metadata: { tdd_intent: "inline" },
+      } as import("../types").Task;
+      mocks.targetStore.tasks.show.mockResolvedValue({
+        task,
+        changeId: "target-change",
+      });
+
+      const result = await taskTools.adv_task_reclassify_tdd.execute(
+        {
+          taskId: "tk-target",
+          toIntent: "not_applicable",
+          reason: "Docs task",
+          approvedByUser: true,
+          approvalEvidence: "User approved",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        } as Parameters<typeof taskTools.adv_task_reclassify_tdd.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
+      expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentProjectPath: "/tmp/test",
+          target_path: "/tmp/target",
+          stateRequirement: "temporal-required",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        }),
+        expect.any(Function),
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({
+          taskId: "tk-target",
+          partial: {
+            metadata: { tdd_intent: "not_applicable" },
+          },
+        }),
+      );
     });
   });
 });
