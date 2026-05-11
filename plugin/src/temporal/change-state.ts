@@ -271,6 +271,9 @@ export function applyTaskCompletedToState(
   task.checkpointSha = payload.checkpointSha;
   task.completedAt = payload.completedAt;
   task.completed_at = payload.completedAt;
+  if (payload.structured_output) {
+    task.structured_output = payload.structured_output;
+  }
   setLastSignalAt(state, payload.completedAt);
   return state;
 }

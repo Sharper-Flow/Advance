@@ -451,6 +451,58 @@ describe("changeWorkflow signal handlers", () => {
     });
   }, 30_000);
 
+  it("stores structured_output from taskCompletedSignal on task", async () => {
+    await withSignalWorker("structured-output", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-struct", "structured output task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(taskCompletedSignal, {
+        taskId: "tk-struct",
+        verification: "tests pass",
+        summary: "implemented feature",
+        filesTouched: [],
+        completedAt: "2026-05-05T00:00:02.000Z",
+        structured_output: {
+          filesChanged: [{ path: "src/foo.ts", linesAdded: 5 }],
+          testsAdded: 2,
+          testsModified: 0,
+          decisions: [{ decision: "use schema", why: "type safety" }],
+          followUps: [],
+        },
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-struct");
+      expect(task).toBeDefined();
+      expect(task!.structured_output).toBeDefined();
+      expect(task!.structured_output.filesChanged).toHaveLength(1);
+      expect(task!.structured_output.filesChanged[0].path).toBe("src/foo.ts");
+      expect(task!.structured_output.testsAdded).toBe(2);
+    });
+  }, 30_000);
+
+  it("taskCompletedSignal without structured_output leaves field undefined", async () => {
+    await withSignalWorker("no-structured-output", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-nostruct", "no structured output task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(taskCompletedSignal, {
+        taskId: "tk-nostruct",
+        verification: "done",
+        summary: "completed",
+        filesTouched: [],
+        completedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-nostruct");
+      expect(task).toBeDefined();
+      expect(task!.structured_output).toBeUndefined();
+    });
+  }, 30_000);
+
   it("drains in-flight handlers before continuing as new", () => {
     const source = readFileSync(workflowsPath, "utf8");
 
