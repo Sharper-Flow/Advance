@@ -162,7 +162,12 @@ describe("ChangeSummaryMemo", () => {
       ["reg-b", s2],
     ]);
     expect(memo.size()).toBe(2);
-    expect(memo.getAll().map((s) => s.id).sort()).toEqual(["reg-a", "reg-b"]);
+    expect(
+      memo
+        .getAll()
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual(["reg-a", "reg-b"]);
 
     // invalidate one
     memo.invalidate("reg-a");
