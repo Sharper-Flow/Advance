@@ -40,10 +40,20 @@ Methodology for `/adv-audit`: compare specs with implementation, detect drift/co
 | Orphaned code | ≤3 files |
 | Spec conflicts | 0 |
 | Coverage | ≥80% |
+| CRITICAL ambiguity | 0 |
+| HIGH ambiguity | ≤3 |
 
 ### Strict
 
-All drift/conflict/orphan thresholds → 0. Coverage → 100%.
+All drift/conflict/orphan/ambiguity thresholds → 0. Coverage → 100%.
+
+### Ambiguity Gate Behavior
+
+| `clarify_enforcement` | Behavior |
+|---|---|
+| `off` | Skip ambiguity detection |
+| `advisory` | Include findings in report; do not affect health status |
+| `strict` | Enforce CRITICAL=0 and HIGH thresholds |
 
 ## Analysis Dimensions
 
@@ -56,6 +66,22 @@ Extract from each spec:
 - Given/When/Then scenarios
 - file/code references
 - malformed or ambiguous requirement smells
+
+### Ambiguity Detection
+
+Inline pure-function scan using `runSpecAmbiguityChecks(markdown, capability)` with B/F/S/Q/E taxonomy:
+
+| Category | Focus | Example trigger |
+|---|---|---|
+| **B** — Boundaries | Vague scope without explicit in/out | "handle all edge cases" |
+| **F** — Functional | Vague behavioral terms, missing scenarios | "appropriate behavior" |
+| **S** — Completion Signals | Subjective success criteria | "fast response" without threshold |
+| **Q** — Quality Attributes | Unquantified NFR claims | "scalable" without metric |
+| **E** — Error Handling | Failure potential without failure scenarios | Describes retry without timeout/fallback |
+
+Severity: CRITICAL | HIGH | MEDIUM | LOW. Each finding includes verbatim `specText`, `issue`, and `fix`.
+
+Skipped when `clarify_enforcement: 'off'`. Advisory mode includes findings without affecting gates. Strict mode enforces thresholds.
 
 ### Code Mapper
 
@@ -144,14 +170,20 @@ Aggregate:
 - orphan files
 - malformed specs
 - coverage
+- ambiguity findings by severity (when enabled)
 
 Health status:
 
 | Status | Criteria |
 |---|---|
 | ALIGNED | all quality gates pass |
-| DRIFT_DETECTED | any gate fails, but no HIGH drift/conflict |
-| MAJOR_DRIFT | HIGH drift or conflicts present |
+| DRIFT_DETECTED | any gate fails, but no HIGH drift/conflict/ambiguity |
+| MAJOR_DRIFT | HIGH drift, conflicts, or CRITICAL ambiguity present |
+
+Ambiguity-promoted health:
+- CRITICAL ambiguity ≥ 1 → MAJOR_DRIFT
+- HIGH ambiguity > 3 (standard) or any HIGH (strict) → DRIFT_DETECTED
+- `clarify_enforcement: 'advisory'` → findings in report only, no health promotion
 
 ## Report Schema
 
@@ -176,6 +208,17 @@ JSON report:
   "drift": [],
   "conflicts": [],
   "orphans": [],
+  "ambiguity": [
+    {
+      "id": "...",
+      "category": "B|F|S|Q|E",
+      "severity": "CRITICAL|HIGH|MEDIUM|LOW",
+      "spec": "capability/rq-id",
+      "specText": "verbatim quote",
+      "issue": "...",
+      "fix": "..."
+    }
+  ],
   "recommendations": []
 }
 ```
