@@ -114,11 +114,6 @@ const VAGUE_BOUNDARY_PATTERN =
  */
 const SCENARIO_PATTERN = /^[ \t]*(?:[-*]|\d+\.)?[ \t]*(?:Given|When|Then)[ :]/m;
 
-/**
- * Requirement ID pattern — matches rq-xxx format.
- */
-const REQUIREMENT_ID_PATTERN = /^(\s*-\s*)?(id|rq-\w+):/m;
-
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -137,7 +132,7 @@ function extractRequirements(markdown: string): Array<{
   // Match requirement blocks: lines starting with ### or containing rq- IDs
   // Typical spec format: "### rq-xxxTitle" or "- id: rq-xxx"
   const reqPattern =
-    /(?:^###\s*(rq-\w+)\s*[:\-]\s*(.+)$)|(?:^\*?\*?id\*?\*?:\s*(rq-\w+)\s*$)/gm;
+    /(?:^###\s*(rq-\w+)\s*[:-]\s*(.+)$)|(?:^\*?\*?id\*?\*?:\s*(rq-\w+)\s*$)/gm;
 
   let match;
   while ((match = reqPattern.exec(markdown)) !== null) {
@@ -146,7 +141,8 @@ function extractRequirements(markdown: string): Array<{
     // Extract body: everything until next ### or --- separator or next requirement
     const bodyStart = match.index + match[0].length;
     const nextReq =
-      markdown.slice(bodyStart).search(/(?:^###\s*(?:rq-))|(?:^---)/m) + bodyStart;
+      markdown.slice(bodyStart).search(/(?:^###\s*(?:rq-))|(?:^---)/m) +
+      bodyStart;
     const body =
       nextReq > bodyStart
         ? markdown.slice(bodyStart, nextReq).trim()
@@ -220,8 +216,7 @@ export function checkBoundaryAmbiguity(
       const lineMatch = req.body
         .split("\n")
         .find((l) => VAGUE_BOUNDARY_PATTERN.test(l));
-      const specText =
-        lineMatch?.trim() || match[0];
+      const specText = lineMatch?.trim() || match[0];
 
       issues.push(
         makeFinding({
@@ -265,7 +260,11 @@ export function checkFunctionalAmbiguity(
     if (vagueBehavior) {
       const lineMatch = req.body
         .split("\n")
-        .find((l) => /\b(appropriate|correct|proper(ly)?|reasonable|expected|suitable|adequate|acceptable)\b/i.test(l));
+        .find((l) =>
+          /\b(appropriate|correct|proper(ly)?|reasonable|expected|suitable|adequate|acceptable)\b/i.test(
+            l,
+          ),
+        );
       issues.push(
         makeFinding({
           code: SpecAmbiguityCodes.SPEC_FUNCTIONAL_AMBIGUITY,
@@ -291,9 +290,7 @@ export function checkFunctionalAmbiguity(
       // Only flag as MEDIUM — not all requirements need scenarios
       const firstBehavioralLine = req.body
         .split("\n")
-        .find((l) =>
-          /\b(must|shall|should)\b/i.test(l),
-        );
+        .find((l) => /\b(must|shall|should)\b/i.test(l));
 
       if (firstBehavioralLine) {
         issues.push(
@@ -304,7 +301,8 @@ export function checkFunctionalAmbiguity(
             capability: capabilityName,
             requirementId: req.id,
             specText: firstBehavioralLine.trim(),
-            issue: "Requirement has normative language (MUST/SHALL/SHOULD) but no Given/When/Then scenarios.",
+            issue:
+              "Requirement has normative language (MUST/SHALL/SHOULD) but no Given/When/Then scenarios.",
             fix: "Add at least one scenario with Given/When/Then clauses to make the requirement testable.",
           }),
         );
@@ -426,9 +424,9 @@ export function checkErrorHandling(
     if (FAILURE_HANDLED_PATTERN.test(req.body)) continue;
 
     // Does the requirement already have failure scenarios?
-    const hasFailureScenario = /\b(fail|error|timeout|invalid|reject)\b/i.test(
-      req.body,
-    ) && SCENARIO_PATTERN.test(req.body);
+    const hasFailureScenario =
+      /\b(fail|error|timeout|invalid|reject)\b/i.test(req.body) &&
+      SCENARIO_PATTERN.test(req.body);
 
     if (hasFailureScenario) continue;
 
@@ -444,7 +442,8 @@ export function checkErrorHandling(
         capability: capabilityName,
         requirementId: req.id,
         specText: lineMatch?.trim() || req.body.split("\n")[0]?.trim() || "",
-        issue: "Requirement describes behavior with failure potential but no error handling or failure scenarios.",
+        issue:
+          "Requirement describes behavior with failure potential but no error handling or failure scenarios.",
         fix: "Add failure scenarios (Given/When/Then) describing what happens when the described behavior fails.",
       }),
     );

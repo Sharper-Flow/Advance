@@ -15,7 +15,9 @@ describe("adv-audit ambiguity contract assets", () => {
     it("contains ambiguity detection in Phase 3", () => {
       expect(content).toContain("## Phase 3: Synthesis");
       expect(content).toContain("runSpecAmbiguityChecks");
-      expect(content).toMatch(/Inline Ambiguity Detection|inline ambiguity detection/i);
+      expect(content).toMatch(
+        /Inline Ambiguity Detection|inline ambiguity detection/i,
+      );
     });
 
     it("quality gate table includes CRITICAL ambiguity row", () => {

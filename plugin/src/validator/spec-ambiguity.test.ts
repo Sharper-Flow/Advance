@@ -164,9 +164,8 @@ describe("checkBoundaryAmbiguity", () => {
     );
 
     // rq-testBoundary2 has "only, excluding" — should not be flagged
-    const explicitScopeFinding = findings.find(
-      (f) =>
-        (f.details?.spec as string)?.includes("rq-testBoundary2"),
+    const explicitScopeFinding = findings.find((f) =>
+      (f.details?.spec as string)?.includes("rq-testBoundary2"),
     );
     expect(explicitScopeFinding).toBeUndefined();
   });
@@ -263,9 +262,8 @@ describe("checkCompletionSignals", () => {
     );
 
     // rq-testSubj2 has "200ms" quantification
-    const quantifiedFinding = findings.find(
-      (f) =>
-        (f.details?.spec as string)?.includes("rq-testSubj2"),
+    const quantifiedFinding = findings.find((f) =>
+      (f.details?.spec as string)?.includes("rq-testSubj2"),
     );
     expect(quantifiedFinding).toBeUndefined();
   });
@@ -305,9 +303,8 @@ describe("checkQualityAttributes", () => {
     );
 
     // rq-testQual2 has "10,000 concurrent" and "≤ 200ms"
-    const quantifiedFinding = findings.find(
-      (f) =>
-        (f.details?.spec as string)?.includes("rq-testQual2"),
+    const quantifiedFinding = findings.find((f) =>
+      (f.details?.spec as string)?.includes("rq-testQual2"),
     );
     expect(quantifiedFinding).toBeUndefined();
   });
@@ -346,9 +343,8 @@ describe("checkErrorHandling", () => {
     );
 
     // rq-testErr2 mentions "retry on failure" and "error response"
-    const handledFinding = findings.find(
-      (f) =>
-        (f.details?.spec as string)?.includes("rq-testErr2"),
+    const handledFinding = findings.find((f) =>
+      (f.details?.spec as string)?.includes("rq-testErr2"),
     );
     expect(handledFinding).toBeUndefined();
   });
