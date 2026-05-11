@@ -1,0 +1,291 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "backlog-coordination",
+  "title": "Backlog Coordination",
+  "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. GitHub Project remains canonical for ranking and Value (V); the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
+  "version": "1.0.0",
+  "updated_at": "2026-05-11T04:02:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-backlogCoord01",
+      "title": "Cross-session claim visibility via AdvBacklogIssueNumber search attribute",
+      "body": "When a change workflow is created with origin.kind === 'roadmap' and origin.issue_number set, the workflow's AdvBacklogIssueNumber search attribute is populated from state.origin.issue_number. Peer agent sessions can detect existing claims by querying Temporal Visibility filtered on AdvAffectedProjects + AdvBacklogIssueNumber + non-terminal AdvChangeStatus. The change workflow itself IS the durable claim: status draft|pending|active = claim held; archived|closed = claim released. This mirrors the in-repo precedent set by AdvWorktreeBranches / AdvWorktreePaths (see plugin/src/temporal/search-attributes.ts).",
+      "priority": "must",
+      "tags": ["coordination", "search-attributes", "claims"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord01.1",
+          "title": "Search attribute populated when origin.issue_number set",
+          "given": [
+            "A change workflow created with seedState.origin = { kind: 'roadmap', issue_number: 42 }"
+          ],
+          "when": "buildChangeSearchAttributes runs on the workflow state",
+          "then": [
+            "The result includes AdvBacklogIssueNumber: ['42'] (string value, single-element array per Temporal Keyword convention)"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord01.2",
+          "title": "Search attribute omitted when origin.issue_number absent",
+          "given": [
+            "A change workflow with state.origin undefined OR state.origin.issue_number undefined"
+          ],
+          "when": "buildChangeSearchAttributes runs",
+          "then": [
+            "The result does NOT include an AdvBacklogIssueNumber key"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord01.3",
+          "title": "Peer session sees claim via Visibility query",
+          "given": [
+            "Session A creates a change with origin.issue_number = 51 in project pid-abc",
+            "Search attribute propagation has completed (≤ ~5s on SQLite dev server)"
+          ],
+          "when": "Session B queries Temporal Visibility with 'AdvAffectedProjects = \"pid-abc\" AND AdvBacklogIssueNumber = \"51\" AND AdvChangeStatus IN (\"draft\", \"pending\", \"active\")'",
+          "then": [
+            "The response includes session A's change workflow ID"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord02",
+      "title": "Atomic claim check at change-create time",
+      "body": "adv_change_create with origin.kind === 'roadmap' and origin.issue_number set performs a Temporal Visibility query before workflow start. If any existing change workflow in the same project has the same AdvBacklogIssueNumber and non-terminal AdvChangeStatus, the tool returns a typed CLAIM_CONFLICT error including the existing change ID. The agent surfaces the conflict to the user (resume existing change, override, or cancel). The change workflow itself becomes the durable claim record on successful create.",
+      "priority": "must",
+      "tags": ["coordination", "claims", "atomicity"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord02.1",
+          "title": "CLAIM_CONFLICT returned when active change exists for same issue",
+          "given": [
+            "A change workflow exists in status 'active' with origin.issue_number = 51 in project pid-abc"
+          ],
+          "when": "adv_change_create is called with origin_kind: 'roadmap', origin_issue_number: 51 in pid-abc",
+          "then": [
+            "The tool returns an error response with code 'CLAIM_CONFLICT'",
+            "The response includes the existing change ID and its non-terminal status",
+            "No new change workflow is started"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord02.2",
+          "title": "Claim succeeds when no existing change holds the issue",
+          "given": [
+            "No active change workflow exists with origin.issue_number = 99 in project pid-abc"
+          ],
+          "when": "adv_change_create is called with origin_kind: 'roadmap', origin_issue_number: 99",
+          "then": [
+            "The change workflow is created normally",
+            "The new change holds the claim (status draft, AdvBacklogIssueNumber = '99')"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord02.3",
+          "title": "Claim check skipped when origin.kind !== 'roadmap'",
+          "given": [
+            "An existing active change holds origin.issue_number = 51"
+          ],
+          "when": "adv_change_create is called with origin_kind: 'discovery' (no issue_number)",
+          "then": [
+            "No Visibility query is fired",
+            "The new change is created independently"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord03",
+      "title": "Post-create double-check window for race tolerance",
+      "body": "Temporal Visibility is eventually consistent (up to 10s on SQLite dev servers per service.ts:94-101 documentation). Two simultaneous adv_change_create calls may both pass the pre-create check. After workflow start, adv_change_create re-runs the same Visibility query within a 5-second window (configurable). If more than one workflow shares the same AdvBacklogIssueNumber in the project, the tool returns a CLAIM_RACE_DETECTED advisory on the success response (the new change is NOT rolled back; the agent surfaces both change IDs to the user for resolution).",
+      "priority": "must",
+      "tags": ["coordination", "claims", "eventual-consistency"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord03.1",
+          "title": "Race detected when concurrent creates land within window",
+          "given": [
+            "Two adv_change_create calls fire concurrently with origin.issue_number = 7 in the same project",
+            "Both pre-create Visibility queries return empty"
+          ],
+          "when": "Each call completes its 5s post-create double-check",
+          "then": [
+            "Each response includes a CLAIM_RACE_DETECTED warning with both change IDs",
+            "Both changes remain alive (caller decides resolution)"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord03.2",
+          "title": "No race warning on solo create",
+          "given": [
+            "A single adv_change_create call with origin.issue_number = 8",
+            "No other concurrent call for the same issue"
+          ],
+          "when": "The post-create double-check runs",
+          "then": [
+            "The Visibility query returns exactly one workflow (the new one)",
+            "The response does NOT include CLAIM_RACE_DETECTED"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord04",
+      "title": "Single-call WIP visibility aggregator",
+      "body": "adv_wip_state returns a single aggregated view of an ADV project's in-flight coordination state: (a) active changes (status IN draft|pending|active) from Temporal Visibility, (b) worktree state from the worktree state DB, (c) peer sessions from the session registry. One tool call per agent session; no client-side composition required. Read-only — does not mutate state.",
+      "priority": "must",
+      "tags": ["coordination", "wip", "aggregation"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord04.1",
+          "title": "Aggregated response includes all three sources",
+          "given": [
+            "Project pid-abc has 2 active changes, 1 active worktree, 1 peer session"
+          ],
+          "when": "adv_wip_state is called",
+          "then": [
+            "The response includes active_changes: [...] with 2 entries",
+            "The response includes worktrees: [...] with 1 entry",
+            "The response includes peer_sessions: [...] with 1 entry",
+            "The response includes generated_at as ISO 8601 timestamp"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord04.2",
+          "title": "Partial failure surfaces as warning, not error",
+          "given": [
+            "Session registry lookup fails (e.g., SQLite locked)",
+            "Active changes and worktrees succeed"
+          ],
+          "when": "adv_wip_state is called",
+          "then": [
+            "The response includes active_changes and worktrees populated",
+            "The response includes peer_sessions: [] with a warning field describing the failure",
+            "The response is not classified as an error"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord05",
+      "title": "Active-change cross-reference uses O(1) Visibility query",
+      "body": "When the agent renders a backlog with active-change annotations (e.g., adv_backlog_state), it MUST use queryActiveChangesByIssueNumbers — a single Temporal Visibility query with an IN clause covering all snapshot issue numbers — and MUST NOT call store.changes.get() per change. This replaces the legacy O(n*m) buildActiveChangeIndex pattern in plugin/src/tools/roadmap.ts:703-737. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits.",
+      "priority": "must",
+      "tags": ["coordination", "performance", "visibility"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord05.1",
+          "title": "Single Visibility call for snapshots ≤ 100 issues",
+          "given": [
+            "A snapshot with 50 features and 10 bugs (60 issue numbers total)"
+          ],
+          "when": "adv_backlog_state computes the active-change annotation",
+          "then": [
+            "queryActiveChangesByIssueNumbers is called exactly once",
+            "store.changes.get() is NOT called from the annotation path"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord05.2",
+          "title": "Batched Visibility calls for snapshots > 100 issues",
+          "given": [
+            "A snapshot with 250 issue numbers"
+          ],
+          "when": "queryActiveChangesByIssueNumbers is called",
+          "then": [
+            "The helper makes exactly 3 Visibility calls (250 / 100 = ceil 3)",
+            "Results are merged into a single Map<number, ClaimVisibilityResult>"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord06",
+      "title": "Agent never writes Value (V) autonomously",
+      "body": "The ranking model preserves human authority over Value: agent code paths that mutate backlog item metadata (claim, release, score-adjust, etc.) MUST treat the V field as read-only. Mutations may update TC, RROE, E based on agent analysis, but V flows only from human action (GitHub Project UI or explicit /adv-triage user-mediated assignment). WSJF formula (V * TC * RROE / E) is unchanged.",
+      "priority": "must",
+      "tags": ["coordination", "wsjf", "human-authority"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord06.1",
+          "title": "Schema rejects agent attempts to write V",
+          "given": [
+            "Any agent-facing tool that mutates backlog item metadata"
+          ],
+          "when": "The tool schema is constructed",
+          "then": [
+            "The V field is absent from the mutation argument schema OR explicitly typed as read-only"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord06.2",
+          "title": "WSJF formula references registered GH Project field IDs",
+          "given": [
+            "The .adv/github-project.json config defines fields { value, time_criticality, rroe, effort, wsjf }"
+          ],
+          "when": "WSJF is computed",
+          "then": [
+            "The formula V * TC * RROE / E is preserved",
+            "No field is renamed or removed by this change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord07",
+      "title": "Snapshot annotation freshness TTL contract",
+      "body": "Cached projection .adv/roadmap-snapshot.json carries optional TTL metadata: last_refreshed (ISO 8601), ttl_ms (default 300000 = 5 min), and next_refresh_after (computed). Consumers MUST treat absence of last_refreshed as 'stale, refresh now'. Default annotation TTL is 5 minutes — distinct from FILE_SNAPSHOT_STALE_AFTER_MS (2h) which covers WSJF-content staleness. The shorter window keeps active-change annotations fresh across multiple agent sessions while staying well under the 5000 req/hr gh CLI rate limit budget.",
+      "priority": "must",
+      "tags": ["coordination", "freshness", "ttl"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord07.1",
+          "title": "Snapshot inside TTL window is fresh",
+          "given": [
+            "A snapshot with last_refreshed = now - 2 minutes and ttl_ms = 300000"
+          ],
+          "when": "assessAnnotationFreshness is called",
+          "then": [
+            "needs_refresh is false",
+            "age_ms is approximately 120000"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord07.2",
+          "title": "Snapshot past TTL is stale",
+          "given": [
+            "A snapshot with last_refreshed = now - 6 minutes and ttl_ms = 300000"
+          ],
+          "when": "assessAnnotationFreshness is called",
+          "then": [
+            "needs_refresh is true"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord07.3",
+          "title": "Snapshot without last_refreshed is treated as stale (backward-compat)",
+          "given": [
+            "A legacy snapshot with no last_refreshed field"
+          ],
+          "when": "assessAnnotationFreshness is called",
+          "then": [
+            "needs_refresh is true",
+            "age_ms is null"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord07.4",
+          "title": "Default ttl_ms applies when missing",
+          "given": [
+            "A snapshot with last_refreshed set but ttl_ms absent"
+          ],
+          "when": "assessAnnotationFreshness is called",
+          "then": [
+            "The default 300000ms (DEFAULT_ANNOTATION_TTL_MS) is used"
+          ]
+        }
+      ]
+    }
+  ]
+}
