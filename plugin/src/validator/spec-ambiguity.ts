@@ -1,19 +1,6 @@
 /**
- * Spec Ambiguity Validator
- *
- * Pure-function ambiguity detection for committed spec laws (`.adv/specs/*.md`).
- * Runs the canonical B/F/S/Q/E taxonomy against raw spec markdown strings.
- *
+ * Ambiguity detection for committed spec laws using B/F/S/Q/E taxonomy.
  * Implements: rq-ambiguityScan01, rq-ambiguityScan02, rq-ambiguityScan03
- *
- * Architecture:
- * - Pure functions — no I/O, no filesystem access
- * - Reuses existing ValidationIssue type with 4-level severity in details.ambiguity_severity
- * - All check IDs defined in SpecAmbiguityCodes for human/tool contract alignment
- * - Each finding includes taxonomy_category mapping to the ambiguity taxonomy
- *
- * Used by `/adv-audit` Phase 3 synthesis (inline, not sub-agent).
- * Sibling to clarify-readiness.ts (which targets Change objects, not spec files).
  */
 
 import type { ValidationIssue } from "./types";
@@ -74,7 +61,7 @@ export interface SpecAmbiguityFinding extends ValidationIssue {
  * requirement is not double-reported as both S and Q for one word.
  */
 const SUBJECTIVE_PATTERN =
-  /\b(slow|simple|easy|nice|intuitive|user[- ]friendly|obvious|trivial|elegant|clean|powerful|flexible|seamless|smooth|appropriate|correct|properly|safely|reasonable)\b/i;
+  /\b(slow|simple|easy|nice|intuitive|user[- ]friendly|obvious|trivial|elegant|powerful|flexible|seamless|smooth|appropriate|correct|properly|safely|reasonable)\b/i;
 
 /**
  * Terms that indicate a quality attribute claim without quantification.
@@ -85,8 +72,11 @@ const UNQUANTIFIED_QUALITY_PATTERN =
 /**
  * Numeric or comparative terms that indicate quantification IS present.
  */
-const QUANTIFIED_PATTERN =
-  /\b\d+[\s]*(?:ms|s|sec|seconds?|milliseconds?|req|requests?|ops?|connections?|users?|entries?|bytes?|kb|mb|gb|tb|%|percent|per\s+second|per\s+minute|concurrent|parallel)\b|≤|>=|≥|⩽|at\s+least|at\s+most|no\s+(?:more|less)\s+than|up\s+to\b/i;
+const COMPARATIVE_QUANTIFIER_PATTERN =
+  /≤|>=|≥|⩽|at\s+least|at\s+most|no\s+(?:more|less)\s+than|up\s+to\b/i;
+
+const POSITIVE_QUANTITY_PATTERN =
+  /(?<!-)\b(?!0+(?:\.0+)?\b)\d+(?:\.\d+)?[\s]*(?:ms|s|sec|seconds?|milliseconds?|req|requests?|ops?|connections?|users?|entries?|bytes?|kb|mb|gb|tb|%|percent|per\s+second|per\s+minute|concurrent|parallel)\b/i;
 
 /**
  * Terms indicating behavior with failure potential.
@@ -184,6 +174,13 @@ function makeFinding(params: {
       fix: params.fix,
     },
   };
+}
+
+function containsQuantification(text: string): boolean {
+  return (
+    POSITIVE_QUANTITY_PATTERN.test(text) ||
+    COMPARATIVE_QUANTIFIER_PATTERN.test(text)
+  );
 }
 
 // =============================================================================
@@ -337,9 +334,9 @@ export function checkCompletionSignals(
 
     // Check whether the line containing the subjective term has quantification.
     // Quantification can appear before or after the term on the same line.
-    const hasQuantification = QUANTIFIED_PATTERN.test(lineMatch ?? req.body);
+    const quantified = containsQuantification(lineMatch ?? req.body);
 
-    if (!hasQuantification) {
+    if (!quantified) {
       issues.push(
         makeFinding({
           code: SpecAmbiguityCodes.SPEC_COMPLETION_SIGNAL,
@@ -377,9 +374,9 @@ export function checkQualityAttributes(
     if (!match) continue;
 
     // Check if quantification is present anywhere in the requirement body
-    const hasQuantification = QUANTIFIED_PATTERN.test(req.body);
+    const quantified = containsQuantification(req.body);
 
-    if (!hasQuantification) {
+    if (!quantified) {
       const lineMatch = req.body
         .split("\n")
         .find((l) => l.toLowerCase().includes(match[0].toLowerCase()));
