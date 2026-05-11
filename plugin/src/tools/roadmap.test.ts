@@ -15,6 +15,8 @@ import {
   type RoadmapSnapshot,
   filterOpenItemsOnly,
   assessRoadmapFreshness,
+  assessAnnotationFreshness,
+  buildRefreshMetadata,
   type LiveProjectItem,
 } from "./roadmap";
 import { createLegacyStore, type Store } from "../storage/store";
@@ -287,6 +289,105 @@ describe("Roadmap Tool", () => {
       expect(freshness.status).toBe("live");
       expect(freshness.needs_refresh).toBe(false);
       expect(freshness.age_hours).toBe(0);
+    });
+  });
+
+  describe("assessAnnotationFreshness (rq-backlogCoord01 TTL contract)", () => {
+    test("marks snapshot fresh when last_refreshed within ttl_ms window", () => {
+      const snapshot: RoadmapSnapshot = {
+        ...SAMPLE_SNAPSHOT,
+        last_refreshed: "2026-05-11T00:00:00.000Z",
+        ttl_ms: 300_000, // 5 min
+        next_refresh_after: "2026-05-11T00:05:00.000Z",
+      };
+
+      const result = assessAnnotationFreshness(
+        snapshot,
+        new Date("2026-05-11T00:02:00.000Z"),
+      );
+
+      expect(result.needs_refresh).toBe(false);
+      expect(result.age_ms).toBeGreaterThanOrEqual(120_000); // 2 min
+      expect(result.age_ms).toBeLessThan(180_000); // < 3 min
+      expect(result.ttl_ms).toBe(300_000);
+    });
+
+    test("marks snapshot stale when last_refreshed exceeds ttl_ms window", () => {
+      const snapshot: RoadmapSnapshot = {
+        ...SAMPLE_SNAPSHOT,
+        last_refreshed: "2026-05-11T00:00:00.000Z",
+        ttl_ms: 300_000,
+      };
+
+      const result = assessAnnotationFreshness(
+        snapshot,
+        new Date("2026-05-11T00:06:00.000Z"), // 6 min later — past TTL
+      );
+
+      expect(result.needs_refresh).toBe(true);
+      expect(result.age_ms).toBeGreaterThanOrEqual(360_000);
+    });
+
+    test("treats snapshot without last_refreshed as stale (backward-compat trigger)", () => {
+      // Legacy snapshot missing the new fields entirely.
+      const snapshot: RoadmapSnapshot = { ...SAMPLE_SNAPSHOT };
+
+      const result = assessAnnotationFreshness(
+        snapshot,
+        new Date("2026-05-11T00:00:00.000Z"),
+      );
+
+      expect(result.needs_refresh).toBe(true);
+      expect(result.age_ms).toBeNull();
+    });
+
+    test("uses default ttl_ms (300_000 = 5 min) when last_refreshed present but ttl_ms missing", () => {
+      const snapshot: RoadmapSnapshot = {
+        ...SAMPLE_SNAPSHOT,
+        last_refreshed: "2026-05-11T00:00:00.000Z",
+        // ttl_ms intentionally missing
+      };
+
+      const result = assessAnnotationFreshness(
+        snapshot,
+        new Date("2026-05-11T00:04:00.000Z"), // 4 min — within default 5-min TTL
+      );
+
+      expect(result.ttl_ms).toBe(300_000);
+      expect(result.needs_refresh).toBe(false);
+    });
+
+    test("RoadmapSnapshot type accepts the new TTL fields (rq-backlogCoord01 schema)", () => {
+      // Type-level check: this snapshot literal must compile when the new
+      // optional fields are added to RoadmapSnapshot.
+      const snapshot: RoadmapSnapshot = {
+        ...SAMPLE_SNAPSHOT,
+        last_refreshed: "2026-05-11T00:00:00.000Z",
+        ttl_ms: 300_000,
+        next_refresh_after: "2026-05-11T00:05:00.000Z",
+      };
+      expect(snapshot.last_refreshed).toBe("2026-05-11T00:00:00.000Z");
+      expect(snapshot.ttl_ms).toBe(300_000);
+      expect(snapshot.next_refresh_after).toBe("2026-05-11T00:05:00.000Z");
+    });
+
+    test("buildRefreshMetadata helper produces consistent last_refreshed + next_refresh_after pair", () => {
+      const metadata = buildRefreshMetadata({
+        now: new Date("2026-05-11T00:00:00.000Z"),
+        ttl_ms: 300_000,
+      });
+
+      expect(metadata.last_refreshed).toBe("2026-05-11T00:00:00.000Z");
+      expect(metadata.ttl_ms).toBe(300_000);
+      expect(metadata.next_refresh_after).toBe("2026-05-11T00:05:00.000Z");
+    });
+
+    test("buildRefreshMetadata defaults ttl_ms to 300_000 when not provided", () => {
+      const metadata = buildRefreshMetadata({
+        now: new Date("2026-05-11T00:00:00.000Z"),
+      });
+
+      expect(metadata.ttl_ms).toBe(300_000);
     });
   });
 

@@ -71,11 +71,40 @@ export interface RoadmapSnapshot {
   bugs: RoadmapBug[];
   features: RoadmapFeature[];
   deferred: RoadmapDeferred[];
+  /**
+   * rq-backlogCoord01 — Annotation freshness TTL contract.
+   *
+   * `last_refreshed` records the moment the snapshot was last written from
+   * GitHub Project state. `ttl_ms` defines how long active-change annotation
+   * derived from this snapshot remains acceptably fresh. `next_refresh_after`
+   * is the computed `last_refreshed + ttl_ms` — provided redundantly so
+   * external readers can decide without parsing arithmetic.
+   *
+   * These fields are optional on the type so legacy snapshots load without
+   * manual migration; consumers MUST treat absence as "stale, refresh now"
+   * to keep cross-session claim visibility fresh.
+   *
+   * Distinct from `FILE_SNAPSHOT_STALE_AFTER_MS` (2h) which covers WSJF-content
+   * staleness, refreshed by user-initiated `/adv-triage`. Annotation TTL is
+   * agent-driven and shorter (default 5 min).
+   */
+  last_refreshed?: string;
+  ttl_ms?: number;
+  next_refresh_after?: string;
 }
 
 const SNAPSHOT_RELATIVE_PATH = ".adv/roadmap-snapshot.json";
 const FILE_SNAPSHOT_STALE_AFTER_MS = 2 * 60 * 60 * 1000;
 const MS_PER_HOUR = 60 * 60 * 1000;
+
+/**
+ * rq-backlogCoord01 default annotation-freshness window. Configurable
+ * future-extension: read from `.adv/github-project.json.cache_ttl_ms`
+ * (validator-recommended location). 5 min balances GH API rate limits
+ * (5000 req/hr ÷ 12 reads/hr/session × N sessions) against agent-visible
+ * drift.
+ */
+export const DEFAULT_ANNOTATION_TTL_MS = 5 * 60 * 1000;
 
 export interface RoadmapFreshness {
   status: "live" | "fresh" | "stale" | "unknown";
@@ -124,6 +153,97 @@ export function assessRoadmapFreshness(
     age_hours: Number((ageMs / MS_PER_HOUR).toFixed(2)),
     stale_after_hours: staleAfterHours,
     needs_refresh: stale,
+  };
+}
+
+/**
+ * rq-backlogCoord01 — Annotation-freshness assessment.
+ *
+ * Returns whether the snapshot's active-change annotation needs to be
+ * refreshed against GitHub Project + Temporal Visibility. Distinct from
+ * `assessRoadmapFreshness` which covers WSJF-content staleness.
+ *
+ * Absent `last_refreshed` → forced refresh (legacy snapshot migration).
+ * Absent `ttl_ms` → default `DEFAULT_ANNOTATION_TTL_MS` (5 min).
+ */
+export interface AnnotationFreshness {
+  needs_refresh: boolean;
+  /** Milliseconds since the last refresh. `null` when `last_refreshed` is absent. */
+  age_ms: number | null;
+  ttl_ms: number;
+  last_refreshed: string | null;
+  next_refresh_after: string | null;
+}
+
+export function assessAnnotationFreshness(
+  snapshot: Pick<
+    RoadmapSnapshot,
+    "last_refreshed" | "ttl_ms" | "next_refresh_after"
+  >,
+  now: Date = new Date(),
+): AnnotationFreshness {
+  const ttlMs = snapshot.ttl_ms ?? DEFAULT_ANNOTATION_TTL_MS;
+
+  if (!snapshot.last_refreshed) {
+    return {
+      needs_refresh: true,
+      age_ms: null,
+      ttl_ms: ttlMs,
+      last_refreshed: null,
+      next_refresh_after: null,
+    };
+  }
+
+  const lastRefreshedMs = Date.parse(snapshot.last_refreshed);
+  if (!Number.isFinite(lastRefreshedMs)) {
+    return {
+      needs_refresh: true,
+      age_ms: null,
+      ttl_ms: ttlMs,
+      last_refreshed: snapshot.last_refreshed,
+      next_refresh_after: snapshot.next_refresh_after ?? null,
+    };
+  }
+
+  const ageMs = Math.max(0, now.getTime() - lastRefreshedMs);
+  return {
+    needs_refresh: ageMs > ttlMs,
+    age_ms: ageMs,
+    ttl_ms: ttlMs,
+    last_refreshed: snapshot.last_refreshed,
+    next_refresh_after:
+      snapshot.next_refresh_after ??
+      new Date(lastRefreshedMs + ttlMs).toISOString(),
+  };
+}
+
+/**
+ * rq-backlogCoord01 — Build TTL metadata for a snapshot write.
+ *
+ * Helper consumed by the snapshot writer (currently `adv_backlog_state`
+ * via task C1 when triggering a refresh; in the future also `/adv-triage`
+ * Phase 5) to populate `last_refreshed`, `ttl_ms`, and the redundant
+ * `next_refresh_after` consistently.
+ */
+export interface RefreshMetadataInput {
+  now: Date;
+  ttl_ms?: number;
+}
+
+export interface RefreshMetadata {
+  last_refreshed: string;
+  ttl_ms: number;
+  next_refresh_after: string;
+}
+
+export function buildRefreshMetadata(
+  input: RefreshMetadataInput,
+): RefreshMetadata {
+  const ttlMs = input.ttl_ms ?? DEFAULT_ANNOTATION_TTL_MS;
+  return {
+    last_refreshed: input.now.toISOString(),
+    ttl_ms: ttlMs,
+    next_refresh_after: new Date(input.now.getTime() + ttlMs).toISOString(),
   };
 }
 
