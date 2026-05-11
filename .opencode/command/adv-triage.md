@@ -5,7 +5,7 @@ description: Triage all backlog sources, score features with WSJF, regenerate RO
 <!-- manifest: adv-triage · requiresChangeId: false -->
 # ADV Triage — Backlog Reconciliation, WSJF Scoring, Roadmap Regen
 
-Reconcile backlog sources into GH Issues, score features with WSJF, regenerate `ROADMAP.md`. Storage of truth: GH Projects v2 (typed NUMBER fields). ROADMAP.md = generated mirror, committed and pushed at end. Hybrid HITL: agent fills RROE/TimeCriticality/Effort autonomously; pauses for user-only bug Priority + feature Value.
+Reconcile backlog sources into GH Issues, score features with WSJF, regenerate `ROADMAP.md`. Roadmap issue flow uses GH Projects v2 (typed NUMBER fields) as truth. ROADMAP.md = generated mirror, committed and pushed at end. Hybrid HITL: agent fills RROE/TimeCriticality/Effort autonomously; pauses for user-only bug Priority + feature Value.
 
 > **CHECKLIST**: Default execute. `--dry-run` previews without mutations. Tier B inline approval required before opening issues, before writing/pushing ROADMAP.md, before deprecating local sources — gates run in execute mode regardless of invocation. Bug priority via `priority:{critical,high,medium,low}` labels; features via Projects v2 number fields. WSJF = `(Value + TimeCriticality + RROE) / Effort`.
 
@@ -15,7 +15,7 @@ Reconcile backlog sources into GH Issues, score features with WSJF, regenerate `
 
 ## Phase 0: Load Skill
 
-`skill("adv-triage")` → bootstrap rules, source enumeration, match algorithm, prompt templates, scoring rubrics, ROADMAP layout, commit sequence, echo format, report template, anti-patterns. If skill unavailable, continue with embedded protocol.
+`skill("adv-triage")` → bootstrap rules, source enumeration, match algorithm, prompt templates, scoring rubrics, ROADMAP layout, commit sequence, echo format, report template, anti-patterns. If unavailable, continue with embedded protocol.
 
 ## Parse Flags
 
