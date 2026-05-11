@@ -23,7 +23,6 @@ describe("ChangeSummaryMemo", () => {
     },
     taskCounts: { total: 5, done: 2, pending: 3 },
     lastActivityAt: "2026-04-23T12:00:00.000Z",
-    sourceVersion: 1,
   };
 
   it("returns undefined for unknown change", () => {
@@ -40,7 +39,6 @@ describe("ChangeSummaryMemo", () => {
     const updated = {
       ...sampleSummary,
       status: "active" as const,
-      sourceVersion: 2,
     };
     memo.set("chg-001", updated);
     expect(memo.get("chg-001")).toEqual(updated);
@@ -121,5 +119,10 @@ describe("ChangeSummaryMemo", () => {
     memo.get("chg-001");
     memo.resetStats();
     expect(memo.getStats()).toEqual({ hits: 0, misses: 0 });
+  });
+
+  it("ChangeSummary does not contain sourceVersion (PSW retired)", () => {
+    const keys = Object.keys(sampleSummary);
+    expect(keys).not.toContain("sourceVersion");
   });
 });

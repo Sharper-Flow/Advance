@@ -75,7 +75,6 @@ export function createTemporalStoreBackend(
   const changeCache = new Map<string, Change>();
   const changeOverlayCache = new Map<string, Partial<Change>>();
   const memo = new ChangeSummaryMemo();
-  const sourceVersions = new Map<string, number>();
 
   // Reverse-lookup cache populated from any Temporal-observed tasks so
   // taskId-only methods can resolve the owning change without requiring the
@@ -108,9 +107,6 @@ export function createTemporalStoreBackend(
       },
       lastActivityAt: state.createdAt,
       fast_follow_of: state.fast_follow_of,
-      sourceVersion: 0, // PSW retired; direct-query sourced summary.
-      // Reserved legacy field. Non-zero PSW signal versions are no longer
-      // produced after the per-change workflow cutover.
     };
   };
 
@@ -863,7 +859,6 @@ export function createTemporalStoreBackend(
     changeCache,
     changeOverlayCache,
     memo,
-    sourceVersions,
     taskChangeIndex,
     buildSummary,
     setCachedChange,

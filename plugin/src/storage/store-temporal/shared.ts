@@ -214,7 +214,6 @@ export interface StoreDeps {
   changeCache: Map<string, Change>;
   changeOverlayCache: Map<string, Partial<Change>>;
   memo: ChangeSummaryMemo;
-  sourceVersions: Map<string, number>;
   taskChangeIndex: Map<string, string>;
 
   // Shared helpers (closures over the maps above)

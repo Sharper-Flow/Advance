@@ -95,7 +95,6 @@ export interface ChangeSummaryPayload {
   };
   lastActivityAt: string;
   fast_follow_of?: FastFollowOf;
-  sourceVersion: number;
   /** Union of all task touched_files for this change (for peer overlap scans). */
   touched_files?: string[];
 }

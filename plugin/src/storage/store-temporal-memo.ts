@@ -1,19 +1,18 @@
 /**
  * ChangeSummaryMemo — In-process indexed read path for ADV.
  *
- * Lightweight Map<changeId, ChangeSummary> used by store-temporal.ts's
- * Read Router to serve status/list surfaces without O(N) fan-out queries.
+ * Lightweight Map<changeId, ChangeSummary> used by store-temporal/index.ts
+ * to serve status/list surfaces without O(N) fan-out queries.
+ *
+ * Each mutation signal invalidates the affected entry before executing,
+ * so the memo is always stale-safe. Direct queries repopulate via set().
  *
  * Lifecycle:
- *   - set(): populate on direct-query read or PSW hydration
+ *   - set(): populate on direct-query read
  *   - get(): serve summary surfaces (status, changes.list)
  *   - invalidate(): called before every mutation to prevent stale reads
  *   - invalidateAll(): bulk clear (shutdown, error recovery)
- *   - bulkSet(): PSW hydration on startup
- *
- * Invalidated per-mutation: freshness-first on critical surfaces (which
- * bypass the Memo entirely), and the Memo is always stale-safe because
- * every write invalidates before executing.
+ *   - bulkSet(): batch hydration (e.g. startup recovery)
  */
 
 import type { ChangeStatus, FastFollowOf } from "../types";
@@ -56,8 +55,6 @@ export interface ChangeSummary {
   lastActivityAt: string;
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
-  /** Monotonic version for PSW signal dedupe */
-  sourceVersion: number;
 }
 
 export interface MemoStats {
