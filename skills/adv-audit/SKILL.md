@@ -1,16 +1,7 @@
 ---
 name: adv-audit
 description: "Spec/implementation drift audit methodology for ADV capabilities"
-keywords:
-  [
-    "adv",
-    "audit",
-    "specs",
-    "drift",
-    "quality-gates",
-    "orphan-code",
-    "conformance",
-  ]
+keywords: ["adv", "audit", "specs", "drift", "quality-gates", "orphan-code", "conformance"]
 metadata:
   priority: medium
   source: adv-audit-command
@@ -24,10 +15,16 @@ Methodology for `/adv-audit`: compare specs with implementation, detect drift/co
 
 ## Inputs
 
-- `capability` optional
-- `--all` default when no capability
-- `--json` for structured output
-- `--strict` for zero-tolerance gates
+- `capability` optional.
+- `--all` default when no capability.
+- `--json` for structured output.
+- `--strict` for zero-tolerance gates.
+
+## Supporting Docs
+
+| Doc | Use |
+|---|---|
+| `REPORT_SCHEMA.md` | Worker packet, finding schema, text/JSON report shape |
 
 ## Quality Gates
 
@@ -61,13 +58,7 @@ All drift/conflict/orphan/ambiguity thresholds → 0. Coverage → 100%.
 
 ### Spec Parser
 
-Extract from each spec:
-
-- requirement ID and title
-- normative language: `MUST`, `SHALL`, `SHOULD`, `MAY`
-- Given/When/Then scenarios
-- file/code references
-- malformed or ambiguous requirement smells
+Extract requirement ID/title, normative language (`MUST`, `SHALL`, `SHOULD`, `MAY`), Given/When/Then scenarios, file/code refs, and malformed/ambiguous requirement smells.
 
 ### Ambiguity Detection
 
@@ -87,7 +78,7 @@ Skipped when `clarify_enforcement: 'off'`. Advisory mode includes findings witho
 
 ### Code Mapper
 
-Verify file refs exist, build bidirectional spec↔code map, and calculate coverage:
+Verify file refs exist, build bidirectional spec↔code map, calculate coverage:
 
 ```text
 coverage = mapped_requirements / total_requirements
@@ -97,24 +88,11 @@ Identify unmapped specs and implementation files with no spec anchor.
 
 ### Conflict Detector
 
-Cross-reference specs for:
-
-- contradictory requirements
-- overlapping ownership
-- stale refs
-- terminology mismatch
-- mutually exclusive scenarios
+Cross-reference specs for contradictions, overlapping ownership, stale refs, terminology mismatch, and mutually exclusive scenarios.
 
 ### Drift Scanner
 
-Compare requirements to code/tests. Detect:
-
-- constraint drift
-- missing implementation
-- test/spec mismatch
-- normative violations
-
-Severity:
+Compare requirements to code/tests. Detect constraint drift, missing implementation, test/spec mismatch, and normative violations.
 
 | Severity | Meaning |
 |---|---|
@@ -123,60 +101,19 @@ Severity:
 | LOW | `MAY` or low-risk inconsistency |
 | REVIEW | needs human judgment |
 
-## Orphan Detection
+### Orphan Detection
 
 Source file is orphan candidate when >50 lines and not mapped to any spec.
 
-Exclude:
-
-- config
-- types-only files
-- generated files
-- test utilities
-- fixtures
-
-Categorize as undocumented feature, dead code, or infrastructure.
-
-## Sub-Agent Packet
-
-Every analysis worker receives:
-
-```text
-WORKING DIRECTORY: {workdir}
-AUDIT TARGET: {capability | all}
-STRICT MODE: {true|false}
-EXPECTED OUTPUT: JSON with dimension, findings[], summary
-```
-
-Finding shape:
-
-```json
-{
-  "id": "...",
-  "severity": "HIGH|MEDIUM|LOW|REVIEW",
-  "spec": "capability/rq-id",
-  "specText": "...",
-  "actual": "...",
-  "evidence": "file:line or spec ref",
-  "fix": "..."
-}
-```
+Exclude config, types-only files, generated files, test utilities, and fixtures. Categorize as undocumented feature, dead code, or infrastructure.
 
 ## Synthesis
 
-Aggregate:
+Aggregate drift by severity, conflicts, unmapped specs, orphan files, malformed specs, and coverage.
 
-- drift by severity
-- conflicts
-- unmapped specs
-- orphan files
-- malformed specs
-- coverage
-- ambiguity findings by severity (when enabled)
+Also aggregate ambiguity findings by severity when enabled.
 
-Health status:
-
-| Status | Criteria |
+| Health | Criteria |
 |---|---|
 | ALIGNED | all quality gates pass |
 | DRIFT_DETECTED | any gate fails, but no HIGH drift/conflict/ambiguity |
@@ -187,48 +124,10 @@ Ambiguity-promoted health:
 - HIGH ambiguity > 3 (standard) or any HIGH (strict) → DRIFT_DETECTED
 - `clarify_enforcement: 'advisory'` → findings in report only, no health promotion
 
-## Report Schema
-
-Text report:
-
-- PROJECT AUDIT REPORT banner
-- scope and health status
-- quality gate table: metric/value/threshold/status
-- specs audited, requirements count, scenarios count
-- detailed findings by severity
-- conflicts with resolution hints
-- orphaned code categories
-- top 3 recommendations
-
-JSON report:
-
-```json
-{
-  "health": "ALIGNED|DRIFT_DETECTED|MAJOR_DRIFT",
-  "quality_gate": [],
-  "summary": {},
-  "drift": [],
-  "conflicts": [],
-  "orphans": [],
-  "ambiguity": [
-    {
-      "id": "...",
-      "category": "B|F|S|Q|E",
-      "severity": "CRITICAL|HIGH|MEDIUM|LOW",
-      "spec": "capability/rq-id",
-      "specText": "verbatim quote",
-      "issue": "...",
-      "fix": "..."
-    }
-  ],
-  "recommendations": []
-}
-```
-
 ## Constraints
 
 - Read-only methodology only.
-- Command owns metadata write and any remediation handoff.
+- Command owns metadata write and remediation handoff.
 - Report by default; this skill never authorizes auto-fix on its own.
 - Command-owned Phase 4 remediation may run only after explicit user request via `question`.
 - Ask via `question` only for explicit remediation/debt-priority choices.
