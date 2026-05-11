@@ -41,6 +41,7 @@ export async function ensureChangeWorkflowStarted(
         | "gates"
         | "reentry_history"
         | "artifacts"
+        | "origin"
       >
     >;
   },
@@ -65,6 +66,7 @@ export async function ensureChangeWorkflowStarted(
         changeId: input.changeId,
         changeStatus: "draft",
         activeGate: "proposal",
+        backlogIssueNumber: input.seedState?.origin?.issue_number,
       });
     }
     return await client.workflow.start(changeWorkflow, startOpts);
@@ -100,6 +102,7 @@ export async function reImportChangeState(
       wisdom: input.change.wisdom,
       gates: input.change.gates,
       reentry_history: input.change.reentry_history,
+      origin: input.change.origin,
     },
   });
 }

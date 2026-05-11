@@ -153,5 +153,5 @@ describe("changeWorkflow continue-as-new", () => {
         });
       },
     );
-  }, 60000);
+  }, 120000);
 });

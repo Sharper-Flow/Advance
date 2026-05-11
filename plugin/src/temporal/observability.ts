@@ -249,6 +249,7 @@ export function buildTemporalSearchAttributes(input: {
   affectedPaths?: string[];
   worktreeBranches?: string[];
   worktreePaths?: string[];
+  backlogIssueNumber?: number;
   doomLoopActive?: boolean;
 }): Record<string, unknown[]> {
   const attrs: Record<string, unknown[]> = {};
@@ -286,6 +287,9 @@ export function buildTemporalSearchAttributes(input: {
     attrs.AdvWorktreePaths = [...input.worktreePaths].sort((a, b) =>
       a.localeCompare(b),
     );
+  }
+  if (input.backlogIssueNumber !== undefined) {
+    attrs.AdvBacklogIssueNumber = [String(input.backlogIssueNumber)];
   }
 
   return attrs;
