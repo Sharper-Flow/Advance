@@ -55,6 +55,8 @@ All drift/conflict/orphan/ambiguity thresholds → 0. Coverage → 100%.
 | `advisory` | Include findings in report; do not affect health status |
 | `strict` | Enforce CRITICAL=0 and HIGH thresholds |
 
+<!-- rq-ambiguityScan01 rq-ambiguityScan02 rq-ambiguityScan03 rq-ambiguityScan04 rq-ambiguityScan05 rq-clarifyEnforcementAudit01 -->
+
 ## Analysis Dimensions
 
 ### Spec Parser

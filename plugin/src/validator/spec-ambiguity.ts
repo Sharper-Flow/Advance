@@ -4,6 +4,8 @@
  * Pure-function ambiguity detection for committed spec laws (`.adv/specs/*.md`).
  * Runs the canonical B/F/S/Q/E taxonomy against raw spec markdown strings.
  *
+ * Implements: rq-ambiguityScan01, rq-ambiguityScan02, rq-ambiguityScan03
+ *
  * Architecture:
  * - Pure functions — no I/O, no filesystem access
  * - Reuses existing ValidationIssue type with 4-level severity in details.ambiguity_severity
