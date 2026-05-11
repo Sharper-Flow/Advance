@@ -110,13 +110,16 @@ Existing roadmap / agenda items cover:
 - #72 — scope ADV instruction load to ADV-using sessions.
 - #105 — `/adv-triage` Phase 3b question-tool flow.
 
-Recommended new or updated follow-ups:
+Created follow-ups:
 
-1. Archived/terminal listing timeout and state-shadow fragility.
-2. Status/health probe TTL caching.
-3. Projection/memo/sourceVersion lifecycle after PSW retirement.
-4. Dangling commit / branch reachability checks before archive.
-5. `target_path` routing audit for task mutation tools.
+1. #106 — Archived/terminal change listing can time out and shadow state.
+2. #107 — Add TTL caching for ADV status health probes.
+3. #108 — Audit projection memo `sourceVersion` lifecycle after PSW retirement.
+4. #109 — Verify archive gate protects against dangling task commits.
+5. #110 — Audit `target_path` routing for task mutation tools.
+
+These were added to GitHub Project #2 as `feature` items. WSJF fields remain
+for the next `/adv-triage` run so scoring stays centralized.
 
 ## Guardrails for execution
 
