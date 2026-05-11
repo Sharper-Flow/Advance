@@ -1326,12 +1326,25 @@ if [ -d "$REPO_SKILLS" ]; then
     skill_file="$skill_dir/SKILL.md"
     [ -f "$skill_file" ] || continue
     dest_dir="$GLOBAL_SKILLS/$skill_name"
+    # ADR-002: whole-directory copy preserves SKILL.md + sibling reference docs
+    # (CONTEXT-FORMAT.md, LOGIC.md, UI.md, REPORT_SCHEMA.md, etc.) + subdirectories
+    # (e.g. scripts/). Required so progressive-disclosure skill content reaches
+    # ~/.config/opencode/skills/ — agents loading skills globally need siblings.
+    # Backward compatible: skills with only SKILL.md (existing behavior) sync identically.
     if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run copy skill: $skill_name/SKILL.md"
+      while IFS= read -r f; do
+        rel="${f#"$skill_dir"}"
+        echo "    dry-run copy skill: $skill_name/$rel"
+      done < <(find "$skill_dir" -type f | sort)
     else
       mkdir -p "$dest_dir"
-      cp "$skill_file" "$dest_dir/SKILL.md"
-      echo "    copied skill: $skill_name/SKILL.md"
+      (cd "$skill_dir" && cp -R . "$dest_dir/")
+      file_count="$(find "$skill_dir" -type f | wc -l | tr -d ' ')"
+      if [ "$file_count" = "1" ]; then
+        echo "    copied skill: $skill_name/SKILL.md"
+      else
+        echo "    copied skill: $skill_name/ ($file_count files)"
+      fi
     fi
     ((skills_copied++)) || true
   done
