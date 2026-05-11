@@ -10,6 +10,8 @@ import {
   completeGateInChangeState,
   createChangeWorkflowState,
 } from "./change-state";
+import type { ChangeOrigin } from "../types";
+import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
 
@@ -153,5 +155,46 @@ describe("change-state pure mutation helpers", () => {
     });
 
     expect(state.contract.reviewMatrix).toBeUndefined();
+  });
+
+  it("carries optional origin on ChangeWorkflowState (rq-backlogCoord01 prereq)", () => {
+    // rq-backlogCoord01 prereq (task A0): ChangeWorkflowState must carry
+    // `origin` so `buildChangeSearchAttributes` can populate
+    // `AdvBacklogIssueNumber` from `state.origin?.issue_number`.
+    const state = createChangeWorkflowState({
+      changeId: "origin-state-test",
+      title: "Origin state test",
+      createdAt: "2026-05-11T00:00:00.000Z",
+    });
+
+    const origin: ChangeOrigin = {
+      kind: "roadmap",
+      issue_number: 42,
+    };
+    state.origin = origin;
+
+    expect(state.origin).toBeDefined();
+    expect(state.origin?.kind).toBe("roadmap");
+    expect(state.origin?.issue_number).toBe(42);
+  });
+
+  it("accepts origin in ChangeWorkflowInput.seedState pick list (rq-backlogCoord01 prereq)", () => {
+    // rq-backlogCoord01 prereq (task A0): callers must be able to pass
+    // `origin` through `ChangeWorkflowInput.seedState` so the workflow
+    // can seed `state.origin` at start time.
+    const input: ChangeWorkflowInput = {
+      projectId: "test-project",
+      changeId: "origin-seed-test",
+      title: "Origin seed test",
+      initializedAt: "2026-05-11T00:00:00.000Z",
+      seedState: {
+        origin: {
+          kind: "roadmap",
+          issue_number: 51,
+        },
+      },
+    };
+
+    expect(input.seedState?.origin?.issue_number).toBe(51);
   });
 });

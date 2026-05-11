@@ -444,6 +444,9 @@ export async function changeWorkflow(
     if (input.seedState.archiveRequest) {
       state.archiveRequest = input.seedState.archiveRequest;
     }
+    if (input.seedState.origin) {
+      state.origin = input.seedState.origin;
+    }
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);

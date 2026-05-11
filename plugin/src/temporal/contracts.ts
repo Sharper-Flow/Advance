@@ -1,6 +1,7 @@
 import type {
   ChangeClosure,
   ChangeContract,
+  ChangeOrigin,
   FastFollowOf,
   Gates,
 } from "../types";
@@ -154,6 +155,7 @@ export interface ChangeWorkflowInput {
       | "worktrees"
       | "conformance"
       | "archiveRequest"
+      | "origin"
     >
   >;
 }
@@ -234,6 +236,14 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * prototype-pollution-style assignments.
    */
   closure?: ChangeClosure;
+  /**
+   * Origin linkage to the upstream artifact that triggered this change.
+   * Mirrors `ChangeSchema.origin` (on-disk Change type). Populated from
+   * `ChangeWorkflowInput.seedState.origin` at workflow start; read by
+   * `buildChangeSearchAttributes` to populate `AdvBacklogIssueNumber`
+   * search attribute (rq-backlogCoord01).
+   */
+  origin?: ChangeOrigin;
 }
 
 /**
