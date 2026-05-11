@@ -24,6 +24,9 @@ import { promisify } from "node:util";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
 import { readGitHubProjectConfig } from "../storage/github-project-config";
+import { getProjectId } from "../utils/project-id";
+import { getService } from "../temporal/service";
+import { queryActiveChangesByIssueNumbers } from "../temporal/visibility-claim-queries";
 
 const execFileP = promisify(execFile);
 
@@ -737,10 +740,19 @@ export const roadmapTools = {
       const filtered = applyFilters(snapshot, args);
       const freshness = assessRoadmapFreshness(source, snapshot.generated_at);
 
-      // Cross-reference: which roadmap items already have an active ADV change
-      // pointing at them via origin.issue_number? Surfaces "already in flight".
-      // Reads ADV state via the store; safe even when the snapshot is stale.
-      const activeByIssue = await buildActiveChangeIndex(store);
+      // rq-backlogCoord05 — Cross-reference active changes via a single
+      // Temporal Visibility query (O(1) Visibility call) rather than the
+      // legacy O(n×m) `buildActiveChangeIndex` (N × store.changes.get).
+      // Falls back to the store-loop helper only when Temporal Visibility is
+      // unreachable (offline / no service / no project ID).
+      const allIssueNumbers = [
+        ...snapshot.bugs.map((b) => b.number),
+        ...snapshot.features.map((f) => f.number),
+      ];
+      const activeByIssue = await resolveActiveChangeIndex(
+        store,
+        allIssueNumbers,
+      );
       const annotatedFeatures = filtered.features.map((f) =>
         activeByIssue.has(f.number)
           ? { ...f, active_change: activeByIssue.get(f.number) }
@@ -810,8 +822,56 @@ export const roadmapTools = {
 };
 
 /**
- * Build a map from GitHub issue number → active change ID by walking the
- * store's active-change list and reading each change's `origin.issue_number`.
+ * rq-backlogCoord05 — Visibility-first active-change resolver.
+ *
+ * Tries a single Temporal Visibility query first (O(1) regardless of how
+ * many active changes exist) using `AdvBacklogIssueNumber IN (...)`. Falls
+ * back to the legacy store-loop only when Visibility is unreachable
+ * (offline, no Temporal service, no project ID). Failures from EITHER path
+ * are non-fatal: callers receive an empty map and the roadmap renders
+ * without active-change annotations.
+ */
+async function resolveActiveChangeIndex(
+  store: Store,
+  issueNumbers: number[],
+): Promise<Map<number, string>> {
+  // Empty input short-circuits both paths.
+  if (issueNumbers.length === 0) return new Map();
+
+  // Path 1: Visibility-backed lookup.
+  try {
+    const bundle = getService();
+    if (bundle) {
+      const projectId = await getProjectId(store.paths.root);
+      if (projectId) {
+        const client = bundle.client as unknown as Parameters<
+          typeof queryActiveChangesByIssueNumbers
+        >[0];
+        const map = await queryActiveChangesByIssueNumbers(
+          client,
+          projectId,
+          issueNumbers,
+        );
+        const result = new Map<number, string>();
+        for (const [issue, info] of map) {
+          result.set(issue, info.changeId);
+        }
+        return result;
+      }
+    }
+  } catch {
+    // Fall through to store-loop fallback.
+  }
+
+  // Path 2: Legacy store-loop fallback (slower; works without Temporal).
+  return buildActiveChangeIndexFromStore(store);
+}
+
+/**
+ * Legacy fallback: build a map from GitHub issue number → active change ID
+ * by walking the store's active-change list and reading each change's
+ * `origin.issue_number`. O(n×m) on number of active changes. Preserved
+ * only as fallback when Temporal Visibility is unreachable.
  *
  * Active = status ∈ {draft, pending, active}. Archived/closed changes are
  * intentionally excluded — they don't represent in-flight work.
@@ -820,7 +880,7 @@ export const roadmapTools = {
  * map and let the caller render the roadmap without active-change
  * annotations. The roadmap surface MUST NOT block on side-channel reads.
  */
-async function buildActiveChangeIndex(
+async function buildActiveChangeIndexFromStore(
   store: Store,
 ): Promise<Map<number, string>> {
   const index = new Map<number, string>();
