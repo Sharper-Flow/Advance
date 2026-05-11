@@ -38,8 +38,49 @@ import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-de
 import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { validateCrossRepoTarget } from "../temporal/activities";
+import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
 
 const logger = createLogger("change");
+
+/**
+ * rq-backlogCoord02 / rq-backlogCoord03 — injection seam for the
+ * pre-create + post-create claim-collision checks. Production wires to
+ * `queryClaimsByIssueNumber` via `getService()`; tests inject a
+ * deterministic mock.
+ */
+export interface ChangeCreateProviders {
+  claimChecker?: (
+    projectId: string,
+    issueNumber: number,
+  ) => Promise<Array<{ changeId: string; status: string }>>;
+  /**
+   * Post-create double-check window in milliseconds. Defaults to 5000
+   * (rq-backlogCoord03 — chosen per validator pass-2 to give SQLite-backed
+   * dev servers margin for Visibility propagation). Tests pass 0 to skip
+   * the wait entirely.
+   */
+  claimRaceCheckMs?: number;
+}
+
+const DEFAULT_CLAIM_RACE_CHECK_MS = 5_000;
+
+async function defaultClaimChecker(
+  projectId: string,
+  issueNumber: number,
+): Promise<Array<{ changeId: string; status: string }>> {
+  const bundle = getService();
+  if (!bundle) return [];
+  const client = bundle.client as unknown as Parameters<
+    typeof queryClaimsByIssueNumber
+  >[0];
+  if (!client.workflow?.list) return [];
+  const results = await queryClaimsByIssueNumber(
+    client,
+    projectId,
+    issueNumber,
+  );
+  return results.map((r) => ({ changeId: r.changeId, status: "active" }));
+}
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import {
   loadProposalWithFallback,
@@ -1454,6 +1495,8 @@ export const changeTools = {
         origin_source_artifact?: string;
       },
       store: Store,
+      _maybeOverridePath?: string,
+      providers: ChangeCreateProviders = {},
     ) => {
       if (isSyntheticValidationDraftSummary(summary)) {
         return formatToolOutput(buildSyntheticValidationDraftError(summary));
@@ -1492,6 +1535,37 @@ export const changeTools = {
             "origin_issue_number / origin_source_artifact require origin_kind to be set",
           hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside the linkage fields.",
         });
+      }
+
+      // rq-backlogCoord02 — Pre-create claim collision check.
+      // Fires for any origin that carries a concrete `issue_number` (kind
+      // roadmap requires it; triage may carry it when promoting from a
+      // backlog item). Skipped for adhoc/discovery without issue_number.
+      // Skipped entirely when no Temporal service is available (legacy /
+      // test mode) UNLESS an explicit `claimChecker` provider is injected.
+      const claimChecker = providers.claimChecker ?? defaultClaimChecker;
+      const claimRaceCheckMs =
+        providers.claimRaceCheckMs ?? DEFAULT_CLAIM_RACE_CHECK_MS;
+      const claimCoordinationEnabled =
+        providers.claimChecker !== undefined || getService() !== null;
+      const shouldClaimCheck =
+        claimCoordinationEnabled &&
+        origin?.issue_number !== undefined &&
+        (origin.kind === "roadmap" || origin.kind === "triage");
+      if (shouldClaimCheck && origin?.issue_number !== undefined) {
+        const projectId = (await getProjectId(store.paths.root)) ?? "";
+        const existing = await claimChecker(projectId, origin.issue_number);
+        if (existing.length > 0) {
+          const first = existing[0];
+          return formatToolOutput({
+            error: `Issue #${origin.issue_number} is already claimed by change ${first.changeId} (status: ${first.status})`,
+            code: "CLAIM_CONFLICT",
+            issue_number: origin.issue_number,
+            existing_change_id: first.changeId,
+            existing_change_status: first.status,
+            hint: `Resume that change with /adv-apply ${first.changeId}, or omit origin_issue_number to create an unlinked change.`,
+          });
+        }
       }
 
       if (target_path) {
@@ -1612,6 +1686,39 @@ export const changeTools = {
           gates: createdChangeResult.data.gates ?? createDefaultGates(),
           workdir: store.paths.root,
         });
+      }
+
+      // rq-backlogCoord03 — Post-create double-check for race tolerance.
+      // Temporal Visibility is eventually consistent; concurrent creates may
+      // both pass the pre-create check. Re-query after the propagation window
+      // and surface CLAIM_RACE_DETECTED if N>1 changes share the issue. The
+      // new change is NOT rolled back — the caller decides resolution.
+      if (
+        shouldClaimCheck &&
+        origin?.issue_number !== undefined &&
+        result.changeId
+      ) {
+        if (claimRaceCheckMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, claimRaceCheckMs));
+        }
+        try {
+          const projectId = (await getProjectId(store.paths.root)) ?? "";
+          const racers = await claimChecker(projectId, origin.issue_number);
+          if (racers.length > 1) {
+            output.warning = "CLAIM_RACE_DETECTED";
+            output.race_change_ids = racers.map((r) => r.changeId);
+            output.race_hint = `Concurrent change-create detected for issue #${origin.issue_number}. Changes: [${racers
+              .map((r) => r.changeId)
+              .join(", ")}]. Resolve by archiving duplicates.`;
+          }
+        } catch (err) {
+          // Post-create check failure is non-fatal — the change exists.
+          logger.warn(
+            `Post-create claim race-check failed for ${result.changeId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
       }
 
       return formatToolOutput(output);
