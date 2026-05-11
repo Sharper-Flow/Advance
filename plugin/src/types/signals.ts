@@ -10,6 +10,7 @@ import { ConformanceVerdictSchema } from "./conformance";
 import { GateIdSchema } from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
+import { TaskStructuredOutputSchema } from "./task-output";
 import {
   ChangeContractSchema,
   ContractAmendmentSchema,
@@ -119,6 +120,8 @@ export const TaskCompletedSignalPayloadSchema = z.object({
   filesTouched: z.array(z.string()).default([]),
   checkpointSha: z.string().optional(),
   completedAt: IsoTimestampSchema,
+  /** Structured output extracted from `<adv-output>` tags — optional, non-blocking */
+  structured_output: TaskStructuredOutputSchema.optional(),
 });
 export type TaskCompletedSignalPayload = z.infer<
   typeof TaskCompletedSignalPayloadSchema

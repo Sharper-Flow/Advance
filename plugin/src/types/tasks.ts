@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { DependencySchema } from "./specs";
+import { TaskStructuredOutputSchema } from "./task-output";
 
 // =============================================================================
 // Task Status
@@ -217,6 +218,12 @@ export const TaskSchema = z
      * Empty array when no files changed or on git failure.
      */
     touched_files: z.array(z.string()).optional(),
+    /**
+     * Structured output extracted from `<adv-output>` tags in task completion text.
+     * Populated by adv_task_update / adv_task_checkpoint when agent emits structured output.
+     * Optional — most tasks won't have this. Non-blocking extraction.
+     */
+    structured_output: TaskStructuredOutputSchema.optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
