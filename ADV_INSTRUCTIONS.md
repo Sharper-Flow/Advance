@@ -407,6 +407,8 @@ After 3 failures: STOP → `[ADV:BLOCKED]` → document all 3 attempts → ask v
 | Silent retries      | Document each attempt  |
 | 4+ same method      | Escalate after 3       |
 
+See also: `skill("adv-diagnose")` Phase 1 for feedback-loop construction before choosing the next recovery strategy.
+
 ### External Conformance
 
 Black-box AC verification run by external CI. Specs under conformance are "locked" after first archive — the agent cannot read conformance test source.
@@ -802,6 +804,19 @@ Skill metadata: YAML frontmatter with `name`, `description`, `keywords`.
 
 <!-- rq-domainContext01 -->
 **Domain context artifacts:** Projects MAY maintain `CONTEXT.md` (root) or `CONTEXT-MAP.md` + per-context `CONTEXT.md` files as a domain glossary. `/adv-discover`, `/adv-design`, and `/adv-clarify` MAY read these for domain-language alignment. Lazy creation; advisory artifact. See `.adv/specs/domain-context/` for format and consumer contract.
+
+### Excluded Skills
+
+Pocock overlap skills remain excluded from ADV skill selection:
+
+| Skill | Rationale |
+|---|---|
+| `grill-me` | Superseded by `/adv-clarify`; ADV owns clarification gates. |
+| `grill-with-docs` | Reference docs vendored into `domain-context`; workflow overlap excluded. |
+| `to-prd` | Superseded by `/adv-proposal`; proposal gate owns problem/criteria contract. |
+| `to-issues` | Superseded by `/adv-triage`; GH issue promotion stays HITL-governed. |
+| `triage` | Superseded by `/adv-triage`; WSJF + ROADMAP mirror already gate-aware. |
+| `tdd` | Superseded by RSTC TDD Protocol; task metadata and verification own correctness. |
 
 ## Skill Creation Protocol
 
