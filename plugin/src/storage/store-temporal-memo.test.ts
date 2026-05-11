@@ -125,4 +125,49 @@ describe("ChangeSummaryMemo", () => {
     const keys = Object.keys(sampleSummary);
     expect(keys).not.toContain("sourceVersion");
   });
+
+  it("full lifecycle without sourceVersion: set, get, bulkSet, invalidate", () => {
+    const s1: ChangeSummary = {
+      id: "reg-a",
+      title: "Regression A",
+      status: "active",
+      gateProgress: {
+        proposal: "done",
+        discovery: "done",
+        design: "done",
+        planning: "done",
+        execution: "pending",
+        acceptance: "pending",
+        release: "pending",
+      },
+      taskCounts: { total: 3, done: 2, pending: 1 },
+      lastActivityAt: "2026-05-11T10:00:00.000Z",
+    };
+    const s2: ChangeSummary = {
+      ...s1,
+      id: "reg-b",
+      title: "Regression B",
+    };
+
+    // set + get
+    memo.set("reg-a", s1);
+    const got = memo.get("reg-a");
+    expect(got).toBeDefined();
+    expect(got!.id).toBe("reg-a");
+    expect(Object.keys(got!)).not.toContain("sourceVersion");
+
+    // bulkSet replaces
+    memo.bulkSet([
+      ["reg-a", s1],
+      ["reg-b", s2],
+    ]);
+    expect(memo.size()).toBe(2);
+    expect(memo.getAll().map((s) => s.id).sort()).toEqual(["reg-a", "reg-b"]);
+
+    // invalidate one
+    memo.invalidate("reg-a");
+    expect(memo.get("reg-a")).toBeUndefined();
+    expect(memo.get("reg-b")).toBeDefined();
+    expect(Object.keys(memo.get("reg-b")!)).not.toContain("sourceVersion");
+  });
 });
