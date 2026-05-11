@@ -1,7 +1,7 @@
 ---
 name: adv-archive
 description: Archive completed change: apply spec deltas and finalize git
-phaseGoal: "Promote the change from contract to law: apply spec deltas, capture wisdom, clean up."
+phaseGoal: "Promote change from contract to law: apply spec deltas, capture wisdom, clean up."
 ---
 
 <!-- manifest: adv-archive · gate: release · requiresChangeId: true · prereqs: [adv-harden] · scope: reads[specs, proposal, tasks, codebase] · modifies[specs] -->
@@ -47,7 +47,7 @@ Archive verifies proof completeness, not product semantics from scratch. If `cha
 - Contract amendment/waiver/supersession lacks audit evidence.
 - Review matrix predates a substantive contract amendment.
 
-On pass, plan generation of `CONTRACT_TRACEABILITY.md` in the archive bundle with contract item IDs, task refs, matrix status, evidence summary, and amendment audit. On failure, stop before Phase 2 and direct the user to `/adv-review {change-id}` or contract re-entry/amendment.
+On pass, plan generation of `CONTRACT_TRACEABILITY.md` in archive bundle with contract item IDs, task refs, matrix status, evidence summary, and amendment audit. On failure, stop before Phase 2 and direct user to `/adv-review {change-id}` or contract re-entry/amendment.
 
 ---
 
@@ -55,7 +55,7 @@ On pass, plan generation of `CONTRACT_TRACEABILITY.md` in the archive bundle wit
 
 Display: change ID/title, task count, delta count per capability, affected spec files, docs to generate, archive location, and `CONTRACT_TRACEABILITY.md` when a contract exists.
 
-Product-linked archive: if the change has `scope_repos`, display repo order, required flags, target paths, and planned `multi-repo-archive.json` evidence. All required repos must pass ff-only preflight before any archive bundle write or merge side effect. Failure stops archive with no bundle.
+Product-linked archive: if change has `scope_repos`, display repo order, required flags, target paths, and planned `multi-repo-archive.json` evidence. All required repos must pass ff-only preflight before any archive bundle write or merge side effect. Failure stops archive with no bundle.
 
 ---
 
@@ -73,9 +73,9 @@ If `--dry-run` → emit DRY RUN COMPLETE → stop.
 
 ## Phase 5: User Signoff (Inline — Tier B)
 
-Present the change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes the archive workflow inline in the same response (no separate confirmation-echo turn).
+Present change report inline (per `.opencode/agents/adv.md` § Sign-Off Boundary), followed by the **Inline Approval prompt (Tier B)** per `docs/command-voice-standard.md` § Inline Approval Voice. Archive is irreversible — Tier B uses whitelist-only with no LLM fallback. On whitelist match, the agent executes archive workflow inline in same response (no separate confirmation-echo turn).
 
-After the change report:
+After change report:
 
 ```
 ---
@@ -92,14 +92,14 @@ or `cancel` / `stop` / `abort` to halt.
 
 | Reply (exact match, case-insensitive, trimmed) | Action |
 |---|---|
-| `sign off` / `signoff` / `approve` / `confirm` / `yes` / `proceed` / `ship it` | Emit one-line acknowledgment (`Archiving {change-id}.`), then execute Phase 6 onward in the same response — no second user turn |
+| `sign off` / `signoff` / `approve` / `confirm` / `yes` / `proceed` / `ship it` | Emit one-line acknowledgment (`Archiving {change-id}.`), then execute Phase 6 onward in same response — no second user turn |
 | `dry run` / `dryrun` | Run `adv_change_archive dryRun: true`, present results, re-prompt with same options |
 | `cancel` / `stop` / `abort` | Halt |
-| Anything else | Re-prompt with the same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance |
+| Anything else | Re-prompt with same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance |
 
 **Anchor phrase:** `Reply `sign off``
 
-**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then call `adv_gate_complete gateId: 'release'` and proceed through Phase 6 in the same turn. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
+**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then call `adv_gate_complete gateId: 'release'` and proceed through Phase 6 in same turn. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
 
 **× Do NOT** use the `question` tool for archive sign-off. The inline pattern is canonical per `rq-inlineApproval01.3` (Tier B whitelist-only).
 
@@ -115,7 +115,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 1. **Check conformance state.** `adv_conformance action: "status"` → inspect `specs[{capability}].conformance_required`. If false or absent → skip to Phase 6.
 
-2. **Run conformance check.** `adv_conformance action: "run"` with `artifact_path` pointing to the CI-produced verdict artifact. Default artifact convention: `conformance-verdict.json` unless the project's conformance checklist says otherwise. If the artifact does not exist, report CI outage and halt.
+2. **Run conformance check.** `adv_conformance action: "run"` with `artifact_path` pointing to the CI-produced verdict artifact. Default artifact convention: `conformance-verdict.json` unless project's conformance checklist says otherwise. If the artifact does not exist, report CI outage and halt.
 
 3. **Evaluate verdict.**
 
@@ -151,7 +151,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 `adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
 
-When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on the change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
+When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
 
 ---
 
@@ -163,7 +163,7 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 
 ## Phase 8: Archive Report
 
-Use the archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by push state:
+Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by push state:
 
 - **Shipped.** — push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
 - **Merged locally.** — no remote configured OR push skipped OR push failed (with explicit reason)
@@ -193,11 +193,11 @@ What shipped (or merged locally), what spec deltas applied.
 > **{change-id}** · release ✓ · {Shipped. | Merged locally.}
 ```
 
-After the archive summary is displayed, invoke reflection (non-blocking):
+After archive summary is displayed, invoke reflection (non-blocking):
 
 - `adv_reflect changeId: {change-id}` → produce the reflection report
 - Runs after archive directory creation (Phase 6) and after archive summary (above)
-- If reflection fails → log a warning and continue — do NOT block the archive
+- If reflection fails → log a warning and continue — do NOT block archive
 - Reflection report is informational only
 
 ---
@@ -205,9 +205,9 @@ After the archive summary is displayed, invoke reflection (non-blocking):
 ## Phase 9: Git Finalization (Mandatory)
 <!-- rq-releaseFinalization01 -->
 
-> **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks the user — ADV does not "fix" main's state on the user's behalf.
+> **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks user — ADV does not "fix" main's state on user's behalf.
 
-### Step 1: Stage and Commit (in the worktree, on the change branch)
+### Step 1: Stage and Commit (in the worktree, on change branch)
 
 Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit on the **change branch in the worktree**: `chore: archive {change-id}`. If commit fails → stop.
 
@@ -221,7 +221,7 @@ Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`
 MAIN="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
 ```
 
-This resolves to the absolute path of the main checkout root from any workdir (worktree or main). Used for every subsequent default-branch operation through Step 7. If running from the main checkout itself, `$MAIN` equals the current working directory and `git -C "$MAIN" ...` is a no-op prefix — the same commands work in both modes.
+This resolves to the absolute path of the main checkout root from any workdir (worktree or main). Used for every subsequent default-branch operation through Step 7. If running from the main checkout itself, `$MAIN` equals current working directory and `git -C "$MAIN" ...` is a no-op prefix — same commands work in both modes.
 
 ### Step 3.5: Overlap + Merge-Order Scan
 
@@ -236,7 +236,7 @@ This resolves to the absolute path of the main checkout root from any workdir (w
 
 - `git -C "$MAIN" fetch origin {default-branch}` when `origin` exists
 - If fetch succeeds → use `origin/{default-branch}` as freshness reference
-- If fetch fails and a PR/publish path is required → stop and ask the user before proceeding
+- If fetch fails and a PR/publish path is required → stop and ask user before proceeding
 - If no remote is configured or local-only archive is intended → continue with local `{default-branch}`
 
 #### Step 4.4: Main Checkout Invariant Check (HARD GATE)
@@ -247,15 +247,15 @@ Before any merge attempt, verify the main checkout is in a state ADV can safely 
 2. `git -C "$MAIN" status --porcelain` → MUST be empty. If not → **STOP**. List the dirty files. Tell user: "Main checkout at `$MAIN` has uncommitted changes. ADV will not merge over a dirty tree. Commit or stash them in `$MAIN` and retry."
 3. Both pass → proceed to Step 4.5.
 
-× ADV MUST NOT attempt to switch main's branch, stash main's working tree, or otherwise mutate main's state on the user's behalf. This is a stop-and-ask gate.
+× ADV MUST NOT attempt to switch main's branch, stash main's working tree, or otherwise mutate main's state on user's behalf. This is a stop-and-ask gate.
 
 #### Step 4.5: Choose Integration Path
 
 Allowed outcomes:
 
 - **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase the change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **PR workflow path** — `overlap-risk`, `pr-risk`, `queue-blocked`, failed lightweight verification, or non-fast-forward publish risk → push the change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
+- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
+- **PR workflow path** — `overlap-risk`, `pr-risk`, `queue-blocked`, failed lightweight verification, or non-fast-forward publish risk → push change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
 
 ### Step 4 — Conflict-recovery flow (post-J3 expansion)
 
@@ -268,7 +268,7 @@ When `git rebase` surfaces conflicts during Phase 9, /adv-archive runs the full 
    - `duplicate_content` — to-be-applied tree matches `origin/<default>` (T28's `detectSkipDuplicate`)
    - `auto_resolvable_trivial` — whitespace/line-ending only (no semantic delta)
    - `divergent_content` — semantic divergence requires user input
-3. **Drive the resolution loop** — `navigateConflicts({ conflicts, repoRoot, deps })` from `plugin/src/tools/archive-helpers/conflict-loop.ts` (T28c) presents the batch summary and reads the user's mode choice:
+3. **Drive the resolution loop** — `navigateConflicts({ conflicts, repoRoot, deps })` from `plugin/src/tools/archive-helpers/conflict-loop.ts` (T28c) presents the batch summary and reads user's mode choice:
    - `auto` — apply skip + auto_resolve in original order; prompt for each divergent
    - `step` — sequential walk; user confirms or overrides every conflict
    - `abort` — `git rebase --abort` and halt
@@ -315,13 +315,13 @@ User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add +
 
 After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 
-- `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask the user before proceeding)
+- `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask user before proceeding)
 - `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` → inspect the commits that will publish
 - If `origin/{default-branch}..{default-branch}` is a clean fast-forward → `git -C "$MAIN" push origin {default-branch} 2>&1` (capture output verbatim — do NOT redirect to `/dev/null`; agent must observe pre-push hook output)
 - × Do NOT force-push by default
-- Before any `--force-with-lease` prompt, show both `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` and `git -C "$MAIN" log --oneline {default-branch}..origin/{default-branch}` so the user sees local-only and remote-only commits
+- Before any `--force-with-lease` prompt, show both `git -C "$MAIN" log --oneline origin/{default-branch}..{default-branch}` and `git -C "$MAIN" log --oneline {default-branch}..origin/{default-branch}` so user sees local-only and remote-only commits
 - Use `--force-with-lease` only after explicit user approval via the `question` tool confirms a non-fast-forward publish is intended
-- If remote divergence is detected and intent is unclear → stop and ask the user
+- If remote divergence is detected and intent is unclear → stop and ask user
 
 If push hook output indicates failure (non-zero hook exit) but push itself succeeded: report it in Phase 8 but do NOT block — pre-push hook is best-effort sync; failure does not invalidate the push.
 
@@ -329,7 +329,7 @@ If no remote is configured OR push is skipped OR push fails: record the push fai
 
 ### Step 5.5: Pre-Push Hook Detection
 
-Before pushing (Step 5), detect what the project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
+Before pushing (Step 5), detect what project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
 
 Detection (in order; stop at first match):
 
@@ -352,7 +352,7 @@ Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lin
 
 ### Step 6: Verify
 
-`git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty (every commit on the change branch is reachable from default-branch). If non-empty → stop, × do NOT delete worktree.
+`git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty (every commit on change branch is reachable from default-branch). If non-empty → stop, × do NOT delete worktree.
 
 If push was performed (Step 5 succeeded): `git -C "$MAIN" fetch origin {default-branch}` then compare `git -C "$MAIN" rev-parse origin/{default-branch}` with `git -C "$MAIN" rev-parse {default-branch}` → MUST be equal. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
 
@@ -367,7 +367,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 <!-- rq-issueChangeLinkage02 -->
 ### Step 8.5: Linked GitHub Issue Close (rq-issueChangeLinkage02)
 
-**Trigger:** All of the following must be true (otherwise SKIP this step):
+**Trigger:** All of following must be true (otherwise SKIP this step):
 
 - `--no-close-issue` was NOT passed in the original `$ARGUMENTS`.
 - The change has `origin.kind ∈ {'roadmap', 'triage'}`.
@@ -401,7 +401,7 @@ Emit GIT FINALIZATION COMPLETE: commit SHA, merge target (`$MAIN` default-branch
 
 ### Step 9: Post-Deploy Nudge
 
-After Phase 9 completes and the archive summary is displayed (Phase 8), if the project has a detectable deployment target, append a one-line nudge:
+After Phase 9 completes and archive summary is displayed (Phase 8), if project has a detectable deployment target, append a one-line nudge:
 
 ```
 → Deploy to production when ready

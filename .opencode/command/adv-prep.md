@@ -50,10 +50,10 @@ All steps must be executed. Skipping requires explicit justification.
 #### Constraints
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
-- **No gate completion** — the command owns the planning gate
+- **No gate completion** — command owns the planning gate
 - **Canonical source** — defer to `docs/checklists/prep-checklist.md` for detailed rules
 - **No architecture decisions** — those belong in `/adv-design`
-- **No workflow sequencing** — the command owns phase ordering
+- **No workflow sequencing** — command owns phase ordering
 
 ---
 ## Phase 1: Load Context
@@ -100,7 +100,7 @@ When `ChangeContract` exists, `/adv-prep` must synthesize task refs alongside ta
 - For `standard` and `strict` rigor, each code task needs contract refs or an explicit not-applicable reason.
 - Every required `AC*` item needs at least one implementing or verifying task before planning gate completion.
 
-When creating tasks, include the structured `contract_refs` payload in the task mutation path supported by the current tool layer. Do not rely on prose-only labels as the source of truth.
+When creating tasks, include the structured `contract_refs` payload in task mutation path supported by current tool layer. Do not rely on prose-only labels as the source of truth.
 
 ### Delegation Hints
 When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal execution routing:
@@ -111,10 +111,10 @@ When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal ex
 If omitted, `/adv-apply` determines routing from `tdd_intent`, title heuristics, and risk signals. See `ADV_INSTRUCTIONS.md § Delegation Routing`.
 
 ### Touched-Scope Quality Ownership
-The task graph MUST include tasks covering touched-scope obligations:
-1. **Directly touched implementation files** — code changed or added by the change
+Task graph MUST include tasks covering touched-scope obligations:
+1. **Directly touched implementation files** — code changed or added by change
 2. **Adjacent tests and docs** — test files and documentation needed for correctness and clarity of touched code
-3. **Same-pattern local subsystem issues** — identical defect/quality patterns in the local touched subsystem that are cheap and clearly the same class of issue
+3. **Same-pattern local subsystem issues** — identical defect/quality patterns in the local touched subsystem that are cheap and clearly same class of issue
 
 × Do NOT expand ownership into implicit repo-wide refactors. Keep ownership bounded to the local touched subsystem.
 
@@ -122,7 +122,7 @@ The task graph MUST include tasks covering touched-scope obligations:
 ## Phase 3: Validation + Completion
 `adv_change_validate strict: true` → fix errors → re-validate. `adv_gate_complete gateId: planning` → handle failure codes (`SCENARIO_MISSING`, `TASK_TDD_INVERSION`, `CROSS_REPO_MISSING_METADATA`).
 
-If contract validation returns `CONTRACT_*` issues, fix the task graph or contract refs before completing planning. Do not downgrade missing refs into future work.
+If contract validation returns `CONTRACT_*` issues, fix task graph or contract refs before completing planning. Do not downgrade missing refs into future work.
 
 Agent self-assesses readiness (requirements clarity, technical approach, edge cases). Resolve gaps inline or ask user.
 
@@ -225,7 +225,7 @@ Search codebase for key terms → compare with affected files. Flag missing file
 
 **Check 3:** Routing completeness — every repo in proposal has ≥1 task targeting it.
 
-**Check 4:** Cross-project coordination metadata — when a change depends on or contributes to another ADV-enabled project, ensure tasks or change metadata identify `cross_project_links` and `external_dependencies` explicitly.
+**Check 4:** Cross-project coordination metadata — when change depends on or contributes to another ADV-enabled project, ensure tasks or change metadata identify `cross_project_links` and `external_dependencies` explicitly.
 
 **Check 5:** Advisory-only dependencies — `external_dependencies` are advisory-only dependencies. They may produce warnings, but prep MUST NOT model them as gate blockers unless the agreement explicitly requires blocking behavior.
 
@@ -233,18 +233,18 @@ Search codebase for key terms → compare with affected files. Flag missing file
 
 ### 3.8 Multi-Worktree File-Overlap Scan
 
-When 2+ worktrees are active for the same project, scan for file-path intersections between the current change's planned `touched_files` and peer worktrees' active changes' `touched_files`.
+When 2+ worktrees are active for same project, scan for file-path intersections between current change's planned `touched_files` and peer worktrees' active changes' `touched_files`.
 
 **How it works:**
-1. Read `worktree_registry` from the project workflow state (via `listWorktrees`).
-2. For each peer worktree (skipping the current branch), resolve its `changeId` and read `change_summaries[changeId].touched_files` from Temporal (via `getChangeSummaries`).
-3. Compute the intersection with the current change's planned `touched_files`.
+1. Read `worktree_registry` from project workflow state (via `listWorktrees`).
+2. For each peer worktree (skipping current branch), resolve its `changeId` and read `change_summaries[changeId].touched_files` from Temporal (via `getChangeSummaries`).
+3. Compute the intersection with current change's planned `touched_files`.
 4. Flag non-empty intersections as "potential merge conflict" warnings.
 5. Archived changes are skipped (their files are already merged).
 
 **Cross-session reliability:** Temporal serializes `touched_files` writes from peer sessions; the snapshot read by the scan is consistent at read time.
 
-**Surfacing:** Overlaps are surfaced in the vision banner (Phase 5.1) as advisory warnings. They do NOT block the prep gate — they inform the user of coordination risk before autonomous execution begins.
+**Surfacing:** Overlaps are surfaced in the vision banner (Phase 5.1) as advisory warnings. They do NOT block the prep gate — they inform user of coordination risk before autonomous execution begins.
 
 > **TODO:** Wire `scanFileOverlaps` from `plugin/src/validator/file-overlap.ts` into the prep validator. The validator is currently pure-sync over `Change` objects; integrating an async Temporal query requires refactoring the validator runner to accept async checks. Defer until the validator framework gains async I/O support.
 
@@ -265,7 +265,7 @@ When 2+ worktrees are active for the same project, scan for file-path intersecti
 
 ### 5.1 Vision Document
 
-Generate a compact vision banner (<30 lines) and present it **in chat only** (not stored as a file). Include:
+Generate a compact vision banner (<30 lines) and present it **in chat only** (not stored as file). Include:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
@@ -318,7 +318,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 
 **Anchor phrase:** `Reply `approve``
 
-**Machine contract (CRITICAL):** when the user replies with a Tier A whitelist word (or LLM classifies as `approve`), the agent MUST pass `userApproved: true` to `adv_gate_complete gateId: 'planning'`. The machine contract enforced by `handlePlanningGateCompletion` is independent of the UX surface — inline approval is the upstream signal source.
+**Machine contract (CRITICAL):** when user replies with a Tier A whitelist word (or LLM classifies as `approve`), the agent MUST pass `userApproved: true` to `adv_gate_complete gateId: 'planning'`. The machine contract enforced by `handlePlanningGateCompletion` is independent of the UX surface — inline approval is the upstream signal source.
 
 **× MUST NOT proceed past Phase 5 without an explicit user reply matching the Tier A whitelist, LLM-classified `approve`, or exact shown continuation command invocation.** The prep gate is the last human checkpoint before autonomous execution.
 
@@ -331,7 +331,7 @@ Want to abandon prep? Reply `cancel` or `stop`.
 - Missing tasks → `adv_task_add` (with `blockedBy` if needed)
 - Absorption/merge → `adv_task_cancel` (with user approval) → update parent → redirect dependents
 - TDD ordering → cancel test task → update impl task with "TDD: write tests first"
-- Missing scenarios → document the gap in proposal/problem statement, add follow-up task(s), and stop for explicit delta editing support rather than writing `change.json` directly
+- Missing scenarios → document the gap in proposal/problem statement, add follow-up task(s), and stop for explicit delta editing support not writing `change.json` directly
 - Cross-cutting → add task or document N/A
 - Smells → record required wording changes in proposal/problem notes or add follow-up task(s); don't rewrite requirement text inline during prep
 - Cross-spec conflicts → document resolution in proposal.md
@@ -404,7 +404,7 @@ Firm plan shape (task structure, approach, not task list).
 > → `/adv-apply {change-id}`
 ```
 
-**Auto-continue:** After user approval, immediately begin `/adv-apply` inline. This is the last human checkpoint before autonomous execution — the user's "approve and continue" is the go-ahead to start implementation without any further confirmation.
+**Auto-continue:** After user approval, immediately begin `/adv-apply` inline. This is the last human checkpoint before autonomous execution — user's "approve and continue" is the go-ahead to start implementation without any further confirmation.
 
 ---
 ## Key Tools

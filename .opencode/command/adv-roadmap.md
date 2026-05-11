@@ -13,7 +13,7 @@ Show the prioritized backlog: bugs by priority, features ranked by WSJF, and any
 
 Extract from `$ARGUMENTS`:
 
-- `--live` — query GitHub Project directly instead of reading `.adv/roadmap-snapshot.json`. Use when the file may be stale (no recent `/adv-triage` run) or when verifying a just-edited Project field.
+- `--live` — query GitHub Project directly instead of reading `.adv/roadmap-snapshot.json`. Use when file may be stale (no recent `/adv-triage` run) or when verifying a just-edited Project field.
 - `--top <N>` — limit features to top N by WSJF. Default: 10.
 - `--kind {bug|feature|all}` — filter by item kind. Default: `all`.
 - `--priority {critical|high|medium|low}` — filter bugs to a single tier. No effect on features.
@@ -78,7 +78,7 @@ Warnings:
 
 If `kind=feature`, drop the bugs section. If `kind=bug`, drop the features section. If `priority` is set, only show that bug tier.
 
-Omit the Warnings block when `warnings` is empty. If `freshness.needs_refresh === true`, render the freshness line and warnings before recommendations. Do not recommend starting `/adv-proposal #N` from a stale file snapshot until the user has checked `/adv-roadmap --live` or refreshed via `/adv-triage`.
+Omit the Warnings block when `warnings` is empty. If `freshness.needs_refresh === true`, render the freshness line and warnings before recommendations. Do not recommend starting `/adv-proposal #N` from a stale file snapshot until user has checked `/adv-roadmap --live` or refreshed via `/adv-triage`.
 
 ### Recommendations
 
@@ -98,7 +98,7 @@ The `/adv-proposal #N` positional syntax is the canonical form (rq-issueChangeLi
 
 ## Phase 3: Quick actions (optional)
 
-If the user asks "what should I work on?" or "pick the top item", recommend the highest-WSJF feature without an `active_change`. Do NOT auto-start work — keep the command read-only. The user invokes `/adv-proposal` (or `/adv-atc`) explicitly.
+If user asks "what should I work on?" or "pick the top item", recommend the highest-WSJF feature without an `active_change`. Do NOT auto-start work — keep command read-only. User invokes `/adv-proposal` (or `/adv-atc`) explicitly.
 
 ---
 
@@ -106,7 +106,7 @@ If the user asks "what should I work on?" or "pick the top item", recommend the 
 
 | Command | Role | Relationship to /adv-roadmap |
 |---|---|---|
-| `/adv-status` | Operational health: in-flight ADV state, Temporal/worker, worktrees, session debt | Disjoint scope. `/adv-status` answers "is the system OK and what am I doing?"; `/adv-roadmap` answers "what's next?". Both surface roadmap freshness (last `/adv-triage` mtime). |
+| `/adv-status` | Operational health: in-flight ADV state, Temporal/worker, worktrees, session debt | Disjoint scope. `/adv-status` answers "is system OK and what am I doing?"; `/adv-roadmap` answers "what's next?". Both surface roadmap freshness (last `/adv-triage` mtime). |
 | `/adv-triage` | Regenerates `ROADMAP.md` + `.adv/roadmap-snapshot.json` from GitHub Project | Upstream of `/adv-roadmap`. Without a `/adv-triage` run, `source: 'file'` returns an actionable error. |
 | `/adv-proposal` | Starts a new ADV change | Downstream of `/adv-roadmap`. Use `/adv-proposal #N` to auto-link the new change to roadmap item `#N` via `change.origin` (rq-issueChangeLinkage01). |
 | `/adv-atc` | Autonomous through-change execution | Downstream of `/adv-roadmap`. Same linkage path applies. |
@@ -119,7 +119,7 @@ If the user asks "what should I work on?" or "pick the top item", recommend the 
 |---|---|
 | Echo only "Top 3 features" without the full requested set | Render the full filtered set inline; truncation only via `--top N` |
 | Replace the chat render with "see ROADMAP.md" | Phase 2 mandates inline tables; ROADMAP.md is the canonical mirror, not a substitute for the response |
-| Auto-start a change ("I'll begin with #51 now") | Read-only command; surface the recommendation, let the user invoke `/adv-proposal` |
+| Auto-start change ("I'll begin with #51 now") | Read-only command; surface the recommendation, let user invoke `/adv-proposal` |
 | Always use `--live` to be safe | File mode is the canonical default; `--live` only when staleness is a concern |
 | Skip the active-change cross-reference | The `active_change` annotation is the primary differentiator from raw ROADMAP.md — always render it |
 | Treat stale file bugs with zero active changes as unstarted work | Render freshness warning; live-check before proposing bug fixes |

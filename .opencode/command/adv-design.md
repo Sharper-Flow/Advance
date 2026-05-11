@@ -4,9 +4,9 @@ description: Validate architecture decisions, produce implementation strategy, a
 ---
 <!-- manifest: adv-design · gate: design · requiresChangeId: true · prereqs: [adv-discover] · scope: reads[specs, proposal, codebase] · modifies[proposal] -->
 # ADV Design — Produce the Design Artifact
-Convert the confirmed agreement into a concrete technical design. This command completes the `design` gate and now prepares planning directly.
+Convert the confirmed agreement into a concrete technical design. Command completes the `design` gate and now prepares planning directly.
 ## Command Boundary
-**Produces:** `design.md` covering architecture, key decisions, implementation strategy, LBP analysis, and the user-visible design summary needed before planning.
+**Produces:** `design.md` covering architecture, key decisions, implementation strategy, LBP analysis, and user-visible design summary needed before planning.
 
 **× MUST NOT:** Create tasks, complete non-owned gates, or skip research when design choices depend on framework/library guidance.
 
@@ -37,7 +37,7 @@ Produce a design covering:
 5. **LBP analysis** — why this is the preferred long-term approach
 6. **Risks and mitigations**
 
-Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not just what files exist.
+Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not what files exist.
 
 ---
 ## Phase 3: Persist Design
@@ -56,7 +56,7 @@ Suggested structure:
 
 ---
 ## Phase 3.5: Validate Design
-- Spawn the independent validator agent (`adv-researcher`) with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If the task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
+- Spawn the independent validator agent (`adv-researcher`) with a validator-specific prompt. This step is mandatory — it must run before Phase 4. If task tool is unavailable, skip gracefully and record `INCONCLUSIVE` via `adv_change_update` appended to `design.md` (see Phase 3.6).
 
 **Validator input:** design.md content + compact agreement summary (objectives, AC, constraints, avoidances).
 
@@ -102,7 +102,7 @@ Process the validator output and determine whether to proceed:
 |---------|--------|
 | `VALIDATED` | Record "Validator: clean pass" in design notes; proceed to Phase 4 |
 | `CAUTION` | Record caution findings in design notes; proceed to Phase 4 |
-| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for the design summary to surface to the user before planning; if resolved inline, record the conflict as resolved and proceed |
+| `CONFLICT` | Present conflict findings; attempt inline resolution if technical fix is obvious; if unresolved, flag in design notes for the design summary to surface to user before planning; if resolved inline, record the conflict as resolved and proceed |
 | `INCONCLUSIVE` (empty/failed/timeout) | Record "Validation attempted but inconclusive" warning; proceed to Phase 4 |
 
 Record the validation result via `adv_change_update` as a compact summary appended to `design.md`.
@@ -114,7 +114,7 @@ Show a compact summary with:
 - key decisions
 - implementation strategy
 - major risks / tradeoffs
-- optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone. Load `skill("adv-user-intuit")` for the structured comparison presentation protocol if the skill is available; otherwise continue with the existing inline comparison workflow
+- optional visual comparison block when side-by-side design alternatives are easier to judge than prose alone. Load `skill("adv-user-intuit")` for the structured comparison presentation protocol if skill is available; otherwise continue with existing inline comparison workflow
 - **Validator Result** — always display validator outcome from Phase 3.5/3.6 when validation data exists:
   - `VALIDATED` → one-line note: "Validator: clean pass ✓"
   - `CAUTION` → list caution findings inline (brief, one sentence each)
@@ -126,7 +126,7 @@ After displaying the validator result:
 - If a visual comparison block is used, keep it text-readable and align it with the inline reply choices below
 - If the design involves real user-value tradeoffs, emit the **Inline Approval prompt (Tier A)** before moving into `/adv-prep`
 - If the validator found an unresolved `CONFLICT`, always pause with the inline approval prompt for user resolution before planning
-- If the agent identifies a contract-compromise risk — the design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances (as written in agreement.md) — always pause and surface a discussion of possible routes to the user before planning, regardless of validator verdict (see Phase 4.1)
+- If the agent identifies a contract-compromise risk — the design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances (as written in agreement.md) — always pause and surface a discussion of possible routes to user before planning, regardless of validator verdict (see Phase 4.1)
 - If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT` (resolved Phase 3.6 conflicts do not count), and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep` (no inline pause)
 
 **Inline Approval prompt when pausing** (Tier A per `docs/command-voice-standard.md` § Inline Approval Voice):
@@ -155,11 +155,11 @@ Want to stop here? Reply `cancel` or `stop`.
 
 ### Phase 4.1: Contract-Compromise Risk Assessment (Inline)
 
-When the agent recognizes that the chosen design path requires violating an explicit acceptance criterion, constraint, or avoidance stated in agreement.md, it must surface the compromise risk rather than silently proceed.
+When the agent recognizes that the chosen design path requires violating an explicit acceptance criterion, constraint, or avoidance stated in agreement.md, it must surface the compromise risk not silently proceed.
 
 If both an unresolved `CONFLICT` and a contract-compromise risk are present, surface them in one combined user discussion, not two separate pauses.
 
-**Trigger:** The design's only viable path breaks a rule the user explicitly set.
+**Trigger:** The design's only viable path breaks a rule user explicitly set.
 
 **Assessment criteria:**
 1. Which acceptance criteria, constraints, or avoidances are at risk?
@@ -193,11 +193,11 @@ Reply:
 
 **Amendment procedure for "keep with compromise":**
 - Use `adv_change_update` to append a "Design Compromise" section to agreement.md
-- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and approval evidence (the user's `keep with compromise` reply text + timestamp)
+- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and approval evidence (user's `keep with compromise` reply text + timestamp)
 - Only proceed to `/adv-prep` after the amendment is persisted
 
 ### Phase 4.5: Persist Revisions
-If the user requests adjustments, update the design/proposal artifacts via `adv_change_update`.
+If user requests adjustments, update the design/proposal artifacts via `adv_change_update`.
 
 Do not complete any gate here.
 

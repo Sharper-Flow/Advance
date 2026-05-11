@@ -24,7 +24,7 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 0: Load Skill
-`skill("adv-comp-research")` → provides two-mode strategy, auto-mode detection, comparison table format, evidence requirements. If the skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-comp-research")` → provides two-mode strategy, auto-mode detection, comparison table format, evidence requirements. If skill is unavailable, continue with the embedded protocol in this command file.
 
 ---
 ## Pre-flight
@@ -70,7 +70,7 @@ After successful completion, call `adv_project_metadata action:"write"` with:
 - `summary`: one-line string: `"{count} dimensions analyzed: {findingsCount} findings"` or `"no significant differences"`
 - `written_by`: `"agent"`
 
-This persists the scan result for display in `/adv-status`.
+Persists the scan result for display in `/adv-status`.
 
 ---
 ## Report Generation

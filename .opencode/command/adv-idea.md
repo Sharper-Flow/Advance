@@ -16,15 +16,15 @@ Shape a vague idea into a proposal-ready problem statement. Fully collaborative.
 
 **Produces:** clearer idea framing, constraints, open questions, and a proposal-ready summary when the idea becomes crisp enough.
 
-**× MUST NOT:** create a change, create tasks, complete gates, or make implementation commitments.
+**× MUST NOT:** create change, create tasks, complete gates, or make implementation commitments.
 
 **Gate:** None.
 
 ## Boundary vs Nearby Commands
 
-- `/adv-idea` — use before a change exists.
+- `/adv-idea` — use before change exists.
 - `/adv-proposal` — use once the problem statement is clear enough to create durable ADV artifacts.
-- `/adv-clarify` — use when a change already exists and requirements inside that change need clarification.
+- `/adv-clarify` — use when change already exists and requirements inside that change need clarification.
 
 ## Exits
 
@@ -40,7 +40,7 @@ Shape a vague idea into a proposal-ready problem statement. Fully collaborative.
 
 1. Restate the idea in one sentence.
 2. Extract any stated goal, user, pain, constraint, rejected direction, and unknown.
-3. If the user already has a crisp problem statement, say so and recommend `/adv-proposal` instead of forcing an ideation loop.
+3. If user already has a crisp problem statement, say so and recommend `/adv-proposal` instead of forcing an ideation loop.
 
 ## Phase 2: Ideation Loop
 
@@ -65,7 +65,7 @@ The idea is ready for `/adv-proposal` when all are true:
 - problem is concrete enough to restate clearly
 - intended outcome is specific enough to measure
 - obvious out-of-scope or avoidances are named
-- remaining unknowns can move into discovery instead of blocking the proposal
+- remaining unknowns can move into discovery instead of blocking proposal
 
 If not ready, keep the loop collaborative. Do not fabricate certainty.
 

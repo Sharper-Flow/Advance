@@ -24,7 +24,7 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 0: Load Skill
-`skill("adv-arch-detection")` → provides three-phase detection strategy, Known-Stack Rule Matrix, Research-Fallback Protocol, finding format, severity scoring. If the skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-arch-detection")` → provides three-phase detection strategy, Known-Stack Rule Matrix, Research-Fallback Protocol, finding format, severity scoring. If skill is unavailable, continue with the embedded protocol in this command file.
 
 ---
 ## Pre-flight
@@ -93,7 +93,7 @@ After successful completion, call `adv_project_metadata action:"write"` with:
   - If count = 0: `"no architecture issues detected"`
 - `written_by`: `"agent"`
 
-This persists the scan result for display in `/adv-status`.
+Persists the scan result for display in `/adv-status`.
 
 ---
 ## Report Generation

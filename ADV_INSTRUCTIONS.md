@@ -219,7 +219,6 @@ If a tool-name call fails, copy the exact name from the available-tools list and
 
 ### Structural Correctness (P33)
 
-<<<<<<< HEAD
 Make correctness structural before heuristic: prefer types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests. Fully recognize/normalize untrusted input before processing.
 
 | Area | Structural owner | Heuristic allowed only for |
@@ -227,25 +226,6 @@ Make correctness structural before heuristic: prefer types, schemas, parsers, st
 | Gates/tasks/backlog/specs | `adv_gate_*`, tasks, `metadata.tdd_intent`, validators, specs, conformance, exact refs, typed fields, user assignments | discovery, ranking, triage hints, legacy fallback, advisory risks |
 
 Heuristics MUST NOT be sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance. If unavoidable: isolate, document assumptions, add deterministic guardrails, test edge cases/properties.
-=======
-Make correctness structural before heuristic. Prefer machine-checkable mechanisms — types, schemas, parsers, state machines, invariants, contracts, database constraints, generated validators, and tests — over heuristic inference or prose-only rules.
-
-ADV-specific boundary:
-
-| Area | Structural source of truth | Heuristic allowed only for |
-| --- | --- | --- |
-| Gate completion | `adv_gate_status`, `adv_gate_complete`, tasks, validation tools | Discovery of missing context |
-| Task classification | `metadata.tdd_intent`, validator schema | Legacy fallback / warning text |
-| Backlog triage | Stable refs, issue IDs, typed project fields, explicit user assignments | Ranking candidates, kind hints, possible duplicate discovery |
-| Spec compliance | Specs, validators, conformance verdicts | Research leads / advisory risk flags |
-
-Rules:
-
-- Fully recognize and normalize untrusted input at boundaries before processing it.
-- Heuristics may assist discovery, ranking, triage, or advisory guidance.
-- Heuristics MUST NOT be the sole authority for correctness, security, persistence, workflow state, gate completion, or spec compliance.
-- If a heuristic is unavoidable, isolate it, document assumptions, add deterministic guardrails, and verify it with edge-case or property-based tests.
->>>>>>> 5247018 (task(tk-6b8fda1d628d): completed)
 
 ### ADV State Access
 

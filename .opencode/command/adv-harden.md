@@ -8,7 +8,7 @@ phaseGoal: "Verify production-readiness. Auto-fix scoped issues. Stop on drift."
 
 # ADV Harden — Release-Stage Quality Analysis
 
-Orchestrate multi-dimensional hardening via sub-agents. This command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
+Orchestrate multi-dimensional hardening via sub-agents. Command is part of the release stage and **blocks archive if actionable `REVIEW_FINDINGS` are unresolved.**
 
 ## Exits
 
@@ -41,7 +41,7 @@ Extract from `$ARGUMENTS`:
 
 ## Phase 0: Load Skill
 
-`skill("adv-slop-detection")` → provides shared slop-detection methodology used by both `/adv-slop-scan` and this command's AI-slop scanner. If the skill is unavailable, continue with the embedded scanner contract below.
+`skill("adv-slop-detection")` → provides shared slop-detection methodology used by both `/adv-slop-scan` and this command's AI-slop scanner. If skill is unavailable, continue with the embedded scanner contract below.
 
 ### Harden Methodology
 
@@ -69,9 +69,9 @@ All 6 must be executed. Skipping requires explicit justification.
 #### Constraints
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
-- **No gate completion** — the command owns the harden gate
+- **No gate completion** — command owns the harden gate
 - **Canonical source** — defer to `docs/checklists/harden-checklist.md` for detailed rules
-- **No workflow sequencing** — the command owns phase ordering and sub-agent orchestration
+- **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Pre-flight
 
@@ -237,7 +237,7 @@ Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_witho
 
 ### Sub-Agent 2: AI-Slop Detection Scanner
 
-Use the methodology from `adv-slop-detection` loaded in Phase 0 for this scanner dimension. Preserve the same severity ladder as the dedicated slop-scan workflow: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
+Use the methodology from `adv-slop-detection` loaded in Phase 0 for this scanner dimension. Preserve same severity ladder as the dedicated slop-scan workflow: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
 
 Return JSON with: `dimension: "ai_slop"`, `summary` (total, blockers, high, by_category), `issues` (severity, category, file, line, pattern, code_snippet, message, fix_suggestion), `debt_quadrant`.
 
@@ -337,7 +337,7 @@ If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-o
 Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
-- **YES** → **STOP** — present the finding and proposed fix to the user via `question` tool:
+- **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
   - **Approve fix and update scope** — user agrees the scope should expand; route through scope-discovery protocol (`docs/scope-discovery-protocol.md`)
   - **Split** — create a fast-follow child change via `adv_change_create parent_change_id: <current>` for the scope expansion
   - **Skip fix, document as accepted debt** — finding is valid but out of scope
@@ -345,7 +345,7 @@ Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Su
 
 This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
 
-**Scope-discovery cross-link:** When drift detection identifies scope expansion, defer to the canonical protocol at `docs/scope-discovery-protocol.md`. The split option creates a fast-follow child change, preserving the current change's momentum while isolating the expanded scope. See also `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
+**Scope-discovery cross-link:** When drift detection identifies scope expansion, defer to the canonical protocol at `docs/scope-discovery-protocol.md`. The split option creates a fast-follow child change, preserving current change's momentum while isolating the expanded scope. See also `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
 **Anti-pattern:** The drift-detection auto-fix path must NOT silently absorb non-campsite scope. If the fix would expand the agreement, always defer to the scope-discovery protocol above.
 
@@ -429,7 +429,7 @@ What was cleaned, hardened, and verified for release.
 > → `/adv-archive {change-id}`
 ```
 
-**Auto-continue:** If status is READY, immediately begin `/adv-archive` inline. The archive command itself will stop at the sign-off boundary for user approval of the final release. Do not add an extra "shall I proceed?" before starting archive.
+**Auto-continue:** If status is READY, immediately begin `/adv-archive` inline. Archive command itself will stop at the sign-off boundary for user approval of final release. Do not add an extra "shall I proceed?" before starting archive.
 
 ---
 

@@ -16,7 +16,7 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 
 **Produces:** triage summary, evidence gathered, likely hypotheses, scope assessment, and a next-step recommendation.
 
-**× MUST NOT:** create a change, create tasks, complete gates, or silently turn triage into fix implementation.
+**× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation.
 
 **Gate:** None.
 
@@ -48,7 +48,7 @@ Direct-fix outcome is a handoff outcome only. `/adv-problem` does not own the fi
 
 ## Phase 1: Gather Problem Signal
 
-1. Restate the reported issue.
+1. Restate reported issue.
 2. Capture symptoms, observed behavior, expected behavior, frequency, environment, and known recent changes.
 3. Ask for the strongest available evidence first: error text, reproduction steps, affected paths, screenshots/logs, or scope clues.
 
@@ -90,7 +90,7 @@ When triage reaches a clear branch, ask via `question` tool:
   - **Keep investigating**
   - **Stop after triage**
 
-If the user chooses fix-now, hand off to normal fix work outside this command. Do not create ADV artifacts unless the user chooses the proposal path.
+If user chooses fix-now, hand off to normal fix work outside this command. Do not create ADV artifacts unless user chooses proposal path.
 
 ## Output
 

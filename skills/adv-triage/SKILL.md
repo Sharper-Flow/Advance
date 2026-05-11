@@ -160,7 +160,7 @@ Items still `unknown` after reclassify and no user override → skip; surface in
 
 ### Triage-origin tagging (rq-issueChangeLinkage01)
 
-If user immediately starts new ADV change for one of these issues via `/adv-proposal` afterwards, the proposal MUST pass:
+If user immediately starts new ADV change for one of these issues via `/adv-proposal` afterwards, proposal MUST pass:
 
 - `origin_kind: 'triage'`
 - `origin_source_artifact: '<promoted-from-ref>'` (e.g. `ag-abc123`, `ws-xyz`, `path/to/file.ts:42`)

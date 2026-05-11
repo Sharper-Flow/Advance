@@ -7,7 +7,7 @@ phaseGoal: "Produce a defined, fully-researched proposed plan ready for user app
 
 # ADV Research — Architectural Decision Validation
 
-Validate architectural decisions via sub-agents using Context7 and web search. Simplicity bias — prefer boring solutions over clever ones. **Fully collaborative** — findings are presented to the user for approval before the gate completes.
+Validate architectural decisions via sub-agents using Context7 and web search. Simplicity bias — prefer boring solutions over clever ones. **Fully collaborative** — findings are presented to user for approval before gate completes.
 
 ## Command Boundary
 
@@ -48,7 +48,7 @@ From requirements/deltas: technologies/libraries, design patterns, integration p
 
 ### Architecture Audit (CRITICAL)
 
-Before validating individual decisions, audit the existing codebase architecture:
+Before validating individual decisions, audit existing codebase architecture:
 
 1. Scan affected code area + neighbors
 2. Identify patterns: layer boundaries, dependency direction, separation of concerns, error handling, observability
@@ -67,7 +67,7 @@ See ADV_INSTRUCTIONS.md §Skill Discovery Protocol. Load only trusted bundled sk
 
 ### Gap Detection + Creation
 
-If no matching skill was found for a domain clearly relevant to the change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for trigger conditions, naming convention, assembly template, and creation flow.
+If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
 1. Research domain using Context7, Kagi, `gh_grep_searchGitHub`
@@ -102,21 +102,21 @@ For each decision, formulate questions across:
 A sub-agent result is **empty/failed** if:
 - The result string is empty, whitespace-only, or `null`
 - The result does not contain the expected `VALIDATION:` or `FINDINGS:` section
-- The result contains only an error message with no research content
+- The result contains only error message with no research content
 - The result contains headers but no actionable content beneath them
 - The result is entirely inconclusive and provides no sourced findings
 
-Treat timeout/no-response the same as failure.
+Treat timeout/no-response same as failure.
 
 ### Retry Protocol
 
-1. **Retry once** — re-spawn that specific sub-agent with the same prompt
+1. **Retry once** — re-spawn that specific sub-agent with same prompt
 2. **If retry also fails** — fall back to inline research for that question:
    - For library/framework questions: prefer Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs. If Context7 is absent from the active schema, fall back to `webfetch` against the canonical docs URL.
    - Use `kagi_kagi_search_fetch` for community guidance and current best practices
    - Use `gh_grep_searchGitHub` for real-world implementation patterns
-   - Emit findings with the same `VALIDATION:` / `RECOMMENDATION:` structure
-   - Apply the same redaction rules during manual research: strip secrets/internal-only details and keep external queries generic
+   - Emit findings with same `VALIDATION:` / `RECOMMENDATION:` structure
+   - Apply same redaction rules during manual research: strip secrets/internal-only details and keep external queries generic
 3. **If using `explore` as fallback and it fails** — retry `explore` once, then do manual inline research
 4. **Never skip a research question** — every question must produce a finding or explicit "inconclusive" result
 
@@ -199,7 +199,7 @@ Do NOT invoke `/adv-*` slash commands from inside this worker.
 - Underlying primitives (e.g., Bits UI) that power those components
 - CSS frameworks, state management, testing tools, etc.
 
-Without this, the sub-agent cannot research the correct libraries for the project's actual stack.
+Without this, the sub-agent cannot research the correct libraries for project's actual stack.
 
 Redact secrets/internal-only details before passing to external research tools.
 Redact at minimum: API keys, tokens, passwords, connection strings, private keys, internal hostnames/URLs, proprietary identifiers, customer data.
@@ -338,7 +338,7 @@ Prioritize findings as: architecture corrections → security → simplification
 
 ## Phase 7: Research Approval
 
-Present the research findings summary to the user for approval via `question` tool:
+Present the research findings summary to user for approval via `question` tool:
 
 - **Approve findings (Recommended)** — research is complete; agent immediately proceeds inline to `/adv-prep` (or `/adv-design` if design gate is not yet complete) without asking for a second confirmation
 - **Request additional research** — user wants deeper investigation on specific areas (loop back to relevant phase)
@@ -356,7 +356,7 @@ Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 
 
 
-**Auto-continue:** After user approval, immediately begin `/adv-prep` (or `/adv-design` if design gate is incomplete) inline. Do not stop or ask "shall I proceed?" — the user's approval is the go-ahead.
+**Auto-continue:** After user approval, immediately begin `/adv-prep` (or `/adv-design` if design gate is incomplete) inline. Do not stop or ask "shall I proceed?" — user's approval is the go-ahead.
 
 ---
 

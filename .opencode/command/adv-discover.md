@@ -6,7 +6,7 @@ description: Gather context, analyze current state, identify objectives, and obt
 
 # ADV Discover — Establish Discovery Findings
 
-Gather the current-state evidence needed to move from proposal into a shared agreement. This command completes the `discovery` gate and carries the full user-facing discovery + agreement flow.
+Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow.
 
 > **CHECKLIST**: Follow [docs/checklists/discover-checklist.md](../../docs/checklists/discover-checklist.md).
 
@@ -59,9 +59,9 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 #### Constraints
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
-- **No gate completion** — the command owns the discovery gate
+- **No gate completion** — command owns the discovery gate
 - **Canonical source** — defer to `docs/checklists/discover-checklist.md` for detailed rules
-- **No workflow sequencing** — the command owns phase ordering
+- **No workflow sequencing** — command owns phase ordering
 - **No architecture decisions** — those belong in `/adv-design`
 ---
 
@@ -72,28 +72,28 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 - Use `lgrep`/`read` to inspect the relevant code paths, interfaces, and constraints
 - Product-linked projects: capture product id, current repo id, primary repo id, related repo registry, existing `scope_repos`, and legacy state location. Agreement must say whether work is current-repo scoped or product-wide.
 
-If the proposal gate is still pending → stop and direct the user to `/adv-proposal` first.
+If proposal gate is still pending → stop and direct user to `/adv-proposal` first.
 
 ### Phase 1.0: Lineage Validation
 
-Validate any lineage attached to the change before proceeding to agreement.
+Validate any lineage attached to change before proceeding to agreement.
 
 #### Cross-Project Origin (`cross_project_origin`)
 
 If `adv_change_show` reveals a `cross_project_origin` field:
 
 1. **Confirm the origin is valid** — verify that `source_path` points to a real project and `source_project` matches a known project
-2. **Trace the source change** — if `source_change_id` is set, report it to the user so they can confirm the originating context is relevant
-3. **Present origin summary** — surface the origin details to the user for confirmation:
+2. **Trace the source change** — if `source_change_id` is set, report it to user so they can confirm the originating context is relevant
+3. **Present origin summary** — surface the origin details to user for confirmation:
    - "This change was created as a follow-up from **{source_project}** (change: {source_change_id}). Does this context match your expectations?"
-4. **If origin is invalid or unexpected** → flag as a blocking finding; the agent should not proceed with agreement until the user confirms
+4. **If origin is invalid or unexpected** → flag as a blocking finding; the agent should not proceed with agreement until user confirms
 
 #### Same-Project Fast Follow (`fast_follow_of`)
 
 If `adv_change_show` reveals a `fast_follow_of` field:
 
-1. **Confirm the parent exists** — call `adv_change_show changeId: {parent_change_id}` to validate the parent change exists in the current project (archived or closed parents are valid)
-2. **Surface parent context** — present to the user:
+1. **Confirm the parent exists** — call `adv_change_show changeId: {parent_change_id}` to validate the parent change exists in current project (archived or closed parents are valid)
+2. **Surface parent context** — present to user:
    - "This change is a fast-follow of **{parent_change_id}**. Parent status: {parent_status}. Does this lineage match your expectations?"
 3. **If parent not found** → flag as blocking finding; user must confirm or correct the parent reference
 4. **If both `cross_project_origin` AND `fast_follow_of` present** → surface as blocking finding (mutual-exclusion at create time should prevent this; defensive validation here)
@@ -102,13 +102,13 @@ If `adv_change_show` reveals a `fast_follow_of` field:
 
 If neither field is present → skip this phase (local change, normal flow).
 
-> **Gate requirement:** Lineage MUST be validated and confirmed by the user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
+> **Gate requirement:** Lineage MUST be validated and confirmed by user before proceeding to agreement. This prevents stale or misdirected follow-up changes from being adopted blindly.
 
 ---
 ## Phase 1.5: Skill Discovery + Gap-Triggered Creation
 <!-- rq-disc02 -->
 
-Execute the skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
+Execute skill discovery protocol from `ADV_INSTRUCTIONS.md § Skill Discovery Protocol`, then check for skill gaps and pending reviews.
 
 ### Step 1: Pending-Review Scan
 
@@ -127,7 +127,7 @@ Search trusted skill directories → match `keywords` against tech stack/domain 
 ### Step 3: Gap Detection + Creation
 <!-- rq-sc01 -->
 
-If no matching skill was found for a domain clearly relevant to the change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
+If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for the full trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
 <!-- rq-sc02 -->
@@ -157,10 +157,10 @@ If no matching skill was found for a domain clearly relevant to the change's **c
 Execute all three tools and report findings in a "Conflict Scan" section:
 
 1. `adv_change_list includeArchived: true` → surface related active and archived changes
-2. `adv_change_validate` on the target change → note that own-change pre-prep warnings (NO_TASKS, NO_DELTAS) are expected and should NOT be reported as conflicts
+2. `adv_change_validate` on target change → note that own-change pre-prep warnings (NO_TASKS, NO_DELTAS) are expected and should NOT be reported as conflicts
 3. `adv_agenda_list` → check for overlapping agenda items
 
-For relevant archived changes, use `adv_change_show` to inspect their tasks and decisions. Prior work may inform or constrain the current proposal.
+For relevant archived changes, use `adv_change_show` to inspect their tasks and decisions. Prior work may inform or constrain current proposal.
 
 ---
 ## Phase 1.7: P25 Related-Pattern Scan
@@ -223,7 +223,7 @@ If scan is clean: emit `### AMBIGUITY ANALYSIS — no ambiguity findings. Covera
 Search these locations for prior artifacts:
 
 - `temp/*.md` — brainstorm or prep documents
-- `docs/*-prep.md` — research packs (including `/adv-improve` output). These contain pre-vetted competitors, alternatives, and emerging patterns that MUST be cited before running any new external searches on the same domain.
+- `docs/*-prep.md` — research packs (including `/adv-improve` output). These contain pre-vetted competitors, alternatives, and emerging patterns that MUST be cited before running any new external searches on same domain.
 - Archived changes — `adv_change_list includeArchived: true` → inspect relevant archives
 
 **Rules:**
@@ -231,7 +231,7 @@ Search these locations for prior artifacts:
 - Cite each found artifact in the "Extends" section
 - For `/adv-improve`-style research packs, explicitly cite the `Competitors & Alternatives`, `Emerging Patterns`, and `Applicability to This Repo` sections when they are relevant to the discovery's open design questions
 - Add ≥1 new finding not present in the cited artifact
-- Do NOT count the change's own `proposal.md` as "prior research" (self-referential)
+- Do NOT count change's own `proposal.md` as "prior research" (self-referential)
 - No prior artifacts → report "No prior research found" (non-blocking). If the discovery agenda includes ecosystem unknowns or viable external alternatives, note that running `/adv-improve {target}` first would produce a reusable research pack.
 
 ### Edge Case Investigation
@@ -256,15 +256,15 @@ Each open design question MUST include:
 
 ### LBP and Tradeoffs
 
-If there are 2+ viable approaches with user-value tradeoffs, load `skill("prioritizer")` and apply the criteria-based tradeoff analysis workflow. If the skill is unavailable, continue with the existing inline prioritizer workflow before asking questions.
+If there are 2+ viable approaches with user-value tradeoffs, load `skill("prioritizer")` and apply the criteria-based tradeoff analysis workflow. If skill is unavailable, continue with existing inline prioritizer workflow before asking questions.
 
 ### External-Solution Check (gated)
 <!-- rq-disc10 -->
 
-Required when the proposal's Discovery Agenda contains ecosystem unknowns OR an open design question lists external tools / libraries / services as a realistic option.
+Required when proposal's Discovery Agenda contains ecosystem unknowns OR an open design question lists external tools / libraries / services as a realistic option.
 
 1. First consult any `docs/*-prep.md` research pack cited in the Extends section. If it already answers the question, summarise it in the LBP Check and cite the specific sections (`Competitors & Alternatives`, `Emerging Patterns`, `Applicability to This Repo`).
-2. If no relevant pack exists OR the cited pack is stale relative to the current question:
+2. If no relevant pack exists OR the cited pack is stale relative to current question:
    - Run `kagi_kagi_search_fetch queries: ["{domain} alternatives {year}", "{domain} emerging patterns {year}"]`
    - Record top-3 competitors/alternatives and up to 2 emerging patterns with source URLs
    - Evaluate applicability to this repo with file-path references
@@ -278,7 +278,7 @@ Skip this step for purely internal changes (refactors, bug fixes, local doc/test
 After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to Phase 3:
 
 1. **Count findings** — count CRITICAL findings + count HIGH findings across all categories (required AND optional)
-2. **Resolution log check** — read `## Clarify Resolution Log` section from proposal.md if present; previously-resolved findings are excluded from the current trigger count
+2. **Resolution log check** — read `## Clarify Resolution Log` section from proposal.md if present; previously-resolved findings are excluded from current trigger count
 3. **Evaluate threshold:**
 
 | Condition | Action |
@@ -289,11 +289,11 @@ After producing the AMBIGUITY ANALYSIS, evaluate findings before proceeding to P
 | All clean | Continue to Phase 3. |
 
 4. **Skip trigger evaluation** when `clarify_enforcement: 'off'` or when discovery gate is already completed (legacy/in-flight changes)
-5. **Rerun cap:** After `/adv-clarify` resolves findings and the user reruns `/adv-discover`, cap at 2 reruns before escalating to user via `question` tool per EC4
+5. **Rerun cap:** After `/adv-clarify` resolves findings and user reruns `/adv-discover`, cap at 2 reruns before escalating to user via `question` tool per EC4
 
 ---
 ## Phase 3: Persist Discovery Findings
-Update the proposal artifact with the discovery findings so the sign-off flow can present them cleanly.
+Update proposal artifact with the discovery findings so the sign-off flow can present them cleanly.
 - Use `adv_change_update` to refine proposal content
 - Keep findings concise and decision-oriented
 - Do not create `agreement.md` here
@@ -301,7 +301,7 @@ Update the proposal artifact with the discovery findings so the sign-off flow ca
 
 ## Phase 4: Present Agreement Draft + Resolve Questions
 <!-- rq-disc11 -->
-- Load the refreshed discovery context from the proposal findings
+- Load the refreshed discovery context from proposal findings
 - Extract objectives, constraints, avoidances, open questions, and draft acceptance criteria
 - Present a concise agreement view:
   - **Objectives**
@@ -316,13 +316,13 @@ Update the proposal artifact with the discovery findings so the sign-off flow ca
 **× MUST NOT skip this phase.** Open questions that require user input must be resolved before `agreement.md` is finalized.
 
 #### Question Triage
-Before presenting questions to the user, classify each open question from discovery:
+Before presenting questions to user, classify each open question from discovery:
 | Category | Action | Example |
 |----------|--------|---------|
 | **Technical / implementation** | Agent resolves via LBP research | "Which hashing algorithm?", "SQL vs NoSQL?", "Middleware vs decorator pattern?" |
-| **User-facing outcome** | **Ask the user** | "What should happen when X fails?", "Which matters more: speed or completeness?", "Should this be opt-in or opt-out?" |
+| **User-facing outcome** | **Ask user** | "What should happen when X fails?", "Which matters more: speed or completeness?", "Should this be opt-in or opt-out?" |
 
-**Ask the user about:**
+**Ask user about:**
 - Weighing competing priorities
 - Choosing between acceptable downsides
 - Clarifying expected behavior
@@ -330,7 +330,7 @@ Before presenting questions to the user, classify each open question from discov
 - Scoping intent
 - Preference on UX/workflow
 
-**× Do NOT ask the user about:**
+**× Do NOT ask user about:**
 - Which technology, library, or pattern to use
 - Implementation strategy (option A vs B)
 - Internal architecture
@@ -348,7 +348,7 @@ The agent **MUST** always conduct at least **1 round of 3 clarifying questions**
 | Maximum rounds | 5 |
 | Maximum questions per round | 5 |
 
-Stop the loop when: all user-facing questions are resolved, the user signals satisfaction, or the 5-round cap is reached.
+Stop the loop when: all user-facing questions are resolved, user signals satisfaction, or the 5-round cap is reached.
 
 #### Protocol
 1. **Collect** all open questions from discovery findings
@@ -360,7 +360,7 @@ Stop the loop when: all user-facing questions are resolved, the user signals sat
 7. **Summarize** all resolutions (user-resolved and agent-resolved) before proceeding
 
 #### Deferral Rules
-- If the user chooses to defer → record it as `Deferred by user: {reason}` in the agreement
+- If user chooses to defer → record it as `Deferred by user: {reason}` in the agreement
 - Deferred questions carry forward as constraints for `/adv-design`
 - × NEVER silently defer a question or assume "no preference"
 
@@ -380,7 +380,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 #### Batch Guidance
 - Group related questions
 - Up to 5 questions per round via the `question` tool
-- Unrelated questions should be separate prompts within the same round
+- Unrelated questions should be separate prompts within same round
 
 ### Phase 4.5.1: Acceptance Criteria Checkpoint (Inline)
 
@@ -418,7 +418,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
    **× Do NOT** treat phrases like "I want to clarify something" or "let's clarify X" as `/adv-clarify` invocation. Only the literal slash-command form triggers the halt branch. Non-literal "clarify" intent is revision text (per `rq-disc12.2`).
 
-> **Note:** The `/adv-clarify` halt path at Phase 4.5.1 is the same mechanism as the Phase 2.5 trigger evaluation halt. Both hand off to `/adv-clarify` with the same rerun instruction. Phase 2.5 catches ambiguity findings in the proposal's scope/success criteria; Phase 4.5.1 catches ambiguity introduced by AC revision text.
+> **Note:** The `/adv-clarify` halt path at Phase 4.5.1 is same mechanism as the Phase 2.5 trigger evaluation halt. Both hand off to `/adv-clarify` with same rerun instruction. Phase 2.5 catches ambiguity findings in proposal's scope/success criteria; Phase 4.5.1 catches ambiguity introduced by AC revision text.
 
 4. If revised AC still need substantial clarification after 3 re-runs, recommend the `/adv-clarify` branch instead of continuing to loop.
 5. If AC are empty or weak, keep the approve option but mark the `/adv-clarify` branch as the recommended path.
@@ -426,7 +426,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 **Anchor phrase:** `Reply `approve``
 
-**× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to the user.
+**× MUST NOT:** Complete `discovery` gate without AC approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to user.
 
 ### Phase 4.6: Persist Agreement (Inline)
 Once AC are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`. The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
@@ -444,9 +444,9 @@ Suggested structure:
 ## Deferred Questions
 ## Sign-Off
 ```
-- **User Decisions** — questions the user answered, each with the question, the user's choice, and why it matters
+- **User Decisions** — questions user answered, each with the question, user's choice, and why it matters
 - **Agent Decisions (LBP)** — technical questions resolved autonomously
-- **Deferred Questions** — only questions the user explicitly chose to defer
+- **Deferred Questions** — only questions user explicitly chose to defer
 - × Do NOT include a generic "Open Questions" section
 
 ### Contract Minting
@@ -466,14 +466,14 @@ Contract rules:
 - Set `sourceArtifact: "agreement"` for initial items.
 - Choose evidence policy by item kind: `AC*` usually `test`; `C*` `test`/`static_check`/`review`; `DONT*` and `OOS*` `static_check`/`review`/`design_proof` unless an executable test is meaningful.
 
-Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or the projected `acceptanceCriteria` would drift from the approved `AC*` items.
+Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or projected `acceptanceCriteria` would drift from the approved `AC*` items.
 
 ---
 ## Phase 5: Complete Gate
 
 `adv_gate_complete changeId: {change-id} gateId: discovery`
 
-If the gate cannot be completed, surface the blocking reason and stop.
+If gate cannot be completed, surface the blocking reason and stop.
 
 ---
 
@@ -501,4 +501,4 @@ Agreed objectives + constraints + user decisions.
 > → `/adv-design {change-id}`
 ```
 
-**Auto-continue:** After user approval of acceptance criteria and agreement, immediately begin `/adv-design` inline. Do not stop or ask "shall I proceed?" — the user's approval is the go-ahead.
+**Auto-continue:** After user approval of acceptance criteria and agreement, immediately begin `/adv-design` inline. Do not stop or ask "shall I proceed?" — user's approval is the go-ahead.

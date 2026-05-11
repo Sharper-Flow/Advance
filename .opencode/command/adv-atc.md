@@ -29,7 +29,7 @@ Autonomous ROADMAP execution. Defers all HITL moments to linked GitHub issues vi
 
 ## Workflow
 
-All workflow logic lives in the agent overlay (`.opencode/agents/adv-atc.md`). This command file only provides routing and argument documentation.
+All workflow logic lives in the agent overlay (`.opencode/agents/adv-atc.md`). Command file only provides routing and argument documentation.
 
 <UserRequest>
   $ARGUMENTS

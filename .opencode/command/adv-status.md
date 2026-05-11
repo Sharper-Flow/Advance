@@ -5,7 +5,7 @@ description: Show operational health: in-flight changes, Temporal, worktrees, se
 <!-- manifest: adv-status · requiresChangeId: false -->
 # ADV Status
 
-Show **operational health**: what's mid-flight in ADV state right now. Answers "is the system OK?" and "what am I working on?". The strategic-planning view (ranked backlog, what's next) lives in `/adv-roadmap`; the two are deliberately disjoint.
+Show **operational health**: what's mid-flight in ADV state right now. Answers "is system OK?" and "what am I working on?". The strategic-planning view (ranked backlog, what's next) lives in `/adv-roadmap`; the two are deliberately disjoint.
 
 ## Execution
 
@@ -23,7 +23,7 @@ Call `adv_status` for the operational overview. Format defined by `plugin/src/ut
 | **ROADMAP FRESHNESS** | mtime of `.adv/roadmap-snapshot.json` (or "never generated"); recommends `/adv-triage` if stale >7 days |
 | **TEMPORAL HEALTH** | server liveness, worker process health, queue serviceability |
 | **SESSION DEBT** | OpenCode blank-row counts (informational; see `/adv-doctor` for cleanup) |
-| **PEER SESSIONS** | other ADV sessions in the same project (privacy-defensive: opaque session_id only) |
+| **PEER SESSIONS** | other ADV sessions in same project (privacy-defensive: opaque session_id only) |
 | **RECOMMENDATIONS** | gate-based, from workflow manifest (table below) |
 
 `/adv-status` does NOT echo the roadmap. For ranked-backlog questions ("what's next?", "top features", "open critical bugs"), invoke `/adv-roadmap` directly.

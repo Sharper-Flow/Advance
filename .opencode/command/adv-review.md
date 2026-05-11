@@ -5,7 +5,7 @@ phaseGoal: "Verify implementation matches the approved plan. Auto-fix within sco
 ---
 <!-- manifest: adv-review · gate: acceptance · requiresChangeId: true · prereqs: [adv-apply] · scope: reads[specs, proposal, tasks, codebase] · modifies[proposal] -->
 # ADV Review — Acceptance-Stage Deliverable Review
-Orchestrate multi-dimensional review of the delivered work. This command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
+Orchestrate multi-dimensional review of the delivered work. Command is part of the acceptance stage, emits `REVIEW_FINDINGS`, and now carries the post-execution acceptance/sign-off flow directly.
 ## Exits
 | Exit | Condition |
 |------|-----------|
@@ -70,9 +70,9 @@ Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optiona
 #### Constraints
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
-- **No gate completion** — the command owns the review gate
+- **No gate completion** — command owns the review gate
 - **Canonical source** — defer to `docs/checklists/review-checklist.md` for detailed rules
-- **No workflow sequencing** — the command owns phase ordering and sub-agent orchestration
+- **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Phase 1: Pre-flight
 ### Load Context
@@ -205,7 +205,7 @@ If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
 Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
-- **YES** → **STOP** — present the finding and proposed fix to the user via `question` tool:
+- **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
   - **Approve fix and update scope** — user agrees the scope should expand
   - **Skip fix, document as accepted debt** — finding is valid but out of scope
   - **Cancel review** — user wants to reconsider
@@ -284,7 +284,7 @@ Status rules: `unresolved` at emission time. Terminal states are `fixed` or `rej
 - `adv_task_list`
 - `adv_gate_status`
 
-Verify execution work is complete enough to review. If implementation/execution work is still incomplete, stop and direct the user to `/adv-apply` first.
+Verify execution work is complete enough to review. If implementation/execution work is still incomplete, stop and direct user to `/adv-apply` first.
 
 ### Build Acceptance Summary
 Using `agreement.md`, produce:
@@ -323,7 +323,7 @@ See `docs/scope-discovery-protocol.md` for the full protocol on scope discovery 
 
 **Anchor phrase:** `Reply `accept``
 
-If the user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding. The `split` reply creates a fast-follow child change for the discovered scope, preserving the current change's momentum.
+If user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding. The `split` reply creates a fast-follow child change for the discovered scope, preserving current change's momentum.
 
 ### Complete Gate
 On acceptance:
@@ -355,7 +355,7 @@ What was reviewed and user-accepted.
 > → `/adv-harden {change-id}`
 ```
 
-**Auto-continue:** After user acceptance, immediately begin `/adv-harden` inline. Do not stop or ask "shall I proceed?" — the user's acceptance is the go-ahead.
+**Auto-continue:** After user acceptance, immediately begin `/adv-harden` inline. Do not stop or ask "shall I proceed?" — user's acceptance is the go-ahead.
 ---
 ## Anti-Patterns
 | × Anti-Pattern | ✓ Fix |

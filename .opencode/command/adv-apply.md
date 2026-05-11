@@ -89,16 +89,16 @@ Before any retry: emit diagnosis with root cause analysis and planned approach. 
 #### Constraints
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
-- **No gate completion** — the command owns the execution gate
+- **No gate completion** — command owns the execution gate
 - **Canonical sources** — defer to `ADV_INSTRUCTIONS.md` for detailed protocol rules
-- **No workflow sequencing** — the command owns phase ordering and task loop
+- **No workflow sequencing** — command owns phase ordering and task loop
 
 ### Scope Expansion During Execution
 
 <!-- rq-scopeDiscoveryProtocol01 -->
 <!-- rq-scopeFollowupSchema01 -->
 
-If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into the current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
+If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
 
 1. **Assess campsite eligibility** — If the discovered scope is P23-campsite-eligible (adjacent, clear, safe, focused), apply it freely without prompting.
 2. **Non-campsite scope** — Emit a Tier A inline prompt with options:
@@ -138,17 +138,17 @@ If `worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools r
 
 <!-- rq-pathVerification01 -->
 
-After worktree creation, verify that task-referenced paths exist in the worktree. This prevents the recurring class of errors where the agent reads files from its main-checkout context but the worktree (forked from the default branch) lacks them — or the paths were constructed from assumed project structure rather than actual files.
+After worktree creation, verify that task-referenced paths exist in the worktree. This prevents the recurring class of errors where the agent reads files from its main-checkout context but the worktree (forked from the default branch) lacks them — or the paths were constructed from assumed project structure not actual files.
 
-1. Extract key file/directory paths from ready tasks (task `content`, `metadata.affected_files`, or design excerpts). Distinguish **read-reference paths** (files the agent will read for patterns/context) from **create-target paths** (files the task will create).
+1. Extract key file/directory paths from ready tasks (task `content`, `metadata.affected_files`, or design excerpts). Distinguish **read-reference paths** (files the agent will read for patterns/context) from **create-target paths** (files task will create).
 2. Verify read-reference paths: `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` (use `workdir` parameter).
 3. For each MISSING read-reference path:
-   a. Discover actual structure: `glob pattern: "**/{basename}" workdir: {workdir}` or `bash "ls {workdir}/"` to find the file or its directory.
+   a. Discover actual structure: `glob pattern: "**/{basename}" workdir: {workdir}` or `bash "ls {workdir}/"` to find file or its directory.
    b. If found at a different path → record the corrected path and use it for all subsequent operations on this task.
-   c. If not found at all → the file may not exist on the default branch (feature-branch-only file), or the path was assumed from common patterns. In this case:
-      - If the file is essential for the task → check if it exists in the main checkout: `bash "test -e '{main-checkout}/{path}'"` and note the discrepancy. The worktree may need a rebase or the file may need to be created differently.
-      - If the file is advisory (pattern reference) → mark it as unavailable and proceed without it; do NOT block on missing pattern files.
-4. For cross-repo tasks (detected via `target_repo`/`target_path` or path hints in title): resolve target repo from `related_repos` config or `target_path` and **switch `workdir`** to the target repo path for that task. The ADV worktree is for the current project; cross-repo task execution happens in the target repo directly.
+   c. If not found at all → file may not exist on the default branch (feature-branch-only file), or the path was assumed from common patterns. In this case:
+      - If file is essential for task → check if it exists in the main checkout: `bash "test -e '{main-checkout}/{path}'"` and note the discrepancy. The worktree may need a rebase or file may need to be created differently.
+      - If file is advisory (pattern reference) → mark it as unavailable and proceed without it; do NOT block on missing pattern files.
+4. For cross-repo tasks (detected via `target_repo`/`target_path` or path hints in title): resolve target repo from `related_repos` config or `target_path` and **switch `workdir`** to target repo path for that task. The ADV worktree is for current project; cross-repo task execution happens in target repo directly.
 5. Emit brief result: `Path verification: {N} OK, {M} corrected, {K} advisory-skipped, {L} to-create`
 
 × Do NOT block Phase 1 for missing advisory files. Only block for missing essential files that prevent task execution.
@@ -167,29 +167,29 @@ When a session on change A needs to work on change B:
 
 Check `adv_change_list` for other active changes. Compare affected files.
 
-- **3+ changes touching the same file** → emit `COORDINATION REQUIRED` banner listing the file and all overlapping change IDs. **Halt `/adv-apply`** until user resolves (merge/combine changes, or proceed with explicit override).
-- **2 changes touching the same file** → emit advisory warning listing file and overlapping change ID. Does NOT block work.
+- **3+ changes touching same file** → emit `COORDINATION REQUIRED` banner listing file and all overlapping change IDs. **Halt `/adv-apply`** until user resolves (merge/combine changes, or proceed with explicit override).
+- **2 changes touching same file** → emit advisory warning listing file and overlapping change ID. Does NOT block work.
 - **No overlaps** → proceed silently.
 
 Cross-change coordination is now handled automatically by `/adv-archive` (merge-order queue) and `/adv-status` (cross-change health dashboard).
 
 ## Phase 0.5: Pre-Execution Rebase (per-worktree)
 
-Before the task loop begins, run `preExecutionRebase` from `apply-helpers/pre-rebase.ts` against the current worktree. This keeps the change branch fresh against `origin/<default-branch>` without modifying origin.
+Before task loop begins, run `preExecutionRebase` from `apply-helpers/pre-rebase.ts` against current worktree. This keeps change branch fresh against `origin/<default-branch>` without modifying origin.
 
 **Why per-worktree is safe:** Each change runs in its own git worktree with an independent working directory. There is no shared index or working tree, so concurrent `/adv-apply` sessions on different changes cannot interfere with each other. No cross-session lock is required.
 
 **Outcomes:**
 
-- `up_to_date` — nothing to do; proceed to the task loop.
-- `rebased` — local branch was behind; rebase succeeded. Proceed to the task loop.
-- `conflict` — rebase failed with conflicts. The worktree is left clean (rebase aborted). Halt `/adv-apply` and surface the conflict to the user with the list of conflicted files.
+- `up_to_date` — nothing to do; proceed to task loop.
+- `rebased` — local branch was behind; rebase succeeded. Proceed to task loop.
+- `conflict` — rebase failed with conflicts. The worktree is left clean (rebase aborted). Halt `/adv-apply` and surface the conflict to user with the list of conflicted files.
 - `no_remote` / `default_branch_unresolvable` / `not_a_worktree` / `rebase_failed` — halt `/adv-apply` and surface the specific error with the provided hint.
 
 × **Local-only** — does not push or modify origin.
 × **Requires clean worktree** — the apply pre-flight elsewhere enforces this before Phase 0.5 runs. No `--autostash` is used.
 
-**Runtime wiring:** The actual call to `preExecutionRebase` before the task loop is OUT OF SCOPE for this document; it will be wired in a follow-up task.
+**Runtime wiring:** The actual call to `preExecutionRebase` before task loop is OUT OF SCOPE for this document; it will be wired in a follow-up task.
 
 ---
 
@@ -205,7 +205,7 @@ Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execut
 
 ## Cross-Project Coordination
 
-When a task contributes to another ADV-enabled project, use ADV tools with explicit `target_path` instead of reading or editing ADV state files directly.
+When task contributes to another ADV-enabled project, use ADV tools with explicit `target_path` instead of reading or editing ADV state files directly.
 
 | Operation                  | Required behavior                                                                                                 |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -253,7 +253,7 @@ All cancellations require explicit user approval via `adv_task_cancel`. Cancella
    | `^keep ([\d,\s]+)$`   | Cancel inverse of listed numbers                                               |
    | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers                                                 |
    | `^(stop\|abort)$`     | Halt; do not cancel anything                                                   |
-   | Anything else         | Re-prompt with the same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
+   | Anything else         | Re-prompt with same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
 
 4. **Anchor phrase:** `approve all`
 
@@ -298,7 +298,7 @@ Verify that the prep gate was completed with user approval. The prep gate is the
   Proceeding with implementation.
   ```
   Ask via `question` tool: Proceed with implementation (Recommended), Re-run prep for explicit approval, Cancel.
-- **Planning gate pending**: The `/adv-apply {change-id}` invocation itself counts as explicit approval. Complete planning with `adv_gate_complete gateId: planning userApproved: true` and proceed immediately to execution. This is the command-as-approval behavior per `rq-inlineApproval01.7`.
+- **Planning gate pending**: The `/adv-apply {change-id}` invocation itself counts as explicit approval. Complete planning with `adv_gate_complete gateId: planning userApproved: true` and proceed immediately to execution. This is command-as-approval behavior per `rq-inlineApproval01.7`.
 - **Prep gate not complete (and not planning pending)**: Stop — require `/adv-prep` first (handled by Gate Prerequisite Check above).
 
 × MUST NOT ask "Begin work?" when prep gate has `userApproved` — that approval already happened during `/adv-prep`.
@@ -368,7 +368,7 @@ Load context in two tiers:
 
 1. `adv_task_show` → load current task details
 2. `adv_wisdom_list` → load accumulated learnings for this change
-3. Read relevant proposal/design sections only when the task description references them
+3. Read relevant proposal/design sections only when task description references them
 
 × Do NOT call `adv_change_show` before every task — reserve for phase transitions.
 × Do NOT batch tasks into local todo list with descriptive blurbs.
@@ -397,7 +397,7 @@ Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `ad
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value in one command. The final verification claim is recorded on `taskCompletedSignal.verification` when the task transitions to `done`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value in one command. The final verification claim is recorded on `taskCompletedSignal.verification` when task transitions to `done`.
 
 ### Delegation Routing
 
@@ -486,7 +486,7 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 
 `adv_task_ready changeId: <id>` → for each ready task:
 
-**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` fires `taskAssignedSignal`. On resume, query the change workflow state and continue from the active task without adding a user pause.
+**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` fires `taskAssignedSignal`. On resume, query change workflow state and continue from the active task without adding a user pause.
 
 **3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
 
@@ -508,12 +508,12 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 - `verification: <task verification summary>`
 
 - `{status: 'clean' | 'committed', checkpointRecorded:true}` → `taskCompletedSignal` was fired; proceed to 3c.55.
-- `{status: 'clean' | 'committed', checkpointRecorded:false}` → `taskCompletedSignal` failed to fire even though git checkpoint succeeded. Retry `adv_task_checkpoint`; if it persists, surface remediation before declaring the task done.
+- `{status: 'clean' | 'committed', checkpointRecorded:false}` → `taskCompletedSignal` failed to fire even though git checkpoint succeeded. Retry `adv_task_checkpoint`; if it persists, surface remediation before declaring task done.
 - `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
 - `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
 - `{classification: 'TRANSIENT'}` → tool already retried internally; surface remaining failure as SEMANTIC or ENVIRONMENTAL per its follow-up classification.
 
-**3c.55. Post-delegation P23 diff-scan:** If the task was delegated to a sub-agent, diff the sub-agent's touched files against the pre-delegation baseline. For each touched file, check same-pattern local subsystem for identical defect/quality patterns (P23 campsite-rule scan). If same-pattern issues found and fix is small/safe/local → apply inline. If fix would expand scope → document in `follow_ups`, do NOT auto-fix. Skip this step for inline tasks.
+**3c.55. Post-delegation P23 diff-scan:** If task was delegated to a sub-agent, diff the sub-agent's touched files against the pre-delegation baseline. For each touched file, check same-pattern local subsystem for identical defect/quality patterns (P23 campsite-rule scan). If same-pattern issues found and fix is small/safe/local → apply inline. If fix would expand scope → document in `follow_ups`, do NOT auto-fix. Skip this step for inline tasks.
 
 **3d. Complete:** assert task-run next action is `mark_done` or checkpoint phase is satisfied → `adv_task_update status: "done"` → show evidence
 
@@ -524,7 +524,7 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 #### Allowed exit conditions (ONLY these end the loop)
 
 1. `adv_task_ready` returns empty (all ready tasks done) → advance to Phase 5 verification.
-2. Doom-loop triggered (3 failed SEMANTIC retries on a task) → `[ADV:BLOCKED]` + user `question`.
+2. Doom-loop triggered (3 failed SEMANTIC retries on task) → `[ADV:BLOCKED]` + user `question`.
 3. ENVIRONMENTAL blocker (missing dep, config, credential) → escalate via `question`.
 4. User-requested cancellation → `adv_task_cancel` flow.
 5. Scope expansion requiring re-entry → `adv_change_reenter` flow.
