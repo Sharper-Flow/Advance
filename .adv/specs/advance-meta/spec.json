@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.8.0",
-  "updated_at": "2026-05-08T00:00:00.000Z",
+  "version": "1.9.0",
+  "updated_at": "2026-05-11T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -462,6 +462,50 @@
           "then": [
             "The section MAY omit a code-path reference",
             "The structural template is the only required form"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-proseReduction05",
+      "title": "Skill File Prose Compression",
+      "body": "Skill files under skills/*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must be classified as full, partial, or inherent in docs/prose-load-inventory.md and compressed accordingly before archive.",
+      "priority": "must",
+      "tags": ["prose-reduction", "skills", "compression"],
+      "scenarios": [
+        {
+          "id": "rq-proseReduction05.1",
+          "title": "Modified skill follows enforcement-class compression",
+          "given": [
+            "A skill file in skills/*/SKILL.md is created or modified"
+          ],
+          "when": "The skill file is prepared for archive",
+          "then": [
+            "The skill is compressed per the same enforcement-class framework as command files",
+            "The applicable class is full, partial, or inherent per docs/prose-load-inventory.md",
+            "Contract tokens, code blocks, tool names, enum values, and quoted errors remain intact"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-skillClassification01",
+      "title": "Command Skill Classification Tracking",
+      "body": "Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS.md § Command vs Skill Boundaries so command/skill ownership stays explicit and drift is reviewable.",
+      "priority": "must",
+      "tags": ["skills", "classification", "instructions"],
+      "scenarios": [
+        {
+          "id": "rq-skillClassification01.1",
+          "title": "Extracted command appears in skill classification table",
+          "given": [
+            "A command has a dedicated skill or shared skill after extraction"
+          ],
+          "when": "Extraction is complete",
+          "then": [
+            "ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
+            "The row includes the skill identifier",
+            "The command is not listed as Command-only"
           ]
         }
       ]
