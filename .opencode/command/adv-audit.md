@@ -101,7 +101,7 @@ Ambiguity-promoted health:
 
 ## Phase 4: Remediation (Optional)
 
-If ALIGNED → report. If drift → report by default. Ask via `question` only when user explicitly wants remediation, partial-fix prioritization, or debt acceptance. If fixing → establish contract → spawn fix sub-agents.
+If ALIGNED → report. If drift → report by default. Ask via `question` only when user explicitly wants remediation, partial-fix prioritization, or debt acceptance. If fixing → establish contract (scope + acceptance criteria) → execute inline or via single-level fix sub-agent. Fix sub-agents MUST NOT spawn further sub-agents or invoke `/adv-*` commands.
 
 If ambiguity findings are present and `clarify_enforcement` is `advisory` or `strict`, include an informational handoff in the report:
 
