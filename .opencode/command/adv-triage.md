@@ -49,6 +49,19 @@ Look up the linked Projects v2 board:
    - If still no match: present a Tier B inline approval to **create** the project (see Bootstrap approval below)
 3. Once the project number is known, ensure the required custom fields exist; create any that are missing via `gh project field-create`:
 
+<!-- rq-repoFilter01 -->
+**Repository filter auto-detect (first run only):** after the project handle is resolved and BEFORE custom-field reconciliation, decide whether to populate `repository_filter` on the typed config (`.adv/github-project.json`, `GitHubProjectConfigSchema`). Use the `parseGitRemoteUrl` utility (`plugin/src/utils/git-remote.ts`) on `git remote get-url origin`:
+
+| Precondition | Action |
+|---|---|
+| Existing config already has `repository_filter` | Do NOT overwrite — single source of truth wins |
+| `parseGitRemoteUrl` returns `null` (non-GitHub or ambiguous remote) | Skip — leave filter unset |
+| Parsed `owner` ≠ resolved project `owner` | Skip — cross-owner filtering is out of scope (DONT4) |
+| Project title matches regex `^ADV: ` (per-repo board) | Skip — board is already single-repo scoped (AC5) |
+| All preconditions pass | Write `repository_filter: <repo-name>` (bare repo name, owner inherited from config.owner) |
+
+Bootstrap is first-run-only (C6). Re-runs that observe an existing filter MUST NOT mutate it; manual edits to `.adv/github-project.json` are the override path.
+
 | Field name | Data type | Single-select options |
 |---|---|---|
 | `ADV Type` | `SINGLE_SELECT` | `bug,feature` |
@@ -93,7 +106,7 @@ Inline parallel reads. No sub-agents (this phase is I/O bound, not reasoning bou
 | Source | Tool / command | What to extract |
 |---|---|---|
 | GitHub issues (open) | `gh issue list --state open --limit 500 --json number,title,body,labels,url,createdAt` | full issue list with current labels |
-| GH Projects v2 items | `gh project item-list <N> --owner <owner> --format json --limit 500` | current items + field values |
+| GH Projects v2 items | `gh project item-list <N> --owner <owner> --format json --limit 500` (append `--query "repo:<owner>/<repository_filter>"` when the typed config sets `repository_filter` — rq-repoFilter01) | current items + field values |
 | Active ADV changes | `adv_change_list status: 'in-flight'` | id, title, summary, drafts included |
 | ADV agenda | `adv_agenda_list` | pending + active items |
 | ADV wisdom (failures, gotchas) | `adv_wisdom_list type: 'failure'` then `adv_wisdom_list type: 'gotcha'` | content snippets |
@@ -431,6 +444,9 @@ Bugs do **not** get `Value`/`TC`/`RROE`/`Effort`/`WSJF`. They use `priority:*` l
 
 Read final state from the project: `gh project item-list <N> --owner <owner> --format json --limit 500` filtered to open issues only. **This must be a fresh read** — do NOT reuse the Phase 1 or Phase 4 cached state, since Phase 4 mutations may have changed field values. Correctness of the generated ROADMAP depends on reflecting the actual post-mutation project state.
 
+<!-- rq-repoFilter01 -->
+**Server-side scoping (must match Phase 1):** when the typed config sets `repository_filter`, the fresh read MUST append `--query "repo:<owner>/<repository_filter>"` so Phase 5 sees the same item universe as Phase 1. Omitting the filter here would inflate ROADMAP.md and `.adv/roadmap-snapshot.json` with cross-repo items that Phase 1 already excluded, producing a snapshot that disagrees with `adv_roadmap source: 'live'` for the same project. Snapshot writer mirrors the value onto the optional top-level `repository_filter` field so downstream `adv_roadmap source: 'file'` reads surface the same scope.
+
 ### Two outputs from one read (mandatory)
 
 Phase 5 emits BOTH artifacts from the fresh project state:
@@ -446,6 +462,8 @@ Both files MUST be written before the Phase 5.5 echo and Phase 5 commit/push. Th
 {
   "version": 1,
   "generated_at": "<ISO-8601 UTC>",
+  // rq-repoFilter01: optional, mirrors the typed-config field; omitted when unset.
+  "repository_filter": "<bare-repo-name>",
   "project": { "owner": "<owner>", "number": <N>, "title": "ADV: <repo-name>" },
   "counts": { "total": <N>, "bugs": <N>, "features": <N>, "deferred": <N> },
   "bugs": [ { "number": 89, "title": "...", "priority": "high", "labels": [] }, ... ],
