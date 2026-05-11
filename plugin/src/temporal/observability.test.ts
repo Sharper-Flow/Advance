@@ -18,6 +18,9 @@ const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
   "AdvCreatedAt",
   "AdvWorktreeBranches",
   "AdvWorktreePaths",
+  // rq-backlogCoord01 — single-value Keyword indexing the per-change claim
+  // on a GitHub Project issue. Does not consume a KeywordList slot.
+  "AdvBacklogIssueNumber",
 ] as const;
 
 const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
@@ -31,6 +34,8 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
   { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
   { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
   { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
+  // rq-backlogCoord01 — added by agenticBacklogCoordination v1.
+  { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
 ] as const;
 
 describe("temporal observability helpers", () => {
@@ -129,6 +134,7 @@ describe("temporal observability helpers", () => {
       "AdvCreatedAt",
       "AdvWorktreeBranches",
       "AdvWorktreePaths",
+      "AdvBacklogIssueNumber",
     ]);
     expect(result.wrongType).toEqual([
       {
@@ -204,6 +210,7 @@ describe("temporal observability helpers", () => {
         AdvCreatedAt: 6,
         AdvWorktreeBranches: 7,
         AdvWorktreePaths: 7,
+        AdvBacklogIssueNumber: 2,
       },
     });
     expect(result).toEqual({
@@ -218,6 +225,7 @@ describe("temporal observability helpers", () => {
         { name: "AdvCreatedAt", type: "Datetime", typeCode: 6 },
         { name: "AdvWorktreeBranches", type: "KeywordList", typeCode: 7 },
         { name: "AdvWorktreePaths", type: "KeywordList", typeCode: 7 },
+        { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
       ],
       skipped: [
         { name: "AdvChangeId", type: "Keyword", typeCode: 2 },

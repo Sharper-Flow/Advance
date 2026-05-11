@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => {
     AdvCreatedAt: { indexedValueType: 6 },
     AdvWorktreeBranches: { indexedValueType: 7 },
     AdvWorktreePaths: { indexedValueType: 7 },
+    // rq-backlogCoord01 — added by agenticBacklogCoordination v1.
+    AdvBacklogIssueNumber: { indexedValueType: 2 },
   };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});

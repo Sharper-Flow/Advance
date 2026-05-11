@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
     AdvCreatedAt: { indexedValueType: 6 },
     AdvWorktreeBranches: { indexedValueType: 7 },
     AdvWorktreePaths: { indexedValueType: 7 },
+    AdvBacklogIssueNumber: { indexedValueType: 2 },
   };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
@@ -121,6 +122,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
         AdvCreatedAt: 6,
         AdvWorktreeBranches: 7,
         AdvWorktreePaths: 7,
+        AdvBacklogIssueNumber: 2,
       },
     });
   });

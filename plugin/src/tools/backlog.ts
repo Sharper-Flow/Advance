@@ -9,6 +9,11 @@
  *   - `adv_backlog_state` (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoord07)
  *     — ranked backlog reader with TTL-bounded freshness and O(1) Visibility
  *     annotation of active changes per issue number.
+ *
+ * Human-authority invariant (rq-backlogCoord06): neither tool exposes a
+ * mutation surface for the Value (V) field. Both are read-only; V flows
+ * only from human action via GitHub Project UI or explicit `/adv-triage`
+ * user-mediated assignment. WSJF (V × TC × RROE / E) is unchanged.
  */
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
