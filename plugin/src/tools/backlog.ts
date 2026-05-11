@@ -1,20 +1,30 @@
 /**
  * Backlog Coordination Tools (rq-backlogCoord01..07).
  *
- * Two tools today:
+ * Two tools:
  *   - `adv_wip_state` (rq-backlogCoord04) — single-call WIP aggregator over
  *     active changes (Temporal Visibility via store), worktrees (Temporal
  *     Visibility via `listWorktreesAcrossChanges`), and peer sessions
  *     (privacy-defensive projection via `listPeerSessions`).
- *
- * `adv_backlog_state` (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoord07)
- * is added in a subsequent task (C1).
+ *   - `adv_backlog_state` (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoord07)
+ *     — ranked backlog reader with TTL-bounded freshness and O(1) Visibility
+ *     annotation of active changes per issue number.
  */
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
 import { initStateDb, listWorktreesAcrossChanges } from "./worktree/state";
 import { listPeerSessions } from "./session";
+import {
+  assessAnnotationFreshness,
+  readSnapshotFile,
+  type RoadmapBug,
+  type RoadmapFeature,
+  type RoadmapDeferred,
+} from "./roadmap";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { queryActiveChangesByIssueNumbers } from "../temporal/visibility-claim-queries";
 
 /** Materialized worktree shape returned from cross-change visibility. */
 export interface WipWorktreeEntry {
@@ -90,6 +100,72 @@ async function defaultSessionsProvider(
   projectRoot: string,
 ): ReturnType<NonNullable<WipStateProviders["sessionsProvider"]>> {
   return listPeerSessions({ projectRoot });
+}
+
+/**
+ * adv_backlog_state response shape — backlog items + annotations + freshness.
+ */
+export interface BacklogStateResponse {
+  bugs: Array<RoadmapBug & { active_change?: { changeId: string } }>;
+  features: Array<RoadmapFeature & { active_change?: { changeId: string } }>;
+  deferred: RoadmapDeferred[];
+  counts: { total: number; bugs: number; features: number; deferred: number };
+  project: { owner: string; number: number; title: string };
+  freshness: {
+    needs_refresh: boolean;
+    age_ms: number | null;
+    ttl_ms: number;
+    last_refreshed: string | null;
+    next_refresh_after: string | null;
+    refresh_reason?: string;
+  };
+}
+
+/**
+ * adv_backlog_state args (Zod-typed; mirror adv_roadmap filters).
+ */
+const BacklogStateArgsSchema = z.object({
+  kind: z.enum(["bug", "feature", "all"]).optional(),
+  top: z.number().int().positive().optional(),
+  priority: z.enum(["critical", "high", "medium", "low"]).optional(),
+  forceRefresh: z.boolean().optional(),
+});
+
+export interface BacklogStateProviders {
+  /**
+   * Visibility-backed annotator. Receives all snapshot issue numbers in a
+   * single batch (rq-backlogCoord05). Production wires to
+   * `queryActiveChangesByIssueNumbers`; tests inject a deterministic Map.
+   */
+  activeChangesAnnotator?: (
+    projectId: string,
+    issueNumbers: number[],
+  ) => Promise<Map<number, { changeId: string }>>;
+  /** Frozen clock for deterministic freshness assertions. */
+  now?: Date;
+}
+
+async function defaultAnnotator(
+  projectId: string,
+  issueNumbers: number[],
+): Promise<Map<number, { changeId: string }>> {
+  const bundle = getService();
+  if (!bundle) return new Map();
+  const client = bundle.client as unknown as Parameters<
+    typeof queryActiveChangesByIssueNumbers
+  >[0];
+  if (!client.workflow?.list) return new Map();
+  const results = await queryActiveChangesByIssueNumbers(
+    client,
+    projectId,
+    issueNumbers,
+  );
+  // Strip non-changeId fields for stable response shape.
+  const m = new Map<number, { changeId: string }>();
+  for (const [issue, info] of results) {
+    m.set(issue, { changeId: info.changeId });
+  }
+  return m;
 }
 
 export const backlogTools = {
@@ -188,6 +264,91 @@ export const backlogTools = {
         peer_sessions,
         generated_at: new Date().toISOString(),
         warnings,
+      };
+
+      return formatToolOutput(response);
+    },
+  },
+
+  adv_backlog_state: {
+    description:
+      "Single-call ranked-backlog read with TTL-bounded freshness and O(1) active-change annotation per issue number (rq-backlogCoord01, rq-backlogCoord05, rq-backlogCoord07). Replaces the agent-facing read path of `adv_roadmap` (which becomes a thin delegation wrapper in task C4).",
+    args: BacklogStateArgsSchema.shape,
+    execute: async (
+      args: z.infer<typeof BacklogStateArgsSchema>,
+      store: Store,
+      _maybeOverridePath?: string,
+      providers: BacklogStateProviders = {},
+    ) => {
+      const root = store.paths.root;
+      const snapshot = await readSnapshotFile(root);
+      if (!snapshot.ok) {
+        return formatToolOutput({
+          error: snapshot.error,
+          hint: snapshot.hint,
+        });
+      }
+
+      const now = providers.now ?? new Date();
+      const freshness = assessAnnotationFreshness(snapshot.snapshot, now);
+      const forceRefresh = Boolean(args.forceRefresh);
+
+      // Annotate via single Visibility query (rq-backlogCoord05).
+      const issueNumbers = [
+        ...snapshot.snapshot.bugs.map((b) => b.number),
+        ...snapshot.snapshot.features.map((f) => f.number),
+      ];
+      const annotator = providers.activeChangesAnnotator ?? defaultAnnotator;
+      const projectId = (await getProjectId(root)) ?? "";
+      const annotations = await annotator(projectId, issueNumbers);
+
+      // Apply filters (mirror adv_roadmap semantics).
+      const kindFilter = args.kind ?? "all";
+      const priorityFilter = args.priority;
+      const top = args.top;
+
+      let bugs = snapshot.snapshot.bugs;
+      let features = snapshot.snapshot.features;
+      if (kindFilter === "bug") features = [];
+      if (kindFilter === "feature") bugs = [];
+      if (priorityFilter) {
+        bugs = bugs.filter((b) => b.priority === priorityFilter);
+      }
+      if (top !== undefined) {
+        features = features.slice(0, top);
+      }
+
+      const annotateBug = (
+        b: RoadmapBug,
+      ): RoadmapBug & { active_change?: { changeId: string } } => {
+        const ac = annotations.get(b.number);
+        return ac ? { ...b, active_change: ac } : { ...b };
+      };
+      const annotateFeature = (
+        f: RoadmapFeature,
+      ): RoadmapFeature & { active_change?: { changeId: string } } => {
+        const ac = annotations.get(f.number);
+        return ac ? { ...f, active_change: ac } : { ...f };
+      };
+
+      const response: BacklogStateResponse = {
+        bugs: bugs.map(annotateBug),
+        features: features.map(annotateFeature),
+        deferred: snapshot.snapshot.deferred,
+        counts: snapshot.snapshot.counts,
+        project: snapshot.snapshot.project,
+        freshness: {
+          needs_refresh: forceRefresh ? true : freshness.needs_refresh,
+          age_ms: freshness.age_ms,
+          ttl_ms: freshness.ttl_ms,
+          last_refreshed: freshness.last_refreshed,
+          next_refresh_after: freshness.next_refresh_after,
+          ...(forceRefresh
+            ? { refresh_reason: "force_refresh_requested" }
+            : freshness.needs_refresh
+              ? { refresh_reason: "ttl_expired_or_unset" }
+              : {}),
+        },
       };
 
       return formatToolOutput(response);

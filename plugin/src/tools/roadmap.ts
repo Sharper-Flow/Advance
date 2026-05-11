@@ -251,7 +251,7 @@ export function buildRefreshMetadata(
 // File-mode reader
 // =============================================================================
 
-async function readSnapshotFile(repoRoot: string): Promise<
+export async function readSnapshotFile(repoRoot: string): Promise<
   | {
       ok: true;
       snapshot: RoadmapSnapshot;
