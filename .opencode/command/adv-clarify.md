@@ -26,22 +26,24 @@ Use when ambiguity blocks:
 
 When invoked from `/adv-discover` Phase 2.5 mandatory trigger (CRITICAL ≥ 1 or HIGH ≥ 2), input is structured findings list in conversation context.
 
+Findings may also originate from `/adv-audit` ambiguity detection (Phase 3 inline scan). When the source is a spec audit, each finding includes `specCapability` context.
+
 Finding shape:
 
 ```json
-[{"id":"B1","severity":"CRITICAL","category":"Boundaries","finding":"...","evidence":"...","reason":"..."}]
+[{"id":"B1","severity":"CRITICAL","category":"Boundaries","finding":"...","evidence":"...","reason":"...","specCapability":"advance-workflow"}]
 ```
 
 Protocol:
 
 1. Convert each finding to Socratic question seeded by `reason`.
-2. Resolve by writing proposal.md section via `adv_change_update`.
-3. Add `## Clarify Resolution Log` to proposal.md:
+2. Resolve by writing proposal.md section (for change findings) or spec file (for spec-law findings) via appropriate update tool.
+3. Add `## Clarify Resolution Log` to proposal.md or spec comments:
    ```markdown
    - B1 (resolved {ISO timestamp}): {resolution text}
    ```
 4. Emit REQUIREMENTS DISCOVERY SUMMARY with cleared findings.
-5. End with `Next: rerun /adv-discover {change-id}`.
+5. End with `Next: rerun /adv-discover {change-id}` or `Next: rerun /adv-audit {capability}`.
 
 Return path same as `/adv-discover` AC Checkpoint Phase 4.5.1. `/adv-clarify` MUST NOT write `agreement.md` or call `adv_gate_complete`.
 
