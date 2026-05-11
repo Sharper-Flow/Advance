@@ -5,240 +5,116 @@ description: Triage stale, abandoned, duplicate, and ready-to-archive active cha
 <!-- manifest: adv-cleanup · requiresChangeId: false -->
 # ADV Cleanup — Active State Triage
 
-Scan active ADV changes, categorize each into a bucket (Duplicate, Stuck, Abandoned, Ready-to-archive, or Healthy), and act on each bucket with the appropriate tool. Composes existing primitives — no new MCP tools. Default mode is **dry-run**: scan and report without mutation. Runs **inline** — no sub-agents.
+Dry-run by default. Scan active ADV changes, bucket candidates, report actions. `--execute` applies only after per-bucket Tier B approval. Runs inline; no sub-agents.
 
-> **CHECKLIST**: Default to dry-run. Closures require Tier B per-bucket approval (instance of cancellation approval per `rq-inlineApproval01.4`). Never auto-archive — Ready-to-archive bucket recommends `/adv-archive {id}` per change to preserve per-change Tier B sign-off (`rq-inlineApproval01.3`).
+> **CHECKLIST**: Default dry-run. Closures require Tier B per-bucket approval (`rq-inlineApproval01.4`). Never auto-archive; recommend `/adv-archive {id}` to preserve per-change Tier B sign-off (`rq-inlineApproval01.3`).
 
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
 
+## Phase 0: Load Skill
+
+`skill("adv-cleanup")` → bucket rules, staleness heuristics, duplicate checks, approval parser, bulk-close procedure. If unavailable, use fallback below.
+
+Fallback: use phases in this file; apply bucket precedence exactly; never mutate before strict approval.
+
 ## Parse Flags
 
-Extract from `$ARGUMENTS`:
+- `--execute` — apply approved bucket actions; default dry-run.
+- `--bucket <name>` — one bucket: `duplicate` / `stuck` / `abandoned` / `ready-to-archive`.
+- `--age-threshold <duration>` — default `7d`; accepts `7d`, `48h`, `60m`, `7d 12h`.
 
-- `--execute` — apply per-bucket actions after Tier B approval (default: dry-run)
-- `--bucket <name>` — limit triage to a single bucket (`duplicate` / `stuck` / `abandoned` / `ready-to-archive`)
-- `--age-threshold <duration>` — override default `7d` staleness threshold; accepts `7d`, `48h`, `60m`, `7d 12h`
-
-Validate `--bucket <name>` against the canonical list before scanning. Reject malformed `--age-threshold` with example.
+Validate bucket and duration before scan; reject malformed values with example.
 
 ---
 
 ## Phase 1: Scan
 
-Run one tool call:
+Call `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })`. Record scanned count + hot-excluded count.
 
-1. `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })` — enriched entries oldest-first, excluding in-flight changes
-
-Record total scanned count and hot-excluded count for the report.
-
-If `adv_change_list` returns 0 active changes → emit `No cleanup candidates. No active changes.` → stop.
+If 0 active changes → `No cleanup candidates. No active changes.` → stop.
 
 ---
 
 ## Phase 2: Categorize
 
-For each entry from Phase 1, apply detection rules in **precedence order — most-specific wins**:
+Use skill bucket precedence; most-specific wins:
 
-| # | Bucket | Detection (in order) | Action target |
-|---|--------|----------------------|---------------|
-| 1 | **Duplicate** | Title (lowercased, whitespace-collapsed) equals another active or archived change's title, OR ID matches `<stem><N>` pattern with N ≥ 2 where `<stem>` is another change's ID and `<stem>` has at least 3 characters | `adv_change_bulk_close reason: superseded supersededBy: {target} selector: { kind: "explicit", changeIds: [...] }` |
-| 2 | **Stuck at proposal** | `gates.proposal.status == "pending"` AND `tasks.length == 0` AND `lastActivityAgeMinutes > age-threshold` | `adv_change_bulk_close reason: not_planned selector: { kind: "filter", filter: { lastActivityBefore } }` |
-| 3 | **Abandoned mid-flight** | `gates.proposal.status == "done"` AND `tasks.some(t => t.status == "pending" \|\| t.status == "in_progress")` AND `lastActivityAgeMinutes > age-threshold` AND no gate completed within age-threshold | `adv_change_bulk_close reason: cancelled selector: { kind: "filter", filter: { lastActivityBefore } }` |
-| 4 | **Ready to archive** | All gates done except `release` AND all tasks `done` AND no unresolved review findings | Emit `/adv-archive {id}` per-change recommendation (no bulk action) |
-| 5 | **Healthy** | Anything else | Skip |
+1. **Duplicate** — normalized title match or conservative ID suffix match → explicit `adv_change_bulk_close reason: superseded`.
+2. **Stuck at proposal** — proposal pending, no tasks, stale → filter close `reason: not_planned`.
+3. **Abandoned mid-flight** — proposal done, pending/in-progress tasks, stale, no recent gate → filter close `reason: cancelled`.
+4. **Ready to archive** — all gates except release done, all tasks done, no unresolved review findings → recommend `/adv-archive {id}`.
+5. **Healthy** — skip.
 
-Title normalization for duplicate detection: trim, replace every run of Unicode whitespace with a single ASCII space, then lowercase. Draft-only duplicate titles are intentionally not scanned until the draft appears in the active cleanup list; cleanup is for active change triage, not proposal shaping. ID suffix detection is a conservative hint only; if the target cannot be verified before apply, do not close the duplicate candidate.
-
-### Per-change inspection sequence
-
-For each change, walk the precedence list. Inspection cost is minimized:
-
-1. Duplicate: walk title/ID against the full active+archived list (no per-change `adv_change_show` needed)
-2. If `lastActivityAgeMinutes <= age-threshold` AND not Duplicate → assign **Healthy**, skip
-3. Otherwise call `adv_change_show` once for this change (cache the result for buckets 2–4)
-4. Apply Stuck → Abandoned → Ready-to-archive in order
-5. If none match → **Healthy**
-
-For 17 active changes with ~half stale, expect ~8 `adv_change_show` calls. Acceptable for v1; cap each bucket at 20 entries with a "(N more not shown)" note.
-
-### Sub-bucket: blocked by child lineage
-
-Before assigning a change to any closure bucket (Duplicate / Stuck / Abandoned), check if it has unarchived `fast_follow_of` children: walk the active list for any change whose `parent_change_id` equals this change's id. If found, move it to a "blocked: has unarchived child" sub-bucket and surface in the report. Do not close it.
-
-### Filter to single bucket (`--bucket`)
-
-If `--bucket <name>` was provided, after categorization, retain only entries matching that bucket. All other entries become irrelevant for this run.
+Inspect cheaply: duplicate pass over active+archived list; if hot/non-stale and not duplicate → Healthy; otherwise one `adv_change_show` per stale change. Before closure buckets, check unarchived `fast_follow_of` children; move matches to blocked sub-bucket. If `--bucket`, retain only that bucket.
 
 ---
 
 ## Phase 3: Present Findings
 
-Emit a grouped inline report (not a `question` popup). Skip the Healthy bucket entirely.
+Emit grouped inline report; skip Healthy. Include mode, scanned, hot excluded, age threshold, bucket counts, reasons, total candidates, and filtered bucket note when applicable.
 
-```
-## /adv-cleanup triage report
+Required snippets:
 
-Mode: {dry-run | execute}
-Active changes scanned: {N}
-Hot excluded: {M}
-Age threshold: {7d | --age-threshold value}
+- Ready → `→ Run /adv-archive {id} to ship.`
+- Dry-run → `Re-run with --execute to apply per-bucket actions (each bucket requires Tier B approval).`
+- Empty → `No cleanup candidates. All active changes are healthy or hot.`
 
-### Ready to archive ({count})
-- {id} ({tasks done}/{total} tasks, all gates except release done)
-  → Run `/adv-archive {id}` to ship.
-
-### Stuck at proposal ({count})
-- {id} (0/0 tasks, {age}h stale, proposal gate pending)
-
-### Abandoned mid-flight ({count})
-- {id} ({done}/{total} tasks, {age}h stale, last gate: {last-completed-gate})
-
-### Duplicate/superseded ({count})
-- {id} → superseded by {target-id} ({matching-rule: title-equality | suffix-pattern})
-
-### Blocked: has unarchived child ({count})
-- {id} → child {child-id} still active (close child or archive parent first)
-
-Total candidates: {sum across non-empty closure buckets}
-{If --bucket was used, prefix with "Filtered to bucket: <name>"}
-```
-
-When all buckets are empty:
-
-```
-No cleanup candidates. All active changes are healthy or hot.
-```
-
-If dry-run:
-
-```
-Re-run with `--execute` to apply per-bucket actions (each bucket requires Tier B approval).
-```
-
-If `--execute` is set, proceed to Phase 4 for each non-empty closure bucket. **Skip Phase 4 for Ready-to-archive and Blocked sub-buckets** — these are informational only.
+If `--execute`, continue to Phase 4 for Duplicate, Stuck, Abandoned only. Skip Ready-to-archive and Blocked.
 
 ---
 
 ## Phase 4: Per-Bucket Approval (`--execute` only — Tier B inline)
 
-For each non-empty bucket requiring action (Duplicate, Stuck, Abandoned), emit a separate Tier B inline approval prompt. This is an instance of **cancellation approval** (`rq-autonomy01` checkpoint #7) — structured per `rq-inlineApproval01.4` with the per-change variant of the format from `docs/command-voice-standard.md § Inline Approval Voice` (lines 585–601).
+For each non-empty closure bucket, emit separate Tier B inline prompt (cancellation approval, `rq-autonomy01` checkpoint #7, `rq-inlineApproval01.4`).
 
-### Closure bucket prompt (Duplicate / Stuck / Abandoned)
+Prompt MUST include numbered candidates with reason and anchor phrase:
 
-```
-{Bucket name} — closure requested for these changes:
+`Reply EXACTLY one of:`
 
-1. {change-id} — "{title}" — Reason: {detection-rule summary}
-2. {change-id} — "{title}" — Reason: {detection-rule summary}
+Allowed replies (trimmed, case-insensitive regex; no LLM fallback):
 
-Reply EXACTLY one of:
-- `approve all` — close all listed changes
-- `reject all` — keep all changes active
-- `keep N` (or `keep N,M`) — close inverse of listed numbers
-- `cancel N` (or `cancel N,M`) — close only the listed numbers
-- `stop` / `abort` — halt; do not close anything
-
-Anything else → re-prompt with the same options.
-```
-
-**Anchor phrase:** `Reply EXACTLY one of:`
-
-### Reply parsing (Tier B — strict, no LLM fallback)
-
-| Pattern (regex, case-insensitive, trimmed) | Action |
+| Pattern | Action |
 |---|---|
-| `^approve all$` | Close all listed changes via `adv_change_bulk_close` with `selector` and `reason` per the bucket |
-| `^reject all$` | Skip this bucket entirely |
-| `^keep ([\d,\s]+)$` | Close all entries except the listed numbers (selector: explicit IDs of inverse) |
-| `^cancel ([\d,\s]+)$` | Close only the listed numbers (selector: explicit IDs) |
-| `^(stop\|abort)$` | Halt the entire `/adv-cleanup --execute` run; do not act on remaining buckets |
-| Anything else | Re-prompt with same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance |
+| `^approve all$` | close all listed |
+| `^reject all$` | skip bucket |
+| `^keep ([\d,\s]+)$` | close inverse |
+| `^cancel ([\d,\s]+)$` | close listed |
+| `^(stop\|abort)$` | halt cleanup; close nothing else |
+
+Anything else → re-prompt same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance.
+
+---
 
 ## Phase 5: Apply
 
-For each approved bucket, invoke the corresponding tool with required approval evidence. Each bucket is **atomic** — `adv_change_bulk_close` fails-all if any target is protected (e.g. has unarchived child surfaced via lineage check we already filtered).
+For each approved bucket, call `adv_change_bulk_close` with `approvedByUser: true`, `approvalEvidence`, selector, reason, and `supersededBy` for Duplicate. Duplicate bucket MUST use explicit IDs; filter-based `reason: "superseded"` is rejected.
 
-### Closure path
+Before Duplicate apply, `adv_change_show` each `supersededBy` target. Missing target → skip only those candidates and report `skipped: missing supersededBy target`.
 
-```
-adv_change_bulk_close({
-  selector: {
-    kind: "explicit",
-    changeIds: [<approved IDs>]
-  } | {
-    kind: "filter",
-    filter: { lastActivityBefore: <ISO timestamp from age-threshold> }
-  },
-  reason: "superseded" | "not_planned" | "cancelled",
-  supersededBy: <target-id>,  // only for Duplicate bucket; required by tool contract
-  approvedByUser: true,
-  approvalEvidence: "<user reply text>"
-})
-```
-
-× Filter-based bulk close with `reason: "superseded"` is **rejected** by the tool contract. Duplicate bucket MUST use explicit IDs.
-
-### Duplicate target recheck
-
-Before applying the Duplicate bucket, call `adv_change_show` for each `supersededBy` target. If any target is missing, skip only candidates pointing at that target, list them as `skipped: missing supersededBy target`, and continue with remaining approved duplicate candidates.
-
-### Per-bucket result reporting
-
-After each bucket completes, emit a one-line summary:
-
-```
-✓ {Bucket name}: closed {N} change(s) — {reason}
-```
-
-If a bucket fails (e.g. atomic fail-all because one target became protected mid-run):
-
-```
-✗ {Bucket name}: failed — {error message}. No changes closed in this bucket.
-```
-
-Continue to the next bucket. Do not abort the whole run on a single bucket failure.
+Each bucket atomic. Success: `✓ {Bucket name}: closed {N} change(s) — {reason}`. Failure: `✗ {Bucket name}: failed — {error message}. No changes closed in this bucket.` Continue next bucket.
 
 ---
 
 ## Final Report
 
-After all buckets are processed (or skipped in dry-run), emit a closing summary:
-
-
-
-Use the Gate Handoff Voice spine for the closing block (cleanup does not own a gate, so omit gate footer). Cleanup is a utility command — no sub-agent spawn, no gate completion.
+Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup owns no gate.
 
 ---
 
 ## Coexistence
 
-| Command | Role | Relationship |
-|---------|------|--------------|
-| `/adv-status` | Read-only project overview | Cleanup is the actionable counterpart |
-| `/adv-refactor` | Refresh stale proposal *content* | Cleanup detects abandoned/dead proposals (closes them) |
-| `/adv-status` | Cross-change health dashboard (hot files, merge queue) | Cleanup is the actionable counterpart |
-| `/adv-archive` | Single-change archive (Tier B sign-off) | Cleanup recommends, does not invoke |
-
----
-
-## Anti-Patterns
-
-| × Bad | ✓ Good |
-|-------|--------|
-| Bulk-archive ready-to-archive bucket | Recommend per-change `/adv-archive {id}` to preserve Tier B sign-off |
-| LLM fallback on ambiguous reply | Re-prompt with same options; whitelist + regex only |
-| Skip Phase 4 approval and act directly with `--execute` | Each non-empty closure bucket emits its own Tier B prompt |
-| Close a change with unarchived `fast_follow_of` children | Surface in "blocked" sub-bucket; do not include in closure prompt |
-| Include hot-band changes in closure candidates | Default `excludeRecencyBands: ["hot"]` in Phase 1 |
-
----
+| Command | Relationship |
+|---|---|
+| `/adv-status` | Read-only overview; cleanup is actionable counterpart |
+| `/adv-refactor` | Refreshes stale proposal content; cleanup closes abandoned/dead proposals |
+| `/adv-archive` | Cleanup recommends only; archive owns Tier B sign-off |
 
 ## Key Tools
 
 | Purpose | Tool |
-|---------|------|
-| Scan active changes (with recency) | `adv_change_list` |
-| Inspect per-change (gates + tasks) | `adv_change_show` |
-| Close changes (bulk) | `adv_change_bulk_close` |
+|---|---|
+| Scan active changes | `adv_change_list` |
+| Inspect gates/tasks | `adv_change_show` |
+| Close bulk candidates | `adv_change_bulk_close` |
