@@ -166,7 +166,7 @@ export async function withTargetPathStore<T>(
     // Store selection is controlled by stateRequirement; this override only
     // controls the target trust gate. Dry-run callers may need a Temporal-backed
     // read while remaining non-mutating.
-    mutation: input.mutation ?? (input.stateRequirement !== "snapshot-ok"),
+    mutation: input.mutation ?? input.stateRequirement !== "snapshot-ok",
   });
 
   if (input.stateRequirement === "snapshot-ok") {

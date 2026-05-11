@@ -162,7 +162,10 @@ export const advWorktreeTools = {
         .optional()
         .describe("Preview cleanup retries without deleting queued worktrees"),
     },
-    execute: async (args: { reason: string; dryRun?: boolean }, store: Store) => {
+    execute: async (
+      args: { reason: string; dryRun?: boolean },
+      store: Store,
+    ) => {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();

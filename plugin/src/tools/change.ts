@@ -2029,7 +2029,9 @@ export const changeTools = {
       dryRun: z
         .boolean()
         .optional()
-        .describe("Preview bulk close without firing signals or removing files."),
+        .describe(
+          "Preview bulk close without firing signals or removing files.",
+        ),
     },
     execute: async (
       {

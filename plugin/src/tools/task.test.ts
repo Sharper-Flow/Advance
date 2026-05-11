@@ -684,7 +684,9 @@ describe("task tools — signal/query adapters", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed.dryRun).toBe(true);
-      expect(parsed.wouldCancel).toEqual([{ id: "tk-abc", title: "Test Task" }]);
+      expect(parsed.wouldCancel).toEqual([
+        { id: "tk-abc", title: "Test Task" },
+      ]);
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 

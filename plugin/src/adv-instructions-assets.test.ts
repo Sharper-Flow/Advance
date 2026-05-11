@@ -118,7 +118,7 @@ describe("ADV_INSTRUCTIONS.md drift repairs (repairDriftContradictions T2)", () 
       "### Cancellation Policy",
     );
 
-    expect(crossProject).toMatch(/\|\s*`adv_status`\s*\|\s*snapshot-ok\s*\|/);
+    expect(crossProject).toMatch(/`snapshot-ok`:[^\n]*`adv_status`/);
     expect(crossProject).not.toMatch(/planned to add/);
     expect(crossProject).not.toMatch(
       /Tools without `target_path`[^\n]*`adv_status`/,

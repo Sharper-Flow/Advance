@@ -1750,7 +1750,11 @@ export async function advWorktreeCleanup(
 ): Promise<{ removed: number; retained: number; dryRun?: boolean }> {
   const pendingDeletes = await getPendingDeletes(deps.database);
   if (pendingDeletes.length === 0) {
-    return { removed: 0, retained: 0, ...(deps.dryRun ? { dryRun: true } : {}) };
+    return {
+      removed: 0,
+      retained: 0,
+      ...(deps.dryRun ? { dryRun: true } : {}),
+    };
   }
 
   let removed = 0;
