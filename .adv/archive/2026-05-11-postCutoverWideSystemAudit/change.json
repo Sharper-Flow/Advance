@@ -1,0 +1,176 @@
+{
+  "id": "postCutoverWideSystemAudit",
+  "title": "Post-cutover wide system audit",
+  "status": "archived",
+  "created_at": "2026-05-11T02:09:30.128Z",
+  "tasks": [
+    {
+      "id": "tk-716de25da667",
+      "title": "Apply safe post-cutover terminology cleanup.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T02:26:54.979Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "updatedAt": "2026-05-11T02:33:38.921Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T02:35:18.477Z",
+      "verification": "Safe terminology cleanup applied and checkpointed.",
+      "summary": "Refreshed stale post-cutover comments: safeUpdateHandler docs now describe workflow mutation/signal usage without renaming symbol; store-temporal comments no longer imply active PSW/projectWorkflow signal writes; worktree comments now use ADV/current local-state terminology; launch-context comments avoid OCX-specific wording. Provider eval output directory absent, so cleanup was no-op. Verified target stale phrases removed and git diff --check passed.",
+      "implementation_summary": "Refreshed stale post-cutover comments: safeUpdateHandler docs now describe workflow mutation/signal usage without renaming symbol; store-temporal comments no longer imply active PSW/projectWorkflow signal writes; worktree comments now use ADV/current local-state terminology; launch-context comments avoid OCX-specific wording. Provider eval output directory absent, so cleanup was no-op. Verified target stale phrases removed and git diff --check passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T02:36:53.742Z",
+      "completed_at": "2026-05-11T02:36:53.742Z"
+    },
+    {
+      "id": "tk-3d5c656126d7",
+      "title": "Create durable audit report at `docs/post-cutover-wide-system-audit.md`.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T02:26:55.013Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "updatedAt": "2026-05-11T02:33:38.880Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T02:34:00.121Z",
+      "verification": "Audit report created and checkpointed.",
+      "summary": "Added docs/post-cutover-wide-system-audit.md with method, current-state evidence, findings across quality/architecture/performance/DX, external signals, direct-cleanup scope, and follow-up reconciliation against known backlog.",
+      "implementation_summary": "Added docs/post-cutover-wide-system-audit.md with method, current-state evidence, findings across quality/architecture/performance/DX, external signals, direct-cleanup scope, and follow-up reconciliation against known backlog.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T02:35:04.054Z",
+      "completed_at": "2026-05-11T02:35:04.054Z"
+    },
+    {
+      "id": "tk-acb62af435ea",
+      "title": "Create or update follow-up work for risky findings not already represented.",
+      "type": "code",
+      "section": "implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T02:26:55.193Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "updatedAt": "2026-05-11T02:33:38.948Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T02:37:05.143Z",
+      "verification": "Follow-up issues filed, #98 repurposed, and checkpointed.",
+      "summary": "Created follow-up GitHub issues #106-#110 for archived listing timeout/state shadow, status health probe TTL, projection memo/sourceVersion lifecycle, dangling checkpoint commits, and target_path task mutation routing. Added all five to GitHub Project #2 as feature items and updated the audit report with issue references. Updated origin issue #98 title/body to reflect the approved audit scope instead of the rejected stabilization scoreboard. Verified issue labels and project ADV Type fields.",
+      "implementation_summary": "Created follow-up GitHub issues #106-#110 for archived listing timeout/state shadow, status health probe TTL, projection memo/sourceVersion lifecycle, dangling checkpoint commits, and target_path task mutation routing. Added all five to GitHub Project #2 as feature items and updated the audit report with issue references. Updated origin issue #98 title/body to reflect the approved audit scope instead of the rejected stabilization scoreboard. Verified issue labels and project ADV Type fields.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T02:42:02.179Z",
+      "completed_at": "2026-05-11T02:42:02.179Z"
+    },
+    {
+      "id": "tk-53b1c4f65384",
+      "title": "Final verification and acceptance evidence.",
+      "type": "code",
+      "section": "verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-11T02:27:06.494Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3d5c656126d7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-716de25da667"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-acb62af435ea"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "updatedAt": "2026-05-11T02:33:38.945Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T02:39:41.061Z",
+      "verification": "Final verification passed and checkpoint recorded clean.",
+      "summary": "Verified final change set: docs/post-cutover-wide-system-audit.md plus comment-only terminology cleanup in workflows, store-temporal, worktree, and launch-context. Ran `pnpm run check` successfully. Ran workflow boundary test command successfully. Verified git diff --check and clean worktree.",
+      "implementation_summary": "Verified final change set: docs/post-cutover-wide-system-audit.md plus comment-only terminology cleanup in workflows, store-temporal, worktree, and launch-context. Ran `pnpm run check` successfully. Ran workflow boundary test command successfully. Verified git diff --check and clean worktree.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T02:41:17.554Z",
+      "completed_at": "2026-05-11T02:41:17.554Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:12:06.557Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved proposal by replying `continue`. Proposal establishes wide post-cutover system audit, direct safe cleanup, and follow-up issue generation. Roadmap origin #98."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:22:41.916Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved discovery agreement by replying `continue`. Discovery found Temporal architecture is sound; remaining work is audit report, safe local cleanup, and follow-up issues for riskier post-cutover seams."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:26:27.399Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "Design recorded. Validator verdict CAUTION; required changes resolved: no safeUpdateHandler symbol rename, PSW cleanup narrowed to comments with sourceVersion follow-up, provider-eval cleanup conditional, workflow-reachable file safety explicit. No unresolved conflict or contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:33:43.212Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User approved prep task graph by replying `approve`. Task graph has audit report, safe terminology cleanup, follow-up filing/reconciliation, and final verification. TDD intents reclassified with approval: first three not_applicable, final separate_verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:42:18.324Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "All four planned tasks completed. Verification passed: pnpm run check, workflow-bundle-boundary test command, git diff --check, clean worktree. Validation passed with NO_DELTAS warning only, expected for audit/doc/comment cleanup change."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:44:30.873Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User accepted implementation by replying `accept`. Delivered audit report, safe terminology cleanup, #98 repurpose, follow-up issues #106-#110, and verification evidence."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-11T02:47:34.199Z",
+      "completed_by": "adv-gpt",
+      "approval_evidence": "User signed off with `sign off`. Release preflight: all prior gates done, all tasks done, strict validation passed with expected NO_DELTAS warning only, no conformance specs configured. Proceeding to archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-11T02:09:54.572Z",
+      "resolved": true,
+      "resolved_at": "2026-05-11T02:10:19.318Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-11T02:10:19.318Z",
+      "resolved": true,
+      "resolved_at": "2026-05-11T02:10:36.936Z"
+    }
+  ]
+}
