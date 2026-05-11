@@ -800,6 +800,9 @@ Enabled in `/adv-research`. Filesystem-only, no API calls.
 
 Skill metadata: YAML frontmatter with `name`, `description`, `keywords`.
 
+<!-- rq-domainContext01 -->
+**Domain context artifacts:** Projects MAY maintain `CONTEXT.md` (root) or `CONTEXT-MAP.md` + per-context `CONTEXT.md` files as a domain glossary. `/adv-discover`, `/adv-design`, and `/adv-clarify` MAY read these for domain-language alignment. Lazy creation; advisory artifact. See `.adv/specs/domain-context/` for format and consumer contract.
+
 ## Skill Creation Protocol
 
 Enabled in `/adv-discover` and `/adv-research`. Conservative — only triggers for the change's core problem domain.

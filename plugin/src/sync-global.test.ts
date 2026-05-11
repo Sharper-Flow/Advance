@@ -121,9 +121,13 @@ describe("sync-global.sh", () => {
       expect(content).toContain("`adv.md` is deliberately NOT in this list");
     });
 
-    test("syncs skills to global", () => {
+    test("syncs skills to global (whole-directory copy preserves sibling docs and subdirs)", () => {
+      // ADR-002: whole-directory sync preserves SKILL.md + sibling reference docs
+      // (CONTEXT-FORMAT.md, LOGIC.md, UI.md, REPORT_SCHEMA.md, etc.) + subdirectories
+      // (e.g. scripts/). Backward-compatible: single-file skills sync identically.
       expect(content).toContain('for skill_dir in "$REPO_SKILLS"/adv-*/; do');
-      expect(content).toContain('cp "$skill_file" "$dest_dir/SKILL.md"');
+      expect(content).toContain('(cd "$skill_dir" && cp -R . "$dest_dir/")');
+      expect(content).toContain("ADR-002");
     });
 
     test("removes legacy non-ADV commands", () => {

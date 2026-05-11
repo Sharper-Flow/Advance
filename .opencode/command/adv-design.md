@@ -37,6 +37,9 @@ Produce a design covering:
 5. **LBP analysis** — why this is the preferred long-term approach
 6. **Risks and mitigations**
 
+<!-- rq-domainContextADR01 -->
+> **ADR rubric (sparingly):** When recording a key decision, check the 3-criteria rubric: (1) hard-to-reverse, (2) surprising-without-context, (3) result-of-real-tradeoff. If all three are met, draft an ADR at `docs/adr/NNNN-slug.md` (numbering sequential, slug 3-5 hyphenated words). See `.adv/specs/domain-context/` for the rubric contract and ADR format. ADR drafts are advisory; they don't gate-block.
+
 Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not what files exist.
 
 ---

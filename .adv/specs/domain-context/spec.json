@@ -1,0 +1,121 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "domain-context",
+  "title": "Domain Context & Architecture Decision Records",
+  "purpose": "Capability: defines CONTEXT.md (domain glossary) and docs/adr/NNNN-slug.md (Architecture Decision Records) as advisory ADV-consumed domain artifacts. These artifacts capture durable domain knowledge and design decisions; ADV gates MAY read and write them per the scenarios below. Both requirements are `should`-priority advisory artifacts — they don't gate-block any phase. Adoption is opt-in across projects.",
+  "version": "1.0.0",
+  "updated_at": "2026-05-11T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-domainContext01",
+      "title": "CONTEXT.md Domain Glossary Format and Consumers",
+      "body": "Projects MAY maintain a `CONTEXT.md` at the repo root (single-context) or a `CONTEXT-MAP.md` pointing to per-context `CONTEXT.md` files (multi-context). The format records project-specific domain terms with their canonical definitions, aliases to avoid, relationships, example dialogue, and flagged ambiguities. `/adv-discover` MAY read CONTEXT.md during current-state analysis to align on domain language. `/adv-design` MAY append terms when new vocabulary is resolved during design. `/adv-clarify` MAY read CONTEXT.md to align clarification with established domain language. Lazy creation only — no script auto-scaffolds CONTEXT.md.",
+      "priority": "should",
+      "tags": ["domain-context", "glossary", "advisory-artifact"],
+      "scenarios": [
+        {
+          "id": "rq-domainContext01.1",
+          "title": "CONTEXT.md present and readable by discover",
+          "given": [
+            "A repo contains a CONTEXT.md at the root with at least one Language section term"
+          ],
+          "when": "/adv-discover runs in that repo",
+          "then": [
+            "The discover output MAY reference terms defined in CONTEXT.md",
+            "The discover output MUST NOT contradict CONTEXT.md term definitions without surfacing the conflict"
+          ]
+        },
+        {
+          "id": "rq-domainContext01.2",
+          "title": "CONTEXT.md absence does not block discovery",
+          "given": [
+            "A repo does not contain a CONTEXT.md"
+          ],
+          "when": "/adv-discover runs",
+          "then": [
+            "Discovery completes normally",
+            "No automatic scaffolding of CONTEXT.md occurs"
+          ]
+        },
+        {
+          "id": "rq-domainContext01.3",
+          "title": "CONTEXT-MAP.md identifies multi-context repos",
+          "given": [
+            "A repo contains a CONTEXT-MAP.md at the root listing multiple per-context CONTEXT.md files"
+          ],
+          "when": "/adv-discover or /adv-design reads domain context",
+          "then": [
+            "The map is read first to identify which context applies",
+            "Per-context CONTEXT.md files are read for context-specific vocabulary"
+          ]
+        }
+      ],
+      "meta": {
+        "format_reference": ".adv/specs/domain-context/CONTEXT-FORMAT.md",
+        "advisory": true
+      }
+    },
+    {
+      "id": "rq-domainContextADR01",
+      "title": "Architecture Decision Records Format and Sparingly Rubric",
+      "body": "Projects MAY maintain `docs/adr/NNNN-slug.md` Architecture Decision Records for durable design decisions. ADRs are sparse by design — only decisions meeting all three rubric criteria SHOULD be recorded: (1) hard to reverse (the cost of changing your mind later is meaningful); (2) surprising without context (a future reader will wonder \"why did they do it this way?\"); (3) result of a real trade-off (there were genuine alternatives and you picked one for specific reasons). `/adv-design` MAY emit ADR drafts during Phase 2/3 when the rubric is met. The minimum ADR is title + 1-3 sentences (context + decision + rationale). Optional sections (Status, Considered Options, Consequences) included only when they add value. Lazy creation only — no script auto-scaffolds docs/adr/.",
+      "priority": "should",
+      "tags": ["adr", "architecture-decision-record", "advisory-artifact", "sparingly"],
+      "scenarios": [
+        {
+          "id": "rq-domainContextADR01.1",
+          "title": "ADR rubric criteria all met",
+          "given": [
+            "A design decision is hard to reverse, surprising without context, and result of a real trade-off"
+          ],
+          "when": "/adv-design Phase 2 records key decisions",
+          "then": [
+            "An ADR draft MAY be emitted to docs/adr/NNNN-slug.md",
+            "The draft includes the 3-criteria check showing all met"
+          ]
+        },
+        {
+          "id": "rq-domainContextADR01.2",
+          "title": "ADR rubric criteria not all met",
+          "given": [
+            "A design decision is easy to reverse OR obvious without context OR has no real alternatives"
+          ],
+          "when": "/adv-design Phase 2 records key decisions",
+          "then": [
+            "No ADR is drafted for that decision",
+            "The decision MAY still appear in design.md Key Decisions"
+          ]
+        },
+        {
+          "id": "rq-domainContextADR01.3",
+          "title": "ADR numbering is sequential",
+          "given": [
+            "docs/adr/ contains zero or more existing ADRs"
+          ],
+          "when": "A new ADR is drafted",
+          "then": [
+            "The new ADR uses the highest existing number plus one",
+            "The slug summarizes the decision in 3-5 hyphenated words"
+          ]
+        },
+        {
+          "id": "rq-domainContextADR01.4",
+          "title": "ADR absence does not block design",
+          "given": [
+            "A repo does not contain docs/adr/"
+          ],
+          "when": "/adv-design runs",
+          "then": [
+            "Design completes normally",
+            "No automatic scaffolding of docs/adr/ occurs unless an ADR is being written"
+          ]
+        }
+      ],
+      "meta": {
+        "format_reference": ".adv/specs/domain-context/ADR-FORMAT.md",
+        "advisory": true,
+        "rubric_origin": "mattpocock/skills:skills/engineering/grill-with-docs/ADR-FORMAT.md"
+      }
+    }
+  ]
+}

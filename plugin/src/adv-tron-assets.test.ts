@@ -36,6 +36,7 @@ describe("adv-tron assets", () => {
     expect(content).toContain('REPO_SKILLS="$REPO_ROOT/skills"');
     expect(content).toContain('GLOBAL_SKILLS="$HOME/.config/opencode/skills"');
     expect(content).toContain('for skill_dir in "$REPO_SKILLS"/adv-*/; do');
-    expect(content).toContain('cp "$skill_file" "$dest_dir/SKILL.md"');
+    // ADR-002: whole-directory sync (cp -R) preserves sibling docs + subdirs
+    expect(content).toContain('(cd "$skill_dir" && cp -R . "$dest_dir/")');
   });
 });
