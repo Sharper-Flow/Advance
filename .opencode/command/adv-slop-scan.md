@@ -9,19 +9,21 @@ description: Scan for AI slop patterns including defensive and nested code
 
 > **SUB-AGENT CONTEXT**: Return findings directly. Skip status markers.
 
-Orchestrate codebase scan for AI-generated code quality issues ("slop") using patterns from `slop-smells.yaml`. Two-phase strategy: Phase 1 (AST + regex, deterministic) → Phase 2 (AI heuristic via sub-agents).
+Orchestrate AI-code quality scan. Methodology lives in `adv-slop-detection`; command owns args, pre-flight, dispatch, aggregation, metadata.
 
 ## Argument Parsing
 
 Parse `$ARGUMENTS`:
+
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--phase 1\|2` | Run single phase | Both |
 | `--json` | JSON output | Text |
 | `--verbose` | Detailed progress | Off |
-| `--timeout N` | Sub-agent timeout (seconds) | 120 |
+| `--timeout N` | Sub-agent timeout seconds | 120 |
 | `--include-untracked` | Include untracked git files | Off |
 | `<path>` | Limit scan directory | `.` |
+
 <UserRequest>
 $ARGUMENTS
 </UserRequest>
@@ -30,227 +32,119 @@ $ARGUMENTS
 
 ## Phase 0: Load Skill
 
-`skill("adv-slop-detection")` → provides two-phase detection strategy, smell categories, severity scoring, finding format. If the skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-slop-detection")` → two-phase detection strategy, smell categories, thresholds, confidence, report schema. If unavailable, use fallback below.
+
+Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explore` scanners for semantic smells. Preserve `WORKING DIRECTORY` in all prompts.
 
 ---
 
 ## Pre-flight
 
-1. **Git check** — `git rev-parse --is-inside-work-tree` → stop if not git repo
-2. **Load slop-smells.yaml** → stop if missing or malformed
-3. **Enumerate files** — `git ls-files <path>` (+ `--others --exclude-standard` if `--include-untracked`). Filter to source code extensions, exclude minified/lock/binary. Stop if 0 files.
-4. **Display scope** — file count, path, phase, options
-5. **Worktree context** — `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in all sub-agent prompts and Phase 1 commands.
+1. Git repo check: `git rev-parse --is-inside-work-tree`; stop if false.
+2. Load `slop-smells.yaml`; stop if missing/malformed.
+3. Enumerate `git ls-files <path>` plus `--others --exclude-standard` when `--include-untracked`.
+4. Filter source files; exclude minified, lock, generated, binary.
+5. Load `features.slop_scan` from `project.json`; defaults: `nesting_depth=4`, `defensive_guard=3`, `complexity=10`, `ast_timeout_ms=10000`.
+6. Record `{workdir}` via `pwd`. Include `WORKING DIRECTORY: {workdir}` in Phase 1 commands and sub-agent prompts.
+7. Display scope: file count, path, phases, options. Stop if 0 files.
 
 ---
 
 ## Phase 1: Automatable Detection
 
 <!-- rq-ss001 -->
+<!-- rq-ss002 -->
 <!-- rq-ss003 -->
 <!-- rq-ss004 -->
+<!-- rq-ss005 -->
+<!-- rq-ss006 -->
 <!-- rq-ss009 -->
 
-Fast AST-first structural detection + regex signal layer for deterministic patterns.
+Run deterministic checks from skill:
 
-### Threshold Config
+- AST structural: deep nesting, complexity (`ESLint`, `radon`, `gocyclo`; brace/indent fallback with `detectionMethod: degraded`)
+- Regex signal layer: defensive overkill, debug artifacts, type evasion, incomplete work, error suppression, hardcoded env, AI signatures, security, `QUAL-012`
+- Dead code: `vulture`, `knip`, `deadcode` when available; otherwise note skipped detector
 
-<!-- rq-ss002 -->
+Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `phase: 1`; include `nestingDepth`/`complexity` where applicable.
 
-Load `features.slop_scan` from `project.json` (defaults: nesting_depth=4, defensive_guard=3, complexity=10, ast_timeout_ms=10000).
-
-### AST Structural Detection (MAINT-004, QUAL-011)
-
-| Language      | Tool    | Command                                                                     |
-| ------------- | ------- | --------------------------------------------------------------------------- |
-| TypeScript/JS | ESLint  | `pnpm dlx eslint --rule '{max-depth:[error,{max:N}],complexity:[error,N]}'` |
-| Python        | radon   | `radon cc -n C <path>`                                                      |
-| Go            | gocyclo | `gocyclo -over N <path>`                                                    |
-
-Fallback: brace/indent counting → `detectionMethod: degraded`.
-
-### Defensive Overkill (QUAL-011)
-
-<!-- rq-ss003 -->
-
-Regex for repeated null/undefined checks on same identifier. Escalate when >= `defensive_guard_threshold`.
-
-### Pattern Detection
-
-| Category          | Smell IDs          | Patterns                                                                 |
-| ----------------- | ------------------ | ------------------------------------------------------------------------ |
-| Debug artifacts   | AI-008             | `console.log/debug/info`, `debugger`, `print(`, `fmt.Print`              |
-| Type evasion      | AI-007, AI-006     | `as any`, `as unknown as`, `@ts-ignore`, `@ts-nocheck`, `eslint-disable` |
-| Incomplete work   | QUAL-004, QUAL-009 | `TODO`, `FIXME`, `HACK`, `XXX`                                           |
-| Error suppression | QUAL-007           | Empty catch blocks, `except: pass`                                       |
-| Hardcoded env     | MAINT-005          | `localhost`, `/Users/`, `/home/`, `127.0.0.1`                            |
-| AI signatures     | DOC-003            | `Certainly!`, `Sure!`, `I'll help`, `As an AI`                           |
-| Security          | QUAL-003           | String-concat SQL, hardcoded passwords/keys/secrets                      |
-| Structural correctness bypass | QUAL-012 | Heuristic/fuzzy/LLM decisions near persistence, gates, specs, security, workflow state |
-
-### Structural Correctness Bypass (QUAL-012)
-
-Flag code where correctness boundaries are owned by heuristic inference instead of structural mechanisms. High-risk targets: persistence writes, workflow state mutation, gate completion, spec compliance, security decisions, and untrusted input processing.
-
-Detection signals:
-- Fuzzy/title/Jaccard/similarity scoring suppresses or mutates records without exact refs or user confirmation
-- Regex/prose parsing is the sole authority where a schema/parser/state machine exists or should exist
-- LLM/agent judgment determines compliance, gate completion, or persistence without validator/tool evidence
-- Untrusted input reaches business logic before parser/schema/allowlist recognition and normalization
-- Typed metadata exists but classification uses title/body heuristics instead
-
-Guardrails:
-- Heuristics used only for discovery/ranking/triage/advisory notes are not findings
-- Legacy fallback is allowed when typed metadata/schema precedence is explicit
-- User-confirmed actions are allowed when heuristic output is displayed as a candidate
-- `confidence: high` only when heuristic output directly owns correctness/security/persistence/workflow/gate/spec behavior
-
-### Dead Code (MAINT-003)
-
-<!-- rq-ss005 -->
-
-| Language      | Tool                                | Command                              |
-| ------------- | ----------------------------------- | ------------------------------------ |
-| Python        | vulture                             | `vulture <path> --min-confidence 80` |
-| TypeScript/JS | knip (primary), ts-prune (fallback) | `pnpm dlx knip --no-exit-code`       |
-| Go            | deadcode                            | `deadcode ./...`                     |
-
-If no tool available → suggest installation → skip to Phase 2 heuristic.
-
-### Finding Format
-
-<!-- rq-ss004 -->
-
-Each finding: `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `nestingDepth`, `complexity`, `confidence` (high/medium/low), `detectionMethod` (ast/regex/heuristic/degraded), `phase: 1`.
-
-### Phase 1 Confidence Defaults
-
-<!-- rq-ss006 -->
-
-AST-backed structural findings default to `confidence: high`. Regex-only defensive-overkill findings default to `confidence: medium` unless corroborated by same-identifier redundant guard evidence. Degraded fallback findings default to `confidence: low` unless corroborated by another detector.
-
-If `--phase 1` only → skip to Report.
+If `--phase 1` only → Report Generation.
 
 ---
 
 ## Phase 2: Heuristic Detection
 
-AI-assisted detection via parallel sub-agents (`subagent_type: "explore"`).
+AI-assisted semantic scan via first-level `explore` sub-agents only.
 
 ### No Nested Scanner Delegation (CRITICAL)
 
 `/adv-slop-scan` may fan out to first-level `explore` scanners only.
 
-- Scanner workers must perform all analysis inline with their own tools
-- Scanner workers must NOT spawn additional sub-agents, delegates, or worker agents
-- Scanner workers must NOT invoke any `/adv-*` slash commands; if ADV context is needed they must use ADV tools directly
-- If a scanner needs deeper analysis, it must return the gap to the orchestrator instead of delegating
+- Scanner workers MUST do analysis inline with their own tools.
+- Scanner workers MUST NOT spawn sub-agents, delegates, or worker agents.
+- Scanner workers MUST NOT invoke `/adv-*` slash commands.
+- Deeper-analysis need → return gap to orchestrator.
 
 ### Work Distribution
 
-Divide files among up to 9 scanners by relevance. Cap each file at 3 scanners: `Hallucination`, `Structure`, `Quality` first; if a file also matches a specialized bucket, keep only the strongest specialized match and drop lower-priority extras.
-| Scanner | Category | Focus | File Selection |
-|---------|----------|-------|---------------|
-| Hallucination | `HALLU-*` | Phantom imports, invented methods, version confusion | All (batched) |
-| Structure | `STRUCT-*` | Cargo cult, context amnesia, frankencode | All (batched) |
-| Quality | `QUAL-*` | Happy path only, confident incorrectness | All (batched) |
-| Documentation | `DOC-*` | Obvious comments, stale docs, copy-paste | Export-heavy |
-| Dependency | `DEP-*` | Bloat, version roulette, phantom deps | Config + imports |
-| Maintainability | `MAINT-*` | Dead code, context collapse, style whiplash | All (batched) |
-| AI-Specific | `AI-*` | Sycophantic code, context blindness | Newest files (git) |
-| Performance | `PERF-*` | N+1 queries, excessive renders | Large files (>100 lines) |
-| Test | `TEST-*` | Magic numbers, assertion roulette | `tests/`, `__tests__/` |
+Use skill scanner table. Divide files across up to 9 scanners. Cap each file at 3 scanners: `Hallucination`, `Structure`, `Quality` first; add only strongest specialized bucket.
 
-### Sub-Agent Prompt
+Inject this context packet into every prompt:
 
-**Slop-Scan Context Packet (inject into every sub-agent spawn prompt):**
-
-```
+```text
 WORKING DIRECTORY: {workdir}
 [if active change] CHANGE: {change-id} | {title} | gate: release
 AFFECTED FILES:
   - {file}: {one-line change summary}
-  - ...
 TASK EVIDENCE SUMMARY:
   - {task-id}: {title} | {status} | tdd: {phase}
-  - ...
 EXPECTED OUTPUT: JSON with findings array per dimension schema
 ```
 
-### Context Boundary (Non-Scannable)
+Also include smell definitions for category, file list, novelty check, and these bans: do all work inline; do NOT spawn sub-agents/delegates; do NOT invoke `/adv-*`.
 
 <!-- rq-ss008 -->
+Context packet is orientation only, not finding location. Findings MUST cite target source file/line or scoped source evidence.
 
-Context packet text is orientation only, not a finding location. Every finding must cite a target source file and line or scoped source evidence. Do NOT emit findings against CHANGE, AFFECTED FILES summaries, TASK EVIDENCE SUMMARY, examples, or fixture descriptions.
-
-When an active ADV change exists, build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. When running standalone, omit the CHANGE and TASK EVIDENCE SUMMARY lines. Do NOT give explore agents ADV tool access.
-
-Each also receives: smell definitions from yaml for their category, file list, instructions to focus on semantic issues (Phase 1 handles syntax), novelty check (skip if Phase 1 already found same issue unless adding semantic value).
-
-Every scanner prompt must also include:
-
-- Do all work inline with your own tools
-- Do NOT spawn additional sub-agents or delegates
-- Do NOT invoke `/adv-*` slash commands
-
-### Timeout/Failure Handling
-
-- Timeout → mark category `TIMEOUT`, proceed with available results
-- Failure → mark `INCOMPLETE`, note in report
-- All fail → show Phase 1 findings only, suggest `--phase 1` or retry
+Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 findings only and suggest `--phase 1` or retry.
 
 ---
 
 ## Report Generation
 
-> Anti-Loop: after Phase 2 → proceed directly to aggregation.
+> Anti-Loop: after Phase 2 → aggregate directly.
 
-### Aggregate
-
-1. Combine Phase 1 + Phase 2 findings
-2. Deduplicate: same file:line + smell ID → merge (prefer Phase 2 description)
-3. Assign `actionability` and `grouping` before severity sorting: high/medium confidence with source evidence → `actionability: 'blocking'`, `grouping: 'actionable'`; low confidence or context/fixture uncertainty → `actionability: 'non-blocking'`, `grouping: 'low-confidence'`
-4. Sort actionable findings: CRITICAL > HIGH > MEDIUM > LOW
-5. Group by severity, calculate stats per category, and keep low-confidence / non-blocking findings separate
-6. Note scanner convergence (multiple scanners agree = high confidence)
-
-### Text Format
+1. Combine Phase 1 + Phase 2.
+2. Deduplicate same `file:line` + smell ID; prefer Phase 2 description when richer.
+3. Assign `grouping` and `actionability` before sort: high/medium + source evidence → `actionable` / `blocking`; low confidence or context/fixture uncertainty → `low-confidence` / `non-blocking`.
+4. Sort actionable findings: CRITICAL > HIGH > MEDIUM > LOW.
+5. Group by severity, category, scanner convergence.
 
 <!-- rq-ss007 -->
+Text output: `SLOP SCAN REPORT` banner, scope, phase counts, severity/category summaries, actionable findings with smell ID, `file:line`, description, fix, then `Low-confidence / non-blocking findings`, then next steps. No findings → `[OK] No slop detected.`
 
-Emit SLOP SCAN REPORT banner: scope, phase counts, severity summary, category summary, then actionable findings grouped by severity (each with smell ID, file:line, description, fix). Add a separate `Low-confidence / non-blocking findings` section. Low-confidence findings are not blocking by default. End with next steps by severity.
-
-If no findings → `[OK] No slop detected.`
-
-### JSON Format (if `--json`)
-
-Output structured JSON: `scope`, `phases`, `summary` (bySeverity, byCategory), `findings[]`. Each finding keeps diagnostic fields and includes `grouping: 'actionable' | 'low-confidence'` and `actionability: 'blocking' | 'non-blocking'`.
+JSON output: `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields plus `grouping` and `actionability`.
 
 ---
 
 ## Phase 4: Write Metadata
 
-After successful completion, call `adv_project_metadata action:"write"` with:
+After successful completion, call `adv_project_metadata action:"write"`:
 
 - `key`: `"slop-scan"`
-- `count`: total findings count (0 if no findings)
-- `summary`: one-line string:
-  - If count > 0: `"{count} findings: {majorCount} major, {minorCount} minor"`
-  - If count = 0: `"no findings"`
+- `count`: total findings count, or 0
+- `summary`: `"{count} findings: {majorCount} major, {minorCount} minor"` or `"no findings"`
 - `written_by`: `"agent"`
-
-This persists the scan result for display in `/adv-status`.
 
 ---
 
 ## Verbose/Debug
 
-`--verbose`: progress output for each scan step, sub-agent spawn/complete timing, per-category match counts.
-
-`ADV_DEBUG=1`: raw sub-agent prompts/responses to stderr, pattern match context.
+- `--verbose`: scan progress, sub-agent timing, per-category counts.
+- `ADV_DEBUG=1`: raw sub-agent prompts/responses to stderr, pattern context.
 
 ---
 
 ## Execution
 
-1. Parse arguments → 2. Pre-flight → 3. Phase 1 (if enabled) → 4. Phase 2 (if enabled) → 5. Aggregate → 6. Report → 7. Write Metadata
+Parse args → pre-flight → Phase 1 if enabled → Phase 2 if enabled → aggregate → report → write metadata.
