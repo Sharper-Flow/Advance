@@ -39,6 +39,7 @@ tools:
   adv_project_context: true
   # Roadmap
   adv_roadmap: true
+  adv_backlog_state: true
   # Changes
   adv_change_list: true
   adv_change_show: true
@@ -90,6 +91,8 @@ tools:
   # Sessions
   adv_session_list: true
   adv_session_show: true
+  # Mesh
+  adv_wip_state: true
   # Worktree — orchestrator owns lifecycle
   adv_worktree_create: true
   adv_worktree_resume: true
