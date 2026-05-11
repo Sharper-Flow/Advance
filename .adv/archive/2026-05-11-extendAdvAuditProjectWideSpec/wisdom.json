@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-FuZvAD",
+      "type": "gotcha",
+      "content": "SCENARIO_PATTERN must require capital-letter Given/When/Then at line start (e.g., /^[ \\t]*-?[ \\t]*(?:Given|When|Then)[ :]/m). Lowercase \"when\"/\"then\" mid-sentence (\"when upstream services are unavailable\") triggers false positives in the error-handling check's hasFailureScenario guard.",
+      "source_task": "tk-ddb29355c26c",
+      "recorded_at": "2026-05-11T18:03:45.610Z"
+    }
+  ],
+  "count": 1
+}

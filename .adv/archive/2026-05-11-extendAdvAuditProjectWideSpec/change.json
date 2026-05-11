@@ -1,0 +1,340 @@
+{
+  "id": "extendAdvAuditProjectWideSpec",
+  "title": "Extend /adv-audit with project-wide spec ambiguity scanning",
+  "status": "archived",
+  "created_at": "2026-05-11T17:16:22.139Z",
+  "tasks": [
+    {
+      "id": "tk-ddb29355c26c",
+      "title": "Create `plugin/src/validator/spec-ambiguity.ts` — pure-function ambiguity validator for spec laws",
+      "type": "code",
+      "section": "validator",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-11T17:30:45.835Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T17:37:57.203Z",
+      "verification": "pnpm run check passes; targeted tests 36/36 pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/validator/spec-ambiguity.ts"
+      ],
+      "touched_files": [
+        "plugin/src/validator/spec-ambiguity.ts"
+      ],
+      "checkpointSha": "4479ed2299a1f698f771d4c43e5679e8c3e6dbf3",
+      "completedAt": "2026-05-11T20:47:19.707Z",
+      "completed_at": "2026-05-11T20:47:19.707Z"
+    },
+    {
+      "id": "tk-fa03c167e266",
+      "title": "Create `plugin/src/validator/spec-ambiguity.test.ts` — unit tests for spec ambiguity validator",
+      "type": "code",
+      "section": "validator",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-11T17:30:54.492Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-11T17:39:27.819Z",
+      "verification": "Created spec-ambiguity.test.ts with 24 test cases covering all 5 check functions, type guard, and orchestrator. Fixed SCENARIO_PATTERN to avoid false positives from mid-sentence when/then.",
+      "summary": "Created spec-ambiguity.test.ts with 24 test cases covering all 5 check functions, type guard, and orchestrator. Fixed SCENARIO_PATTERN to avoid false positives from mid-sentence when/then.",
+      "implementation_summary": "Created spec-ambiguity.test.ts with 24 test cases covering all 5 check functions, type guard, and orchestrator. Fixed SCENARIO_PATTERN to avoid false positives from mid-sentence when/then.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T17:45:12.723Z",
+      "completed_at": "2026-05-11T17:45:12.723Z"
+    },
+    {
+      "id": "tk-dd575edf1b04",
+      "title": "Export `spec-ambiguity` from `plugin/src/validator/index.ts`",
+      "type": "code",
+      "section": "validator",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-11T17:31:01.307Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ddb29355c26c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.849Z",
+      "completed_at": "2026-05-11T18:03:31.849Z"
+    },
+    {
+      "id": "tk-9f2236ded23c",
+      "title": "Update `.opencode/command/adv-audit.md` — add ambiguity detection to audit phases",
+      "type": "code",
+      "section": "command",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-11T17:31:10.688Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ddb29355c26c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Security review suggestion fixed; targeted tests still pass from previous run, will rerun affected asset tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-audit.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-audit.md"
+      ],
+      "checkpointSha": "31eef680849d73fea1f9212d1f1a9b7b4b003cdd",
+      "completedAt": "2026-05-11T20:22:40.769Z",
+      "completed_at": "2026-05-11T20:22:40.769Z"
+    },
+    {
+      "id": "tk-a2e6bac54a65",
+      "title": "Update `skills/adv-audit/SKILL.md` — add Ambiguity Scanner dimension to audit skill",
+      "type": "code",
+      "section": "skill",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-11T17:31:17.888Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ddb29355c26c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "pnpm run check passes; targeted tests 36/36 pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "skills/adv-audit/SKILL.md"
+      ],
+      "touched_files": [
+        "skills/adv-audit/SKILL.md"
+      ],
+      "checkpointSha": "05683fced36c3514e5bdca90421a74686667dcf3",
+      "completedAt": "2026-05-11T20:51:19.253Z",
+      "completed_at": "2026-05-11T20:51:19.253Z"
+    },
+    {
+      "id": "tk-5cfe445dd747",
+      "title": "Update `.opencode/command/adv-clarify.md` — document spec-input entry point",
+      "type": "code",
+      "section": "command",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-11T17:31:24.977Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.867Z",
+      "completed_at": "2026-05-11T18:03:31.867Z"
+    },
+    {
+      "id": "tk-1ccce37a5043",
+      "title": "Update `skills/adv-clarify/SKILL.md` — document spec-input mode",
+      "type": "code",
+      "section": "skill",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-11T17:31:30.157Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.892Z",
+      "completed_at": "2026-05-11T18:03:31.892Z"
+    },
+    {
+      "id": "tk-698954060da1",
+      "title": "Update `.adv/specs/advance-workflow.md` — add requirements for project-wide ambiguity scanning",
+      "type": "code",
+      "section": "specs",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-11T17:31:38.723Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ddb29355c26c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.874Z",
+      "completed_at": "2026-05-11T18:03:31.874Z"
+    },
+    {
+      "id": "tk-21eebb42e62d",
+      "title": "Update `.adv/specs/advance-meta.md` — document clarify_enforcement audit-context behavior",
+      "type": "code",
+      "section": "specs",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-11T17:31:46.745Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.869Z",
+      "completed_at": "2026-05-11T18:03:31.869Z"
+    },
+    {
+      "id": "tk-c2b474c63529",
+      "title": "Update `ADV_INSTRUCTIONS.md` — add taxonomy note for spec-law surface",
+      "type": "code",
+      "section": "docs",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-11T17:31:56.390Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.895Z",
+      "completed_at": "2026-05-11T18:03:31.895Z"
+    },
+    {
+      "id": "tk-cf1a2693f939",
+      "title": "Create asset tests for audit ambiguity contract",
+      "type": "code",
+      "section": "tests",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-11T17:32:08.202Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ddb29355c26c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9f2236ded23c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a2e6bac54a65"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Task marked done via adv_task_update",
+      "summary": "Task completed",
+      "implementation_summary": "Task completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-11T18:03:31.893Z",
+      "completed_at": "2026-05-11T18:03:31.893Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-FuZvAD",
+      "type": "gotcha",
+      "content": "SCENARIO_PATTERN must require capital-letter Given/When/Then at line start (e.g., /^[ \\t]*-?[ \\t]*(?:Given|When|Then)[ :]/m). Lowercase \"when\"/\"then\" mid-sentence (\"when upstream services are unavailable\") triggers false positives in the error-handling check's hasFailureScenario guard.",
+      "source_task": "tk-ddb29355c26c",
+      "recorded_at": "2026-05-11T18:03:45.610Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-11T17:22:48.425Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-11T17:24:57.035Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-11T17:30:07.439Z",
+      "completed_by": "agent"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-11T17:37:08.899Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph via Tier A whitelist match (continue). 11 tasks, 3 TDD-inline, critical path through spec-ambiguity.ts validator."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-11T18:03:45.656Z",
+      "completed_by": "agent"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-11T20:32:53.614Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via Tier A whitelist reply `accept`. Review verdict APPROVED with caveat: full suite has unrelated overlay-sync-assets failure; pnpm run check/build pass; targeted tests pass."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-11T22:03:17.233Z",
+      "completed_by": "agent",
+      "approval_evidence": "Archive sign-off received via Tier B exact whitelist reply `sign off`. Harden status READY; check/build pass; targeted tests pass; full-suite caveat unrelated overlay-sync test."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-11T17:22:57.025Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-11T17:22:57.025Z"
+    }
+  ]
+}
