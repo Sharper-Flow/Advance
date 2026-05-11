@@ -6,3 +6,10 @@
 
 // Main validator
 export { validateChange } from "./validator";
+
+// Spec ambiguity detection (B/F/S/Q/E taxonomy for committed spec laws)
+export {
+  runSpecAmbiguityChecks,
+  isAmbiguityFinding,
+  SpecAmbiguityCodes,
+} from "./spec-ambiguity";
