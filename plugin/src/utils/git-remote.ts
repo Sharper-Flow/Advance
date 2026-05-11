@@ -14,9 +14,7 @@ export function parseGitRemoteUrl(url: string): GitRemoteRepo | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  const scpLike = /^git@github\.com:([^/]+)\/(?<repo>[^/]+?)\/?$/.exec(
-    trimmed,
-  );
+  const scpLike = /^git@github\.com:([^/]+)\/(?<repo>[^/]+?)\/?$/.exec(trimmed);
   if (scpLike) {
     return normalizeRepoParts(scpLike[1], scpLike.groups?.repo);
   }

@@ -336,19 +336,19 @@ describe("Roadmap Tool", () => {
 
   describe("buildProjectItemListArgs", () => {
     test("omits --query when repository_filter is absent", () => {
-      expect(
-        buildProjectItemListArgs({ owner: "TestOrg", number: 1 }),
-      ).toEqual([
-        "project",
-        "item-list",
-        "1",
-        "--owner",
-        "TestOrg",
-        "--format",
-        "json",
-        "--limit",
-        "500",
-      ]);
+      expect(buildProjectItemListArgs({ owner: "TestOrg", number: 1 })).toEqual(
+        [
+          "project",
+          "item-list",
+          "1",
+          "--owner",
+          "TestOrg",
+          "--format",
+          "json",
+          "--limit",
+          "500",
+        ],
+      );
     });
 
     test("adds server-side repo query when repository_filter is present", () => {
