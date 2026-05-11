@@ -196,7 +196,7 @@ For each approved item:
 > - `origin_source_artifact: '<promoted-from-ref>'` (e.g. `ag-abc123` for an agenda item, `ws-xyz` for a wisdom entry, `path/to/file.ts:42` for a TODO)
 > - `origin_issue_number: <created-issue-number>`
 >
-> The triage promotion itself does NOT auto-create an ADV change — change creation is always user-initiated. The origin args record the promotion lineage so archive flows (`/adv-archive --close-issue`) and roadmap surfaces (`/adv-roadmap` active-change cross-reference) can act on the linkage.
+> The triage promotion itself does NOT auto-create an ADV change — change creation is always user-initiated. The origin args record the promotion lineage so archive flows (`/adv-archive` linked issue closure by default, `--no-close-issue` opt-out) and roadmap surfaces (`/adv-roadmap` active-change cross-reference) can act on the linkage.
 
 Skip items where `kind_hint` is still `unknown` after reclassify and no user override — surface in the final report under "skipped: ambiguous kind".
 

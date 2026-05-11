@@ -283,6 +283,23 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/conflicting files/i);
   });
 
+  test("adv-archive.md closes linked roadmap and triage issues by default", () => {
+    const archive = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    const instructions = readAsset(INSTRUCTIONS);
+
+    expect(archive).toMatch(/--no-close-issue/);
+    expect(archive).toMatch(/--close-issue[\s\S]*backward-compatible/i);
+    expect(archive).toMatch(/default(?:s)? to closing/i);
+    expect(archive).toMatch(/origin\.kind.*roadmap.*triage/s);
+    expect(archive).toMatch(/issue_number/);
+    expect(archive).toMatch(/push verified|push verification/i);
+    expect(archive).not.toMatch(/Default-off; require explicit opt-in/i);
+
+    expect(instructions).toMatch(/--no-close-issue/);
+    expect(instructions).toMatch(/default(?:s)? to closing/i);
+    expect(instructions).not.toMatch(/MUST be opt-in\. Default-off/i);
+  });
+
   test("Negative AC #11: no dynamic INVESTMENT_CHECKIN marker injection in plugin/src/index.ts", () => {
     // AC #11: dynamic injection via experimental.chat.system.transform must be
     // append-only — specifically, no new INVESTMENT_CHECKIN markers

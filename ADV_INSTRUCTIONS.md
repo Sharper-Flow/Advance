@@ -483,7 +483,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 | In-flight ADV state (changes, tasks, gates, agenda, wisdom) | Temporal + on-disk projection | Session-coordinated, gate-validated, replay-safe. GH can't model. |
 | Linkage | `change.origin` (in `change.json`) | Linkage IS ADV state. Lives with rest of ADV state. |
 
-**Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, `adv_roadmap` cross-references active changes by `origin.issue_number`). Behavior automation (`/adv-proposal #N` body prefill, auto-close on archive, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
+**Current scope:** Schema shipped (`change.origin` field, `adv_change_create` accepts origin args, `adv_roadmap` cross-references active changes by `origin.issue_number`). Linked roadmap/triage archives close upstream issues by default per `rq-issueChangeLinkage02`. Remaining behavior automation (`/adv-proposal #N` body prefill, reverse-indexed recommendations) = follow-up change. × Don't short-circuit inline.
 
 **Anti-patterns:**
 
@@ -508,7 +508,7 @@ Typed primitive: `change.origin = { kind, issue_number?, source_artifact? }` (`p
 - `rq-issueChangeLinkage01`: `/adv-proposal #N` MUST resolve issue body via `gh issue view`, sanitize via `rq-roadmapOriginSanitize01`, set `origin.kind='roadmap'` + `origin.issue_number=N` on the created change. Same contract used by `/adv-triage` triage-origin tagging (with `kind='triage'`).
 
 <!-- rq-issueChangeLinkage02 -->
-- `rq-issueChangeLinkage02`: `/adv-archive --close-issue` MUST be opt-in. Default-off MUST NOT mutate GH state. Exit-code-only error handling (gh natively idempotent). Failure non-fatal (`[ADV:ATTN]`); archive state canonical, no rollback.
+- `rq-issueChangeLinkage02`: `/adv-archive` MUST default to closing linked GitHub issues after push verification when `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number` is positive, unless `--no-close-issue` is passed. `--close-issue` MUST remain accepted as backward-compatible explicit affirmative / no-op. Exit-code-only error handling (gh natively idempotent). Failure non-fatal (`[ADV:ATTN]`); archive state canonical, no rollback.
 
 <!-- rq-issueChangeLinkage03 -->
 - `rq-issueChangeLinkage03`: `github_project` linkage config MUST live in `.adv/github-project.json` with dedicated Zod schema (`plugin/src/storage/github-project-config.ts`). Legacy `project_metadata['github_project']` is read-only fallback that migrates forward on first read; legacy entry NOT deleted post-migration.

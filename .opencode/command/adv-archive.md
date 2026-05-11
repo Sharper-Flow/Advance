@@ -22,7 +22,7 @@ Archive change → apply deltas to specs → canonical ship/finalize path via ma
   $ARGUMENTS
 </UserRequest>
 ## Target Resolution
-Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional), `--close-issue` (optional, see Phase 9.6).
+Parse `$ARGUMENTS`: `change-id` (required), `--dry-run` (optional), `--no-close-issue` (optional, see Phase 9 Step 8.5), `--close-issue` (optional backward-compatible explicit affirmative; default already closes linked roadmap/triage issues).
 If empty → `adv_change_list` → auto-select the only plausible change; ask via `question` only if multiple plausible targets remain.
 
 ---
@@ -365,14 +365,16 @@ Only if running in a worktree AND merge verified in Step 6: `worktree_delete bra
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 <!-- rq-issueChangeLinkage02 -->
-### Step 8.5: Optional GitHub Issue Close (rq-issueChangeLinkage02)
+### Step 8.5: Linked GitHub Issue Close (rq-issueChangeLinkage02)
 
 **Trigger:** All of the following must be true (otherwise SKIP this step):
 
-- `--close-issue` was passed in the original `$ARGUMENTS`.
+- `--no-close-issue` was NOT passed in the original `$ARGUMENTS`.
 - The change has `origin.kind ∈ {'roadmap', 'triage'}`.
 - The change has `origin.issue_number` set (positive integer).
-- Step 6 verification succeeded (push confirmed).
+- Step 6 verification succeeded (push verified). If no remote push was performed, local merge verification is not enough to close remote issue state.
+
+Default behavior: linked roadmap/triage archives default to closing the upstream issue after verified push. `--close-issue` remains accepted as a backward-compatible explicit affirmative / redundant no-op.
 
 **Sequence (each step gates the next):**
 
@@ -388,8 +390,8 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 | × Bad | ✓ Good |
 |---|---|
-| Auto-close issue without `--close-issue` flag | Default-off; require explicit opt-in. First-time surprise = bug. |
 | Close issue when `origin.kind === 'discovery'` or `'adhoc'` | Only roadmap- and triage-origin changes have a meaningful upstream issue to close. |
+| Close issue before Step 6 push verification | Close only after archive commits are verified reachable on pushed default branch. |
 | Match stderr for "already closed" string | gh CLI returns exit 0 for already-closed; just check the exit code. |
 | Roll back archive on close failure | Local archive state is canonical; close failure is non-fatal `[ADV:ATTN]`. |
 
