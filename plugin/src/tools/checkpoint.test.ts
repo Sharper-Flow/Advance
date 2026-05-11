@@ -227,6 +227,35 @@ describe("checkpoint tools — signal-driven", () => {
       });
     });
 
+    test("extracts structured_output from <adv-output> in verification on complete", async () => {
+      const store = createMockStore();
+      mockGitResponses({});
+
+      const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification,
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("committed");
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        structured_output: {
+          filesChanged: [{ path: "src/baz.ts", linesAdded: 3 }],
+          testsAdded: 1,
+        },
+      });
+    });
+
     test("fires taskCompletedSignal on clean tree in complete mode", async () => {
       const store = createMockStore();
       mockGitResponses({

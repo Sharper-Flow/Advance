@@ -28,6 +28,7 @@ import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { taskCompletedSignal } from "../temporal/messages";
+import { extractStructuredOutput } from "../utils/extract-structured-output";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -358,6 +359,7 @@ async function fireTaskCompletedFromCheckpoint(
     const changeId = await resolveChangeId(store, taskId);
     if (!changeId) return;
     const handle = await getHandleForChangeId(store, changeId);
+    const structuredOutput = extractStructuredOutput(verification);
     // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
     // changeCache is invalidated after the signal fires — without this,
     // the very next adv_change_show / adv_change_archive read returns
@@ -369,6 +371,7 @@ async function fireTaskCompletedFromCheckpoint(
       filesTouched: touchedFiles,
       checkpointSha: sha,
       completedAt: new Date().toISOString(),
+      ...(structuredOutput && { structured_output: structuredOutput }),
     });
   } catch (err) {
     if (ADV_DEBUG) {

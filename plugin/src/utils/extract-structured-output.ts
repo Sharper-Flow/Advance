@@ -67,7 +67,9 @@ export function extractStructuredOutput(
   try {
     parsed = JSON.parse(stripped);
   } catch (err) {
-    logger.warn("Failed to parse structured output JSON:", err);
+    logger.warn("Failed to parse structured output JSON:", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 
@@ -75,7 +77,9 @@ export function extractStructuredOutput(
   try {
     return TaskStructuredOutputSchema.parse(parsed);
   } catch (err) {
-    logger.warn("Structured output failed schema validation:", err);
+    logger.warn("Structured output failed schema validation:", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 }

@@ -33,6 +33,7 @@ import {
   querySignal,
   getChangeHandle,
 } from "./_adapters";
+import { extractStructuredOutput } from "../utils/extract-structured-output";
 import {
   taskAddedSignal,
   taskUpdatedSignal,
@@ -356,6 +357,13 @@ export const taskTools = {
             },
           );
         } else if (args.status === "done") {
+          const combinedText = [
+            args.implementation_summary,
+            args.notes,
+          ]
+            .filter(Boolean)
+            .join("\n");
+          const structuredOutput = extractStructuredOutput(combinedText);
           await fireSignalAndRefresh(
             handle,
             activeStore,
@@ -371,6 +379,7 @@ export const taskTools = {
                 args.implementation_summary ?? args.notes ?? "Task completed",
               filesTouched: [],
               completedAt: now,
+              ...(structuredOutput && { structured_output: structuredOutput }),
             },
           );
         } else {
@@ -628,6 +637,8 @@ export const taskTools = {
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
 
+        const combinedText = `${args.verification}\n${args.summary}`;
+        const structuredOutput = extractStructuredOutput(combinedText);
         await fireSignalAndRefresh(
           handle,
           activeStore,
@@ -640,6 +651,7 @@ export const taskTools = {
             filesTouched: args.filesTouched ?? [],
             checkpointSha: args.checkpointSha,
             completedAt: now,
+            ...(structuredOutput && { structured_output: structuredOutput }),
           },
         );
 

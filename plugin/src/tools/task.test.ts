@@ -318,6 +318,38 @@ describe("task tools — signal/query adapters", () => {
       expect(signalCall[4]).not.toHaveProperty("partial");
     });
 
+    test("extracts structured_output from <adv-output> in implementation_summary when done", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "done",
+      });
+
+      const implementationSummary = `Implemented feature.\n\n<adv-output>\n{\n  \"filesChanged\": [{\"path\": \"src/foo.ts\", \"linesAdded\": 10}],\n  \"testsAdded\": 2\n}\n</adv-output>`;
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          implementation_summary: implementationSummary,
+          notes: "Tests passed",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        structured_output: {
+          filesChanged: [{ path: "src/foo.ts", linesAdded: 10 }],
+          testsAdded: 2,
+        },
+      });
+    });
+
     test("rejects direct cancellation", async () => {
       const store = createMockStore();
 
@@ -405,6 +437,33 @@ describe("task tools — signal/query adapters", () => {
         summary: "Implemented feature",
         filesTouched: ["src/foo.ts"],
         checkpointSha: "abc123",
+      });
+    });
+
+    test("extracts structured_output from <adv-output> in verification", async () => {
+      const store = createMockStore();
+
+      const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/bar.ts", "linesAdded": 5}],\n  "testsAdded": 1\n}\n</adv-output>`;
+
+      const result = await taskTools.adv_task_completed.execute(
+        {
+          taskId: "tk-abc",
+          verification,
+          summary: "Implemented feature",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        structured_output: {
+          filesChanged: [{ path: "src/bar.ts", linesAdded: 5 }],
+          testsAdded: 1,
+        },
       });
     });
   });
