@@ -1,139 +1,18 @@
 {
   "version": 1,
-  "generated_at": "2026-05-09T18:09:55Z",
+  "generated_at": "2026-05-11T01:48:05Z",
   "project": {
     "owner": "Sharper-Flow",
     "number": 2,
     "title": "ADV: Advance"
   },
   "counts": {
-    "total": 51,
-    "bugs": 19,
+    "total": 32,
+    "bugs": 0,
     "features": 32,
     "deferred": 0
   },
-  "bugs": [
-    {
-      "number": 88,
-      "title": "ADV archive sees incomplete gates despite gate status complete",
-      "priority": "critical",
-      "labels": []
-    },
-    {
-      "number": 102,
-      "title": "Git mutation guard blocks canonical archive push from default branch",
-      "priority": "critical",
-      "labels": []
-    },
-    {
-      "number": 48,
-      "title": "ADV worktree tools fail with WorkflowUpdateFailedError after repair and clean diagnostics",
-      "priority": "high",
-      "labels": [
-        "needs-verify"
-      ]
-    },
-    {
-      "number": 60,
-      "title": "Post-Temporal-cutover external-state hygiene leftovers + test-isolation leak",
-      "priority": "high",
-      "labels": []
-    },
-    {
-      "number": 91,
-      "title": "Doctor script: classify blank rows by orphan-vs-live, not just by age",
-      "priority": "high",
-      "labels": []
-    },
-    {
-      "number": 53,
-      "title": "adv_change_archive recovery path skips createInRepoArchive when external bundle pre-exists",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 54,
-      "title": "adv_change_close fails on terminated workflows with no disk-only fallback",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 62,
-      "title": "adv_change_validate over-triggers MISSING_TDD_EVIDENCE on data/constant tasks",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 63,
-      "title": "adv_change_validate returns passed:false on warnings-only state in strict mode",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 86,
-      "title": "Fix terminal.ts permission-ATTN vs idle-ATTN distinction",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 92,
-      "title": "adv_status [doctor] recommendation: replace 'Stale OpenCode blank assistant messages detected' framing",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 95,
-      "title": "Hot-change recommendation falsely attributes work to 'another agent' when caller is the worker",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 97,
-      "title": "Reflection improvement_suggestions are generic \u2014 replace with category-specific guidance",
-      "priority": "medium",
-      "labels": []
-    },
-    {
-      "number": 33,
-      "title": "Temporal worker health check reports false-negative: worker alive but diagnose shows dead",
-      "priority": "low",
-      "labels": [
-        "needs-verify"
-      ]
-    },
-    {
-      "number": 43,
-      "title": "Delete stale bun.lock \u2014 dual lockfile drift risk",
-      "priority": "low",
-      "labels": []
-    },
-    {
-      "number": 56,
-      "title": "adv_status first-call bootstrap nondeterminism (TMPRL1100 race against scopeAdvInstructionLoadAdv)",
-      "priority": "low",
-      "labels": []
-    },
-    {
-      "number": 57,
-      "title": "adv_status visibility memo holds deleted change entries until session restart",
-      "priority": "low",
-      "labels": []
-    },
-    {
-      "number": 67,
-      "title": "adv_temporal_diagnose reports false projectWorkflow NOT_FOUND when workflow is healthy",
-      "priority": "low",
-      "labels": [
-        "needs-verify"
-      ]
-    },
-    {
-      "number": 73,
-      "title": "Validator emits PROPOSAL_TASK_DRIFT warnings for narrative proposal sections",
-      "priority": "low",
-      "labels": []
-    }
-  ],
+  "bugs": [],
   "features": [
     {
       "number": 98,
@@ -144,6 +23,7 @@
       "effort": 2,
       "wsjf": 14.5,
       "labels": [
+        "enhancement",
         "priority:high"
       ]
     },
@@ -164,7 +44,7 @@
       "time_criticality": 3,
       "rroe": 13,
       "effort": 3,
-      "wsjf": 8.0,
+      "wsjf": 8,
       "labels": [
         "priority:medium"
       ]
@@ -176,7 +56,7 @@
       "time_criticality": 1,
       "rroe": 2,
       "effort": 1,
-      "wsjf": 8.0,
+      "wsjf": 8,
       "labels": []
     },
     {
@@ -208,6 +88,7 @@
       "effort": 5,
       "wsjf": 6.8,
       "labels": [
+        "enhancement",
         "priority:high"
       ]
     },
@@ -220,17 +101,18 @@
       "effort": 3,
       "wsjf": 6.3,
       "labels": [
+        "enhancement",
         "priority:medium"
       ]
     },
     {
       "number": 64,
-      "title": "Add adv_delta_add MCP tool \u2014 agent-facing path to encode spec deltas",
+      "title": "Add adv_delta_add MCP tool — agent-facing path to encode spec deltas",
       "value": 8,
       "time_criticality": 2,
       "rroe": 8,
       "effort": 3,
-      "wsjf": 6.0,
+      "wsjf": 6,
       "labels": [
         "priority:medium"
       ]
@@ -242,8 +124,9 @@
       "time_criticality": 2,
       "rroe": 5,
       "effort": 2,
-      "wsjf": 6.0,
+      "wsjf": 6,
       "labels": [
+        "enhancement",
         "priority:high"
       ]
     },
@@ -254,7 +137,7 @@
       "time_criticality": 1,
       "rroe": 2,
       "effort": 1,
-      "wsjf": 6.0,
+      "wsjf": 6,
       "labels": []
     },
     {
@@ -264,7 +147,7 @@
       "time_criticality": 1,
       "rroe": 2,
       "effort": 1,
-      "wsjf": 6.0,
+      "wsjf": 6,
       "labels": []
     },
     {
@@ -274,7 +157,7 @@
       "time_criticality": 1,
       "rroe": 2,
       "effort": 1,
-      "wsjf": 6.0,
+      "wsjf": 6,
       "labels": []
     },
     {
@@ -299,13 +182,14 @@
     },
     {
       "number": 42,
-      "title": "Stub JSON schemas provide zero validation \u2014 generate from Zod or delete",
+      "title": "Stub JSON schemas provide zero validation — generate from Zod or delete",
       "value": 5,
       "time_criticality": 2,
       "rroe": 3,
       "effort": 2,
-      "wsjf": 5.0,
+      "wsjf": 5,
       "labels": [
+        "enhancement",
         "priority:low"
       ]
     },
@@ -340,6 +224,7 @@
       "effort": 3,
       "wsjf": 4.3,
       "labels": [
+        "enhancement",
         "priority:medium"
       ]
     },
@@ -360,19 +245,20 @@
       "time_criticality": 2,
       "rroe": 5,
       "effort": 3,
-      "wsjf": 4.0,
+      "wsjf": 4,
       "labels": [
+        "enhancement",
         "priority:low"
       ]
     },
     {
       "number": 94,
-      "title": "Add adv_friction_query MCP tool \u2014 agent-queryable reflection friction",
+      "title": "Add adv_friction_query MCP tool — agent-queryable reflection friction",
       "value": 5,
       "time_criticality": 2,
       "rroe": 5,
       "effort": 3,
-      "wsjf": 4.0,
+      "wsjf": 4,
       "labels": [
         "priority:medium"
       ]
@@ -384,8 +270,9 @@
       "time_criticality": 2,
       "rroe": 5,
       "effort": 3,
-      "wsjf": 4.0,
+      "wsjf": 4,
       "labels": [
+        "enhancement",
         "priority:medium"
       ]
     },
@@ -398,6 +285,7 @@
       "effort": 8,
       "wsjf": 3.9,
       "labels": [
+        "enhancement",
         "priority:medium"
       ]
     },
@@ -432,6 +320,7 @@
       "effort": 5,
       "wsjf": 3.8,
       "labels": [
+        "enhancement",
         "priority:low"
       ]
     },
@@ -444,6 +333,7 @@
       "effort": 3,
       "wsjf": 3.3,
       "labels": [
+        "enhancement",
         "priority:low",
         "needs-verify"
       ]
@@ -467,6 +357,7 @@
       "effort": 5,
       "wsjf": 3.2,
       "labels": [
+        "enhancement",
         "priority:low"
       ]
     },
@@ -488,7 +379,9 @@
       "rroe": 5,
       "effort": 5,
       "wsjf": 2.4,
-      "labels": []
+      "labels": [
+        "enhancement"
+      ]
     }
   ],
   "deferred": []
