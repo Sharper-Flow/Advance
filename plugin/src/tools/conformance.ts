@@ -76,6 +76,7 @@ const ConformanceArgsSchema = z.object({
   re_verify_deadline: z.string().optional(),
   // run input
   artifact_path: z.string().optional(),
+  dryRun: z.boolean().optional(),
 });
 
 type ConformanceArgs = z.infer<typeof ConformanceArgsSchema>;
@@ -259,6 +260,15 @@ async function actionUnlock(
     applied_at: nowIso(),
   });
   const next = upsertSpecEntry(audited, args.spec, { locked: false });
+  if (args.dryRun) {
+    return formatToolOutput({
+      success: true,
+      dryRun: true,
+      spec: args.spec,
+      locked: false,
+      overrides: next.specs[args.spec]?.overrides.length ?? 0,
+    });
+  }
   await saveConformanceState(externalRoot, next);
   return formatToolOutput({
     success: true,
@@ -290,6 +300,14 @@ async function actionOverride(
     re_verify_deadline: args.re_verify_deadline,
     applied_at: nowIso(),
   });
+  if (args.dryRun) {
+    return formatToolOutput({
+      success: true,
+      dryRun: true,
+      spec: args.spec,
+      overrides: next.specs[args.spec]?.overrides.length ?? 0,
+    });
+  }
   await saveConformanceState(externalRoot, next);
 
   // Signal-driven: notify the change workflow that locked this spec
@@ -438,6 +456,12 @@ export const conformanceTools = {
         .string()
         .optional()
         .describe("Path to CI-produced JSON verdict artifact for action='run'"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe(
+          "Preview unlock/override validation and response shape without mutating conformance state or firing signals",
+        ),
     },
     /**
      * Execute via bindTool-style: (args, store). `projectDir` is derived

@@ -277,6 +277,45 @@ describe("adv_conformance action: unlock", () => {
     // No unlock signal in current set — stays local
     expect(mocks.signal).not.toHaveBeenCalled();
   });
+
+  test("dryRun validates unlock without changing lock state or audit log", async () => {
+    await tool.execute({ action: "init" }, makeStore());
+    const state = await loadConformanceState(externalRoot, projectDir);
+    state.specs["my-spec"] = {
+      conformance_required: true,
+      locked: true,
+      locked_at: "2026-05-01T00:00:00Z",
+      locked_at_archive: "originalChange",
+      overrides: [],
+    };
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(state),
+    );
+
+    const result = await tool.execute(
+      {
+        action: "unlock",
+        spec: "my-spec",
+        user: "jrede",
+        reason: "preview unlock",
+        re_verify_deadline: "2026-05-22T00:00:00Z",
+        dryRun: true,
+      },
+      makeStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.locked).toBe(false);
+    expect(parsed.overrides).toBe(1);
+
+    const updated = await loadConformanceState(externalRoot, projectDir);
+    expect(updated.specs["my-spec"]?.locked).toBe(true);
+    expect(updated.specs["my-spec"]?.overrides).toHaveLength(0);
+    expect(mocks.signal).not.toHaveBeenCalled();
+  });
 });
 
 describe("adv_conformance action: override", () => {
@@ -344,6 +383,42 @@ describe("adv_conformance action: override", () => {
     );
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
+    expect(mocks.signal).not.toHaveBeenCalled();
+  });
+
+  test("dryRun validates override without writing audit or firing signal", async () => {
+    await tool.execute({ action: "init" }, makeStore());
+    const state = await loadConformanceState(externalRoot, projectDir);
+    state.specs["my-spec"] = {
+      conformance_required: true,
+      locked: true,
+      locked_at_archive: "originalChange",
+      overrides: [],
+    };
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(state),
+    );
+
+    const result = await tool.execute(
+      {
+        action: "override",
+        spec: "my-spec",
+        user: "jrede",
+        reason: "preview override",
+        re_verify_deadline: "2026-05-22T00:00:00Z",
+        dryRun: true,
+      },
+      makeStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.overrides).toBe(1);
+
+    const updated = await loadConformanceState(externalRoot, projectDir);
+    expect(updated.specs["my-spec"]?.overrides).toHaveLength(0);
     expect(mocks.signal).not.toHaveBeenCalled();
   });
 
