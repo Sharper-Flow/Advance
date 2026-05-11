@@ -576,7 +576,19 @@ Do NOT expand into implicit repo-wide refactors or untouched subsystems. Campsit
 
 ### Ambiguity Taxonomy
 
-11-category ambiguity taxonomy used by `/adv-proposal` (B/F/S scan), `/adv-discover` (B/F/S/M scan), and `/adv-clarify` (findings-driven mode). Composes alongside `plugin/src/validator/clarify-readiness.ts` (6 heuristic checks, `severity: "warning"`); reuses `clarify_enforcement` flag (`off`/`advisory`/`strict` in `plugin/src/types.ts:1194-1196`).
+11-category ambiguity taxonomy used by `/adv-proposal` (B/F/S scan), `/adv-discover` (B/F/S/M scan), `/adv-clarify` (findings-driven mode), and `/adv-audit` (B/F/S/Q/E spec-law scan). Composes alongside `plugin/src/validator/clarify-readiness.ts` (6 heuristic checks, `severity: "warning"`); reuses `clarify_enforcement` flag (`off`/`advisory`/`strict` in `plugin/src/types.ts:1194-1196`).
+
+**Two-surface taxonomy:**
+
+| Surface | Context | Categories | Source |
+|---|---|---|---|
+| Change artifacts | In-flight proposal/discovery/agreement/design | B, F, S, **M** | `/adv-proposal` Phase 2.6, `/adv-discover` B/F/S/M scan |
+| Spec laws | Committed `.adv/specs/*.md` files | B, F, S, **Q, E** | `/adv-audit` Phase 3 inline scan |
+
+**Required-set difference:**
+- **M** (Missing Information) is change-artifact-only — it captures critical unknowns about the change itself.
+- **Q** (Quality Attributes) and **E** (Error Handling) are spec-law-specific — they capture NFR and failure-mode gaps in committed specifications.
+- B, F, S are shared across both surfaces.
 
 **Agent-side gap:** Categories D/X/Q/I/E/C/T are scan-optional in v1 — agent decides emission based on change domain.
 
