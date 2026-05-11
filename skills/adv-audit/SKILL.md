@@ -229,6 +229,7 @@ JSON report:
 
 - Read-only methodology only.
 - Command owns metadata write and any remediation handoff.
-- Report by default; do not auto-fix.
+- Report by default; this skill never authorizes auto-fix on its own.
+- Command-owned Phase 4 remediation may run only after explicit user request via `question`.
 - Ask via `question` only for explicit remediation/debt-priority choices.
 - Structural spec refs beat heuristic matches.
