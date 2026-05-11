@@ -51,34 +51,48 @@ export interface SpecAmbiguityResult {
   checkedAt: string;
 }
 
+export interface SpecAmbiguityFinding extends ValidationIssue {
+  id: string;
+  details: {
+    id: string;
+    ambiguity_severity: AmbiguitySeverity;
+    taxonomy_category: string;
+    spec: string;
+    specText: string;
+    issue: string;
+    fix: string;
+  };
+}
+
 // =============================================================================
 // Patterns — reuse from clarify-readiness where applicable
 // =============================================================================
 
 /**
  * Subjective/vague terms indicating unmeasurable requirements.
- * Extended from clarify-readiness.ts SUBJECTIVE_PATTERN with spec-law additions.
+ * Operational quality terms live in UNQUANTIFIED_QUALITY_PATTERN so the same
+ * requirement is not double-reported as both S and Q for one word.
  */
 const SUBJECTIVE_PATTERN =
-  /\b(fast|slow|simple|easy|nice|intuitive|user[- ]friendly|natural|obvious|trivial|robust|scalable|elegant|clean|modern|powerful|flexible|seamless|smooth|appropriate|correct|properly|safely|reasonable|efficient|performant|reliable|secure|consistent)\b/i;
+  /\b(slow|simple|easy|nice|intuitive|user[- ]friendly|obvious|trivial|elegant|clean|powerful|flexible|seamless|smooth|appropriate|correct|properly|safely|reasonable)\b/i;
 
 /**
  * Terms that indicate a quality attribute claim without quantification.
  */
 const UNQUANTIFIED_QUALITY_PATTERN =
-  /\b(fast|scalable|reliable|secure|performant|efficient|responsive|available|durable|consistent|bounded|idempotent|deterministic|atomic|isolated|thread[- ]?safe)\b/i;
+  /\b(fast|robust|scalable|reliable|secure|performant|efficient|responsive|available|durable|consistent|bounded|idempotent|deterministic|atomic|isolated|thread[- ]?safe)\b/i;
 
 /**
  * Numeric or comparative terms that indicate quantification IS present.
  */
 const QUANTIFIED_PATTERN =
-  /\b(\d+[\s]*(ms|s|sec|seconds?|ms|milliseconds?|req|requests?|ops?|connections?|users?|entries?|bytes?|kb|mb|gb|tb|%|percent|per\s+second|per\s+minute|concurrent|parallel))\b|≤|>=|⩽|≤|>=|at\s+least|at\s+most|no\s+(more|less)\s+than|up\s+to\b/i;
+  /\b\d+[\s]*(?:ms|s|sec|seconds?|milliseconds?|req|requests?|ops?|connections?|users?|entries?|bytes?|kb|mb|gb|tb|%|percent|per\s+second|per\s+minute|concurrent|parallel)\b|≤|>=|≥|⩽|at\s+least|at\s+most|no\s+(?:more|less)\s+than|up\s+to\b/i;
 
 /**
  * Terms indicating behavior with failure potential.
  */
 const FAILURE_POTENTIAL_PATTERN =
-  /\b(fail|error|crash|timeout|retry|abort|reject|reject|invalid|missing|null|undefined|empty|exceed|overflow|deadlock|race\s+condition|starvation|corrupt|loss|unavailable|degraded|fallback)\b/i;
+  /\b(fail|error|crash|timeout|retry|abort|reject|invalid|missing|null|undefined|empty|exceed|overflow|deadlock|race\s+condition|starvation|corrupt|loss|unavailable|degraded|fallback)\b/i;
 
 /**
  * Terms indicating failure handling IS addressed.
@@ -95,10 +109,10 @@ const VAGUE_BOUNDARY_PATTERN =
 /**
  * Given/When/Then scenario structure indicators.
  * Requires the keywords to appear at the start of a line with specific
- * formatting (capital letter, colon or list prefix) to distinguish from
- * regular prose usage of "when"/"then" mid-sentence.
+ * formatting (capital letter, colon or markdown list prefix) to distinguish
+ * regular prose usage of "when"/"then" from scenarios.
  */
-const SCENARIO_PATTERN = /^[ \t]*-?[ \t]*(?:Given|When|Then)[ :]/m;
+const SCENARIO_PATTERN = /^[ \t]*(?:[-*]|\d+\.)?[ \t]*(?:Given|When|Then)[ :]/m;
 
 /**
  * Requirement ID pattern — matches rq-xxx format.
@@ -155,13 +169,17 @@ function makeFinding(params: {
   specText: string;
   issue: string;
   fix: string;
-}): ValidationIssue {
+}): SpecAmbiguityFinding {
+  const id = `${params.category}-${params.capability}-${params.requirementId}-${params.code}`;
+
   return {
+    id,
     code: params.code,
     severity: "warning", // stays "warning" per KD2 — actual severity in details
     message: `Spec ambiguity [${params.category}] in ${params.capability}/${params.requirementId}: ${params.issue}`,
     path: `specs.${params.capability}.${params.requirementId}`,
     details: {
+      id,
       ambiguity_severity: params.severity,
       taxonomy_category: params.category,
       spec: `${params.capability}/${params.requirementId}`,
@@ -193,7 +211,7 @@ export function checkBoundaryAmbiguity(
 
     // Check if explicit scope boundary follows
     const hasExplicitScope =
-      /\b(only|exclusively|specifically|limited\s+to|in\s+scope|out\s+of\s+scope|excluding|excluding|not\s+including|does\s+not)\b/i.test(
+      /\b(only|exclusively|specifically|limited\s+to|in\s+scope|out\s+of\s+scope|excluding|not\s+including|does\s+not)\b/i.test(
         req.body,
       );
 
@@ -214,7 +232,7 @@ export function checkBoundaryAmbiguity(
           requirementId: req.id,
           specText,
           issue: `Requirement uses vague boundary language "${match[0]}" without explicit scope exclusions.`,
-          fix: `Add explicit in-scope and out-of-scope boundaries for what "${match[1]}" covers and excludes.`,
+          fix: `Add explicit in-scope and out-of-scope boundaries for what "${match[0]}" covers and excludes.`,
         }),
       );
     }
@@ -315,17 +333,15 @@ export function checkCompletionSignals(
     const match = SUBJECTIVE_PATTERN.exec(req.body);
     if (!match) continue;
 
-    // Check if the subjective term is followed by quantification
-    const contextAfter = req.body.slice(
-      req.body.toLowerCase().indexOf(match[0].toLowerCase()) + match[0].length,
-    );
-    const hasQuantification = QUANTIFIED_PATTERN.test(contextAfter);
+    const lineMatch = req.body
+      .split("\n")
+      .find((l) => l.toLowerCase().includes(match[0].toLowerCase()));
+
+    // Check whether the line containing the subjective term has quantification.
+    // Quantification can appear before or after the term on the same line.
+    const hasQuantification = QUANTIFIED_PATTERN.test(lineMatch ?? req.body);
 
     if (!hasQuantification) {
-      const lineMatch = req.body
-        .split("\n")
-        .find((l) => l.toLowerCase().includes(match[0].toLowerCase()));
-
       issues.push(
         makeFinding({
           code: SpecAmbiguityCodes.SPEC_COMPLETION_SIGNAL,

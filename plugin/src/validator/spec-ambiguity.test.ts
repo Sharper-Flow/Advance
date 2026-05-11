@@ -58,9 +58,9 @@ Then: HTTP 200 is returned with content-type application/json
 `;
 
 const SPEC_WITH_SUBJECTIVE_TERMS = `
-### rq-testSubj1: Fast Response
+### rq-testSubj1: Easy Setup
 
-The system must provide fast response times for all API calls.
+The system must provide easy setup for all API clients.
 
 priority: must
 
@@ -138,11 +138,17 @@ describe("checkBoundaryAmbiguity", () => {
       "test-capability",
     );
 
-    expect(findings.length).toBeGreaterThanOrEqual(1);
+    expect(findings).toHaveLength(1);
     const boundaryFinding = findings.find(
       (f) => f.code === SpecAmbiguityCodes.SPEC_BOUNDARY_AMBIGUITY,
     );
     expect(boundaryFinding).toBeDefined();
+    expect((boundaryFinding as { id?: string }).id).toBe(
+      "B-test-capability-rq-testBoundary1-SPEC_BOUNDARY_AMBIGUITY",
+    );
+    expect(boundaryFinding!.details?.id).toBe(
+      "B-test-capability-rq-testBoundary1-SPEC_BOUNDARY_AMBIGUITY",
+    );
     expect(boundaryFinding!.details?.ambiguity_severity).toBe("HIGH");
     expect(boundaryFinding!.details?.taxonomy_category).toBe("B");
     expect(boundaryFinding!.details?.spec).toBe(
@@ -243,7 +249,7 @@ describe("checkCompletionSignals", () => {
     const subjFinding = findings.find(
       (f) =>
         f.code === SpecAmbiguityCodes.SPEC_COMPLETION_SIGNAL &&
-        (f.details?.specText as string)?.includes("fast"),
+        (f.details?.specText as string)?.includes("easy"),
     );
     expect(subjFinding).toBeDefined();
     expect(subjFinding!.details?.ambiguity_severity).toBe("HIGH");
@@ -448,7 +454,7 @@ describe("runSpecAmbiguityChecks", () => {
       "test-capability",
     );
 
-    // S category should be M (has HIGH finding for "fast")
+    // S category should be M (has HIGH finding for "easy")
     expect(result.coverage.S).toBe("M");
   });
 
