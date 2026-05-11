@@ -6,166 +6,118 @@ description: Suggest targeted improvements to existing specs or implementation
 
 # ADV Improve — Analyze Improvement Opportunities
 
-Produce evidence-backed improvement analysis across three dimensions: current-state gaps, LBP/reference architecture comparison, and external landscape (competitors, alternatives, emerging patterns). Persists a reusable research pack under `docs/*-prep.md` so `/adv-discover` and related research phases can cite and extend the findings without re-running web searches. Does not mutate ADV state.
-
-## Command Boundary
-
-**Produces:** Improvement analysis report with findings, evidence, severity, and suggested next commands, plus a persisted research pack at `docs/{target-slug}-prep.md` (overwrites or extends an existing file of the same name).
-
-**× MUST NOT:** Create changes, create tasks, complete any gates, write spec deltas, or mutate any other ADV state. × MUST NOT write files outside `docs/*-prep.md`.
-
-**Gate:** None. Read-only with respect to ADV state; the only permitted write is the research pack artifact.
-
-> **CHECKLIST**: Follow [docs/checklists/improve-checklist.md](../../docs/checklists/improve-checklist.md).
+Evidence-backed improvement analysis across current-state gaps, LBP/reference architecture, and external landscape. Persists research pack under `docs/*-prep.md`. Does not mutate ADV state.
 
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
 
+## Phase 0: Load Skill
+
+`skill("adv-improve")` → target resolution, scan categories, LBP comparison, external landscape, synthesis, research pack schema. If unavailable, use fallback below.
+
+Fallback: run phases in this file; cap findings; cite evidence; write only `docs/*-prep.md`; never create ADV changes/tasks/gates/specs.
+
+## Command Boundary
+
+**Produces:** improvement report + `docs/{target-slug}-prep.md` research pack.
+
+**× MUST NOT:** create changes, tasks, gates, spec deltas, agenda items, or mutate ADV state. × MUST NOT write outside `docs/*-prep.md`.
+
+**Gate:** none. Read-only for ADV state.
+
+> **CHECKLIST**: Follow `docs/checklists/improve-checklist.md`.
+
 ## Target Resolution
 
-`$ARGUMENTS` is optional. Two modes:
+`$ARGUMENTS` optional:
 
-| Invocation  | Mode                                                            |
-| ----------- | --------------------------------------------------------------- |
-| No args     | Broad repo-wide improvement scan                                |
-| With target | Scoped scan of file / directory / capability / symbol / concept |
+| Invocation | Mode |
+|---|---|
+| No args | broad repo-wide scan |
+| With target | scoped scan of file / directory / capability / symbol / concept |
 
-Target resolution: file path → read directly, directory → outline, symbol name → `lgrep_search_symbols`, concept → `lgrep_search_semantic`. If ambiguous → fall back to closest concrete target or broad mode. Ask via `question` only if multiple interpretations would materially differ.
+Resolve in order: file path → read; directory → outline; symbol → `lgrep_search_symbols`; concept → `lgrep_search_semantic`. Ask via `question` only when interpretations materially differ.
 
 ## Exits
 
-| Exit       | Condition                                                                                                                                                   |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅ Report  | Analysis completed; improvement report emitted and research pack persisted at `docs/{target-slug}-prep.md`                                                  |
-| 🎤 Clarify | Target too ambiguous to produce meaningful scan                                                                                                             |
-| ⚠ Partial  | External tool (Context7 or Kagi) unavailable; partial report emitted with annotation. Research pack still persisted with the unavailable section(s) marked. |
+| Exit | Condition |
+|---|---|
+| ✅ Report | analysis emitted; research pack persisted |
+| 🎤 Clarify | target too ambiguous |
+| ⚠ Partial | external tool unavailable; report + pack annotate gaps |
 
 ---
 
-## Phase 0: Context Loading
+## Phase 1: Context Loading
 
-1. `adv_project_context` → extract purpose, stage, constraints
-2. `adv_change_list` → detect active/archived changes that overlap findings
-3. `adv_agenda_list` → detect already-planned improvements (do not re-surface)
-4. `adv_spec action: "list"` → identify relevant capability specs
-5. Detect worktree via `pwd`
-6. Detect tech stack from `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`
-7. Verify source files exist (`src/`, `lib/`, `app/`, `packages/`, or `*.ts/*.js/*.py/*.go`) → exit cleanly if none
+Load `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec action: "list"`. Detect worktree, stack files, and source roots (`src/`, `lib/`, `app/`, `packages/`, `*.ts/*.js/*.py/*.go`). Exit cleanly if no source files.
 
 ---
 
-## Phase 1: Current-State Scan
+## Phase 2: Current-State Scan
 
-Analyze across 6 categories. Cap: **5 findings per category**. Every finding MUST have evidence (file path, searched path, or source citation). See [improve-checklist.md](../../docs/checklists/improve-checklist.md) for category focus areas and evidence rules.
+Analyze 6 categories from skill/checklist; cap 5 findings each: Security, Reliability, Testing, Observability, Developer Experience, Code Quality.
 
-| Category             | Cap |
-| -------------------- | --- |
-| Security             | 5   |
-| Reliability          | 5   |
-| Testing              | 5   |
-| Observability        | 5   |
-| Developer Experience | 5   |
-| Code Quality         | 5   |
+Every finding MUST have evidence: file path, searched path, or source citation.
 
 ---
 
-## Phase 2: LBP / Reference Comparison
+## Phase 3: LBP / Reference Comparison
 
-1. Use Context7 (`context7_resolve-library-id` then `context7_query-docs`) for canonical architecture of detected stack; use `webfetch` only if Context7 is absent from the active schema
-2. Build deviation table: for each area, classify as `SOUND` / `DRIFTED` / `ANTI-PATTERN` with source citation
-3. Document corrections for DRIFTED/ANTI-PATTERN findings: what's wrong (file paths), what's correct (source), minimum viable fix
-4. Include greenfield perspective: what would change rebuilding from scratch?
+Use `context7_resolve-library-id` then `context7_query-docs` for detected stack. Fallback to `webfetch` canonical docs. If unavailable, use local conventions and annotate `[Reference: local conventions — Context7/webfetch unavailable]`.
 
-**Fallback:** If Context7 is absent → try `webfetch` against canonical docs URLs. If both Context7 and webfetch are unavailable → use local codebase conventions and annotate each finding with `[Reference: local conventions — Context7/webfetch unavailable]`. Do not fabricate canonical sources.
+Build deviation table: `SOUND` / `DRIFTED` / `ANTI-PATTERN`, source citation, wrong path, correct pattern, minimum viable fix, greenfield note.
 
 ---
 
-## Phase 3: External Landscape
+## Phase 4: External Landscape
 
-Detect project domain from Phase 0 context. Run two targeted searches:
+Use `kagi_kagi_search_fetch` queries: `"{domain} alternatives comparison {current-year}"`, `"{domain} emerging tools trends {current-year}"`.
 
-1. `kagi_kagi_search_fetch queries: ["{domain} alternatives comparison {current-year}", "{domain} emerging tools trends {current-year}"]`
-2. Extract: **top-3 competitors** (name, what they do differently, relevance to this project) and **2 emerging patterns** (name, why noteworthy, maturity signal)
-3. Every entry MUST include: source URL, one-sentence summary, relevance
-
-Hard cap: 3 competitors + 2 emerging. Do not exceed.
-
-**Fallback:** If Kagi is unavailable or returns no relevant results → emit `External landscape analysis unavailable: {reason}` and skip. Do not fabricate entries.
+Extract top-3 competitors + 2 emerging patterns max. Each entry needs source URL, one-sentence summary, relevance. If unavailable/no relevant results, state reason; do not fabricate.
 
 ---
 
-## Phase 4: Synthesis
+## Phase 5: Synthesis
 
-1. Deduplicate against active changes and agenda items (from Phase 0)
-2. Sort all findings by severity: CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD
-3. Emit **IMPROVEMENT ANALYSIS** report:
-   - **Current State:** findings by category with evidence, severity, impact
-   - **Architecture:** deviation table, corrections (CRITICAL/HIGH), greenfield changes
-   - **External Landscape:** competitors table, emerging patterns, or unavailability note
-   - **Summary:** counts by severity, top 3 recommendations, architecture health signal
-4. Suggest next commands: `/adv-proposal <summary>`, `/adv-task`, `/adv-audit`, `/adv-tron`
+Deduplicate against active changes and agenda. Sort CRITICAL → HIGH → MEDIUM → LOW → GREENFIELD.
 
-If no significant issues → emit **PRODUCTION READY** assessment with positive findings per category.
+Emit **IMPROVEMENT ANALYSIS** with Current State, Architecture, External Landscape, Summary, top 3 recommendations, health signal, and next commands: `/adv-proposal <summary>`, `/adv-task`, `/adv-audit`, `/adv-tron`.
+
+No significant issues → emit **PRODUCTION READY** with positive findings by category.
 
 ---
 
-## Phase 5: Persist Research Pack
+## Phase 6: Persist Research Pack
 
-Write (or update) a repo-local research pack so downstream research phases (`/adv-discover`, `/adv-proposal` knowledge-gap analysis, `/adv-research`-style work) can cite it as prior research instead of re-running web searches.
+Write/update repo-local pack:
 
-### File path
+- broad → `docs/repo-improve-prep.md`
+- scoped → `docs/{target-slug}-prep.md`
+- slug collision with different target → append `-2`, `-3`, …
 
-- Broad scan → `docs/repo-improve-prep.md`
-- Scoped scan → `docs/{target-slug}-prep.md` where `{target-slug}` is the kebab-cased target (file stem, capability, or concept). Strip path separators and extensions.
-- Collisions with an existing prep file → **update in place**:
-  - If the existing file documents the same target, overwrite it with the refreshed pack and bump the `Updated` date in the header.
-  - If the existing file documents a different target that happens to share the slug, append `-2` (then `-3`, …) to the new slug.
+Required sections, in order: Header, Purpose & Scope, Current State, LBP / Reference Comparison, Competitors & Alternatives, Emerging Patterns, Applicability to This Repo, Open Questions for Research, Sources.
 
-### Required artifact schema
-
-Every research pack MUST contain these sections in this order:
-
-| Section                     | Content                                                                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Header                      | `# Research Pack: {title}` plus `Target:`, `Mode:` (broad/scoped), `Created:`, `Updated:` ISO dates                                                       |
-| Purpose & Scope             | One paragraph: what this pack covers and what it deliberately does not cover                                                                              |
-| Current State               | Mirror of the report's Current State section (findings by category with evidence)                                                                         |
-| LBP / Reference Comparison  | Deviation table + corrections + greenfield notes, or `Context7 unavailable` annotation                                                                    |
-| Competitors & Alternatives  | Top-3 competitors (name, what they do differently, source URL, relevance). Include "No relevant results" or "Kagi unavailable" explicitly when applicable |
-| Emerging Patterns           | Up to 2 patterns (name, maturity signal, source URL, why noteworthy), or unavailability note                                                              |
-| Applicability to This Repo  | Which competitor/alternative approaches would materially apply here and which do not — short bullets with references to local code paths                  |
-| Open Questions for Research | Questions that `/adv-discover` or a future proposal should answer before committing to a direction                                                        |
-| Sources                     | Flat list of every URL or Context7 library reference cited above                                                                                          |
-
-The artifact is a **mirror** of the report findings plus the Applicability and Open Questions sections — never a replacement for the on-screen report.
-
-### Hygiene
-
-- Do not silently delete or truncate existing pack sections — if a section cannot be refreshed (e.g. Kagi unavailable on re-run), mark it `⚠ not refreshed ({reason})` and leave the prior content below.
-- Do not fabricate sources or competitors to fill the table. Empty/unavailable sections are acceptable if labelled.
-- × Do NOT write outside `docs/*-prep.md`. × Do NOT touch `.adv/**`, `plugin/**`, or change/spec state.
+If section cannot refresh, mark `⚠ not refreshed ({reason})` and preserve prior content below. Never fabricate sources. × Do NOT write outside `docs/*-prep.md`.
 
 ---
 
 ## Constraints
 
-- No ADV state mutation — × never creates changes/tasks/gates/specs
-- Only allowed write is the research pack under `docs/*-prep.md`
-- × No change creation — user decides follow-up
-- × No agenda creation — suggestions in human-readable form only
-- Bounded: 5 findings per category (Phase 1), 3+2 cap (Phase 3)
-- Evidence required for every finding; evidence-free findings are rejected
-- Fallback required for each external tool; never silently omit a phase — the research pack MUST reflect the same unavailability notes the on-screen report does
-
----
+- No ADV state mutation.
+- Only write: research pack under `docs/*-prep.md`.
+- No change/agenda creation; suggestions only.
+- Bounded: 5 findings/category, 3 competitors + 2 patterns.
+- Evidence required; reject evidence-free findings.
+- Fallback/unavailability notes MUST appear in report and pack.
 
 ## Key Tools
 
-| Purpose   | Tool                                                                           |
-| --------- | ------------------------------------------------------------------------------ |
-| Context   | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec`        |
-| Code      | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
-| Reference | `context7_resolve-library-id` + `context7_query-docs` (`webfetch` fallback if absent) |
-| External  | `kagi_kagi_search_fetch`                                                       |
-| Persist   | `write` / `morph_edit` — only under `docs/*-prep.md`                           |
+| Purpose | Tool |
+|---|---|
+| Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec` |
+| Code | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
+| Reference | `context7_resolve-library-id`, `context7_query-docs`, `webfetch` |
+| External | `kagi_kagi_search_fetch` |
+| Persist | `write` / `morph_edit` under `docs/*-prep.md` |
