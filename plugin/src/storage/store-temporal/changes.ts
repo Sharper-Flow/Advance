@@ -99,6 +99,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             gates: created.data.gates,
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
+            origin: created.data.origin,
           },
         });
       } catch (err) {
@@ -143,6 +144,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         clarify_findings: created.data.clarify_findings,
         cross_project_origin: created.data.cross_project_origin,
         fast_follow_of: created.data.fast_follow_of,
+        origin: created.data.origin,
         adv_project_id: input.projectId,
       });
       return result;

@@ -10,7 +10,14 @@
  * methods handle terminated workflows gracefully.
  */
 
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, vi } from "vitest";
+import { createChangeOps } from "./changes";
+
+const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
+
+vi.mock("../../temporal/workflow-start", () => ({
+  ensureChangeWorkflowStarted,
+}));
 
 // Re-implement the helper for direct testing (same logic as in changes.ts)
 // The helper is file-private, so we mirror it here for focused unit testing.
@@ -76,5 +83,68 @@ describe("isWorkflowCompletedError", () => {
 
   test("Error with empty message and name → false", () => {
     expect(isWorkflowCompletedError(new Error(""))).toBe(false);
+  });
+});
+
+describe("createChangeOps", () => {
+  test("seeds origin into new change workflow at start (rq-backlogCoord01)", async () => {
+    ensureChangeWorkflowStarted.mockResolvedValue(undefined);
+
+    const origin = { kind: "roadmap", issue_number: 51 };
+    const createdChange = {
+      id: "backlogFeature51",
+      title: "Backlog feature 51",
+      status: "draft",
+      created_at: "2026-05-11T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: {},
+      reentry_history: [],
+      origin,
+    };
+
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        create: vi.fn().mockResolvedValue({ changeId: createdChange.id }),
+        get: vi.fn().mockResolvedValue({ success: true, data: createdChange }),
+        save: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+    const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-abc",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.create(
+      "Backlog feature 51",
+      "backlog-coordination",
+      "",
+      "",
+      "",
+      "",
+    );
+
+    expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
+      workflowClient,
+      expect.objectContaining({
+        seedState: expect.objectContaining({ origin }),
+      }),
+    );
   });
 });
