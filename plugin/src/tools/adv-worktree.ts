@@ -129,9 +129,13 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Force deletion bypassing some safety checks"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview deletion without running hooks or removing files"),
     },
     execute: async (
-      args: { branch: string; force?: boolean },
+      args: { branch: string; force?: boolean; dryRun?: boolean },
       store: Store,
     ) => {
       const projectRoot = store.paths.root;
@@ -139,7 +143,7 @@ export const advWorktreeTools = {
       const log = createLogger();
       const result = await advWorktreeDelete(
         args.branch,
-        { force: args.force },
+        { force: args.force, dryRun: args.dryRun },
         { projectRoot, database, log, store },
       );
       return formatToolOutput(result);
@@ -153,8 +157,12 @@ export const advWorktreeTools = {
       reason: z
         .string()
         .describe("Brief explanation of why you are retrying queued cleanup"),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview cleanup retries without deleting queued worktrees"),
     },
-    execute: async (args: { reason: string }, store: Store) => {
+    execute: async (args: { reason: string; dryRun?: boolean }, store: Store) => {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
@@ -162,11 +170,13 @@ export const advWorktreeTools = {
         projectRoot,
         database,
         log,
+        dryRun: args.dryRun,
       });
       return formatToolOutput({
         success: true,
         removed: result.removed,
         retained: result.retained,
+        ...(result.dryRun ? { dryRun: true } : {}),
       });
     },
   },

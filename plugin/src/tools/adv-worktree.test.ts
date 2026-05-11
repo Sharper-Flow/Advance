@@ -72,6 +72,29 @@ describe("advWorktreeTools", () => {
     expect(out).toContain('"ok":true');
   });
 
+  it("adv_worktree_delete passes dryRun to advWorktreeDelete", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+      path: "/wt",
+      dryRun: true,
+    });
+
+    const out = await advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/x", force: false, dryRun: true },
+      store,
+    );
+
+    expect(worktreeMock.advWorktreeDelete).toHaveBeenCalledWith(
+      "change/x",
+      { force: false, dryRun: true },
+      expect.objectContaining({ projectRoot: "/repo", database }),
+    );
+    expect(out).toContain('"dryRun":true');
+  });
+
   it("adv_worktree_cleanup formats removed and retained branches", async () => {
     const database = { projectDir: "/repo", projectId: "p" };
     stateMock.initStateDb.mockResolvedValue(database);
@@ -91,6 +114,27 @@ describe("advWorktreeTools", () => {
     );
     expect(out).toContain("change/done");
     expect(out).toContain("change/live");
+  });
+
+  it("adv_worktree_cleanup passes dryRun to advWorktreeCleanup", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockResolvedValue({
+      removed: 0,
+      retained: 1,
+      dryRun: true,
+    });
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "retry cleanup", dryRun: true },
+      store,
+    );
+
+    expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
+      "retry cleanup",
+      expect.objectContaining({ projectRoot: "/repo", database, dryRun: true }),
+    );
+    expect(out).toContain('"dryRun":true');
   });
 
   it("adv_worktree_triage delegates to triageWorktrees", async () => {

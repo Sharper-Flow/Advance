@@ -1191,7 +1191,7 @@ export interface AdvWorktreeDeleteDeps {
 }
 
 export type AdvWorktreeDeleteResult =
-  | { ok: true; branch: string; path: string }
+  | { ok: true; branch: string; path: string; dryRun?: boolean }
   | { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
   | { ok: false; error: "INTEGRATION_REQUIRED"; reason: string; hint: string }
   | { ok: false; error: "UNCOMMITTED_WORK"; files: string[]; hint: string }
@@ -1325,7 +1325,7 @@ async function maybeRemoveMissingFromDiskRegistryEntry(
 
 export async function advWorktreeDelete(
   branch: string,
-  opts: { force?: boolean } = {},
+  opts: { force?: boolean; dryRun?: boolean } = {},
   deps: AdvWorktreeDeleteDeps,
 ): Promise<AdvWorktreeDeleteResult> {
   // 1. Resolve registry entry and worktree path. Registry wins over path
@@ -1462,6 +1462,10 @@ export async function advWorktreeDelete(
       files: preHookStatus.files,
       hint: "Commit or stash, or pass opts.force: true with explicit audit reason",
     };
+  }
+
+  if (opts.dryRun) {
+    return { ok: true as const, branch, path: worktreePath, dryRun: true };
   }
 
   // 4. Run preDelete hooks
@@ -1737,14 +1741,17 @@ export interface AdvWorktreeCleanupDeps {
   projectRoot: string;
   database: Database;
   log: Logger;
+  dryRun?: boolean;
 }
 
 export async function advWorktreeCleanup(
   _reason: string,
   deps: AdvWorktreeCleanupDeps,
-): Promise<{ removed: number; retained: number }> {
+): Promise<{ removed: number; retained: number; dryRun?: boolean }> {
   const pendingDeletes = await getPendingDeletes(deps.database);
-  if (pendingDeletes.length === 0) return { removed: 0, retained: 0 };
+  if (pendingDeletes.length === 0) {
+    return { removed: 0, retained: 0, ...(deps.dryRun ? { dryRun: true } : {}) };
+  }
 
   let removed = 0;
   let retained = 0;
@@ -1757,6 +1764,11 @@ export async function advWorktreeCleanup(
         `[worktree] Skipping worktree removal during worktree_cleanup — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
       );
       await incrementPendingDeleteAttempts(deps.database, branch);
+      retained++;
+      continue;
+    }
+
+    if (deps.dryRun) {
       retained++;
       continue;
     }
@@ -1784,7 +1796,7 @@ export async function advWorktreeCleanup(
     }
   }
 
-  return { removed, retained };
+  return { removed, retained, ...(deps.dryRun ? { dryRun: true } : {}) };
 }
 
 // =============================================================================
