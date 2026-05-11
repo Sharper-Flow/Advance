@@ -56,7 +56,11 @@ vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
 }));
 
-import { resolveTargetProject, withTargetPathStore } from "./target-project";
+import {
+  resolveTargetProject,
+  targetPathSchema,
+  withTargetPathStore,
+} from "./target-project";
 
 describe("target project resolver", () => {
   let root: string;
@@ -233,6 +237,29 @@ describe("withTargetPathStore", () => {
     expect(mocks.temporalStore.close).toHaveBeenCalled();
   });
 
+  test("opens temporal-required dry-run targets as Temporal stores without mutation confirmation", async () => {
+    const result = await withTargetPathStore(
+      {
+        currentProjectPath,
+        target_path: targetPath,
+        stateRequirement: "temporal-required",
+        mutation: false,
+      },
+      async ({ context, store }) => ({ context, store }),
+    );
+
+    expect(result.context.stateMode).toBe("temporal");
+    expect(result.store).toBe(mocks.temporalStore);
+    expect(mocks.ensureProjectTemporalQueue).toHaveBeenCalledWith(
+      "a".repeat(40),
+    );
+    expect(mocks.createStore).toHaveBeenCalledWith(targetPath, {
+      externalRoot: expect.stringContaining("opencode/plugins/advance"),
+      projectIdOverride: "a".repeat(40),
+      temporalBundle: mocks.temporalBundle,
+    });
+  });
+
   test("fails closed when temporal-required store has no Temporal service", async () => {
     mocks.getService.mockReturnValueOnce(null);
 
@@ -248,5 +275,21 @@ describe("withTargetPathStore", () => {
         async () => null,
       ),
     ).rejects.toThrow(/Temporal service layer/);
+  });
+});
+
+describe("targetPathSchema", () => {
+  test("defines the shared target_path argument family", () => {
+    const parsed = targetPathSchema.parse({
+      target_path: "/repo/target",
+      target_confirmed: true,
+      confirmationEvidence: "user approved target mutation",
+    });
+
+    expect(parsed).toEqual({
+      target_path: "/repo/target",
+      target_confirmed: true,
+      confirmationEvidence: "user approved target mutation",
+    });
   });
 });

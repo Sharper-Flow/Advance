@@ -1,4 +1,5 @@
 import { resolve } from "path";
+import { z } from "zod";
 
 import { createLegacyStore, createStore } from "../storage/store";
 import type { Store } from "../storage/store-types";
@@ -47,6 +48,27 @@ export interface WithTargetPathStoreInput extends ResolveTargetProjectInput {
   target_path: string;
   stateRequirement: TargetStateRequirement;
 }
+
+export const targetPathSchema = z.object({
+  target_path: z
+    .string()
+    .optional()
+    .describe(
+      "Optional absolute path to another ADV project. When provided, routes the operation through that project's target store.",
+    ),
+  target_confirmed: z
+    .literal(true)
+    .optional()
+    .describe(
+      "Required for untrusted target_path mutation. Confirms the target project was explicitly approved.",
+    ),
+  confirmationEvidence: z
+    .string()
+    .optional()
+    .describe(
+      "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
+    ),
+});
 
 export interface TargetStoreScope {
   context: TargetProjectContext;
@@ -141,7 +163,10 @@ export async function withTargetPathStore<T>(
 ): Promise<T> {
   const context = await resolveTargetProject({
     ...input,
-    mutation: input.stateRequirement !== "snapshot-ok",
+    // Store selection is controlled by stateRequirement; this override only
+    // controls the target trust gate. Dry-run callers may need a Temporal-backed
+    // read while remaining non-mutating.
+    mutation: input.mutation ?? (input.stateRequirement !== "snapshot-ok"),
   });
 
   if (input.stateRequirement === "snapshot-ok") {
