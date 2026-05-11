@@ -54,7 +54,7 @@ Before creating artifacts:
 
 1. Extract agreed facts, decisions, rejected approaches, open questions, and constraints from the conversation
 2. Synthesize a concise problem statement with desired outcome and expected scope
-3. Ask user to confirm whether that framing matches the intended outcome
+3. Ask the user to confirm whether that framing matches the intended outcome
 4. If drift is reported → revise and re-confirm; if aborted → stop with no artifacts
 
 ---

@@ -254,7 +254,7 @@ Before any merge attempt, verify the main checkout is in a state ADV can safely 
 Allowed outcomes:
 
 - **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
+- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase the change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
 - **PR workflow path** — `overlap-risk`, `pr-risk`, `queue-blocked`, failed lightweight verification, or non-fast-forward publish risk → push change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
 
 ### Step 4 — Conflict-recovery flow (post-J3 expansion)

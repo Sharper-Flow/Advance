@@ -24,7 +24,7 @@ Target resolution: file path → read directly, directory → outline all, symbo
 
 ---
 ## Phase 1: Load Skill
-`skill("adv-tron")` → provides investigation protocol, search priorities, evidence requirements, report schema. If skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-tron")` → provides investigation protocol, search priorities, evidence requirements, report schema. If the skill is unavailable, continue with the embedded protocol in this command file.
 ## Phase 2: Determine Mode
 Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissance: {mode}`.
 ## Phase 3: Gather Context

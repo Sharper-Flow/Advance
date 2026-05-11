@@ -834,6 +834,8 @@ When all trigger conditions are true, "no matches" → conditional creation trig
 
 ## Command vs Skill Boundaries
 
+<!-- rq-skillProseCompression01 rq-skillClassification01 -->
+
 Commands own workflow/state. Skills hold reusable read-only methodology.
 
 | Command | Skill |

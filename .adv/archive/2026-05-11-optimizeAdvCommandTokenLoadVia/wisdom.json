@@ -1,0 +1,61 @@
+{
+  "entries": [
+    {
+      "id": "ws-1QTJOL",
+      "type": "pattern",
+      "content": "When extracting a command that already has a shared skill, deepen the skill additively and keep command-owned state mutation (for example adv_project_metadata) in the thin command. Verify skill has no ADV mutator calls while command preserves orchestration and fallback tokens.",
+      "source_task": "tk-de7c1a807a91",
+      "recorded_at": "2026-05-11T02:37:22.085Z"
+    },
+    {
+      "id": "ws-dXHpmU",
+      "type": "success",
+      "content": "Dedicated command extraction can hit both targets when command keeps only phase orchestration and exact approval/mutator tokens, while skill holds bucket heuristics/report templates. adv-cleanup reduced from 244L to 120L with skill at 172L and sync check clean.",
+      "source_task": "tk-23e54fe5bad7",
+      "recorded_at": "2026-05-11T02:39:21.678Z"
+    },
+    {
+      "id": "ws-UneZ3F",
+      "type": "pattern",
+      "content": "Reflection-style commands extract cleanly by leaving archived-change guard, tool calls, and error handling in command while moving rubrics/templates into skill. Preserve non-blocking archive wording in command because it is workflow-critical.",
+      "source_task": "tk-4f97b4e71038",
+      "recorded_at": "2026-05-11T02:41:14.356Z"
+    },
+    {
+      "id": "ws-vrKDJ_",
+      "type": "pattern",
+      "content": "For research-pack commands, keep file-write boundary and exact external tool names in command; move scan rubrics, applicability scoring, and artifact schema to skill. Verification should grep both docs/*-prep.md boundary and Context7/Kagi tool tokens.",
+      "source_task": "tk-5d73fc9cd5fc",
+      "recorded_at": "2026-05-11T02:42:58.317Z"
+    },
+    {
+      "id": "ws-5akpSf",
+      "type": "pattern",
+      "content": "For clarification commands already near line target, use missing-skill RED check instead of line-count RED. Keep question-tool and gate/agreement boundary tokens in command; move Socratic taxonomy and smells into skill.",
+      "source_task": "tk-48ec0a25e8f6",
+      "recorded_at": "2026-05-11T02:44:37.208Z"
+    },
+    {
+      "id": "ws-zastFo",
+      "type": "pattern",
+      "content": "For audit/scanner commands, command should keep quality-gate thresholds and metadata write because they are execution contract; skill can hold dimension rubrics, finding schema, and report schema. Missing-skill RED works for commands already under line target.",
+      "source_task": "tk-fba53c84d168",
+      "recorded_at": "2026-05-11T02:46:23.033Z"
+    },
+    {
+      "id": "ws-c4Qh2W",
+      "type": "success",
+      "content": "Small commands can still benefit from skill extraction for reusable methodology even when command line count already passes KD8. Use missing-skill RED, preserve mutating tool names in command, and keep command at same or lower line count.",
+      "source_task": "tk-423f1acdacc9",
+      "recorded_at": "2026-05-11T02:48:32.476Z"
+    },
+    {
+      "id": "ws-HnFXsS",
+      "type": "gotcha",
+      "content": "For bulk instruction compression, create contract-token snapshot before edits and compare exact token sequences after. Shell single quotes can break Python f-strings using x['tokens']; use item[\"tokens\"] or avoid nested single quotes in bash -c.",
+      "source_task": "tk-76da43bb4642",
+      "recorded_at": "2026-05-11T02:56:43.001Z"
+    }
+  ],
+  "count": 8
+}

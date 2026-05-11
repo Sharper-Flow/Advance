@@ -62,7 +62,7 @@ If unavailable or timed out: brace/indent counting fallback; set `detectionMetho
 | Hardcoded env | MAINT-005 | `localhost`, `/Users/`, `/home/`, `127.0.0.1` |
 | AI signatures | DOC-003 | `Certainly!`, `Sure!`, `I'll help`, `As an AI` |
 | Security | QUAL-003 | String-concat SQL, hardcoded passwords/keys/secrets |
-| Structural correctness bypass | QUAL-012 | Heuristic/fuzzy/LLM decisions owning correctness/security/persistence/workflow/gate/spec behavior |
+| Structural correctness bypass | QUAL-012 | Heuristic/fuzzy/LLM decisions owning correctness boundaries; security/persistence/workflow/gate/spec behavior |
 
 ### Defensive Overkill (QUAL-011)
 
@@ -80,9 +80,9 @@ No tool available → note skipped detector; continue Phase 2.
 
 ### Confidence Defaults
 
-- AST-backed structural findings → `confidence: high`
-- Regex-only defensive-overkill findings → `confidence: medium` unless corroborated by same-identifier redundant guards
-- Degraded fallback findings → `confidence: low` unless corroborated by another detector
+- AST-backed structural findings default to `confidence: high`
+- Regex-only defensive-overkill findings default to `confidence: medium` unless corroborated by same-identifier redundant guards
+- Degraded fallback findings default to `confidence: low` unless corroborated by another detector
 - Security secret patterns may be high confidence only when source evidence is concrete; never print secret values
 
 ## Structural Correctness Boundary (QUAL-012)
@@ -157,11 +157,11 @@ Timeout → category `TIMEOUT`; failure → `INCOMPLETE`; all fail → report de
 
 <!-- rq-ss008 -->
 
-Scanner context packets are orientation only, not finding locations. Do not report findings against ADV change summaries, task evidence, examples, or fixture descriptions unless same issue exists in target source.
+Scanner context packets are orientation only, not finding locations. Context packets are orientation only, not finding locations. Do not report findings against ADV change summaries, task evidence, examples, or fixture descriptions unless same issue exists in target source.
 
 ### Source Evidence Requirement
 
-Every finding must cite target source `file:line` or scoped source evidence. If evidence unavailable, omit or return low confidence.
+Every finding must cite a target source file via `file:line` or scoped source evidence. If evidence unavailable, omit or return low confidence.
 
 ### Low-Confidence Grouping
 

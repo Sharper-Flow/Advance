@@ -467,14 +467,14 @@
       ]
     },
     {
-      "id": "rq-proseReduction05",
+      "id": "rq-skillProseCompression01",
       "title": "Skill File Prose Compression",
       "body": "Skill files under skills/*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must be classified as full, partial, or inherent in docs/prose-load-inventory.md and compressed accordingly before archive.",
       "priority": "must",
       "tags": ["prose-reduction", "skills", "compression"],
       "scenarios": [
         {
-          "id": "rq-proseReduction05.1",
+          "id": "rq-skillProseCompression01.1",
           "title": "Modified skill follows enforcement-class compression",
           "given": [
             "A skill file in skills/*/SKILL.md is created or modified"
