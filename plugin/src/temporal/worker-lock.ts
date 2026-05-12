@@ -3,13 +3,25 @@ import { randomUUID } from "crypto";
 import { join } from "path";
 
 export const WORKER_LOCK_FILENAME = "worker.lock";
+export const STALE_HEARTBEAT_GRACE_MS = 60_000;
 
-export interface WorkerLockContents {
+export interface WorkerLockContentsV1 {
   pid: number;
   worker_id: string;
   acquired_at: string;
   schema_version?: 1;
 }
+
+export interface WorkerLockContentsV2 {
+  pid: number;
+  worker_id: string;
+  acquired_at: string;
+  schema_version: 2;
+  last_heartbeat: string;
+  expected_queue?: string;
+}
+
+export type WorkerLockContents = WorkerLockContentsV1 | WorkerLockContentsV2;
 
 export type WorkerLockResult =
   | { owned: true; ownerPid: number; workerId: string; lockPath: string }
@@ -24,10 +36,18 @@ export type WorkerLockResult =
 export interface AcquireWorkerLockOptions {
   pid?: number;
   lockFilename?: string;
+  schemaVersion?: 1 | 2;
+  expectedQueue?: string;
+  now?: () => Date;
 }
 
 export interface ReleaseWorkerLockOptions {
   lockFilename?: string;
+}
+
+export interface ReclaimWorkerLockOptions extends AcquireWorkerLockOptions {
+  staleHeartbeatGraceMs?: number;
+  isPidAlive?: (pid: number) => boolean;
 }
 
 export async function acquireWorkerLock(
@@ -39,11 +59,20 @@ export async function acquireWorkerLock(
     options.lockFilename ?? WORKER_LOCK_FILENAME,
   );
   const pid = options.pid ?? process.pid;
+  const acquiredAt = (options.now ?? (() => new Date()))().toISOString();
   const contents: WorkerLockContents = {
     pid,
     worker_id: randomUUID(),
-    acquired_at: new Date().toISOString(),
-    schema_version: 1,
+    acquired_at: acquiredAt,
+    ...(options.schemaVersion === 2
+      ? {
+          schema_version: 2,
+          last_heartbeat: acquiredAt,
+          ...(options.expectedQueue
+            ? { expected_queue: options.expectedQueue }
+            : {}),
+        }
+      : { schema_version: 1 }),
   };
 
   try {
@@ -71,6 +100,31 @@ export async function acquireWorkerLock(
   }
 }
 
+export async function tryReclaimStaleLock(
+  projectStateDir: string,
+  options: ReclaimWorkerLockOptions = {},
+): Promise<WorkerLockResult> {
+  const firstAttempt = await acquireWorkerLock(projectStateDir, options);
+  if (firstAttempt.owned) return firstAttempt;
+
+  const existing = await readLockContents(firstAttempt.lockPath).catch(
+    () => null,
+  );
+  if (!existing) return firstAttempt;
+
+  if (!isLockOwnerAlive(existing.pid, options.isPidAlive)) {
+    await releaseWorkerLock(projectStateDir, options);
+    return acquireWorkerLock(projectStateDir, options);
+  }
+
+  if (isHeartbeatStale(existing, options)) {
+    await releaseWorkerLock(projectStateDir, options);
+    return acquireWorkerLock(projectStateDir, options);
+  }
+
+  return firstAttempt;
+}
+
 export async function releaseWorkerLock(
   projectStateDir: string,
   options: ReleaseWorkerLockOptions = {},
@@ -95,10 +149,56 @@ export async function readLockContents(
   ) {
     return null;
   }
+  if (parsed.schema_version === 2) {
+    if (
+      typeof parsed.last_heartbeat !== "string" ||
+      (parsed.expected_queue !== undefined &&
+        typeof parsed.expected_queue !== "string")
+    ) {
+      return null;
+    }
+    return {
+      pid: parsed.pid,
+      worker_id: parsed.worker_id,
+      acquired_at: parsed.acquired_at,
+      schema_version: 2,
+      last_heartbeat: parsed.last_heartbeat,
+      ...(parsed.expected_queue
+        ? { expected_queue: parsed.expected_queue }
+        : {}),
+    };
+  }
+
   return {
     pid: parsed.pid,
     worker_id: parsed.worker_id,
     acquired_at: parsed.acquired_at,
     schema_version: 1,
   };
+}
+
+function isLockOwnerAlive(
+  pid: number,
+  isPidAlive: ((pid: number) => boolean) | undefined,
+): boolean {
+  if (isPidAlive) return isPidAlive(pid);
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== "ESRCH";
+  }
+}
+
+function isHeartbeatStale(
+  contents: WorkerLockContents,
+  options: ReclaimWorkerLockOptions,
+): boolean {
+  if (contents.schema_version !== 2) return false;
+  const heartbeatMs = Date.parse(contents.last_heartbeat);
+  if (Number.isNaN(heartbeatMs)) return false;
+  const nowMs = (options.now ?? (() => new Date()))().getTime();
+  const graceMs =
+    options.staleHeartbeatGraceMs ?? STALE_HEARTBEAT_GRACE_MS;
+  return nowMs - heartbeatMs > graceMs;
 }
