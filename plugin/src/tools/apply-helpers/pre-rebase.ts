@@ -46,6 +46,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+export function parseGitRevListCount(countStr: string): number | null {
+  const trimmed = countStr.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const count = Number.parseInt(trimmed, 10);
+  return Number.isFinite(count) ? count : null;
+}
+
 /**
  * Run a pre-execution rebase to keep the change branch fresh against origin.
  *
@@ -166,7 +173,7 @@ export async function preExecutionRebase(
       ["rev-list", "--count", `HEAD..${ontoRef}`],
       worktreePath,
     );
-    commits = parseInt(countStr.trim(), 10) || 0;
+    commits = parseGitRevListCount(countStr) ?? 0;
   } catch {
     // Non-critical; leave commits undefined
   }
@@ -235,8 +242,8 @@ async function defaultIsAhead(
       ["rev-list", "--count", `HEAD..${ontoRef}`],
       cwd,
     );
-    const count = parseInt(countStr.trim(), 10) || 0;
-    return count > 0;
+    const count = parseGitRevListCount(countStr);
+    return count === null ? true : count > 0;
   } catch {
     // If we can't tell, assume ahead to trigger rebase attempt
     return true;

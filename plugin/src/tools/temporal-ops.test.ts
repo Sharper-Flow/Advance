@@ -4,6 +4,7 @@ import { parseToolOutput } from "../__tests__/setup";
 import {
   _temporalOpsProbeCaches,
   classifySuspectWorkerLock,
+  isRestartServiceabilityVerified,
   temporalOpsTools,
 } from "./temporal-ops";
 
@@ -157,5 +158,17 @@ describe("temporal ops probe cache", () => {
     });
     expect(mockRestartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
     expect(mockGetTemporalHealth).not.toHaveBeenCalled();
+  });
+
+  test("restart verification refuses stale cached serviceability as success", () => {
+    expect(
+      isRestartServiceabilityVerified({
+        serviceability: { status: "serviceable" } as any,
+        freshness: {
+          cached_at: new Date().toISOString(),
+          stale: true,
+        },
+      }),
+    ).toBe(false);
   });
 });

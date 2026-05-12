@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   defaultIsWorktree,
+  parseGitRevListCount,
   preExecutionRebase,
   PreRebaseDeps,
   PreRebaseResult,
@@ -218,6 +219,13 @@ describe("preExecutionRebase", () => {
       } finally {
         rmSync(root, { recursive: true, force: true });
       }
+    });
+  });
+
+  describe("parseGitRevListCount", () => {
+    it("returns null for malformed git count output so callers fail safe", () => {
+      expect(parseGitRevListCount("3\n")).toBe(3);
+      expect(parseGitRevListCount("not-a-count\n")).toBeNull();
     });
   });
 });

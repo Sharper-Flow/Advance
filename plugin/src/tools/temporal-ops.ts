@@ -154,6 +154,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+export function isRestartServiceabilityVerified(input: {
+  serviceability: Pick<QueueServiceability, "status">;
+  freshness: Pick<ProbeCacheFreshness, "stale">;
+}): boolean {
+  return (
+    input.serviceability.status === "serviceable" && !input.freshness.stale
+  );
+}
+
 function diagnosticsIncludeQueue(
   diagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>,
   expectedQueue: string,
@@ -272,8 +281,10 @@ async function waitForRestartServiceability(input: {
     lastFreshness = probe.freshness;
     const elapsedMs = Date.now() - startedAt;
     if (
-      (lastSnapshot.serviceability.status === "serviceable" &&
-        !lastFreshness.stale) ||
+      isRestartServiceabilityVerified({
+        serviceability: lastSnapshot.serviceability,
+        freshness: lastFreshness,
+      }) ||
       elapsedMs >= input.timeoutMs
     ) {
       return { ...lastSnapshot, elapsedMs, freshness: lastFreshness };
@@ -622,7 +633,7 @@ export const temporalOpsTools = {
         timeoutMs: readWorkerRestartVerifyTimeoutMs(),
       });
 
-      if (verification.serviceability.status !== "serviceable") {
+      if (!isRestartServiceabilityVerified(verification)) {
         return formatToolOutput({
           success: false,
           errorClass: "WorkerRestartVerificationTimeout",
