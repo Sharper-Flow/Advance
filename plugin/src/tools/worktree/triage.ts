@@ -9,16 +9,19 @@
  *   - Temporal: `worktree_registry` from project workflow state
  *   - Temporal: `change_summaries[].status` for archived-not-cleaned check
  *   - Local git: `detectStaleBranchHead` for stale-HEAD detection
+ *   - Index/working tree: `git status --porcelain` for dirty-work detection
  *
- * | Class                  | Detection                                              |
- * |------------------------|--------------------------------------------------------|
- * | `stale_head`           | `detectStaleBranchHead` returns stale                  |
- * | `missing_from_temporal`| Disk has worktree, registry doesn't                    |
- * | `missing_from_disk`    | Registry has, disk doesn't                             |
- * | `registry_missing_change_id` | Registry has change branch without owner metadata |
- * | `archived_not_cleaned` | Registry has worktree for archived change              |
+ * | Class                       | Detection                                              |
+ * |-----------------------------|--------------------------------------------------------|
+ * | `stale_head`                | `detectStaleBranchHead` returns stale                  |
+ * | `missing_from_temporal`     | Disk has worktree, registry doesn't                    |
+ * | `missing_from_disk`         | Registry has, disk doesn't                             |
+ * | `registry_missing_change_id`| Registry has change branch without owner metadata      |
+ * | `archived_not_cleaned`      | Registry has worktree for archived change              |
+ * | `dirty_uncommitted_work`    | Worktree has staged/modified/untracked files           |
  *
- * Citations: rq-worktreeRegistry01, rq-multiSessionFraming01.
+ * Citations: rq-worktreeRegistry01, rq-multiSessionFraming01,
+ *            rq-worktreeDirtyDetection01 (#120).
  */
 
 import { execFile } from "child_process";
@@ -43,7 +46,8 @@ export type OrphanClass =
   | "missing_from_temporal"
   | "missing_from_disk"
   | "registry_missing_change_id"
-  | "archived_not_cleaned";
+  | "archived_not_cleaned"
+  | "dirty_uncommitted_work";
 
 export interface OrphanRecord {
   class: OrphanClass;
@@ -222,5 +226,92 @@ export async function triageWorktrees(
     });
   }
 
+  // dirty_uncommitted_work (rq-worktreeDirtyDetection01 / #120): any disk
+  // worktree (other than the main checkout) with staged, modified, or
+  // untracked files. Surfaced BEFORE any deletion recommendation so the
+  // operator can review the unsaved work first. The 3-condition deletion
+  // gate already blocks dirty worktrees, but triage callers see only
+  // commit-graph signals — adding this class makes the dirty state visible
+  // at recommendation time rather than at delete failure time.
+  for (const dw of diskList) {
+    if (!dw.branch) continue;
+    // Skip the main checkout — only flag named-branch worktrees we manage.
+    // (Convention: ADV-managed worktrees use `change/...` branches.)
+    if (!dw.branch.startsWith("change/")) continue;
+    const dirty = await getWorktreeDirtySummary(dw.path);
+    if (!dirty) continue; // git status failed or path missing
+    if (dirty.staged === 0 && dirty.modified === 0 && dirty.untracked === 0) {
+      continue;
+    }
+    orphans.push({
+      class: "dirty_uncommitted_work",
+      branch: dw.branch,
+      path: dw.path,
+      reason:
+        `Worktree at ${dw.path} has uncommitted work: ` +
+        `${dirty.staged} staged, ${dirty.modified} modified, ${dirty.untracked} untracked. ` +
+        `Force-deleting it would discard this work.`,
+      recommendedFix:
+        `Inspect first: \`cd ${dw.path} && git status\`. ` +
+        `Commit, stash, or review before deletion.`,
+    });
+  }
+
   return { orphans, total: orphans.length };
+}
+
+// =============================================================================
+// Dirty-state detection
+// =============================================================================
+
+interface WorktreeDirtySummary {
+  staged: number;
+  modified: number;
+  untracked: number;
+}
+
+/**
+ * Run `git status --porcelain` in the worktree and classify the output.
+ *
+ * Porcelain v1 format: `XY filename` where X is the index state and Y is
+ * the working-tree state. `??` is untracked. `!!` is ignored (we don't
+ * surface ignored files here).
+ *
+ * Returns null if the path doesn't exist or git status fails — the caller
+ * skips silently. We do NOT treat a failure as evidence of cleanliness.
+ */
+async function getWorktreeDirtySummary(
+  worktreePath: string,
+): Promise<WorktreeDirtySummary | null> {
+  let stdout: string;
+  try {
+    const result = await execFileAsync("git", ["status", "--porcelain"], {
+      cwd: worktreePath,
+    });
+    stdout = result.stdout;
+  } catch {
+    return null;
+  }
+
+  let staged = 0;
+  let modified = 0;
+  let untracked = 0;
+  for (const line of stdout.split("\n")) {
+    if (line.length === 0) continue;
+    // Porcelain v1 lines are at least 3 chars wide: "XY filename".
+    if (line.length < 3) continue;
+    const x = line.charAt(0);
+    const y = line.charAt(1);
+    if (x === "?" && y === "?") {
+      untracked += 1;
+      continue;
+    }
+    if (x === "!" && y === "!") {
+      // ignored — skip
+      continue;
+    }
+    if (x !== " " && x !== "?") staged += 1;
+    if (y !== " " && y !== "?") modified += 1;
+  }
+  return { staged, modified, untracked };
 }

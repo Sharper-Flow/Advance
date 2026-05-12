@@ -204,4 +204,153 @@ describe("triageWorktrees (T18)", () => {
     expect(orphan?.branch).toBe("change/missing-id");
     expect(orphan?.recommendedFix).toContain("repair registry metadata");
   });
+
+  // rq-worktreeDirtyDetection01: F1 / #120 — triage must surface
+  // worktrees with staged/modified/untracked files BEFORE recommending
+  // deletion. Commit-graph "0 ahead of trunk" is not sufficient; the
+  // index/working-tree state can contain unsaved prototype work that
+  // force-delete would discard.
+  describe("dirty_uncommitted_work (rq-worktreeDirtyDetection01 / #120)", () => {
+    it("reports dirty_uncommitted_work when worktree has staged files", async () => {
+      const wtPath = join(tempRoot, "wt-dirty-staged");
+      execFileSync(
+        "git",
+        ["worktree", "add", "-b", "change/dirty-staged", wtPath, "trunk"],
+        { cwd: repoRoot },
+      );
+      // Stage a file but don't commit
+      execFileSync("touch", [join(wtPath, "prototype.svelte")]);
+      execFileSync("git", ["add", "prototype.svelte"], { cwd: wtPath });
+
+      // Worktree IS in registry — this isn't an orphan via other classes
+      mockedListWorktrees.mockResolvedValue([
+        {
+          branch: "change/dirty-staged",
+          path: wtPath,
+          changeId: "dirtyStagedChange",
+          status: "active",
+          createdAt: "2026-05-01T00:00:00Z",
+          lastSeenAt: "2026-05-01T00:00:00Z",
+          baseRef: "trunk",
+          headSha: "deadbeef",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      ]);
+
+      const result = await triageWorktrees(repoRoot);
+      const orphan = result.orphans.find(
+        (o) => o.class === "dirty_uncommitted_work",
+      );
+      expect(orphan).toBeDefined();
+      expect(orphan?.branch).toBe("change/dirty-staged");
+      expect(orphan?.reason).toMatch(/staged|modified|untracked/i);
+      expect(orphan?.recommendedFix).toMatch(/inspect|commit|stash|review/i);
+    });
+
+    it("reports dirty_uncommitted_work for untracked files", async () => {
+      const wtPath = join(tempRoot, "wt-dirty-untracked");
+      execFileSync(
+        "git",
+        ["worktree", "add", "-b", "change/dirty-untracked", wtPath, "trunk"],
+        { cwd: repoRoot },
+      );
+      // Untracked file — no `git add`
+      execFileSync("touch", [join(wtPath, "scratch.txt")]);
+
+      mockedListWorktrees.mockResolvedValue([
+        {
+          branch: "change/dirty-untracked",
+          path: wtPath,
+          changeId: "dirtyUntrackedChange",
+          status: "active",
+          createdAt: "2026-05-01T00:00:00Z",
+          lastSeenAt: "2026-05-01T00:00:00Z",
+          baseRef: "trunk",
+          headSha: "deadbeef",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      ]);
+
+      const result = await triageWorktrees(repoRoot);
+      const orphan = result.orphans.find(
+        (o) => o.class === "dirty_uncommitted_work",
+      );
+      expect(orphan).toBeDefined();
+      expect(orphan?.branch).toBe("change/dirty-untracked");
+    });
+
+    it("does NOT report dirty_uncommitted_work for clean worktrees", async () => {
+      const wtPath = join(tempRoot, "wt-clean");
+      execFileSync(
+        "git",
+        ["worktree", "add", "-b", "change/clean", wtPath, "trunk"],
+        { cwd: repoRoot },
+      );
+      // No staged/untracked files
+
+      mockedListWorktrees.mockResolvedValue([
+        {
+          branch: "change/clean",
+          path: wtPath,
+          changeId: "cleanChange",
+          status: "active",
+          createdAt: "2026-05-01T00:00:00Z",
+          lastSeenAt: "2026-05-01T00:00:00Z",
+          baseRef: "trunk",
+          headSha: "deadbeef",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      ]);
+
+      const result = await triageWorktrees(repoRoot);
+      const dirty = result.orphans.find(
+        (o) => o.class === "dirty_uncommitted_work",
+      );
+      expect(dirty).toBeUndefined();
+    });
+
+    it("counts staged/modified/untracked file totals in the reason", async () => {
+      const wtPath = join(tempRoot, "wt-dirty-counts");
+      execFileSync(
+        "git",
+        ["worktree", "add", "-b", "change/dirty-counts", wtPath, "trunk"],
+        { cwd: repoRoot },
+      );
+      // 3 staged + 2 untracked
+      for (let i = 0; i < 3; i++) {
+        execFileSync("touch", [join(wtPath, `staged-${i}.ts`)]);
+        execFileSync("git", ["add", `staged-${i}.ts`], { cwd: wtPath });
+      }
+      for (let i = 0; i < 2; i++) {
+        execFileSync("touch", [join(wtPath, `untracked-${i}.ts`)]);
+      }
+
+      mockedListWorktrees.mockResolvedValue([
+        {
+          branch: "change/dirty-counts",
+          path: wtPath,
+          changeId: "dirtyCountsChange",
+          status: "active",
+          createdAt: "2026-05-01T00:00:00Z",
+          lastSeenAt: "2026-05-01T00:00:00Z",
+          baseRef: "trunk",
+          headSha: "deadbeef",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      ]);
+
+      const result = await triageWorktrees(repoRoot);
+      const orphan = result.orphans.find(
+        (o) => o.class === "dirty_uncommitted_work",
+      );
+      expect(orphan).toBeDefined();
+      // Reason should mention the counts (3 staged, 2 untracked)
+      expect(orphan?.reason).toMatch(/3/);
+      expect(orphan?.reason).toMatch(/2/);
+    });
+  });
 });
