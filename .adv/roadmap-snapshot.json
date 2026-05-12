@@ -1,39 +1,88 @@
 {
-  "version": 1,
-  "generated_at": "2026-05-11T23:50:23Z",
+  "generated_at": "2026-05-12T02:34:44Z",
+  "source": "gh-project-v2",
   "project": {
     "owner": "Sharper-Flow",
     "number": 2,
     "title": "ADV: Advance"
   },
+  "repository_filter": null,
   "counts": {
-    "total": 35,
-    "bugs": 1,
-    "features": 34,
+    "total": 30,
+    "bugs": 7,
+    "features": 23,
     "deferred": 0
   },
-  "bugs": [
-    {
-      "number": 111,
-      "title": "tool/allowlist drift: adv_backlog_state and adv_wip_state missing from agent allowlists",
-      "priority": "high",
-      "labels": [
-        "bug",
-        "priority:high"
-      ]
-    }
-  ],
+  "bugs": {
+    "critical": [
+      {
+        "number": 112,
+        "title": "adv_task_add ignores target_path for cross-project writes",
+        "priority": "critical",
+        "labels": [
+          "bug",
+          "priority:critical"
+        ]
+      },
+      {
+        "number": 113,
+        "title": "adv_worktree_delete fails when default branch is not trunk",
+        "priority": "critical",
+        "labels": [
+          "bug",
+          "priority:critical"
+        ]
+      },
+      {
+        "number": 114,
+        "title": "Fix ADV worker bundle stale-cache trap (archive blocked by missing archiveChangeUpdate handler)",
+        "priority": "critical",
+        "labels": [
+          "bug",
+          "priority:critical"
+        ]
+      },
+      {
+        "number": 115,
+        "title": "ADV archive execute fails with Workflow Update failed after partial archive write",
+        "priority": "critical",
+        "labels": [
+          "bug",
+          "priority:critical"
+        ]
+      },
+      {
+        "number": 116,
+        "title": "ADV agent work becomes unreachable when change branch is deleted out-of-band; no detection or recovery",
+        "priority": "critical",
+        "labels": [
+          "bug",
+          "priority:critical"
+        ]
+      },
+      {
+        "number": 117,
+        "title": "Temporal worker singleton broken: every opencode session spawns 2 workers, not 1 per project (~2 GB waste)",
+        "priority": "critical",
+        "labels": [
+          "bug",
+          "priority:critical"
+        ]
+      }
+    ],
+    "high": [
+      {
+        "number": 118,
+        "title": "Discovery gate ran in main checkout (no worktree) \u2014 caused snapshot index.lock recurrence + agent freeze",
+        "priority": "high",
+        "labels": [
+          "bug",
+          "priority:high"
+        ]
+      }
+    ]
+  },
   "features": [
-    {
-      "number": 51,
-      "title": "ADV backlog primitive: prioritized, sortable list of unstarted work",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 13,
-      "effort": 3,
-      "wsjf": 8,
-      "labels": ["feature", "priority:medium"]
-    },
     {
       "number": 79,
       "title": "Add must-not section to future ADV proposals",
@@ -42,7 +91,9 @@
       "rroe": 2,
       "effort": 1,
       "wsjf": 8,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 80,
@@ -52,17 +103,9 @@
       "rroe": 5,
       "effort": 2,
       "wsjf": 7.5,
-      "labels": ["feature"]
-    },
-    {
-      "number": 105,
-      "title": "Update /adv-triage Phase 3b to use question tool one-by-one instead of text-only batch prompt",
-      "value": 5,
-      "time_criticality": 5,
-      "rroe": 5,
-      "effort": 2,
-      "wsjf": 7.5,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 109,
@@ -72,27 +115,9 @@
       "rroe": 8,
       "effort": 3,
       "wsjf": 7,
-      "labels": ["feature"]
-    },
-    {
-      "number": 110,
-      "title": "Audit target_path routing for task mutation tools",
-      "value": 8,
-      "time_criticality": 5,
-      "rroe": 8,
-      "effort": 3,
-      "wsjf": 7,
-      "labels": ["feature"]
-    },
-    {
-      "number": 72,
-      "title": "Scope ADV instruction load to ADV-using sessions (~17k tokens per non-ADV session)",
-      "value": 13,
-      "time_criticality": 8,
-      "rroe": 13,
-      "effort": 5,
-      "wsjf": 6.8,
-      "labels": ["enhancement", "priority:high"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 66,
@@ -102,17 +127,23 @@
       "rroe": 8,
       "effort": 3,
       "wsjf": 6.3,
-      "labels": ["enhancement", "priority:medium"]
+      "labels": [
+        "enhancement",
+        "priority:medium"
+      ]
     },
     {
       "number": 64,
-      "title": "Add adv_delta_add MCP tool — agent-facing path to encode spec deltas",
+      "title": "Add adv_delta_add MCP tool \u2014 agent-facing path to encode spec deltas",
       "value": 8,
       "time_criticality": 2,
       "rroe": 8,
       "effort": 3,
       "wsjf": 6,
-      "labels": ["feature", "priority:medium"]
+      "labels": [
+        "feature",
+        "priority:medium"
+      ]
     },
     {
       "number": 61,
@@ -122,7 +153,10 @@
       "rroe": 5,
       "effort": 2,
       "wsjf": 6,
-      "labels": ["enhancement", "priority:high"]
+      "labels": [
+        "enhancement",
+        "priority:high"
+      ]
     },
     {
       "number": 107,
@@ -132,17 +166,9 @@
       "rroe": 5,
       "effort": 2,
       "wsjf": 6,
-      "labels": ["feature"]
-    },
-    {
-      "number": 78,
-      "title": "Verify Phase J + Phase 1.5 functional intent before final retirement",
-      "value": 3,
-      "time_criticality": 1,
-      "rroe": 2,
-      "effort": 1,
-      "wsjf": 6,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 81,
@@ -152,7 +178,9 @@
       "rroe": 2,
       "effort": 1,
       "wsjf": 6,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 84,
@@ -162,7 +190,9 @@
       "rroe": 2,
       "effort": 1,
       "wsjf": 6,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 87,
@@ -172,27 +202,22 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 5.3,
-      "labels": ["feature"]
-    },
-    {
-      "number": 85,
-      "title": "Programmatic git mutation guard",
-      "value": 13,
-      "time_criticality": 5,
-      "rroe": 8,
-      "effort": 5,
-      "wsjf": 5.2,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 42,
-      "title": "Stub JSON schemas provide zero validation — generate from Zod or delete",
+      "title": "Stub JSON schemas provide zero validation \u2014 generate from Zod or delete",
       "value": 5,
       "time_criticality": 2,
       "rroe": 3,
       "effort": 2,
       "wsjf": 5,
-      "labels": ["enhancement", "priority:low"]
+      "labels": [
+        "enhancement",
+        "priority:low"
+      ]
     },
     {
       "number": 104,
@@ -202,17 +227,9 @@
       "rroe": 8,
       "effort": 5,
       "wsjf": 4.8,
-      "labels": ["feature"]
-    },
-    {
-      "number": 59,
-      "title": "Multi-repo product linking: design model for ADV state across separate front/backend repos",
-      "value": 13,
-      "time_criticality": 8,
-      "rroe": 13,
-      "effort": 8,
-      "wsjf": 4.3,
-      "labels": ["feature", "priority:medium"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 93,
@@ -222,7 +239,10 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4.3,
-      "labels": ["enhancement", "priority:medium"]
+      "labels": [
+        "enhancement",
+        "priority:medium"
+      ]
     },
     {
       "number": 106,
@@ -232,7 +252,9 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4.3,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 103,
@@ -242,7 +264,9 @@
       "rroe": 8,
       "effort": 5,
       "wsjf": 4.2,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 45,
@@ -252,17 +276,23 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4,
-      "labels": ["enhancement", "priority:low"]
+      "labels": [
+        "enhancement",
+        "priority:low"
+      ]
     },
     {
       "number": 94,
-      "title": "Add adv_friction_query MCP tool — agent-queryable reflection friction",
+      "title": "Add adv_friction_query MCP tool \u2014 agent-queryable reflection friction",
       "value": 5,
       "time_criticality": 2,
       "rroe": 5,
       "effort": 3,
       "wsjf": 4,
-      "labels": ["feature", "priority:medium"]
+      "labels": [
+        "feature",
+        "priority:medium"
+      ]
     },
     {
       "number": 96,
@@ -272,7 +302,10 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4,
-      "labels": ["enhancement", "priority:medium"]
+      "labels": [
+        "enhancement",
+        "priority:medium"
+      ]
     },
     {
       "number": 65,
@@ -282,17 +315,10 @@
       "rroe": 13,
       "effort": 8,
       "wsjf": 3.9,
-      "labels": ["enhancement", "priority:medium"]
-    },
-    {
-      "number": 99,
-      "title": "Make change-contract traceability structural across review and archive",
-      "value": 13,
-      "time_criticality": 5,
-      "rroe": 13,
-      "effort": 8,
-      "wsjf": 3.9,
-      "labels": ["feature"]
+      "labels": [
+        "enhancement",
+        "priority:medium"
+      ]
     },
     {
       "number": 50,
@@ -302,27 +328,10 @@
       "rroe": 8,
       "effort": 5,
       "wsjf": 3.8,
-      "labels": ["feature", "priority:medium"]
-    },
-    {
-      "number": 68,
-      "title": "Pre-flight dryRun mode for mutating ADV tools",
-      "value": 8,
-      "time_criticality": 3,
-      "rroe": 8,
-      "effort": 5,
-      "wsjf": 3.8,
-      "labels": ["enhancement", "priority:low"]
-    },
-    {
-      "number": 69,
-      "title": "Bucket C / KD-8: switch Node default to OOP worker (or confirm Bun-only direction)",
-      "value": 5,
-      "time_criticality": 2,
-      "rroe": 3,
-      "effort": 3,
-      "wsjf": 3.3,
-      "labels": ["enhancement", "priority:low", "needs-verify"]
+      "labels": [
+        "feature",
+        "priority:medium"
+      ]
     },
     {
       "number": 82,
@@ -332,17 +341,9 @@
       "rroe": 3,
       "effort": 3,
       "wsjf": 3.3,
-      "labels": ["feature"]
-    },
-    {
-      "number": 71,
-      "title": "F10 Phase 2: build scripts/opencode-adv.sh CLI helper for non-LLM cross-project tool exec",
-      "value": 5,
-      "time_criticality": 3,
-      "rroe": 8,
-      "effort": 5,
-      "wsjf": 3.2,
-      "labels": ["enhancement", "priority:low"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 83,
@@ -352,7 +353,9 @@
       "rroe": 5,
       "effort": 5,
       "wsjf": 2.4,
-      "labels": ["feature"]
+      "labels": [
+        "feature"
+      ]
     },
     {
       "number": 90,
@@ -362,11 +365,9 @@
       "rroe": 5,
       "effort": 5,
       "wsjf": 2.4,
-      "labels": ["enhancement"]
+      "labels": [
+        "enhancement"
+      ]
     }
-  ],
-  "deferred": [],
-  "last_refreshed": "2026-05-11T23:50:23.000Z",
-  "ttl_ms": 300000,
-  "next_refresh_after": "2026-05-11T23:55:23.000Z"
+  ]
 }
