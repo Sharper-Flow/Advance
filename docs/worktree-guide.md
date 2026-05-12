@@ -97,3 +97,85 @@ Example `postCreate` hook for assigning per-worktree local resources:
 
 Project setup scripts should be idempotent: rerunning `postCreate` should update
 or confirm the same resources, not create duplicates.
+
+## WSL Gotchas (Linux subsystem on Windows)
+
+When developing on WSL (Windows Subsystem for Linux), several Windows tools
+exposed via `$PATH` can cause Linux-side projects to behave unexpectedly. Any
+ADV-managed project on WSL should be aware of the patterns below.
+
+### Browser auto-discovery (chrome-launcher, puppeteer, playwright)
+
+`chrome-launcher` (used by lighthouse-ci, lighthouse, and other Chrome-driving
+tools) walks `$PATH` to find a Chrome binary. On WSL, `$PATH` typically
+contains `/mnt/c/Program Files/Google/...`, so it can pick up Windows
+`chrome.exe` instead of Linux `/usr/bin/google-chrome`. Windows Chrome then
+creates its `--user-data-dir` at a Windows-style path like
+`C:\Users\<user>\AppData\Local\lighthouse.NNNNN`. From the Linux side of WSL,
+that path materializes as a **literal directory** with backslashes in the name
+inside the project root.
+
+Symptoms:
+
+- 11+ directories named `C:\Users\<user>\AppData\Local\lighthouse.XXXXX` in the
+  repo root (each containing Chrome profile data: `Default/`,
+  `GrShaderCache/`, `Local State`, etc.)
+- Polluted `ls`, `glob`, and `lgrep` listings
+- Confused agents that interpret `C:\…` as Windows paths
+- `git status` may or may not list them depending on `.gitignore` patterns
+
+**Fix on the project side**: pin a Linux Chrome path in the tool config.
+For lighthouse-ci:
+
+```js
+// lighthouserc.cjs
+const chromePath =
+  process.env.CHROME_PATH ||
+  process.env.LHCI_CHROME_PATH ||
+  "/usr/bin/google-chrome";
+
+module.exports = {
+  ci: {
+    collect: {
+      chromePath,
+      settings: { chromePath /* … */ },
+    },
+  },
+};
+```
+
+For puppeteer / playwright: pass `executablePath: '/usr/bin/google-chrome'` to
+the launch options, or set `PUPPETEER_EXECUTABLE_PATH` /
+`PLAYWRIGHT_BROWSERS_PATH` env vars.
+
+**Defensive `.gitignore` patterns** even after the source is fixed:
+
+```gitignore
+# Stray Windows-path profile dirs from WSL chrome-launcher misfires
+C\:\\Users\\*/
+# Stray `--version` dir from CLI flag misparse (e.g. husky install --version)
+/--version/
+```
+
+**lgrep noise**: add the same patterns to `.lgrepignore` so accidental
+recurrences don't poison the embedding index.
+
+### CLI flag misparse (husky, others)
+
+Some CLIs (notably older Husky versions) treat unknown flags as positional
+path arguments. `husky install --version` creates a directory literally named
+`--version` containing the hook stubs. Pattern matches any CLI that does
+`mkdir <arg>` from argv. Same `.gitignore` / `.lgrepignore` defenses apply.
+
+### Related bugs
+
+- `#113` — `init.defaultBranch` global config leaking into local-repo default
+  resolution (fixed in `91109f9`)
+- `#123` — this section's source
+
+### Detection
+
+`/adv-tron` reconnaissance and `adv_status` worktree census don't currently
+flag WSL-pollution directories specifically. If you see directories with `\`
+in their names or starting with `--`, treat them as WSL artifacts and
+investigate the source tool.
