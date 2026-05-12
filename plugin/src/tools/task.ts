@@ -48,6 +48,11 @@ import {
   changeTaskQuery,
   changeReadyQuery,
 } from "../temporal/messages";
+import {
+  checkWorktreeIsolation,
+  type WorktreeIsolationDeps,
+  type WorktreeIsolationResult,
+} from "./worktree-isolation-guard";
 
 // =============================================================================
 // Helpers
@@ -55,6 +60,35 @@ import {
 
 function makeTaskId(): string {
   return `tk-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
+function readBooleanFeatureFlag(
+  features: unknown,
+  key: string,
+  defaultValue: boolean,
+): boolean {
+  if (!features || typeof features !== "object") return defaultValue;
+  const value = (features as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : defaultValue;
+}
+
+export function evaluateTaskAddWorktreeIsolation(input: {
+  features: unknown;
+  cwd: string;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): WorktreeIsolationResult {
+  if (
+    !readBooleanFeatureFlag(
+      input.features,
+      "worktree_guard_enforce",
+      false,
+    )
+  ) {
+    return { decision: "ALLOW" };
+  }
+  return checkWorktreeIsolation(input.cwd, {
+    getSessionContext: input.getSessionContext,
+  });
 }
 
 async function resolveChangeId(
@@ -501,6 +535,20 @@ export const taskTools = {
         projectContext?: TargetProjectOutputContext,
       ) => {
         const { changeId, content, metadata, blockedBy, section } = args;
+
+        const isolation = evaluateTaskAddWorktreeIsolation({
+          features: activeStore.config?.features,
+          cwd: process.cwd(),
+        });
+        if (isolation.decision === "BLOCK") {
+          return formatToolOutput({
+            error: isolation.reason,
+            errorClass: isolation.errorClass,
+            changeId,
+            mainCheckoutPath: isolation.mainCheckoutPath,
+            remediation: isolation.remediation,
+          });
+        }
 
         // Planning-gate lock: reject task creation after planning gate is complete
         const gates = await activeStore.gates.get(changeId);
