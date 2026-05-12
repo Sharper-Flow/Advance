@@ -104,7 +104,7 @@
     {
       "id": "rq-prop-tax1",
       "title": "Mandatory Scope Section",
-      "body": "/adv-proposal MUST require a ## Scope section in proposal.md with ### In Scope and ### Out of Scope subsections. Gate completion MUST block if either subsection is missing or empty.",
+      "body": "/adv-proposal MUST require a ## Scope section in proposal.md with ### In Scope, ### Out of Scope, and ### Must Not subsections. Gate completion MUST block if In Scope or Out of Scope is missing or empty. Missing Must Not produces HIGH B-boundaries finding but does NOT block gate. \"None identified\" is accepted as valid Must Not content.",
       "priority": "must",
       "tags": ["proposal", "scope", "ambiguity-taxonomy"],
       "scenarios": [
@@ -118,6 +118,18 @@
             "## Scope has ### In Scope subsection with content",
             "## Scope has ### Out of Scope subsection with content",
             "Proposal gate refuses to complete if either subsection is missing or empty"
+          ]
+        },
+        {
+          "id": "rq-prop-tax1.3",
+          "title": "Missing Must Not produces HIGH finding",
+          "given": ["A user invokes /adv-proposal for a new change"],
+          "when": "Phase 2 builds the full proposal",
+          "then": [
+            "proposal.md ## Scope has ### Must Not subsection",
+            "Missing ### Must Not produces HIGH B-boundaries finding",
+            "Gate completion is NOT blocked (HIGH only, not CRITICAL)",
+            "\"None identified\" is accepted as valid Must Not content"
           ]
         }
       ]

@@ -133,7 +133,7 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 
 **ID:** `rq-prop-tax1` | **Priority:** **[MUST]**
 
-/adv-proposal MUST require a ## Scope section in proposal.md with ### In Scope and ### Out of Scope subsections. Gate completion MUST block if either subsection is missing or empty.
+/adv-proposal MUST require a ## Scope section in proposal.md with ### In Scope, ### Out of Scope, and ### Must Not subsections. Gate completion MUST block if In Scope or Out of Scope is missing or empty. Missing Must Not produces HIGH B-boundaries finding but does NOT block gate. `"None identified"` is accepted as valid Must Not content.
 
 **Tags:** `proposal`, `scope`, `ambiguity-taxonomy`
 
@@ -153,6 +153,23 @@ Defines the responsibilities and boundaries of /adv-proposal. The proposal comma
 - ## Scope has ### In Scope subsection with content
 - ## Scope has ### Out of Scope subsection with content
 - Proposal gate refuses to complete if either subsection is missing or empty
+
+---
+
+**Missing Must Not produces HIGH finding** (`rq-prop-tax1.3`)
+
+**Given:**
+
+- A user invokes /adv-proposal for a new change
+
+**When:** Phase 2 builds the full proposal
+
+**Then:**
+
+- proposal.md ## Scope has ### Must Not subsection
+- Missing ### Must Not produces HIGH B-boundaries finding
+- Gate completion is NOT blocked (HIGH only, not CRITICAL)
+- `"None identified"` is accepted as valid Must Not content
 
 ---
 
