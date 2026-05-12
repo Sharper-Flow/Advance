@@ -24,7 +24,8 @@ export function checkWorktreeIsolation(
   deps: WorktreeIsolationDeps = {},
 ): WorktreeIsolationResult {
   const getSessionContext =
-    deps.getSessionContext ?? ((path) => resolveGitSessionContext(path, undefined));
+    deps.getSessionContext ??
+    ((path) => resolveGitSessionContext(path, undefined));
 
   let ctx: GitSessionContext;
   try {

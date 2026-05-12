@@ -67,11 +67,7 @@ export function evaluateGateWorktreeIsolation(input: {
 }): WorktreeIsolationResult {
   if (input.gateId === "proposal") return { decision: "ALLOW" };
   if (
-    !readBooleanFeatureFlag(
-      input.features,
-      "worktree_guard_enforce",
-      false,
-    )
+    !readBooleanFeatureFlag(input.features, "worktree_guard_enforce", false)
   ) {
     return { decision: "ALLOW" };
   }

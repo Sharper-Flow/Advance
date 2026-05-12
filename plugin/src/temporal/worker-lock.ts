@@ -198,7 +198,6 @@ function isHeartbeatStale(
   const heartbeatMs = Date.parse(contents.last_heartbeat);
   if (Number.isNaN(heartbeatMs)) return false;
   const nowMs = (options.now ?? (() => new Date()))().getTime();
-  const graceMs =
-    options.staleHeartbeatGraceMs ?? STALE_HEARTBEAT_GRACE_MS;
+  const graceMs = options.staleHeartbeatGraceMs ?? STALE_HEARTBEAT_GRACE_MS;
   return nowMs - heartbeatMs > graceMs;
 }

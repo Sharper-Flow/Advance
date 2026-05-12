@@ -104,6 +104,7 @@ export function createProbeCache<T, K extends string = string>(
         const message = errorMessage(error);
         throw new Error(
           `Probe cache fetch failed for ${options.name}[${key}]: ${message}`,
+          { cause: error },
         );
       }
 

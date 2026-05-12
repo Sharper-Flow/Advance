@@ -70,8 +70,10 @@ export interface StoreInitResult {
 
 export type WorkerRole = "host" | "client" | "degraded";
 
-export interface WorkerSingletonPlanOptions
-  extends Omit<ReclaimWorkerLockOptions, "schemaVersion" | "expectedQueue"> {
+export interface WorkerSingletonPlanOptions extends Omit<
+  ReclaimWorkerLockOptions,
+  "schemaVersion" | "expectedQueue"
+> {
   projectStateDir: string;
   expectedQueue: string;
   workerSingletonEnforce: boolean;
@@ -225,7 +227,9 @@ export async function tryInitStore(
         if (singletonPlan.lockResult?.owned) {
           workerHeartbeat = startWorkerLockHeartbeat(projectStateDir, {
             isServiceable: () =>
-              spawnedWorker ? isWorkerServiceable(spawnedWorker, expectedQueue) : true,
+              spawnedWorker
+                ? isWorkerServiceable(spawnedWorker, expectedQueue)
+                : true,
           });
           registerWorkerLockHeartbeat(workerHeartbeat);
         }

@@ -54,11 +54,11 @@ describe("plugin-init worker singleton plan", () => {
       "client",
       "client",
     ]);
-    expect([first.shouldSpawnWorker, second.shouldSpawnWorker, third.shouldSpawnWorker]).toEqual([
-      true,
-      false,
-      false,
-    ]);
+    expect([
+      first.shouldSpawnWorker,
+      second.shouldSpawnWorker,
+      third.shouldSpawnWorker,
+    ]).toEqual([true, false, false]);
   });
 
   test("flag off preserves legacy spawn path and does not acquire lock", async () => {
@@ -77,8 +77,14 @@ describe("plugin-init worker singleton plan", () => {
       pid: 2002,
     });
 
-    expect(first).toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
-    expect(second).toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
+    expect(first).toMatchObject({
+      shouldSpawnWorker: true,
+      workerRole: "host",
+    });
+    expect(second).toMatchObject({
+      shouldSpawnWorker: true,
+      workerRole: "host",
+    });
     await expect(access(join(dir, WORKER_LOCK_FILENAME))).rejects.toThrow();
   });
 
