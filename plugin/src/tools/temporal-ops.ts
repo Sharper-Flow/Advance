@@ -100,7 +100,7 @@ function diagnosticsShowAliveQueue(
   });
 }
 
-function classifySuspectWorkerLock(input: {
+export function classifySuspectWorkerLock(input: {
   health: TemporalHealthSnapshot;
   queueServiceability?: QueueServiceability | null;
 }): SuspectWorkerLockReason | undefined {
@@ -109,6 +109,7 @@ function classifySuspectWorkerLock(input: {
     return undefined;
   }
   if (lock.schema_version === 1) return "suspect_live_legacy_lock";
+  if (lock.schema_version === 2) return "suspect_live_unserviceable_lock";
   return undefined;
 }
 
