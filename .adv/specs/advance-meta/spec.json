@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.9.0",
-  "updated_at": "2026-05-11T00:00:00.000Z",
+  "version": "1.10.0",
+  "updated_at": "2026-05-12T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -74,13 +74,51 @@
           "when": "adv_status is executed",
           "then": [
             "Output includes feature_flags values",
-            "Defaults are applied when flags are omitted"
+            "Defaults are applied when flags are omitted",
+            "worker_singleton_enforce defaults true when omitted",
+            "worktree_guard_enforce defaults false when omitted"
           ]
         }
       ],
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-statusProbeCache01",
+      "title": "Bounded Cached Health Probes",
+      "body": "ADV health and recovery diagnostics that probe Temporal, task queues, worker diagnostics, search-attribute health, or worktree census must use bounded cached probes. Cached probe responses must surface _freshness metadata with cached_at, stale, and optional error. Stale probe data may inform recommendations but must not authorize safety-critical mutations such as worker-lock reclaim, restart success, override, unlock, or archive decisions.",
+      "priority": "must",
+      "tags": ["diagnostics", "temporal", "cache", "health"],
+      "scenarios": [
+        {
+          "id": "rq-statusProbeCache01.1",
+          "title": "Status health probes are coalesced and freshened",
+          "given": [
+            "Multiple adv_status view:health calls request Temporal health, queue serviceability, search-attribute health, or worktree census within the probe TTL"
+          ],
+          "when": "The probes execute",
+          "then": [
+            "Concurrent same-key probes are coalesced",
+            "Repeated calls within TTL return cached values",
+            "The health response includes _freshness metadata for each cached probe",
+            "Existing health fields remain present for legacy consumers"
+          ]
+        },
+        {
+          "id": "rq-statusProbeCache01.2",
+          "title": "Stale probe data is diagnostic-only for recovery safety",
+          "given": [
+            "A cached Temporal or worker-serviceability probe is stale because refresh aborted, timed out, or failed"
+          ],
+          "when": "A diagnostic or recovery tool builds recommendations",
+          "then": [
+            "The stale value may be returned with _freshness.stale=true and an error summary",
+            "The stale value must not be treated as proof of worker serviceability",
+            "The stale value must not authorize worker-lock reclaim, restart success, override, unlock, or archive decisions"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-opencodeDebt01",
@@ -476,9 +514,7 @@
         {
           "id": "rq-skillProseCompression01.1",
           "title": "Modified skill follows enforcement-class compression",
-          "given": [
-            "A skill file in skills/*/SKILL.md is created or modified"
-          ],
+          "given": ["A skill file in skills/*/SKILL.md is created or modified"],
           "when": "The skill file is prepared for archive",
           "then": [
             "The skill is compressed per the same enforcement-class framework as command files",
@@ -887,6 +923,19 @@
             "The owner records the self-expiry decision in last_worker_run_error for diagnostics",
             "Peer sessions can reclaim through the normal stale-heartbeat path without manual lock deletion"
           ]
+        },
+        {
+          "id": "rq-workerSingleton01.9",
+          "title": "Worker role is visible in health diagnostics",
+          "given": [
+            "ADV status health diagnostics are requested while worker singleton enforcement is active"
+          ],
+          "when": "adv_status view:health is executed",
+          "then": [
+            "The response includes worker_role with host, client, or degraded",
+            "The worker_role field is additive and does not remove legacy Temporal health fields",
+            "The feature_flags response shows worker_singleton_enforce and worktree_guard_enforce effective defaults"
+          ]
         }
       ]
     },
@@ -1275,9 +1324,7 @@
         {
           "id": "rq-twf01.2",
           "title": "Worktree file write allowed",
-          "given": [
-            "A tool call targets a path inside an active ADV worktree"
-          ],
+          "given": ["A tool call targets a path inside an active ADV worktree"],
           "when": "A write, edit, morph_edit, or known destructive bash write pattern is intercepted",
           "then": [
             "The tool execution is allowed",
@@ -1326,9 +1373,7 @@
         {
           "id": "rq-twf01.6",
           "title": "Outside-repo paths allowed",
-          "given": [
-            "A tool call targets a path outside any git checkout"
-          ],
+          "given": ["A tool call targets a path outside any git checkout"],
           "when": "The trunk write firewall cannot resolve a git root for the target path",
           "then": [
             "The tool execution is allowed",
@@ -1373,9 +1418,7 @@
         {
           "id": "rq-clarifyEnforcementAudit01.2",
           "title": "advisory mode includes findings without gate enforcement",
-          "given": [
-            "clarify_enforcement is set to 'advisory'"
-          ],
+          "given": ["clarify_enforcement is set to 'advisory'"],
           "when": "/adv-audit completes and applies quality gates",
           "then": [
             "Ambiguity findings appear in the report's ambiguity section",
@@ -1386,9 +1429,7 @@
         {
           "id": "rq-clarifyEnforcementAudit01.3",
           "title": "strict mode enforces ambiguity gates",
-          "given": [
-            "clarify_enforcement is set to 'strict'"
-          ],
+          "given": ["clarify_enforcement is set to 'strict'"],
           "when": "/adv-audit applies quality gates",
           "then": [
             "CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT",

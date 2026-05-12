@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
-  "version": "1.0.0",
-  "updated_at": "2026-05-04T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-05-12T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -16,7 +16,9 @@
         {
           "id": "rq-wl-branchRegistry01.1",
           "title": "Branch-only record survives worktree delete",
-          "given": ["A worktree is deleted via git but the registry entry retains branch"],
+          "given": [
+            "A worktree is deleted via git but the registry entry retains branch"
+          ],
           "when": "The registry is queried",
           "then": ["The entry exists with materialized=false and path=''"]
         },
@@ -39,7 +41,9 @@
         {
           "id": "rq-wl-setupReadiness01.1",
           "title": "Hook failure produces setup_failed",
-          "given": ["advWorktreeCreate is called and postCreate hook times out or returns non-zero"],
+          "given": [
+            "advWorktreeCreate is called and postCreate hook times out or returns non-zero"
+          ],
           "when": "The create flow handles the failure",
           "then": [
             "Registry entry has status=setup_failed",
@@ -73,14 +77,20 @@
           "title": "Orphan git worktree detected",
           "given": ["A git worktree exists on disk but has no registry entry"],
           "when": "scanGitWorkspaceFacts + reconcileWorktreeRegistry run",
-          "then": ["The reconciler produces an 'untracked' classification for that worktree"]
+          "then": [
+            "The reconciler produces an 'untracked' classification for that worktree"
+          ]
         },
         {
           "id": "rq-wl-gitFirstReconcile01.2",
           "title": "Missing worktree detected",
-          "given": ["A registry entry claims materialized=true but no git worktree exists"],
+          "given": [
+            "A registry entry claims materialized=true but no git worktree exists"
+          ],
           "when": "scanGitWorkspaceFacts + reconcileWorktreeRegistry run",
-          "then": ["The reconciler produces a 'missing' classification for that entry"]
+          "then": [
+            "The reconciler produces a 'missing' classification for that entry"
+          ]
         }
       ]
     },
@@ -94,23 +104,34 @@
         {
           "id": "rq-wl-resumeTool01.1",
           "title": "Resume reuses ready worktree",
-          "given": ["A materialized worktree with setupReady=true exists for the change"],
+          "given": [
+            "A materialized worktree with setupReady=true exists for the change"
+          ],
           "when": "advWorktreeResume is called with the changeId",
-          "then": ["Returns the existing worktree path without creating a new one"]
+          "then": [
+            "Returns the existing worktree path without creating a new one"
+          ]
         },
         {
           "id": "rq-wl-resumeTool01.2",
           "title": "Resume blocks on setup_failed",
-          "given": ["A worktree record with status=setup_failed exists for the change"],
+          "given": [
+            "A worktree record with status=setup_failed exists for the change"
+          ],
           "when": "advWorktreeResume is called with the changeId",
           "then": ["Returns SETUP_FAILED result with branch, path, and reason"]
         },
         {
           "id": "rq-wl-resumeTool01.3",
           "title": "Resume materializes branch-only record",
-          "given": ["A registry entry exists with materialized=false and a branch name"],
+          "given": [
+            "A registry entry exists with materialized=false and a branch name"
+          ],
           "when": "advWorktreeResume is called with the changeId",
-          "then": ["Creates the git worktree through the strict create path", "Returns the new worktree path"]
+          "then": [
+            "Creates the git worktree through the strict create path",
+            "Returns the new worktree path"
+          ]
         }
       ]
     },
@@ -124,7 +145,10 @@
         {
           "id": "rq-wl-cleanupEligibility01.1",
           "title": "Merged entry is cleanup-eligible",
-          "given": ["A worktree entry has status=merged", "No active sessions reference this worktree"],
+          "given": [
+            "A worktree entry has status=merged",
+            "No active sessions reference this worktree"
+          ],
           "when": "Cleanup eligibility is evaluated",
           "then": ["cleanupEligible=true", "cleanupBlockedBy is empty"]
         },
@@ -133,7 +157,60 @@
           "title": "Active session blocks cleanup",
           "given": ["A worktree entry has an active session"],
           "when": "Cleanup eligibility is evaluated",
-          "then": ["cleanupEligible=false", "cleanupBlockedBy documents the active session"]
+          "then": [
+            "cleanupEligible=false",
+            "cleanupBlockedBy documents the active session"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreeMutationGuard01",
+      "title": "Machine-Enforced ADV Worktree Mutation Guard",
+      "body": "ADV mutating tools that advance gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true. Mutations from an ADV worktree remain allowed. The proposal gate remains exempt so a change can be created before a worktree exists. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions.",
+      "priority": "must",
+      "tags": ["worktree", "safety", "mutation-guard"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeMutationGuard01.1",
+          "title": "Gate completion blocks from main checkout",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
+            "The current session is in the main checkout"
+          ],
+          "when": "adv_gate_complete is called for discovery, design, planning, execution, acceptance, or release",
+          "then": [
+            "The tool returns WorktreeIsolationViolation before any state mutation",
+            "The response includes mainCheckoutPath and remediation",
+            "No gate completion signal is sent"
+          ]
+        },
+        {
+          "id": "rq-worktreeMutationGuard01.2",
+          "title": "Task execution mutations block from main checkout",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
+            "The current session is in the main checkout"
+          ],
+          "when": "adv_task_add or adv_task_update with in_progress, done, or cancelled status is called",
+          "then": [
+            "The tool returns WorktreeIsolationViolation before any task signal mutation",
+            "The response includes mainCheckoutPath and remediation",
+            "Worktree-origin task mutations remain allowed"
+          ]
+        },
+        {
+          "id": "rq-worktreeMutationGuard01.3",
+          "title": "Proposal gate and flag-off paths remain compatible",
+          "given": [
+            "The proposal gate is being completed or worktree_guard_enforce is false"
+          ],
+          "when": "A supported ADV mutation executes from the main checkout",
+          "then": [
+            "The proposal gate completion remains allowed so a worktree can be created after proposal",
+            "Flag-off behavior preserves legacy mutation flow",
+            "The guard remains additive and does not alter read-only tools"
+          ]
         }
       ]
     }

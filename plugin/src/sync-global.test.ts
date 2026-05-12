@@ -19,6 +19,10 @@ const ADVANCE_META_SPEC_PATH = join(
   REPO_ROOT,
   ".adv/specs/advance-meta/spec.json",
 );
+const WORKTREE_LIFECYCLE_SPEC_PATH = join(
+  REPO_ROOT,
+  ".adv/specs/worktree-lifecycle/spec.json",
+);
 
 describe("sync-global.sh", () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
@@ -479,11 +483,12 @@ describe("sync-global.sh", () => {
       // and self-expiry guidance (rq-workerSingleton01.7/.8).
       expect(workerSingleton?.body).toContain("unserviceable");
       expect(workerSingleton?.body).toContain("stop renewing");
-      expect(workerSingleton?.scenarios).toHaveLength(8);
+      expect(workerSingleton?.scenarios).toHaveLength(9);
       expect(scenarioIds).toContain("rq-workerSingleton01.5");
       expect(scenarioIds).toContain("rq-workerSingleton01.6");
       expect(scenarioIds).toContain("rq-workerSingleton01.7");
       expect(scenarioIds).toContain("rq-workerSingleton01.8");
+      expect(scenarioIds).toContain("rq-workerSingleton01.9");
       expect(
         workerSingleton?.scenarios?.find(
           (s) => s.id === "rq-workerSingleton01.2",
@@ -506,6 +511,11 @@ describe("sync-global.sh", () => {
           ?.find((s) => s.id === "rq-workerSingleton01.8")
           ?.then.join("\n"),
       ).toContain("stop renewing the heartbeat");
+      expect(
+        workerSingleton?.scenarios
+          ?.find((s) => s.id === "rq-workerSingleton01.9")
+          ?.then.join("\n"),
+      ).toContain("worker_role");
       expect(workerHealth?.scenarios).toHaveLength(4);
       expect(scenarioIds).toContain("rq-workerHealth01.1");
       expect(scenarioIds).toContain("rq-workerHealth01.2");
@@ -521,6 +531,56 @@ describe("sync-global.sh", () => {
           ?.find((s) => s.id === "rq-workerHealth01.4")
           ?.then.join("\n"),
       ).toContain("STSL");
+    });
+
+    test("advance-meta spec captures stability feature-flag defaults and probe freshness", () => {
+      const parsed = SpecSchema.parse(spec);
+      const advConfig = parsed.requirements.find(
+        (rq) => rq.id === "rq-advcfg01",
+      );
+      const probeCache = parsed.requirements.find(
+        (rq) => rq.id === "rq-statusProbeCache01",
+      );
+
+      expect(
+        advConfig?.scenarios
+          ?.find((s) => s.id === "rq-advcfg01.2")
+          ?.then.join("\n"),
+      ).toContain("worker_singleton_enforce defaults true");
+      expect(
+        advConfig?.scenarios
+          ?.find((s) => s.id === "rq-advcfg01.2")
+          ?.then.join("\n"),
+      ).toContain("worktree_guard_enforce defaults false");
+      expect(probeCache).toBeDefined();
+      expect(probeCache?.body).toContain("_freshness");
+      expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(
+        expect.arrayContaining([
+          "rq-statusProbeCache01.1",
+          "rq-statusProbeCache01.2",
+        ]),
+      );
+    });
+
+    test("worktree-lifecycle spec captures ADV mutation guard", () => {
+      const worktreeSpec = JSON.parse(
+        readFileSync(WORKTREE_LIFECYCLE_SPEC_PATH, "utf8"),
+      );
+      const parsed = SpecSchema.parse(worktreeSpec);
+      const guard = parsed.requirements.find(
+        (rq) => rq.id === "rq-worktreeMutationGuard01",
+      );
+
+      expect(guard).toBeDefined();
+      expect(guard?.body).toContain("main checkout");
+      expect(guard?.body).toContain("proposal gate");
+      expect(guard?.scenarios?.map((s) => s.id)).toEqual(
+        expect.arrayContaining([
+          "rq-worktreeMutationGuard01.1",
+          "rq-worktreeMutationGuard01.2",
+          "rq-worktreeMutationGuard01.3",
+        ]),
+      );
     });
 
     test("advance-meta spec captures worktree-reuse preflight requirement", () => {
