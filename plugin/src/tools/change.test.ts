@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
-import { changeTools } from "./change";
+import { changeTools, closeLinkedIssue } from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
 
@@ -37,6 +37,9 @@ const mocks = vi.hoisted(() => {
       removed: [] as string[],
       failed: [] as Array<{ id: string; error: string }>,
     })),
+    execGh: vi.fn(),
+    readGitHubProjectConfig: vi.fn(),
+    execGit: vi.fn(),
   };
 });
 
@@ -73,6 +76,23 @@ vi.mock("../storage/json", async () => {
 vi.mock("../storage/disk-sweep", () => ({
   sweepClosedChangesFromDisk: mocks.sweepClosedChangesFromDisk,
 }));
+
+vi.mock("../integrations/gh-cli", () => ({
+  execGh: mocks.execGh,
+}));
+
+vi.mock("../storage/github-project-config", () => ({
+  readGitHubProjectConfig: mocks.readGitHubProjectConfig,
+}));
+
+vi.mock("../utils/git.js", async () => {
+  const actual =
+    await vi.importActual<typeof import("../utils/git.js")>("../utils/git.js");
+  return {
+    ...actual,
+    execGit: mocks.execGit,
+  };
+});
 
 function createMockStore(
   changeOverrides: Partial<Change> = {},
@@ -785,6 +805,242 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.dryRun).toBe(true);
       expect(parsed.message).toContain("Would reenter change test-change");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("closeLinkedIssue in adv_change_archive", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    test("happy path: roadmap origin, issue closed successfully", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+      mocks.execGit.mockResolvedValueOnce("abc1234\n"); // short SHA
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // comment
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // close
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+      });
+
+      expect(result.close_eligible).toBe(true);
+      expect(result.issue_closed).toEqual([42]);
+      expect(result.issue_closure_error).toBeUndefined();
+      expect(mocks.execGh).toHaveBeenCalledTimes(2);
+      expect(mocks.execGh).toHaveBeenNthCalledWith(
+        1,
+        [
+          "issue",
+          "comment",
+          "42",
+          "--body",
+          "Shipped via test-change (abc1234)",
+        ],
+        "/tmp/test",
+      );
+      expect(mocks.execGh).toHaveBeenNthCalledWith(
+        2,
+        ["issue", "close", "42", "--reason", "completed"],
+        "/tmp/test",
+      );
+    });
+
+    test("already-closed: gh issue close returns exit 0 on already-closed issue", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+      mocks.execGit.mockResolvedValueOnce("abc1234\n");
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // comment
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // close (already closed is still exit 0)
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+      });
+
+      expect(result.issue_closed).toEqual([42]);
+      expect(result.issue_closure_error).toBeUndefined();
+    });
+
+    test("gh-not-found: execGh returns ghNotFound: true -> silent skip", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+      mocks.execGit.mockResolvedValueOnce("abc1234\n");
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // comment
+      mocks.execGh.mockResolvedValueOnce({
+        exitCode: -1,
+        stderr: "gh: command not found",
+        ghNotFound: true,
+      });
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+      });
+
+      expect(result.close_eligible).toBe(true);
+      expect(result.issue_closed).toEqual([]);
+      expect(result.issue_closure_error).toBeUndefined();
+    });
+
+    test("auth failure: execGh returns non-zero exit -> non-fatal error with manual command", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+      mocks.execGit.mockResolvedValueOnce("abc1234\n");
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // comment
+      mocks.execGh.mockResolvedValueOnce({
+        exitCode: 1,
+        stderr: "HTTP 401: Bad credentials",
+        ghNotFound: false,
+      });
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+      });
+
+      expect(result.issue_closed).toEqual([]);
+      expect(result.issue_closure_error).toBeDefined();
+      expect(result.issue_closure_error!.issue_number).toBe(42);
+      expect(result.issue_closure_error!.exitCode).toBe(1);
+      expect(result.issue_closure_error!.stderr).toContain("Bad credentials");
+      expect(result.issue_closure_error!.manualCommand).toBe(
+        "gh issue close 42 --reason completed",
+      );
+    });
+
+    test("dryRun=true -> skip GH calls, return close_eligible", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+        dryRun: true,
+      });
+
+      expect(result.close_eligible).toBe(true);
+      expect(result.issue_closed).toEqual([]);
+      expect(result.dryRun).toBe(true);
+      expect(mocks.execGh).not.toHaveBeenCalled();
+    });
+
+    test("--no-close-issue -> skip entirely", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+        noCloseIssue: true,
+      });
+
+      expect(result.close_eligible).toBe(true);
+      expect(result.issue_closed).toEqual([]);
+      expect(mocks.execGh).not.toHaveBeenCalled();
+    });
+
+    test("ineligible origin: discovery/adhoc origin -> no closure attempted", async () => {
+      const store = createMockStore({
+        origin: { kind: "discovery", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+      });
+
+      expect(result.issue_closed).toEqual([]);
+      expect(result.close_eligible).toBeUndefined();
+      expect(mocks.execGh).not.toHaveBeenCalled();
+    });
+
+    test("cross-repo owner: github_project config has different owner -> --repo flag used", async () => {
+      const store = createMockStore({
+        origin: { kind: "roadmap", issue_number: 42 },
+        status: "active",
+        gates: allDoneGates,
+      });
+      mocks.readGitHubProjectConfig.mockResolvedValueOnce({
+        owner: "different-owner",
+        project_number: 1,
+        project_id: "proj-123",
+        title: "Test Project",
+        repository_filter: "other-repo",
+        fields: {
+          adv_type: "type",
+          priority: "priority",
+          value: "value",
+          time_criticality: "tc",
+          rroe: "rroe",
+          effort: "effort",
+          wsjf: "wsjf",
+        },
+        adv_type_options: {},
+        priority_options: {},
+      });
+      mocks.execGit
+        .mockResolvedValueOnce(
+          "https://github.com/current-owner/current-repo\n",
+        ) // remote get-url
+        .mockResolvedValueOnce("abc1234\n"); // short SHA
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // comment
+      mocks.execGh.mockResolvedValueOnce({ exitCode: 0, stderr: "" }); // close
+
+      const result = await closeLinkedIssue({
+        change: (await store.changes.get("test-change")).data!,
+        store,
+      });
+
+      expect(result.issue_closed).toEqual([42]);
+      expect(mocks.execGh).toHaveBeenCalledTimes(2);
+      expect(mocks.execGh).toHaveBeenNthCalledWith(
+        1,
+        [
+          "issue",
+          "comment",
+          "42",
+          "--body",
+          "Shipped via test-change (abc1234)",
+          "--repo",
+          "different-owner/other-repo",
+        ],
+        "/tmp/test",
+      );
+      expect(mocks.execGh).toHaveBeenNthCalledWith(
+        2,
+        [
+          "issue",
+          "close",
+          "42",
+          "--reason",
+          "completed",
+          "--repo",
+          "different-owner/other-repo",
+        ],
+        "/tmp/test",
+      );
     });
   });
 });

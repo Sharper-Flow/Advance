@@ -9,6 +9,9 @@ import { z } from "zod";
 import { basename, join } from "path";
 import { readFile, stat, realpath } from "fs/promises";
 import { execGit, getDefaultBranch } from "../utils/git.js";
+import { parseGitRemoteUrl } from "../utils/git-remote";
+import { execGh } from "../integrations/gh-cli";
+import { readGitHubProjectConfig } from "../storage/github-project-config";
 import type {
   Spec,
   FeatureFlags,
@@ -930,6 +933,144 @@ async function buildReentryResult(
   }
 
   return formatToolOutput(output);
+}
+
+// =============================================================================
+// Linked Issue Closure
+// =============================================================================
+
+export interface CloseLinkedIssueResult {
+  close_eligible?: boolean;
+  issue_closed: number[];
+  issue_closure_error?: {
+    issue_number: number;
+    exitCode: number;
+    stderr: string;
+    manualCommand: string;
+  };
+  dryRun?: boolean;
+}
+
+export async function closeLinkedIssue(options: {
+  change: Change;
+  store: Store;
+  noCloseIssue?: boolean;
+  dryRun?: boolean;
+  existingBundlePath?: string;
+  worktreePath?: string;
+}): Promise<CloseLinkedIssueResult> {
+  const {
+    change,
+    store,
+    noCloseIssue,
+    dryRun,
+    existingBundlePath,
+    worktreePath,
+  } = options;
+
+  const kind = change.origin?.kind;
+  const issueNumber = change.origin?.issue_number;
+  if (
+    !kind ||
+    !["roadmap", "triage"].includes(kind) ||
+    !issueNumber ||
+    issueNumber <= 0
+  ) {
+    return { issue_closed: [] };
+  }
+
+  if (noCloseIssue) {
+    return { close_eligible: true, issue_closed: [] };
+  }
+
+  if (dryRun) {
+    return { close_eligible: true, issue_closed: [], dryRun: true };
+  }
+
+  const ghConfig = await readGitHubProjectConfig(
+    store.paths.root,
+    store.paths.external ?? null,
+  );
+
+  const cwd = worktreePath ?? store.paths.root;
+
+  // Determine if --repo flag is needed
+  let repoFlag: string | undefined;
+  if (ghConfig?.owner && ghConfig?.repository_filter) {
+    const configRepo = `${ghConfig.owner}/${ghConfig.repository_filter}`;
+    let currentRepoStr: string | undefined;
+    try {
+      const remoteUrl = (
+        await execGit(["remote", "get-url", "origin"], cwd)
+      ).trim();
+      const parsed = parseGitRemoteUrl(remoteUrl);
+      if (parsed) {
+        currentRepoStr = `${parsed.owner}/${parsed.name}`;
+      }
+    } catch {
+      // ignore
+    }
+    if (!currentRepoStr || currentRepoStr !== configRepo) {
+      repoFlag = configRepo;
+    }
+  }
+
+  // Get short SHA for comment
+  let shortSha = "unknown";
+  try {
+    shortSha = (await execGit(["rev-parse", "--short", "HEAD"], cwd)).trim();
+  } catch {
+    // silently use "unknown"
+  }
+
+  // Post comment unless re-archive
+  if (!existingBundlePath) {
+    const commentText = `Shipped via ${change.id} (${shortSha})`;
+    const commentArgs = [
+      "issue",
+      "comment",
+      String(issueNumber),
+      "--body",
+      commentText,
+    ];
+    if (repoFlag) {
+      commentArgs.push("--repo", repoFlag);
+    }
+    await execGh(commentArgs, cwd);
+    // Comment errors are non-fatal; continue to close
+  }
+
+  // Close the issue
+  const closeArgs = [
+    "issue",
+    "close",
+    String(issueNumber),
+    "--reason",
+    "completed",
+  ];
+  if (repoFlag) {
+    closeArgs.push("--repo", repoFlag);
+  }
+  const closeResult = await execGh(closeArgs, cwd);
+
+  if (closeResult.ghNotFound) {
+    return { close_eligible: true, issue_closed: [] };
+  }
+
+  if (closeResult.exitCode !== 0) {
+    const manualCommand = `gh issue close ${issueNumber} --reason completed${repoFlag ? ` --repo ${repoFlag}` : ""}`;
+    return {
+      issue_closed: [],
+      issue_closure_error: {
+        issue_number: issueNumber,
+        exitCode: closeResult.exitCode,
+        stderr: closeResult.stderr,
+        manualCommand,
+      },
+    };
+  }
+
+  return { close_eligible: true, issue_closed: [issueNumber] };
 }
 
 // =============================================================================
@@ -2299,13 +2440,31 @@ export const changeTools = {
         .describe(
           "Optional absolute path to a git worktree where the in-repo bundle should be written. Defaults to the project root (main checkout). Used by /adv-archive Phase 9 Step 1 so bundles land in the worktree's .adv/archive/ and can be staged on the change branch without cp -r workarounds.",
         ),
+      noCloseIssue: z
+        .boolean()
+        .optional()
+        .describe("Skip automatic linked GitHub issue closure"),
+      closeIssue: z
+        .boolean()
+        .optional()
+        .describe(
+          "Backward-compatible explicit affirmative (no-op, closure is default-on)",
+        ),
     },
     execute: async (
       {
         changeId,
         dryRun,
         worktreePath,
-      }: { changeId: string; dryRun?: boolean; worktreePath?: string },
+        noCloseIssue,
+        closeIssue: _closeIssue,
+      }: {
+        changeId: string;
+        dryRun?: boolean;
+        worktreePath?: string;
+        noCloseIssue?: boolean;
+        closeIssue?: boolean;
+      },
       store: Store,
     ) => {
       const result = await store.changes.get(changeId);
@@ -2497,6 +2656,16 @@ export const changeTools = {
         }
       }
 
+      // Issue closure — after archive state is durable (or previewed in dryRun)
+      const issueClosure = await closeLinkedIssue({
+        change,
+        store,
+        noCloseIssue,
+        dryRun,
+        existingBundlePath: existingBundlePath ?? undefined,
+        worktreePath,
+      });
+
       return formatToolOutput({
         success: archiveResult.success,
         specsUpdated: archiveResult.specsUpdated.map((s) => ({
@@ -2510,6 +2679,15 @@ export const changeTools = {
         dryRun: dryRun ?? false,
         ...(archiveResult.multiRepo
           ? { multiRepo: archiveResult.multiRepo }
+          : {}),
+        ...(issueClosure.issue_closed.length > 0
+          ? { issue_closed: issueClosure.issue_closed }
+          : {}),
+        ...(issueClosure.close_eligible
+          ? { close_eligible: issueClosure.close_eligible }
+          : {}),
+        ...(issueClosure.issue_closure_error
+          ? { issue_closure_error: issueClosure.issue_closure_error }
           : {}),
         ...(validationResult.warnings.length > 0
           ? {
