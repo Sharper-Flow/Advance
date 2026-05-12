@@ -12,8 +12,6 @@
  */
 
 import { type Plugin } from "@opencode-ai/plugin";
-import { execFileSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -63,6 +61,9 @@ import {
 } from "./tools/trunk-write-firewall";
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { execGit, getDefaultBranch } from "./utils/git";
+import { resolveGitSessionContext } from "./utils/git-session";
+
+export { resolveGitSessionContext } from "./utils/git-session";
 
 const MAX_PROMPT_TOOL_OUTPUT_CHARS = 24_000;
 const MAX_PROMPT_DIFF_CHARS = 24_000;
@@ -241,35 +242,6 @@ const resolveStatus = (s: PluginState): StatusMarker => {
 
 const debugLog = (msg: string): void => appendDebugLog("index", msg);
 const hooksLogger = createLogger("hooks");
-
-function resolveGitSessionContext(
-  directory: string,
-  worktree: string | undefined,
-): { isWorktree: boolean; isMainCheckout: boolean; mainCheckoutPath?: string } {
-  const cwd = worktree || directory;
-  try {
-    const topLevel = execFileSync(
-      "git",
-      ["rev-parse", "--path-format=absolute", "--show-toplevel"],
-      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim();
-    const commonDir = execFileSync(
-      "git",
-      ["rev-parse", "--path-format=absolute", "--git-common-dir"],
-      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim();
-    const mainCheckoutPath = dirname(commonDir);
-    const isMainCheckout = resolve(topLevel) === resolve(mainCheckoutPath);
-    return {
-      isWorktree: !isMainCheckout,
-      isMainCheckout,
-      mainCheckoutPath,
-    };
-  } catch {
-    const isWorktree = !!worktree && worktree !== directory;
-    return { isWorktree, isMainCheckout: !isWorktree };
-  }
-}
 
 /**
  * Build a minimal degraded hooks object for the case where the plugin
