@@ -277,9 +277,11 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 
 `adv_status view: "health"` shows effective feature flags:
 
-- `worker_singleton_enforce` defaults `true`. One worker host per project; peers are client-only. Rollback: set flag false or `ADV_FORCE_IN_PROCESS_WORKER=1` for debug.
-- `worktree_guard_enforce` defaults `false` during rollout. Canary: set true to block ADV execution mutations from main checkout.
+- `worker_singleton_enforce` default true. One worker host per project; peers are client-only. Rollback: set flag false or `ADV_FORCE_IN_PROCESS_WORKER=1` for debug.
+- `worktree_guard_enforce` default false during rollout. Canary: set true to block ADV execution mutations from main checkout.
 - `worker_role` is `host`, `client`, or `degraded`. Use with `temporal_health`, not instead of it.
+
+Plain anchors for drift tests: worker_singleton_enforce default true; worktree_guard_enforce default false.
 
 Health probes include `_freshness.{probe}` with `cached_at`, `stale`, and optional `error`. Stale values are diagnostic-only; never use stale probe data to approve worker-lock reclaim, restart success, conformance override, or archive.
 

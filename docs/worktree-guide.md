@@ -55,7 +55,8 @@ Implementation refs:
 
 ## Machine Worktree Guard
 
-`worktree_guard_enforce` defaults `false` for rollout. When enabled, ADV
+`worktree_guard_enforce` default false for rollout (plain key:
+worktree_guard_enforce default false). When enabled, ADV
 mutating execution tools reject main-checkout task/gate mutations with
 `WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation. Use
 `adv_worktree_resume` and rerun from returned workdir.
