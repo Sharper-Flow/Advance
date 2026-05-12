@@ -13,6 +13,7 @@
 
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
+import { loadProjectConfig } from "./storage/json";
 import { buildProjectTaskQueue } from "./temporal/client";
 import { initStsl, closeStsl, getService } from "./temporal/service";
 import {
@@ -42,6 +43,15 @@ import {
 import { getExternalRoot, getProjectId } from "./utils/project-id";
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 import { resolveProductContext } from "./storage/product-context";
+import {
+  tryReclaimStaleLock,
+  type ReclaimWorkerLockOptions,
+  type WorkerLockResult,
+} from "./temporal/worker-lock";
+import {
+  startWorkerLockHeartbeat,
+  type WorkerLockHeartbeatController,
+} from "./temporal/worker-heartbeat";
 
 const debugLog = (msg: string): void => appendDebugLog("plugin-init", msg);
 const logger = createLogger("plugin-init");
@@ -58,6 +68,42 @@ export interface StoreInitResult {
   initError: Error | null;
 }
 
+export type WorkerRole = "host" | "client" | "degraded";
+
+export interface WorkerSingletonPlanOptions
+  extends Omit<ReclaimWorkerLockOptions, "schemaVersion" | "expectedQueue"> {
+  projectStateDir: string;
+  expectedQueue: string;
+  workerSingletonEnforce: boolean;
+  forceInProcessWorker?: boolean;
+}
+
+export interface WorkerSingletonPlan {
+  shouldSpawnWorker: boolean;
+  workerRole: WorkerRole;
+  lockResult?: WorkerLockResult;
+}
+
+export async function resolveWorkerSingletonPlan(
+  options: WorkerSingletonPlanOptions,
+): Promise<WorkerSingletonPlan> {
+  if (options.forceInProcessWorker || !options.workerSingletonEnforce) {
+    return { shouldSpawnWorker: true, workerRole: "host" };
+  }
+
+  const lockResult = await tryReclaimStaleLock(options.projectStateDir, {
+    ...options,
+    schemaVersion: 2,
+    expectedQueue: options.expectedQueue,
+  });
+
+  return {
+    shouldSpawnWorker: lockResult.owned,
+    workerRole: lockResult.owned ? "host" : "client",
+    lockResult,
+  };
+}
+
 function buildTemporalClientEnv(input: {
   address: string;
   namespace: string;
@@ -69,6 +115,16 @@ function buildTemporalClientEnv(input: {
       ? { ADV_TEMPORAL_ALLOW_REMOTE: process.env.ADV_TEMPORAL_ALLOW_REMOTE }
       : {}),
   };
+}
+
+function readBooleanFeatureFlag(
+  features: unknown,
+  key: string,
+  defaultValue: boolean,
+): boolean {
+  if (!features || typeof features !== "object") return defaultValue;
+  const value = (features as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : defaultValue;
 }
 
 /**
@@ -103,6 +159,7 @@ export async function tryInitStore(
 ): Promise<StoreInitResult> {
   const initStartedAt = performance.now();
   let worker: InProcessWorker | undefined;
+  let workerHeartbeat: WorkerLockHeartbeatController | undefined;
 
   try {
     const projectIdStartedAt = performance.now();
@@ -139,10 +196,38 @@ export async function tryInitStore(
       // project queue. No peer lock / heartbeat coordination is needed here.
       const projectStateDir = productExternalRoot;
       const expectedQueue = buildProjectTaskQueue(projectId);
-      const shouldSpawnWorker = true;
+      const projectConfig = await loadProjectConfig(effectiveDir).catch(
+        () => null,
+      );
+      const workerSingletonEnforce = readBooleanFeatureFlag(
+        projectConfig?.features,
+        "worker_singleton_enforce",
+        true,
+      );
+      const singletonPlan = await resolveWorkerSingletonPlan({
+        projectStateDir,
+        expectedQueue,
+        workerSingletonEnforce,
+        forceInProcessWorker: process.env.ADV_FORCE_IN_PROCESS_WORKER === "1",
+      });
+      const shouldSpawnWorker = singletonPlan.shouldSpawnWorker;
+      profilePluginInit("worker_singleton_resolved", {
+        enforce: workerSingletonEnforce,
+        forceInProcessWorker: process.env.ADV_FORCE_IN_PROCESS_WORKER === "1",
+        workerRole: singletonPlan.workerRole,
+        owned: singletonPlan.lockResult?.owned,
+        ownerPid: singletonPlan.lockResult?.ownerPid,
+      });
 
       if (shouldSpawnWorker) {
         let spawnedWorker: InProcessWorker | undefined;
+        if (singletonPlan.lockResult?.owned) {
+          workerHeartbeat = startWorkerLockHeartbeat(projectStateDir, {
+            isServiceable: () =>
+              spawnedWorker ? isWorkerServiceable(spawnedWorker, expectedQueue) : true,
+          });
+          registerWorkerLockHeartbeat(workerHeartbeat);
+        }
         const onWorkerExhausted = async (): Promise<void> => {
           await handleWorkerExhausted(projectStateDir, spawnedWorker);
         };
@@ -255,6 +340,15 @@ export async function tryInitStore(
         );
       }
     }
+    if (workerHeartbeat) {
+      try {
+        await workerHeartbeat.stop();
+      } catch (heartbeatError) {
+        debugLog(
+          `Error stopping worker heartbeat after init failure: ${heartbeatError instanceof Error ? heartbeatError.message : String(heartbeatError)}`,
+        );
+      }
+    }
 
     logger.info(
       `Plugin init failed: ${initError.message} — adv_* tools are stubbed and will report ADV_PLUGIN_INIT_FAILED until the cause is fixed.`,
@@ -265,6 +359,7 @@ export async function tryInitStore(
 }
 
 const inProcessTemporalWorkers = new Set<InProcessWorker>();
+const workerLockHeartbeats = new Set<WorkerLockHeartbeatController>();
 
 const exhaustedWorkerDirs = new Set<string>();
 
@@ -287,6 +382,17 @@ async function handleWorkerExhausted(
  */
 export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
   inProcessTemporalWorkers.add(worker);
+}
+
+function registerWorkerLockHeartbeat(
+  heartbeat: WorkerLockHeartbeatController,
+): void {
+  workerLockHeartbeats.add(heartbeat);
+}
+
+function isWorkerServiceable(worker: InProcessWorker, queue: string): boolean {
+  const failedQueues = new Set(worker.failedQueues ?? []);
+  return worker.queues.includes(queue) && !failedQueues.has(queue);
 }
 
 export function getRegisteredTemporalWorkerQueues(): string[] {
@@ -399,6 +505,20 @@ async function drainInProcessTemporalWorkers(): Promise<void> {
         await worker.shutdown();
       } catch (e) {
         debugLog(`Error shutting down in-process Temporal worker: ${e}`);
+      }
+    }),
+  );
+}
+
+async function drainWorkerLockHeartbeats(): Promise<void> {
+  const heartbeats = [...workerLockHeartbeats];
+  workerLockHeartbeats.clear();
+  await Promise.all(
+    heartbeats.map(async (heartbeat) => {
+      try {
+        await heartbeat.stop();
+      } catch (e) {
+        debugLog(`Error stopping worker lock heartbeat: ${e}`);
       }
     }),
   );
@@ -543,6 +663,7 @@ export function registerShutdownHandlers(
     // The in-process worker's shutdown is best-effort at this stage; real
     // graceful drain happens via shutdownWithFlush on SIGINT/SIGTERM.
     stopWorkerHealthMonitor();
+    void drainWorkerLockHeartbeats();
     void drainInProcessTemporalWorkers();
     if (!store) return;
     try {
@@ -585,6 +706,7 @@ export function registerShutdownHandlers(
     void (async () => {
       try {
         await activeStore.flush();
+        await drainWorkerLockHeartbeats();
         await drainInProcessTemporalWorkers();
         await closeStsl();
       } catch (e) {
