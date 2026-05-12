@@ -51,6 +51,7 @@ tools:
   adv_task_ready: true
   adv_wisdom_list: true
   adv_gate_status: true
+  adv_snapshot_health: true
   # === ADV evidence/test (task-level only) ===
   adv_run_test: true
   adv_wisdom_add: true
