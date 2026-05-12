@@ -103,11 +103,26 @@ default true; rollback/debug escape hatches are setting that flag false or
 `ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` default false during
 rollout.
 
+Restart verification timeout: `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` defaults to
+10000 ms. Raise only when Temporal queue serviceability is slow but healthy.
+
 Plain anchors for drift tests: worker_singleton_enforce default true; worktree_guard_enforce default false.
 
 Stale `_freshness` values are diagnostic-only. Do not treat stale serviceability
 as proof of restart success, worker-lock reclaim safety, override safety, or
 archive readiness.
+
+### Stability rollout canary
+
+After upgrade, verify:
+
+1. `adv_status view:"health"` returns `worker_role` and both feature flags.
+2. First session on project reports `worker_role: "host"`; peers report `client`.
+3. With `worktree_guard_enforce=true`, main-checkout task/gate mutations block
+   with `WorktreeIsolationViolation`; same call from `adv_worktree_resume` path
+   proceeds.
+4. Restart verification success includes non-stale `_freshness` for
+   `restart_serviceability`.
 
 ### Worker lock heartbeat fields
 

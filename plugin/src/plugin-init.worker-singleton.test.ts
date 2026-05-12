@@ -1,10 +1,13 @@
 import { access } from "fs/promises";
 import { join } from "path";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { cleanupTempDir, createTempDir } from "./__tests__/setup";
 import { WORKER_LOCK_FILENAME } from "./temporal/worker-lock";
-import { resolveWorkerSingletonPlan } from "./plugin-init";
+import {
+  registerShutdownHandlers,
+  resolveWorkerSingletonPlan,
+} from "./plugin-init";
 
 const NOW = new Date("2026-05-12T00:00:00.000Z");
 
@@ -14,6 +17,7 @@ describe("plugin-init worker singleton plan", () => {
   afterEach(async () => {
     await Promise.all(tempDirs.map((dir) => cleanupTempDir(dir)));
     tempDirs = [];
+    vi.restoreAllMocks();
   });
 
   const tempDir = async () => {
@@ -108,5 +112,46 @@ describe("plugin-init worker singleton plan", () => {
     });
 
     expect(next).toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
+  });
+
+  describe("registerShutdownHandlers", () => {
+    test("flushes and closes store before signal exit", async () => {
+      const exitSpy = vi
+        .spyOn(process, "exit")
+        .mockImplementation((() => undefined) as never);
+      const store = {
+        flush: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn(),
+      } as any;
+      const handlers = registerShutdownHandlers(store);
+
+      try {
+        handlers.shutdownWithFlush();
+        await Promise.resolve();
+        await Promise.resolve();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(store.flush).toHaveBeenCalledTimes(1);
+        expect(store.close).toHaveBeenCalledTimes(1);
+        expect(exitSpy).toHaveBeenCalledWith(0);
+      } finally {
+        handlers.removeProcessListeners();
+      }
+    });
+
+    test("null-store shutdown exits without flush/close", () => {
+      const exitSpy = vi
+        .spyOn(process, "exit")
+        .mockImplementation((() => undefined) as never);
+      const handlers = registerShutdownHandlers(null);
+
+      try {
+        handlers.shutdownWithFlush();
+
+        expect(exitSpy).toHaveBeenCalledWith(0);
+      } finally {
+        handlers.removeProcessListeners();
+      }
+    });
   });
 });

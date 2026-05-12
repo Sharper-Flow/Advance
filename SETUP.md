@@ -33,11 +33,11 @@ new ADV worktrees.
 
 ### Optional
 
-| Dependency   | Purpose                                                                  |
-| ------------ | ------------------------------------------------------------------------ |
-| Git          | Version control, change tracking                                         |
-| Temporal CLI | Local dev server for ADV's Temporal-backed runtime                       |
-| jq           | Required only for `sync-global.sh --fix` (config patching)               |
+| Dependency        | Purpose                                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Git               | Version control, change tracking                                                                                                        |
+| Temporal CLI      | Local dev server for ADV's Temporal-backed runtime                                                                                      |
+| jq                | Required only for `sync-global.sh --fix` (config patching)                                                                              |
 | GitHub CLI (`gh`) | Required for `/adv-triage` and any ADV command that reads/writes GitHub issues or Projects v2. See **GitHub CLI authentication** below. |
 
 ### Temporal-backed storage
@@ -75,10 +75,10 @@ churn.
 
 Recommended path (cross-platform):
 
-| OS    | Path                                                |
-| ----- | --------------------------------------------------- |
+| OS    | Path                                                                                       |
+| ----- | ------------------------------------------------------------------------------------------ |
 | Linux | `$XDG_DATA_HOME/temporal/dev-server.db` (fallback `~/.local/share/temporal/dev-server.db`) |
-| macOS | `~/Library/Application Support/temporal/dev-server.db` |
+| macOS | `~/Library/Application Support/temporal/dev-server.db`                                     |
 
 Example (Linux/XDG):
 
@@ -144,12 +144,12 @@ gh auth login --scopes "repo,project,read:org,workflow"
 
 Required token scopes:
 
-| Scope         | Why ADV needs it                                                                              |
-| ------------- | --------------------------------------------------------------------------------------------- |
-| `repo`        | Read/write issues, comments, PRs across every repo ADV touches (incl. private)                |
-| `project`     | Read/write Projects v2 boards (`/adv-triage` storage of truth: typed Value/RROE/Effort/WSJF)  |
-| `read:org`    | Resolve org membership, list org-owned projects, find ADV peer repos                          |
-| `workflow`    | Inspect Actions workflow runs (used by external conformance gate during `/adv-archive`)       |
+| Scope      | Why ADV needs it                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------- |
+| `repo`     | Read/write issues, comments, PRs across every repo ADV touches (incl. private)               |
+| `project`  | Read/write Projects v2 boards (`/adv-triage` storage of truth: typed Value/RROE/Effort/WSJF) |
+| `read:org` | Resolve org membership, list org-owned projects, find ADV peer repos                         |
+| `workflow` | Inspect Actions workflow runs (used by external conformance gate during `/adv-archive`)      |
 
 If you authenticated previously without one of these scopes, refresh in place:
 
@@ -169,14 +169,14 @@ Expected output includes a `gho_*` token line and a scopes line containing at mi
 
 The token MUST cover **all** projects ADV will operate on, not just the project where you ran `gh auth login`. `gho_*` OAuth tokens from `gh auth login` are user-global by design — one token authenticates every repo and every Projects v2 board the GitHub user has access to.
 
-| Scenario                                                              | Required action                                                                  |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Personal repos owned by your GitHub user                              | Default `gh auth login` is sufficient                                            |
-| Repos owned by a GitHub organization                                  | Org admin must approve the GitHub CLI app under Settings → Third-party access    |
-| Org-owned Projects v2 boards                                          | Same org-app approval — `project` scope alone is not enough without app approval |
-| Private repos / forks                                                 | `repo` scope covers private repos the user can already access via the web UI    |
-| Multiple machines (laptop, devbox, CI)                                | Each machine needs its own `gh auth login`; `gho_*` tokens are not transferable |
-| Fine-grained PAT instead of OAuth                                     | Must be scoped to **all** orgs and repos ADV agents will touch — coarse OAuth is simpler |
+| Scenario                                 | Required action                                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Personal repos owned by your GitHub user | Default `gh auth login` is sufficient                                                    |
+| Repos owned by a GitHub organization     | Org admin must approve the GitHub CLI app under Settings → Third-party access            |
+| Org-owned Projects v2 boards             | Same org-app approval — `project` scope alone is not enough without app approval         |
+| Private repos / forks                    | `repo` scope covers private repos the user can already access via the web UI             |
+| Multiple machines (laptop, devbox, CI)   | Each machine needs its own `gh auth login`; `gho_*` tokens are not transferable          |
+| Fine-grained PAT instead of OAuth        | Must be scoped to **all** orgs and repos ADV agents will touch — coarse OAuth is simpler |
 
 #### Org-access wall (common gotcha)
 
@@ -276,13 +276,13 @@ are external shared agents supplied by your broader OpenCode install. If any
 are missing, commands fall back to inline execution or generic `explore`
 invocation, which is slower and less specialized.
 
-| Agent       | Used by                                                                       | What it does                                                  |
-| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `explore`   | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                           |
-| `librarian` | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, `gh_grep_searchGitHub`) |
-| `mechanic`  | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                      |
-| `general`   | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                     |
-| `adv-engineer` | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes      | Produces structured ENGINEER_REPORT payload for ADV ingestion |
+| Agent          | Used by                                                                       | What it does                                                    |
+| -------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `explore`      | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                             |
+| `librarian`    | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, `gh_grep_searchGitHub`) |
+| `mechanic`     | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                        |
+| `general`      | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                       |
+| `adv-engineer` | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Produces structured ENGINEER_REPORT payload for ADV ingestion   |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -292,14 +292,14 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server     | Allowlist prefix / callable examples                                                                 | Used by                                   | Degradation if missing                                                      |
-| -------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`           | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`                  | `plan`, `build`                           | Web scraping unavailable; use `webfetch` instead                            |
-| Context7       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                        | `adv-researcher`                          | Library documentation lookup unavailable                                    |
-| Kagi           | `kagi_*` grants; call `kagi_kagi_search_fetch`, `kagi_kagi_summarizer`                                | `adv-researcher`                          | Web search unavailable                                                      |
-| Grep by Vercel | `gh_grep_*` grants; call `gh_grep_searchGitHub`                                                       | `adv-researcher`                          | Cross-repo code example search unavailable                                  |
-| arXiv MCP      | `arxiv-mcp_*` grants; call exact names from active schema                                             | `adv-researcher`                          | Academic paper search unavailable                                           |
+| MCP server     | Allowlist prefix / callable examples                                                        | Used by                                       | Degradation if missing                                                      |
+| -------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| lgrep          | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text` | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`        | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
+| Context7       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`              | `adv-researcher`                              | Library documentation lookup unavailable                                    |
+| Kagi           | `kagi_*` grants; call `kagi_kagi_search_fetch`, `kagi_kagi_summarizer`                      | `adv-researcher`                              | Web search unavailable                                                      |
+| Grep by Vercel | `gh_grep_*` grants; call `gh_grep_searchGitHub`                                             | `adv-researcher`                              | Cross-repo code example search unavailable                                  |
+| arXiv MCP      | `arxiv-mcp_*` grants; call exact names from active schema                                   | `adv-researcher`                              | Academic paper search unavailable                                           |
 
 Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `gh_grep_searchGitHub` to `gh_grep_search_git_hub`.
 
@@ -428,9 +428,7 @@ pay the prompt cost.
 
 ```json
 {
-  "instructions": [
-    "~/.config/opencode/identity.md"
-  ],
+  "instructions": ["~/.config/opencode/identity.md"],
   "plugin": ["/path/to/Advance/plugin"]
 }
 ```
@@ -519,16 +517,16 @@ Replace the existing `P16` block with the following (broadens scope from
 internal-only to internal + external docs; priority and name unchanged):
 
 ```yaml
-  P16:
-    name: docs-first
-    rule: Consult existing documentation — internal (repo docs, ADRs,
-      workflows) and external (official library, framework, API, and
-      vendor docs via Context7 or canonical sources) — before changing
-      behavior or implementing against unfamiliar surfaces. Keep
-      documentation current and remove stale content.
-    tags: [docs, governance, external-docs]
-    hint: docs_check
-    priority: 6
+P16:
+  name: docs-first
+  rule: Consult existing documentation — internal (repo docs, ADRs,
+    workflows) and external (official library, framework, API, and
+    vendor docs via Context7 or canonical sources) — before changing
+    behavior or implementing against unfamiliar surfaces. Keep
+    documentation current and remove stale content.
+  tags: [docs, governance, external-docs]
+  hint: docs_check
+  priority: 6
 ```
 
 ### Step 2: Add P30
@@ -536,18 +534,18 @@ internal-only to internal + external docs; priority and name unchanged):
 Add the following entry in the `rules:` map (P30 recommended):
 
 ```yaml
-  P30:
-    name: docs-before-probing
-    rule: When the behavior, API surface, or correct usage of an external
-      library, framework, language feature, or service is unclear, consult
-      its official documentation (via Context7, official site, or vendor
-      docs) BEFORE writing probe tests, reading library source, or
-      extrapolating from existing repo usage. Probing is a fallback when
-      authoritative docs are missing, ambiguous, or contradicted by
-      observed behavior — not the first move.
-    tags: [docs, research, external-docs, efficiency]
-    hint: docs_before_probing
-    priority: 8
+P30:
+  name: docs-before-probing
+  rule: When the behavior, API surface, or correct usage of an external
+    library, framework, language feature, or service is unclear, consult
+    its official documentation (via Context7, official site, or vendor
+    docs) BEFORE writing probe tests, reading library source, or
+    extrapolating from existing repo usage. Probing is a fallback when
+    authoritative docs are missing, ambiguous, or contradicted by
+    observed behavior — not the first move.
+  tags: [docs, research, external-docs, efficiency]
+  hint: docs_before_probing
+  priority: 8
 ```
 
 **Rationale for priority 8:** parity with `P07 verify`, `P08 clarify`,
@@ -587,18 +585,18 @@ unchanged; adds explicit clarification that simplicity governs the
 solution, not the effort invested):
 
 ```yaml
-  P19:
-    name: simplicity
-    rule: Keep code simple, clear, and well-named; prefer simple over
-      complex, complex over complicated; start with minimal solutions.
-      Simplicity refers to the SOLUTION (final code, interfaces,
-      abstractions) — not the WORK INVESTED to get there. Do not invoke
-      simplicity, KISS, or YAGNI to justify skipping research, tests,
-      verification, related-scan, or other thorough-work obligations
-      (see P31).
-    tags: [clean, simplicity, design]
-    hint: keep_it_simple
-    priority: 5
+P19:
+  name: simplicity
+  rule: Keep code simple, clear, and well-named; prefer simple over
+    complex, complex over complicated; start with minimal solutions.
+    Simplicity refers to the SOLUTION (final code, interfaces,
+    abstractions) — not the WORK INVESTED to get there. Do not invoke
+    simplicity, KISS, or YAGNI to justify skipping research, tests,
+    verification, related-scan, or other thorough-work obligations
+    (see P31).
+  tags: [clean, simplicity, design]
+  hint: keep_it_simple
+  priority: 5
 ```
 
 ### Step 2: Add P31
@@ -606,24 +604,24 @@ solution, not the effort invested):
 Add the following entry in the `rules:` map (P31 recommended):
 
 ```yaml
-  P31:
-    name: thoroughness
-    rule: Never make decisions based on minimizing tokens, time, turn
-      count, or agent effort. Choose the correct answer over the
-      convenient one. If thoroughness requires more research, more tests,
-      more clarification, more verification, or wider scope investigation,
-      do it — even when a shortcut would technically pass. Token/turn
-      budgets are bookkeeping; user outcome quality is the objective.
-      Laziness manifests as — skipping docs because "I probably know,"
-      skipping related-scan because "it's probably fine," accepting the
-      first passing solution without considering better alternatives,
-      suppressing surface-able ideas to save turns, declaring done before
-      completeness is verified, choosing the cheap diagnosis over the
-      correct one. None of these are acceptable, regardless of token
-      cost. See P19 — simplicity governs the solution, not the effort.
-    tags: [quality, thoroughness, correctness, agent-reasoning]
-    hint: never_lazy
-    priority: 9
+P31:
+  name: thoroughness
+  rule: Never make decisions based on minimizing tokens, time, turn
+    count, or agent effort. Choose the correct answer over the
+    convenient one. If thoroughness requires more research, more tests,
+    more clarification, more verification, or wider scope investigation,
+    do it — even when a shortcut would technically pass. Token/turn
+    budgets are bookkeeping; user outcome quality is the objective.
+    Laziness manifests as — skipping docs because "I probably know,"
+    skipping related-scan because "it's probably fine," accepting the
+    first passing solution without considering better alternatives,
+    suppressing surface-able ideas to save turns, declaring done before
+    completeness is verified, choosing the cheap diagnosis over the
+    correct one. None of these are acceptable, regardless of token
+    cost. See P19 — simplicity governs the solution, not the effort.
+  tags: [quality, thoroughness, correctness, agent-reasoning]
+  hint: never_lazy
+  priority: 9
 ```
 
 **Rationale for priority 9:** parity with `P05 ship-complete`, `P24
@@ -661,21 +659,21 @@ applied manually.
 Add the following entry in the `rules:` map (P33 recommended):
 
 ```yaml
-  P33:
-    name: structural-correctness
-    rule: Make correctness structural before heuristic. Prefer
-      machine-checkable mechanisms—types, schemas, parsers, state machines,
-      invariants, contracts, database constraints, generated validators, and
-      tests—over heuristic inference or prose-only rules. Fully recognize
-      and normalize untrusted input at boundaries before processing it. Use
-      heuristics only for discovery, ranking, triage, or advisory guidance;
-      never as the sole authority for correctness, security, persistence,
-      workflow state, gate completion, or spec compliance. If a heuristic is
-      unavoidable, isolate it, document assumptions, add deterministic
-      guardrails, and verify it with edge-case or property-based tests.
-    tags: [correctness, architecture, validation, determinism, heuristics]
-    hint: structural_before_heuristic
-    priority: 9
+P33:
+  name: structural-correctness
+  rule: Make correctness structural before heuristic. Prefer
+    machine-checkable mechanisms—types, schemas, parsers, state machines,
+    invariants, contracts, database constraints, generated validators, and
+    tests—over heuristic inference or prose-only rules. Fully recognize
+    and normalize untrusted input at boundaries before processing it. Use
+    heuristics only for discovery, ranking, triage, or advisory guidance;
+    never as the sole authority for correctness, security, persistence,
+    workflow state, gate completion, or spec compliance. If a heuristic is
+    unavoidable, isolate it, document assumptions, add deterministic
+    guardrails, and verify it with edge-case or property-based tests.
+  tags: [correctness, architecture, validation, determinism, heuristics]
+  hint: structural_before_heuristic
+  priority: 9
 ```
 
 **Rationale for priority 9:** parity with `P05 ship-complete`, `P24
@@ -769,10 +767,10 @@ If `gh auth status` is missing scopes, run `gh auth refresh -s repo,project,read
 
 GitHub enforces two separate rate-limit budgets:
 
-| Budget | Scope | Limit |
-|--------|-------|-------|
+| Budget      | Scope             | Limit          |
+| ----------- | ----------------- | -------------- |
 | REST / Core | Per user per hour | 5,000 requests |
-| GraphQL | Per user per hour | 5,000 points |
+| GraphQL     | Per user per hour | 5,000 points   |
 
 Projects v2 operations (`gh project item-list`, `gh api graphql` against ProjectV2 types) consume the **GraphQL** budget. Issue operations (`gh issue list`, `gh issue create`) consume the **REST** budget.
 
@@ -815,16 +813,16 @@ your-project/
 
 ### Configuration Options
 
-| Option         | Default          | Description                    |
-| -------------- | ---------------- | ------------------------------ |
-| `name`         | (required)       | Project name                   |
-| `version`      | `"0.1.0"`        | Project version                |
-| `specs_dir`    | `".adv/specs"`   | Directory for spec files       |
-| `changes_dir`  | `".adv/changes"` | Directory for change proposals |
-| `archive_dir`  | `".adv/archive"` | Directory for archived changes |
-| `docs_dir`     | `"docs/specs"`   | Directory for generated docs   |
+| Option         | Default          | Description                                                                                          |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `name`         | (required)       | Project name                                                                                         |
+| `version`      | `"0.1.0"`        | Project version                                                                                      |
+| `specs_dir`    | `".adv/specs"`   | Directory for spec files                                                                             |
+| `changes_dir`  | `".adv/changes"` | Directory for change proposals                                                                       |
+| `archive_dir`  | `".adv/archive"` | Directory for archived changes                                                                       |
+| `docs_dir`     | `"docs/specs"`   | Directory for generated docs                                                                         |
 | `db_dir`       | `".adv/db"`      | Deprecated compatibility field; ignored by Temporal-only runtime and not allocated in external state |
-| `project_file` | `"project.md"`   | Optional project context file  |
+| `project_file` | `"project.md"`   | Optional project context file                                                                        |
 
 ---
 
@@ -1163,11 +1161,13 @@ pnpm build
 
 ## Environment Variables
 
-| Variable              | Default                      | Description                                         |
-| --------------------- | ---------------------------- | --------------------------------------------------- |
-| `ADV_DEBUG`           | `"0"`                        | Set to `"1"` for debug logging                      |
-| `ADV_PROFILE`         | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$OPEN_CHAD_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use) |
-| `OPEN_CHAD_CACHE_DIR` | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1` |
+| Variable                               | Default                      | Description                                                                                                                           |
+| -------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `ADV_DEBUG`                            | `"0"`                        | Set to `"1"` for debug logging                                                                                                        |
+| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$OPEN_CHAD_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use) |
+| `OPEN_CHAD_CACHE_DIR`                  | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                   |
+| `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                             |
+| `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                              |
 
 ---
 
@@ -1203,8 +1203,8 @@ New changes start directly in the 7-gate model.
 | Command                   | Purpose                                                                   |
 | ------------------------- | ------------------------------------------------------------------------- |
 | `/adv-status`             | Project overview                                                          |
-| `/adv-idea`              | Explore rough ideas before drafting a proposal                              |
-| `/adv-problem`           | Triage issues before fixing or drafting a proposal                          |
+| `/adv-idea`               | Explore rough ideas before drafting a proposal                            |
+| `/adv-problem`            | Triage issues before fixing or drafting a proposal                        |
 | `/adv-proposal <summary>` | Extract problem statement and confirm with user                           |
 | `/adv-discover <id>`      | Gather context, identify objectives, and confirm agreement                |
 | `/adv-design <id>`        | Validate architecture decisions, produce strategy, and present for review |
@@ -1223,7 +1223,7 @@ New changes start directly in the 7-gate model.
 | `/adv-clarify`            | Clarify ambiguous requirements                                                                                                     |
 | `/adv-audit [capability]` | Spec/implementation drift check                                                                                                    |
 | `/adv-slop-scan [path]`   | Scan for AI slop patterns                                                                                                          |
-| `/adv-refactor [id]`      | Refresh a stale proposal — single change-id, or omit to batch-refresh the oldest 30% of active changes                            |
+| `/adv-refactor [id]`      | Refresh a stale proposal — single change-id, or omit to batch-refresh the oldest 30% of active changes                             |
 | `/adv-cleanup`            | Triage stale, abandoned, duplicate, and ready-to-archive active changes                                                            |
 | `/adv-improve`            | Suggest spec/implementation improvements and persist a reusable research pack under `docs/*-prep.md` (consumed by `/adv-discover`) |
 | `/adv-tron [target]`      | Investigate codebase structure and suggest agenda candidates                                                                       |
@@ -1244,22 +1244,22 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Changes**
 
-| Tool                       | Purpose                                                                |
-| -------------------------- | ---------------------------------------------------------------------- |
-| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)   |
-| `adv_change_show`          | Get full change details including tasks and deltas                     |
-| `adv_change_create`        | Create a new change proposal                                           |
-| `adv_change_update`        | Update proposal/problem-statement/agreement/design for existing change |
-| `adv_change_validate`      | Validate change against specs and check for conflicts                  |
-| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)              |
-| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter)|
-| `adv_change_archive`       | Archive a completed change (applies spec deltas)                       |
-| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                        |
+| Tool                       | Purpose                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)    |
+| `adv_change_show`          | Get full change details including tasks and deltas                      |
+| `adv_change_create`        | Create a new change proposal                                            |
+| `adv_change_update`        | Update proposal/problem-statement/agreement/design for existing change  |
+| `adv_change_validate`      | Validate change against specs and check for conflicts                   |
+| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)               |
+| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter) |
+| `adv_change_archive`       | Archive a completed change (applies spec deltas)                        |
+| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                         |
 
 **Tasks**
 
 | Tool                      | Purpose                                                       |
-| ------------------------- | ------------------------------------------------------------- | -------- |
+| ------------------------- | ------------------------------------------------------------- |
 | `adv_task_list`           | List tasks for a change (with optional status filter)         |
 | `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
 | `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
