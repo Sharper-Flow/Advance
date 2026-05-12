@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-0JvBuv",
+      "type": "gotcha",
+      "content": "`adv_task_update` rejects `status: \"cancelled\"` before any signal mutation. Worktree isolation guard still needs to run before that rejection when guarding all main-checkout status-transition attempts, otherwise enabled guard would not cover direct cancelled attempts. Hook order: resolve task/change → evaluate guard → existing cancellation-policy rejection → Temporal signal path.",
+      "source_task": "tk-96db0895b36f",
+      "recorded_at": "2026-05-12T03:47:08.304Z"
+    },
+    {
+      "id": "ws-cK1MXp",
+      "type": "success",
+      "content": "For worktree detection regressions, a small real-git temp fixture gives stronger coverage than mocked `rev-parse`: create main checkout + linked worktree, then assert main=false, linked=true, non-git=false against the shared git-session helper.",
+      "source_task": "tk-b5af34c28cf7",
+      "recorded_at": "2026-05-12T03:49:05.890Z"
+    },
+    {
+      "id": "ws-UaPb0g",
+      "type": "gotcha",
+      "content": "`lru-cache` with `allowStale: true` returns stale entries immediately on TTL expiry. For probe cache semantics where ordinary TTL expiry should refresh but abort/rejection should fall back to stale, pass `allowStale: false` to `cache.fetch()` while keeping `allowStaleOnFetchAbort/Rejection` and `ignoreFetchAbort` enabled.",
+      "source_task": "tk-64803f02cfb4",
+      "recorded_at": "2026-05-12T03:53:30.690Z"
+    },
+    {
+      "id": "ws-kZ4WEb",
+      "type": "pattern",
+      "content": "Safety-critical restart verification can use probe-cache for bounded probes, but success must require non-stale freshness. Use forceRefresh for verification loops and treat stale cached serviceability as diagnostic-only, not proof for restart/reclaim success.",
+      "source_task": "tk-569d65a84082",
+      "recorded_at": "2026-05-12T04:11:10.861Z"
+    },
+    {
+      "id": "ws--6ITdK",
+      "type": "gotcha",
+      "content": "Full `pnpm run format` can reformat earlier task files during a later verification task. If Prettier drift appears late, rerun targeted docs/assets, `pnpm run check`, full `pnpm test`, and `pnpm run build` before checkpoint so the final verification commit captures all style-only normalization safely.",
+      "source_task": "tk-cef93b9f4333",
+      "recorded_at": "2026-05-12T04:32:15.550Z"
+    }
+  ],
+  "count": 5
+}
