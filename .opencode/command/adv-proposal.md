@@ -88,10 +88,10 @@ After confirmation:
 4. Fill proposal sections: What Changes, Success Criteria, Affected Code, Related Repositories, Constraints, Impact, Context, Discovery Agenda (unresolved unknowns from Phase 1b)
 5. Determine cross-repo scope autonomously from code paths/interfaces/config; ask only if boundary ambiguity changes the intended outcome
 6. Run proposal checklist quality gate; refine autonomously unless refinement would change confirmed intent
-7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope` and `### Out of Scope` subsections. Surface to user inline if subsections are empty or missing — block gate completion until populated. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
+  7. **Phase 2.5: Build Scope Section** — Build `## Scope` section in proposal.md with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections. Must Not captures negative constraints — things the implementation must actively avoid even within scope. `"None identified"` is valid content. Surface to user inline if In Scope or Out of Scope are empty or missing — block gate completion until populated. Missing Must Not produces HIGH finding but does NOT block gate. Backwards-compat: if proposal gate already done (re-entry case), skip rebuilding (treat as legacy).
 <!-- rq-prop-scope1 -->
 8. **Phase 2.6: Run B/F/S Ambiguity Scan** — Read full proposal.md content. Apply 3-category scan per `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
-   - B (Boundaries) — check for `### Out of Scope` content
+   - B (Boundaries) — check for `### Out of Scope` content and `### Must Not` subsection. Missing Must Not → HIGH finding (does NOT block gate). `"None identified"` accepted as valid content.
    - F (Functional Scope) — check for testable Success Criteria
    - S (Completion Signals) — check for vague/unmeasurable language
    - Emit findings inline in proposal output (not persisted as section unless any CRITICAL)
