@@ -1,8 +1,81 @@
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { classifySuspectWorkerLock } from "./temporal-ops";
+import { parseToolOutput } from "../__tests__/setup";
+import {
+  _temporalOpsProbeCaches,
+  classifySuspectWorkerLock,
+  temporalOpsTools,
+} from "./temporal-ops";
+
+const {
+  mockGetTemporalHealth,
+  mockGetService,
+  mockGetTemporalWorkerAliveness,
+  mockGetTemporalWorkerDiagnostics,
+  mockRestartCurrentProjectTemporalWorker,
+} = vi.hoisted(() => ({
+  mockGetTemporalHealth: vi.fn(),
+  mockGetService: vi.fn(),
+  mockGetTemporalWorkerAliveness: vi.fn(),
+  mockGetTemporalWorkerDiagnostics: vi.fn(),
+  mockRestartCurrentProjectTemporalWorker: vi.fn(),
+}));
+
+vi.mock("../temporal/health-probe", () => ({
+  getTemporalHealth: mockGetTemporalHealth,
+}));
+
+vi.mock("../temporal/service", () => ({
+  getService: mockGetService,
+  getStslStats: vi.fn(() => ({
+    reconnectCount: 0,
+    reconnectFailureCount: 0,
+  })),
+  reinitStsl: vi.fn(),
+}));
+
+vi.mock("../plugin-init", () => ({
+  getTemporalWorkerAliveness: mockGetTemporalWorkerAliveness,
+  getTemporalWorkerDiagnostics: mockGetTemporalWorkerDiagnostics,
+  restartCurrentProjectTemporalWorker: mockRestartCurrentProjectTemporalWorker,
+}));
 
 const notServiceable = { status: "not_serviceable" } as const;
+
+const temporalHealth = {
+  server_alive: true,
+  worker_alive: true,
+  worker_process_alive: true,
+  registered_queues: [],
+  last_op_at: null,
+  last_error: null,
+  fallback_counts: {},
+  stale_queues: [],
+  reconnect_count: 0,
+  op_counters: [],
+  worker_lock: null,
+  last_worker_run_error: null,
+};
+
+const store = {
+  paths: {
+    external: "/tmp/adv-state/proj123",
+    root: "/repo",
+  },
+} as any;
+
+beforeEach(() => {
+  _temporalOpsProbeCaches.clear();
+  mockGetTemporalHealth.mockReset();
+  mockGetTemporalHealth.mockResolvedValue({ ...temporalHealth });
+  mockGetService.mockReset();
+  mockGetService.mockReturnValue(null);
+  mockGetTemporalWorkerAliveness.mockReset();
+  mockGetTemporalWorkerAliveness.mockReturnValue(false);
+  mockGetTemporalWorkerDiagnostics.mockReset();
+  mockGetTemporalWorkerDiagnostics.mockReturnValue([]);
+  mockRestartCurrentProjectTemporalWorker.mockReset();
+});
 
 function healthWithLock(schemaVersion: 1 | 2) {
   return {
@@ -48,5 +121,41 @@ describe("classifySuspectWorkerLock", () => {
         queueServiceability: notServiceable as any,
       }),
     ).toBeUndefined();
+  });
+});
+
+describe("temporal ops probe cache", () => {
+  test("diagnose exposes freshness metadata and reuses cached health", async () => {
+    const first = parseToolOutput(
+      await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+    );
+    const second = parseToolOutput(
+      await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+    );
+
+    expect(mockGetTemporalHealth).toHaveBeenCalledTimes(1);
+    expect(first._freshness.temporal_health).toMatchObject({
+      cached_at: expect.any(String),
+      stale: false,
+    });
+    expect(second._freshness.temporal_health.cached_at).toBe(
+      first._freshness.temporal_health.cached_at,
+    );
+  });
+
+  test("worker restart still requires approval evidence before any restart or probe mutation", async () => {
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_worker_restart.execute(
+        { approvedLockReclaim: true },
+        store,
+      ),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      errorClass: "ApprovalRequired",
+    });
+    expect(mockRestartCurrentProjectTemporalWorker).not.toHaveBeenCalled();
+    expect(mockGetTemporalHealth).not.toHaveBeenCalled();
   });
 });

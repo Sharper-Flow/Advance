@@ -29,6 +29,7 @@ import {
   type TargetProjectOutputContext,
   withTargetPathStore,
 } from "./target-project";
+import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
 
 type SuspectWorkerLockReason =
   | "suspect_live_legacy_lock"
@@ -58,6 +59,86 @@ interface RestartServiceabilitySnapshot {
   health: TemporalHealthSnapshot;
   serviceability: QueueServiceability;
   workerDiagnostics: ReturnType<typeof getTemporalWorkerDiagnostics>;
+}
+
+interface RestartServiceabilityInput {
+  projectId: string;
+  expectedQueue: string;
+  localOwnership: "owned" | "peer" | "unknown";
+  health?: TemporalHealthSnapshot;
+  bundle?: ReturnType<typeof getService>;
+}
+
+const TEMPORAL_OPS_PROBE_TTL_MS = 2_000;
+const TEMPORAL_OPS_PROBE_TIMEOUT_MS = 2_000;
+const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
+
+const temporalOpsHealthProbeCache = createProbeCache<
+  TemporalHealthSnapshot,
+  string
+>({
+  name: "temporal_ops.health",
+  ttlMs: TEMPORAL_OPS_PROBE_TTL_MS,
+  timeoutMs: TEMPORAL_OPS_PROBE_TIMEOUT_MS,
+  fetch: async (key) =>
+    getTemporalHealth(key === MISSING_PROJECT_ID_CACHE_KEY ? undefined : key),
+});
+
+const restartServiceabilityInputs = new Map<
+  string,
+  RestartServiceabilityInput
+>();
+
+const restartServiceabilityProbeCache = createProbeCache<
+  RestartServiceabilitySnapshot,
+  string
+>({
+  name: "temporal_ops.restart_serviceability",
+  ttlMs: TEMPORAL_OPS_PROBE_TTL_MS,
+  timeoutMs: TEMPORAL_OPS_PROBE_TIMEOUT_MS,
+  fetch: async (key) => {
+    const input = restartServiceabilityInputs.get(key);
+    if (!input) {
+      throw new Error(`No restart serviceability input for cache key ${key}`);
+    }
+    return buildRestartServiceabilitySnapshotRaw(input);
+  },
+});
+
+/** Exported for test isolation only */
+export const _temporalOpsProbeCaches = {
+  clear(): void {
+    temporalOpsHealthProbeCache.clear();
+    restartServiceabilityProbeCache.clear();
+    restartServiceabilityInputs.clear();
+  },
+};
+
+async function fetchTemporalOpsHealth(projectId: string | undefined): Promise<{
+  value: TemporalHealthSnapshot;
+  freshness: ProbeCacheFreshness;
+}> {
+  return temporalOpsHealthProbeCache.fetch(
+    projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+  );
+}
+
+function restartServiceabilityCacheKey(
+  input: RestartServiceabilityInput,
+): string {
+  return [input.projectId, input.expectedQueue, input.localOwnership].join("|");
+}
+
+async function fetchRestartServiceabilitySnapshot(
+  input: RestartServiceabilityInput,
+  options: { forceRefresh?: boolean } = {},
+): Promise<{
+  value: RestartServiceabilitySnapshot;
+  freshness: ProbeCacheFreshness;
+}> {
+  const key = restartServiceabilityCacheKey(input);
+  restartServiceabilityInputs.set(key, input);
+  return restartServiceabilityProbeCache.fetch(key, options);
 }
 
 function readWorkerRestartVerifyTimeoutMs(): number {
@@ -113,13 +194,9 @@ export function classifySuspectWorkerLock(input: {
   return undefined;
 }
 
-async function buildRestartServiceabilitySnapshot(input: {
-  projectId: string;
-  expectedQueue: string;
-  localOwnership: "owned" | "peer" | "unknown";
-  health?: TemporalHealthSnapshot;
-  bundle?: ReturnType<typeof getService>;
-}): Promise<RestartServiceabilitySnapshot> {
+async function buildRestartServiceabilitySnapshotRaw(
+  input: RestartServiceabilityInput,
+): Promise<RestartServiceabilitySnapshot> {
   const [health, workerDiagnostics] = await Promise.all([
     input.health
       ? Promise.resolve(input.health)
@@ -171,21 +248,35 @@ async function waitForRestartServiceability(input: {
   projectId: string;
   expectedQueue: string;
   timeoutMs: number;
-}): Promise<RestartServiceabilitySnapshot & { elapsedMs: number }> {
+}): Promise<
+  RestartServiceabilitySnapshot & {
+    elapsedMs: number;
+    freshness: ProbeCacheFreshness;
+  }
+> {
   const startedAt = Date.now();
   let lastSnapshot: RestartServiceabilitySnapshot;
+  let lastFreshness: ProbeCacheFreshness;
   for (;;) {
-    lastSnapshot = await buildRestartServiceabilitySnapshot({
-      projectId: input.projectId,
-      expectedQueue: input.expectedQueue,
-      localOwnership: "owned",
-    });
+    const probe = await fetchRestartServiceabilitySnapshot(
+      {
+        projectId: input.projectId,
+        expectedQueue: input.expectedQueue,
+        localOwnership: "owned",
+      },
+      {
+        forceRefresh: true,
+      },
+    );
+    lastSnapshot = probe.value;
+    lastFreshness = probe.freshness;
     const elapsedMs = Date.now() - startedAt;
     if (
-      lastSnapshot.serviceability.status === "serviceable" ||
+      (lastSnapshot.serviceability.status === "serviceable" &&
+        !lastFreshness.stale) ||
       elapsedMs >= input.timeoutMs
     ) {
-      return { ...lastSnapshot, elapsedMs };
+      return { ...lastSnapshot, elapsedMs, freshness: lastFreshness };
     }
     await sleep(
       Math.min(WORKER_RESTART_VERIFY_POLL_MS, input.timeoutMs - elapsedMs),
@@ -240,7 +331,8 @@ export const temporalOpsTools = {
       const projectId = store.paths.external
         ? basename(store.paths.external)
         : undefined;
-      const health = await getTemporalHealth(projectId);
+      const healthProbe = await fetchTemporalOpsHealth(projectId);
+      const health = healthProbe.value;
       const bundle = getService();
       const serverReachable = health.server_alive;
       const workerAlive = health.worker_alive;
@@ -269,6 +361,7 @@ export const temporalOpsTools = {
 
       return formatToolOutput({
         success: true,
+        _freshness: { temporal_health: healthProbe.freshness },
         serverReachable,
         workerAlive,
         stslInitialized: bundle !== null,
@@ -489,11 +582,12 @@ export const temporalOpsTools = {
           },
         );
       } catch (error) {
-        const snapshot = await buildRestartServiceabilitySnapshot({
+        const snapshotProbe = await fetchRestartServiceabilitySnapshot({
           projectId,
           expectedQueue,
           localOwnership: "peer",
         });
+        const snapshot = snapshotProbe.value;
         const reason = classifyRestartFailure({ error, snapshot });
         return formatToolOutput({
           success: false,
@@ -507,6 +601,9 @@ export const temporalOpsTools = {
           projectId,
           expectedQueue,
           serviceability: snapshot.serviceability,
+          _freshness: {
+            restart_serviceability: snapshotProbe.freshness,
+          },
           temporalHealth: snapshot.health,
           workerDiagnostics: snapshot.workerDiagnostics,
           worker_lock: snapshot.health.worker_lock,
@@ -535,6 +632,9 @@ export const temporalOpsTools = {
           expectedQueue: restartResult.expectedQueue ?? expectedQueue,
           queues: restartResult.queues,
           serviceability: verification.serviceability,
+          _freshness: {
+            restart_serviceability: verification.freshness,
+          },
           temporalHealth: verification.health,
           workerDiagnostics: verification.workerDiagnostics,
           worker_lock: verification.health.worker_lock,
@@ -555,6 +655,9 @@ export const temporalOpsTools = {
         expectedQueue: restartResult.expectedQueue ?? expectedQueue,
         queues: restartResult.queues,
         serviceability: verification.serviceability,
+        _freshness: {
+          restart_serviceability: verification.freshness,
+        },
         workerDiagnostics: verification.workerDiagnostics,
         elapsedMs: verification.elapsedMs,
         message:
