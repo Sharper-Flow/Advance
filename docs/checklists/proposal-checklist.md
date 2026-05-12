@@ -57,19 +57,20 @@ Before completing the proposal gate, verify:
 - [ ] Prior discussion decisions are reflected as constraints
 - [ ] Rejected approaches are documented to prevent re-proposals
 - [ ] Discovery Agenda present with unresolved unknowns (or explicitly empty with justification)
-- [ ] `## Scope` section present with `### In Scope` and `### Out of Scope` subsections
+- [ ] `## Scope` section present with `### In Scope`, `### Out of Scope`, and `### Must Not` subsections
 - [ ] B/F/S ambiguity scan run with no CRITICAL findings
 
 ---
 
 ## Scope Section Requirement
 
-Every proposal.md MUST contain a `## Scope` section with two subsections:
+Every proposal.md MUST contain a `## Scope` section with three subsections:
 
 - `### In Scope` — enumerates what the change will address
 - `### Out of Scope` — enumerates what the change explicitly will NOT address
+- `### Must Not` — enumerates negative constraints (things implementation must avoid even in scope). `"None identified"` is valid.
 
-**Gate blocking:** Proposal gate completion MUST be refused if either subsection is missing or empty.
+**Gate blocking:** Proposal gate completion MUST be refused if In Scope or Out of Scope is missing or empty. Missing Must Not produces HIGH finding but does NOT block gate. `"None identified"` is accepted as valid Must Not content.
 
 **Backwards-compat:** If the proposal gate was already completed before this rollout (in-flight changes), skip re-evaluation. Detect via gate-state check — do not retroactively block legacy proposals.
 
@@ -92,6 +93,7 @@ Uses finding shape from `ADV_INSTRUCTIONS.md § Ambiguity Taxonomy`:
 | ID | Severity | Category | Trigger |
 |----|----------|----------|---------|
 | B1 | CRITICAL | Boundaries | Missing `### Out of Scope` subsection |
+| B2 | HIGH | Boundaries | Missing `### Must Not` subsection |
 | F1 | CRITICAL | Functional Scope | Missing or placeholder `## Success Criteria` section |
 | S1 | HIGH | Completion Signals | Vague/unmeasurable success criteria (cite exact phrase) |
 
