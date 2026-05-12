@@ -1,0 +1,238 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "snapshot-health",
+  "title": "Snapshot Store Health Diagnostics",
+  "purpose": "Detect and remediate OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts — that historically caused recurring agent freezes (e.g., pokeedge-web index.lock contention).",
+  "version": "1.0.0",
+  "updated_at": "2026-05-12T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-snapshotHealthProbe01",
+      "title": "Detection pattern coverage",
+      "body": "The `adv_snapshot_health` tool with `action: scan` MUST detect seven distinct corruption patterns in the OpenCode snapshot store: (1) stale_lock — an index.lock or similar lock file whose mtime is older than 5 minutes and has no active process holding it per `lsof`; (2) zero_byte_object — a git object file in objects/ with size zero bytes; (3) fsck_error — any entry in `git fsck` output that is not informational; (4) orphan_bare_repo — a bare-git directory under the snapshot root whose corresponding worktree path no longer exists; (5) oversized_dir — a snapshot subdirectory whose total size exceeds 100MB as reported by `du`; (6) legacy_layout — a project directory that is itself a bare git repo (HEAD, objects/, refs/ directly inside the project dir) rather than containing per-worktree subdirectories; (7) no_snapshot_dirs — a project entry in the snapshot root that has no snapshot subdirectories at all.\n\nThe scan output MUST be a structured object with `schema_version: 1`, a human-readable `summary` string, and a `findings` array where each finding includes `pattern`, `path`, `severity` (error | warning | info), and `details`.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "probe"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthProbe01.1",
+          "title": "Scan detects all seven patterns",
+          "given": [
+            "A snapshot store contains one example of each corruption pattern"
+          ],
+          "when": "adv_snapshot_health action: 'scan' is invoked",
+          "then": [
+            "The output schema_version is 1",
+            "The summary lists the total count of findings",
+            "The findings array contains entries for stale_lock, zero_byte_object, fsck_error, orphan_bare_repo, oversized_dir, legacy_layout, and no_snapshot_dirs",
+            "Each finding has pattern, path, severity, and details fields"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthSafeDefault01",
+      "title": "Read-only default",
+      "body": "The default action for `adv_snapshot_health` is `scan`, which performs only read-only directory and file metadata inspection. Any filesystem mutation — including lock deletion, object removal, or orphan repo cleanup — requires three explicit conditions: (1) the caller must pass `action: 'repair'`; (2) the caller must pass `approvedByUser: true`; (3) the caller must pass a non-empty `approvalEvidence` string and a non-empty `repair_actions` array.\n\nIf any of these conditions is missing, the tool MUST refuse execution and return an error explaining which condition was not met. No filesystem mutation occurs unless all conditions are satisfied.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "safety"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthSafeDefault01.1",
+          "title": "Default action is read-only",
+          "given": [
+            "The adv_snapshot_health tool is invoked",
+            "No action is specified"
+          ],
+          "when": "The tool executes",
+          "then": [
+            "Action defaults to scan",
+            "No filesystem mutations occur",
+            "Output reports findings only"
+          ]
+        },
+        {
+          "id": "rq-snapshotHealthSafeDefault01.2",
+          "title": "Repair without approval is rejected",
+          "given": [
+            "The tool is invoked with action: 'repair'",
+            "approvedByUser is false or missing"
+          ],
+          "when": "The tool validates arguments",
+          "then": [
+            "The tool returns an error indicating approval is required",
+            "No filesystem mutations occur"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthRepairWhitelist01",
+      "title": "Closed repair whitelist",
+      "body": "Only three repair actions are accepted by `adv_snapshot_health` when `action: 'repair'` is invoked: `delete_stale_locks`, `delete_zero_byte_objects`, and `delete_orphan_bare_repos`. Any other string in the `repair_actions` array MUST be rejected with a validation error before any filesystem operation begins.\n\nHistory-altering git operations are explicitly prohibited. The repair whitelist MUST NOT include `gc`, `prune`, `filter-repo`, `repack`, or any other command that rewrites git history or mutates the object database in ways that are not strictly additive removal of known-bad artifacts.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "repair", "whitelist"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthRepairWhitelist01.1",
+          "title": "Whitelisted repairs are accepted",
+          "given": [
+            "A repair request includes only delete_stale_locks, delete_zero_byte_objects, and delete_orphan_bare_repos"
+          ],
+          "when": "The tool validates repair_actions",
+          "then": [
+            "Validation succeeds",
+            "Repairs proceed for each requested action"
+          ]
+        },
+        {
+          "id": "rq-snapshotHealthRepairWhitelist01.2",
+          "title": "Unknown repair actions are rejected",
+          "given": [
+            "A repair request includes 'gc' or 'prune' in repair_actions"
+          ],
+          "when": "The tool validates repair_actions",
+          "then": [
+            "Validation fails with an error listing the unsupported action",
+            "No filesystem mutations occur"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthAuditTrail01",
+      "title": "Repair audit trail",
+      "body": "Every successful repair operation performed by `adv_snapshot_health` MUST append an entry to the ADV agenda via `adv_agenda_add`. The agenda entry MUST have: `category: 'snapshot-repair'`, `priority: 'low'`, and a human-readable `description` that includes the finding pattern name, the target path, and a brief before/after state summary (e.g., \"Deleted stale lock /path/to/index.lock — mtime 2026-05-10T12:00:00Z, no lsof holder\").\n\nThe audit trail ensures that all automated remediation is discoverable and reversible. The agenda entry is append-only and MUST NOT be modified or deleted by the tool after creation.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "audit", "agenda"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthAuditTrail01.1",
+          "title": "Successful repair creates agenda entry",
+          "given": [
+            "A repair action is approved and executed successfully"
+          ],
+          "when": "The repair completes",
+          "then": [
+            "An agenda entry is appended with category 'snapshot-repair'",
+            "The entry priority is 'low'",
+            "The description contains the finding pattern, target path, and before/after state"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthScopeBoundary01",
+      "title": "Scope boundary",
+      "body": "The `scope` parameter controls the scan boundary. `scope: 'project'` scans only the snapshot directory associated with the caller's project (identified by project-id derived from the repo root commit SHA). `scope: 'global'` scans all project directories under the OpenCode snapshot root.\n\nCross-project scanning when `scope: 'global'` is read-only on directory metadata — it enumerates directories, checks mtimes, and counts bytes, but NEVER reads the content of git objects or snapshot files belonging to other projects. This ensures isolation: one project cannot inspect another project's code through the snapshot-health tool.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "scope", "isolation"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthScopeBoundary01.1",
+          "title": "Project scope limits scan to caller project",
+          "given": [
+            "The tool is invoked with scope: 'project'"
+          ],
+          "when": "The scan executes",
+          "then": [
+            "Only the caller project's snapshot directory is inspected",
+            "No other project directories are accessed"
+          ]
+        },
+        {
+          "id": "rq-snapshotHealthScopeBoundary01.2",
+          "title": "Global scope is read-only on metadata",
+          "given": [
+            "The tool is invoked with scope: 'global'"
+          ],
+          "when": "The scan executes",
+          "then": [
+            "All project snapshot directories are enumerated",
+            "No git object contents from other projects are read",
+            "Only directory listings, mtimes, and size metadata are collected"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthSchemaVersion01",
+      "title": "Output schema versioning",
+      "body": "Every output object from `adv_snapshot_health` MUST include `schema_version: 1` at the top level. This integer signals the shape of the output to consumers. Future breaking changes to the output structure (new required fields, renamed fields, or changed finding shapes) MUST increment the integer.\n\nConsumers of the output SHOULD check `schema_version >= N` rather than strict equality, so that additive changes (new optional fields) do not break compatibility. The set of fields and the finding object shape are stable within a major version.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "schema", "api"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthSchemaVersion01.1",
+          "title": "Output includes schema version",
+          "given": [
+            "Any adv_snapshot_health call completes successfully"
+          ],
+          "when": "The output is inspected",
+          "then": [
+            "The output object contains schema_version set to 1",
+            "The field is present at the top level"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthLayoutDetect01",
+      "title": "Modern + legacy layout support",
+      "body": "The snapshot store has two layout variants. Modern layout: `{snapshotRoot}/{projectId}/{worktreeHash}/` where each worktree gets its own subdirectory containing HEAD, objects/, refs/, etc. Legacy layout: `{snapshotRoot}/{projectId}/` directly contains HEAD, objects/, refs/ with no worktree-hash subdirectory.\n\nDetection MUST recognize both layouts. When legacy layout is detected, it MUST be reported as a `legacy_layout` finding with `severity: 'info'`. Legacy layout is eligible for remediation (e.g., migration to modern layout) but is not treated as an error because it was a valid historical layout.",
+      "priority": "should",
+      "tags": ["diagnostics", "snapshot", "layout"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthLayoutDetect01.1",
+          "title": "Legacy layout is detected and reported as info",
+          "given": [
+            "A project directory contains HEAD and objects/ directly inside it"
+          ],
+          "when": "The scan runs",
+          "then": [
+            "A legacy_layout finding is emitted",
+            "The finding severity is 'info'",
+            "The finding path points to the project directory"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-snapshotHealthRaceGuard01",
+      "title": "Repair race guard (TOCTOU)",
+      "body": "Before deleting any stale lock file, the repair logic MUST re-run `lsof` on the lock path and refuse deletion if a process PID has appeared since the scan phase. This closes the time-of-check to time-of-use (TOCTOU) window where a legitimate process could have acquired the lock after the scan completed.\n\nBefore deleting any orphan bare repo, the repair logic MUST re-resolve the expected worktree path and refuse deletion if the worktree now exists (e.g., a concurrent session materialized it). These re-checks MUST happen immediately before the destructive operation, not batched at the start of the repair phase.",
+      "priority": "must",
+      "tags": ["diagnostics", "snapshot", "repair", "race-condition", "safety"],
+      "scenarios": [
+        {
+          "id": "rq-snapshotHealthRaceGuard01.1",
+          "title": "Stale lock re-check prevents deletion if lock is now held",
+          "given": [
+            "A lock was detected as stale during scan",
+            "A process acquired the lock between scan and repair"
+          ],
+          "when": "Repair attempts to delete the lock",
+          "then": [
+            "lsof is re-checked immediately before deletion",
+            "Deletion is refused",
+            "An error or skipped status is reported for this finding"
+          ]
+        },
+        {
+          "id": "rq-snapshotHealthRaceGuard01.2",
+          "title": "Orphan repo re-check prevents deletion if worktree now exists",
+          "given": [
+            "A bare repo was detected as orphan during scan",
+            "The corresponding worktree was materialized between scan and repair"
+          ],
+          "when": "Repair attempts to delete the orphan repo",
+          "then": [
+            "The worktree path is re-resolved immediately before deletion",
+            "Deletion is refused",
+            "An error or skipped status is reported for this finding"
+          ]
+        }
+      ]
+    }
+  ]
+}
