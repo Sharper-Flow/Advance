@@ -485,20 +485,53 @@ async function computeExternalStateHygiene(
   // .adv/archive/ is intentional in-repo state; skip legacy flagging.
   const inRepoArchive = false;
 
-  if (nestedAdvDir)
-    recommendations.push("dry-run: nested external .adv/ detected");
-  if (staleDbDir) recommendations.push("dry-run: stale physical db/ detected");
-  if (emptyWorktreePrefixDirs.length > 0) {
-    recommendations.push("dry-run: empty worktree branch-prefix dirs detected");
-  }
-  if (syntheticProjectDirs > 0 || syntheticWorktreeDirs > 0) {
+  // rq-hygieneActionableCommands01 (#122): emit concrete shell commands the
+  // operator can copy-paste rather than prose "dry-run: X detected". Each
+  // recommendation is prefixed with `dry-run:` to preserve the historical
+  // grep pattern, then followed by the exact command(s) on subsequent lines.
+  // Operator inspects, then runs.
+  if (nestedAdvDir && externalRoot) {
     recommendations.push(
-      "dry-run: synthetic test state/worktree dirs detected",
+      `dry-run: nested external .adv/ detected at ${externalRoot}/.adv\n` +
+        `  Inspect: ls -la "${externalRoot}/.adv"\n` +
+        `  Backup:  tar -czf /tmp/adv-nested-backup-$(date +%s).tar.gz -C "${externalRoot}" .adv\n` +
+        `  Remove:  rm -rf "${externalRoot}/.adv"`,
     );
   }
-  if (inRepoChanges) {
+  if (staleDbDir && externalRoot) {
     recommendations.push(
-      `in-repo .adv/changes/ detected: if this contains pre-Temporal data, confirm specs are preserved and remove stale entries. Specs (.adv/specs/) are always in-repo and OK.`,
+      `dry-run: stale physical db/ detected at ${externalRoot}/db (legacy pre-Temporal SQLite)\n` +
+        `  Inspect: du -sh "${externalRoot}/db" && ls "${externalRoot}/db"\n` +
+        `  Backup:  tar -czf /tmp/adv-legacy-db-$(date +%s).tar.gz -C "${externalRoot}" db\n` +
+        `  Remove:  rm -rf "${externalRoot}/db"`,
+    );
+  }
+  if (emptyWorktreePrefixDirs.length > 0) {
+    const list = emptyWorktreePrefixDirs.map((p) => `"${p}"`).join(" ");
+    recommendations.push(
+      `dry-run: ${emptyWorktreePrefixDirs.length} empty worktree branch-prefix dir(s) detected\n` +
+        `  Inspect: ls -la ${list}\n` +
+        `  Remove:  rmdir ${list}  # rmdir refuses non-empty; safe`,
+    );
+  }
+  if (syntheticProjectDirs > 0 || syntheticWorktreeDirs > 0) {
+    const dataHome = getDataHome();
+    const projectsGlob = `"${join(dataHome, "opencode", "plugins", "advance")}/${SYNTHETIC_TEST_PROJECT_ID_PREFIX}*"`;
+    const worktreesGlob = `"${join(dataHome, "opencode", "worktree")}/${SYNTHETIC_TEST_PROJECT_ID_PREFIX}*"`;
+    recommendations.push(
+      `dry-run: ${syntheticProjectDirs} synthetic test project dir(s) + ${syntheticWorktreeDirs} synthetic worktree dir(s) detected (prefix ${SYNTHETIC_TEST_PROJECT_ID_PREFIX})\n` +
+        `  Inspect: ls -d ${projectsGlob} ${worktreesGlob}\n` +
+        `  Backup:  tar -czf /tmp/adv-synthetic-backup-$(date +%s).tar.gz ${projectsGlob} ${worktreesGlob} 2>/dev/null\n` +
+        `  Remove:  rm -rf ${projectsGlob} ${worktreesGlob}`,
+    );
+  }
+  if (inRepoChanges && repoRoot) {
+    recommendations.push(
+      `dry-run: in-repo .adv/changes/ detected at ${repoRoot}/.adv/changes\n` +
+        `  This may be pre-Temporal data. Specs (.adv/specs/) are always in-repo and OK.\n` +
+        `  Inspect: ls -la "${repoRoot}/.adv/changes"\n` +
+        `  Backup:  tar -czf /tmp/adv-repo-changes-backup-$(date +%s).tar.gz -C "${repoRoot}/.adv" changes\n` +
+        `  Remove:  rm -rf "${repoRoot}/.adv/changes"  # after confirming specs are preserved`,
     );
   }
 
