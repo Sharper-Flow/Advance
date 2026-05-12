@@ -114,6 +114,11 @@ describe("sister-command anchor existence (drift detection)", () => {
     const content = readCommand("adv-prep.md");
     expect(content).toMatch(/Reply `approve`/);
   });
+
+  test("adv-proposal.md contains Must Not scope builder", () => {
+    const content = readCommand("adv-proposal.md");
+    expect(content).toMatch(/### Must Not/);
+  });
 });
 
 describe("ChangeSchema no longer validates autopilot fields", () => {
