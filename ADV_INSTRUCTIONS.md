@@ -273,6 +273,16 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
 - `adv_temporal_diagnose` — peer count, worker-lock holder PID, change workflow presence
 
+### Stability Feature Flags
+
+`adv_status view: "health"` shows effective feature flags:
+
+- `worker_singleton_enforce` defaults `true`. One worker host per project; peers are client-only. Rollback: set flag false or `ADV_FORCE_IN_PROCESS_WORKER=1` for debug.
+- `worktree_guard_enforce` defaults `false` during rollout. Canary: set true to block ADV execution mutations from main checkout.
+- `worker_role` is `host`, `client`, or `degraded`. Use with `temporal_health`, not instead of it.
+
+Health probes include `_freshness.{probe}` with `cached_at`, `stale`, and optional `error`. Stale values are diagnostic-only; never use stale probe data to approve worker-lock reclaim, restart success, conformance override, or archive.
+
 **Known OpenCode-core race (out of ADV's layer):** OpenCode's snapshot service is keyed on `projectID`, not on worktree path. Two sessions on the same project — even in different worktrees — race on `~/.local/share/opencode/snapshot/{projectID}/{sha}/index.lock` and lose between-turn snapshots with `exitCode=128 ... 'index.lock': File exists`. ADV's task-checkpoint commits (separate git ops in the worktree) are unaffected, but OpenCode's snapshot history develops gaps. Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Opencode-Advance/issues/1) — fix is oca/OpenCode-core, not ADV. The "Multi-session is the supported design center" claim above applies to **ADV state and per-worktree git**, not to OpenCode's snapshot subsystem.
 
 ### ADV MCP Tool Invocation
@@ -910,6 +920,8 @@ ADV always isolates mutating work in per-change worktrees.
 - Every change runs in a worktree — create/reuse before Phase 1
 - Worktree tools unavailable → hard block with error. Do not proceed in-place
 - Existing worktree for same change → auto-reuse
+- If `worktree_guard_enforce=true`, mutating execution tools block main-checkout task/gate state changes with `WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation. Switch to `adv_worktree_resume` path; do not retry in main checkout.
+- Proposal gate remains exempt so worktree can be created after proposal. Read-only tools remain allowed.
 
 ### Worktree Reuse
 

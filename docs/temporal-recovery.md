@@ -87,14 +87,25 @@ The diagnostic output reports:
 
 - Temporal server reachability
 - STSL initialization and reconnect counters
- - worker / worker-process health
- - worker lock heartbeat health (`worker_lock`)
- - last worker-run failure telemetry (`last_worker_run_error`)
- - change workflow reachability
+- worker / worker-process health
+- worker role (`worker_role`: `host`, `client`, or `degraded`)
+- worker lock heartbeat health (`worker_lock`)
+- last worker-run failure telemetry (`last_worker_run_error`)
+- change workflow reachability
 - required ADV search-attribute status
 - stale queues
+- probe `_freshness` (`cached_at`, `stale`, optional `error`)
 - last Temporal error
 - recommended next action
+
+`adv_status view: "health"` also shows feature flags. `worker_singleton_enforce`
+defaults `true`; rollback/debug escape hatches are setting that flag false or
+`ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` defaults `false` during
+rollout.
+
+Stale `_freshness` values are diagnostic-only. Do not treat stale serviceability
+as proof of restart success, worker-lock reclaim safety, override safety, or
+archive readiness.
 
 ### Worker lock heartbeat fields
 
@@ -261,6 +272,10 @@ expected queue, registered queues, worker lock, queue serviceability snapshot,
 stale running workflow count, worker diagnostics, and `recommendedNextAction` —
 so callers can act without re-running blind restart loops.
 
+Restart verification force-refreshes serviceability probes. Cached stale probe
+data can explain the recommendation but cannot by itself make restart return
+`success: true`.
+
 The restart output includes STSL status and recommends `adv_temporal_diagnose`
 if tools still fail. Keep worker restart and STSL reconnect conceptually
 separate: restart owns worker lifecycle; reconnect owns the client connection.
@@ -416,12 +431,12 @@ Use this when a project's import ledger is not `done`.
 
 ### Expected ledger meanings
 
-| Ledger state      | Meaning                                                | Operator action                            |
-| ----------------- | ------------------------------------------------------ | ------------------------------------------ |
-| `done`            | Project import succeeded                               | No action                                  |
-| `failed` + detail | Workflow/import hit a terminal error                   | Fix root cause, then restart worker        |
-| `empty`           | Change workflows exist but no import ledger entry      | Restart worker, then re-check              |
-| `null` / missing  | No reachable workflow state yet                        | Check server + worker health first         |
+| Ledger state      | Meaning                                           | Operator action                     |
+| ----------------- | ------------------------------------------------- | ----------------------------------- |
+| `done`            | Project import succeeded                          | No action                           |
+| `failed` + detail | Workflow/import hit a terminal error              | Fix root cause, then restart worker |
+| `empty`           | Change workflows exist but no import ledger entry | Restart worker, then re-check       |
+| `null` / missing  | No reachable workflow state yet                   | Check server + worker health first  |
 
 ## Worker auto-respawn troubleshooting
 

@@ -14,8 +14,8 @@ worktree via `.opencode/worktree.jsonc`:
   "sync": {
     "copyFiles": [".env", ".env.local"],
     "symlinkDirs": ["node_modules"],
-    "exclude": []
-  }
+    "exclude": [],
+  },
 }
 ```
 
@@ -38,8 +38,8 @@ ADV worktrees can run project setup commands after creation via
 {
   "hooks": {
     "postCreate": ["pnpm install", "docker compose up -d"],
-    "preDelete": ["docker compose down"]
-  }
+    "preDelete": ["docker compose down"],
+  },
 }
 ```
 
@@ -53,17 +53,33 @@ Implementation refs:
 - Hook runner: `plugin/src/tools/worktree/index.ts:1559-1583`
 - Post-create invocation: `plugin/src/tools/worktree/index.ts:1883-1886`
 
+## Machine Worktree Guard
+
+`worktree_guard_enforce` defaults `false` for rollout. When enabled, ADV
+mutating execution tools reject main-checkout task/gate mutations with
+`WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation. Use
+`adv_worktree_resume` and rerun from returned workdir.
+
+Guarded examples:
+
+- `adv_gate_complete` for discovery/design/planning/execution/acceptance/release
+- `adv_task_add`
+- `adv_task_update` for `in_progress`, `done`, or `cancelled`
+
+Proposal gate stays exempt so a change can reach worktree creation. Read-only
+tools stay allowed.
+
 ## Port & Resource Isolation (AC10)
 
 Parallel worktrees should not share runtime ports, databases, or mutable local
 state. Recommended patterns:
 
-| Resource | Pattern |
-| --- | --- |
-| HTTP ports | `BASE_PORT + WORKTREE_INDEX` (for example 5173, 5174, 5175) |
-| SQLite | one DB file per worktree, stored under the worktree path |
-| Docker volumes | one named volume per worktree branch slug |
-| External services | suffix local resource names with branch slug |
+| Resource          | Pattern                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| HTTP ports        | `BASE_PORT + WORKTREE_INDEX` (for example 5173, 5174, 5175) |
+| SQLite            | one DB file per worktree, stored under the worktree path    |
+| Docker volumes    | one named volume per worktree branch slug                   |
+| External services | suffix local resource names with branch slug                |
 
 Example `postCreate` hook for assigning per-worktree local resources:
 
@@ -71,10 +87,10 @@ Example `postCreate` hook for assigning per-worktree local resources:
 {
   "hooks": {
     "postCreate": [
-      "node scripts/setup-worktree-env.mjs --port-base 5173 --db-template .env.local"
+      "node scripts/setup-worktree-env.mjs --port-base 5173 --db-template .env.local",
     ],
-    "preDelete": ["node scripts/cleanup-worktree-env.mjs"]
-  }
+    "preDelete": ["node scripts/cleanup-worktree-env.mjs"],
+  },
 }
 ```
 
