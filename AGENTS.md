@@ -197,3 +197,4 @@ Requires `jq` for config patching.
 - `SETUP.md` — installation, project init, troubleshooting
 - `docs/adv-gates.md` — gate contracts and sequencing rules
 - `docs/checklists/` — prep, review, and harden checklists
+- `docs/snapshot-health.md` — detect/repair OpenCode snapshot-store corruption (stale locks, zero-byte objects, fsck errors, orphan repos)

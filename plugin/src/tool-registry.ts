@@ -36,6 +36,7 @@ import { investmentTools } from "./tools/investment";
 import { temporalOpsTools } from "./tools/temporal-ops";
 import { checkpointTools } from "./tools/checkpoint";
 import { reflectionTools } from "./tools/reflection";
+import { snapshotHealthTools } from "./tools/snapshot";
 import { projectMetadataTools } from "./tools/project-metadata";
 import { conformanceTools } from "./tools/conformance";
 import { advWorktreeTools } from "./tools/adv-worktree";
@@ -296,6 +297,13 @@ export function createToolMap(
 
     // Status Tool
     adv_status: bindTool(statusTools.adv_status, "adv_status", store),
+
+    // Snapshot Health Tool
+    adv_snapshot_health: bindTool(
+      snapshotHealthTools.adv_snapshot_health,
+      "adv_snapshot_health",
+      store,
+    ),
 
     // Investment Tools
     adv_investment_report: bindTool(
@@ -622,6 +630,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_worktree_triage",
   "adv_session_list",
   "adv_session_show",
+  "adv_snapshot_health",
   // Backward-compat aliases (KD-8 phase 2)
   "worktree_create",
   "worktree_delete",

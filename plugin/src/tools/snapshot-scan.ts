@@ -213,7 +213,9 @@ async function listSubdirs(p: string): Promise<string[]> {
 async function scanBareRepo(
   repoPath: string,
   pid: string,
-  opts: Required<Pick<ScanOptions, "lsofCheck" | "resolveWorktreePath" | "now">>,
+  opts: Required<
+    Pick<ScanOptions, "lsofCheck" | "resolveWorktreePath" | "now">
+  >,
 ): Promise<SnapshotFinding[]> {
   const findings: SnapshotFinding[] = [];
   const now = opts.now();

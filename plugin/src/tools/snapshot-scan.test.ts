@@ -6,12 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import {
-  mkdir,
-  writeFile,
-  utimes,
-  access,
-} from "node:fs/promises";
+import { mkdir, writeFile, utimes, access } from "node:fs/promises";
 import { join } from "node:path";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import {
@@ -103,9 +98,7 @@ async function makeOversizedRepo(
   // Create a sparse file > 100MB
   const bigFile = join(repoPath, "objects", "pack", "big.pack");
   await writeFile(bigFile, Buffer.alloc(0));
-  await (
-    await import("node:fs/promises")
-  ).truncate(bigFile, 110 * 1024 * 1024);
+  await (await import("node:fs/promises")).truncate(bigFile, 110 * 1024 * 1024);
   return repoPath;
 }
 
@@ -153,11 +146,7 @@ describe("scanSnapshotHealth", () => {
   it("detects stale lock (>5min, no holder) as critical", async () => {
     const repoPath = join(tempRoot, "test-pid", "abc123");
     await makeBareRepo(repoPath);
-    await addStaleLock(
-      repoPath,
-      "index",
-      STALE_LOCK_THRESHOLD_MS + 1000,
-    );
+    await addStaleLock(repoPath, "index", STALE_LOCK_THRESHOLD_MS + 1000);
 
     const result = await scanSnapshotHealth({
       scope: "project",

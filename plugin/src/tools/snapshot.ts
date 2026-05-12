@@ -54,7 +54,9 @@ export const snapshotHealthTools = {
       repair_actions: z
         .array(z.enum(REPAIR_ACTION_ENUM))
         .optional()
-        .describe("Which repair actions to apply. Required when action=repair."),
+        .describe(
+          "Which repair actions to apply. Required when action=repair.",
+        ),
       approvedByUser: z
         .boolean()
         .optional()
@@ -110,10 +112,7 @@ export const snapshotHealthTools = {
         });
       }
 
-      if (
-        !args.approvalEvidence ||
-        args.approvalEvidence.trim().length === 0
-      ) {
+      if (!args.approvalEvidence || args.approvalEvidence.trim().length === 0) {
         return formatToolOutput({
           success: false,
           error:

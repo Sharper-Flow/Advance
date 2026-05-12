@@ -209,6 +209,33 @@ describe("KD-8 worktree + session tool registrations", () => {
   });
 });
 
+describe("adv_snapshot_health registration", () => {
+  let tempDir: string;
+  let store: Awaited<ReturnType<typeof createLegacyStore>>;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+    store = await createLegacyStore(tempDir);
+    await store.init();
+  });
+
+  afterEach(async () => {
+    store.close();
+    await cleanupTempDir(tempDir);
+  });
+
+  test("registers adv_snapshot_health in createToolMap", async () => {
+    const map = createToolMap(store, tempDir, store.paths.agenda);
+    expect(map.adv_snapshot_health).toBeDefined();
+    expect(typeof map.adv_snapshot_health).toBe("object");
+  });
+
+  test("includes adv_snapshot_health in ADV_TOOL_NAMES", () => {
+    expect(ADV_TOOL_NAMES).toContain("adv_snapshot_health");
+  });
+});
+
 describe("safeExecute timeout overrides for slow-subprocess tools", () => {
   // Tools that wrap external subprocesses (test runs, git commits with
   // pre-commit hooks) budget more than the default 10s outer timeout

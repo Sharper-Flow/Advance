@@ -4,7 +4,13 @@ import { join, resolve } from "path";
 import { SpecSchema } from "../types";
 
 const REPO_ROOT = resolve(__dirname, "../../..");
-const SPEC_PATH = join(REPO_ROOT, ".adv", "specs", "snapshot-health", "spec.json");
+const SPEC_PATH = join(
+  REPO_ROOT,
+  ".adv",
+  "specs",
+  "snapshot-health",
+  "spec.json",
+);
 
 describe("snapshot-health spec", () => {
   const specRaw = JSON.parse(readFileSync(SPEC_PATH, "utf8"));
