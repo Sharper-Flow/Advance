@@ -367,33 +367,32 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 <!-- rq-issueChangeLinkage02 -->
 ### Step 8.5: Linked GitHub Issue Close (rq-issueChangeLinkage02)
 
-**Trigger:** All of following must be true (otherwise SKIP this step):
+**Tool-driven (structural enforcement):** `adv_change_archive` defaults to closing linked GH issues for roadmap/triage origins after successful archive state transition. The agent does NOT need to shell out `gh` commands manually — the tool handles it.
 
-- `--no-close-issue` was NOT passed in the original `$ARGUMENTS`.
-- The change has `origin.kind ∈ {'roadmap', 'triage'}`.
-- The change has `origin.issue_number` set (positive integer).
-- Step 6 verification succeeded (push verified). If no remote push was performed, local merge verification is not enough to close remote issue state.
+**Trigger (enforced by tool code):**
 
-Default behavior: linked roadmap/triage archives default to closing the upstream issue after verified push. `--close-issue` remains accepted as a backward-compatible explicit affirmative / redundant no-op.
+- `--no-close-issue` was NOT passed.
+- `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number > 0`.
+- Push verification succeeded (archive commits reachable on default branch) — the tool fires after `store.changes.save()` confirms archive status.
+- `dryRun` is false.
 
-**Sequence (each step gates the next):**
+**Tool behavior:**
 
-1. `gh issue comment <N> -b "Shipped via {change-id} — archived $(date -u +%Y-%m-%dT%H:%M:%SZ)"` — post the shipping marker.
-2. `gh issue close <N> --reason completed` — close. `gh` is natively idempotent: an already-closed issue returns exit 0 with an informational stderr; no failure, no API mutation.
+1. Posts comment: `Shipped via {change-id} ({short-sha})` (skipped on re-archive when bundle already exists).
+2. Runs `gh issue close <N> --reason completed` (idempotent — already-closed returns exit 0).
+3. Cross-repo: resolves `--repo {owner}/{name}` via `github_project` config when needed.
+4. `ghNotFound` → silent skip (`close_eligible: true, issue_closed: []`).
+5. Non-zero exit → non-fatal error in `issue_closure_error` with manual remediation command.
 
-**Failure handling (exit-code-only — no stderr string matching):**
-
-- Exit 0 from either step → success; record `gh_issue_closed: <N>` in the Phase 8 report.
-- Exit non-zero from either step → emit `[ADV:ATTN] Failed to close linked issue #<N>: <stderr>. Run `gh issue close <N> --reason completed` manually.` Archive state is canonical; do NOT roll back. Continue to Step 9.
+**Agent responsibility:** Check `issue_closed` and `issue_closure_error` in archive output. If `issue_closure_error` present, surface `[ADV:ATTN]` with the manual command. No other action needed.
 
 **Anti-patterns:**
 
 | × Bad | ✓ Good |
 |---|---|
-| Close issue when `origin.kind === 'discovery'` or `'adhoc'` | Only roadmap- and triage-origin changes have a meaningful upstream issue to close. |
-| Close issue before Step 6 push verification | Close only after archive commits are verified reachable on pushed default branch. |
-| Match stderr for "already closed" string | gh CLI returns exit 0 for already-closed; just check the exit code. |
-| Roll back archive on close failure | Local archive state is canonical; close failure is non-fatal `[ADV:ATTN]`. |
+| Agent manually runs `gh issue close` after archive | Tool handles closure automatically; agent only surfaces errors. |
+| Close issue when `origin.kind === 'discovery'` or `'adhoc'` | Only roadmap- and triage-origin changes close automatically. |
+| Roll back archive on close failure | Archive state is canonical; close failure is non-fatal advisory. |
 
 ### Completion
 
