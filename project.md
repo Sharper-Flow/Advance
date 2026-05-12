@@ -120,3 +120,4 @@ Requires `jq`.
 | `SETUP.md` | Installation, project init, troubleshooting |
 | `docs/adv-gates.md` | Gate contracts and sequencing rules |
 | `docs/checklists/` | Prep, review, and harden checklists |
+| `docs/snapshot-health.md` | Detect/repair OpenCode snapshot-store corruption |

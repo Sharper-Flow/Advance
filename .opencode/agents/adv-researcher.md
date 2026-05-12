@@ -36,6 +36,7 @@ tools:
   adv_change_list: true
   adv_change_show: true
   adv_change_update: false
+  adv_snapshot_health: true
   adv_project_context: true
   # UX tools
   question: true

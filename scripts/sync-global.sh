@@ -687,7 +687,11 @@ PY
 # ---------------------------------------------------------------------------
 check_tool_drift() {
   local agent_file="${1:-$REPO_AGENTS/adv.md}"
-  local registry_file="$REPO_ROOT/plugin/src/tool-registry.ts"
+  # Use ASSET_ROOT (current checkout/worktree) for registry so worktree-local
+  # tool additions are visible to drift detection — matches the reasoning at
+  # the ASSET_ROOT assignment (line ~95). Using REPO_ROOT here would point at
+  # the canonical primary worktree and miss in-flight tool changes.
+  local registry_file="$ASSET_ROOT/plugin/src/tool-registry.ts"
 
   if [ ! -f "$agent_file" ] || [ ! -f "$registry_file" ]; then
     echo "    ⚠  tool drift: skipped (missing $agent_file or $registry_file)"

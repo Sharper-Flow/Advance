@@ -26,10 +26,12 @@ const {
   mockScanOpenCodeSessionDebt,
   mockGetTemporalHealth,
   mockGetWorktreeCensus,
+  mockScanSnapshotHealth,
 } = vi.hoisted(() => ({
   mockScanOpenCodeSessionDebt: vi.fn(),
   mockGetTemporalHealth: vi.fn(),
   mockGetWorktreeCensus: vi.fn(),
+  mockScanSnapshotHealth: vi.fn(),
 }));
 
 vi.mock("../temporal/health-probe", () => ({
@@ -48,6 +50,10 @@ vi.mock("../utils/opencode-session-debt", async (importOriginal) => {
     scanOpenCodeSessionDebt: mockScanOpenCodeSessionDebt,
   };
 });
+
+vi.mock("./snapshot-scan", () => ({
+  scanSnapshotHealth: mockScanSnapshotHealth,
+}));
 
 // Mock getStslStats and isStslInitialized for search_attributes testing.
 // `getService` is also mocked so the queue-serviceability path added by
@@ -97,6 +103,21 @@ describe("Status Tools", () => {
       warnings: [],
     });
     _statusProbeCaches.clear();
+    mockScanSnapshotHealth.mockReset();
+    mockScanSnapshotHealth.mockResolvedValue({
+      schema_version: 1,
+      scan_duration_ms: 0,
+      scope: "project",
+      project_id: "unknown",
+      summary: {
+        projects_scanned: 0,
+        bare_repos_scanned: 0,
+        critical: 0,
+        warnings: 0,
+        info: 0,
+      },
+      findings: [],
+    });
     mockScanOpenCodeSessionDebt.mockResolvedValue({
       available: false,
       db_path: "/missing/opencode.db",

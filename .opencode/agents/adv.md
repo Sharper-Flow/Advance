@@ -84,6 +84,8 @@ tools:
   adv_temporal_reconnect: true
   adv_temporal_register_search_attributes: true
   adv_temporal_worker_restart: true
+  # Snapshot health diagnostics
+  adv_snapshot_health: true
   # Reflection
   adv_reflect: true
   adv_conformance: true

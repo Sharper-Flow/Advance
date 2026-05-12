@@ -29,6 +29,7 @@ tools:
   adv_project_context: true
   adv_agenda_list: true
   adv_wisdom_list: true
+  adv_snapshot_health: true
   # Disabled - Tron is strictly read-only
   write: false
   edit: false

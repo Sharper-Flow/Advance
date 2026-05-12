@@ -69,6 +69,7 @@ import {
 } from "../utils/project-id";
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
+import { scanSnapshotHealth } from "./snapshot-scan";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -158,6 +159,25 @@ const statusQueueServiceabilityInputs = new Map<
   { projectId: string | undefined; health: TemporalHealthSnapshot }
 >();
 
+type SnapshotHealthSnapshot = Awaited<ReturnType<typeof scanSnapshotHealth>>;
+
+const SNAPSHOT_HEALTH_TTL_MS = 60_000;
+const SNAPSHOT_HEALTH_TIMEOUT_MS = 10_000;
+
+const snapshotHealthProbeCache = createProbeCache<
+  SnapshotHealthSnapshot,
+  string
+>({
+  name: "status.snapshot_health",
+  ttlMs: SNAPSHOT_HEALTH_TTL_MS,
+  timeoutMs: SNAPSHOT_HEALTH_TIMEOUT_MS,
+  fetch: async (key) =>
+    scanSnapshotHealth({
+      scope: "project",
+      projectId: key === MISSING_PROJECT_ID_CACHE_KEY ? "unknown" : key,
+    }),
+});
+
 const statusQueueServiceabilityProbeCache = createProbeCache<
   StatusQueueServiceabilitySnapshot | null,
   string
@@ -179,9 +199,21 @@ export const _statusProbeCaches = {
     statusWorktreeCensusProbeCache.clear();
     statusSearchAttributesProbeCache.clear();
     statusQueueServiceabilityProbeCache.clear();
+    snapshotHealthProbeCache.clear();
     statusQueueServiceabilityInputs.clear();
   },
 };
+
+async function fetchStatusSnapshotHealth(
+  projectId: string | undefined,
+): Promise<{
+  value: SnapshotHealthSnapshot;
+  freshness: ProbeCacheFreshness;
+}> {
+  return snapshotHealthProbeCache.fetch(
+    projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+  );
+}
 
 function withStabilityFeatureDefaults(
   features: Record<string, unknown> | undefined,
@@ -876,6 +908,7 @@ export function applyStatusView(
       // Metrics counters (AC6).
       if (full.metrics) projection.metrics = full.metrics;
       projection.plugin_runtime = full.plugin_runtime;
+      projection.snapshot_health = full.snapshot_health;
       break;
     }
     case "changes": {
@@ -890,6 +923,7 @@ export function applyStatusView(
       projection._healthSnapshot = full._healthSnapshot;
       projection.external_state_hygiene = full.external_state_hygiene;
       projection.migration_status = full.migration_status;
+      projection.snapshot_health = full.snapshot_health;
       break;
     }
   }
@@ -1122,6 +1156,11 @@ export const statusTools = {
           const healthSnapshot = await computeHealthSnapshot(activeStore);
           const externalStateHygiene =
             await computeExternalStateHygiene(activeStore);
+          // rq-snapshotHealthSurface01 — append snapshot-health probe
+          const snapshotHealthProbe =
+            await fetchStatusSnapshotHealth(projectId);
+          const snapshotHealth = snapshotHealthProbe.value;
+          probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
           if (healthSnapshot.closed_to_active_ratio > 5) {
             const ratio = healthSnapshot.closed_to_active_ratio;
             status.recommendations.push(
@@ -1208,6 +1247,13 @@ export const statusTools = {
                   available: false,
                   reason: opencodeSessionDebt.reason,
                 },
+            snapshotHealth: snapshotHealth
+              ? {
+                  critical: snapshotHealth.summary.critical,
+                  warnings: snapshotHealth.summary.warnings,
+                  info: snapshotHealth.summary.info,
+                }
+              : undefined,
           });
 
           const projectMetadata = await readProjectMetadata(
@@ -1243,6 +1289,7 @@ export const statusTools = {
             project_metadata: projectMetadata,
             external_state_hygiene: externalStateHygiene,
             worktree_census: worktreeCensus,
+            snapshot_health: snapshotHealth,
             _healthSnapshot: healthSnapshot,
             // AC6: in-memory counters surfaced via view: "health".
             // Counters reset on plugin init (JC-1).

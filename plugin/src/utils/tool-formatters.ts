@@ -119,6 +119,15 @@ export interface StatusInput {
    * and recovery hint lines so the agent can render verbatim to the user.
    */
   pluginRuntime?: PluginRuntimeInput;
+  /**
+   * rq-snapshotHealthSurface01: Optional summary counts from snapshot-store
+   * health probe. When present, appends a one-line summary to healthLines.
+   */
+  snapshotHealth?: {
+    critical: number;
+    warnings: number;
+    info: number;
+  };
 }
 
 export interface PluginRuntimeInput {
@@ -349,6 +358,25 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
       for (const cmd of input.pluginRuntime.recovery_hint.commands) {
         healthLines.push(`     ${cmd}`);
       }
+    }
+  }
+  // rq-snapshotHealthSurface01 — one-line snapshot health summary
+  // appended to healthSection (no new top-level section per validator
+  // recommendation; same pattern as pluginRuntime freshness line).
+  if (input.snapshotHealth) {
+    const { critical, warnings, info } = input.snapshotHealth;
+    if (critical > 0) {
+      healthLines.push(
+        `Snapshot: 🟥 ${critical} critical${warnings > 0 ? `, ${warnings} warning(s)` : ""}`,
+      );
+    } else if (warnings > 0) {
+      healthLines.push(
+        `Snapshot: 🟨 ${warnings} warning(s)${info > 0 ? `, ${info} info` : ""}`,
+      );
+    } else if (info > 0) {
+      healthLines.push(`Snapshot: ✓ clean (${info} info)`);
+    } else {
+      healthLines.push(`Snapshot: ✓ clean`);
     }
   }
   const healthSection = healthLines.join("\n");

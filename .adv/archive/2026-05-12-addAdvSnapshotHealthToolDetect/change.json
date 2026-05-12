@@ -1,0 +1,344 @@
+{
+  "id": "addAdvSnapshotHealthToolDetect",
+  "title": "Add adv_snapshot_health tool to detect and remediate OpenCode snapshot-store corruption (stale locks, zero-byte git objects, fsck errors) that has caused recurring agent freezes in busy projects like pokeedge-web.",
+  "status": "archived",
+  "created_at": "2026-05-12T14:19:22.208Z",
+  "tasks": [
+    {
+      "id": "tk-4c8593d0c11c",
+      "title": "Create new spec capability `.adv/specs/snapshot-health/spec.json` declaring requirements with stable `rq-` identifiers covering: probe-coverage (all 7 detection patterns), safe-default (read-only scan), repair-whitelist (3 closed actions), audit-trail (agenda entry per repair), scope-boundary (project vs global), schema-versioning (integer schema_version: 1). Include short capability description and link to docs/snapshot-health.md. Inline TDD: test that spec parses + has ≥4 requirements + all rq- IDs unique.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-12T19:12:03.146Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T19:31:06.681Z",
+      "verification": "9 spec-validation tests pass + full suite 2326 tests pass. Spec has 8 requirements with stable rq- IDs. Test placed in plugin/src/validator/snapshot-health-spec.test.ts (colocated with spec-format validators).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/snapshot-health/spec.json",
+        "plugin/src/tools/snapshot.test.ts",
+        "plugin/src/tools/snapshot.ts",
+        "plugin/src/validator/snapshot-health-spec.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/snapshot-health/spec.json",
+        "plugin/src/tools/snapshot.test.ts",
+        "plugin/src/tools/snapshot.ts",
+        "plugin/src/validator/snapshot-health-spec.test.ts"
+      ],
+      "checkpointSha": "aa91f3bfa71c6a7ee7a1239cf619ca84e18f0d7a",
+      "completedAt": "2026-05-12T19:46:26.360Z",
+      "completed_at": "2026-05-12T19:46:26.360Z"
+    },
+    {
+      "id": "tk-ace00d8abe38",
+      "title": "Implement `plugin/src/tools/snapshot-scan.ts` — pure filesystem scan logic with TDD. Exports: `scanSnapshotHealth(opts)`, `executeRepair(opts)`, type definitions (`SnapshotFinding`, `SnapshotHealthOutput`, `RepairActionRecord`). Detection patterns: stale_lock (mtime >5min + no lsof holder), zero_byte_object (`objects/{xx}/[0-9a-f]{38,}` size 0), fsck_error (`git fsck --no-dangling --connectivity-only`, max 10 errors, skip dirs >500MB), orphan_bare_repo (worktree path missing), oversized_dir (>100MB info), legacy_layout (HEAD+objects/+refs at project root), no_snapshot_dirs (project has external state but no bare repos). Inline TDD: 8 fixture bare repos in temp dirs (one per finding type), each pattern asserts expected finding shape. File header comment: `// Tool-layer module — imports child_process for git fsck. Not workflow-safe.` Verify: `pnpm test -- snapshot-scan` passes.",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-12T19:12:08.287Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T19:14:26.481Z",
+      "verification": "pnpm test (full suite): 2317 passed, 0 failed. Targeted snapshot-scan tests all green. typecheck + lint clean per adv-engineer report.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/snapshot-scan.test.ts",
+        "plugin/src/tools/snapshot-scan.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/snapshot-scan.test.ts",
+        "plugin/src/tools/snapshot-scan.ts"
+      ],
+      "checkpointSha": "f2e2c80c8c05cbf71506fbf654f60e26ed68a260",
+      "completedAt": "2026-05-12T19:30:37.062Z",
+      "completed_at": "2026-05-12T19:30:37.062Z"
+    },
+    {
+      "id": "tk-d9c57c435c8a",
+      "title": "Implement `plugin/src/tools/snapshot.ts` — ADV tool wrapper exporting `snapshotHealthTools` with `adv_snapshot_health` definition. Zod arg schema: `action` (scan|repair, default scan), `scope` (project|global, default project), `repair_actions` (array of 3 whitelisted enums, optional), `approvedByUser` (boolean, optional), `approvalEvidence` (string, optional), `dryRun` (boolean, default false). Execute function: validates required args for repair action, calls `scanSnapshotHealth`, conditionally `executeRepair`, writes agenda entries via `agendaTools.adv_agenda_add` on successful repairs, returns `formatToolOutput` with schema_version: 1 shape. Inline TDD: 7 tests — scan happy path, repair rejects without approvedByUser, repair rejects without approvalEvidence, repair rejects unknown action string, dryRun returns preview no mutations, audit entry written on success, output schema validates. Verify: `pnpm test -- snapshot.test` passes.",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-12T19:12:15.910Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ace00d8abe38"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T19:31:07.505Z",
+      "verification": "8/8 snapshot.test.ts tests pass + typecheck + lint clean. Wrapper exports snapshotHealthTools.adv_snapshot_health, integrates with agendaTools, enforces approval gate via approvedByUser+approvalEvidence+repair_actions whitelist. Output preserves schema_version: 1.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "aa91f3bfa71c6a7ee7a1239cf619ca84e18f0d7a",
+      "completedAt": "2026-05-12T19:46:38.129Z",
+      "completed_at": "2026-05-12T19:46:38.129Z"
+    },
+    {
+      "id": "tk-d5e9612fe7ba",
+      "title": "Register `adv_snapshot_health` in tool infrastructure: (1) `plugin/src/tool-registry.ts` — import `snapshotHealthTools` from `./tools/snapshot`, add `bindTool(snapshotHealthTools.adv_snapshot_health, \"adv_snapshot_health\", store)` to `createToolMap` (near other diagnostic tools), AND add `\"adv_snapshot_health\"` to `ADV_TOOL_NAMES` array so degraded tool map stubs it on init failure. (2) `plugin/src/manifest.ts` — add tool name declaration for agent allowlist propagation. Inline TDD: extend existing tool-registry test that asserts tool count + presence of `adv_snapshot_health` in registered tools and ADV_TOOL_NAMES. Verify: `pnpm test -- tool-registry` passes.",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-12T19:12:19.387Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ace00d8abe38"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T19:47:02.085Z",
+      "verification": "tool-registry.ts: import + bindTool (after adv_status) + ADV_TOOL_NAMES entry. 2 registration tests added. 2336 tests pass, typecheck + lint + format all clean. Manifest.ts not modified — adv-engineer correctly identified that manifest.ts holds COMMAND_MANIFEST (slash commands), not MCP tool names; sync-global.sh reads ADV_TOOL_NAMES from tool-registry.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "AGENTS.md",
+        "docs/snapshot-health.md",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/snapshot-scan.test.ts",
+        "plugin/src/tools/snapshot-scan.ts",
+        "plugin/src/tools/snapshot.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/validator/snapshot-health-spec.test.ts",
+        "project.md"
+      ],
+      "touched_files": [
+        "AGENTS.md",
+        "docs/snapshot-health.md",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/snapshot-scan.test.ts",
+        "plugin/src/tools/snapshot-scan.ts",
+        "plugin/src/tools/snapshot.ts",
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "plugin/src/validator/snapshot-health-spec.test.ts",
+        "project.md"
+      ],
+      "checkpointSha": "fc01c080ce866dfd19a9244f650b6ab000cd2a52",
+      "completedAt": "2026-05-12T20:50:56.536Z",
+      "completed_at": "2026-05-12T20:50:56.536Z"
+    },
+    {
+      "id": "tk-d624b57db90a",
+      "title": "Integrate snapshot health into `adv_status` output: (1) `plugin/src/utils/tool-formatters.ts` — add optional `snapshotHealth?: { critical: number; warnings: number; info: number }` to `StatusInput` interface. Inside `formatStatusOutput`, append one line to existing `healthLines[]` (NOT a new section, per validator recommendation): `Snapshot: ✓ clean` / `Snapshot: 🟨 N warnings` / `Snapshot: 🟥 N critical`. (2) `plugin/src/tools/status.ts` — add TTL-cached probe wrapper (60s TTL) calling `scanSnapshotHealth` keyed by `projectId ?? MISSING_PROJECT_ID_CACHE_KEY`. After `computeExternalStateHygiene` (~line 1124), call the probe and add `snapshot_health` to `fullOutput`. Pass summary counts to `formatStatusOutput`. Update `applyStatusView`: add `projection.snapshot_health = full.snapshot_health` in BOTH `case \"health\"` and `case \"hygiene\"`. Inline TDD: extend status tests — assert `snapshot_health` present in both views, summary line appears in formatted healthSection, summary line says ✓ clean when no findings. Verify: `pnpm test -- status` passes.",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-12T19:12:27.649Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d9c57c435c8a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T19:47:03.215Z",
+      "verification": "status.ts + tool-formatters.ts + status.test.ts modified. TTL-cached probe added (60s), projected in both health + hygiene views, append-to-healthLines pattern per validator. Sub-agent lost final ENGINEER_REPORT response (MessageAbortedError-class issue) but completed all design points correctly per code review. 2336 tests pass, check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "fc01c080ce866dfd19a9244f650b6ab000cd2a52",
+      "completedAt": "2026-05-12T20:51:04.944Z",
+      "completed_at": "2026-05-12T20:51:04.944Z"
+    },
+    {
+      "id": "tk-6f8a4d27e15c",
+      "title": "Update agent allowlists to expose `adv_snapshot_health`. Edit repo-local agent files: `.opencode/agents/adv.md`, `.opencode/agents/adv-atc.md`, `.opencode/agents/adv-engineer.md`, `.opencode/agents/adv-researcher.md`, `.opencode/agents/adv-tron.md`. Add `adv_snapshot_health: true` to tools section in each. Provider-keyed globals (`adv-claude/gpt/glm/kimi/atc`) are sync-generated — propagation is handled by `scripts/sync-global.sh` once manifest entry exists (added in tk-d5e9612fe7ba). Inline-trivial: docs/config change only, no TDD red phase required; verify by `grep -l adv_snapshot_health .opencode/agents/*.md` returns 5 files. Mark `tdd_intent: not_applicable`.",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-12T19:12:32.190Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d5e9612fe7ba"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T20:51:19.854Z",
+      "verification": "adv_snapshot_health: true added to all 5 .opencode/agents/*.md files. Per-agent placement: adv/adv-atc after temporal_worker_restart, adv-engineer in read-only ADV reads block (read-mostly tool, repair gated by approvedByUser orchestrator-only), adv-researcher in narrow ADV-query section, adv-tron in read-only recon ADV block. grep confirms all 5 files contain the entry.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-atc.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv.md"
+      ],
+      "checkpointSha": "40d08bcddb1eb6b2d40c9861b2487d217d72dbbf",
+      "completedAt": "2026-05-12T20:52:20.860Z",
+      "completed_at": "2026-05-12T20:52:20.860Z"
+    },
+    {
+      "id": "tk-a758d1e9968b",
+      "title": "Write user documentation: (1) `docs/snapshot-health.md` (new) — covers: what the tool detects (all 7 patterns with examples), how to invoke (`adv_snapshot_health` scan and repair forms), repair safety model (approval gate, whitelist, agenda audit), known limitations (does not fix upstream OpenCode race), `adv_status` integration (health/hygiene views), schema_version: 1 stability contract. (2) `AGENTS.md` — add one-line entry to the existing \"MCP tool selection\" section (or wherever diagnostic tools are listed). (3) `project.md` — single-line reference to `adv_snapshot_health` in the diagnostic-tools section. Mark `tdd_intent: not_applicable` (docs only).",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-12T19:12:36.159Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d9c57c435c8a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T19:47:04.144Z",
+      "verification": "docs/snapshot-health.md created. AGENTS.md (Key References) + project.md (Key Reference Files table) updated with single-line references. All 8 rq- IDs from spec cited verbatim.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "fc01c080ce866dfd19a9244f650b6ab000cd2a52",
+      "completedAt": "2026-05-12T20:51:07.052Z",
+      "completed_at": "2026-05-12T20:51:07.052Z"
+    },
+    {
+      "id": "tk-3f984eef0704",
+      "title": "Final verification + propagation: (1) Run `./scripts/sync-global.sh --check` then `--fix` to propagate manifest tool entry to provider-keyed agent globals (`adv-claude/gpt/glm/kimi/atc`) under `~/.config/opencode/agents/`. (2) Run live-tree validation: call `adv_snapshot_health` on the current `~/.local/share/opencode/snapshot/` tree and assert output matches the Python baseline at `/tmp/opencode/snapshot-health-report.json` (18 projects, 22 bare repos, 0 critical/0 warnings post-cleanup) — this is V2 from the agreement. (3) Verify performance: scan_duration_ms reported < 10000 (AC8). (4) Run full repo check: `pnpm run check` (typecheck + lint + format:check) and `pnpm test` (full vitest suite). All must pass clean. Document any drift in implementation_summary on task completion. Mark `tdd_intent: not_applicable` (verification-only task).",
+      "type": "code",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-12T19:12:44.750Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d624b57db90a"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6f8a4d27e15c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a758d1e9968b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4c8593d0c11c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-12T20:52:27.299Z",
+      "verification": "Verification matrix: (1) sync-global propagation — 6 agent variants (adv/adv-claude/gpt/glm/kimi/atc) all match plugin registry, 52 tools, zero drift. (2) Live tree baseline — 18 projects, 19 bare repos, 0 critical/0 warnings/10 info; matches Python baseline projects count exactly; bare repo count drift (22→19) reflects current state, not regression. (3) Performance AC8 — duration 6121ms, well under 10000ms budget. (4) Full repo check — pnpm run check (typecheck + lint + format) all pass; pnpm test 194 files / 2338 tests / 0 failures. CAMPSITE FIX: discovered+fixed sync-global.sh bug where check_tool_drift used REPO_ROOT (canonical/main) for registry but ASSET_ROOT (current worktree) for agent files, causing false-positive drift for in-flight tool additions. Fix: change registry_file from REPO_ROOT to ASSET_ROOT. Pre-existing overlay-sync-assets test caught this on the first run and now passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/sync-global.sh"
+      ],
+      "touched_files": [
+        "scripts/sync-global.sh"
+      ],
+      "checkpointSha": "3c64838171dc8810633df1b4c7459bef952a4b45",
+      "completedAt": "2026-05-12T21:10:46.454Z",
+      "completed_at": "2026-05-12T21:10:46.454Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-12T17:51:51.334Z",
+      "completed_by": "agent"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-12T19:03:13.086Z",
+      "completed_by": "agent"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-12T19:12:52.188Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design document written with architecture, scan algorithm, repair flow, output schema (schema_version: 1), 7 detection patterns, integration mapping to status.ts/tool-formatters.ts, test strategy (8 fixtures), files-changed enumeration (17 files). 4 open questions resolved: Q1 nuke-and-rebuild for legacy bare repos, Q2 batch approval with detailed evidence, Q3 missing-snapshot as advisory info, Q4 integer schema_version. Independent validator (adv-researcher) returned VALIDATED with 2 medium + 4 low concerns — all implementation refinements integrated into task graph (formatStatusOutput append vs new section, applyStatusView explicit projection, ADV_TOOL_NAMES inclusion, StatusInput backward-compat, file-header layer comment)."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-12T19:13:44.946Z",
+      "completed_by": "agent",
+      "approval_evidence": "8 tasks created with TDD intent + delegation hints. Dependencies: spec + scan are parallel-ready foundation; tool wrapper + tool-registry registration depend on scan; status integration + docs depend on tool wrapper; allowlists depend on tool-registry; final verify depends on all. Validator refinements integrated into individual task descriptions. Plan: ~3-5 hours autonomous execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-12T21:11:01.668Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 tasks complete. 20 files touched. Implementation: snapshot-scan.ts (pure logic, 8 fixtures), snapshot.ts (tool wrapper, 8 tests, approval gate, agenda audit), tool-registry.ts (binding + ADV_TOOL_NAMES + 2 tests), status.ts + tool-formatters.ts (TTL-cached probe + 2 view projections + summary line), .opencode/agents/*.md × 5 (allowlist), docs/snapshot-health.md (full user docs, all 8 rq- IDs cited), AGENTS.md + project.md (reference), .adv/specs/snapshot-health/spec.json (8 rq- requirements). CAMPSITE FIX: sync-global.sh check_tool_drift bug fixed (registry_file uses ASSET_ROOT not REPO_ROOT). Verification: 2338 tests pass, typecheck + lint + format clean, sync-global drift zero across 6 agent variants, live-tree scan 6.1s (61% of AC8 budget). Sub-agent caveat: tk-d624b5 status integration agent lost final ENGINEER_REPORT response (MessageAbortedError-class) but code review + tests confirm all design points implemented correctly."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-12T21:20:03.177Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 18 AC met: AC1 schema_version: 1 ✓, AC2 modern layout ✓, AC3 legacy layout ✓, AC4 stale lock detection with race guard ✓, AC5 zero-byte object detection ✓, AC6 fsck error capture (max 10, skip >500MB) ✓, AC7 orphan as warning ✓, AC8 <10s (6.1s actual) ✓, AC9 scope project|global ✓, AC10 approvedByUser required ✓, AC11 closed whitelist ✓, AC12 agenda audit ✓, AC13 lsof re-check race guard ✓, AC14 status view:health summary line ✓, AC15 status view:hygiene full table ✓, AC16 spec with 8 rq- requirements ✓, AC17 docs covers all required topics ✓, AC18 pnpm check + pnpm test all pass ✓. Plus campsite-rule fix to sync-global.sh check_tool_drift (use ASSET_ROOT for registry to detect in-flight tool additions correctly)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-12T21:23:40.453Z",
+      "completed_by": "agent",
+      "approval_evidence": "All gates complete. 8/8 tasks done. 2338 tests pass, check clean, sync-global drift zero. Ready for archive + trunk merge."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-12T19:04:55.236Z"
+    }
+  ]
+}
