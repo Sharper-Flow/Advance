@@ -210,6 +210,7 @@ export async function tryInitStore(
         workerSingletonEnforce,
         forceInProcessWorker: process.env.ADV_FORCE_IN_PROCESS_WORKER === "1",
       });
+      currentWorkerRole = singletonPlan.workerRole;
       const shouldSpawnWorker = singletonPlan.shouldSpawnWorker;
       profilePluginInit("worker_singleton_resolved", {
         enforce: workerSingletonEnforce,
@@ -360,6 +361,7 @@ export async function tryInitStore(
 
 const inProcessTemporalWorkers = new Set<InProcessWorker>();
 const workerLockHeartbeats = new Set<WorkerLockHeartbeatController>();
+let currentWorkerRole: WorkerRole = "degraded";
 
 const exhaustedWorkerDirs = new Set<string>();
 
@@ -403,6 +405,10 @@ export function getRegisteredTemporalWorkerQueues(): string[] {
     }
   }
   return [...queues].sort((a, b) => a.localeCompare(b));
+}
+
+export function getTemporalWorkerRole(): WorkerRole {
+  return currentWorkerRole;
 }
 
 export type TemporalWorkerDiagnostics =

@@ -14,6 +14,7 @@ import { getTemporalHealth } from "../temporal/health-probe";
 import {
   getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
+  getTemporalWorkerRole,
 } from "../plugin-init";
 import {
   classifyQueueServiceability,
@@ -108,6 +109,22 @@ const healthSnapshotCache = new Map<
   string,
   { snapshot: HealthSnapshot; computedAt: number }
 >();
+
+function withStabilityFeatureDefaults(
+  features: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  return {
+    ...(features ?? {}),
+    worker_singleton_enforce:
+      typeof features?.worker_singleton_enforce === "boolean"
+        ? features.worker_singleton_enforce
+        : true,
+    worktree_guard_enforce:
+      typeof features?.worktree_guard_enforce === "boolean"
+        ? features.worktree_guard_enforce
+        : false,
+  };
+}
 
 /** Exported for test isolation only */
 export const _healthSnapshotCache = healthSnapshotCache;
@@ -729,6 +746,8 @@ export function applyStatusView(
       projection.temporal_queue_serviceability =
         full.temporal_queue_serviceability;
       projection.worker_diagnostics = full.worker_diagnostics;
+      projection.worker_role = full.worker_role;
+      projection.feature_flags = full.feature_flags;
       projection.search_attributes = full.search_attributes;
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.diagnostics = full.diagnostics;
@@ -910,7 +929,8 @@ export const statusTools = {
           const configResult = await loadProjectConfigWithDiagnostics(
             activeStore.paths.root,
           );
-          let featureFlags: Record<string, unknown> | undefined;
+          let featureFlags: Record<string, unknown> =
+            withStabilityFeatureDefaults(undefined);
 
           // Warn when external state is unavailable — worktree sharing and
           // state isolation won't function.  This happens when the plugin
@@ -933,10 +953,9 @@ export const statusTools = {
             status.recommendations.unshift(`${prefix}: ${configResult.error}`);
           } else {
             // Expose feature flags in status output for visibility
-            featureFlags = configResult.data.features as Record<
-              string,
-              boolean
-            >;
+            featureFlags = withStabilityFeatureDefaults(
+              configResult.data.features as Record<string, unknown>,
+            );
           }
 
           // Single-pass over recent changes: context snapshot, gate recommendation,
@@ -1091,7 +1110,8 @@ export const statusTools = {
                   ),
                 }
               : {}),
-            ...(featureFlags ? { feature_flags: featureFlags } : {}),
+            feature_flags: featureFlags,
+            worker_role: getTemporalWorkerRole(),
             temporal_health: temporalHealth,
             ...(queueServiceability
               ? {
