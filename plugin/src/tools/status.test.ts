@@ -7,7 +7,11 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdir, writeFile, rm } from "fs/promises";
 import { join } from "path";
-import { statusTools, _healthSnapshotCache } from "./status";
+import {
+  statusTools,
+  _healthSnapshotCache,
+  _statusProbeCaches,
+} from "./status";
 import {
   createTestProject,
   createTempDir,
@@ -18,8 +22,22 @@ import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
 
-const { mockScanOpenCodeSessionDebt } = vi.hoisted(() => ({
+const {
+  mockScanOpenCodeSessionDebt,
+  mockGetTemporalHealth,
+  mockGetWorktreeCensus,
+} = vi.hoisted(() => ({
   mockScanOpenCodeSessionDebt: vi.fn(),
+  mockGetTemporalHealth: vi.fn(),
+  mockGetWorktreeCensus: vi.fn(),
+}));
+
+vi.mock("../temporal/health-probe", () => ({
+  getTemporalHealth: mockGetTemporalHealth,
+}));
+
+vi.mock("../utils/worktree-census", () => ({
+  getWorktreeCensus: mockGetWorktreeCensus,
 }));
 
 vi.mock("../utils/opencode-session-debt", async (importOriginal) => {
@@ -56,6 +74,29 @@ describe("Status Tools", () => {
 
   beforeEach(async () => {
     mockScanOpenCodeSessionDebt.mockReset();
+    mockGetTemporalHealth.mockReset();
+    mockGetTemporalHealth.mockResolvedValue({
+      server_alive: true,
+      worker_alive: false,
+      worker_process_alive: false,
+      registered_queues: [],
+      last_op_at: null,
+      last_error: null,
+      fallback_counts: {},
+      stale_queues: [],
+      reconnect_count: 0,
+      op_counters: [],
+      worker_lock: null,
+      last_worker_run_error: null,
+    });
+    mockGetWorktreeCensus.mockReset();
+    mockGetWorktreeCensus.mockResolvedValue({
+      total: 0,
+      stale: [],
+      records: [],
+      warnings: [],
+    });
+    _statusProbeCaches.clear();
     mockScanOpenCodeSessionDebt.mockResolvedValue({
       available: false,
       db_path: "/missing/opencode.db",
@@ -525,6 +566,34 @@ Vague in-flight work.
         worker_singleton_enforce: true,
         worktree_guard_enforce: false,
       });
+    });
+
+    test("health view includes probe freshness and reuses cached temporal health", async () => {
+      const firstResult = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const secondResult = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const first = parseToolOutput(firstResult);
+      const second = parseToolOutput(secondResult);
+
+      expect(mockGetTemporalHealth).toHaveBeenCalledTimes(1);
+      expect(first.temporal_health.server_alive).toBe(true);
+      expect(second.temporal_health.server_alive).toBe(true);
+      expect(first._freshness.temporal_health).toMatchObject({
+        cached_at: expect.any(String),
+        stale: false,
+      });
+      expect(first._freshness.worktree_census).toMatchObject({
+        cached_at: expect.any(String),
+        stale: false,
+      });
+      expect(second._freshness.temporal_health.cached_at).toBe(
+        first._freshness.temporal_health.cached_at,
+      );
     });
 
     test("does not emit debt recommendation for live-only blank rows", async () => {

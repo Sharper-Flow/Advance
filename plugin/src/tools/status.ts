@@ -68,6 +68,7 @@ import {
   SYNTHETIC_TEST_PROJECT_ID_PREFIX,
 } from "../utils/project-id";
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
+import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -98,6 +99,13 @@ interface ExternalStateHygieneReport {
 }
 
 type TemporalHealthSnapshot = Awaited<ReturnType<typeof getTemporalHealth>>;
+type WorktreeCensusSnapshot = Awaited<ReturnType<typeof getWorktreeCensus>>;
+
+interface SearchAttributesSnapshot {
+  ok: boolean;
+  checkedAt?: number;
+  error?: string;
+}
 
 interface StatusQueueServiceabilitySnapshot {
   expectedQueue: string;
@@ -109,6 +117,71 @@ const healthSnapshotCache = new Map<
   string,
   { snapshot: HealthSnapshot; computedAt: number }
 >();
+
+const STATUS_PROBE_TTL_MS = 2_000;
+const STATUS_PROBE_TIMEOUT_MS = 2_000;
+const MISSING_PROJECT_ID_CACHE_KEY = "__current_project__";
+
+const statusTemporalHealthProbeCache = createProbeCache<
+  TemporalHealthSnapshot,
+  string
+>({
+  name: "status.temporal_health",
+  ttlMs: STATUS_PROBE_TTL_MS,
+  timeoutMs: STATUS_PROBE_TIMEOUT_MS,
+  fetch: async (key) =>
+    getTemporalHealth(key === MISSING_PROJECT_ID_CACHE_KEY ? undefined : key),
+});
+
+const statusWorktreeCensusProbeCache = createProbeCache<
+  WorktreeCensusSnapshot,
+  string
+>({
+  name: "status.worktree_census",
+  ttlMs: STATUS_PROBE_TTL_MS,
+  timeoutMs: STATUS_PROBE_TIMEOUT_MS,
+  fetch: async (root) => getWorktreeCensus(root),
+});
+
+const statusSearchAttributesProbeCache = createProbeCache<
+  SearchAttributesSnapshot,
+  string
+>({
+  name: "status.search_attributes",
+  ttlMs: STATUS_PROBE_TTL_MS,
+  timeoutMs: STATUS_PROBE_TIMEOUT_MS,
+  fetch: async () => computeSearchAttributesSnapshot(),
+});
+
+const statusQueueServiceabilityInputs = new Map<
+  string,
+  { projectId: string | undefined; health: TemporalHealthSnapshot }
+>();
+
+const statusQueueServiceabilityProbeCache = createProbeCache<
+  StatusQueueServiceabilitySnapshot | null,
+  string
+>({
+  name: "status.queue_serviceability",
+  ttlMs: STATUS_PROBE_TTL_MS,
+  timeoutMs: STATUS_PROBE_TIMEOUT_MS,
+  fetch: async (key) => {
+    const input = statusQueueServiceabilityInputs.get(key);
+    if (!input) return null;
+    return computeStatusQueueServiceability(input);
+  },
+});
+
+/** Exported for test isolation only */
+export const _statusProbeCaches = {
+  clear(): void {
+    statusTemporalHealthProbeCache.clear();
+    statusWorktreeCensusProbeCache.clear();
+    statusSearchAttributesProbeCache.clear();
+    statusQueueServiceabilityProbeCache.clear();
+    statusQueueServiceabilityInputs.clear();
+  },
+};
 
 function withStabilityFeatureDefaults(
   features: Record<string, unknown> | undefined,
@@ -128,6 +201,47 @@ function withStabilityFeatureDefaults(
 
 /** Exported for test isolation only */
 export const _healthSnapshotCache = healthSnapshotCache;
+
+function computeSearchAttributesSnapshot(): SearchAttributesSnapshot {
+  const stslStats = getStslStats();
+  const stslReady = isStslInitialized();
+  if (!stslReady) {
+    return {
+      ok: false,
+      error: "STSL not initialized",
+    };
+  }
+  if (stslStats.saVerification) {
+    return {
+      ok: stslStats.saVerification.ok,
+      checkedAt: stslStats.saVerification.checkedAt,
+    };
+  }
+  return { ok: false, error: "Not yet verified" };
+}
+
+async function fetchStatusTemporalHealth(
+  projectId: string | undefined,
+): Promise<{
+  value: TemporalHealthSnapshot;
+  freshness: ProbeCacheFreshness;
+}> {
+  return statusTemporalHealthProbeCache.fetch(
+    projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+  );
+}
+
+async function fetchStatusQueueServiceability(input: {
+  projectId: string | undefined;
+  health: TemporalHealthSnapshot;
+}): Promise<{
+  value: StatusQueueServiceabilitySnapshot | null;
+  freshness: ProbeCacheFreshness;
+}> {
+  const key = input.projectId ?? MISSING_PROJECT_ID_CACHE_KEY;
+  statusQueueServiceabilityInputs.set(key, input);
+  return statusQueueServiceabilityProbeCache.fetch(key);
+}
 
 async function computeHealthSnapshot(store: Store): Promise<HealthSnapshot> {
   const cacheKey = store.paths.external
@@ -742,6 +856,7 @@ export function applyStatusView(
     }
     case "health": {
       projection.temporal_health = full.temporal_health;
+      projection._freshness = full._freshness;
       projection.expected_queue = full.expected_queue;
       projection.temporal_queue_serviceability =
         full.temporal_queue_serviceability;
@@ -849,9 +964,12 @@ export const statusTools = {
             ? basename(activeStore.paths.external)
             : undefined;
 
+          const probeFreshness: Record<string, ProbeCacheFreshness> = {};
           let temporalHealth: TemporalHealthSnapshot;
           try {
-            temporalHealth = await getTemporalHealth(projectId);
+            const temporalProbe = await fetchStatusTemporalHealth(projectId);
+            temporalHealth = temporalProbe.value;
+            probeFreshness.temporal_health = temporalProbe.freshness;
           } catch (err) {
             temporalHealth = {
               server_alive: false,
@@ -867,12 +985,22 @@ export const statusTools = {
               worker_lock: null,
               last_worker_run_error: null,
             };
+            probeFreshness.temporal_health = {
+              cached_at: new Date().toISOString(),
+              stale: true,
+              error: err instanceof Error ? err.message : String(err),
+            };
           }
 
-          const queueServiceability = await computeStatusQueueServiceability({
-            projectId,
-            health: temporalHealth,
-          });
+          const queueServiceabilityProbe = await fetchStatusQueueServiceability(
+            {
+              projectId,
+              health: temporalHealth,
+            },
+          );
+          const queueServiceability = queueServiceabilityProbe.value;
+          probeFreshness.queue_serviceability =
+            queueServiceabilityProbe.freshness;
 
           if (temporalHealth.stale_queues.length > 0) {
             const serviceableQueue =
@@ -897,26 +1025,12 @@ export const statusTools = {
           }
 
           // Search attributes health from STSL cache
-          const stslStats = getStslStats();
-          const stslReady = isStslInitialized();
-          let searchAttributes: {
-            ok: boolean;
-            checkedAt?: number;
-            error?: string;
-          };
-          if (!stslReady) {
-            searchAttributes = {
-              ok: false,
-              error: "STSL not initialized",
-            };
-          } else if (stslStats.saVerification) {
-            searchAttributes = {
-              ok: stslStats.saVerification.ok,
-              checkedAt: stslStats.saVerification.checkedAt,
-            };
-          } else {
-            searchAttributes = { ok: false, error: "Not yet verified" };
-          }
+          const searchAttributesProbe =
+            await statusSearchAttributesProbeCache.fetch(
+              projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+            );
+          const searchAttributes = searchAttributesProbe.value;
+          probeFreshness.search_attributes = searchAttributesProbe.freshness;
 
           if (!searchAttributes.ok) {
             status.recommendations.push(
@@ -990,9 +1104,10 @@ export const statusTools = {
           }
 
           // Worktree census
-          const worktreeCensus = await getWorktreeCensus(
-            activeStore.paths.root,
-          );
+          const worktreeCensusProbe =
+            await statusWorktreeCensusProbeCache.fetch(activeStore.paths.root);
+          const worktreeCensus = worktreeCensusProbe.value;
+          probeFreshness.worktree_census = worktreeCensusProbe.freshness;
 
           const opencodeSessionDebt = await scanOpenCodeSessionDebt();
           if (
@@ -1112,6 +1227,7 @@ export const statusTools = {
               : {}),
             feature_flags: featureFlags,
             worker_role: getTemporalWorkerRole(),
+            _freshness: probeFreshness,
             temporal_health: temporalHealth,
             ...(queueServiceability
               ? {
