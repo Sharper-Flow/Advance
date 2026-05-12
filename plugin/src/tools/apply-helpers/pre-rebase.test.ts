@@ -2,8 +2,13 @@
  * Pre-execution rebase tests — pure unit tests with injected deps.
  */
 
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
+  defaultIsWorktree,
   preExecutionRebase,
   PreRebaseDeps,
   PreRebaseResult,
@@ -174,5 +179,45 @@ describe("preExecutionRebase", () => {
     await preExecutionRebase("/fake/worktree", deps);
 
     expect(rebaseCalled).toBe(false);
+  });
+
+  describe("defaultIsWorktree", () => {
+    it("returns false for main checkout, true for linked worktree, and false for non-git dir", async () => {
+      const root = mkdtempSync(join(tmpdir(), "adv-pre-rebase-"));
+      const main = join(root, "main");
+      const linked = join(root, "linked");
+      const nonGit = join(root, "non-git");
+
+      try {
+        execFileSync("git", ["init", "-b", "main", main], {
+          stdio: "ignore",
+        });
+        writeFileSync(join(main, "README.md"), "# test\n");
+        execFileSync("git", ["add", "README.md"], { cwd: main });
+        execFileSync(
+          "git",
+          [
+            "-c",
+            "user.name=ADV Test",
+            "-c",
+            "user.email=adv-test@example.invalid",
+            "commit",
+            "-m",
+            "init",
+          ],
+          { cwd: main, stdio: "ignore" },
+        );
+        execFileSync("git", ["worktree", "add", linked, "-b", "linked"], {
+          cwd: main,
+          stdio: "ignore",
+        });
+
+        expect(await defaultIsWorktree(main)).toBe(false);
+        expect(await defaultIsWorktree(linked)).toBe(true);
+        expect(await defaultIsWorktree(nonGit)).toBe(false);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });

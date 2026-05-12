@@ -6,6 +6,7 @@
  */
 
 import { execGit, getDefaultBranch } from "../../utils/git";
+import { resolveGitSessionContext } from "../../utils/git-session";
 
 export type PreRebaseResult =
   | {
@@ -242,10 +243,9 @@ async function defaultIsAhead(
   }
 }
 
-async function defaultIsWorktree(cwd: string): Promise<boolean> {
+export async function defaultIsWorktree(cwd: string): Promise<boolean> {
   try {
-    await execGit(["rev-parse", "--git-dir"], cwd);
-    return true;
+    return resolveGitSessionContext(cwd, cwd).isWorktree;
   } catch {
     return false;
   }
