@@ -78,12 +78,40 @@ export function evaluateTaskAddWorktreeIsolation(input: {
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
 }): WorktreeIsolationResult {
   if (
-    !readBooleanFeatureFlag(
-      input.features,
-      "worktree_guard_enforce",
-      false,
-    )
+    !readBooleanFeatureFlag(input.features, "worktree_guard_enforce", false)
   ) {
+    return { decision: "ALLOW" };
+  }
+  return checkWorktreeIsolation(input.cwd, {
+    getSessionContext: input.getSessionContext,
+  });
+}
+
+type TaskUpdateStatus =
+  | "pending"
+  | "in_progress"
+  | "blocked"
+  | "done"
+  | "cancelled";
+
+const WORKTREE_GUARDED_TASK_UPDATE_STATUSES = new Set<TaskUpdateStatus>([
+  "in_progress",
+  "done",
+  "cancelled",
+]);
+
+export function evaluateTaskUpdateWorktreeIsolation(input: {
+  features: unknown;
+  cwd: string;
+  status: TaskUpdateStatus;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): WorktreeIsolationResult {
+  if (
+    !readBooleanFeatureFlag(input.features, "worktree_guard_enforce", false)
+  ) {
+    return { decision: "ALLOW" };
+  }
+  if (!WORKTREE_GUARDED_TASK_UPDATE_STATUSES.has(input.status)) {
     return { decision: "ALLOW" };
   }
   return checkWorktreeIsolation(input.cwd, {
@@ -352,17 +380,33 @@ export const taskTools = {
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
       ) => {
+        const changeId = await resolveChangeId(activeStore, args.taskId);
+        if (!changeId) {
+          return formatToolOutput({ error: `Task not found: ${args.taskId}` });
+        }
+
+        const isolation = evaluateTaskUpdateWorktreeIsolation({
+          features: activeStore.config?.features,
+          cwd: process.cwd(),
+          status: args.status,
+        });
+        if (isolation.decision === "BLOCK") {
+          return formatToolOutput({
+            error: isolation.reason,
+            errorClass: isolation.errorClass,
+            changeId,
+            taskId: args.taskId,
+            mainCheckoutPath: isolation.mainCheckoutPath,
+            remediation: isolation.remediation,
+          });
+        }
+
         if (args.status === "cancelled") {
           return formatToolOutput({
             error:
               "Direct task cancellation is not allowed. Use adv_task_cancel instead, which requires presenting cancellation reasons to the user and obtaining explicit approval.",
             hint: "Call adv_task_cancel with taskIds, reasons (per task), and user approval evidence.",
           });
-        }
-
-        const changeId = await resolveChangeId(activeStore, args.taskId);
-        if (!changeId) {
-          return formatToolOutput({ error: `Task not found: ${args.taskId}` });
         }
 
         const handle = await getHandleForChangeId(activeStore, changeId);
