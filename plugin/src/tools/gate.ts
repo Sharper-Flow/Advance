@@ -43,6 +43,42 @@ import {
   gateCompletedSignal,
   getGateStatusQuery,
 } from "../temporal/messages";
+import {
+  checkWorktreeIsolation,
+  type WorktreeIsolationDeps,
+  type WorktreeIsolationResult,
+} from "./worktree-isolation-guard";
+
+function readBooleanFeatureFlag(
+  features: unknown,
+  key: string,
+  defaultValue: boolean,
+): boolean {
+  if (!features || typeof features !== "object") return defaultValue;
+  const value = (features as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : defaultValue;
+}
+
+export function evaluateGateWorktreeIsolation(input: {
+  gateId: GateId;
+  features: unknown;
+  cwd: string;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): WorktreeIsolationResult {
+  if (input.gateId === "proposal") return { decision: "ALLOW" };
+  if (
+    !readBooleanFeatureFlag(
+      input.features,
+      "worktree_guard_enforce",
+      false,
+    )
+  ) {
+    return { decision: "ALLOW" };
+  }
+  return checkWorktreeIsolation(input.cwd, {
+    getSessionContext: input.getSessionContext,
+  });
+}
 
 function getContextMismatchFields(error: Error): {
   owningProjectId?: unknown;
@@ -498,6 +534,22 @@ export const gateTools = {
           return formatToolOutput({
             error: `Cannot complete ${gateId}: prior gate(s) incomplete`,
             blockedBy,
+          });
+        }
+
+        const isolation = evaluateGateWorktreeIsolation({
+          gateId,
+          features: activeStore.config?.features,
+          cwd: process.cwd(),
+        });
+        if (isolation.decision === "BLOCK") {
+          return formatToolOutput({
+            error: isolation.reason,
+            errorClass: isolation.errorClass,
+            changeId,
+            gateId,
+            mainCheckoutPath: isolation.mainCheckoutPath,
+            remediation: isolation.remediation,
           });
         }
 
