@@ -147,38 +147,38 @@ If rebuilding today:
 
 ## Competitors & Alternatives
 
-⚠ **External landscape analysis: Kagi not reachable.** The following entries are drawn from general knowledge of the AI agent orchestration space as of 2025-2026. Re-run `/adv-improve` with Kagi available to refresh this section.
+⚠ **External landscape analysis: Exa not reachable.** The following entries are drawn from general knowledge of the AI agent orchestration space as of 2025-2026. Re-run `/adv-improve` with Exa available to refresh this section.
 
 1. **Kiro (AWS)**
    - What they do differently: AWS-managed agent orchestration with built-in observability (CloudWatch, X-Ray), auto-scaling, and enterprise compliance.
    - Relevance: ADV is local-first and open-source; Kiro is cloud-managed. Little direct overlap, but Kiro's observability patterns (structured metrics, SLOs) are applicable.
-   - Source: General knowledge (refresh with Kagi)
+   - Source: General knowledge (refresh with Exa)
 
 2. **Cursor / Claude Code / GitHub Copilot**
    - What they do differently: IDE-integrated AI assistants with no explicit spec-driven workflow. They optimize for latency (streaming responses, fast context loading) but lack formal gate/change tracking.
    - Relevance: ADV's differentiator is spec enforcement and gate tracking. Performance gap: these tools feel "snappier" because they skip the durability layer. ADV could learn from their context-loading optimizations.
-   - Source: General knowledge (refresh with Kagi)
+   - Source: General knowledge (refresh with Exa)
 
 3. **OpenCode Plugin Ecosystem (64+ plugins)**
    - What they do differently: Lightweight plugins that add features without heavy infrastructure. Many are single-file tools with minimal overhead.
    - Relevance: ADV is one of the heavier plugins due to Temporal + SQLite. Could benefit from a "lite mode" that skips Temporal for simple projects.
-   - Source: General knowledge (refresh with Kagi)
+   - Source: General knowledge (refresh with Exa)
 
 ---
 
 ## Emerging Patterns
 
-⚠ **External landscape analysis: Kagi not reachable.** The following entries are drawn from general knowledge. Re-run `/adv-improve` with Kagi available to refresh this section.
+⚠ **External landscape analysis: Exa not reachable.** The following entries are drawn from general knowledge. Re-run `/adv-improve` with Exa available to refresh this section.
 
 1. **Multi-Agent Orchestration (1,445% growth in 2025)**
    - Maturity: Mainstream
    - Why noteworthy: ADV already supports sub-agents (explore, librarian, adv-engineer). The trend is toward more sophisticated orchestration (hierarchical planning, agent swarms). ADV's gate system is well-positioned but could add agent-pool management.
-   - Source: General knowledge (refresh with Kagi)
+   - Source: General knowledge (refresh with Exa)
 
 2. **MCP Protocol Standardization**
    - Maturity: Growing
    - Why noteworthy: ADV uses MCP tools extensively. As MCP becomes a standard, ADV could expose its own tools as MCP servers, enabling cross-plugin composition. Performance implication: MCP adds serialization overhead; batching and streaming will matter.
-   - Source: General knowledge (refresh with Kagi)
+   - Source: General knowledge (refresh with Exa)
 
 ---
 
@@ -226,7 +226,7 @@ If rebuilding today:
   - `reduceTemporalRoundTrip` change — 11 tasks completed, Temporal round-trip optimizations
   - `investigateTemporalPerformance` change — Draft, no tasks
 - External:
-  - ⚠ Kagi unavailable during this analysis. Competitors and emerging patterns drawn from general knowledge. Refresh recommended.
+  - ⚠ Exa unavailable during this analysis. Competitors and emerging patterns drawn from general knowledge. Refresh recommended.
 
 ---
 

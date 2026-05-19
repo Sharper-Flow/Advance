@@ -36,7 +36,7 @@ Parse `$ARGUMENTS`:
 ## Phase 1: Source Mode (GitHub Repos)
 When mode is `source`:
 
-1. **Repo metadata** — `gh_grep_searchGitHub` for README, package manifests, main language
+1. **Repo metadata** — Exa for candidate repos; `searchcode_code_file_tree`, `searchcode_code_get_file`, and `searchcode_code_analyze` for README, package manifests, main language
 2. **Feature surface** — analyze source structure, API endpoints, key modules
 3. **Tech stack** — identify dependencies, frameworks, runtime
 
@@ -47,10 +47,10 @@ If repo is private or inaccessible → fallback to public mode with warning.
 When mode is `public`:
 
 1. **Firecrawl primary** — `firecrawl_firecrawl_scrape` for pricing, features, changelog pages
-2. **Kagi fallback** — `kagi_kagi_search_fetch` for recent news, reviews, comparisons
+2. **Exa fallback** — `exa_web_search_exa` for recent news, reviews, comparisons
 3. **Structured extraction** — identify feature list, pricing tiers, target audience
 
-If Firecrawl fails → use Kagi search results as primary source.
+If Firecrawl fails → use Exa search results as primary source.
 
 ---
 ## Phase 2: Comparison Synthesis

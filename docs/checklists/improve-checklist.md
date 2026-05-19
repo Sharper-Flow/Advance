@@ -14,7 +14,7 @@ Every `/adv-improve` invocation MUST execute each step and report results. Mark 
 - [ ] **Source Verification** — Confirm at least one source directory (`src/`, `lib/`, `app/`, `packages/`) or source file exists. Stop cleanly if none.
 - [ ] **Current-State Scan (Phase 1)** — Analyze all 6 categories (security, reliability, testing, observability, DX, code quality). Cap at 5 findings per category. Every finding has evidence.
 - [ ] **LBP / Reference Comparison (Phase 2)** — Context7 lookup for canonical architecture. Build deviation table. Document corrections for DRIFTED/ANTI-PATTERN. Include greenfield perspective.
-- [ ] **External Landscape (Phase 3)** — Run 2 Kagi queries. Extract top-3 competitors and 2 emerging patterns. Source URL required per entry.
+- [ ] **External Landscape (Phase 3)** — Run 2 Exa queries. Extract top-3 competitors and 2 emerging patterns. Source URL required per entry.
 - [ ] **Evidence Validation** — Reject any finding that lacks a file path, searched path, or source citation before synthesis.
 - [ ] **Conflict / Dedup Scan** — Cross-reference findings against active changes and agenda items from Phase 0. Annotate overlapping items; do not suppress them.
 - [ ] **Synthesis (Phase 4)** — Sort by severity, emit report, suggest next commands.
@@ -50,7 +50,7 @@ Every finding MUST include evidence. Findings without evidence are rejected befo
 | "Pattern Y used"      | 1–3 example file paths                                                     |
 | "Config Z present"    | Config file path + key                                                     |
 | "Architecture A"      | Context7 source URL or local file path                                     |
-| "Competitor B does X" | Source URL (from Kagi result)                                              |
+| "Competitor B does X" | Source URL (from Exa result)                                               |
 
 ---
 
@@ -69,13 +69,13 @@ Every finding MUST include evidence. Findings without evidence are rejected befo
 ## External Landscape Protocol
 
 1. **Detect domain** — from README purpose, package name, or project description
-2. **Run 2 Kagi queries:**
+2. **Run 2 Exa queries:**
    - `"{domain} alternatives comparison {current-year}"`
    - `"{domain} emerging tools trends {current-year}"`
 3. **Extract:**
    - Top-3 competitors: name, what they do differently, relevance to this project
    - 2 emerging patterns: name, why noteworthy, maturity signal (experimental / growing / mainstream)
-4. **Evidence requirement:** every entry must include source URL from Kagi results
+4. **Evidence requirement:** every entry must include source URL from Exa results
 5. **Hard cap:** 3 competitors + 2 emerging. Do not exceed.
 
 ---
@@ -85,8 +85,8 @@ Every finding MUST include evidence. Findings without evidence are rejected befo
 | Situation                                | Handling                                                                                                                                                                                                                                                   |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Context7 unavailable                     | Use local codebase conventions. Annotate each deviation finding: `[Reference: local conventions — Context7 unavailable]`. Do not fabricate canonical sources. Research pack LBP section is still written with the same annotation.                         |
-| Kagi unavailable                         | Emit `External landscape analysis unavailable: Kagi not reachable`. Skip Phase 3 on-screen but still write the research pack with `Competitors & Alternatives` and `Emerging Patterns` labelled `⚠ not refreshed (Kagi unavailable)`. Emit ⚠ Partial exit. |
-| Kagi returns no relevant results         | Emit `External landscape analysis: no relevant results for domain "{domain}"`. Record the same string in the research pack's `Competitors & Alternatives` and `Emerging Patterns` sections. Do not fabricate competitors.                                  |
+| Exa unavailable                          | Emit `External landscape analysis unavailable: Exa not reachable`. Skip Phase 3 on-screen but still write the research pack with `Competitors & Alternatives` and `Emerging Patterns` labelled `⚠ not refreshed (Exa unavailable)`. Emit ⚠ Partial exit.  |
+| Exa returns no relevant results          | Emit `External landscape analysis: no relevant results for domain "{domain}"`. Record the same string in the research pack's `Competitors & Alternatives` and `Emerging Patterns` sections. Do not fabricate competitors.                                  |
 | No source files found                    | Stop cleanly after Phase 0 with message: `No source files detected — improvement analysis requires at least one source directory`. Do not create a research pack.                                                                                          |
 | Ambiguous target                         | Fall back to broad repo scan. State the fallback choice. Ask via `question` only if two interpretations would lead to materially different analyses.                                                                                                       |
 | Finding overlaps active change           | Annotate: `[Already in progress: {change-id}]`. Include in report; do not suppress.                                                                                                                                                                        |

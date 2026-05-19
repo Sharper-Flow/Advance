@@ -70,7 +70,7 @@ See ADV_INSTRUCTIONS.md §Skill Discovery Protocol. Load only trusted bundled sk
 If no matching skill was found for a domain clearly relevant to change's **core problem** (not tangential), the agent MAY create a skill on demand. See `ADV_INSTRUCTIONS.md § Skill Creation Protocol` for trigger conditions, naming convention, assembly template, and creation flow.
 
 **Creation sub-flow (only if gap detected):**
-1. Research domain using Context7, Kagi, `gh_grep_searchGitHub`
+1. Research domain using Context7, Exa, and searchcode. Use Exa to discover candidate public repositories, then `searchcode_code_search` / `searchcode_code_get_file` to inspect implementation patterns inside those repos.
 2. Assemble SKILL.md using the template from `ADV_INSTRUCTIONS.md § Skill Creation Protocol`
 3. Write atomically to `~/.config/opencode/skills/agent-{domain}/SKILL.md`
 4. Skip if file already exists → report "skill already exists: agent-{domain}"
@@ -113,8 +113,8 @@ Treat timeout/no-response same as failure.
 1. **Retry once** — re-spawn that specific sub-agent with same prompt
 2. **If retry also fails** — fall back to inline research for that question:
    - For library/framework questions: prefer Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs. If Context7 is absent from the active schema, fall back to `webfetch` against the canonical docs URL.
-   - Use `kagi_kagi_search_fetch` for community guidance and current best practices
-   - Use `gh_grep_searchGitHub` for real-world implementation patterns
+   - Use `exa_web_search_exa` for community guidance and current best practices
+   - Use Exa to identify relevant public repos, then `searchcode_code_search` for real-world implementation patterns
    - Emit findings with same `VALIDATION:` / `RECOMMENDATION:` structure
    - Apply same redaction rules during manual research: strip secrets/internal-only details and keep external queries generic
 3. **If using `explore` as fallback and it fails** — retry `explore` once, then do manual inline research
@@ -213,7 +213,7 @@ Retry Protocol governs execution failures. This table governs which fallback pat
 | Librarian fails | Continue with adv-researcher only, note "docs research incomplete" |
 | adv-researcher unavailable | Use `explore` agent with full research protocol instructions |
 | adv-researcher fails | Retry once, then fall back to `explore` |
-| Both fallback paths fail | Manual research via Context7 + `gh_grep_searchGitHub` + Kagi directly |
+| Both fallback paths fail | Manual research via Context7 + Exa + searchcode directly |
 
 Fallbacks must also remain single-level: `explore` performs the work inline and does not delegate further.
 Fallback workers must not invoke `/adv-*` slash commands either.
@@ -237,12 +237,12 @@ EXISTING CODEBASE PATTERNS: {summary of patterns found in Phase 1 audit}
 RESEARCH PROTOCOL:
 - You MUST cite sources for every factual claim
 - For library/framework questions: prefer Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs; use `webfetch` only if Context7 is absent from the active schema
-- Use `gh_grep_searchGitHub` to find real-world code examples
+- Use Exa to find candidate public repositories, then `searchcode_code_search` to find real-world code examples inside those repositories
 - Prefer simple, boring solutions over complex ones
 - If unsure, say "I don't know" rather than guess
 - Every finding MUST include a source URL
 - Redact secrets/internal-only details before external queries
-- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into `gh_grep_searchGitHub` or web search queries
+- Use generic search terms only; never paste proprietary code, internal URLs, or customer data into `searchcode_code_search` or web search queries
 
 TASK:
 1. Use Context7 (`context7_resolve-library-id` then `context7_query-docs`) against canonical library docs; fall back to `webfetch` if Context7 is absent
@@ -387,5 +387,5 @@ Mark gate: `adv_gate_complete changeId: {change-id} gateId: research`
 | Ask user | `question` |
 | Mark gate | `adv_gate_complete` |
 | Library/framework docs | `context7_resolve-library-id` + `context7_query-docs` (`webfetch` fallback if absent) |
-| Web search / best practices | `kagi_kagi_search_fetch` |
-| Real-world code examples | `gh_grep_searchGitHub` |
+| Web search / best practices | `exa_web_search_exa` |
+| Real-world code examples | Exa for repo discovery → `searchcode_code_search` / `searchcode_code_get_file` |

@@ -165,12 +165,12 @@ Canonical columns: `| Section | Lines | Class | Code Reference | Gap Rationale |
 | ------------------------------- | ----- | -------------- | ----------------------- | ------------------------------------------------------------ | ---- | ------ |
 | skills/adv-triage/SKILL.md      | 69    | inherent       | `adv_roadmap`, GH issues | Post-split index; WSJF/bootstrap/schema/prompts/anti-patterns live in sibling docs | P4.1 | done   |
 | skills/adv-ci-release/SKILL.md  | 78    | inherent       | GitHub Actions | Post-split index; CI/release/commit/troubleshooting detail lives in sibling docs | P4.2 | done   |
-| skills/adv-backend-stack-eval/SKILL.md | 119 | partial | Context7/Kagi/GH-grep | Post-split index; language/database/async/API dimensions live in sibling docs | P4.4 | done |
+| skills/adv-backend-stack-eval/SKILL.md | 119 | partial | Context7/Exa/GH-grep | Post-split index; language/database/async/API dimensions live in sibling docs | P4.4 | done |
 | adv-cost-governance-methodology | 291   | partial        | `adv_investment_report` | Methodology + worked example; tool exists for thresholds     | T4   | done   |
 | skills/adv-slop-detection/SKILL.md | 110 | partial        | slop scan command       | Post-split index; categories/structural-correctness/dead-code detail lives in sibling docs | P4.3+P7 | done  |
 | skills/adv-audit/SKILL.md       | 98    | inherent       | `adv_spec`              | Post-split cohesive summary; report schema lives in sibling doc | P4.5 | done   |
 | skills/adv-reflect/SKILL.md     | 181   | inherent       | `adv_reflect`           | Reflection rubric/template; tool persists                    | T6   | done   |
-| skills/adv-improve/SKILL.md     | 181   | inherent       | Context7/Kagi tools     | Improvement research methodology                             | T6   | done   |
+| skills/adv-improve/SKILL.md     | 181   | inherent       | Context7/Exa tools     | Improvement research methodology                             | T6   | done   |
 | skills/adv-cleanup/SKILL.md     | 172   | partial        | `adv_change_bulk_close` | Bucket methodology; command owns Tier B approval             | T6   | done   |
 | skills/adv-refactor/SKILL.md    | 155   | inherent       | `adv_change_validate`   | Refresh methodology; command owns mutations                  | T6   | done   |
 | adv-user-intuit                 | 155   | inherent       | —                       | Comparison protocol; agent-driven                            | T5   | done   |

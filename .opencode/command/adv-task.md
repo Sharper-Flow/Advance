@@ -55,7 +55,7 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 | Architecture/pattern | `adv-researcher` (independent validator) |
 | Both | Both |
 
-Pass the minimum project context each agent needs. Redact secrets, internal URLs, and unrelated operational details before external research. If sub-agents fail → inline Context7 fallback → if no result → Kagi.
+Pass the minimum project context each agent needs. Redact secrets, internal URLs, and unrelated operational details before external research. If sub-agents fail → inline Context7 fallback → if no result → Exa.
 ### Synthesize Verdicts
 | Verdict | Meaning |
 |---------|---------|
@@ -115,7 +115,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 |---------|------|
 | Create change | `adv_change_create` |
 | Research | Task tool (librarian, adv-researcher) |
-| Fallback | Context7 (`context7_resolve-library-id` + `context7_query-docs`) for library docs, `webfetch` if Context7 is absent, `kagi_kagi_search_fetch` |
+| Fallback | Context7 (`context7_resolve-library-id` + `context7_query-docs`) for library docs, `webfetch` if Context7 is absent, `exa_web_search_exa` |
 | Context | `adv_project_context` |
 | Conflicts | `adv_change_list` |
 | Add tasks | `adv_task_add` |

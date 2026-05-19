@@ -37,7 +37,7 @@ Also scan known correctness boundaries for structural ownership: input parsing/n
 When stack is NOT in the Known-Stack Rule Matrix OR user requests `--phase 2`:
 
 1. **Detect stack** from project files (e.g., `Gemfile` → Ruby, `pom.xml` → Java)
-2. **Kagi query** — search `"{stack} architecture linter"`, `"{stack} circular dependency detector"`
+2. **Exa query** — search `"{stack} architecture linter"`, `"{stack} circular dependency detector"`
 3. **Context7 lookup** — find official docs for architecture analysis tools in that ecosystem
 4. **Apply findings** — run discovered tools or rules inline
 5. **Cite sources** — every finding must include the source URL or tool name
@@ -64,10 +64,10 @@ When Phase 1 and 2 produce no results:
 ## Research-Fallback Protocol
 
 ```
-detect stack → Kagi query → Context7 lookup → apply → cite
+detect stack → Exa query → Context7 lookup → apply → cite
 ```
 
-Example: Kotlin project detected → Kagi: "Kotlin architecture linter" → Context7: detekt docs → apply detekt architecture rules → cite detekt documentation URL.
+Example: Kotlin project detected → Exa: "Kotlin architecture linter" → Context7: detekt docs → apply detekt architecture rules → cite detekt documentation URL.
 
 ## Finding Format
 

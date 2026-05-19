@@ -94,7 +94,7 @@ Why this is genuinely clean:
 
 If any actionable findings exist (`blocker:`, `issue:`, `suggestion:`, `question:`), `/adv-review` must run remediation before finalizing:
 
-- [ ] **Non-trivial fixes researched** — fixes that change control flow, security code, interfaces, or span 3+ files must be validated by a research sub-agent (librarian/adv-researcher) or inline research (Context7/Kagi/lgrep) before applying. See Fix Validation Protocol in `adv-review.md`.
+- [ ] **Non-trivial fixes researched** — fixes that change control flow, security code, interfaces, or span 3+ files must be validated by a research sub-agent (librarian/adv-researcher) or inline research (Context7/Exa/lgrep) before applying. See Fix Validation Protocol in `adv-review.md`.
 - [ ] **All blockers/issues fixed** — every blocking finding is implemented and verified
 - [ ] **All suggestions/questions investigated** — each has `validated` or `rejected_with_evidence` outcome
 - [ ] **Validated suggestions implemented** — no validated suggestion left unapplied

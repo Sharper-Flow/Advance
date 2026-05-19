@@ -106,8 +106,8 @@ tools:
   worktree_cleanup: true
   # Research MCP tools
   context7_*: true
-  kagi_*: true
-  gh_grep_*: true
+  exa_*: true
+  searchcode_*: true
   firecrawl_*: true
   webfetch: true
 ---

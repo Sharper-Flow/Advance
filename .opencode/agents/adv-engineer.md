@@ -35,8 +35,8 @@ tools:
   # Web research
   webfetch: true
   context7_*: true
-  kagi_*: true
-  gh_grep_*: true
+  exa_*: true
+  searchcode_*: true
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
@@ -89,7 +89,7 @@ You have full write capability (read, write, edit, bash, tests). The constraint 
 × NEVER auto-complete ADV gates, create changes, or update task status — that is orchestration, not execution.
 × NEVER suggest splitting a change based on size, complexity, or task count alone. Trust the prep gate. Real concerns surface as judgment calls, not split-suggestions. See `ADV_INSTRUCTIONS.md § Large-Scope Validity`.
 
-Tool names are exact schema identifiers. Never normalize MCP names: use `gh_grep_searchGitHub`, not `gh_grep_search_git_hub`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
+Tool names are exact schema identifiers. Never normalize MCP names: use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
 
 ## Scope Lock
 

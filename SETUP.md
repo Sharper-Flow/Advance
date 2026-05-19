@@ -279,7 +279,7 @@ invocation, which is slower and less specialized.
 | Agent          | Used by                                                                       | What it does                                                    |
 | -------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `explore`      | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                             |
-| `librarian`    | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, `gh_grep_searchGitHub`) |
+| `librarian`    | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, Exa, searchcode)         |
 | `mechanic`     | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                        |
 | `general`      | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                       |
 | `adv-engineer` | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Produces structured ENGINEER_REPORT payload for ADV ingestion   |
@@ -297,11 +297,11 @@ unavailable:
 | lgrep          | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text` | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
 | Firecrawl      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`        | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
 | Context7       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`              | `adv-researcher`                              | Library documentation lookup unavailable                                    |
-| Kagi           | `kagi_*` grants; call `kagi_kagi_search_fetch`, `kagi_kagi_summarizer`                      | `adv-researcher`                              | Web search unavailable                                                      |
-| Grep by Vercel | `gh_grep_*` grants; call `gh_grep_searchGitHub`                                             | `adv-researcher`                              | Cross-repo code example search unavailable                                  |
+| Exa            | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
+| searchcode     | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`            | `adv-researcher`                              | Public-repo code example search unavailable                                 |
 | arXiv MCP      | `arxiv-mcp_*` grants; call exact names from active schema                                   | `adv-researcher`                              | Academic paper search unavailable                                           |
 
-Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `gh_grep_searchGitHub` to `gh_grep_search_git_hub`.
+Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `searchcode_code_search` to `code_search`.
 
 Configure these MCP servers in your `opencode.json` `mcp` section per each
 server's documentation. The ADV sync script does not install or validate

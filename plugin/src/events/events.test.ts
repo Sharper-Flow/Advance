@@ -493,7 +493,7 @@ describe("generateProjectShortname", () => {
     });
 
     it("strips -mcp suffix", () => {
-      expect(generateProjectShortname("kagi-mcp")).toBe("Kagi");
+      expect(generateProjectShortname("exa-mcp")).toBe("Exa");
     });
 
     it("only strips one prefix and one suffix", () => {

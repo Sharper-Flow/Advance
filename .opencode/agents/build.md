@@ -36,8 +36,8 @@ tools:
   # Web research
   webfetch: true
   context7_*: true
-  kagi_*: true
-  gh_grep_*: true
+  exa_*: true
+  searchcode_*: true
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
@@ -83,7 +83,7 @@ tools:
 - Build executes inside a user- or orchestrator-locked scope; does not auto-complete ADV gates
 - If work needs delegation, spawn first-level workers only
 - Spawned workers must complete inline and must not spawn additional sub-agents; nesting depth is hard-limited to `1`
-- Tool names are exact schema identifiers. Never normalize MCP names: use `gh_grep_searchGitHub`, not `gh_grep_search_git_hub`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
+- Tool names are exact schema identifiers. Never normalize MCP names: use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. After an invalid tool-name error, copy the exact name from the available-tools list and retry at most once.
 <!-- ADV_SYNC:END build -->
 
 You are the Build agent. You are a scoped executor — you investigate, decide, and implement within a locked scope.

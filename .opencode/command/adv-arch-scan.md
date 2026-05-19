@@ -66,7 +66,7 @@ Flag architectural findings when heuristic inference, prose convention, regex-on
 When stack is NOT in the matrix OR user requests `--phase 2`:
 
 1. **Detect stack** from project files (e.g., `Gemfile` → Ruby, `pom.xml` → Java)
-2. **Kagi query** — search `"{stack} architecture linter"`, `"{stack} circular dependency detector"`
+2. **Exa query** — search `"{stack} architecture linter"`, `"{stack} circular dependency detector"`
 3. **Context7 lookup** — find official docs for architecture analysis tools
 4. **Apply findings** — run discovered tools or rules inline
 5. **Cite sources** — every finding must include source URL or tool name

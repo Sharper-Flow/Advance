@@ -70,7 +70,7 @@ describe("tool-name assets", () => {
     const researcher = readRepoFile(".opencode/agents/adv-researcher.md");
 
     for (const content of [instructions, researcher]) {
-      expect(content).toContain("gh_grep_searchGitHub");
+      expect(content).toContain("searchcode_code_search");
       expect(content).toContain("context7_resolve-library-id");
       expect(content).toMatch(/exact schema identifiers|exact tool names/i);
     }

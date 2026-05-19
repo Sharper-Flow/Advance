@@ -118,7 +118,7 @@ When prior research artifacts exist (temp/*.md, docs/*-prep.md including /adv-im
 
 **ID:** `rq-disc10` | **Priority:** **[MUST]**
 
-When the proposal's Discovery Agenda contains ecosystem unknowns, or an open design question lists external tools/libraries/services as a realistic option, /adv-discover MUST perform an External-Solution Check. It MUST first consult any cited docs/*-prep.md research pack; only when no relevant pack covers the question may it run fresh Kagi queries for competitors, alternatives, and emerging patterns. Purely internal changes (refactors, bug fixes, local doc/test fixes) may record 'No external alternatives apply' with rationale and skip the fresh search.
+When the proposal's Discovery Agenda contains ecosystem unknowns, or an open design question lists external tools/libraries/services as a realistic option, /adv-discover MUST perform an External-Solution Check. It MUST first consult any cited docs/*-prep.md research pack; only when no relevant pack covers the question may it run fresh Exa queries for competitors, alternatives, and emerging patterns. Purely internal changes (refactors, bug fixes, local doc/test fixes) may record 'No external alternatives apply' with rationale and skip the fresh search.
 
 **Tags:** `discover`, `external-solution`, `lbp`, `research-pack`
 
@@ -134,7 +134,7 @@ When the proposal's Discovery Agenda contains ecosystem unknowns, or an open des
 
 **Then:**
 - The LBP Check summarises findings from the pack and cites it
-- Fresh Kagi queries are not run for the same question
+- Fresh Exa queries are not run for the same question
 
 **Uncovered ecosystem question triggers fresh external search** (`rq-disc10.2`)
 
@@ -145,7 +145,7 @@ When the proposal's Discovery Agenda contains ecosystem unknowns, or an open des
 **When:** /adv-discover performs the External-Solution Check
 
 **Then:**
-- Kagi queries for competitors/alternatives and emerging patterns are run
+- Exa queries for competitors/alternatives and emerging patterns are run
 - Findings are recorded in the LBP Check with source URLs
 - /adv-improve is recommended as a follow-up to persist the findings
 

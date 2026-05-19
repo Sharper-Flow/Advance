@@ -7,7 +7,7 @@
 
 ## Purpose & Scope
 
-Captures a polish-flavored improvement scan across the ADV plugin repo at `Sharper-Flow/Advance`. Focus is on code-quality, DX, observability, and reliability friction that surfaced during a multi-change session. Does NOT cover: full security audit, performance benchmarking, or architectural redesign — those would route through `/adv-discover` against a specific proposal. External landscape analysis is unavailable for this run (Kagi connection error); the section is preserved as-is for future refresh.
+Captures a polish-flavored improvement scan across the ADV plugin repo at `Sharper-Flow/Advance`. Focus is on code-quality, DX, observability, and reliability friction that surfaced during a multi-change session. Does NOT cover: full security audit, performance benchmarking, or architectural redesign — those would route through `/adv-discover` against a specific proposal. External landscape analysis is unavailable for this run (Exa connection error); the section is preserved as-is for future refresh.
 
 ## Current State
 
@@ -84,16 +84,16 @@ If rebuilding from scratch on Bun + Temporal + Zod v4 today:
 
 ## Competitors & Alternatives
 
-⚠ not refreshed (Kagi unavailable). Conservative observation without external data: ADV is its own category (spec-driven dev orchestrator embedded in OpenCode). Closest known comparators:
+⚠ not refreshed (Exa unavailable). Conservative observation without external data: ADV is its own category (spec-driven dev orchestrator embedded in OpenCode). Closest known comparators:
 - BMAD (referenced in CHANGELOG and an archived change `adoptBmadInspiredWorkflowEngin`)
 - OpenSpec (referenced as inspiration in `scripts/migrate-openspec.ts`)
 - Generic workflow tools (Linear, Shortcut, Jira) — different category, no real overlap
 
-Future refresh should run Kagi queries: `spec-driven development workflow tools 2026`, `OpenCode plugin best practices Bun TypeScript 2026`.
+Future refresh should run Exa queries: `spec-driven development workflow tools 2026`, `OpenCode plugin best practices Bun TypeScript 2026`.
 
 ## Emerging Patterns
 
-⚠ not refreshed (Kagi unavailable). Future refresh would investigate:
+⚠ not refreshed (Exa unavailable). Future refresh would investigate:
 - Spec conformance trends (the repo already has `_conformance/` infrastructure)
 - AI-agent governance frameworks (doom-loop detection (already implemented; cost-governance retired 2026-05-07 in retireinvestmentgovernancedead))
 
@@ -130,4 +130,4 @@ Future refresh should run Kagi queries: `spec-driven development workflow tools 
 - `ADV_INSTRUCTIONS.md` ADV MCP Tool Invocation (just-added bullets for tdd_intent, worktreePath, timeoutMs)
 - `.opencode/instructions/rules.yaml` P04 (locality-of-behavior), P19 (simplicity), P29 (clean-not-minimal)
 - `package.json` `check` script (typecheck + isolation + lint + format chain)
-- Kagi external landscape: ⚠ not refreshed (RemoteDisconnected during scan)
+- Exa external landscape: ⚠ not refreshed (RemoteDisconnected during scan)

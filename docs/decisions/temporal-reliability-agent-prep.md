@@ -188,7 +188,7 @@ If rebuilding the Temporal integration today for the same per-session ADV deploy
 - `../../ADV_INSTRUCTIONS.md`
 - In-flight change `improveAdvPostCrashTemporal` (8 tasks, 6 done, 1 in_progress, 1 pending)
 
-### External (Kagi searches 2026-04-26)
+### External (Exa searches 2026-04-26)
 - https://docs.temporal.io/best-practices/worker
 - https://docs.temporal.io/self-hosted-guide/production-checklist
 - https://docs.temporal.io/encyclopedia/retry-policies

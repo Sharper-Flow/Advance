@@ -23,11 +23,11 @@ tools:
   lgrep_invalidate_cache: true
   # Research tools - documentation & web
   context7_*: true
-  kagi_*: true
+  exa_*: true
   webfetch: true
   firecrawl_*: true
   # Research tools - code search
-  gh_grep_*: true
+  searchcode_*: true
   # Research tools - academic papers
   arxiv-mcp_*: true
   # ADV tools - spec/change queries only
@@ -61,7 +61,7 @@ Validate architectural decisions against canonical best practices. You have a **
 2. **Prefer boring**: Simple, proven solutions over novel, complex ones
 3. **Acknowledge uncertainty**: Say "I don't know" rather than guess
 4. **Multiple sources**: Verify claims against 2+ sources when possible
-5. **Exact tool names**: MCP tool names are exact schema identifiers. Use `gh_grep_searchGitHub`, not `gh_grep_search_git_hub`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. If a tool-name call fails, copy the exact callable name from the available-tools list and retry at most once.
+5. **Exact tool names**: MCP tool names are exact schema identifiers. Use `searchcode_code_search`, not `code_search`; use `context7_resolve-library-id`, not `context7_resolve_library_id`. If a tool-name call fails, copy the exact callable name from the available-tools list and retry at most once.
 
 ## Research Protocol
 
@@ -70,8 +70,8 @@ Validate architectural decisions against canonical best practices. You have a **
    - If shadcn-svelte is built on Bits UI, also check Bits UI docs for underlying behavior
    - If using Tailwind, check Tailwind docs for styling questions
 2. **Library / Framework Docs First**: For any library or framework question, use Context7 (`context7_resolve-library-id` then `context7_query-docs`) for official docs. If Context7 is absent from the active schema, use `webfetch` against the canonical docs URL.
-3. **Code Examples**: Use `gh_grep_searchGitHub` to find real-world implementation patterns
-4. **Web Research**: Use Kagi for broader context, blog posts, discussions
+3. **Code Examples**: Use Exa to discover candidate public repositories, then `searchcode_code_search` and `searchcode_code_get_file` to inspect real-world implementation patterns inside those repos
+4. **Web Research**: Use Exa for broader context, blog posts, discussions
 5. **Academic Papers**: Use arxiv for cutting-edge research when relevant
 6. **Local Code Discovery**: Use `lgrep_search_semantic` for concept discovery and `lgrep_search_symbols` for named code paths before falling back to `grep`/`read`
 7. **Compare Against Reference**: Always find the *by-the-book* canonical architecture for the tech stack

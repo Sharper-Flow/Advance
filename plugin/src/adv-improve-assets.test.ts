@@ -94,7 +94,7 @@ describe("adv-improve command shape", () => {
 
   test("contains fallback wording for unavailable external tools", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
-    // Must document graceful degradation when Context7 or Kagi unavailable
+    // Must document graceful degradation when Context7 or Exa unavailable
     expect(content).toMatch(/unavailable|fallback|[Uu]nable|[Cc]annot reach/i);
   });
 });

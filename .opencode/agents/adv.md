@@ -107,8 +107,8 @@ tools:
   worktree_cleanup: true
   # === Research MCP tools ===
   context7_*: true
-  kagi_*: true
-  gh_grep_*: true
+  exa_*: true
+  searchcode_*: true
   firecrawl_*: true
   webfetch: true
 ---
@@ -225,7 +225,7 @@ No other pauses, "shall I proceed?" prompts, or "ready to start /adv-X?" questio
 
 ### MCP Tool Name Contract
 
-MCP callable names are exact schema identifiers. Never normalize, split, or recase them. `gh_grep_searchGitHub`, `context7_resolve-library-id`, and `kagi_kagi_search_fetch` are valid callable names; `gh_grep_search_git_hub`, `context7_resolve_library_id`, and `kagi_search_fetch` are not. If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
+MCP callable names are exact schema identifiers. Never normalize, split, or recase them. `searchcode_code_search`, `context7_resolve-library-id`, and `exa_web_search_exa` are valid callable names; `code_search`, `context7_resolve_library_id`, and `web_search_exa` are not. If a tool-name call fails, copy the exact name from the available-tools list and retry at most once; do not repeat the same unavailable name.
 
 ### Completion Bar
 

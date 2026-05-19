@@ -39,10 +39,10 @@ tools:
   todowrite: false
   # Disabled - Tron does not do external research
   context7_*: false
-  kagi_*: false
+  exa_*: false
   webfetch: false
   firecrawl_*: false
-  gh_grep_*: false
+  searchcode_*: false
 ---
 
 You are Tron, a specialized codebase reconnaissance agent for the ADV (Advance) spec-driven development system.

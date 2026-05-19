@@ -43,8 +43,8 @@ tools:
   # Web research (webfetch/firecrawl) — absorbed from scout; plan is now the unified investigation+ideation+planning agent
   webfetch: true
   context7_*: true
-  kagi_*: true
-  gh_grep_*: true
+  exa_*: true
+  searchcode_*: true
   firecrawl_firecrawl_scrape: true
   firecrawl_firecrawl_crawl: true
   firecrawl_firecrawl_check_crawl_status: true
@@ -179,7 +179,7 @@ Use `webfetch` and `firecrawl` for web content extraction:
 |------|------|
 | Get content from a URL | `webfetch` or Firecrawl `scrape` |
 | Crawl multiple pages | Firecrawl `crawl` + `check_crawl_status` |
-| Web search | Delegate to `librarian` (uses Kagi) |
+| Web search | Delegate to `librarian` (uses Exa) |
 | Find library docs | Delegate to `librarian` (uses Context7) |
 
 ### Playwright Restriction
@@ -193,7 +193,7 @@ Use `webfetch` and `firecrawl` for web content extraction:
 | Find code patterns | `explore`   | "How is auth handled in this codebase?"    |
 | Trace a bug        | `explore`   | "Find where this error is thrown"          |
 | Find documentation | `librarian` | "What's the Context7 API for React hooks?" |
-| Find examples      | `librarian` | "Show me `gh_grep_searchGitHub` examples of retry logic" |
+| Find examples      | `librarian` | "Use Exa to find candidate repos, then `searchcode_code_search` for retry logic examples" |
 | Research a library | `librarian` | "What are the known issues with X?"        |
 
 ## Planning Rules

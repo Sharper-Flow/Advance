@@ -73,7 +73,7 @@ Build deviation table: `SOUND` / `DRIFTED` / `ANTI-PATTERN`, source citation, wr
 
 ## Phase 4: External Landscape
 
-Use `kagi_kagi_search_fetch` queries: `"{domain} alternatives comparison {current-year}"`, `"{domain} emerging tools trends {current-year}"`.
+Use `exa_web_search_exa` queries: `"{domain} alternatives comparison {current-year}"`, `"{domain} emerging tools trends {current-year}"`.
 
 Extract top-3 competitors + 2 emerging patterns max. Each entry needs source URL, one-sentence summary, relevance. If unavailable/no relevant results, state reason; do not fabricate.
 
@@ -119,5 +119,5 @@ If section cannot refresh, mark `⚠ not refreshed ({reason})` and preserve prio
 | Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec` |
 | Code | `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_get_file_tree`, `read` |
 | Reference | `context7_resolve-library-id`, `context7_query-docs`, `webfetch` |
-| External | `kagi_kagi_search_fetch` |
+| External | `exa_web_search_exa` |
 | Persist | `write` / `morph_edit` under `docs/*-prep.md` |
