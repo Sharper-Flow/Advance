@@ -1,0 +1,246 @@
+{
+  "id": "refactorProviderAgents",
+  "title": "Refactor provider agents",
+  "status": "archived",
+  "created_at": "2026-05-19T15:51:33.723Z",
+  "tasks": [
+    {
+      "id": "tk-bc87949e71b2",
+      "title": "Amend advance-meta provider-agent specs for single ADV runtime",
+      "type": "code",
+      "section": "Spec",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-19T16:15:29.282Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-19T16:21:54.155Z",
+      "verification": "Spec amendments completed. Verification: JSON parse passed via adv_run_test; checkpoint commit 8c48a1803035eaaf8a5afcbd118939f5cdccd455 created.",
+      "summary": "Updated `advance-meta` provider requirements from generated `adv-{provider}` runtime agents to a single complete `adv.md` runtime agent with runtime provider-hint injection. Amended provider metrics requirements and scoped ADV instruction requirement. Updated generated docs section and spec assertion coverage in `plugin/src/sync-global.test.ts`.",
+      "implementation_summary": "Updated `advance-meta` provider requirements from generated `adv-{provider}` runtime agents to a single complete `adv.md` runtime agent with runtime provider-hint injection. Amended provider metrics requirements and scoped ADV instruction requirement. Updated generated docs section and spec assertion coverage in `plugin/src/sync-global.test.ts`.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-19T16:24:42.740Z",
+      "completed_at": "2026-05-19T16:24:42.740Z"
+    },
+    {
+      "id": "tk-5c00a617bbac",
+      "title": "Implement runtime provider hint injection in the ADV system block",
+      "type": "code",
+      "section": "Runtime",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-19T16:15:39.576Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bc87949e71b2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-19T16:26:04.710Z",
+      "verification": "RED: system-block tests failed with 4 provider-hint expectations before implementation. GREEN: `./node_modules/.bin/vitest run src/utils/system-block.test.ts` passes (57 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/pnpm-lock.yaml",
+        "plugin/pnpm-workspace.yaml",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts"
+      ],
+      "touched_files": [
+        "plugin/pnpm-lock.yaml",
+        "plugin/pnpm-workspace.yaml",
+        "plugin/src/utils/system-block.test.ts",
+        "plugin/src/utils/system-block.ts"
+      ],
+      "checkpointSha": "63b58c538292ea981506bf5eea8d0663b62b65a8",
+      "completedAt": "2026-05-19T16:28:21.931Z",
+      "completed_at": "2026-05-19T16:28:21.931Z"
+    },
+    {
+      "id": "tk-8a6cff82c55b",
+      "title": "Simplify sync-global provider assembly to one ADV runtime agent",
+      "type": "code",
+      "section": "Sync",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-19T16:15:50.143Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bc87949e71b2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-19T17:14:37.361Z",
+      "verification": "Sync simplification completed. Verification: RED old tests failed, GREEN targeted sync/overlay tests passed and script syntax passed. Checkpoint commit fab6b191880f462f761f43dc5577175ca9c643e0.",
+      "summary": "Reworked `sync-global.sh` to assemble one complete global `adv.md` runtime agent containing canonical ADV body plus `ADV_INSTRUCTIONS.md`, removed provider variant generation/prompt-ref/runtime-canary/drift logic, removed provider variant cleanup exemption, and added stale retired provider prompt cleanup. Updated sync/overlay tests for no generated provider runtime agents, stale provider cleanup, and no provider prompt config patching.",
+      "implementation_summary": "Reworked `sync-global.sh` to assemble one complete global `adv.md` runtime agent containing canonical ADV body plus `ADV_INSTRUCTIONS.md`, removed provider variant generation/prompt-ref/runtime-canary/drift logic, removed provider variant cleanup exemption, and added stale retired provider prompt cleanup. Updated sync/overlay tests for no generated provider runtime agents, stale provider cleanup, and no provider prompt config patching.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-19T17:24:04.892Z",
+      "completed_at": "2026-05-19T17:24:04.892Z"
+    },
+    {
+      "id": "tk-cf8dfc864cd2",
+      "title": "Update provider evaluation metrics for single-agent architecture",
+      "type": "code",
+      "section": "Metrics",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-19T16:15:59.744Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bc87949e71b2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-19T17:24:47.019Z",
+      "verification": "Provider eval metrics update completed. Verification: sync-global structural test passed and provider-eval help runs with Bun. Checkpoint commit e1ac8d3d614cba315d9613572abdcbd64171bd45.",
+      "summary": "Updated provider evaluation metrics for the single-agent architecture: canonical ADV prompt, ADV protocol instructions, provider hint, selected runtime prompt, and avoided retired provider variant file size. Removed generated_provider_file as a required/canonical metric and changed prompt composition so baseline includes canonical ADV plus ADV_INSTRUCTIONS, with provider hint added as runtime-style delta.",
+      "implementation_summary": "Updated provider evaluation metrics for the single-agent architecture: canonical ADV prompt, ADV protocol instructions, provider hint, selected runtime prompt, and avoided retired provider variant file size. Removed generated_provider_file as a required/canonical metric and changed prompt composition so baseline includes canonical ADV plus ADV_INSTRUCTIONS, with provider hint added as runtime-style delta.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-19T17:27:15.701Z",
+      "completed_at": "2026-05-19T17:27:15.701Z"
+    },
+    {
+      "id": "tk-a0305b9a9d1b",
+      "title": "Rewrite provider-agent docs and smoke checklist for manual migration",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-19T16:16:09.567Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5c00a617bbac"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8a6cff82c55b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-cf8dfc864cd2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-19T17:27:36.317Z",
+      "verification": "Rewrote provider-agent docs and smoke checklist for single ADV runtime/manual migration. Updated README, AGENTS, ADV_INSTRUCTIONS, and stale gate comment to remove current-facing provider-agent architecture language. Checkpoint commit: 830de3df2696cbb3ae857a7194672e516fe38d60. Verification: `git diff --check` exit 0; targeted stale-reference searches show only historical or intentional retired-agent/migration references.",
+      "summary": "Replaced generated provider-agent assembly docs with single ADV runtime/provider-hint architecture; updated smoke checklist for retired provider agents, runtime hints, manual config cleanup, OMP follow-up boundary, metrics, and drift checks. Refreshed README and repo instructions to describe one `adv` orchestrator with runtime provider hints instead of provider-named agents. Updated a gate-boundary comment to avoid stale adv-gpt/adv-claude actor wording.",
+      "implementation_summary": "Replaced generated provider-agent assembly docs with single ADV runtime/provider-hint architecture; updated smoke checklist for retired provider agents, runtime hints, manual config cleanup, OMP follow-up boundary, metrics, and drift checks. Refreshed README and repo instructions to describe one `adv` orchestrator with runtime provider hints instead of provider-named agents. Updated a gate-boundary comment to avoid stale adv-gpt/adv-claude actor wording.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-19T17:31:42.116Z",
+      "completed_at": "2026-05-19T17:31:42.116Z"
+    },
+    {
+      "id": "tk-81b3463ef984",
+      "title": "Final verification for single ADV provider-agent refactor",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-19T16:16:19.605Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a0305b9a9d1b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-19T17:32:00.536Z",
+      "verification": "Final verification passed and checkpoint committed: 540b8478b2c8a688b0316f9be78da65b32bdd738. Evidence: bash -n scripts/sync-global.sh passed; provider-eval --help passed; targeted vitest for system-block/overlay-sync/sync-global passed (129 tests); pnpm run check passed; pnpm test passed; pnpm run build passed; git diff --check passed. Remediated stale doc assertion and git.test full-suite flake; reverted pnpm-lock drift before checkpoint.",
+      "summary": "Updated final verification assertions to match the single ADV runtime/provider-hint docs. Applied Prettier to touched TypeScript files. Fixed a full-suite git utility test flake by replacing callback-style `execFile('touch')` awaited as a promise with `fs/promises.writeFile`, ensuring README.md exists before git add during parallel full-suite execution. Verified the complete plugin check, test, and build path.",
+      "implementation_summary": "Updated final verification assertions to match the single ADV runtime/provider-hint docs. Applied Prettier to touched TypeScript files. Fixed a full-suite git utility test flake by replacing callback-style `execFile('touch')` awaited as a promise with `fs/promises.writeFile`, ensuring README.md exists before git add during parallel full-suite execution. Verified the complete plugin check, test, and build path.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-19T18:12:11.810Z",
+      "completed_at": "2026-05-19T18:12:11.810Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-19T15:53:13.376Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal with Tier A reply: \"continue\"."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-19T16:01:02.148Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery/agreement completed. User approved AC with reply: \"approve\". Decisions: remove provider-agent names entirely, no automatic migration, OMP per-phase routing out of implementation scope with future follow-up note."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-19T16:14:42.448Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved design with Tier A reply: \"continue\". Validator verdict CAUTION handled by design update; spec amendments and structured-provider limitations captured."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-19T16:18:01.079Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with Tier A reply: \"approve\". Task graph contains 6 tasks with TDD intent and dependencies."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-19T18:12:29.325Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 planned tasks are done and checkpointed. Final verification evidence: bash -n scripts/sync-global.sh passed; provider-eval --help passed; targeted vitest passed (129 tests); pnpm run check passed; pnpm test passed; pnpm run build passed; git diff --check passed. Latest checkpoint commit: 540b8478b2c8a688b0316f9be78da65b32bdd738."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-19T18:31:55.525Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered implementation with reply: \"approve\" after execution handoff. Acceptance confirms single ADV runtime/provider-hint refactor satisfies agreement."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-19T18:32:36.285Z",
+      "completed_by": "agent",
+      "approval_evidence": "User signed off archive/release with Tier B reply: \"sign off\". Worktree clean before archive; all prior gates complete."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-19T18:12:19.590Z"
+    }
+  ]
+}
