@@ -1,0 +1,50 @@
+# lgrep ignore — exclude non-source content from code intelligence indexing
+#
+# Design goal: index only files that help understand, navigate, and change the
+# source code.  Historical records, generated stubs, and scratch docs pollute
+# semantic search results without aiding comprehension.
+
+# ── ADV state ──────────────────────────────────────────────────────────────────
+
+# Archive bundles: 86 directories, ~500 files of completed-change history.
+# These are the single biggest source of false-positive semantic matches.
+.adv/archive/
+
+# Active change state (gitignored; listed defensively).
+.adv/changes/
+
+# Legacy SQLite DB (gitignored; defensive).
+.adv/db/
+
+# ── Generated / stub files ────────────────────────────────────────────────────
+
+# JSON schema stubs — $ref-only placeholders; Zod types in src/types.ts are
+# authoritative.  Indexing them adds noise and no actionable symbols.
+plugin/schemas/
+
+# Build output (gitignored).
+plugin/dist/
+
+# ── Test fixtures ─────────────────────────────────────────────────────────────
+
+# Deliberately dirty/incorrect sample files used by slop-detection tests.
+plugin/test/fixtures/
+
+# ── Scratch / temporary ───────────────────────────────────────────────────────
+
+# Brainstorm drafts and one-off reports; not canonical documentation.
+temp/
+
+# ── Dependencies / tooling (gitignored; defensive) ───────────────────────────
+
+node_modules/
+plugin/node_modules/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

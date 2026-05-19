@@ -1,0 +1,11 @@
+# Git attributes — mark non-source files for correct linguist and diff treatment
+
+# ADV archives are historical records, not authored source code.
+# linguist-generated hides them from GitHub language stats and diff noise.
+.adv/archive/ linguist-generated
+
+# JSON schema stubs — $ref placeholders; Zod types are authoritative.
+plugin/schemas/ linguist-generated
+
+# Test fixtures with deliberately bad codepatterns (slop-detection test data).
+plugin/test/fixtures/ linguist-generated
