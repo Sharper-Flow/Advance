@@ -1,0 +1,481 @@
+#!/usr/bin/env bash
+# acp-mux — local companion launcher for OpenCode in Zed ACP.
+#
+# This is intentionally a launcher plus maintenance CLI, not just an OpenCode
+# plugin. OpenCode chooses XDG_DATA_HOME/OPENCODE_DB before plugins load.
+
+set -euo pipefail
+
+cmd="${1:-help}"
+if [[ $# -gt 0 ]]; then shift; fi
+
+OPENCODE_BIN="${OPENCODE_BIN:-$HOME/.opencode/bin/opencode}"
+MASTER_DATA="${OPENCODE_MASTER_DATA:-$HOME/.local/share/opencode}"
+INSTANCES_ROOT="${ACP_MUX_INSTANCES_ROOT:-$HOME/.local/share/acp-mux/instances}"
+LEGACY_INSTANCES_ROOT="${OPENCODE_LEGACY_INSTANCES_ROOT:-$HOME/.local/share/opencode-instances}"
+BIN_LINK="${ACP_MUX_BIN_LINK:-$HOME/.local/bin/acp-mux}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  acp-mux acp [opencode-acp-args...]
+  acp-mux doctor
+  acp-mux install [--dry-run]
+  acp-mux zed-config
+  acp-mux instances [--all]
+  acp-mux sync-db [--live|--all|--target PATH] [--dry-run]
+  acp-mux cleanup [--dry-run]
+  acp-mux thread-close [--instance ID] [--no-sync] [--no-archive] [--timeout SEC]
+  acp-mux env
+
+Zed settings should launch:
+  command: acp-mux
+  args: ["acp"]
+
+Environment knobs:
+  OPENCODE_BIN                 real opencode binary; default ~/.opencode/bin/opencode
+  OPENCODE_MASTER_DATA         canonical data dir; default ~/.local/share/opencode
+  ACP_MUX_INSTANCES_ROOT  isolated instance root; default ~/.local/share/acp-mux/instances
+  ACP_MUX_INSTANCE_ID     pin/reuse an instance id
+  ACP_MUX_SEED_DB         seed instance DB from canonical; default 1
+  ACP_MUX_SYNC_LEGACY     include ~/.local/share/opencode-instances in sync-db; default 1
+  ACP_MUX_ARCHIVED_ROOT   archived instance dir target; default ~/.local/share/acp-mux/archived
+EOF
+}
+
+die() {
+  echo "acp-mux: $*" >&2
+  exit 1
+}
+
+json_array() {
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s\n' "$@" | jq -R . | jq -s .
+  else
+    printf '['
+    local first=1 arg escaped
+    for arg in "$@"; do
+      escaped=${arg//\\/\\\\}
+      escaped=${escaped//\"/\\\"}
+      if [[ $first -eq 0 ]]; then printf ','; fi
+      printf '"%s"' "$escaped"
+      first=0
+    done
+    printf ']'
+  fi
+}
+
+sqlite_quote() {
+  local s=${1//\'/\'\'}
+  printf "'%s'" "$s"
+}
+
+is_pid_alive() {
+  local pid="$1"
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null
+}
+
+instance_pid() {
+  local stamp="$1/.instance.json"
+  [[ -f "$stamp" ]] || return 1
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '.pid // empty' "$stamp" 2>/dev/null || true
+  else
+    awk -F: '/"pid"/ { gsub(/[^0-9]/, "", $2); print $2; exit }' "$stamp" 2>/dev/null || true
+  fi
+}
+
+instance_id() {
+  local stamp="$1/.instance.json"
+  [[ -f "$stamp" ]] || return 1
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '.id // empty' "$stamp" 2>/dev/null || true
+  else
+    sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$stamp" | head -1
+  fi
+}
+
+iter_instance_dirs() {
+  local include_all="${1:-0}"
+  local roots=("$INSTANCES_ROOT")
+  if [[ "${ACP_MUX_SYNC_LEGACY:-1}" == "1" ]]; then
+    roots+=("$LEGACY_INSTANCES_ROOT")
+  fi
+
+  local root dir pid
+  for root in "${roots[@]}"; do
+    [[ -d "$root" ]] || continue
+    for dir in "$root"/*/opencode; do
+      [[ -d "$dir" ]] || continue
+      if [[ "$include_all" == "1" ]]; then
+        printf '%s\n' "$dir"
+      else
+        pid="$(instance_pid "$dir" || true)"
+        if is_pid_alive "$pid"; then printf '%s\n' "$dir"; fi
+      fi
+    done
+  done
+}
+
+doctor() {
+  echo "acp-mux doctor"
+  echo "- opencode binary: $OPENCODE_BIN"
+  if [[ -x "$OPENCODE_BIN" ]]; then
+    echo "- opencode version: $($OPENCODE_BIN --version 2>/dev/null || true)"
+  else
+    echo "- opencode binary missing or not executable"
+  fi
+  echo "- master data: $MASTER_DATA"
+  echo "- instance root: $INSTANCES_ROOT"
+  echo "- legacy instance root: $LEGACY_INSTANCES_ROOT"
+  echo "- bin link: $BIN_LINK"
+  echo "- expected Zed command: acp-mux"
+  echo "- expected Zed args: [\"acp\"]"
+  echo "- expected ACP env: OPENCODE_CLIENT=acp, OPENCODE_DB=opencode.db, OPENCODE_DISABLE_CHANNEL_DB=1"
+  echo "- live instances: $(iter_instance_dirs 0 | wc -l | tr -d ' ')"
+  if command -v sqlite3 >/dev/null 2>&1 && [[ -f "$MASTER_DATA/opencode.db" ]]; then
+    echo "- canonical db: $(sqlite3 "$MASTER_DATA/opencode.db" 'pragma integrity_check;' 2>/dev/null || echo unavailable)"
+    echo "- canonical sessions: $(sqlite3 "$MASTER_DATA/opencode.db" 'select count(*) from session;' 2>/dev/null || echo unavailable)"
+  fi
+}
+
+install_cli() {
+  local dry_run=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      *) die "unknown install option: $1" ;;
+    esac
+    shift
+  done
+  local src
+  src="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/acp-mux"
+  echo "link: $BIN_LINK -> $src"
+  if [[ "$dry_run" == "1" ]]; then return 0; fi
+  mkdir -p "$(dirname "$BIN_LINK")"
+  ln -sf "$src" "$BIN_LINK"
+}
+
+zed_config() {
+  cat <<'EOF'
+{
+  "agent_servers": {
+    "OpenCode": {
+      "type": "custom",
+      "command": "acp-mux",
+      "args": ["acp"],
+      "env": {
+        "PATH": "/home/jon/.local/bin:/home/jon/.opencode/bin:/home/jon/.bun/bin:/home/jon/.cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin",
+        "SHELL": "/usr/bin/zsh",
+        "COLORTERM": "truecolor"
+      }
+    }
+  }
+}
+EOF
+}
+
+seed_db_if_needed() {
+  local instance_dir="$1"
+  local src="$MASTER_DATA/opencode.db"
+  local dst="$instance_dir/opencode.db"
+
+  [[ "${ACP_MUX_SEED_DB:-1}" == "1" ]] || return 0
+  [[ -f "$src" ]] || return 0
+  [[ ! -s "$dst" ]] || return 0
+
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$src" ".backup '$dst'"
+  else
+    cp "$src" "$dst"
+  fi
+}
+
+launch_acp() {
+  local instance_id_value instance_dir stamp
+  instance_id_value="${ACP_MUX_INSTANCE_ID:-$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+  instance_dir="$INSTANCES_ROOT/$instance_id_value/opencode"
+  mkdir -p "$instance_dir"
+
+  local shared_paths=(auth.json plugins repos worktree snapshot db-backups)
+  local p src dst
+  for p in "${shared_paths[@]}"; do
+    src="$MASTER_DATA/$p"
+    dst="$instance_dir/$p"
+    if [[ -e "$src" && ! -e "$dst" ]]; then
+      ln -s "$src" "$dst"
+    fi
+  done
+
+  for p in log tool-output storage; do
+    mkdir -p "$instance_dir/$p"
+  done
+
+  seed_db_if_needed "$instance_dir"
+
+  stamp="$instance_dir/.instance.json"
+  cat > "$stamp" <<EOF
+{
+  "id": "$instance_id_value",
+  "pid": $$,
+  "ppid": $PPID,
+  "cwd": "$PWD",
+  "started_at": "$(date -Iseconds)",
+  "launcher": "acp-mux",
+  "argv": $(json_array acp "$@")
+}
+EOF
+
+  export XDG_DATA_HOME="$INSTANCES_ROOT/$instance_id_value"
+  export ACP_MUX_INSTANCE_ID="$instance_id_value"
+  export OPENCODE_CLIENT="${OPENCODE_CLIENT:-acp}"
+  export OPENCODE_DB="${OPENCODE_DB:-opencode.db}"
+  export OPENCODE_DISABLE_CHANNEL_DB="${OPENCODE_DISABLE_CHANNEL_DB:-1}"
+
+  exec -a "acp-mux[$instance_id_value]" "$OPENCODE_BIN" acp "$@"
+}
+
+list_instances() {
+  local include_all=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --all) include_all=1 ;;
+      *) die "unknown instances option: $1" ;;
+    esac
+    shift
+  done
+  local dir pid alive id sessions
+  while IFS= read -r dir; do
+    pid="$(instance_pid "$dir" || true)"
+    id="$(instance_id "$dir" || true)"
+    alive=no
+    if is_pid_alive "$pid"; then alive=yes; fi
+    sessions=""
+    if command -v sqlite3 >/dev/null 2>&1 && [[ -f "$dir/opencode.db" ]]; then
+      sessions="$(sqlite3 "$dir/opencode.db" 'select count(*) from session;' 2>/dev/null || echo '?')"
+    fi
+    printf '%s\tpid=%s\talive=%s\tsessions=%s\t%s\n' "${id:-unknown}" "${pid:-?}" "$alive" "${sessions:-?}" "$dir"
+  done < <(iter_instance_dirs "$include_all")
+}
+
+sync_one_db() {
+  local target_db="$1" dry_run="$2"
+  local canonical_db="$MASTER_DATA/opencode.db"
+  [[ -f "$canonical_db" ]] || die "missing canonical DB: $canonical_db"
+  [[ -f "$target_db" ]] || die "missing target DB: $target_db"
+  command -v sqlite3 >/dev/null 2>&1 || die "sqlite3 required for sync-db"
+
+  local before_c before_t after_c after_t
+  before_c="$(sqlite3 "$canonical_db" 'select count(*) from session;' 2>/dev/null || echo '?')"
+  before_t="$(sqlite3 "$target_db" 'select count(*) from session;' 2>/dev/null || echo '?')"
+  echo "sync target: $target_db"
+  echo "- before: canonical=$before_c target=$before_t"
+  if [[ "$dry_run" == "1" ]]; then
+    sqlite3 "$target_db" "ATTACH DATABASE $(sqlite_quote "$canonical_db") AS canon; select '- missing from target: ' || count(*) from canon.session c where not exists (select 1 from main.session t where t.id=c.id); select '- extra in target: ' || count(*) from main.session t where not exists (select 1 from canon.session c where c.id=t.id); DETACH DATABASE canon;"
+    return 0
+  fi
+
+  sqlite3 "$target_db" "PRAGMA busy_timeout=5000; ATTACH DATABASE $(sqlite_quote "$canonical_db") AS canon; BEGIN IMMEDIATE; INSERT OR IGNORE INTO main.project SELECT * FROM canon.project; INSERT OR IGNORE INTO main.workspace SELECT * FROM canon.workspace; INSERT OR IGNORE INTO main.permission SELECT * FROM canon.permission; INSERT OR IGNORE INTO main.session SELECT * FROM canon.session; INSERT OR IGNORE INTO main.message SELECT * FROM canon.message; INSERT OR IGNORE INTO main.part SELECT * FROM canon.part; INSERT OR IGNORE INTO main.session_message SELECT * FROM canon.session_message; INSERT OR IGNORE INTO main.session_share SELECT * FROM canon.session_share; INSERT OR IGNORE INTO main.todo SELECT * FROM canon.todo; COMMIT; DETACH DATABASE canon;"
+  sqlite3 "$canonical_db" "PRAGMA busy_timeout=5000; ATTACH DATABASE $(sqlite_quote "$target_db") AS target; BEGIN IMMEDIATE; INSERT OR IGNORE INTO main.project SELECT * FROM target.project; INSERT OR IGNORE INTO main.workspace SELECT * FROM target.workspace; INSERT OR IGNORE INTO main.permission SELECT * FROM target.permission; INSERT OR IGNORE INTO main.session SELECT * FROM target.session; INSERT OR IGNORE INTO main.message SELECT * FROM target.message; INSERT OR IGNORE INTO main.part SELECT * FROM target.part; INSERT OR IGNORE INTO main.session_message SELECT * FROM target.session_message; INSERT OR IGNORE INTO main.session_share SELECT * FROM target.session_share; INSERT OR IGNORE INTO main.todo SELECT * FROM target.todo; COMMIT; DETACH DATABASE target;"
+  sqlite3 "$target_db" "PRAGMA busy_timeout=5000; ATTACH DATABASE $(sqlite_quote "$canonical_db") AS canon; BEGIN IMMEDIATE; INSERT OR IGNORE INTO main.project SELECT * FROM canon.project; INSERT OR IGNORE INTO main.workspace SELECT * FROM canon.workspace; INSERT OR IGNORE INTO main.permission SELECT * FROM canon.permission; INSERT OR IGNORE INTO main.session SELECT * FROM canon.session; INSERT OR IGNORE INTO main.message SELECT * FROM canon.message; INSERT OR IGNORE INTO main.part SELECT * FROM canon.part; INSERT OR IGNORE INTO main.session_message SELECT * FROM canon.session_message; INSERT OR IGNORE INTO main.session_share SELECT * FROM canon.session_share; INSERT OR IGNORE INTO main.todo SELECT * FROM canon.todo; COMMIT; DETACH DATABASE canon;"
+
+  after_c="$(sqlite3 "$canonical_db" 'select count(*) from session;' 2>/dev/null || echo '?')"
+  after_t="$(sqlite3 "$target_db" 'select count(*) from session;' 2>/dev/null || echo '?')"
+  echo "- after: canonical=$after_c target=$after_t"
+}
+
+sync_db() {
+  local mode=live dry_run=0 target=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --live) mode=live ;;
+      --all) mode=all ;;
+      --target) shift; target="${1:-}"; [[ -n "$target" ]] || die "--target requires a path" ;;
+      --dry-run) dry_run=1 ;;
+      *) die "unknown sync-db option: $1" ;;
+    esac
+    shift
+  done
+
+  local backup_dir
+  if [[ "$dry_run" != "1" ]]; then
+    backup_dir="$MASTER_DATA/db-backups/acp-mux-sync-$(date -u +%Y%m%dT%H%M%SZ)"
+    mkdir -p "$backup_dir"
+    sqlite3 "$MASTER_DATA/opencode.db" ".backup '$backup_dir/canonical-opencode.db'"
+    echo "backup: $backup_dir"
+  fi
+
+  if [[ -n "$target" ]]; then
+    if [[ -d "$target" ]]; then target="$target/opencode.db"; fi
+    sync_one_db "$target" "$dry_run"
+    return 0
+  fi
+
+  local include_all=0 dir db
+  [[ "$mode" == "all" ]] && include_all=1
+  while IFS= read -r dir; do
+    db="$dir/opencode.db"
+    [[ -f "$db" ]] || continue
+    if [[ "$dry_run" != "1" ]]; then
+      sqlite3 "$db" ".backup '$backup_dir/$(basename "$(dirname "$dir")")-opencode.db'" || true
+    fi
+    sync_one_db "$db" "$dry_run"
+  done < <(iter_instance_dirs "$include_all")
+}
+
+cleanup() {
+  local dry_run=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      *) die "unknown cleanup option: $1" ;;
+    esac
+    shift
+  done
+  local dir pid parent
+  while IFS= read -r dir; do
+    pid="$(instance_pid "$dir" || true)"
+    if is_pid_alive "$pid"; then continue; fi
+    parent="$(dirname "$dir")"
+    echo "stale: $parent"
+    if [[ "$dry_run" != "1" ]]; then rm -rf "$parent"; fi
+  done < <(iter_instance_dirs 1)
+}
+
+# thread-close — clean shutdown of one acp-mux instance.
+#
+# Flow:
+#   1. Resolve target instance (from --instance, $ACP_MUX_INSTANCE_ID, or
+#      newest live instance under INSTANCES_ROOT).
+#   2. Optional: sync the instance DB to canonical first (default ON) so no
+#      sessions are stranded.
+#   3. Send SIGTERM to the instance PID. The opencode-zed/acp-mux plugin's
+#      shutdown hook runs PRAGMA wal_checkpoint(TRUNCATE) here.
+#   4. Wait up to --timeout seconds (default 5). If still alive, SIGKILL.
+#   5. Optional: move the instance dir to ACP_MUX_ARCHIVED_ROOT (default ON).
+#
+# Designed to be invoked from a Zed task (ctrl-shift-w → archive thread)
+# or manually. Exits 0 on clean close, 1 on hard kill, 2 on unresolved
+# instance, 3 on PID-already-dead (still tries archive).
+thread_close() {
+  local instance_id=""
+  local no_sync=0
+  local no_archive=0
+  local timeout_sec=5
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --instance) shift; instance_id="${1:-}"; [[ -n "$instance_id" ]] || die "--instance requires an id" ;;
+      --no-sync) no_sync=1 ;;
+      --no-archive) no_archive=1 ;;
+      --timeout) shift; timeout_sec="${1:-5}" ;;
+      *) die "unknown thread-close option: $1" ;;
+    esac
+    shift
+  done
+
+  # Resolve instance
+  if [[ -z "$instance_id" ]]; then
+    instance_id="${ACP_MUX_INSTANCE_ID:-}"
+  fi
+  local instance_dir=""
+  if [[ -n "$instance_id" ]]; then
+    instance_dir="$INSTANCES_ROOT/$instance_id/opencode"
+  else
+    # Heuristic: newest live instance under INSTANCES_ROOT.
+    local newest=""
+    local newest_mtime=0
+    while IFS= read -r dir; do
+      local pid mtime
+      pid="$(instance_pid "$dir" || true)"
+      if ! is_pid_alive "$pid"; then continue; fi
+      mtime=$(stat -c '%Y' "$dir" 2>/dev/null || echo 0)
+      if (( mtime > newest_mtime )); then
+        newest="$dir"
+        newest_mtime="$mtime"
+      fi
+    done < <(iter_instance_dirs 0)
+    if [[ -z "$newest" ]]; then
+      echo "thread-close: no live instance found (set --instance or ACP_MUX_INSTANCE_ID)" >&2
+      exit 2
+    fi
+    instance_dir="$newest"
+    instance_id="$(instance_id "$instance_dir" || basename "$(dirname "$instance_dir")")"
+  fi
+
+  if [[ ! -d "$instance_dir" ]]; then
+    echo "thread-close: instance dir not found: $instance_dir" >&2
+    exit 2
+  fi
+
+  local pid
+  pid="$(instance_pid "$instance_dir" || true)"
+  echo "thread-close: instance=$instance_id pid=${pid:-?} dir=$instance_dir"
+
+  # 1. Optional sync (preserve sessions to canonical before shutdown).
+  if [[ "$no_sync" != "1" ]]; then
+    if [[ -f "$instance_dir/opencode.db" && -f "$MASTER_DATA/opencode.db" ]]; then
+      echo "thread-close: pre-shutdown sync"
+      sync_one_db "$instance_dir/opencode.db" 0 2>&1 | sed 's/^/  /'
+    fi
+  fi
+
+  # 2. Signal child for graceful exit (plugin's SIGTERM hook runs WAL TRUNCATE).
+  if [[ -z "$pid" ]] || ! is_pid_alive "$pid"; then
+    echo "thread-close: pid already gone; skipping signal"
+  else
+    if ! kill -TERM "$pid" 2>/dev/null; then
+      echo "thread-close: SIGTERM failed (permission or race); attempting SIGKILL"
+      kill -KILL "$pid" 2>/dev/null || true
+    else
+      echo "thread-close: SIGTERM sent; waiting up to ${timeout_sec}s for graceful exit"
+      local waited=0
+      while is_pid_alive "$pid" && (( waited < timeout_sec )); do
+        sleep 1
+        waited=$((waited + 1))
+      done
+      if is_pid_alive "$pid"; then
+        echo "thread-close: still alive after ${timeout_sec}s; escalating to SIGKILL"
+        kill -KILL "$pid" 2>/dev/null || true
+        sleep 1
+      fi
+    fi
+  fi
+
+  # 3. Archive the dir (or remove it).
+  if [[ "$no_archive" != "1" ]]; then
+    local archived_root="${ACP_MUX_ARCHIVED_ROOT:-$HOME/.local/share/acp-mux/archived}"
+    mkdir -p "$archived_root"
+    local parent
+    parent="$(dirname "$instance_dir")"
+    local dst="$archived_root/$(basename "$parent").$(date -u +%Y%m%dT%H%M%SZ)"
+    mv "$parent" "$dst"
+    echo "thread-close: archived to $dst"
+  else
+    echo "thread-close: kept instance dir at $(dirname "$instance_dir") (--no-archive)"
+  fi
+
+  if [[ -n "$pid" ]] && is_pid_alive "$pid"; then
+    return 1
+  fi
+  return 0
+}
+
+case "$cmd" in
+  acp) launch_acp "$@" ;;
+  doctor) doctor ;;
+  install) install_cli "$@" ;;
+  zed-config) zed_config ;;
+  instances) list_instances "$@" ;;
+  sync-db) sync_db "$@" ;;
+  cleanup) cleanup "$@" ;;
+  thread-close) thread_close "$@" ;;
+  env)
+    printf 'OPENCODE_BIN=%s\nMASTER_DATA=%s\nINSTANCES_ROOT=%s\nLEGACY_INSTANCES_ROOT=%s\nBIN_LINK=%s\nARCHIVED_ROOT=%s\n' "$OPENCODE_BIN" "$MASTER_DATA" "$INSTANCES_ROOT" "$LEGACY_INSTANCES_ROOT" "$BIN_LINK" "${ACP_MUX_ARCHIVED_ROOT:-$HOME/.local/share/acp-mux/archived}"
+    ;;
+  help|--help|-h) usage ;;
+  *)
+    echo "Unknown command: $cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
