@@ -447,7 +447,9 @@ describe("sync-global.sh", () => {
     test("advance-meta spec contains provider runtime and metrics requirements", () => {
       expect(requirementIds).toContain("rq-providerAdvSkinny01");
       expect(requirementIds).toContain("rq-providerAdvMetrics01");
+      expect(requirementIds).toContain("rq-scopedAdvInstructions01");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.1");
+      expect(scenarioIds).toContain("rq-providerAdvSkinny01.1a");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.2");
     });
 

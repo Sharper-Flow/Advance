@@ -267,43 +267,57 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 
 ---
 
-### Provider ADV Runtime Agent Assembly
+### Single ADV Runtime Agent with Provider Hints
 
 **ID:** `rq-providerAdvSkinny01` | **Priority:** **[MUST]**
 
-Provider-specific ADV agents must preserve separate selectable agents while ensuring runtime prompt resolution uses the canonical ADV prompt body plus exactly one provider hint. Generated provider variants preserve frontmatter/tool allowlists and embed the concatenated runtime body because current OpenCode resolves markdown agent bodies before JSON prompt refs when both exist.
+ADV must expose one canonical runtime agent while preserving provider-specific guidance through runtime system-block hint injection. `sync-global.sh` must not require generated `adv-{provider}.md` runtime agents or concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.
 
-**Generated provider variants embed runtime bodies backed by prompt parts** (`rq-providerAdvSkinny01.1`)
+**Single ADV runtime agent is complete without generated provider variants** (`rq-providerAdvSkinny01.1`)
 
 **Given:**
 
 - `scripts/sync-global.sh --fix` runs with canonical ADV and provider hint assets present
 
-**When:** Provider ADV variants are generated
+**When:** ADV runtime assets are synced
 
 **Then:**
 
-- Global `adv-{provider}.md` files preserve provider frontmatter and tool allowlists
-- Global `adv-{provider}.md` bodies contain the canonical ADV body plus exactly one matching provider hint
-- Global `adv-{provider}.md` bodies do not contain `[ADV:PROVIDER_STUB_UNEXPANDED]`
-- Global prompt parts are written to `agent-parts/advance/adv.md` and `agent-parts/advance/providers/{provider}.md`
-- Concatenated prompt files are generated at `agent-parts/advance/adv-{provider}.md` (canonical body + provider hint)
-- `agent.adv-{provider}.prompt` references exactly one `{file:./agent-parts/advance/adv-{provider}.md}` concatenated prompt file
-- `sync-global.sh --check` runtime canary verifies `opencode debug agent adv-{provider}` resolves canonical markers plus provider hint and no stub marker when `opencode` is available
+- Global `adv.md` is the complete runtime ADV agent
+- Global `adv.md` contains the canonical ADV body and `ADV_INSTRUCTIONS.md` protocol content
+- Global `adv-{provider}.md` files are not generated as required runtime artifacts
+- Concatenated provider prompt files are not generated as required runtime artifacts at `agent-parts/advance/adv-{provider}.md`
+- `agent.adv-{provider}.prompt` refs are not written by `sync-global.sh`
+- Generic `adv` visibility is not disabled because of retired provider variants
 
-**Prompt-only provider config does not activate provider mode** (`rq-providerAdvSkinny01.2`)
+**Stale generated provider artifacts are removed or reported** (`rq-providerAdvSkinny01.1a`)
 
 **Given:**
 
-- Global `opencode.json` contains `agent.adv-{provider}.prompt` refs but no `model`, `disable`, `variant`, or `color` activation fields
+- A stale generated `adv-{provider}.md` file or concatenated provider prompt file exists from the retired provider-variant architecture
 
-**When:** Provider activation and legacy `adv` visibility are evaluated
+**When:** `scripts/sync-global.sh --fix` runs
 
 **Then:**
 
-- Provider mode is not considered active from prompt-only keys
-- Generic `adv` agent is not hidden solely because prompt refs were synced
-- When activation fields are present, `agent.adv.disable` is set true and global generic `adv.md` is removed
+- Stale generated provider agent files are removed from the global agents directory
+- Stale concatenated provider prompt files are removed or reported as retired artifacts with deterministic remediation
+- Running `--fix` is idempotent and does not recreate retired provider artifacts
+
+**Runtime provider hints use structured context and one system entry** (`rq-providerAdvSkinny01.2`)
+
+**Given:**
+
+- The ADV plugin system prompt transform runs for a model with structured provider or model identity
+
+**When:** The ADV system block is assembled
+
+**Then:**
+
+- A known provider or model identity emits exactly one matching provider hint
+- An unknown or missing provider/model identity emits no provider hint
+- Provider hints are appended through `output.system[0]` and no additional system entry is pushed
+- No heuristic free-text provider guessing is required for correctness
 
 ---
 
@@ -311,21 +325,24 @@ Provider-specific ADV agents must preserve separate selectable agents while ensu
 
 **ID:** `rq-providerAdvMetrics01` | **Priority:** **[MUST]**
 
-Provider ADV evaluation must report generated provider-file size separately from expanded selected-agent runtime prompt size so duplication removal and model-facing prompt cost are both visible.
+Provider ADV evaluation must report prompt-size planes for the single-agent architecture: canonical ADV prompt size, ADV protocol instruction size, provider hint size, selected runtime prompt size, and removed or avoided provider-variant duplication. Metrics must not require generated `adv-{provider}.md` files as canonical inputs.
 
-**Provider eval reports generated-file and runtime-prompt size planes** (`rq-providerAdvMetrics01.1`)
+**Provider eval reports single-agent prompt-size planes** (`rq-providerAdvMetrics01.1`)
 
 **Given:**
 
-- Provider ADV prompt parts and generated provider stubs exist
+- Provider ADV hint assets and the canonical ADV runtime prompt sources exist
 
 **When:** Provider evaluation harness reports prompt size metrics
 
 **Then:**
 
-- Metrics include `generated_provider_file` bytes and lines from global `adv-{provider}.md` stub
-- Metrics include `selected_agent_runtime_prompt` bytes and lines from composed canonical ADV body plus one provider hint
-- Harness does not treat generated provider variant file as canonical prompt source
+- Metrics include canonical ADV prompt bytes and lines
+- Metrics include ADV protocol instruction bytes and lines
+- Metrics include provider hint bytes and lines
+- Metrics include `selected_agent_runtime_prompt` bytes and lines for the composed single ADV prompt plus one runtime provider hint
+- Metrics include removed or avoided provider-variant duplication when measurable
+- Harness does not require generated provider variant files as canonical prompt sources
 
 ---
 
