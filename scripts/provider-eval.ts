@@ -109,8 +109,11 @@ interface PromptSizeMetric {
 }
 
 interface PromptSizeMetrics {
-  generated_provider_file: PromptSizeMetric | null;
+  canonical_adv_prompt: PromptSizeMetric;
+  adv_protocol_instructions: PromptSizeMetric;
+  provider_hint: PromptSizeMetric | null;
   selected_agent_runtime_prompt: PromptSizeMetric;
+  avoided_provider_variant_duplication: PromptSizeMetric | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +237,7 @@ Results stored in scripts/provider-eval-results/<run-id>/`);
 }
 
 // ---------------------------------------------------------------------------
-// Prompt Composition (mirrors sync-global.sh lines 342-374)
+// Prompt Composition (single ADV runtime agent + optional runtime provider hint)
 // ---------------------------------------------------------------------------
 
 /**
@@ -254,12 +257,12 @@ function composeSystemPrompt(
   hintContent: string | null,
 ): string {
   const stripped = stripFrontmatter(canonicalContent);
+  const base = `${stripped}\n\n${instructionsContent.trim()}`;
 
-  if (!hintContent) return stripped; // baseline: no hint
+  if (!hintContent) return base; // baseline: single ADV runtime prompt, no provider hint
 
-  // Replicates sync-global.sh concatenated prompt file:
-  // agent-parts/advance/adv-{provider}.md = canonical body + ADV_INSTRUCTIONS + provider hint
-  return `${stripped}\n\n${instructionsContent.trim()}\n\n${hintContent}`;
+  // Runtime system block adds the provider hint to the single ADV prompt.
+  return `${base}\n\n${hintContent}`;
 }
 
 function countLines(content: string): number {
@@ -279,19 +282,29 @@ function formatSize(metric: PromptSizeMetric): string {
 }
 
 function collectPromptSizeMetrics(input: {
-  generatedProviderPath: string;
+  canonicalPrompt: string;
+  advInstructions: string;
+  providerHint: string | null;
   runtimePrompt: string;
+  retiredGeneratedProviderPath: string;
 }): PromptSizeMetrics {
-  const generated_provider_file = existsSync(input.generatedProviderPath)
+  const avoided_provider_variant_duplication = existsSync(
+    input.retiredGeneratedProviderPath,
+  )
     ? {
-        bytes: statSync(input.generatedProviderPath).size,
-        lines: countLines(readFileSync(input.generatedProviderPath, "utf8")),
+        bytes: statSync(input.retiredGeneratedProviderPath).size,
+        lines: countLines(
+          readFileSync(input.retiredGeneratedProviderPath, "utf8"),
+        ),
       }
     : null;
 
   return {
-    generated_provider_file,
+    canonical_adv_prompt: sizeOfContent(stripFrontmatter(input.canonicalPrompt)),
+    adv_protocol_instructions: sizeOfContent(input.advInstructions.trim()),
+    provider_hint: input.providerHint ? sizeOfContent(input.providerHint) : null,
     selected_agent_runtime_prompt: sizeOfContent(input.runtimePrompt),
+    avoided_provider_variant_duplication,
   };
 }
 
@@ -625,26 +638,40 @@ async function runEvaluation(providerName: string): Promise<void> {
     hintContent,
   );
   const promptMetrics = collectPromptSizeMetrics({
-    generatedProviderPath: join(
+    canonicalPrompt: canonicalContent,
+    advInstructions: instructionsContent,
+    providerHint: hintContent,
+    runtimePrompt: hintPrompt,
+    retiredGeneratedProviderPath: join(
       globalHome,
       "opencode/agents",
       `adv-${providerName}.md`,
     ),
-    runtimePrompt: hintPrompt,
   });
 
   console.log(`System prompt A (baseline): ${baselinePrompt.length} chars`);
   console.log(`System prompt B (with hint): ${hintPrompt.length} chars`);
   console.log(`Delta: +${hintPrompt.length - baselinePrompt.length} chars`);
-  if (promptMetrics.generated_provider_file) {
+  console.log(
+    `Canonical ADV prompt: ${formatSize(promptMetrics.canonical_adv_prompt)}`,
+  );
+  console.log(
+    `ADV protocol instructions: ${formatSize(promptMetrics.adv_protocol_instructions)}`,
+  );
+  if (promptMetrics.provider_hint) {
+    console.log(`Provider hint: ${formatSize(promptMetrics.provider_hint)}`);
+  } else {
+    console.log("Provider hint: unavailable");
+  }
+  if (promptMetrics.avoided_provider_variant_duplication) {
     console.log(
-      `Generated provider file: ${formatSize(promptMetrics.generated_provider_file)}`,
+      `Avoided retired provider variant file: ${formatSize(promptMetrics.avoided_provider_variant_duplication)}`,
     );
   } else {
-    console.log("Generated provider file: unavailable");
+    console.log("Avoided retired provider variant file: unavailable");
   }
   console.log(
-    `Selected-agent runtime prompt: ${formatSize(promptMetrics.selected_agent_runtime_prompt)}\n`,
+    `Selected runtime prompt: ${formatSize(promptMetrics.selected_agent_runtime_prompt)}\n`,
   );
 
   // Load test prompts

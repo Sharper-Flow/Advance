@@ -325,26 +325,29 @@ describe("sync-global.sh", () => {
   describe("provider evaluation metrics", () => {
     const providerEval = readFileSync(PROVIDER_EVAL_PATH, "utf8");
 
-    test("provider eval reports generated-file and runtime-prompt metrics separately", () => {
+    test("provider eval reports single-agent prompt-size planes", () => {
       expect(providerEval).toContain("collectPromptSizeMetrics");
-      expect(providerEval).toContain("generated_provider_file");
+      expect(providerEval).toContain("canonical_adv_prompt");
+      expect(providerEval).toContain("adv_protocol_instructions");
+      expect(providerEval).toContain("provider_hint");
       expect(providerEval).toContain("selected_agent_runtime_prompt");
-      expect(providerEval).toContain("Generated provider file");
-      expect(providerEval).toContain("Selected-agent runtime prompt");
+      expect(providerEval).toContain("avoided_provider_variant_duplication");
+      expect(providerEval).toContain("Canonical ADV prompt");
+      expect(providerEval).toContain("Selected runtime prompt");
     });
 
     test("provider eval does not use generated provider variants as canonical prompt source", () => {
       expect(providerEval).toContain("loadCanonicalAdvPrompt");
-      expect(providerEval).toContain("agent-parts/advance/adv.md");
       expect(providerEval).not.toContain("global provider variant");
+      expect(providerEval).not.toContain("generated_provider_file");
     });
 
-    test("provider eval models native prompt-ref concatenation order", () => {
+    test("provider eval models single ADV runtime prompt plus optional hint", () => {
       expect(providerEval).toContain(
-        "Replicates sync-global.sh concatenated prompt file",
+        "single ADV runtime prompt, no provider hint",
       );
       expect(providerEval).toContain(
-        "return `${stripped}\\n\\n${instructionsContent.trim()}\\n\\n${hintContent}`",
+        "return `${base}\\n\\n${hintContent}`",
       );
       expect(providerEval).not.toContain("stripped.indexOf(endMarker)");
     });
