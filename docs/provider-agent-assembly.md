@@ -1,95 +1,104 @@
-# Provider-ADV Agent Assembly
+# Provider-ADV Runtime Hints
 
-How ADV generates provider-specific orchestrator variants and how they integrate with `opencode-model-preferences` (OMP).
+How ADV keeps one canonical orchestrator agent while preserving provider-specific guidance.
 
 ## Overview
 
-ADV ships one canonical orchestrator source: `.opencode/agents/adv.md`. During `sync-global.sh --fix`, ADV syncs that canonical body to global prompt part `~/.config/opencode/agent-parts/advance/adv.md`, syncs provider hints to `~/.config/opencode/agent-parts/advance/providers/{provider}.md`, generates concatenated prompt parts, and writes generated global provider agents whose markdown bodies contain the canonical ADV prompt plus exactly one provider hint.
+ADV exposes one runtime orchestrator agent: `adv`.
 
-| Variant      | Provider         | Hint source                                 | Runtime prompt ref                                              |
-| ------------ | ---------------- | ------------------------------------------- | --------------------------------------------------------------- |
-| `adv-claude` | Anthropic Claude | `.opencode/agent-parts/providers/claude.md` | `agent-parts/advance/adv-claude.md` (concatenated) |
-| `adv-gpt`    | OpenAI GPT       | `.opencode/agent-parts/providers/gpt.md`    | `agent-parts/advance/adv-gpt.md` (concatenated)    |
-| `adv-glm`    | Zhipu GLM        | `.opencode/agent-parts/providers/glm.md`    | `agent-parts/advance/adv-glm.md` (concatenated)    |
-| `adv-kimi`   | Moonshot Kimi    | `.opencode/agent-parts/providers/kimi.md`   | `agent-parts/advance/adv-kimi.md` (concatenated)   |
+`scripts/sync-global.sh --fix` assembles global `~/.config/opencode/agents/adv.md` from:
+
+1. repo canonical `.opencode/agents/adv.md`
+2. repository `ADV_INSTRUCTIONS.md`
+
+Provider-specific guidance is no longer stored in generated `adv-claude`, `adv-gpt`, `adv-glm`, or `adv-kimi` agent files. The plugin injects provider hints at runtime through the existing single-system-block path in `plugin/src/utils/system-block.ts`.
+
+```text
+global adv.md = canonical ADV body + ADV_INSTRUCTIONS.md
+runtime system block = optional [ADV:PROVIDER_HINT:{provider}] section
+```
 
 ## Design Principles
 
-1. **Single source of truth** — `adv.md` remains canonical. Provider stubs do not fork ADV behavior.
-2. **Generated runtime bodies** — `adv-{provider}.md` preserves canonical frontmatter/tool allowlists, then embeds the concatenated runtime body directly. OpenCode currently gives markdown agent bodies precedence over JSON `agent.<name>.prompt` when both exist.
-3. **Prompt-part composition** — sync still generates a single concatenated file per provider (`adv-{provider}.md` = canonical body + provider hint) under `agent-parts/advance/`. OpenCode `agent.adv-{provider}.prompt` contains one `{file:./agent-parts/advance/adv-{provider}.md}` ref for JSON-only/future runtimes and source-of-truth inspection. Multi-file refs (`{file:A}\n\n{file:B}`) do not resolve at runtime.
-4. **Prompt-only key safety** — `prompt` without activation fields (`model`, `disable`, `variant`, `color`) does not activate provider mode or hide generic `adv`.
-5. **No duplicate runtime hints** — the plugin runtime does not inject `[ADV:PROVIDER_HINT]`; provider behavior comes only from prompt parts.
-6. **Global-only provider state** — Provider-ADV files and prompt refs live in global `opencode.json`. Repo-local `adv.md` stays canonical and git-tracked.
+1. **One selectable ADV agent** — users run `adv`; provider identity comes from model/provider context, not agent names.
+2. **Scoped ADV protocol** — `ADV_INSTRUCTIONS.md` is embedded only into the ADV runtime agent, not global `opencode.json instructions[]`.
+3. **Runtime provider hints** — known structured provider/model identities may emit one provider hint in `output.system[0]`.
+4. **No generated provider agents** — `adv-{provider}.md` files are retired and not compatibility aliases.
+5. **No heuristic provider guessing** — unknown or missing provider/model identity emits no provider hint.
+6. **Manual migration** — user-owned `agent.adv-{provider}` config is cleaned up once by the user, not auto-migrated by sync.
+
+## Runtime Hint Mapping
+
+Provider hint source markdown remains in `.opencode/agent-parts/providers/{provider}.md` as repo data and documentation source. Runtime constants in `system-block.ts` mirror those small hints.
+
+| Hint | Structured identity examples | Behavior |
+| --- | --- | --- |
+| `claude` | `anthropic` | Emit Claude provider guidance |
+| `gpt` | `openai` | Emit GPT provider guidance |
+| `glm` | `zai`, `z-ai`, `zai-coding-plan` | Emit GLM provider guidance |
+| `kimi` | `moonshot`, `moonshotai`, `kimi` | Emit Kimi provider guidance when structurally identifiable |
+
+If a model is routed through a provider that does not expose model identity to the system transform, ADV must not infer the hint from free text. It emits no hint until structured identity is available.
 
 ## Sync Behavior
 
-### Generation
+`scripts/sync-global.sh --fix` now:
 
-`scripts/sync-global.sh` runs provider assembly after copying canonical assets:
+1. Copies commands, agents, overlays, and skills as before.
+2. Writes one complete global `adv.md` runtime agent.
+3. Keeps `ADV_INSTRUCTIONS.md` absent from global `instructions[]`.
+4. Removes stale generated `adv-{provider}.md` files from global agents.
+5. Removes retired concatenated provider prompt files `agent-parts/advance/adv-{provider}.md` when present.
+6. Does not write `agent.adv-{provider}.prompt` refs.
+7. Does not set `agent.adv.disable` because of retired provider variants.
 
-1. Copy canonical `adv.md` body to `~/.config/opencode/agent-parts/advance/adv.md`.
-2. Copy `.opencode/agent-parts/providers/{provider}.md` to `~/.config/opencode/agent-parts/advance/providers/{provider}.md`.
-3. Generate concatenated prompt file `~/.config/opencode/agent-parts/advance/adv-{provider}.md` (canonical body + provider hint).
-4. Generate `~/.config/opencode/agents/adv-{provider}.md` from canonical frontmatter/tool allowlist plus the concatenated runtime body.
-5. Patch frontmatter `name:` to `adv-{provider}` and optional configured `color:`.
-6. Patch `opencode.json` prompt refs:
+## Metrics
 
-```json
-{
-  "agent": {
-    "adv-gpt": {
-      "prompt": "{file:./agent-parts/advance/adv-gpt.md}"
-    }
-  }
-}
-```
-
-### Drift Detection + Runtime Canary
-
-`check_tool_drift` runs for:
-
-- Canonical `adv.md`
-- Each generated variant (`adv-claude.md`, `adv-gpt.md`, `adv-glm.md`, `adv-kimi.md`)
-- Required prompt parts under `agent-parts/advance/`
-
-Mismatches between `ADV_TOOL_NAMES` and each agent's `tools:` allowlist are reported per file. Missing or stale prompt parts fail `--check`.
-
-`sync-global.sh --check` also runs a runtime canary when `opencode` is on `PATH`: `opencode debug agent adv-{provider}` must resolve a prompt with canonical ADV markers, the matching `<!-- PROVIDER_HINT:{provider} -->`, and no `[ADV:PROVIDER_STUB_UNEXPANDED]` marker. If `opencode` is unavailable, the check reports the skip reason and continues with static validation.
-
-### Metrics
-
-`scripts/provider-eval.ts` reports two size planes:
+`scripts/provider-eval.ts` reports size planes aligned to the single-agent architecture:
 
 | Metric | Meaning |
-| ------ | ------- |
-| `generated_provider_file` | Size of generated global `adv-{provider}.md` file, including frontmatter plus embedded runtime body. |
-| `selected_agent_runtime_prompt` | Expanded prompt size for selected provider agent: canonical ADV body + exactly one provider hint. Used to estimate model-facing prompt cost. |
+| --- | --- |
+| `canonical_adv_prompt` | Canonical ADV agent body without frontmatter |
+| `adv_protocol_instructions` | `ADV_INSTRUCTIONS.md` body embedded into `adv.md` |
+| `provider_hint` | Provider hint payload when available |
+| `selected_agent_runtime_prompt` | Single ADV runtime prompt plus one runtime hint |
+| `avoided_provider_variant_duplication` | Retired generated provider file size if a stale file is still present |
 
-## Migration
+Generated provider files are no longer canonical prompt sources.
 
-### Activation
+## Manual One-Time Migration
 
-Provider mode is active only when global `opencode.json` contains `agent.adv-*` keys with activation fields: `model`, `disable`, `variant`, or `color`. `prompt` alone is prompt-only sync state and does not count.
+After updating and running `scripts/sync-global.sh --fix`, manually clean old provider-agent config if present:
 
-When active:
+1. Edit global `~/.config/opencode/opencode.json` or `opencode.jsonc`.
+2. Remove `agent.adv-claude`, `agent.adv-gpt`, `agent.adv-glm`, and `agent.adv-kimi` entries.
+3. Remove `agent.adv.disable` if it only existed to hide generic `adv` during provider-variant mode.
+4. Confirm stale files are gone from `~/.config/opencode/agents/adv-{provider}.md`.
+5. Restart OpenCode. Config and agent files are loaded at process start.
 
-1. Global `adv.md` is removed from `~/.config/opencode/agents/`.
-2. Repo-local `.opencode/agents/adv.md` is preserved.
-3. `agent.adv.disable: true` is written to `opencode.json` to hide generic `adv` through native OpenCode visibility.
+`sync-global.sh` intentionally does not auto-migrate user-owned provider-agent config, because those keys may encode model-routing preferences that require human review.
 
-When no provider variants are active, `agent.adv.disable` is removed and canonical `adv` remains visible.
+## OMP Follow-Up
 
-### OMP Role
+OMP per-phase routing is future work, not part of this architecture change.
 
-OMP does not trigger ADV sync. It writes activation fields such as `agent.adv-{provider}.disable` and `agent.adv-{provider}.model`; generated files and prompt parts must already exist from `sync-global.sh --fix`.
+The single-agent architecture makes a later routing model cleaner because ADV identity is no longer encoded in agent names. A future OMP design can map ADV phases to models, for example:
+
+```yaml
+adv:
+  proposal: anthropic/claude-...
+  discovery: openai/gpt-...
+  execution: moonshotai/kimi-...
+  review: z-ai/glm-...
+```
+
+That follow-up needs separate schema, UX, fallback, and auditability decisions.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
-| ------- | ----- | --- |
-| Provider variants missing after sync | Hint files or prompt-part sync missing | Run `scripts/sync-global.sh --fix`; restore files from git if needed |
-| Provider session shows `[ADV:PROVIDER_STUB_UNEXPANDED]` | Stale generated provider agent from the old skinny-stub layout | Run `scripts/sync-global.sh --fix`, restart OpenCode, then run `scripts/sync-global.sh --check` runtime canary |
-| Generic `adv` still visible while provider mode active | `agent.adv.disable` not set | Run `sync-global.sh --fix`; confirm activation field exists |
-| Generic `adv` hidden with only prompt refs | Prompt-only key counted as activation | Update sync script; prompt-only keys must not activate provider mode |
-| Runtime prompt looks duplicated | Plugin runtime injecting provider hints in addition to generated provider body | Ensure runtime `[ADV:PROVIDER_HINT]` injection is removed; generated variants are the only provider-hint source |
+| --- | --- | --- |
+| `adv-claude` / `adv-gpt` still appears selectable | Stale global agent file or config key remains | Remove `agent.adv-{provider}` config, run `scripts/sync-global.sh --fix`, restart OpenCode |
+| Generic `adv` hidden | Stale `agent.adv.disable` from provider-variant mode | Remove `agent.adv.disable`, restart OpenCode |
+| No provider hint appears | Provider/model identity is unknown or unsupported | Expected safe fallback; add structured identity support in a follow-up if needed |
+| Runtime prompt has multiple system messages | Plugin bug | Ensure provider hints are appended through `output.system[0]` only |

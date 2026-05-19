@@ -146,18 +146,17 @@ See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
 
-### Provider ADV agent assembly
+### Provider ADV runtime hints
 
-`scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) as generated runtime agents backed by global prompt parts:
+`scripts/sync-global.sh` now assembles one global ADV runtime agent:
 
-1. **Copy canonical body to prompt part** — `.opencode/agents/adv.md` syncs to `~/.config/opencode/agent-parts/advance/adv.md`
-2. **Copy provider hints to prompt parts** — `.opencode/agent-parts/providers/{provider}.md` syncs to `~/.config/opencode/agent-parts/advance/providers/{provider}.md`
-3. **Generate runtime provider agents** — global `adv-{provider}.md` preserves frontmatter/tool allowlist and embeds the concatenated canonical ADV body plus exactly one provider hint (markdown bodies win over JSON prompt refs in current OpenCode)
-4. **Patch native prompt refs** — `agent.adv-{provider}.prompt` points to the matching single concatenated prompt file for JSON-only/future runtimes and inspection
-5. **Drift checks** — `check_tool_drift` runs for all variants plus the canonical agent; prompt parts are checked for presence
-6. **Legacy gating** — prompt-only keys do not activate provider mode. Active provider config sets `agent.adv.disable: true` and removes global generic `adv.md`; repo-local `.opencode/agents/adv.md` remains tracked.
+1. **Copy canonical ADV body** — `.opencode/agents/adv.md` remains the source of truth.
+2. **Embed ADV protocol locally** — repository `ADV_INSTRUCTIONS.md` is appended into global `~/.config/opencode/agents/adv.md`, not global `instructions[]`.
+3. **Retire provider variants** — stale global `adv-{provider}.md` files and concatenated provider prompt files are removed instead of regenerated.
+4. **Runtime hints** — `plugin/src/utils/system-block.ts` injects one provider hint into `output.system[0]` when structured provider/model identity is known.
+5. **Drift checks** — `check_tool_drift` validates the canonical ADV agent allowlist only.
 
-Runtime visibility is controlled by OpenCode's native `agent.<name>.disable` field in `opencode.json` — no hidden routing, no fallback chains. The `opencode-model-preferences` (OMP) tool writes these config entries; ADV only generates the files.
+No `adv-claude`, `adv-gpt`, `adv-glm`, or `adv-kimi` compatibility aliases are generated. User-owned `agent.adv-{provider}` config requires one-time manual cleanup; see `docs/provider-agent-assembly.md`.
 
 ### Tool registration pattern
 

@@ -677,9 +677,9 @@ export function validateGateBoundary(
   const commandName = completedBy.split(/\s/)[0];
 
   // "agent" is the default — no boundary check possible.
-  // Provider-specific ADV agents (for example adv-gpt/adv-claude) are actors,
-  // not slash-command IDs. Boundary validation only applies when completedBy
-  // explicitly starts with a known command from COMMAND_MANIFEST.
+  // ADV runtime/provider actors are not slash-command IDs. Boundary validation
+  // only applies when completedBy explicitly starts with a known command from
+  // COMMAND_MANIFEST.
   if (commandName === "agent") return undefined;
   if (!Object.hasOwn(COMMAND_MANIFEST, commandName)) return undefined;
 

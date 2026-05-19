@@ -1,72 +1,56 @@
 # Provider-ADV Smoke Checklist
 
-Run after `scripts/sync-global.sh --fix` and OMP apply.
+Run after `scripts/sync-global.sh --fix` and after any manual provider-agent config cleanup.
 
-## Sync Generation
+## Single ADV Runtime Agent
 
-- [ ] `adv-claude.md` exists in `~/.config/opencode/agents/`
-- [ ] `adv-gpt.md` exists in `~/.config/opencode/agents/`
-- [ ] `adv-glm.md` exists in `~/.config/opencode/agents/`
-- [ ] `adv-kimi.md` exists in `~/.config/opencode/agents/`
-- [ ] Each variant contains `name: adv-{provider}` in frontmatter
-- [ ] Each variant does NOT contain `[ADV:PROVIDER_STUB_UNEXPANDED]`
-- [ ] Each variant contains canonical `## ADV Overlay`
-- [ ] Each variant contains `<!-- PROVIDER_HINT:{provider} -->`
+- [ ] `~/.config/opencode/agents/adv.md` exists
+- [ ] global `adv.md` contains canonical `## ADV Overlay`
+- [ ] global `adv.md` contains ADV protocol markers such as `### TDD Protocol (RSTC)`
+- [ ] global `adv.md` does **not** contain `<!-- PROVIDER_HINT:` markers
+- [ ] `ADV_INSTRUCTIONS.md` is absent from global `opencode.json instructions[]`
 
-## Prompt Parts
+## Retired Provider Agents
 
-- [ ] `~/.config/opencode/agent-parts/advance/adv.md` exists
-- [ ] `~/.config/opencode/agent-parts/advance/adv.md` contains canonical ADV body
-- [ ] `~/.config/opencode/agent-parts/advance/providers/{provider}.md` exists for each provider
-- [ ] `~/.config/opencode/agent-parts/advance/providers/{provider}.md` contains `<!-- PROVIDER_HINT:{provider} -->`
-- [ ] `~/.config/opencode/agent-parts/advance/adv-{provider}.md` exists (concatenated file)
-- [ ] `~/.config/opencode/agent-parts/advance/adv-{provider}.md` contains canonical body followed by provider hint
-- [ ] `opencode.json` has `agent.adv-{provider}.prompt` with `{file:./agent-parts/advance/adv-{provider}.md}`
+- [ ] `~/.config/opencode/agents/adv-claude.md` is absent
+- [ ] `~/.config/opencode/agents/adv-gpt.md` is absent
+- [ ] `~/.config/opencode/agents/adv-glm.md` is absent
+- [ ] `~/.config/opencode/agents/adv-kimi.md` is absent
+- [ ] `opencode.json` does not contain `agent.adv-{provider}.prompt` keys written by ADV sync
+- [ ] `sync-global.sh --fix` removes stale generated provider files instead of recreating them
 
-## Runtime Canary
+## Runtime Provider Hints
 
-- [ ] `scripts/sync-global.sh --check` runs provider runtime canary when `opencode` is on `PATH`
-- [ ] If `opencode` is unavailable, `scripts/sync-global.sh --check` reports the canary skip reason and continues static validation
-- [ ] `opencode debug agent adv-claude` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:claude -->`
-- [ ] `opencode debug agent adv-gpt` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:gpt -->`
-- [ ] `opencode debug agent adv-glm` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:glm -->`
-- [ ] `opencode debug agent adv-kimi` resolved `prompt` contains `## ADV Overlay` and `<!-- PROVIDER_HINT:kimi -->`
-- [ ] No provider debug prompt contains `[ADV:PROVIDER_STUB_UNEXPANDED]`
+- [ ] `plugin/src/utils/system-block.test.ts` covers known provider hint emission
+- [ ] known structured provider identity emits exactly one matching `<!-- PROVIDER_HINT:{provider} -->`
+- [ ] unknown or missing provider/model identity emits no provider hint
+- [ ] provider hints are appended through `output.system[0]`; no extra system entry is pushed
+- [ ] Kimi/model-specific hints are emitted only when structurally identifiable
 
-## Legacy Migration
+## Manual Migration
 
-- [ ] When `opencode.json` has NO active `agent.adv-*` keys: canonical `adv.md` is preserved globally and visible
-- [ ] When `opencode.json` has only prompt-only `agent.adv-*` keys: provider mode is NOT active
-- [ ] When `opencode.json` HAS active `agent.adv-*` keys: canonical global `adv.md` is removed from global agents
-- [ ] When `opencode.json` HAS active `agent.adv-*` keys: repo-local `.opencode/agents/adv.md` is preserved
-- [ ] When `opencode.json` HAS active `agent.adv-*` keys: `agent.adv.disable: true` is set in `opencode.json`
-- [ ] When `opencode.json` has NO active `agent.adv-*` keys: `agent.adv.disable` is removed if present
+- [ ] Remove `agent.adv-claude`, `agent.adv-gpt`, `agent.adv-glm`, and `agent.adv-kimi` from global config if present
+- [ ] Remove `agent.adv.disable` if it only existed for retired provider-variant mode
+- [ ] Restart OpenCode after config or agent-file changes
+- [ ] Confirm only `adv` is used for ADV orchestration
 
-## OMP Schema/Apply
+## OMP Follow-Up Boundary
 
-- [ ] `omp-preferences.json` can store `adv_providers` with `enabled` + `model`
-- [ ] `ApplyPreferences` writes `agent.adv-{provider}.disable` to `opencode.json`
-- [ ] `ApplyPreferences` writes `agent.adv-{provider}.model` to `opencode.json` when non-empty
-- [ ] Only `adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi` are valid provider names
-- [ ] `adv`, `build`, `plan` remain unmapped (no model override)
-
-## OMP TUI
-
-- [ ] "ADV Provider Agents" section appears in assignments list
-- [ ] Provider variants show "enabled" or "disabled" status
-- [ ] `e` key toggles enable/disable for selected provider variant
-- [ ] `enter`/`m` opens model picker for provider variants
-- [ ] `a` applies all preferences, including provider disable states, to `opencode.json`
+- [ ] OMP per-phase routing is treated as future work
+- [ ] No current smoke step requires provider-specific ADV agent names
+- [ ] Model/provider preference UX does not rely on `adv-{provider}` aliases
 
 ## Metrics
 
-- [ ] Provider eval reports `generated_provider_file`
+- [ ] Provider eval reports `canonical_adv_prompt`
+- [ ] Provider eval reports `adv_protocol_instructions`
+- [ ] Provider eval reports `provider_hint`
 - [ ] Provider eval reports `selected_agent_runtime_prompt`
-- [ ] `generated_provider_file` size reflects generated frontmatter plus runtime body bytes/lines
-- [ ] `selected_agent_runtime_prompt` includes canonical body plus exactly one provider hint
+- [ ] Provider eval reports `avoided_provider_variant_duplication` when stale retired files are measurable
+- [ ] Provider eval does not require generated `adv-{provider}.md` files as canonical prompt sources
 
 ## Drift Checks
 
 - [ ] `sync-global.sh --check` validates tool allowlist for canonical `adv.md`
-- [ ] `sync-global.sh --check` validates tool allowlist for all 4 provider variants
-- [ ] `sync-global.sh --check` fails when required `agent-parts/advance/` files are missing
+- [ ] `sync-global.sh --check` does not validate retired provider variant allowlists
+- [ ] `bash -n scripts/sync-global.sh` passes

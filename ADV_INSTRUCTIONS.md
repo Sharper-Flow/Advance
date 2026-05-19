@@ -941,6 +941,6 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 **Use for:** New features, breaking changes, architecture, compliance, unclear bug fixes via `/adv-problem`
 **Use lighter workflows for:** Typos, deps, exploration
 
-### Provider ADV agent assembly
+### Provider ADV runtime hints
 
-<!-- rq-scopedAdvInstructions01 --> `scripts/sync-global.sh` generates provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) as generated runtime agents backed by global prompt parts:
+<!-- rq-scopedAdvInstructions01 --> `scripts/sync-global.sh` assembles one global `adv` runtime agent from `.opencode/agents/adv.md` plus this repository-scoped `ADV_INSTRUCTIONS.md`. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.
