@@ -41,11 +41,11 @@ describe("sync-global.sh", () => {
     });
 
     test("supports --fix flag", () => {
-      expect(content).toContain('--fix)   MODE="fix"');
+      expect(content).toMatch(/--fix\)\s+MODE="fix"/);
     });
 
     test("supports --help flag", () => {
-      expect(content).toContain("--help|-h)");
+      expect(content).toMatch(/--help\s*\|\s*-h\)/);
     });
 
     test("defaults to sync mode", () => {
@@ -170,12 +170,15 @@ describe("sync-global.sh", () => {
       expect(content).toContain("plugin: ADV plugin path missing");
     });
 
-    // rq-scopedAdvInstructions01: sync must scope ADV protocol body to ADV
-    // provider prompts and remove legacy global instruction registration.
+    // rq-scopedAdvInstructions01: sync must scope ADV protocol body to the
+    // ADV runtime agent and remove legacy global instruction registration.
     test("rejects ADV instruction in global .instructions array", () => {
       expect(content).toContain("ADV_INSTRUCTION_PATH=");
       expect(content).toContain(
         "instructions: ADV_INSTRUCTIONS.md should not be globally registered",
+      );
+      expect(content).toContain(
+        "instructions: ADV_INSTRUCTIONS.md scoped to ADV runtime agent",
       );
       expect(content).not.toContain(
         "instructions: ADV_INSTRUCTIONS.md missing from .instructions array",
@@ -275,9 +278,9 @@ describe("sync-global.sh", () => {
   });
 
   // -----------------------------------------------------------------------
-  // Provider ADV variant generation (providerAdvAgentAssemblySystem)
+  // Single ADV runtime agent (providerAdvAgentAssemblySystem retired)
   // -----------------------------------------------------------------------
-  describe("provider variant generation", () => {
+  describe("single ADV runtime agent sync", () => {
     test("provider hint files exist in repo", () => {
       const providers = ["claude", "gpt", "glm", "kimi"];
       for (const p of providers) {
@@ -286,21 +289,9 @@ describe("sync-global.sh", () => {
       }
     });
 
-    test("sync script references provider variant generation", () => {
-      expect(content).toContain("adv-${provider}.md");
+    test("sync script retains provider names only for hint assets and stale cleanup", () => {
       expect(content).toContain("PROVIDERS=(claude gpt glm kimi)");
-    });
-
-    test("sync script patches frontmatter name for each variant", () => {
-      expect(content).toMatch(/sed.*name:.*adv-\$\{provider\}/);
-    });
-
-    test("sync script writes provider prompt parts and runtime canary marker", () => {
-      expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR");
-      expect(content).toContain("sync_adv_prompt_parts");
-      expect(content).toContain("[ADV:PROVIDER_STUB_UNEXPANDED]");
-      // Provider hints are copied to providers/ subdirectory (via variable)
-      expect(content).toContain("providers/${provider}.md");
+      expect(content).toContain("remove_retired_provider_prompt_parts");
     });
 
     test("provider hint source follows asset root for worktree-local edits", () => {
@@ -309,85 +300,24 @@ describe("sync-global.sh", () => {
       );
     });
 
-    test("sync script embeds concatenated runtime bodies in generated variants", () => {
-      expect(content).toContain(
-        'prompt_body="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"',
-      );
-      expect(content).toContain("body = Path(body_path).read_text().rstrip()");
-      expect(content).not.toContain("PROVIDER_STUB_DIAGNOSTIC");
+    test("sync script assembles one complete ADV runtime agent", () => {
+      expect(content).toContain("sync_adv_runtime_agent");
+      expect(content).toContain("canonical_text");
+      expect(content).toContain("instructions_text");
+      expect(content).toContain("assembled ADV runtime agent: adv.md");
     });
 
-    test("sync script patches prompt refs for provider variants using single-file concatenation", () => {
-      expect(content).toContain("patch_provider_prompt_refs");
-      // Single-file concatenated prompt ref via printf format string
-      expect(content).toContain("{file:./agent-parts/advance/adv-%s.md}");
-      // Multi-file pattern must NOT appear in provider_prompt_ref function
-      expect(content).not.toMatch(
-        /provider_prompt_ref\(\).*\{file:.*adv\.md\}\\n\\n\{file:/s,
-      );
+    test("sync script does not generate provider runtime agents or prompt refs", () => {
+      expect(content).not.toContain("generate_provider_variants");
+      expect(content).not.toContain("generate_concatenated_provider_prompts");
+      expect(content).not.toContain("patch_provider_prompt_refs");
+      expect(content).not.toContain("check_provider_runtime_canary");
+      expect(content).not.toContain("check_provider_variant_drifts");
+      expect(content).not.toContain("agent.adv.disable = true");
     });
 
-    test("sync script generates per-provider concatenated prompt files", () => {
-      expect(content).toContain("generate_concatenated_provider_prompts");
-      // Concatenated output path uses provider name in filename
-      expect(content).toMatch(/adv-\$\{provider\}\.md/);
-      // Must read from existing prompt parts (source-of-truth)
-      expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR/adv.md");
-      expect(content).toContain("PROVIDER_PROMPT_PARTS_DIR/providers");
-    });
-
-    test("sync script validates concatenated files with regenerate-and-diff staleness", () => {
-      expect(content).toContain("check_provider_prompt_parts");
-      // Must detect legacy multi-ref pattern
-      expect(content).toMatch(/legacy.*multi/i);
-      // Must do regenerate-and-diff (no SHA256 sidecar)
-      expect(content).not.toContain(".sha256");
-      expect(content).toMatch(/content.*mismatch/i);
-    });
-
-    test("sync script includes runtime canary for provider prompt resolution", () => {
-      expect(content).toContain("check_provider_runtime_canary");
-      expect(content).toContain("opencode");
-      expect(content).toContain("debug");
-      expect(content).toContain("agent");
-      expect(content).toContain("missing canonical ADV marker");
-      expect(content).toContain("missing provider hint marker");
-    });
-
-    test("sync script extends drift checks to all provider variants", () => {
-      expect(content).toContain("check_tool_drift");
-      expect(content).toContain("check_provider_variant_drifts");
-      expect(content).toMatch(/adv-\$\{provider\}\.md/);
-    });
-
-    test("legacy adv.md removal is gated off global opencode.json agent keys", () => {
-      expect(content).toContain("agent.adv-");
-      expect(content).toContain("opencode.json");
-      expect(content).toMatch(/legacy.*adv\.md.*gated|gated.*legacy.*adv\.md/i);
-    });
-
-    test("prompt-only provider config keys do not activate provider mode", () => {
-      expect(content).toContain("provider_adv_has_activation_fields");
-      expect(content).toContain("prompt-only");
-      expect(content).toContain("model");
-      expect(content).toContain("disable");
-      expect(content).toContain("variant");
-      expect(content).toContain("color");
-    });
-
-    test("sets agent.adv.disable: true when provider variants are configured", () => {
-      expect(content).toContain("agent.adv.disable = true");
-      expect(content).toContain("provider variants active");
-    });
-
-    test("removes agent.adv.disable when no provider variants are configured", () => {
-      expect(content).toContain("Removed agent.adv.disable");
-      expect(content).toContain("no provider variants active");
-    });
-
-    test("keeps repo-local adv.md and relies on config disable for visibility", () => {
+    test("keeps repo-local adv.md and global adv.md visible", () => {
       expect(content).toContain("Keep repo-local adv.md in-tree");
-      expect(content).toContain("agent.adv.disable");
       expect(content).not.toContain("REPO_LOCAL_ADV=");
     });
   });

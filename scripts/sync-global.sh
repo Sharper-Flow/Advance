@@ -30,30 +30,30 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Parse flags
 # ---------------------------------------------------------------------------
-MODE="sync"  # default: sync assets + check config
+MODE="sync" # default: sync assets + check config
 DRY_RUN=false
 SHOW_DIFF=false
 for arg in "$@"; do
-  case "$arg" in
-    --check) MODE="check" ;;
-    --fix)   MODE="fix" ;;
-    --dry-run) DRY_RUN=true ;;
-    --diff) SHOW_DIFF=true ;;
-    --help|-h)
-      echo "Usage: $0 [--check | --fix] [--dry-run] [--diff]"
-      echo ""
-      echo "  (no flags)  Sync assets + check config (report issues)"
-      echo "  --check     Check config only, no file changes at all"
-      echo "  --fix       Sync assets + auto-patch opencode.json if needed"
-      echo "  --dry-run   Preview managed overlay/config changes without writing"
-      echo "  --diff      Show managed overlay diffs when blocks change"
-      exit 0
-      ;;
-    *)
-      echo "Unknown flag: $arg (use --help for usage)"
-      exit 1
-      ;;
-  esac
+	case "$arg" in
+	--check) MODE="check" ;;
+	--fix) MODE="fix" ;;
+	--dry-run) DRY_RUN=true ;;
+	--diff) SHOW_DIFF=true ;;
+	--help | -h)
+		echo "Usage: $0 [--check | --fix] [--dry-run] [--diff]"
+		echo ""
+		echo "  (no flags)  Sync assets + check config (report issues)"
+		echo "  --check     Check config only, no file changes at all"
+		echo "  --fix       Sync assets + auto-patch opencode.json if needed"
+		echo "  --dry-run   Preview managed overlay/config changes without writing"
+		echo "  --diff      Show managed overlay diffs when blocks change"
+		exit 0
+		;;
+	*)
+		echo "Unknown flag: $arg (use --help for usage)"
+		exit 1
+		;;
+	esac
 done
 
 # ---------------------------------------------------------------------------
@@ -64,30 +64,30 @@ SCRIPT_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 INVOKE_CWD="$(pwd)"
 
 resolve_canonical_repo_root() {
-  local candidate="$1"
+	local candidate="$1"
 
-  # If we're not in a git repo, fall back to the script's repo root.
-  if ! git -C "$candidate" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    printf '%s\n' "$candidate"
-    return 0
-  fi
+	# If we're not in a git repo, fall back to the script's repo root.
+	if ! git -C "$candidate" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		printf '%s\n' "$candidate"
+		return 0
+	fi
 
-  # When invoked from a git worktree copy of this repo, prefer the primary
-  # worktree path so opencode.json stores stable canonical plugin/instruction
-  # paths instead of ephemeral worktree-specific ones.
-  local first_worktree
-  first_worktree="$(git -C "$candidate" worktree list --porcelain 2>/dev/null | awk '
+	# When invoked from a git worktree copy of this repo, prefer the primary
+	# worktree path so opencode.json stores stable canonical plugin/instruction
+	# paths instead of ephemeral worktree-specific ones.
+	local first_worktree
+	first_worktree="$(git -C "$candidate" worktree list --porcelain 2>/dev/null | awk '
     /^worktree / && !found {
       print substr($0, 10)
       found = 1
     }
   ')"
-  if [ -n "$first_worktree" ]; then
-    printf '%s\n' "$first_worktree"
-    return 0
-  fi
+	if [ -n "$first_worktree" ]; then
+		printf '%s\n' "$first_worktree"
+		return 0
+	fi
 
-  printf '%s\n' "$candidate"
+	printf '%s\n' "$candidate"
 }
 
 REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
@@ -96,7 +96,7 @@ REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
 # are invisible during sync/test runs.
 ASSET_ROOT="$SCRIPT_REPO_ROOT"
 if [ -f "$INVOKE_CWD/.opencode/agents/adv.md" ]; then
-  ASSET_ROOT="$INVOKE_CWD"
+	ASSET_ROOT="$INVOKE_CWD"
 fi
 REPO_COMMANDS="$ASSET_ROOT/.opencode/command"
 REPO_AGENTS="$ASSET_ROOT/.opencode/agents"
@@ -115,13 +115,13 @@ PROVIDER_PROMPT_PARTS_DIR="$GLOBAL_AGENT_PARTS/advance"
 # ---------------------------------------------------------------------------
 GLOBAL_JSON_IS_JSONC=false
 if [ -f "$GLOBAL_CONFIG/opencode.jsonc" ]; then
-  GLOBAL_JSON="$GLOBAL_CONFIG/opencode.jsonc"
-  GLOBAL_JSON_IS_JSONC=true
+	GLOBAL_JSON="$GLOBAL_CONFIG/opencode.jsonc"
+	GLOBAL_JSON_IS_JSONC=true
 elif [ -f "$GLOBAL_CONFIG/opencode.json" ]; then
-  GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
+	GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
 else
-  # Neither exists yet — will be created as .json by --fix
-  GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
+	# Neither exists yet — will be created as .json by --fix
+	GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
 fi
 
 # ADV entries that must exist in opencode.json(c)
@@ -130,10 +130,10 @@ ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
 echo "==> ADV sync-global ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
 if [ "$DRY_RUN" = true ]; then
-  echo "    preview mode: --dry-run enabled"
+	echo "    preview mode: --dry-run enabled"
 fi
 if [ "$SHOW_DIFF" = true ]; then
-  echo "    preview mode: --diff enabled"
+	echo "    preview mode: --diff enabled"
 fi
 
 # ---------------------------------------------------------------------------
@@ -147,11 +147,11 @@ fi
 # ---------------------------------------------------------------------------
 ADV_PLUGIN_DIST="$ADV_PLUGIN_PATH/dist/index.js"
 if [ ! -f "$ADV_PLUGIN_DIST" ]; then
-  echo ""
-  echo "    ⚠  Plugin not built: $ADV_PLUGIN_DIST is missing"
-  echo "       OpenCode will fail to load the ADV plugin without it."
-  echo "       Run:  (cd \"$ADV_PLUGIN_PATH\" && pnpm install && pnpm build)"
-  echo ""
+	echo ""
+	echo "    ⚠  Plugin not built: $ADV_PLUGIN_DIST is missing"
+	echo "       OpenCode will fail to load the ADV plugin without it."
+	echo "       Run:  (cd \"$ADV_PLUGIN_PATH\" && pnpm install && pnpm build)"
+	echo ""
 fi
 
 # ---------------------------------------------------------------------------
@@ -160,12 +160,12 @@ fi
 config_issues=0
 
 check_jq() {
-  if ! command -v jq &>/dev/null; then
-    echo "    ⚠  jq not found — config validation requires jq"
-    echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
-    return 1
-  fi
-  return 0
+	if ! command -v jq &>/dev/null; then
+		echo "    ⚠  jq not found — config validation requires jq"
+		echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
+		return 1
+	fi
+	return 0
 }
 
 # Strip JSONC comments (// and /* */) so jq can parse the content.
@@ -173,98 +173,99 @@ check_jq() {
 # Usage: jsonc_to_json < file.jsonc | jq ...
 #    or: jsonc_to_json file.jsonc | jq ...
 jsonc_to_json() {
-  local input
-  if [ $# -gt 0 ] && [ -f "$1" ]; then
-    input="$(cat "$1")"
-  else
-    input="$(cat)"
-  fi
-  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-    # Strip JSONC comments:
-    #   1. Block comments: /* ... */
-    #   2. Full-line comments: lines starting with optional whitespace then //
-    #   3. Trailing comments: // at end of line (only when no " follows,
-    #      which preserves URLs like "https://..." inside strings)
-    # Uses '#' as sed delimiter to avoid conflicts with / in patterns.
-    echo "$input" | sed -E \
-      -e 's#/\*([^*]|\*[^/])*\*/##g' \
-      -e 's#^([[:space:]]*)//.*$#\1#' \
-      -e 's#[ \t]*//[^"]*$##'
-  else
-    printf '%s' "$input"
-  fi
+	local input
+	if [ $# -gt 0 ] && [ -f "$1" ]; then
+		input="$(cat "$1")"
+	else
+		input="$(cat)"
+	fi
+	if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+		# Strip JSONC comments:
+		#   1. Block comments: /* ... */
+		#   2. Full-line comments: lines starting with optional whitespace then //
+		#   3. Trailing comments: // at end of line (only when no " follows,
+		#      which preserves URLs like "https://..." inside strings)
+		# Uses '#' as sed delimiter to avoid conflicts with / in patterns.
+		echo "$input" | sed -E \
+			-e 's#/\*([^*]|\*[^/])*\*/##g' \
+			-e 's#^([[:space:]]*)//.*$#\1#' \
+			-e 's#[ \t]*//[^"]*$##'
+	else
+		printf '%s' "$input"
+	fi
 }
 
 # Check if a value exists in a JSON array at a given path.
 # Handles both exact match and tilde-expanded match.
 # Works with both .json and .jsonc config files.
 json_array_contains() {
-  local file="$1" jq_path="$2" value="$3"
-  local tilde_value="${value/#$HOME/\~}"
-  jsonc_to_json "$file" | jq --arg exact "$value" --arg tilde "$tilde_value" \
-    -e "($jq_path | if type == \"array\" then . else [.] end) | any(. == \$exact or . == \$tilde)" \
-    &>/dev/null
+	local file="$1" jq_path="$2" value="$3"
+	local tilde_value="${value/#$HOME/\~}"
+	jsonc_to_json "$file" | jq --arg exact "$value" --arg tilde "$tilde_value" \
+		-e "($jq_path | if type == \"array\" then . else [.] end) | any(. == \$exact or . == \$tilde)" \
+		&>/dev/null
 }
 
 print_diff() {
-  local before_file="$1" after_file="$2"
-  if [ "$SHOW_DIFF" = true ]; then
-    diff -u "$before_file" "$after_file" || true
-  fi
+	local before_file="$1" after_file="$2"
+	if [ "$SHOW_DIFF" = true ]; then
+		diff -u "$before_file" "$after_file" || true
+	fi
 }
 
 apply_overlay_block() {
-  local overlay_name="$1"
-  local target_file="$2"
-  local bootstrap_source="${3:-}"
-  local overlay_file="$REPO_OVERLAYS/$overlay_name.overlay.md"
-  local start_marker="<!-- ADV_SYNC:START $overlay_name -->"
-  local end_marker="<!-- ADV_SYNC:END $overlay_name -->"
-  local source_file="$target_file"
+	local overlay_name="$1"
+	local target_file="$2"
+	local bootstrap_source="${3:-}"
+	local overlay_file="$REPO_OVERLAYS/$overlay_name.overlay.md"
+	local start_marker="<!-- ADV_SYNC:START $overlay_name -->"
+	local end_marker="<!-- ADV_SYNC:END $overlay_name -->"
+	local source_file="$target_file"
 
-  if [ ! -f "$target_file" ]; then
-    if [ -n "$bootstrap_source" ] && [ -f "$bootstrap_source" ]; then
-      if [ "$DRY_RUN" = true ]; then
-        echo "    dry-run bootstrap shared agent: $(basename "$target_file")"
-        source_file="$bootstrap_source"
-      else
-        cp "$bootstrap_source" "$target_file"
-        echo "    bootstrapped shared agent: $(basename "$target_file")"
-      fi
-    else
-    echo "    skipped missing shared agent: $(basename "$target_file")"
-    return 0
-    fi
-  fi
+	if [ ! -f "$target_file" ]; then
+		if [ -n "$bootstrap_source" ] && [ -f "$bootstrap_source" ]; then
+			if [ "$DRY_RUN" = true ]; then
+				echo "    dry-run bootstrap shared agent: $(basename "$target_file")"
+				source_file="$bootstrap_source"
+			else
+				cp "$bootstrap_source" "$target_file"
+				echo "    bootstrapped shared agent: $(basename "$target_file")"
+			fi
+		else
+			echo "    skipped missing shared agent: $(basename "$target_file")"
+			return 0
+		fi
+	fi
 
-  if [ ! -f "$overlay_file" ]; then
-    echo "    missing overlay source: $(basename "$overlay_file")"
-    return 1
-  fi
+	if [ ! -f "$overlay_file" ]; then
+		echo "    missing overlay source: $(basename "$overlay_file")"
+		return 1
+	fi
 
-  local start_count end_count
-  read -r start_count end_count <<< "$(python - <<'PY' "$source_file" "$start_marker" "$end_marker"
+	local start_count end_count
+	read -r start_count end_count <<<"$(
+		python - "$source_file" "$start_marker" "$end_marker" <<'PY'
 from pathlib import Path
 import sys
 text = Path(sys.argv[1]).read_text()
 print(text.count(sys.argv[2]), text.count(sys.argv[3]))
 PY
-)"
-  if [ "$start_count" -gt 1 ] || [ "$end_count" -gt 1 ]; then
-    echo "    duplicate overlay marker: $(basename "$target_file")"
-    return 1
-  fi
-  if [ "$start_count" -ne "$end_count" ]; then
-    echo "    orphaned overlay marker: $(basename "$target_file")"
-    return 1
-  fi
+	)"
+	if [ "$start_count" -gt 1 ] || [ "$end_count" -gt 1 ]; then
+		echo "    duplicate overlay marker: $(basename "$target_file")"
+		return 1
+	fi
+	if [ "$start_count" -ne "$end_count" ]; then
+		echo "    orphaned overlay marker: $(basename "$target_file")"
+		return 1
+	fi
 
-  local current_tmp new_tmp
-  current_tmp="$(mktemp)"
-  new_tmp="$(mktemp)"
-  cp "$source_file" "$current_tmp"
+	local current_tmp new_tmp
+	current_tmp="$(mktemp)"
+	new_tmp="$(mktemp)"
+	cp "$source_file" "$current_tmp"
 
-  python - <<'PY' "$source_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp"
+	python - "$source_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp" <<'PY'
 from pathlib import Path
 import sys
 
@@ -292,389 +293,77 @@ else:
 Path(output_path).write_text(result)
 PY
 
-  if cmp -s "$current_tmp" "$new_tmp"; then
-    echo "    overlay already current: $overlay_name"
-    rm -f "$current_tmp" "$new_tmp"
-    return 0
-  fi
+	if cmp -s "$current_tmp" "$new_tmp"; then
+		echo "    overlay already current: $overlay_name"
+		rm -f "$current_tmp" "$new_tmp"
+		return 0
+	fi
 
-  if [ "$DRY_RUN" = true ]; then
-    echo "    overlay preview: $overlay_name"
-    print_diff "$current_tmp" "$new_tmp"
-    rm -f "$current_tmp" "$new_tmp"
-    return 0
-  fi
+	if [ "$DRY_RUN" = true ]; then
+		echo "    overlay preview: $overlay_name"
+		print_diff "$current_tmp" "$new_tmp"
+		rm -f "$current_tmp" "$new_tmp"
+		return 0
+	fi
 
-  mv "$new_tmp" "$target_file"
-  echo "    overlay synced: $overlay_name"
-  rm -f "$current_tmp"
+	mv "$new_tmp" "$target_file"
+	echo "    overlay synced: $overlay_name"
+	rm -f "$current_tmp"
 }
 
 # ---------------------------------------------------------------------------
-# Provider ADV Variant Generation
+# Provider ADV hint assets
 #
-# Generates adv-{provider}.md variants from canonical adv.md frontmatter.
-# Runtime prompt text is written directly into the generated markdown body because
-# OpenCode currently gives markdown agent bodies precedence over JSON prompt refs
-# when both define the same agent name. The JSON prompt refs are still patched as
-# source-of-truth metadata and for JSON-only/future runtimes, but they are not
-# sufficient on their own.
-# Provider hint fragments live outside .opencode/agents/ so OpenCode does not
-# surface them as selectable repo-local agents.
-# The canonical adv.md remains the single source of truth.
+# Provider-specific runtime agent generation was retired. ADV now syncs one
+# complete global adv.md runtime agent and injects provider hints at runtime via
+# plugin/src/utils/system-block.ts. Provider hint markdown remains repo data for
+# docs/evaluation only; sync no longer generates adv-{provider}.md agents or
+# provider prompt refs.
 # ---------------------------------------------------------------------------
 PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
-PROVIDER_STUB_MARKER='[ADV:PROVIDER_STUB_UNEXPANDED]'
 
-provider_prompt_ref() {
-  local provider="$1"
-  printf '{file:./agent-parts/advance/adv-%s.md}' "$provider"
-}
+sync_adv_runtime_agent() {
+	local canonical="$REPO_AGENTS/adv.md"
+	if [ ! -f "$canonical" ]; then
+		echo "    ✗  ADV runtime agent: canonical adv.md missing at $canonical"
+		return 1
+	fi
+	if [ ! -f "$ADV_INSTRUCTION_PATH" ]; then
+		echo "    ✗  ADV runtime agent: ADV_INSTRUCTIONS.md missing at $ADV_INSTRUCTION_PATH"
+		return 1
+	fi
 
-sync_adv_prompt_parts() {
-  local canonical="$REPO_AGENTS/adv.md"
-  if [ ! -f "$canonical" ]; then
-    echo "    ✗  provider prompt parts: canonical adv.md missing at $canonical"
-    return 1
-  fi
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run assemble ADV runtime agent: adv.md"
+		return 0
+	fi
 
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run sync provider prompt parts: agent-parts/advance"
-    return 0
-  fi
-
-  mkdir -p "$PROVIDER_PROMPT_PARTS_DIR/providers"
-  python - <<'PY' "$canonical" "$PROVIDER_PROMPT_PARTS_DIR/adv.md"
+	mkdir -p "$GLOBAL_AGENTS"
+	python - "$canonical" "$ADV_INSTRUCTION_PATH" "$GLOBAL_AGENTS/adv.md" <<'PY'
 from pathlib import Path
 import sys
 
-source, dest = map(Path, sys.argv[1:3])
-text = source.read_text()
-if text.startswith('---\n'):
-    end = text.find('\n---', 4)
-    if end != -1:
-        text = text[end + 4:].lstrip('\n')
-dest.write_text(text)
+canonical, instructions, dest = map(Path, sys.argv[1:4])
+canonical_text = canonical.read_text().rstrip()
+instructions_text = instructions.read_text().rstrip()
+dest.write_text(canonical_text + "\n\n" + instructions_text + "\n")
 PY
-
-  for provider in "${PROVIDERS[@]}"; do
-    local hint_file="$PROVIDER_HINT_DIR/${provider}.md"
-    if [ ! -f "$hint_file" ]; then
-      echo "    ✗  provider prompt parts: missing provider hint $hint_file"
-      return 1
-    fi
-    cp "$hint_file" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
-  done
-  echo "    synced provider prompt parts: agent-parts/advance"
+	echo "    assembled ADV runtime agent: adv.md"
 }
 
-# ---------------------------------------------------------------------------
-# Generate per-provider concatenated prompt files
-#
-# Joins the canonical adv.md body with each provider hint into a single
-# file per provider. These files are referenced by opencode.json prompt
-# refs (single-file form, matching OpenCode documented API).
-# ---------------------------------------------------------------------------
-generate_concatenated_provider_prompts() {
-  local canonical="$PROVIDER_PROMPT_PARTS_DIR/adv.md"
-
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run generate concatenated provider prompts"
-    return 0
-  fi
-
-  if [ ! -f "$canonical" ]; then
-    echo "    ✗  concatenated provider prompts: canonical adv.md missing at $canonical"
-    return 1
-  fi
-
-  local generated=0
-  for provider in "${PROVIDERS[@]}"; do
-    local hint_file="$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
-    local output_file="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
-
-    if [ ! -f "$hint_file" ]; then
-      echo "    ✗  concatenated provider prompts: missing hint $hint_file"
-      return 1
-    fi
-
-    # Join canonical body + ADV instruction body + provider hint with double newline.
-    # ADV_INSTRUCTIONS.md is scoped to ADV provider prompts here instead of
-    # global opencode.json instructions[] so non-ADV agents do not pay the
-    # protocol prompt cost.
-    python - "$canonical" "$ADV_INSTRUCTION_PATH" "$hint_file" "$output_file" <<'PY'
-from pathlib import Path
-import sys
-
-canonical_path, instructions_path, hint_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-canonical = Path(canonical_path).read_text().rstrip()
-instructions = Path(instructions_path).read_text().rstrip()
-hint = Path(hint_path).read_text().rstrip()
-Path(output_path).write_text(canonical + "\n\n" + instructions + "\n\n" + hint + "\n")
-PY
-
-    if [ $? -ne 0 ]; then
-      echo "    ✗  concatenated provider prompts: failed to generate $output_file"
-      return 1
-    fi
-    ((generated++)) || true
-  done
-  echo "    generated $generated concatenated provider prompt(s)"
-}
-
-generate_provider_variants() {
-  local canonical="$REPO_AGENTS/adv.md"
-  if [ ! -f "$canonical" ]; then
-    echo "    ⚠  canonical adv.md missing — skipping provider variant generation"
-    return
-  fi
-
-  for provider in "${PROVIDERS[@]}"; do
-    local hint_file="$PROVIDER_HINT_DIR/${provider}.md"
-    local variant="$GLOBAL_AGENTS/adv-${provider}.md"
-    local prompt_body="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
-    local provider_color=""
-
-    if [ ! -f "$hint_file" ]; then
-      echo "    ⚠  provider hint missing: $hint_file"
-      continue
-    fi
-    if [ ! -f "$prompt_body" ]; then
-      echo "    ⚠  provider prompt body missing: $prompt_body"
-      continue
-    fi
-
-    if [ -f "$GLOBAL_JSON" ] && command -v jq >/dev/null 2>&1; then
-      provider_color="$({ jsonc_to_json "$GLOBAL_JSON" | jq -r --arg agent "adv-${provider}" '.agent[$agent].color // empty'; } 2>/dev/null || true)"
-    fi
-
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run generate provider variant: adv-${provider}.md"
-      continue
-    fi
-
-    local tmp_variant
-    tmp_variant="$(mktemp)"
-    sed -E "s/^(name:[[:space:]]*).*/\1adv-${provider}/" "$canonical" > "$tmp_variant"
-    if ! grep -q '^name:[[:space:]]*' "$tmp_variant"; then
-      python - <<'PY' "$tmp_variant" "adv-${provider}"
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-name = sys.argv[2]
-text = path.read_text()
-if text.startswith('---\n'):
-    end = text.find('\n---', 4)
-    if end != -1:
-        frontmatter = text[4:end]
-        body = text[end + 4:]
-        if frontmatter and not frontmatter.endswith('\n'):
-            frontmatter += '\n'
-        text = f"---\nname: {name}\n{frontmatter}---{body}"
-path.write_text(text)
-PY
-    fi
-    if [ -n "$provider_color" ]; then
-      sed -Ei "s/^(color:[[:space:]]*).*/\1\"$provider_color\"/" "$tmp_variant"
-    fi
-
-    python - <<'PY' "$tmp_variant" "$variant" "$prompt_body" "$provider"
-from pathlib import Path
-import sys
-
-tmp_path, output_path, body_path, provider = sys.argv[1:5]
-text = Path(tmp_path).read_text()
-body = Path(body_path).read_text().rstrip()
-if text.startswith('---\n'):
-    end = text.find('\n---', 4)
-    if end != -1:
-        frontmatter = text[: end + 4]
-        result = f"{frontmatter}\n\n{body}\n"
-    else:
-        result = f"---\nname: adv-{provider}\n---\n\n{body}\n"
-else:
-    result = f"---\nname: adv-{provider}\n---\n\n{body}\n"
-Path(output_path).write_text(result)
-PY
-
-    rm -f "$tmp_variant"
-    echo "    generated provider variant: adv-${provider}.md"
-  done
-}
-
-provider_adv_has_activation_fields() {
-  # prompt-only sync-managed provider keys do not activate provider mode.
-  # Activation fields are OMP/user-owned: model, disable, variant, color.
-  jq -e '
-    (.agent // {}) as $agents |
-    ["adv-claude", "adv-gpt", "adv-glm", "adv-kimi"][] as $key |
-    (($agents[$key] // {}) | if type == "object" then . as $agent | any(["model", "disable", "variant", "color"][]; . as $field | $agent | has($field)) else false end)
-  ' >/dev/null
-}
-
-# Check whether global opencode.json has provider ADV activation fields.
-# Used to gate legacy adv.md removal so sync-managed prompt-only keys do not
-# hide generic adv before the user opts into provider variants.
-provider_adv_configured_in_json() {
-  if [ ! -f "$GLOBAL_JSON" ]; then
-    return 1
-  fi
-  if ! check_jq; then
-    return 1
-  fi
-  jsonc_to_json "$GLOBAL_JSON" | provider_adv_has_activation_fields
-}
-
-check_provider_prompt_parts() {
-  if [ ! -f "$GLOBAL_JSON" ] || ! check_jq; then
-    return 0
-  fi
-
-  local needs_parts=false
-  for provider in "${PROVIDERS[@]}"; do
-    local expected
-    expected="$(provider_prompt_ref "$provider")"
-
-    # Detect old multi-ref pattern and flag it
-    local current
-    current="$(jsonc_to_json "$GLOBAL_JSON" | jq -r --arg agent "adv-${provider}" '.agent[$agent].prompt // ""')"
-    if echo "$current" | grep -qE '\{file:[^}]+\}.*\{file:[^}]+\}'; then
-      echo "    ✗  Provider ADV prompt ref uses legacy multi-file pattern for adv-${provider}"
-      echo "       Expected: $expected"
-      echo "       Run: scripts/sync-global.sh --fix"
-      ((config_issues++)) || true
-      needs_parts=true
-      continue
-    fi
-
-    # Only require prompt-part freshness once config references provider prompts.
-    # Fresh installs without provider prompt refs should not fail --check on
-    # generated files that are not yet part of runtime resolution.
-    if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg agent "adv-${provider}" --arg expected "$expected" '(.agent[$agent].prompt // "") == $expected' >/dev/null; then
-      needs_parts=true
-    fi
-  done
-
-  if [ "$needs_parts" != true ]; then
-    return 0
-  fi
-
-  if [ ! -f "$PROVIDER_PROMPT_PARTS_DIR/adv.md" ]; then
-    echo "    ✗  Provider ADV prompt part missing: $PROVIDER_PROMPT_PARTS_DIR/adv.md"
-    echo "       Run: scripts/sync-global.sh --fix"
-    ((config_issues++)) || true
-  fi
-  for provider in "${PROVIDERS[@]}"; do
-    if [ ! -f "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" ]; then
-      echo "    ✗  Provider ADV prompt part missing: $PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md"
-      echo "       Run: scripts/sync-global.sh --fix"
-      ((config_issues++)) || true
-    fi
-  done
-
-  # Check concatenated files exist and are fresh (regenerate-and-diff)
-  for provider in "${PROVIDERS[@]}"; do
-    local concat_file="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
-    if [ ! -f "$concat_file" ]; then
-      echo "    ✗  Concatenated provider prompt missing: $concat_file"
-      echo "       Run: scripts/sync-global.sh --fix"
-      ((config_issues++)) || true
-      continue
-    fi
-
-    # Regenerate-and-diff: compute expected content and compare
-    if [ -f "$PROVIDER_PROMPT_PARTS_DIR/adv.md" ] && [ -f "$ADV_INSTRUCTION_PATH" ] && [ -f "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" ]; then
-      local expected_content
-      expected_content="$(python - "$PROVIDER_PROMPT_PARTS_DIR/adv.md" "$ADV_INSTRUCTION_PATH" "$PROVIDER_PROMPT_PARTS_DIR/providers/${provider}.md" <<'PY'
-from pathlib import Path
-import sys
-canonical = Path(sys.argv[1]).read_text().rstrip()
-instructions = Path(sys.argv[2]).read_text().rstrip()
-hint = Path(sys.argv[3]).read_text().rstrip()
-print(canonical + "\n\n" + instructions + "\n\n" + hint + "\n", end="")
-PY
-)"
-      local actual_content
-      actual_content="$(cat "$concat_file")"
-      if [ "$expected_content" != "$actual_content" ]; then
-        echo "    ✗  Concatenated provider prompt stale (content mismatch): $concat_file"
-        echo "       Run: scripts/sync-global.sh --fix"
-        ((config_issues++)) || true
-      fi
-    fi
-  done
-}
-
-check_provider_runtime_canary() {
-  if [ "${ADV_SKIP_RUNTIME_CANARY:-}" = "1" ]; then
-    echo "    ⚠  runtime canary: skipped by ADV_SKIP_RUNTIME_CANARY=1"
-    return 0
-  fi
-
-  if ! command -v opencode >/dev/null 2>&1; then
-    echo "    ⚠  runtime canary: skipped (opencode not found on PATH)"
-    return 0
-  fi
-
-  python - "$PROVIDER_STUB_MARKER" "${PROVIDERS[@]}" <<'PY' || ((config_issues++)) || true
-import json
-import subprocess
-import sys
-
-stub_marker = sys.argv[1]
-providers = sys.argv[2:]
-issues = 0
-
-for provider in providers:
-    agent = f"adv-{provider}"
-    try:
-        proc = subprocess.run(
-            ["opencode", "debug", "agent", agent],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=30,
-        )
-    except subprocess.TimeoutExpired:
-        print(f"    ✗  runtime canary: {agent} timed out after 30s")
-        issues += 1
-        continue
-
-    if proc.returncode != 0:
-        print(f"    ✗  runtime canary: {agent} debug failed (exit {proc.returncode})")
-        if proc.stderr.strip():
-            print(f"       stderr: {proc.stderr.strip()[:300]}")
-        issues += 1
-        continue
-
-    try:
-        data = json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
-        print(f"    ✗  runtime canary: {agent} debug output was not JSON ({exc})")
-        issues += 1
-        continue
-
-    prompt = data.get("prompt") or ""
-    expected_hint = f"<!-- PROVIDER_HINT:{provider} -->"
-    agent_issues = []
-    if stub_marker in prompt:
-        agent_issues.append("resolved stub diagnostic")
-    if "## ADV Overlay" not in prompt:
-        agent_issues.append("missing canonical ADV marker")
-    if expected_hint not in prompt:
-        agent_issues.append(f"missing provider hint marker {expected_hint}")
-
-    if agent_issues:
-        print(f"    ✗  runtime canary: {agent} invalid prompt ({'; '.join(agent_issues)})")
-        issues += 1
-
-if issues == 0:
-    print(f"    ✓  runtime canary: {len(providers)} provider ADV prompt(s) resolve real ADV bodies")
-
-sys.exit(1 if issues else 0)
-PY
+remove_retired_provider_prompt_parts() {
+	for provider in "${PROVIDERS[@]}"; do
+		local retired="$PROVIDER_PROMPT_PARTS_DIR/adv-${provider}.md"
+		if [ -f "$retired" ]; then
+			if [ "$DRY_RUN" = true ]; then
+				echo "    dry-run remove retired provider prompt: adv-${provider}.md"
+			else
+				rm -f "$retired"
+				echo "    removed retired provider prompt: adv-${provider}.md"
+			fi
+		fi
+	done
 }
 
 # Agent Tool Allowlist Drift Check
@@ -686,19 +375,19 @@ PY
 # (= stale allowlist entries). Both are build-time-detectable drift causes.
 # ---------------------------------------------------------------------------
 check_tool_drift() {
-  local agent_file="${1:-$REPO_AGENTS/adv.md}"
-  # Use ASSET_ROOT (current checkout/worktree) for registry so worktree-local
-  # tool additions are visible to drift detection — matches the reasoning at
-  # the ASSET_ROOT assignment (line ~95). Using REPO_ROOT here would point at
-  # the canonical primary worktree and miss in-flight tool changes.
-  local registry_file="$ASSET_ROOT/plugin/src/tool-registry.ts"
+	local agent_file="${1:-$REPO_AGENTS/adv.md}"
+	# Use ASSET_ROOT (current checkout/worktree) for registry so worktree-local
+	# tool additions are visible to drift detection — matches the reasoning at
+	# the ASSET_ROOT assignment (line ~95). Using REPO_ROOT here would point at
+	# the canonical primary worktree and miss in-flight tool changes.
+	local registry_file="$ASSET_ROOT/plugin/src/tool-registry.ts"
 
-  if [ ! -f "$agent_file" ] || [ ! -f "$registry_file" ]; then
-    echo "    ⚠  tool drift: skipped (missing $agent_file or $registry_file)"
-    return
-  fi
+	if [ ! -f "$agent_file" ] || [ ! -f "$registry_file" ]; then
+		echo "    ⚠  tool drift: skipped (missing $agent_file or $registry_file)"
+		return
+	fi
 
-  python - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
+	python - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
 import re
 import sys
 from pathlib import Path
@@ -763,304 +452,255 @@ sys.exit(1 if issues > 0 else 0)
 PY
 }
 
-# Check tool drift for all provider variants
-check_provider_variant_drifts() {
-  for provider in "${PROVIDERS[@]}"; do
-    local variant_file="$GLOBAL_AGENTS/adv-${provider}.md"
-    if [ -f "$variant_file" ]; then
-      check_tool_drift "$variant_file"
-    fi
-  done
-}
-
 check_config() {
-  echo ""
-  echo "--- Config Validation ---"
+	echo ""
+	echo "--- Config Validation ---"
 
-  if ! check_jq; then
-    ((config_issues++)) || true
-    return
-  fi
+	if ! check_jq; then
+		((config_issues++)) || true
+		return
+	fi
 
-  if [ ! -f "$GLOBAL_JSON" ]; then
-    echo "    ✗  No config file found (checked opencode.jsonc and opencode.json)"
-    echo "       Run with --fix to create it, or see SETUP.md for manual setup"
-    ((config_issues++)) || true
-    return
-  fi
+	if [ ! -f "$GLOBAL_JSON" ]; then
+		echo "    ✗  No config file found (checked opencode.jsonc and opencode.json)"
+		echo "       Run with --fix to create it, or see SETUP.md for manual setup"
+		((config_issues++)) || true
+		return
+	fi
 
-  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-    echo "    ℹ  Config format: JSONC ($GLOBAL_JSON)"
-  fi
+	if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+		echo "    ℹ  Config format: JSONC ($GLOBAL_JSON)"
+	fi
 
-  # Validate JSON(C) syntax
-  if ! jsonc_to_json "$GLOBAL_JSON" | jq empty 2>/dev/null; then
-    echo "    ✗  $GLOBAL_JSON is not valid JSON/JSONC"
-    echo "       Fix the syntax manually before running --fix"
-    ((config_issues++)) || true
-    return
-  fi
+	# Validate JSON(C) syntax
+	if ! jsonc_to_json "$GLOBAL_JSON" | jq empty 2>/dev/null; then
+		echo "    ✗  $GLOBAL_JSON is not valid JSON/JSONC"
+		echo "       Fix the syntax manually before running --fix"
+		((config_issues++)) || true
+		return
+	fi
 
-  check_provider_prompt_parts
-  check_provider_runtime_canary
+	# Validate plugin path exists
+	if json_array_contains "$GLOBAL_JSON" ".plugin // []" "$ADV_PLUGIN_PATH"; then
+		echo "    ✓  plugin: ADV plugin registered"
+	else
+		echo "    ✗  plugin: ADV plugin path missing from .plugin array"
+		echo "       Expected: \"$ADV_PLUGIN_PATH\""
+		((config_issues++)) || true
+	fi
 
-  # Validate plugin path exists
-  if json_array_contains "$GLOBAL_JSON" ".plugin // []" "$ADV_PLUGIN_PATH"; then
-    echo "    ✓  plugin: ADV plugin registered"
-  else
-    echo "    ✗  plugin: ADV plugin path missing from .plugin array"
-    echo "       Expected: \"$ADV_PLUGIN_PATH\""
-    ((config_issues++)) || true
-  fi
+	# ADV_INSTRUCTIONS.md is scoped to the ADV runtime agent. It should
+	# NOT be globally registered because global instructions load into every
+	# session, including non-ADV agents.
+	if json_array_contains "$GLOBAL_JSON" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
+		echo "    ✗  instructions: ADV_INSTRUCTIONS.md should not be globally registered"
+		echo "       Remove: \"$ADV_INSTRUCTION_PATH\" (run --fix)"
+		((config_issues++)) || true
+	else
+		echo "    ✓  instructions: ADV_INSTRUCTIONS.md scoped to ADV runtime agent"
+	fi
 
-  # ADV_INSTRUCTIONS.md is scoped to generated ADV provider prompts. It should
-  # NOT be globally registered because global instructions load into every
-  # session, including non-ADV agents.
-  if json_array_contains "$GLOBAL_JSON" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
-    echo "    ✗  instructions: ADV_INSTRUCTIONS.md should not be globally registered"
-    echo "       Remove: \"$ADV_INSTRUCTION_PATH\" (run --fix)"
-    ((config_issues++)) || true
-  else
-    echo "    ✓  instructions: ADV_INSTRUCTIONS.md scoped to ADV provider prompts"
-  fi
+	# Warn about stale legacy consolidated-agent config keys
+	for legacy_key in scout refine; do
+		if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg k "$legacy_key" '(.agent // {}) | if type == "object" then has($k) else false end' \
+			&>/dev/null; then
+			local replacement="plan"
+			if [ "$legacy_key" = "refine" ]; then
+				replacement="build"
+			fi
+			echo "    ⚠  agent: stale legacy '$legacy_key' config key present in .agent"
+			echo "       '$legacy_key' was consolidated into '$replacement'. Run with --fix to remove it."
+			((config_issues++)) || true
+		fi
+	done
 
-  # Warn about stale legacy consolidated-agent config keys
-  for legacy_key in scout refine; do
-    if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg k "$legacy_key" '(.agent // {}) | if type == "object" then has($k) else false end' \
-      &>/dev/null; then
-      local replacement="plan"
-      if [ "$legacy_key" = "refine" ]; then
-        replacement="build"
-      fi
-      echo "    ⚠  agent: stale legacy '$legacy_key' config key present in .agent"
-      echo "       '$legacy_key' was consolidated into '$replacement'. Run with --fix to remove it."
-      ((config_issues++)) || true
-    fi
-  done
+	# Cross-check agent tool allowlist against plugin registry
+	check_tool_drift
+	if [ -f "$REPO_AGENTS/adv-atc.md" ]; then
+		check_tool_drift "$REPO_AGENTS/adv-atc.md"
+	fi
 
-  # Cross-check agent tool allowlist against plugin registry
-  check_tool_drift
-  check_provider_variant_drifts
-  if [ -f "$REPO_AGENTS/adv-atc.md" ]; then
-    check_tool_drift "$REPO_AGENTS/adv-atc.md"
-  fi
+	# Warn about stale global copy (wastes ~7K tokens per prompt)
+	local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+	local stale_instr_expanded="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+	if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg s1 "$stale_instr" --arg s2 "$stale_instr_expanded" \
+		'((.instructions // []) | if type == "array" then . else [.] end) | any(. == $s1 or . == $s2)' \
+		&>/dev/null; then
+		echo "    ⚠  instructions: stale duplicate found at $stale_instr"
+		echo "       This wastes ~17K tokens per prompt. Run with --fix to remove."
+		((config_issues++)) || true
+	fi
 
-  # Warn about stale global copy (wastes ~7K tokens per prompt)
-  local stale_instr="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  local stale_instr_expanded="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  if jsonc_to_json "$GLOBAL_JSON" | jq -e --arg s1 "$stale_instr" --arg s2 "$stale_instr_expanded" \
-    '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $s1 or . == $s2)' \
-    &>/dev/null; then
-    echo "    ⚠  instructions: stale duplicate found at $stale_instr"
-    echo "       This wastes ~17K tokens per prompt. Run with --fix to remove."
-    ((config_issues++)) || true
-  fi
-
-  echo ""
-  if [ "$config_issues" -eq 0 ]; then
-    echo "    Config: all ADV entries present ✓"
-  else
-    echo "    Config: $config_issues issue(s) found"
-    if [ "$MODE" != "fix" ]; then
-      echo "    Run with --fix to auto-patch, or edit $GLOBAL_JSON manually"
-    fi
-  fi
+	echo ""
+	if [ "$config_issues" -eq 0 ]; then
+		echo "    Config: all ADV entries present ✓"
+	else
+		echo "    Config: $config_issues issue(s) found"
+		if [ "$MODE" != "fix" ]; then
+			echo "    Run with --fix to auto-patch, or edit $GLOBAL_JSON manually"
+		fi
+	fi
 }
 
 fix_config() {
-  echo ""
-  echo "--- Config Patching ---"
+	echo ""
+	echo "--- Config Patching ---"
 
-  if ! check_jq; then
-    echo "    ✗  Cannot patch without jq"
-    return 1
-  fi
+	if ! check_jq; then
+		echo "    ✗  Cannot patch without jq"
+		return 1
+	fi
 
-  # Create config dir if needed
-  mkdir -p "$GLOBAL_CONFIG"
+	# Create config dir if needed
+	mkdir -p "$GLOBAL_CONFIG"
 
-  # If no config file, create a minimal one (always .json for new files)
-  if [ ! -f "$GLOBAL_JSON" ]; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run: would create $GLOBAL_CONFIG/opencode.json with ADV entries"
-      return 0
-    fi
-    GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
-    echo '{}' | jq \
-      --arg plugin "$ADV_PLUGIN_PATH" \
-      '. + {
+	# If no config file, create a minimal one (always .json for new files)
+	if [ ! -f "$GLOBAL_JSON" ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run: would create $GLOBAL_CONFIG/opencode.json with ADV entries"
+			return 0
+		fi
+		GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
+		echo '{}' | jq \
+			--arg plugin "$ADV_PLUGIN_PATH" \
+			'. + {
         "plugin": [$plugin]
-      }' > "$GLOBAL_JSON"
-    echo "    ✓  Created $GLOBAL_JSON with ADV entries"
-    echo "       You will need to add other settings (mcp, provider, etc.) manually"
-    echo "       See SETUP.md for the full config reference"
-    return 0
-  fi
+      }' >"$GLOBAL_JSON"
+		echo "    ✓  Created $GLOBAL_JSON with ADV entries"
+		echo "       You will need to add other settings (mcp, provider, etc.) manually"
+		echo "       See SETUP.md for the full config reference"
+		return 0
+	fi
 
-  # Validate JSON(C) before patching
-  if ! jsonc_to_json "$GLOBAL_JSON" | jq empty 2>/dev/null; then
-    echo "    ✗  $GLOBAL_JSON is not valid JSON/JSONC — fix syntax first"
-    return 1
-  fi
+	# Validate JSON(C) before patching
+	if ! jsonc_to_json "$GLOBAL_JSON" | jq empty 2>/dev/null; then
+		echo "    ✗  $GLOBAL_JSON is not valid JSON/JSONC — fix syntax first"
+		return 1
+	fi
 
-  # Back up before patching
-  local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run: would back up $GLOBAL_JSON to $backup"
-  else
-    cp "$GLOBAL_JSON" "$backup"
-    echo "    Backup: $backup"
-  fi
+	# Back up before patching
+	local backup="$GLOBAL_JSON.bak.$(date +%Y%m%d%H%M%S)"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run: would back up $GLOBAL_JSON to $backup"
+	else
+		cp "$GLOBAL_JSON" "$backup"
+		echo "    Backup: $backup"
+	fi
 
-  # Refuse to patch JSONC files — jq cannot preserve comments, so --fix
-  # would silently rewrite JSONC as plain JSON. Fail with guidance instead.
-  if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run: would refuse to patch JSONC (comments would be stripped)"
-    else
-      echo "    ✗  Config is JSONC — auto-patch would strip comments"
-      echo "       Backup preserved at: $backup"
-      echo "       Convert to plain JSON, or apply the needed changes manually"
-      return 1
-    fi
-  fi
+	# Refuse to patch JSONC files — jq cannot preserve comments, so --fix
+	# would silently rewrite JSONC as plain JSON. Fail with guidance instead.
+	if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run: would refuse to patch JSONC (comments would be stripped)"
+		else
+			echo "    ✗  Config is JSONC — auto-patch would strip comments"
+			echo "       Backup preserved at: $backup"
+			echo "       Convert to plain JSON, or apply the needed changes manually"
+			return 1
+		fi
+	fi
 
-  local patched=0
-  local tmp_json
-  tmp_json="$(mktemp)"
+	local patched=0
+	local tmp_json
+	tmp_json="$(mktemp)"
 
-  # Convert to plain JSON for jq manipulation
-  jsonc_to_json "$GLOBAL_JSON" > "$tmp_json"
+	# Convert to plain JSON for jq manipulation
+	jsonc_to_json "$GLOBAL_JSON" >"$tmp_json"
 
-  # Patch plugin array if needed
-  if ! json_array_contains "$tmp_json" ".plugin // []" "$ADV_PLUGIN_PATH"; then
-    jq --arg plugin "$ADV_PLUGIN_PATH" \
-      '.plugin = (((.plugin // []) | if type == "array" then . else [.] end) + [$plugin] | unique)' \
-      "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-    echo "    ✓  Added plugin: $ADV_PLUGIN_PATH"
-    ((patched++)) || true
-  fi
+	# Patch plugin array if needed
+	if ! json_array_contains "$tmp_json" ".plugin // []" "$ADV_PLUGIN_PATH"; then
+		jq --arg plugin "$ADV_PLUGIN_PATH" \
+			'.plugin = (((.plugin // []) | if type == "array" then . else [.] end) + [$plugin] | unique)' \
+			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+		echo "    ✓  Added plugin: $ADV_PLUGIN_PATH"
+		((patched++)) || true
+	fi
 
-  # Remove canonical ADV_INSTRUCTIONS.md from global instructions if present.
-  # The protocol body is embedded into generated ADV provider prompts instead.
-  if json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
-    jq --arg instr "$ADV_INSTRUCTION_PATH" \
-      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $instr)))' \
-      "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-    echo "    ✓  Removed global instruction: ADV_INSTRUCTIONS.md"
-    ((patched++)) || true
-  fi
+	# Remove canonical ADV_INSTRUCTIONS.md from global instructions if present.
+	# The protocol body is embedded into generated ADV provider prompts instead.
+	if json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
+		jq --arg instr "$ADV_INSTRUCTION_PATH" \
+			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $instr)))' \
+			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+		echo "    ✓  Removed global instruction: ADV_INSTRUCTIONS.md"
+		((patched++)) || true
+	fi
 
-  # Remove retired cost-governance instruction from instructions array if present
-  local retired_instr="$HOME/.config/opencode/instructions/cost-governance.md"
-  local retired_tilde="~/.config/opencode/instructions/cost-governance.md"
-  local retired_repo="$REPO_ROOT/.opencode/instructions/cost-governance.md"
-  if jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
-    -e '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $r1 or . == $r2 or . == $r3)' \
-    "$tmp_json" &>/dev/null; then
-    jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
-      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $r1 and . != $r2 and . != $r3)))' \
-      "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-    echo "    ✓  Removed retired instruction: cost-governance.md"
-    ((patched++)) || true
-  fi
+	# Remove retired cost-governance instruction from instructions array if present
+	local retired_instr="$HOME/.config/opencode/instructions/cost-governance.md"
+	local retired_tilde="~/.config/opencode/instructions/cost-governance.md"
+	local retired_repo="$REPO_ROOT/.opencode/instructions/cost-governance.md"
+	if jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
+		-e '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $r1 or . == $r2 or . == $r3)' \
+		"$tmp_json" &>/dev/null; then
+		jq --arg r1 "$retired_instr" --arg r2 "$retired_tilde" --arg r3 "$retired_repo" \
+			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $r1 and . != $r2 and . != $r3)))' \
+			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+		echo "    ✓  Removed retired instruction: cost-governance.md"
+		((patched++)) || true
+	fi
 
-  # Remove stale global ADV_INSTRUCTIONS.md from instructions array if present
-  # (the canonical path is $ADV_INSTRUCTION_PATH, not the global instructions dir copy)
-  local stale_instr="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  local stale_tilde="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
-  if jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
-    -e '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $stale or . == $stale_t)' \
-    "$tmp_json" &>/dev/null; then
-    jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
-      '.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $stale and . != $stale_t)))' \
-      "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-    echo "    ✓  Removed stale instruction: $stale_tilde"
-    ((patched++)) || true
-  fi
+	# Remove stale global ADV_INSTRUCTIONS.md from instructions array if present
+	# (the canonical path is $ADV_INSTRUCTION_PATH, not the global instructions dir copy)
+	local stale_instr="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+	local stale_tilde="~/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
+	if jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
+		-e '((.instructions // []) | if type == "array" then . else [.] end) | any(. == $stale or . == $stale_t)' \
+		"$tmp_json" &>/dev/null; then
+		jq --arg stale "$stale_instr" --arg stale_t "$stale_tilde" \
+			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $stale and . != $stale_t)))' \
+			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+		echo "    ✓  Removed stale instruction: $stale_tilde"
+		((patched++)) || true
+	fi
 
-  # Remove stale legacy consolidated-agent config keys if present.
-  # These names were retired when scout -> plan and refine -> build.
-  for legacy_key in scout refine; do
-    if jq --arg k "$legacy_key" -e '(.agent // {}) | if type == "object" then has($k) else false end' \
-      "$tmp_json" &>/dev/null; then
-      jq --arg k "$legacy_key" '
+	# Remove stale legacy consolidated-agent config keys if present.
+	# These names were retired when scout -> plan and refine -> build.
+	for legacy_key in scout refine; do
+		if jq --arg k "$legacy_key" -e '(.agent // {}) | if type == "object" then has($k) else false end' \
+			"$tmp_json" &>/dev/null; then
+			jq --arg k "$legacy_key" '
         if ((.agent // {}) | type) == "object" then
           .agent = ((.agent // {}) | with_entries(select(.key != $k)))
         else
           .
         end
-      ' "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-      echo "    ✓  Removed stale legacy agent config: agent.$legacy_key"
-      ((patched++)) || true
-    fi
-  done
+      ' "$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+			echo "    ✓  Removed stale legacy agent config: agent.$legacy_key"
+			((patched++)) || true
+		fi
+	done
 
-  patch_provider_prompt_refs() {
-    for provider in "${PROVIDERS[@]}"; do
-      local agent="adv-${provider}"
-      local expected
-      expected="$(provider_prompt_ref "$provider")"
-      if ! jq -e --arg agent "$agent" --arg expected "$expected" '(.agent[$agent].prompt // "") == $expected' "$tmp_json" &>/dev/null; then
-        jq --arg agent "$agent" --arg expected "$expected" '.agent[$agent].prompt = $expected' "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-        echo "    ✓  Set agent.$agent.prompt provider prompt refs"
-        ((patched++)) || true
-      fi
-    done
-  }
-  patch_provider_prompt_refs
-
-  # Disable generic adv agent when provider variants are configured.
-  # When agent.adv-* keys exist in opencode.json, the user has opted into
-  # provider-specific ADV variants. The generic adv.md may still be visible
-  # via repo-local .opencode/agents/adv.md even after global removal, so we
-  # set agent.adv.disable: true to hide it via OpenCode's native mechanism.
-  if provider_adv_configured_in_json; then
-    if ! jq -e '(.agent.adv // {}).disable == true' "$tmp_json" &>/dev/null; then
-      jq '.agent.adv.disable = true' "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-      echo "    ✓  Set agent.adv.disable: true (provider variants active)"
-      ((patched++)) || true
-    fi
-  else
-    # No provider variants configured — ensure generic adv is not disabled.
-    if jq -e '(.agent.adv // {}).disable == true' "$tmp_json" &>/dev/null; then
-      jq 'if ((.agent.adv // {}) | type) == "object" then .agent.adv = ((.agent.adv // {}) | with_entries(select(.key != "disable"))) else . end' \
-        "$tmp_json" > "$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
-      echo "    ✓  Removed agent.adv.disable (no provider variants active)"
-      ((patched++)) || true
-    fi
-  fi
-
-  if [ "$patched" -gt 0 ]; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run: would patch $patched entry/entries in $GLOBAL_JSON"
-      print_diff "$GLOBAL_JSON" "$tmp_json"
-      rm -f "$tmp_json"
-    else
-      # Atomic write — note: if source was JSONC, output is now plain JSON
-      mv "$tmp_json" "$GLOBAL_JSON"
-      echo "    Patched $patched entry/entries in $GLOBAL_JSON"
-      if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
-        echo "    ⚠  Comments were stripped during patching. Restore from backup if needed."
-      fi
-    fi
-  else
-    rm -f "$tmp_json"
-    echo "    No patches needed — config already correct"
-    # Clean up unnecessary backup
-    [ "$DRY_RUN" = true ] || rm -f "$backup"
-  fi
+	if [ "$patched" -gt 0 ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run: would patch $patched entry/entries in $GLOBAL_JSON"
+			print_diff "$GLOBAL_JSON" "$tmp_json"
+			rm -f "$tmp_json"
+		else
+			# Atomic write — note: if source was JSONC, output is now plain JSON
+			mv "$tmp_json" "$GLOBAL_JSON"
+			echo "    Patched $patched entry/entries in $GLOBAL_JSON"
+			if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+				echo "    ⚠  Comments were stripped during patching. Restore from backup if needed."
+			fi
+		fi
+	else
+		rm -f "$tmp_json"
+		echo "    No patches needed — config already correct"
+		# Clean up unnecessary backup
+		[ "$DRY_RUN" = true ] || rm -f "$backup"
+	fi
 }
 
 # ===========================================================================
 # Check-only mode: just validate config and exit
 # ===========================================================================
 if [ "$MODE" = "check" ]; then
-  check_config
-  if [ "$config_issues" -gt 0 ]; then
-    exit 1
-  fi
-  exit 0
+	check_config
+	if [ "$config_issues" -gt 0 ]; then
+		exit 1
+	fi
+	exit 0
 fi
 
 # ===========================================================================
@@ -1077,15 +717,15 @@ mkdir -p "$GLOBAL_COMMANDS"
 # ---------------------------------------------------------------------------
 copied=0
 for src in "$REPO_COMMANDS"/adv-*.md; do
-  [ -f "$src" ] || continue
-  dest="$GLOBAL_COMMANDS/$(basename "$src")"
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run copy: $(basename "$src")"
-  else
-    cp "$src" "$dest"
-    echo "    copied: $(basename "$src")"
-  fi
-  ((copied++)) || true
+	[ -f "$src" ] || continue
+	dest="$GLOBAL_COMMANDS/$(basename "$src")"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run copy: $(basename "$src")"
+	else
+		cp "$src" "$dest"
+		echo "    copied: $(basename "$src")"
+	fi
+	((copied++)) || true
 done
 echo "    $copied command(s) synced"
 
@@ -1094,17 +734,17 @@ echo "    $copied command(s) synced"
 # ---------------------------------------------------------------------------
 removed=0
 for global_cmd in "$GLOBAL_COMMANDS"/adv-*.md; do
-  [ -f "$global_cmd" ] || continue
-  name="$(basename "$global_cmd")"
-  if [ ! -f "$REPO_COMMANDS/$name" ]; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run remove stale: $name"
-    else
-      rm "$global_cmd"
-      echo "    removed stale: $name"
-    fi
-    ((removed++)) || true
-  fi
+	[ -f "$global_cmd" ] || continue
+	name="$(basename "$global_cmd")"
+	if [ ! -f "$REPO_COMMANDS/$name" ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run remove stale: $name"
+		else
+			rm "$global_cmd"
+			echo "    removed stale: $name"
+		fi
+		((removed++)) || true
+	fi
 done
 [ "$removed" -gt 0 ] && echo "    $removed stale command(s) removed" || true
 
@@ -1113,17 +753,17 @@ done
 #    in this repo (e.g. openprompt.md which moved out of the plugin).
 # ---------------------------------------------------------------------------
 for stale in openprompt.md; do
-  for dir in "$HOME/.config/opencode/command" "$HOME/.config/opencode/commands"; do
-    target="$dir/$stale"
-    if [ -f "$target" ]; then
-      if [ "$DRY_RUN" = true ]; then
-        echo "    dry-run remove legacy: $target"
-      else
-        rm "$target"
-        echo "    removed legacy: $target"
-      fi
-    fi
-  done
+	for dir in "$HOME/.config/opencode/command" "$HOME/.config/opencode/commands"; do
+		target="$dir/$stale"
+		if [ -f "$target" ]; then
+			if [ "$DRY_RUN" = true ]; then
+				echo "    dry-run remove legacy: $target"
+			else
+				rm "$target"
+				echo "    removed legacy: $target"
+			fi
+		fi
+	done
 done
 
 # ---------------------------------------------------------------------------
@@ -1134,33 +774,33 @@ done
 # ---------------------------------------------------------------------------
 STALE_GLOBAL_INSTR="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
 if [ -f "$STALE_GLOBAL_INSTR" ]; then
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run remove stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
-  else
-    rm "$STALE_GLOBAL_INSTR"
-    echo "    removed stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
-  fi
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run remove stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+	else
+		rm "$STALE_GLOBAL_INSTR"
+		echo "    removed stale: $STALE_GLOBAL_INSTR (canonical is $ADV_INSTRUCTION_PATH)"
+	fi
 fi
 
 # ---------------------------------------------------------------------------
 # Remove stale adv-autopilot files replaced by adv-atc
 # ---------------------------------------------------------------------------
 for stale_autopilot in "$GLOBAL_AGENTS"/adv-autopilot*.md; do
-  [ -f "$stale_autopilot" ] || continue
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run remove stale autopilot agent: $(basename "$stale_autopilot")"
-  else
-    rm -f "$stale_autopilot"
-    echo "    removed stale autopilot agent: $(basename "$stale_autopilot")"
-  fi
+	[ -f "$stale_autopilot" ] || continue
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run remove stale autopilot agent: $(basename "$stale_autopilot")"
+	else
+		rm -f "$stale_autopilot"
+		echo "    removed stale autopilot agent: $(basename "$stale_autopilot")"
+	fi
 done
 if [ -f "$GLOBAL_COMMANDS/adv-autopilot.md" ]; then
-  if [ "$DRY_RUN" = true ]; then
-    echo "    dry-run remove stale autopilot command: adv-autopilot.md"
-  else
-    rm -f "$GLOBAL_COMMANDS/adv-autopilot.md"
-    echo "    removed stale autopilot command: adv-autopilot.md"
-  fi
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run remove stale autopilot command: adv-autopilot.md"
+	else
+		rm -f "$GLOBAL_COMMANDS/adv-autopilot.md"
+		echo "    removed stale autopilot command: adv-autopilot.md"
+	fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -1190,35 +830,35 @@ SHARED_OVERLAY_ONLY="build.md general.md plan.md"
 # names are handled by the adv-*.md glob below; keep only pre-rename bare names
 # here so the list stays single-source and low-churn.
 LEGACY_STALE_AGENT_FILES=(
-  orca.md
-  tron.md
-  scout.md
-  refine.md
-  engineer.md
+	orca.md
+	tron.md
+	scout.md
+	refine.md
+	engineer.md
 )
 if [ -d "$REPO_AGENTS" ]; then
-  for src in "$REPO_AGENTS"/*.md; do
-    [ -f "$src" ] || continue
-    name="$(basename "$src")"
-    # Skip repo-local-only agents
-    if echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
-      echo "    skipped (repo-local): $name"
-      continue
-    fi
-    # Skip shared agents that are overlay-managed
-    if echo " $SHARED_OVERLAY_ONLY " | grep -q " $name "; then
-      echo "    skipped (overlay-managed): $name"
-      continue
-    fi
-    dest="$GLOBAL_AGENTS/$name"
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run copy agent: $name"
-    else
-      cp "$src" "$dest"
-      echo "    copied agent: $name"
-    fi
-    ((agents_copied++)) || true
-  done
+	for src in "$REPO_AGENTS"/*.md; do
+		[ -f "$src" ] || continue
+		name="$(basename "$src")"
+		# Skip repo-local-only agents
+		if echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
+			echo "    skipped (repo-local): $name"
+			continue
+		fi
+		# Skip shared agents that are overlay-managed
+		if echo " $SHARED_OVERLAY_ONLY " | grep -q " $name "; then
+			echo "    skipped (overlay-managed): $name"
+			continue
+		fi
+		dest="$GLOBAL_AGENTS/$name"
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run copy agent: $name"
+		else
+			cp "$src" "$dest"
+			echo "    copied agent: $name"
+		fi
+		((agents_copied++)) || true
+	done
 fi
 
 # If adv.md was not copied from the resolved asset directory, try to source it
@@ -1226,97 +866,67 @@ fi
 # where the script file resolves outside the active checkout but the current
 # branch still tracks adv.md.
 if [ ! -f "$GLOBAL_AGENTS/adv.md" ]; then
-  if git -C "$INVOKE_CWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    if git -C "$INVOKE_CWD" show HEAD:.opencode/agents/adv.md >/tmp/adv_sync_advmd.$$ 2>/dev/null; then
-      if [ "$DRY_RUN" = true ]; then
-        echo "    dry-run bootstrap agent from git HEAD: adv.md"
-        rm -f /tmp/adv_sync_advmd.$$
-      else
-        cp /tmp/adv_sync_advmd.$$ "$GLOBAL_AGENTS/adv.md"
-        rm -f /tmp/adv_sync_advmd.$$
-        echo "    bootstrapped agent from git HEAD: adv.md"
-        ((agents_copied++)) || true
-      fi
-    fi
-  fi
+	if git -C "$INVOKE_CWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		if git -C "$INVOKE_CWD" show HEAD:.opencode/agents/adv.md >/tmp/adv_sync_advmd.$$ 2>/dev/null; then
+			if [ "$DRY_RUN" = true ]; then
+				echo "    dry-run bootstrap agent from git HEAD: adv.md"
+				rm -f /tmp/adv_sync_advmd.$$
+			else
+				cp /tmp/adv_sync_advmd.$$ "$GLOBAL_AGENTS/adv.md"
+				rm -f /tmp/adv_sync_advmd.$$
+				echo "    bootstrapped agent from git HEAD: adv.md"
+				((agents_copied++)) || true
+			fi
+		fi
+	fi
 fi
 echo "    $agents_copied agent(s) synced"
 
-# Generate provider ADV variants from canonical adv.md
-# (frontmatter/tool allowlist + concatenated runtime body)
-sync_adv_prompt_parts
-generate_concatenated_provider_prompts
-generate_provider_variants
+# Assemble single ADV runtime agent and remove retired provider prompt files.
+sync_adv_runtime_agent
+remove_retired_provider_prompt_parts
 
 # Apply repo-owned overlays to shared global agents without replacing the file.
 # `adv` is intentionally NOT in this list — see SHARED_OVERLAY_ONLY note above.
 if [ -d "$REPO_OVERLAYS" ]; then
-  echo "    syncing shared-agent overlays"
-  apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
-  apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
-  apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
+	echo "    syncing shared-agent overlays"
+	apply_overlay_block "general" "$GLOBAL_AGENTS/general.md"
+	apply_overlay_block "build" "$GLOBAL_AGENTS/build.md" "$REPO_AGENTS/build.md"
+	apply_overlay_block "plan" "$GLOBAL_AGENTS/plan.md" "$REPO_AGENTS/plan.md"
 fi
 
 # Remove stale ADV agents from global that no longer exist in repo
 # Also remove repo-local-only agents if they leaked into global
 agents_removed=0
 remove_stale_agent_if_needed() {
-  local global_agent="$1"
-  [ -f "$global_agent" ] || return 0
-  local name
-  name="$(basename "$global_agent")"
-  # Skip generated provider variants — they are not in repo but are managed
-  for provider in "${PROVIDERS[@]}"; do
-    if [ "$name" = "adv-${provider}.md" ]; then
-      return 0
-    fi
-  done
-  # Remove if no longer in repo OR if it's repo-local-only
-  if [ ! -f "$REPO_AGENTS/$name" ] || echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run remove stale agent: $name"
-    else
-      rm "$global_agent"
-      echo "    removed stale agent: $name"
-    fi
-    ((agents_removed++)) || true
-  fi
+	local global_agent="$1"
+	[ -f "$global_agent" ] || return 0
+	local name
+	name="$(basename "$global_agent")"
+	# Remove if no longer in repo OR if it's repo-local-only
+	if [ ! -f "$REPO_AGENTS/$name" ] || echo " $REPO_LOCAL_ONLY " | grep -q " $name "; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run remove stale agent: $name"
+		else
+			rm "$global_agent"
+			echo "    removed stale agent: $name"
+		fi
+		((agents_removed++)) || true
+	fi
 }
 for global_agent in "$GLOBAL_AGENTS"/adv-*.md; do
-  remove_stale_agent_if_needed "$global_agent"
+	remove_stale_agent_if_needed "$global_agent"
 done
 for legacy_name in "${LEGACY_STALE_AGENT_FILES[@]}"; do
-  remove_stale_agent_if_needed "$GLOBAL_AGENTS/$legacy_name"
+	remove_stale_agent_if_needed "$GLOBAL_AGENTS/$legacy_name"
 done
 [ "$agents_removed" -gt 0 ] && echo "    $agents_removed stale agent(s) removed" || true
 
 # ---------------------------------------------------------------------------
-# Legacy adv.md removal (gated)
-#
-# Only remove the legacy adv.md from global agents when the user has
-# explicitly configured provider variants in opencode.json via agent.adv-*
-# keys. This prevents breaking existing setups that rely on the canonical
-# adv.md before they opt into provider-ADV mode.
-# ---------------------------------------------------------------------------
-if [ -f "$GLOBAL_AGENTS/adv.md" ]; then
-  if provider_adv_configured_in_json; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run remove legacy adv.md (gated: agent.adv-* keys found in opencode.json)"
-    else
-      rm "$GLOBAL_AGENTS/adv.md"
-      echo "    removed legacy adv.md (gated: agent.adv-* keys found in opencode.json)"
-    fi
-  else
-    echo "    kept legacy adv.md (no agent.adv-* keys in opencode.json — migration not triggered)"
-  fi
-fi
-
-# ---------------------------------------------------------------------------
 # Keep repo-local adv.md in-tree.
 #
-# Visibility of the generic adv agent is handled by agent.adv.disable in
-# opencode.json. Do not delete the repo-local file: asset tests, sync
-# bootstrapping, and repo-local inspection expect it to exist.
+# Do not delete the repo-local file: asset tests, sync bootstrapping, and
+# repo-local inspection expect it to exist.
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -1324,51 +934,51 @@ fi
 # ---------------------------------------------------------------------------
 skills_copied=0
 if [ -d "$REPO_SKILLS" ]; then
-  for skill_dir in "$REPO_SKILLS"/adv-*/; do
-    [ -d "$skill_dir" ] || continue
-    skill_name="$(basename "$skill_dir")"
-    skill_file="$skill_dir/SKILL.md"
-    [ -f "$skill_file" ] || continue
-    dest_dir="$GLOBAL_SKILLS/$skill_name"
-    # ADR-002: whole-directory copy preserves SKILL.md + sibling reference docs
-    # (CONTEXT-FORMAT.md, LOGIC.md, UI.md, REPORT_SCHEMA.md, etc.) + subdirectories
-    # (e.g. scripts/). Required so progressive-disclosure skill content reaches
-    # ~/.config/opencode/skills/ — agents loading skills globally need siblings.
-    # Backward compatible: skills with only SKILL.md (existing behavior) sync identically.
-    if [ "$DRY_RUN" = true ]; then
-      while IFS= read -r f; do
-        rel="${f#"$skill_dir"}"
-        echo "    dry-run copy skill: $skill_name/$rel"
-      done < <(find "$skill_dir" -type f | sort)
-    else
-      mkdir -p "$dest_dir"
-      (cd "$skill_dir" && cp -R . "$dest_dir/")
-      file_count="$(find "$skill_dir" -type f | wc -l | tr -d ' ')"
-      if [ "$file_count" = "1" ]; then
-        echo "    copied skill: $skill_name/SKILL.md"
-      else
-        echo "    copied skill: $skill_name/ ($file_count files)"
-      fi
-    fi
-    ((skills_copied++)) || true
-  done
+	for skill_dir in "$REPO_SKILLS"/adv-*/; do
+		[ -d "$skill_dir" ] || continue
+		skill_name="$(basename "$skill_dir")"
+		skill_file="$skill_dir/SKILL.md"
+		[ -f "$skill_file" ] || continue
+		dest_dir="$GLOBAL_SKILLS/$skill_name"
+		# ADR-002: whole-directory copy preserves SKILL.md + sibling reference docs
+		# (CONTEXT-FORMAT.md, LOGIC.md, UI.md, REPORT_SCHEMA.md, etc.) + subdirectories
+		# (e.g. scripts/). Required so progressive-disclosure skill content reaches
+		# ~/.config/opencode/skills/ — agents loading skills globally need siblings.
+		# Backward compatible: skills with only SKILL.md (existing behavior) sync identically.
+		if [ "$DRY_RUN" = true ]; then
+			while IFS= read -r f; do
+				rel="${f#"$skill_dir"}"
+				echo "    dry-run copy skill: $skill_name/$rel"
+			done < <(find "$skill_dir" -type f | sort)
+		else
+			mkdir -p "$dest_dir"
+			(cd "$skill_dir" && cp -R . "$dest_dir/")
+			file_count="$(find "$skill_dir" -type f | wc -l | tr -d ' ')"
+			if [ "$file_count" = "1" ]; then
+				echo "    copied skill: $skill_name/SKILL.md"
+			else
+				echo "    copied skill: $skill_name/ ($file_count files)"
+			fi
+		fi
+		((skills_copied++)) || true
+	done
 fi
 echo "    $skills_copied skill(s) synced"
 
 # Remove stale ADV skills from global that no longer exist in repo
 skills_removed=0
 for global_skill in "$GLOBAL_SKILLS"/adv-*/; do
-  [ -d "$global_skill" ] || continue
-  skill_name="$(basename "$global_skill")"
-  if [ ! -d "$REPO_SKILLS/$skill_name" ]; then
-    if [ "$DRY_RUN" = true ]; then
-      echo "    dry-run remove stale skill: $skill_name"
-    else
-      rm -rf "$global_skill"
-      echo "    removed stale skill: $skill_name"
-    fi
-    ((skills_removed++)) || true
-  fi
+	[ -d "$global_skill" ] || continue
+	skill_name="$(basename "$global_skill")"
+	if [ ! -d "$REPO_SKILLS/$skill_name" ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run remove stale skill: $skill_name"
+		else
+			rm -rf "$global_skill"
+			echo "    removed stale skill: $skill_name"
+		fi
+		((skills_removed++)) || true
+	fi
 done
 [ "$skills_removed" -gt 0 ] && echo "    $skills_removed stale skill(s) removed" || true
 
@@ -1376,9 +986,9 @@ done
 # Config validation / patching
 # ===========================================================================
 if [ "$MODE" = "fix" ]; then
-  fix_config
+	fix_config
 else
-  check_config
+	check_config
 fi
 
 # ===========================================================================
@@ -1392,13 +1002,13 @@ echo "    Agents in global:  $(ls "$GLOBAL_AGENTS"/*.md 2>/dev/null | wc -l | tr
 echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l | tr -d ' ')"
 
 if [ "$MODE" = "fix" ]; then
-  echo "    Config: patched (if needed)"
+	echo "    Config: patched (if needed)"
 else
-  if [ "$config_issues" -gt 0 ]; then
-    echo "    Config: $config_issues issue(s) — run with --fix to auto-patch"
-  else
-    echo "    Config: OK"
-  fi
+	if [ "$config_issues" -gt 0 ]; then
+		echo "    Config: $config_issues issue(s) — run with --fix to auto-patch"
+	else
+		echo "    Config: OK"
+	fi
 fi
 
 echo "    Restart OpenCode sessions to pick up changes."

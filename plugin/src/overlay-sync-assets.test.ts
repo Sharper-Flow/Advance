@@ -247,11 +247,11 @@ describe("overlay sync script support", () => {
   });
 
   // ===========================================================================
-  // Provider ADV variant generation (providerAdvAgentAssemblySystem)
+  // Single ADV runtime agent (providerAdvAgentAssemblySystem retired)
   // ===========================================================================
 
-  test("sync --fix generates provider ADV variants in global agents dir", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-variants-"));
+  test("sync --fix does not generate provider ADV variants", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-single-agent-"));
 
     try {
       const configDir = join(tempHome, ".config/opencode");
@@ -273,24 +273,23 @@ describe("overlay sync script support", () => {
       });
 
       expect(result.status).toBe(0);
+      expect(existsSync(join(globalAgents, "adv.md"))).toBe(true);
       for (const p of ["claude", "gpt", "glm", "kimi"]) {
         const variantPath = join(globalAgents, `adv-${p}.md`);
-        expect(existsSync(variantPath), `missing variant: adv-${p}.md`).toBe(
-          true,
-        );
+        expect(existsSync(variantPath), `retired variant exists: adv-${p}.md`)
+          .toBe(false);
       }
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });
 
-  test("generated provider variants contain runtime bodies backed by prompt parts", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-hints-"));
+  test("synced adv.md contains canonical ADV body plus ADV_INSTRUCTIONS protocol", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-single-runtime-"));
 
     try {
       const configDir = join(tempHome, ".config/opencode");
       const globalAgents = join(configDir, "agents");
-      const promptParts = join(configDir, "agent-parts", "advance");
       mkdirSync(globalAgents, { recursive: true });
       writeFileSync(
         join(configDir, "opencode.json"),
@@ -308,39 +307,14 @@ describe("overlay sync script support", () => {
       });
 
       expect(result.status).toBe(0);
-      expect(readFileSync(join(promptParts, "adv.md"), "utf8")).toContain(
-        "## ADV Overlay",
-      );
-
       const config = JSON.parse(
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
-      for (const p of ["claude", "gpt", "glm", "kimi"]) {
-        const variantContent = readFileSync(
-          join(globalAgents, `adv-${p}.md`),
-          "utf8",
-        );
-        expect(
-          variantContent,
-          `adv-${p}.md still has stub diagnostic`,
-        ).not.toContain("[ADV:PROVIDER_STUB_UNEXPANDED]");
-        expect(variantContent, `adv-${p}.md missing provider hint`).toContain(
-          `<!-- PROVIDER_HINT:${p} -->`,
-        );
-        expect(variantContent, `adv-${p}.md missing canonical body`).toContain(
-          "## ADV Overlay",
-        );
-        expect(
-          variantContent,
-          `adv-${p}.md missing scoped ADV instructions`,
-        ).toContain("### TDD Protocol (RSTC)");
-        expect(
-          readFileSync(join(promptParts, "providers", `${p}.md`), "utf8"),
-        ).toContain(`<!-- PROVIDER_HINT:${p} -->`);
-        expect(config.agent[`adv-${p}`].prompt).toBe(
-          `{file:./agent-parts/advance/adv-${p}.md}`,
-        );
-      }
+      const advContent = readFileSync(join(globalAgents, "adv.md"), "utf8");
+      expect(advContent).toContain("ADV_SYNC:START adv");
+      expect(advContent).toContain("### TDD Protocol (RSTC)");
+      expect(advContent).not.toContain("<!-- PROVIDER_HINT:");
+      expect(config.agent?.["adv-gpt"]?.prompt).toBeUndefined();
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }
@@ -361,91 +335,8 @@ describe("overlay sync script support", () => {
     expect(buildAgent).not.toContain("## Critical Protocols");
   });
 
-  test("check mode warns and continues when opencode is unavailable for runtime canary", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-canary-skip-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      mkdirSync(configDir, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
-
-      const fixResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
-      expect(fixResult.status).toBe(0);
-
-      const pathWithoutOpencode = (process.env.PATH ?? "")
-        .split(":")
-        .filter((entry) => !entry.includes(".opencode"))
-        .join(":");
-      const checkResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--check"], {
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          HOME: tempHome,
-          CI: "true",
-          PATH: pathWithoutOpencode,
-        },
-        encoding: "utf8",
-      });
-
-      expect(checkResult.status).toBe(0);
-      expect(checkResult.stdout).toContain(
-        "runtime canary: skipped (opencode not found on PATH)",
-      );
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
-  });
-
-  test("check mode rejects stale concatenated provider prompts", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-stale-prompt-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const promptParts = join(configDir, "agent-parts", "advance");
-      mkdirSync(configDir, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
-
-      const fixResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
-      expect(fixResult.status).toBe(0);
-
-      writeFileSync(join(promptParts, "adv-gpt.md"), "stale prompt body\n");
-
-      const checkResult = spawnSync("bash", [SYNC_SCRIPT_PATH, "--check"], {
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          HOME: tempHome,
-          ADV_SKIP_RUNTIME_CANARY: "1",
-          CI: "true",
-        },
-        encoding: "utf8",
-      });
-
-      expect(checkResult.status).not.toBe(0);
-      expect(checkResult.stdout).toContain(
-        "Concatenated provider prompt stale (content mismatch)",
-      );
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
-  });
-
-  test("generated provider variants patch frontmatter name", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-names-"));
+  test("sync --fix removes stale generated provider variants", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-stale-clean-"));
 
     try {
       const configDir = join(tempHome, ".config/opencode");
@@ -455,10 +346,9 @@ describe("overlay sync script support", () => {
         join(configDir, "opencode.json"),
         JSON.stringify({ plugin: [], instructions: [] }),
       );
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
-      );
+      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+        writeFileSync(join(globalAgents, `adv-${p}.md`), `stale ${p}\n`);
+      }
 
       const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
@@ -468,94 +358,38 @@ describe("overlay sync script support", () => {
 
       expect(result.status).toBe(0);
       for (const p of ["claude", "gpt", "glm", "kimi"]) {
-        const variantContent = readFileSync(
-          join(globalAgents, `adv-${p}.md`),
-          "utf8",
-        );
-        expect(variantContent, `adv-${p}.md missing name frontmatter`).toMatch(
-          new RegExp(`name:\\s*adv-${p}`),
-        );
+        expect(existsSync(join(globalAgents, `adv-${p}.md`))).toBe(false);
       }
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }
   });
 
-  test("prompt-only provider activation check tolerates non-object agent entries", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-prompt-only-"));
+  test("sync --fix does not patch provider prompt refs or disable generic adv", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-no-config-patch-"));
 
     try {
       const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
+      mkdirSync(configDir, { recursive: true });
       writeFileSync(
         join(configDir, "opencode.json"),
-        JSON.stringify({
-          plugin: [],
-          instructions: [],
-          agent: {
-            build: "openai/gpt-5.5",
-            "adv-gpt": {
-              prompt:
-                "{file:./agent-parts/advance/adv.md}\n\n{file:./agent-parts/advance/providers/gpt.md}",
-            },
-          },
-        }),
-      );
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
+        JSON.stringify({ plugin: [], instructions: [], agent: {} }),
       );
 
-      const result = spawnSync(
-        "bash",
-        [SYNC_SCRIPT_PATH, "--dry-run", "--diff"],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, HOME: tempHome, CI: "true" },
-          encoding: "utf8",
-        },
-      );
+      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, HOME: tempHome, CI: "true" },
+        encoding: "utf8",
+      });
 
       expect(result.status).toBe(0);
-      expect(result.stderr).not.toContain("jq: error");
-      expect(result.stdout).toContain("kept legacy adv.md");
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
-  });
-
-  test("dry-run works when provider mode removed global adv.md", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-dryrun-no-adv-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({
-          plugin: [],
-          instructions: [],
-          agent: {
-            "adv-gpt": { disable: false },
-          },
-        }),
+      const config = JSON.parse(
+        readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
-
-      const result = spawnSync(
-        "bash",
-        [SYNC_SCRIPT_PATH, "--dry-run", "--diff"],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, HOME: tempHome, CI: "true" },
-          encoding: "utf8",
-        },
-      );
-
-      expect(result.status).toBe(0);
-      expect(result.stdout).toContain("dry-run sync provider prompt parts");
-      expect(result.stderr).not.toContain("canonical adv.md missing");
+      expect(config.agent?.adv?.disable).toBeUndefined();
+      for (const p of ["claude", "gpt", "glm", "kimi"]) {
+        expect(config.agent?.[`adv-${p}`]?.prompt).toBeUndefined();
+      }
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
     }
