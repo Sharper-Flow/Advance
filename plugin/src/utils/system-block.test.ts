@@ -258,8 +258,8 @@ describe("assembleSystemBlock", () => {
     it("does NOT emit when same provider as last turn", () => {
       const block = assembleSystemBlock(
         cleanInput({
-          currentProviderID: "anthropic",
-          state: cleanState({ lastProviderID: "anthropic" }),
+          currentProviderID: "google",
+          state: cleanState({ lastProviderID: "google" }),
         }),
       );
       expect(block).toBeNull();
@@ -268,21 +268,65 @@ describe("assembleSystemBlock", () => {
     it("does NOT emit on first turn (no lastProviderID)", () => {
       const block = assembleSystemBlock(
         cleanInput({
-          currentProviderID: "anthropic",
+          currentProviderID: "google",
           state: cleanState({ lastProviderID: null }),
         }),
       );
       expect(block).toBeNull();
     });
 
-    it("does NOT emit when fallback chain has no alternatives", () => {
+    it("does NOT emit provider switch when fallback chain has no alternatives", () => {
       const block = assembleSystemBlock(
         cleanInput({
           currentProviderID: "zai-coding-plan",
           state: cleanState({ lastProviderID: "anthropic" }),
         }),
       );
+      expect(block).not.toContain("[ADV:PROVIDER_SWITCH]");
+      expect(block).toContain("[ADV:PROVIDER_HINT:glm]");
+    });
+  });
+
+  describe("provider-hint section", () => {
+    it("emits a Claude provider hint from structured anthropic provider ID", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "anthropic" }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:claude]");
+      expect(block).toContain("<!-- PROVIDER_HINT:claude -->");
+      expect(block).toContain("Default model family: Claude");
+    });
+
+    it("emits a GPT provider hint from structured openai provider ID", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "openai" }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:gpt]");
+      expect(block).toContain("<!-- PROVIDER_HINT:gpt -->");
+    });
+
+    it("emits no provider hint for unknown provider IDs", () => {
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: "unknown-provider" }),
+      );
       expect(block).toBeNull();
+    });
+
+    it("emits no provider hint when provider identity is missing", () => {
+      const block = assembleSystemBlock(cleanInput({ currentProviderID: null }));
+      expect(block).toBeNull();
+    });
+
+    it("does not duplicate provider hints when switch and hint sections both emit", () => {
+      const block = assembleSystemBlock(
+        cleanInput({
+          currentProviderID: "anthropic",
+          state: cleanState({ lastProviderID: "openai" }),
+        }),
+      );
+      expect(block).toContain("[ADV:PROVIDER_HINT:claude]");
+      expect(block).toContain("[ADV:PROVIDER_SWITCH]");
+      expect(block!.match(/<!-- PROVIDER_HINT:claude -->/g)).toHaveLength(1);
     });
   });
 
@@ -441,7 +485,7 @@ describe("assembleSystemBlock", () => {
   });
 
   describe("section ordering (stable header)", () => {
-    it("orders sections: degraded → health → providerSwitch → worktree → activeChange", () => {
+    it("orders sections: degraded → health → providerHint → providerSwitch → worktree → activeChange", () => {
       const block = assembleSystemBlock(
         cleanInput({
           initError: new Error("boom"),
@@ -463,6 +507,9 @@ describe("assembleSystemBlock", () => {
       expect(idx("[ADV:DEGRADED]")).toBeGreaterThanOrEqual(0);
       expect(idx("[ADV:DEGRADED]")).toBeLessThan(idx("[ADV:SESSION_HEALTH]"));
       expect(idx("[ADV:SESSION_HEALTH]")).toBeLessThan(
+        idx("[ADV:PROVIDER_HINT:claude]"),
+      );
+      expect(idx("[ADV:PROVIDER_HINT:claude]")).toBeLessThan(
         idx("[ADV:PROVIDER_SWITCH]"),
       );
       expect(idx("[ADV:PROVIDER_SWITCH]")).toBeLessThan(

@@ -10,12 +10,12 @@
  *
  * Architecture (per /adv-design decisions JC-2 and JC-3):
  *
- *   - Six fixed sections (hardcoded; no registry abstraction per JC-2).
+ *   - Seven fixed sections (hardcoded; no registry abstraction per JC-2).
  *     Each section returns `string | null`. Null sections are skipped.
  *   - assembleSystemBlock() returns a single concatenated string ready to
  *     append to `output.system[0]`, or `null` if no content is produced
  *     for this turn.
- *   - Stable header (degraded → health → providerSwitch → worktree →
+ *   - Stable header (degraded → health → providerHint → providerSwitch → worktree →
  *     activeChange) is separated from the volatile suffix (wisdomPrompt)
  *     by a `--- ADV:VOLATILE ---` sentinel (per AC8). The sentinel is
  *     emitted only when both stable and volatile content exist, avoiding
@@ -103,6 +103,77 @@ export const FALLBACK_CHAIN: Readonly<Record<string, string[]>> = {
   "zai-coding-plan": [],
 };
 
+export type ProviderHintKey = "claude" | "gpt" | "glm" | "kimi";
+
+/** Provider hints formerly embedded in generated adv-{provider}.md agents.
+ *
+ * Keep this module pure: no runtime file IO inside system-prompt assembly. */
+export const PROVIDER_HINTS: Readonly<Record<ProviderHintKey, string>> = {
+  claude: [
+    "<!-- PROVIDER_HINT:claude -->",
+    "",
+    "## Provider Hint",
+    "",
+    "- Default model family: Claude",
+    "- When a user or workflow implies execution, act directly via tools — do not suggest or describe what you would do",
+    "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+  ].join("\n"),
+  gpt: [
+    "<!-- PROVIDER_HINT:gpt -->",
+    "",
+    "## Provider Hint",
+    "",
+    "- Default model family: GPT",
+    "- When tool calls have sequential dependencies, execute them one at a time — never parallelize dependent calls",
+    "- Never invent enum values or arg values not in the tool schema; if a parameter value is unclear, omit it rather than guess",
+    "- Before declaring done/blocked, restate requested end-state and compare against evidence gathered this turn",
+    "- For ship/finish/debug tasks: inspect first failure, classify it, attempt safe in-scope remediation, rerun verification",
+    "- Do not call CI/test failures “flakes” without log evidence and at least one rerun or deterministic diagnosis",
+    "- “Blocked” requires: missing permission/credential, human decision, unsafe action, unavailable external system, or 3 distinct failed strategies",
+    "- If user asked to continue/ship, keep going after interim findings unless a stop condition above is met",
+  ].join("\n"),
+  glm: [
+    "<!-- PROVIDER_HINT:glm -->",
+    "",
+    "## Provider Hint",
+    "",
+    "- Default model family: GLM",
+    "- Do not generalize rules beyond their stated scope — if a rule applies to a specific gate or tool, do not silently extend it",
+    "- Keep all instructions and tool args in English even when context contains Chinese; validate tool args against schema before calling",
+    "- For ADV apply tasks, when delegation routing marks work `delegate_allowed` or `delegate_preferred`, prefer spawning `adv-engineer`; execute inline only when context-bound",
+    "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+    "- When a tool choice exists, pick the most specific one; prefer lgrep over grep, prefer read over cat, prefer ADV MCP tools over direct file access",
+    "- Before calling any tool, verify that every required parameter is present and matches the schema — do not guess or invent parameter values",
+  ].join("\n"),
+  kimi: [
+    "<!-- PROVIDER_HINT:kimi -->",
+    "",
+    "## Provider Hint",
+    "",
+    "- Default model family: Kimi",
+    "- Critical instructions (gate rules, state access policy, NEVER/ONLY constraints) are non-negotiable even in long contexts — re-verify before every gate transition",
+    "- If you notice repeated phrases or looping output, stop and summarize current state before continuing",
+    "- For local code exploration, use lgrep tools (lgrep_search_semantic, lgrep_search_symbols) as the FIRST choice — do not start with glob or grep for concept or symbol queries",
+    "- When multiple constraints apply, check each one individually before acting — do not collapse or merge distinct rules",
+    "- Sequential tool dependencies must be executed one at a time in order — never parallelize dependent calls",
+  ].join("\n"),
+};
+
+/** Structured provider IDs observed/configured for provider hints.
+ *
+ * Do not infer hints from free-text model names. If a future provider/model
+ * cannot be identified structurally, no hint is emitted. */
+export const PROVIDER_HINT_BY_PROVIDER_ID: Readonly<Record<string, ProviderHintKey>> = {
+  anthropic: "claude",
+  openai: "gpt",
+  "zai-coding-plan": "glm",
+  zai: "glm",
+  "z-ai": "glm",
+  moonshot: "kimi",
+  moonshotai: "kimi",
+  kimi: "kimi",
+};
+
 // ─── Predicates ─────────────────────────────────────────────────────────────
 
 /** True when the existing system content matches a known OpenCode
@@ -176,6 +247,16 @@ function healthSection(input: AssembleSystemBlockInput): string | null {
   const issue = input.state.lastSessionHealthIssue;
   if (!issue) return null;
   return formatSessionHealthBanner(issue, input.state.activeChange.id);
+}
+
+/** Stable: provider-specific guidance. Uses only structured provider identity;
+ * unknown/missing IDs intentionally emit no hint. */
+function providerHintSection(input: AssembleSystemBlockInput): string | null {
+  const providerID = input.currentProviderID;
+  if (!providerID) return null;
+  const hintKey = PROVIDER_HINT_BY_PROVIDER_ID[providerID];
+  if (!hintKey) return null;
+  return `[ADV:PROVIDER_HINT:${hintKey}]\n${PROVIDER_HINTS[hintKey]}`;
 }
 
 /** Stable: provider-switch hint. Fires when the current provider differs
@@ -279,7 +360,7 @@ export function applyAdvSystemBlock(
  *   - No section produces content
  *
  * Order:
- *   stable:   [degraded, health, providerSwitch, worktree, activeChange]
+ *   stable:   [degraded, health, providerHint, providerSwitch, worktree, activeChange]
  *   sentinel: VOLATILE_SENTINEL (only when BOTH stable and volatile exist)
  *   volatile: [wisdomPrompt]
  *
@@ -298,6 +379,7 @@ export function assembleSystemBlock(
   const stableSections = [
     degradedSection,
     healthSection,
+    providerHintSection,
     providerSwitchSection,
     worktreeSection,
     activeChangeSection,
