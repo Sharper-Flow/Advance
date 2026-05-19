@@ -1,0 +1,22 @@
+{
+  "name": "acp-mux",
+  "version": "0.1.0",
+  "description": "Local OpenCode/Zed ACP companion: isolated ACP launcher, agent-callable tools, and runtime plugin hooks.",
+  "type": "module",
+  "main": "plugin.js",
+  "bin": {
+    "acp-mux": "bin/acp-mux"
+  },
+  "private": true,
+  "scripts": {
+    "doctor": "./bin/acp-mux doctor",
+    "test": "bash test/smoke.sh && node --test test/*.test.js",
+    "test:unit": "node --test test/*.test.js",
+    "test:smoke": "bash test/smoke.sh",
+    "lint": "node --check plugin.js && node --check lib/*.js"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "*",
+    "zod": "*"
+  }
+}
