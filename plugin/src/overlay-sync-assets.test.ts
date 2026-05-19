@@ -276,8 +276,10 @@ describe("overlay sync script support", () => {
       expect(existsSync(join(globalAgents, "adv.md"))).toBe(true);
       for (const p of ["claude", "gpt", "glm", "kimi"]) {
         const variantPath = join(globalAgents, `adv-${p}.md`);
-        expect(existsSync(variantPath), `retired variant exists: adv-${p}.md`)
-          .toBe(false);
+        expect(
+          existsSync(variantPath),
+          `retired variant exists: adv-${p}.md`,
+        ).toBe(false);
       }
     } finally {
       rmSync(tempHome, { recursive: true, force: true });
@@ -366,7 +368,9 @@ describe("overlay sync script support", () => {
   });
 
   test("sync --fix does not patch provider prompt refs or disable generic adv", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-no-config-patch-"));
+    const tempHome = mkdtempSync(
+      join(tmpdir(), "adv-provider-no-config-patch-"),
+    );
 
     try {
       const configDir = join(tempHome, ".config/opencode");

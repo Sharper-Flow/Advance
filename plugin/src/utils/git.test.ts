@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { execGit, getDefaultBranch } from "./git.js";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup.js";
 import { join } from "node:path";
-import { execFile } from "node:child_process";
+import { writeFile } from "node:fs/promises";
 
 describe("git utilities", () => {
   let tempDir: string;
@@ -61,7 +61,7 @@ describe("git utilities", () => {
       // Create a dummy commit in remote so clone has something
       await execGit(["config", "user.email", "test@test.com"], remoteDir);
       await execGit(["config", "user.name", "Test"], remoteDir);
-      await execFile("touch", [join(remoteDir, "README.md")]);
+      await writeFile(join(remoteDir, "README.md"), "");
       await execGit(["add", "README.md"], remoteDir);
       await execGit(["commit", "-m", "init"], remoteDir);
 
@@ -96,7 +96,7 @@ describe("git utilities", () => {
       await execGit(["config", "user.email", "test@test.com"], tempDir);
       await execGit(["config", "user.name", "Test"], tempDir);
       // Need a commit so the branch ref actually exists
-      await execFile("touch", [join(tempDir, "README.md")]);
+      await writeFile(join(tempDir, "README.md"), "");
       await execGit(["add", "README.md"], tempDir);
       await execGit(["commit", "-m", "init"], tempDir);
 
@@ -126,7 +126,7 @@ describe("git utilities", () => {
       await execGit(["init", "-b", "master"], tempDir);
       await execGit(["config", "user.email", "test@test.com"], tempDir);
       await execGit(["config", "user.name", "Test"], tempDir);
-      await execFile("touch", [join(tempDir, "README.md")]);
+      await writeFile(join(tempDir, "README.md"), "");
       await execGit(["add", "README.md"], tempDir);
       await execGit(["commit", "-m", "init"], tempDir);
 
@@ -140,7 +140,7 @@ describe("git utilities", () => {
       await execGit(["init", "-b", "production"], tempDir);
       await execGit(["config", "user.email", "test@test.com"], tempDir);
       await execGit(["config", "user.name", "Test"], tempDir);
-      await execFile("touch", [join(tempDir, "README.md")]);
+      await writeFile(join(tempDir, "README.md"), "");
       await execGit(["add", "README.md"], tempDir);
       await execGit(["commit", "-m", "init"], tempDir);
 

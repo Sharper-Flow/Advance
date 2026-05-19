@@ -163,7 +163,9 @@ export const PROVIDER_HINTS: Readonly<Record<ProviderHintKey, string>> = {
  *
  * Do not infer hints from free-text model names. If a future provider/model
  * cannot be identified structurally, no hint is emitted. */
-export const PROVIDER_HINT_BY_PROVIDER_ID: Readonly<Record<string, ProviderHintKey>> = {
+export const PROVIDER_HINT_BY_PROVIDER_ID: Readonly<
+  Record<string, ProviderHintKey>
+> = {
   anthropic: "claude",
   openai: "gpt",
   "zai-coding-plan": "glm",

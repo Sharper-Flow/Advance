@@ -346,9 +346,7 @@ describe("sync-global.sh", () => {
       expect(providerEval).toContain(
         "single ADV runtime prompt, no provider hint",
       );
-      expect(providerEval).toContain(
-        "return `${base}\\n\\n${hintContent}`",
-      );
+      expect(providerEval).toContain("return `${base}\\n\\n${hintContent}`");
       expect(providerEval).not.toContain("stripped.indexOf(endMarker)");
     });
   });
@@ -364,13 +362,15 @@ describe("sync-global.sh", () => {
       (r.scenarios ?? []).map((s) => s.id),
     );
 
-    test("provider docs describe runtime bodies, prompt parts, prompt-only config, and metrics", () => {
+    test("provider docs describe single ADV runtime hints, manual migration, and metrics", () => {
       for (const required of [
-        "agent-parts/advance/adv.md",
-        "agent-parts/advance/providers/{provider}.md",
-        "runtime canary",
-        "prompt-only",
-        "generated_provider_file",
+        "one runtime orchestrator agent: `adv`",
+        "Runtime Hint Mapping",
+        "output.system[0]",
+        "Manual One-Time Migration",
+        "agent.adv-{provider}.prompt",
+        "canonical_adv_prompt",
+        "provider_hint",
         "selected_agent_runtime_prompt",
       ]) {
         expect(`${assemblyDoc}\n${smokeDoc}`).toContain(required);

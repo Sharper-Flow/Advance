@@ -313,7 +313,9 @@ describe("assembleSystemBlock", () => {
     });
 
     it("emits no provider hint when provider identity is missing", () => {
-      const block = assembleSystemBlock(cleanInput({ currentProviderID: null }));
+      const block = assembleSystemBlock(
+        cleanInput({ currentProviderID: null }),
+      );
       expect(block).toBeNull();
     });
 
