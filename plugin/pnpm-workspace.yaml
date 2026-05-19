@@ -1,0 +1,10 @@
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  msgpackr-extract: true
+  protobufjs: true
+onlyBuiltDependencies:
+  - '@swc/core'
+  - esbuild
+  - msgpackr-extract
+  - protobufjs

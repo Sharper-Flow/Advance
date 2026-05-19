@@ -192,6 +192,10 @@ const setTitle = (title: string): void => {
     fs.writeFileSync("/dev/tty", sequence);
   } catch (ttyError) {
     log(`setTitle /dev/tty write failed: ${String(ttyError)}`);
+    if (!process.stdout.isTTY) {
+      log("setTitle stdout fallback skipped: stdout is not a TTY");
+      return;
+    }
     try {
       process.stdout.write(sequence);
     } catch (stdoutError) {
