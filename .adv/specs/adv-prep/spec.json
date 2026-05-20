@@ -3,8 +3,8 @@
   "name": "adv-prep",
   "title": "ADV Prep Command",
   "purpose": "Defines the responsibilities and boundaries of /adv-prep. The prep command is the sole creator and sequencer of tasks. It synthesizes tasks from validated design decisions, runs gap analysis, validates task ordering, and ensures implementation readiness.",
-  "version": "1.1.0",
-  "updated_at": "2026-03-14T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-05-20T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-prep-out1",
@@ -121,6 +121,36 @@
           "then": [
             "Only adv_gate_complete with gateId 'planning' is called",
             "No other gates are completed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-prepArtifactExcerpt01",
+      "title": "Prep Approval Surfaces Source Artifact Excerpts",
+      "body": "/adv-prep MUST surface concise proposal, agreement, and design excerpts relevant to the synthesized task graph before planning approval. The excerpts must show what the user is approving for autonomous execution and must not replace the underlying artifacts as the source of truth.",
+      "priority": "must",
+      "tags": ["prep", "approval", "artifacts", "planning"],
+      "scenarios": [
+        {
+          "id": "rq-prepArtifactExcerpt01.1",
+          "title": "Planning approval includes relevant artifact excerpts",
+          "given": ["A change has proposal, agreement, and design artifacts"],
+          "when": "/adv-prep presents the planning approval checkpoint",
+          "then": [
+            "The approval view includes concise excerpts from proposal, agreement, and design relevant to task synthesis",
+            "The approval view identifies the generated task graph derived from those artifacts",
+            "The underlying artifacts remain the source of truth"
+          ]
+        },
+        {
+          "id": "rq-prepArtifactExcerpt01.2",
+          "title": "Missing excerpt source is reported",
+          "given": ["A source artifact expected by prep is missing or unavailable"],
+          "when": "/adv-prep prepares the approval checkpoint",
+          "then": [
+            "The missing artifact is reported as a readiness gap",
+            "Prep does not silently approve a task graph without showing the relevant source basis"
           ]
         }
       ]

@@ -7,7 +7,7 @@ phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped
 ---
 # ADV Prep — Pre-Implementation Gap Analysis
 Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → add them via ADV tools. Uses 4-Step Gap Analysis and IEEE completeness criteria. Runs **inline** — no sub-agents.
-<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 -->
+<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-prepArtifactExcerpt01 -->
 
 ## Command Boundary
 **Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator per rq-prep-out1), gap analysis (rq-prep-scope1), task sequencing with dependencies.

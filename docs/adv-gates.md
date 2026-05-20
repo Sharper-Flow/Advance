@@ -35,6 +35,8 @@ The signal-driven model exposes per-gate state transitions via dedicated signals
 
 ## Enforcement Rules
 
+<!-- rq-gateArtifactEnforcement01 rq-gateReadiness01 rq-gateArtifactAudit01 rq-acceptanceProjection01 -->
+
 1. **Sequential**: Gates MUST be completed in order (cannot skip ahead)
 2. **Blocking**: Archive/Complete BLOCKS unless all 7 gates satisfied
 3. **Cancelled Tasks**: At `execution` gate, cancelled tasks need user approval
