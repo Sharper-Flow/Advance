@@ -47,4 +47,12 @@ describe("trunk write firewall spec assets", () => {
       ),
     ).toBe(true);
   });
+
+  test("advance project config opts into strict worktree enforcement", () => {
+    const projectConfig = JSON.parse(readRepoFile("project.json")) as {
+      features?: { worktree_guard_enforce?: unknown };
+    };
+
+    expect(projectConfig.features?.worktree_guard_enforce).toBe(true);
+  });
 });
