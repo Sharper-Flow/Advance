@@ -139,7 +139,7 @@ fi
 ADV_PLUGIN_PATH="$REPO_ROOT/plugin"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
-echo "==> ADV sync-global ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
+echo "==> ADV deploy-local ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
 if [ "$DRY_RUN" = true ]; then
 	echo "    preview mode: --dry-run enabled"
 fi

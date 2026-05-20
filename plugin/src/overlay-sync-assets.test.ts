@@ -218,7 +218,7 @@ describe("overlay sync script support", () => {
       expect(fixResult.status).toBe(0);
       const syncOutput = `${fixResult.stdout}${fixResult.stderr}`;
       const canonicalRootMatch = syncOutput.match(
-        /ADV sync-global \(fix\):\s+(.*?)\s+->/,
+        /ADV deploy-local \(fix\):\s+(.*?)\s+->/,
       );
       const canonicalRoot = canonicalRootMatch?.[1] ?? REPO_ROOT;
 
