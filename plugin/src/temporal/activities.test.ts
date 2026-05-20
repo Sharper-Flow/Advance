@@ -3,6 +3,7 @@ import { mkdir, writeFile, readFile } from "fs/promises";
 import { join } from "path";
 
 import {
+  inspectArtifactActivity,
   readArtifactActivity,
   writeArtifactActivity,
   listSpecsActivity,
@@ -55,7 +56,7 @@ describe("temporal activities", () => {
       }
     });
 
-    it("supports all four artifact kinds", async () => {
+    it("supports all workflow artifact kinds", async () => {
       const dir = await createTempDir();
       try {
         const changesDir = join(dir, "changes");
@@ -65,12 +66,14 @@ describe("temporal activities", () => {
         await writeFile(join(changeDir, "problem-statement.md"), "PS");
         await writeFile(join(changeDir, "agreement.md"), "A");
         await writeFile(join(changeDir, "design.md"), "D");
+        await writeFile(join(changeDir, "acceptance.md"), "ACCEPT");
 
         for (const [kind, expected] of [
           ["proposal", "P"],
           ["problem-statement", "PS"],
           ["agreement", "A"],
           ["design", "D"],
+          ["acceptance", "ACCEPT"],
         ] as const) {
           const result = await readArtifactActivity({
             changesDir,
@@ -129,6 +132,97 @@ describe("temporal activities", () => {
         expect(result.ok).toBe(true);
         const updated = await readFile(join(changeDir, "proposal.md"), "utf-8");
         expect(updated).toBe("NEW");
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("writes acceptance.md projection artifacts", async () => {
+      const dir = await createTempDir();
+      try {
+        const changesDir = join(dir, "changes");
+
+        const result = await writeArtifactActivity({
+          changesDir,
+          changeId: "accepted",
+          kind: "acceptance",
+          content: "# Acceptance\n\nAll contract rows passed.",
+        });
+
+        expect(result.ok).toBe(true);
+        const written = await readFile(
+          join(changesDir, "accepted", "acceptance.md"),
+          "utf-8",
+        );
+        expect(written).toContain("All contract rows passed");
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+  });
+
+  describe("inspectArtifactActivity", () => {
+    it("returns metadata for valid artifact content without returning content", async () => {
+      const dir = await createTempDir();
+      try {
+        const changesDir = join(dir, "changes");
+        const changeDir = join(changesDir, "myChange");
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(join(changeDir, "design.md"), "# Design\n\nBody");
+
+        const result = await inspectArtifactActivity({
+          changesDir,
+          changeId: "myChange",
+          kind: "design",
+        });
+
+        expect(result.ok).toBe(true);
+        expect(result.kind).toBe("design");
+        expect(result.path).toMatch(/design\.md$/);
+        expect(result.nonWhitespaceChars).toBe(11);
+        expect(result.contentHash).toMatch(/^[a-f0-9]{64}$/);
+        expect("content" in result).toBe(false);
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("returns deterministic metadata for blank artifacts", async () => {
+      const dir = await createTempDir();
+      try {
+        const changesDir = join(dir, "changes");
+        const changeDir = join(changesDir, "myChange");
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(join(changeDir, "agreement.md"), " \n\t ");
+
+        const result = await inspectArtifactActivity({
+          changesDir,
+          changeId: "myChange",
+          kind: "agreement",
+        });
+
+        expect(result.ok).toBe(true);
+        expect(result.nonWhitespaceChars).toBe(0);
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("returns structured missing errors", async () => {
+      const dir = await createTempDir();
+      try {
+        const result = await inspectArtifactActivity({
+          changesDir: join(dir, "changes"),
+          changeId: "missingChange",
+          kind: "acceptance",
+        });
+
+        expect(result).toMatchObject({
+          ok: false,
+          kind: "acceptance",
+          code: "missing",
+        });
+        expect(result.path).toMatch(/acceptance\.md$/);
       } finally {
         await cleanupTempDir(dir);
       }
