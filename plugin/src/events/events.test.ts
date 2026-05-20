@@ -17,6 +17,7 @@ import {
   resetStatusForTest,
   trackRetry,
   clearRetry,
+  cleanup as cleanupStatus,
   getDoomLoopInfo,
   getEffectiveDoomLoopInfo,
 } from "./status";
@@ -132,6 +133,23 @@ describe("Status State Management", () => {
       initializeStatus("test-project");
       // After resetStatusForTest, init reverts to destructive reset
       expect(getStatus().activeChangeId).toBeNull();
+    });
+
+    it("cleanup resets status state and the idempotency sentinel", () => {
+      initializeStatus("trunk-basename");
+      setActiveChange("change-X");
+      setStatus("WORK");
+      setTaskProgress(2, 4);
+
+      cleanupStatus();
+      initializeStatus("fresh-session");
+
+      expect(getStatus()).toMatchObject({
+        projectName: "fresh-session",
+        currentStatus: "IDLE",
+        activeChangeId: null,
+        taskProgress: null,
+      });
     });
   });
 

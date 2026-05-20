@@ -16,7 +16,10 @@
  */
 
 import { join } from "node:path";
-import { getWorktreeBase } from "../../utils/project-id";
+import {
+  assertPathInsideDirectory,
+  getWorktreeBase,
+} from "../../utils/project-id";
 import type {
   PendingWorktreeDelete,
   SessionRecord,
@@ -461,7 +464,10 @@ export async function getWorktreePath(
       `getWorktreePath: unable to resolve project id for ${projectRoot}`,
     );
   }
-  return join(getWorktreeBase(projectId), branch);
+  const base = getWorktreeBase(projectId);
+  const worktreePath = join(base, branch);
+  assertPathInsideDirectory(worktreePath, base);
+  return worktreePath;
 }
 
 export async function updateWorktreeRecord(

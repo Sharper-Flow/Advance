@@ -54,12 +54,6 @@ export interface AdvWorktreeCreateRuntime {
   sessionID?: string;
 }
 
-function runtimeReady(
-  runtime?: AdvWorktreeCreateRuntime,
-): runtime is Required<AdvWorktreeCreateRuntime> {
-  return !!runtime?.serverUrl && !!runtime.sessionID;
-}
-
 async function resolveCreateRuntimeMode(
   projectRoot: string,
   log: ReturnType<typeof createLogger>,
@@ -70,10 +64,17 @@ async function resolveCreateRuntimeMode(
   | { mode: "terminal" | "spawn"; warning?: string }
   | { mode: "blocked"; output: Record<string, unknown> }
 > {
-  if (!runtimeReady(runtime)) return { mode: "legacy" };
+  if (!runtime?.serverUrl) return { mode: "legacy" };
 
   const config = await loadWorktreeConfig(projectRoot, log);
   if (config.mode !== "warp") return { mode: config.mode };
+
+  const warningMissingSession =
+    "mode:warp unavailable because the OpenCode tool context did not include a sessionID; falling back to mode:terminal.";
+  if (!runtime.sessionID) {
+    log.warn(`[worktree] ${warningMissingSession}`);
+    return { mode: "terminal", warning: warningMissingSession };
+  }
 
   const warningFlag =
     "mode:warp unavailable because OpenCode workspace sync is not enabled. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true (or OPENCODE_EXPERIMENTAL=true) and restart OpenCode to enable workspace warp; falling back to mode:terminal.";
@@ -83,10 +84,24 @@ async function resolveCreateRuntimeMode(
   }
 
   const warpDeps: WarpDeps = { serverUrl: runtime.serverUrl };
-  const currentWorkspaceID = await getSessionWorkspaceID(
-    warpDeps,
-    runtime.sessionID,
-  );
+  const warningEndpoint =
+    "mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.";
+  if (!(await workspaceAndWarpAvailable(warpDeps))) {
+    log.warn(`[worktree] ${warningEndpoint}`);
+    return { mode: "terminal", warning: warningEndpoint };
+  }
+
+  let currentWorkspaceID: string | null;
+  try {
+    currentWorkspaceID = await getSessionWorkspaceID(
+      warpDeps,
+      runtime.sessionID,
+    );
+  } catch (error) {
+    const warningSession = `mode:warp unavailable because current session lookup failed (${error}); falling back to mode:terminal.`;
+    log.warn(`[worktree] ${warningSession}`);
+    return { mode: "terminal", warning: warningSession };
+  }
   if (currentWorkspaceID) {
     return {
       mode: "blocked",
@@ -98,13 +113,6 @@ async function resolveCreateRuntimeMode(
         hint: "Open a fresh OpenCode session from the trunk checkout to create a new worktree.",
       },
     };
-  }
-
-  const warningEndpoint =
-    "mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.";
-  if (!(await workspaceAndWarpAvailable(warpDeps))) {
-    log.warn(`[worktree] ${warningEndpoint}`);
-    return { mode: "terminal", warning: warningEndpoint };
   }
 
   return { mode: "warp", warpDeps };
@@ -300,15 +308,21 @@ export const advWorktreeTools = {
     execute: async (
       args: { reason: string; dryRun?: boolean },
       store: Store,
+      options: { serverUrl?: URL } = {},
     ) => {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
+      const warpDeps: WarpDeps | undefined = options.serverUrl
+        ? { serverUrl: options.serverUrl }
+        : undefined;
       const result = await advWorktreeCleanup(args.reason, {
         projectRoot,
         database,
         log,
         dryRun: args.dryRun,
+        store,
+        warpDeps,
       });
       return formatToolOutput({
         success: true,

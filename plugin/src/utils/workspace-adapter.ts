@@ -1,4 +1,10 @@
 import type { WorkspaceAdapter, WorkspaceInfo } from "@opencode-ai/plugin";
+import { isAbsolute, join, resolve } from "node:path";
+import {
+  assertPathInsideDirectory,
+  getDataHome,
+  getWorktreeHomeOverride,
+} from "./project-id";
 
 type AdvWorktreeExtra = {
   directory?: unknown;
@@ -8,12 +14,24 @@ type AdvWorktreeExtra = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+const getAllowedWorktreeRoot = (): string =>
+  getWorktreeHomeOverride() ?? join(getDataHome(), "opencode/worktree");
+
+const validateAdvWorktreeDirectory = (directory: string): string => {
+  if (!isAbsolute(directory)) {
+    throw new Error("adv-worktree adapter directory must be absolute");
+  }
+  const normalized = resolve(directory);
+  assertPathInsideDirectory(normalized, getAllowedWorktreeRoot());
+  return normalized;
+};
+
 const getAdvWorktreeDirectory = (info: WorkspaceInfo): string => {
   const extra: AdvWorktreeExtra = isRecord(info.extra) ? info.extra : {};
   if (typeof extra.directory !== "string" || extra.directory.length === 0) {
     throw new Error("adv-worktree adapter requires info.extra.directory");
   }
-  return extra.directory;
+  return validateAdvWorktreeDirectory(extra.directory);
 };
 
 /**
@@ -42,7 +60,10 @@ export function buildAdvWorktreeAdapter(): WorkspaceAdapter {
       if (typeof info.directory !== "string" || info.directory.length === 0) {
         throw new Error("adv-worktree adapter target requires info.directory");
       }
-      return { type: "local", directory: info.directory };
+      return {
+        type: "local",
+        directory: validateAdvWorktreeDirectory(info.directory),
+      };
     },
   };
 }

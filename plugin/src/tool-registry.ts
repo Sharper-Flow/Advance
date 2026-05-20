@@ -635,10 +635,23 @@ export function createToolMap(
         ),
       ),
     ),
-    adv_worktree_cleanup: bindTool(
-      advWorktreeTools.adv_worktree_cleanup,
-      "adv_worktree_cleanup",
-      store,
+    adv_worktree_cleanup: registerTool(
+      advWorktreeTools.adv_worktree_cleanup.description,
+      advWorktreeTools.adv_worktree_cleanup.args,
+      namedExecute(
+        "adv_worktree_cleanup",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_cleanup.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_cleanup.execute
+              >[0],
+              store,
+              { serverUrl },
+            ),
+          "adv_worktree_cleanup",
+        ),
+      ),
     ),
     adv_worktree_triage: bindTool(
       advWorktreeTools.adv_worktree_triage,
@@ -698,6 +711,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_cleanup.execute
               >[0],
               store,
+              { serverUrl },
             ),
           "worktree_cleanup",
         ),

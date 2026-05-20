@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { buildAdvWorktreeAdapter } from "./workspace-adapter.js";
 
@@ -9,13 +9,22 @@ const baseInfo = {
   branch: "change/fixWorktreeSessionRoot",
   directory: null,
   extra: {
-    directory: "/tmp/advance-worktree",
+    directory:
+      "/tmp/adv-workspace-adapter/opencode/worktree/proj-123/change/fixWorktreeSessionRoot",
     branch: "change/fixWorktreeSessionRoot",
   },
   projectID: "proj-123",
 };
 
 describe("buildAdvWorktreeAdapter", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const stubWorktreeRoot = () => {
+    vi.stubEnv("XDG_DATA_HOME", "/tmp/adv-workspace-adapter");
+  };
+
   it("identifies the custom ADV worktree adapter", () => {
     const adapter = buildAdvWorktreeAdapter();
 
@@ -24,11 +33,13 @@ describe("buildAdvWorktreeAdapter", () => {
   });
 
   it("configures the workspace directory from extra.directory", async () => {
+    stubWorktreeRoot();
     const adapter = buildAdvWorktreeAdapter();
 
     await expect(adapter.configure(baseInfo)).resolves.toEqual({
       ...baseInfo,
-      directory: "/tmp/advance-worktree",
+      directory:
+        "/tmp/adv-workspace-adapter/opencode/worktree/proj-123/change/fixWorktreeSessionRoot",
     });
   });
 
@@ -49,11 +60,31 @@ describe("buildAdvWorktreeAdapter", () => {
   });
 
   it("returns a local target rooted at the configured worktree directory", async () => {
+    stubWorktreeRoot();
+    const adapter = buildAdvWorktreeAdapter();
+    const directory =
+      "/tmp/adv-workspace-adapter/opencode/worktree/proj-123/change/fixWorktreeSessionRoot";
+
+    await expect(adapter.target({ ...baseInfo, directory })).resolves.toEqual({
+      type: "local",
+      directory,
+    });
+  });
+
+  it("rejects directories outside the ADV worktree namespace", async () => {
+    stubWorktreeRoot();
     const adapter = buildAdvWorktreeAdapter();
 
     await expect(
-      adapter.target({ ...baseInfo, directory: "/tmp/advance-worktree" }),
-    ).resolves.toEqual({ type: "local", directory: "/tmp/advance-worktree" });
+      adapter.configure({
+        ...baseInfo,
+        extra: { directory: "/tmp/not-an-adv-worktree" },
+      }),
+    ).rejects.toThrow("outside allowed namespace");
+
+    await expect(
+      adapter.target({ ...baseInfo, directory: "/tmp/not-an-adv-worktree" }),
+    ).rejects.toThrow("outside allowed namespace");
   });
 
   it("rejects target resolution before configure populates directory", async () => {

@@ -146,6 +146,19 @@ describe("workspace-warp", () => {
     ).rejects.toThrow("createAdvWorkspace failed: 400 bad payload");
   });
 
+  it("truncates long endpoint error bodies", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(textResponse("x".repeat(1200), { status: 500 }));
+
+    await expect(
+      createAdvWorkspace(
+        { serverUrl, fetchImpl },
+        { directory: "/tmp/wt", branch: "change/test" },
+      ),
+    ).rejects.toThrow(/x{1000}…\[truncated\]/);
+  });
+
   it("rejects workspace create responses without a string id", async () => {
     const fetchImpl = vi
       .fn()

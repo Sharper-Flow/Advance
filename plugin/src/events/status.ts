@@ -172,6 +172,14 @@ export const resetStatus = (): void => {
  */
 export const cleanup = (): void => {
   cleanupTerminal();
+  initialized = false;
+  state = {
+    currentStatus: "IDLE",
+    projectName: "Unknown",
+    activeChangeId: null,
+    taskProgress: null,
+    lastUpdated: Date.now(),
+  };
   retryTrackers.clear();
 };
 

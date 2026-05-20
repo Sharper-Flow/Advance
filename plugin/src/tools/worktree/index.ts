@@ -225,6 +225,18 @@ const branchNameSchema = z
   )
   .refine((name) => !name.endsWith(".lock"), "Cannot end with .lock");
 
+function validateBranchNameInput(
+  value: string,
+  label = "Branch name",
+): { ok: true } | { ok: false; message: string } {
+  const parsed = branchNameSchema.safeParse(value);
+  if (parsed.success) return { ok: true };
+  return {
+    ok: false,
+    message: `${label}: ${parsed.error.issues[0]?.message ?? "invalid branch name"}`,
+  };
+}
+
 /**
  * Worktree plugin configuration schema.
  * Config file: .opencode/worktree.jsonc
@@ -831,7 +843,8 @@ export type AdvWorktreeCreateResult =
       branch: string;
       path: string;
       reason: string;
-    };
+    }
+  | { ok: false; error: "INVALID_BRANCH"; reason: string };
 
 export async function advWorktreeCreate(
   branch: string,
@@ -839,6 +852,41 @@ export async function advWorktreeCreate(
   deps: AdvWorktreeCreateDeps,
 ): Promise<AdvWorktreeCreateResult> {
   const repoRoot = deps.projectRoot;
+
+  const branchValidation = validateBranchNameInput(branch);
+  if (!branchValidation.ok) {
+    return {
+      ok: false,
+      error: "INVALID_BRANCH",
+      reason: branchValidation.message,
+    };
+  }
+  if (opts.base) {
+    const baseValidation = validateBranchNameInput(opts.base, "Base branch");
+    if (!baseValidation.ok) {
+      return {
+        ok: false,
+        error: "INVALID_BRANCH",
+        reason: baseValidation.message,
+      };
+    }
+  }
+
+  const inferredChangeId = inferChangeIdFromBranch(branch);
+  const ownerChangeIds = await findBranchOwnersAcrossChanges(
+    deps.database,
+    branch,
+    inferredChangeId,
+  );
+  if (ownerChangeIds.length > 0) {
+    return {
+      ok: false,
+      error: "BRANCH_IN_USE",
+      branch,
+      ownerChangeIds,
+      hint: "Branch is already registered by an active ADV change workflow",
+    };
+  }
 
   // Step 0: reuse an already-registered git worktree before any
   // project-workflow recovery, stale-basis checks, flock, or git worktree add.
@@ -865,22 +913,6 @@ export async function advWorktreeCreate(
     if (!pruneResult.ok) {
       return { ok: false, error: "GIT_FAILED", reason: pruneResult.error };
     }
-  }
-
-  const inferredChangeId = inferChangeIdFromBranch(branch);
-  const ownerChangeIds = await findBranchOwnersAcrossChanges(
-    deps.database,
-    branch,
-    inferredChangeId,
-  );
-  if (ownerChangeIds.length > 0) {
-    return {
-      ok: false,
-      error: "BRANCH_IN_USE",
-      branch,
-      ownerChangeIds,
-      hint: "Branch is already registered by an active ADV change workflow",
-    };
   }
 
   // Step 1: resolve base branch explicitly. NEVER fall through to HEAD.
@@ -1265,6 +1297,7 @@ export interface AdvWorktreeDeleteDeps {
 
 export type AdvWorktreeDeleteResult =
   | { ok: true; branch: string; path: string; dryRun?: boolean }
+  | { ok: false; error: "INVALID_BRANCH"; reason: string }
   | { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
   | { ok: false; error: "INTEGRATION_REQUIRED"; reason: string; hint: string }
   | { ok: false; error: "UNCOMMITTED_WORK"; files: string[]; hint: string }
@@ -1422,6 +1455,15 @@ export async function advWorktreeDelete(
   opts: { force?: boolean; dryRun?: boolean } = {},
   deps: AdvWorktreeDeleteDeps,
 ): Promise<AdvWorktreeDeleteResult> {
+  const branchValidation = validateBranchNameInput(branch);
+  if (!branchValidation.ok) {
+    return {
+      ok: false,
+      error: "INVALID_BRANCH",
+      reason: branchValidation.message,
+    };
+  }
+
   // 1. Resolve registry entry and worktree path. Registry wins over path
   // derivation so missing-from-disk cleanup can operate on stale records.
   let registryEntry:
@@ -1894,6 +1936,8 @@ export interface AdvWorktreeCleanupDeps {
   database: Database;
   log: Logger;
   dryRun?: boolean;
+  store?: Store;
+  warpDeps?: WarpDeps;
 }
 
 export async function advWorktreeCleanup(
@@ -1937,6 +1981,8 @@ export async function advWorktreeCleanup(
         database: deps.database,
         log: deps.log,
         worktreePath,
+        store: deps.store,
+        warpDeps: deps.warpDeps,
       },
     );
 
@@ -2020,7 +2066,13 @@ export const WorktreePlugin: Plugin = async (ctx) => {
       const result = await advWorktreeDelete(
         branch,
         { force: options.forceAttempts },
-        { projectRoot: directory, database, log, worktreePath },
+        {
+          projectRoot: directory,
+          database,
+          log,
+          worktreePath,
+          warpDeps: { serverUrl },
+        },
       );
 
       if (result.ok) {
@@ -2103,6 +2155,8 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                 return `Failed to create worktree: ${createResult.reason}`;
               case "SETUP_FAILED":
                 return `Failed to create worktree: setup failed for ${createResult.branch} at ${createResult.path}. ${createResult.reason}`;
+              case "INVALID_BRANCH":
+                return `Failed to create worktree: invalid branch. ${createResult.reason}`;
               default: {
                 // Exhaustiveness check — TS errors here if a new variant
                 // is added to AdvWorktreeCreateResult without updating
@@ -2269,33 +2323,30 @@ export const WorktreePlugin: Plugin = async (ctx) => {
         async execute(args, toolCtx) {
           const worktreeConfig = await loadWorktreeConfig(directory, log);
 
-          // Find the worktree session record. T13: getSession now async.
-          const session = worktreeConfig.inline
-            ? await (async () => {
-                // Inline mode: look up by "inline:<branch>" key
-                if (!args.branch) {
-                  return null;
-                }
-                return getSession(database, `inline:${args.branch}`);
-              })()
-            : await getSession(database, toolCtx?.sessionID ?? "");
-
           if (worktreeConfig.inline && !args.branch) {
             return `In inline mode, you must provide the branch name of the worktree to delete.`;
           }
 
-          if (!session) {
+          // The session registry is retired; branch-addressed deletes are the
+          // structural path for terminal/warp cleanup. Keep session lookup only
+          // as a legacy fallback for old standalone spawn records.
+          const session = args.branch
+            ? null
+            : await getSession(database, toolCtx?.sessionID ?? "");
+
+          if (!session && !args.branch) {
             return `No worktree found${args.branch ? ` for branch "${args.branch}"` : " associated with this session"}`;
           }
 
           const result = await advWorktreeDelete(
-            session.branch ?? args.branch ?? "",
+            session?.branch ?? args.branch ?? "",
             { force: args.force ?? false },
             {
               projectRoot: directory,
               database,
               log,
-              worktreePath: session.path,
+              worktreePath: session?.path,
+              warpDeps: { serverUrl },
             },
           );
 
@@ -2306,6 +2357,8 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           switch (result.error) {
             case "WORKTREE_NOT_FOUND":
               return `Worktree not found for branch "${result.branch}".`;
+            case "INVALID_BRANCH":
+              return `Invalid branch: ${result.reason}`;
             case "INTEGRATION_REQUIRED":
               return `Integration required: ${result.reason}. ${result.hint}`;
             case "UNCOMMITTED_WORK":

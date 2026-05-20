@@ -221,6 +221,49 @@ describe.skipIf(!isLinux)(
       expect(workflowExecuteUpdate).not.toHaveBeenCalled();
     });
 
+    it("blocks an existing git worktree when another active change owns the branch", async () => {
+      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-owned-"));
+      rmSync(existingPath, { recursive: true, force: true });
+      cleanupPaths.push(existingPath);
+      execSync(`git worktree add -b change/owned ${existingPath} main`, {
+        cwd: repoRoot,
+      });
+      workflowList.mockImplementationOnce(() =>
+        (async function* () {
+          yield {
+            workflowId: "adv/change/test-id/other-change",
+          };
+        })(),
+      );
+
+      const result = await advWorktreeCreate(
+        "change/owned",
+        {},
+        createMockDeps(repoRoot),
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        error: "BRANCH_IN_USE",
+        branch: "change/owned",
+        ownerChangeIds: ["other-change"],
+        hint: "Branch is already registered by an active ADV change workflow",
+      });
+    });
+
+    it("rejects invalid branch names before deriving the worktree path", async () => {
+      const result = await advWorktreeCreate(
+        "../escape",
+        {},
+        createMockDeps(repoRoot),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "INVALID_BRANCH",
+      });
+    });
+
     it("prunes stale worktree metadata before fresh create", async () => {
       const stalePath = mkdtempSync(join(tmpdir(), "adv-wt-stale-"));
       rmSync(stalePath, { recursive: true, force: true });

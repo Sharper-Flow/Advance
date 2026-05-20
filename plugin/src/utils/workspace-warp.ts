@@ -14,9 +14,14 @@ export interface WorkspaceHandle {
 
 const fetchWith = (deps: WarpDeps): typeof fetch => deps.fetchImpl ?? fetch;
 
+const MAX_ERROR_RESPONSE_CHARS = 1000;
+
 const responseText = async (response: Response): Promise<string> => {
   try {
-    return await response.text();
+    const text = await response.text();
+    return text.length > MAX_ERROR_RESPONSE_CHARS
+      ? `${text.slice(0, MAX_ERROR_RESPONSE_CHARS)}…[truncated]`
+      : text;
   } catch {
     return "";
   }

@@ -128,6 +128,55 @@ describe("advWorktreeTools", () => {
     expect(out).toContain('"workdir":"/wt"');
   });
 
+  it("adv_worktree_create downgrades to terminal mode when sessionID is unavailable", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
+    worktreeMock.advWorktreeCreate.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+      path: "/wt",
+    });
+
+    const out = await advWorktreeTools.adv_worktree_create.execute(
+      { branch: "change/x", base: "trunk" },
+      store,
+      { serverUrl: new URL("http://127.0.0.1:4096") },
+    );
+
+    expect(worktreeMock.loadWorktreeConfig).toHaveBeenCalledWith(
+      "/repo",
+      expect.any(Object),
+    );
+    expect(workspaceWarpMock.workspaceAndWarpAvailable).not.toHaveBeenCalled();
+    expect(out).toContain('"mode":"terminal"');
+    expect(out).toContain("sessionID");
+  });
+
+  it("adv_worktree_create downgrades when workspace endpoint is unavailable before session lookup", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
+    worktreeMock.advWorktreeCreate.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+      path: "/wt",
+    });
+    workspaceWarpMock.warpFlagEnabled.mockReturnValue(true);
+    workspaceWarpMock.workspaceAndWarpAvailable.mockResolvedValue(false);
+
+    const out = await advWorktreeTools.adv_worktree_create.execute(
+      { branch: "change/x", base: "trunk" },
+      store,
+      { serverUrl: new URL("http://127.0.0.1:4096"), sessionID: "ses-1" },
+    );
+
+    expect(workspaceWarpMock.getSessionWorkspaceID).not.toHaveBeenCalled();
+    expect(workspaceWarpMock.createAdvWorkspace).not.toHaveBeenCalled();
+    expect(out).toContain('"mode":"terminal"');
+    expect(out).toContain("/experimental/workspace");
+  });
+
   it("adv_worktree_delete delegates to advWorktreeDelete", async () => {
     const database = { projectDir: "/repo", projectId: "p" };
     stateMock.initStateDb.mockResolvedValue(database);
@@ -183,11 +232,17 @@ describe("advWorktreeTools", () => {
     const out = await advWorktreeTools.adv_worktree_cleanup.execute(
       { reason: "retry cleanup" },
       store,
+      { serverUrl: new URL("http://127.0.0.1:4096") },
     );
 
     expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
       "retry cleanup",
-      expect.objectContaining({ projectRoot: "/repo", database }),
+      expect.objectContaining({
+        projectRoot: "/repo",
+        database,
+        store,
+        warpDeps: { serverUrl: new URL("http://127.0.0.1:4096") },
+      }),
     );
     expect(out).toContain("change/done");
     expect(out).toContain("change/live");
@@ -209,7 +264,12 @@ describe("advWorktreeTools", () => {
 
     expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
       "retry cleanup",
-      expect.objectContaining({ projectRoot: "/repo", database, dryRun: true }),
+      expect.objectContaining({
+        projectRoot: "/repo",
+        database,
+        dryRun: true,
+        store,
+      }),
     );
     expect(out).toContain('"dryRun":true');
   });
