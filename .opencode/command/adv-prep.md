@@ -102,6 +102,15 @@ When `ChangeContract` exists, `/adv-prep` must synthesize task refs alongside ta
 
 When creating tasks, include the structured `contract_refs` payload in task mutation path supported by current tool layer. Do not rely on prose-only labels as the source of truth.
 
+### Artifact Excerpts
+
+For artifact-backed gates, prep must preserve enough context for execution and review to diagnose workflow readiness failures without reading ADV state files directly:
+
+- Include a `problem-statement.md excerpt` or proposal summary when task scope depends on the confirmed problem.
+- Include `agreement.md` acceptance/constraint excerpts in task verification notes when they drive `contract_refs.verifies` or `contract_refs.respects`.
+- Include `design.md` decision excerpts for tasks implementing architecture-sensitive behavior.
+- Do not create tasks that rely on manually editing `acceptance.md`; acceptance proof is generated from typed contract review state.
+
 ### Delegation Hints
 When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal execution routing:
 - `inline_required` — task must execute inline (complex, multi-file, architectural)
