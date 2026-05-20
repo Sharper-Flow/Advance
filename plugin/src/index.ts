@@ -62,6 +62,12 @@ import {
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { execGit, getDefaultBranch } from "./utils/git";
 import { resolveGitSessionContext } from "./utils/git-session";
+import {
+  evaluateTodoWriteGuard,
+  extractTodoTaskIds,
+  normalizeTodoWriteItems,
+  type TodoWriteTaskState,
+} from "./utils/todowrite-guard";
 
 export { resolveGitSessionContext } from "./utils/git-session";
 
@@ -471,6 +477,68 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
 
     if (toolName === "question") {
       setFlags({ permissionPending: true, sessionIdle: false });
+    }
+
+    if (toolName.toLowerCase() === "todowrite") {
+      const callerSessionId =
+        typeof input.sessionID === "string" ? input.sessionID : undefined;
+      const isMainSession = Boolean(
+        mainSessionId && callerSessionId === mainSessionId,
+      );
+      const changeId = state.activeChange.id;
+      const todos = normalizeTodoWriteItems(args);
+
+      if (store && changeId && isMainSession) {
+        try {
+          const changeResult = await store.changes.get(changeId);
+          const change = changeResult.success ? changeResult.data : null;
+          const planningDone =
+            change?.gates?.planning?.status === "done" ||
+            change?.tasks.some((task) => task.status !== "cancelled");
+          const active = Boolean(
+            change && planningDone && change.tasks.length > 0,
+          );
+          const tasksById = new Map<string, TodoWriteTaskState>();
+
+          for (const task of change?.tasks ?? []) {
+            tasksById.set(task.id, {
+              id: task.id,
+              changeId,
+              status: task.status,
+            });
+          }
+
+          const referencedIds = todos.flatMap((todo) =>
+            typeof todo.content === "string"
+              ? extractTodoTaskIds(todo.content)
+              : [],
+          );
+          for (const taskId of referencedIds) {
+            if (tasksById.has(taskId)) continue;
+            const owner = await store.tasks.show(taskId);
+            if (owner) {
+              tasksById.set(taskId, {
+                id: owner.task.id,
+                changeId: owner.changeId,
+                status: owner.task.status,
+              });
+            }
+          }
+
+          const decision = evaluateTodoWriteGuard({
+            scope: { active, activeChangeId: changeId },
+            todos,
+            tasksById,
+          });
+          if (decision.kind === "block") throw new Error(decision.message);
+          if (decision.kind === "warn") debugLog(decision.message);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          if (message.startsWith("TodoWrite ")) throw error;
+          debugLog(`TodoWrite ADV guard warning: ${message}`);
+        }
+      }
     }
 
     const projectRoot = directory;

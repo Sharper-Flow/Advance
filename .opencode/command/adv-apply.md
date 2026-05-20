@@ -146,8 +146,8 @@ After worktree creation, verify that task-referenced paths exist in the worktree
    a. Discover actual structure: `glob pattern: "**/{basename}" workdir: {workdir}` or `bash "ls {workdir}/"` to find file or its directory.
    b. If found at a different path → record the corrected path and use it for all subsequent operations on this task.
    c. If not found at all → file may not exist on the default branch (feature-branch-only file), or the path was assumed from common patterns. In this case:
-      - If file is essential for task → check if it exists in the main checkout: `bash "test -e '{main-checkout}/{path}'"` and note the discrepancy. The worktree may need a rebase or file may need to be created differently.
-      - If file is advisory (pattern reference) → mark it as unavailable and proceed without it; do NOT block on missing pattern files.
+   - If file is essential for task → check if it exists in the main checkout: `bash "test -e '{main-checkout}/{path}'"` and note the discrepancy. The worktree may need a rebase or file may need to be created differently.
+   - If file is advisory (pattern reference) → mark it as unavailable and proceed without it; do NOT block on missing pattern files.
 4. For cross-repo tasks (detected via `target_repo`/`target_path` or path hints in title): resolve target repo from `related_repos` config or `target_path` and **switch `workdir`** to target repo path for that task. The ADV worktree is for current project; cross-repo task execution happens in target repo directly.
 5. Emit brief result: `Path verification: {N} OK, {M} corrected, {K} advisory-skipped, {L} to-create`
 
@@ -246,13 +246,13 @@ All cancellations require explicit user approval via `adv_task_cancel`. Cancella
 
 3. **Parse reply with regex (no LLM fallback):**
 
-   | Pattern               | Action                                                                         |
-   | --------------------- | ------------------------------------------------------------------------------ |
-   | `^approve all$`       | Cancel all listed tasks                                                        |
-   | `^reject all$`        | Keep all tasks active                                                          |
-   | `^keep ([\d,\s]+)$`   | Cancel inverse of listed numbers                                               |
-   | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers                                                 |
-   | `^(stop\|abort)$`     | Halt; do not cancel anything                                                   |
+   | Pattern               | Action                                                                     |
+   | --------------------- | -------------------------------------------------------------------------- |
+   | `^approve all$`       | Cancel all listed tasks                                                    |
+   | `^reject all$`        | Keep all tasks active                                                      |
+   | `^keep ([\d,\s]+)$`   | Cancel inverse of listed numbers                                           |
+   | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers                                             |
+   | `^(stop\|abort)$`     | Halt; do not cancel anything                                               |
    | Anything else         | Re-prompt with same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
 
 4. **Anchor phrase:** `approve all`
@@ -379,7 +379,11 @@ Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Detect via `pw
 
 ### TodoWrite Rules
 
-Use task IDs only (`tk-abc123`), not descriptions. Forces context lookup via `adv_task_show`.
+TodoWrite is a projection over ADV tasks, not the task source of truth. Copy `_todoProjection` rows (`tk-abc123 — title`) from `adv_task_ready` or `adv_change_show include.readyTasks:true`.
+
+- Unknown `tk-*` IDs, other-change IDs, and premature `completed` status are blocked during top-level active ADV execution.
+- Entries without `tk-*` IDs are scratchpad-only / warning-first.
+- Non-ADV work, early gates without tasks, degraded ADV state, and subagent scratchpads remain allowed.
 
 ### Anti-Patterns (PROHIBITED)
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   truncate,
+  buildTodoProjection,
   formatTaskReadyOutput,
   formatStatusOutput,
   formatValidationOutput,
@@ -40,7 +41,7 @@ describe("tool-formatters", () => {
         id: "tk-abc",
         title: "Implement auth",
       });
-      expect(result.todoFormat).toBe("tk-abc › Implement auth");
+      expect(result.todoFormat).toBe("tk-abc — Implement auth");
     });
 
     it("handles empty ready and blocked lists", () => {
@@ -75,6 +76,74 @@ describe("tool-formatters", () => {
       // Should be truncated to ~60 chars
       const line = result.readyList.split("\n")[0];
       expect(line.length).toBeLessThan(80);
+    });
+  });
+
+  describe("buildTodoProjection", () => {
+    it("builds current task plus next three ready tasks with em dash content", () => {
+      const result = buildTodoProjection({
+        current: {
+          id: "tk-current",
+          title: "Current task",
+          status: "in_progress",
+        },
+        ready: [
+          { id: "tk-1", title: "Ready one", status: "pending" },
+          { id: "tk-2", title: "Ready two", status: "pending" },
+          { id: "tk-3", title: "Ready three", status: "pending" },
+          { id: "tk-4", title: "Ready four", status: "pending" },
+        ],
+      });
+
+      expect(result).toEqual({
+        rows: [
+          {
+            taskId: "tk-current",
+            title: "Current task",
+            status: "in_progress",
+            content: "tk-current — Current task",
+          },
+          {
+            taskId: "tk-1",
+            title: "Ready one",
+            status: "pending",
+            content: "tk-1 — Ready one",
+          },
+          {
+            taskId: "tk-2",
+            title: "Ready two",
+            status: "pending",
+            content: "tk-2 — Ready two",
+          },
+          {
+            taskId: "tk-3",
+            title: "Ready three",
+            status: "pending",
+            content: "tk-3 — Ready three",
+          },
+        ],
+        format: "task-id-em-dash-title",
+        window: { includeCurrent: true, readyLimit: 3, omitDone: true },
+      });
+    });
+
+    it("omits done tasks from projection rows", () => {
+      const result = buildTodoProjection({
+        current: { id: "tk-done", title: "Done task", status: "done" },
+        ready: [
+          { id: "tk-ready", title: "Ready task", status: "pending" },
+          { id: "tk-done-2", title: "Done ready", status: "done" },
+        ],
+      });
+
+      expect(result.rows).toEqual([
+        {
+          taskId: "tk-ready",
+          title: "Ready task",
+          status: "pending",
+          content: "tk-ready — Ready task",
+        },
+      ]);
     });
   });
 

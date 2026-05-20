@@ -1921,6 +1921,129 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-todoProjection01",
+      "title": "TodoWrite Projection From ADV Tasks",
+      "body": "ADV task-readiness surfaces MUST expose a TodoWrite-safe projection derived from ADV task state. The projection is a bounded UI window over the authoritative task graph, not a second task source of truth.",
+      "priority": "must",
+      "tags": ["todowrite", "tasks", "projection", "guardrails"],
+      "scenarios": [
+        {
+          "id": "rq-todoProjection01.1",
+          "title": "adv_task_ready emits projection rows",
+          "given": ["A change has pending or in-progress ADV tasks"],
+          "when": "adv_task_ready is called",
+          "then": [
+            "The response includes _todoProjection rows derived from ADV task state",
+            "Each row content is formatted as `tk-id — title`",
+            "Completed ADV tasks are omitted from the projection"
+          ]
+        },
+        {
+          "id": "rq-todoProjection01.2",
+          "title": "change show ready-task include emits same projection",
+          "given": [
+            "A change has ready tasks",
+            "adv_change_show is called with include.readyTasks true"
+          ],
+          "when": "The response is built",
+          "then": [
+            "The response includes _todoProjection with the same row shape as adv_task_ready",
+            "The default projection window includes the current in-progress task when present plus the next three ready tasks",
+            "Legacy ready-task fields remain present for existing callers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-todoGuard01",
+      "title": "Scoped TodoWrite Drift Guardrails",
+      "body": "During top-level ADV execution after a planned task graph exists, TodoWrite calls MUST be checked against ADV task state. Hard blocks must be structural for task identity, ownership, and completion drift; warning-only paths must preserve non-ADV, early-gate, degraded-state, and subagent scratchpad usage.",
+      "priority": "must",
+      "tags": ["todowrite", "tasks", "runtime-guard", "projection"],
+      "scenarios": [
+        {
+          "id": "rq-todoGuard01.1",
+          "title": "Unknown task IDs are blocked in active execution",
+          "given": [
+            "A top-level ADV session has an active change with a planned task graph"
+          ],
+          "when": "TodoWrite contains a `tk-*` ID that is not known to the active change",
+          "then": ["The TodoWrite call is rejected with a deterministic error"]
+        },
+        {
+          "id": "rq-todoGuard01.2",
+          "title": "Other-change task IDs are blocked",
+          "given": [
+            "A top-level ADV session has an active change with a planned task graph"
+          ],
+          "when": "TodoWrite contains a task ID structurally owned by another change",
+          "then": ["The TodoWrite call is rejected with a deterministic error"]
+        },
+        {
+          "id": "rq-todoGuard01.3",
+          "title": "TodoWrite completion cannot outrun ADV completion",
+          "given": [
+            "A TodoWrite entry references an ADV task whose ADV status is not done"
+          ],
+          "when": "The TodoWrite entry status is completed during active top-level ADV execution",
+          "then": ["The TodoWrite call is rejected with a deterministic error"]
+        },
+        {
+          "id": "rq-todoGuard01.4",
+          "title": "Scratchpad and degraded scopes are preserved",
+          "given": [
+            "TodoWrite is used outside active top-level ADV execution or ADV state cannot be resolved safely"
+          ],
+          "when": "TodoWrite contains no task IDs or local scratchpad entries",
+          "then": [
+            "The call is allowed or warning-only",
+            "Non-ADV work, early gates without tasks, degraded ADV state, and subagent scratchpads are not hard-blocked"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolArgPreflight01",
+      "title": "ADV Tool Argument Preflight",
+      "body": "ADV tools MUST reject missing required arguments and high-risk empty mutation payloads at the plugin boundary before execution timeout safety nets. Validation errors must be deterministic, actionable, and redact sensitive received arguments.",
+      "priority": "must",
+      "tags": ["tools", "validation", "guardrails"],
+      "scenarios": [
+        {
+          "id": "rq-toolArgPreflight01.1",
+          "title": "Missing required args fail fast",
+          "given": ["An ADV tool invocation omits required fields"],
+          "when": "The tool registry receives the invocation",
+          "then": [
+            "The invocation returns `INVALID_TOOL_ARGS` before tool execution",
+            "The response lists missing fields",
+            "The response does not surface `ToolExecutionTimeout`"
+          ]
+        },
+        {
+          "id": "rq-toolArgPreflight01.2",
+          "title": "Cross-field constraints fail fast",
+          "given": [
+            "An ADV tool has a cross-field mutation constraint such as artifact update requiring at least one non-empty artifact field"
+          ],
+          "when": "The invocation omits all constrained fields or provides only empty strings",
+          "then": [
+            "The invocation returns `INVALID_TOOL_ARGS` before tool execution",
+            "The response explains the cross-field constraint"
+          ]
+        },
+        {
+          "id": "rq-toolArgPreflight01.3",
+          "title": "Received args are redacted",
+          "given": [
+            "A rejected tool invocation includes secret-like argument keys"
+          ],
+          "when": "The preflight error response is formatted",
+          "then": ["Sensitive values in `received_args` are redacted"]
+        }
+      ]
     }
   ]
 }

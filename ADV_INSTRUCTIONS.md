@@ -321,7 +321,7 @@ Default behavior is preserved when `include` is omitted (legacy callers and read
 
 Per task: `adv_task_show` → refresh only the current task. Do NOT call adv_change_show before every task — use the lighter per-task refresh.
 
-TodoWrite: use task IDs only (`tk-abc123`), not descriptions.
+TodoWrite during ADV execution is a projection over ADV tasks: copy `_todoProjection` rows (`tk-abc123 — title`). Entries without `tk-*` IDs are scratchpad-only/warning-first; non-ADV, early-gate, degraded-state, and subagent scratchpad use remains allowed.
 
 ### TDD Protocol (RSTC)
 

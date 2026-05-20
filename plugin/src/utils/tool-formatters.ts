@@ -23,6 +23,19 @@ export interface FormattedTaskReady {
   todoFormat?: string;
 }
 
+export interface TodoProjectionRow {
+  taskId: string;
+  title: string;
+  status: "in_progress" | "pending";
+  content: string;
+}
+
+export interface TodoProjection {
+  rows: TodoProjectionRow[];
+  format: "task-id-em-dash-title";
+  window: { includeCurrent: true; readyLimit: number; omitDone: true };
+}
+
 export interface FormattedStatus {
   specsSection: string;
   activeSection: string;
@@ -194,6 +207,41 @@ export function truncate(str: string, maxLen: number): string {
   return str.slice(0, maxLen - 3) + "...";
 }
 
+// rq-todoProjection01: TodoWrite projection rows are generated from ADV task state.
+export function buildTodoProjection(input: {
+  current?: { id: string; title: string; status: string } | null;
+  ready: Array<{ id: string; title: string; status: string }>;
+  readyLimit?: number;
+}): TodoProjection {
+  const readyLimit = input.readyLimit ?? 3;
+  const rows: TodoProjectionRow[] = [];
+
+  if (input.current?.status === "in_progress") {
+    rows.push({
+      taskId: input.current.id,
+      title: input.current.title,
+      status: "in_progress",
+      content: `${input.current.id} — ${input.current.title}`,
+    });
+  }
+
+  for (const task of input.ready.slice(0, readyLimit)) {
+    if (task.status !== "pending") continue;
+    rows.push({
+      taskId: task.id,
+      title: task.title,
+      status: "pending",
+      content: `${task.id} — ${task.title}`,
+    });
+  }
+
+  return {
+    rows,
+    format: "task-id-em-dash-title",
+    window: { includeCurrent: true, readyLimit, omitDone: true },
+  };
+}
+
 // =============================================================================
 // Validation error code → fix suggestion lookup
 // =============================================================================
@@ -282,7 +330,7 @@ export function formatTaskReadyOutput(
     nextSuggested: next
       ? { id: next.id, title: truncate(next.content, 60) }
       : undefined,
-    todoFormat: next ? `${next.id} › ${truncate(next.content, 50)}` : undefined,
+    todoFormat: next ? `${next.id} — ${truncate(next.content, 50)}` : undefined,
   };
 }
 
