@@ -309,7 +309,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     execSync("git commit -m 'initial'", { cwd: tempDir });
   }
 
-  async function enableWorktreeGuard() {
+  async function enableWorktreeGuard(enabled = true) {
     const { writeFile } = await import("fs/promises");
     const { join } = await import("path");
     await writeFile(
@@ -317,7 +317,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       JSON.stringify(
         {
           name: "test-project",
-          features: { worktree_guard_enforce: true },
+          features: { worktree_guard_enforce: enabled },
         },
         null,
         2,
@@ -325,8 +325,43 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     );
   }
 
-  test("allows write tool targeting trunk checkout when worktree guard is omitted", async () => {
+  function fileToolCases() {
+    return [
+      ["write", "filePath"],
+      ["edit", "filePath"],
+      ["morph_edit", "target_filepath"],
+    ] as const;
+  }
+
+  it.each(fileToolCases())(
+    "allows %s targeting trunk checkout when worktree guard is omitted",
+    async (toolName, targetArg) => {
+      await initGitRepo();
+      const args = { [targetArg]: `${tempDir}/src/file.ts` };
+      hooks = await AdvancePlugin({
+        project: {
+          id: "test",
+          worktree: tempDir,
+          time: { created: Date.now() },
+        },
+        directory: tempDir,
+        worktree: tempDir,
+        serverUrl: new URL("http://localhost"),
+      } as any);
+
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: toolName, sessionID: "test" } as any,
+          { args } as any,
+        ),
+      ).resolves.toBeUndefined();
+    },
+    30_000,
+  );
+
+  test("allows write and destructive bash targeting trunk checkout when worktree guard is false", async () => {
     await initGitRepo();
+    await enableWorktreeGuard(false);
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
@@ -340,25 +375,41 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         { args: { filePath: `${tempDir}/src/file.ts` } } as any,
       ),
     ).resolves.toBeUndefined();
-  }, 30_000);
-
-  test("blocks write tool targeting trunk checkout when worktree guard is enabled", async () => {
-    await initGitRepo();
-    await enableWorktreeGuard();
-    hooks = await AdvancePlugin({
-      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
-      directory: tempDir,
-      worktree: tempDir,
-      serverUrl: new URL("http://localhost"),
-    } as any);
 
     await expect(
       hooks["tool.execute.before"]!(
-        { tool: "write", sessionID: "test" } as any,
-        { args: { filePath: `${tempDir}/src/file.ts` } } as any,
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: `echo hello > ${tempDir}/src/file.ts` } } as any,
       ),
-    ).rejects.toThrow(/Trunk write firewall/);
+    ).resolves.toBeUndefined();
   }, 30_000);
+
+  it.each(fileToolCases())(
+    "blocks %s targeting trunk checkout when worktree guard is enabled",
+    async (toolName, targetArg) => {
+      await initGitRepo();
+      await enableWorktreeGuard();
+      const args = { [targetArg]: `${tempDir}/src/file.ts` };
+      hooks = await AdvancePlugin({
+        project: {
+          id: "test",
+          worktree: tempDir,
+          time: { created: Date.now() },
+        },
+        directory: tempDir,
+        worktree: tempDir,
+        serverUrl: new URL("http://localhost"),
+      } as any);
+
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: toolName, sessionID: "test" } as any,
+          { args } as any,
+        ),
+      ).rejects.toThrow(/Trunk write firewall/);
+    },
+    30_000,
+  );
 
   test("allows write tool targeting an active worktree path when worktree guard is enabled", async () => {
     const { execSync } = await import("child_process");

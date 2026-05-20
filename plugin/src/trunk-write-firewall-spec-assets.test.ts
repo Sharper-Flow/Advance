@@ -27,7 +27,7 @@ describe("trunk write firewall spec assets", () => {
 
     const requirement = spec.requirements.find((req) => req.id === "rq-twf01");
 
-    expect(requirement?.body).toContain("feature_flags.worktree_guard_enforce");
+    expect(requirement?.body).toContain("features.worktree_guard_enforce");
     expect(requirement?.body).toContain("omitted or false");
     expect(requirement?.body).toContain("true");
 
@@ -49,7 +49,7 @@ describe("trunk write firewall spec assets", () => {
         (scenario) =>
           scenario.title.toLowerCase().includes("strict") &&
           [...(scenario.given ?? []), ...(scenario.then ?? [])].some((line) =>
-            line.includes("worktree_guard_enforce is true"),
+            line.includes("features.worktree_guard_enforce is true"),
           ),
       ),
     ).toBe(true);

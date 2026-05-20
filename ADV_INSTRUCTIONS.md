@@ -252,7 +252,7 @@ Multi-session is the supported design center. Temporal serializes ADV state writ
 
 **Operational model:**
 
-- Each session owns its own worktree (or runs in main checkout for single-worktree projects)
+- Each mutating execution session owns its own worktree; read-only/status sessions may run from the main checkout.
 - ADV state mutations are serialized by Temporal — no client-side locks needed
 - Git filesystem ops (`git worktree add/remove`) coordinate via narrow per-repo flock (~50ms hold)
 
@@ -425,11 +425,11 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 <!-- rq-twf01 -->
 
-**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) in strict mode (`worktree_guard_enforce=true`), trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes to the trunk checkout on the default branch.
+**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) in strict mode (`worktree_guard_enforce=true`), trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes and known destructive bash writes to the trunk checkout on the default branch.
 
 ### Trunk Write Firewall
 
-`tool.execute.before` checks `write`/`edit`/`morph_edit` targets plus known destructive bash write patterns (`>`/`>>`, `tee`, `sed -i`, `cp`, `mv`, `rm`). Writes to ADV worktrees, outside repos, or active git recovery states (`MERGE_HEAD`, `REBASE_HEAD`/rebase dirs, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) are allowed. Git commands are not classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Residual risk: shell-variable indirection, shell aliases/functions, and script-internal writes may evade string parsing; ADV still forbids intentional trunk-checkout file writes outside worktrees.
+When `worktree_guard_enforce=true`, `tool.execute.before` checks `write`/`edit`/`morph_edit` targets plus known destructive bash write patterns (`>`/`>>`, `tee`, `sed -i`, `cp`, `mv`, `rm`). Writes to ADV worktrees, outside repos, or active git recovery states (`MERGE_HEAD`, `REBASE_HEAD`/rebase dirs, `CHERRY_PICK_HEAD`, `REVERT_HEAD`) are allowed. Git commands are not classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Residual risk: shell-variable indirection, shell aliases/functions, and script-internal writes may evade string parsing; ADV still forbids intentional trunk-checkout file writes outside worktrees.
 
 ### Cross-Repo Execution
 

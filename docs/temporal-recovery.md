@@ -56,7 +56,7 @@ These alternatives were evaluated and deliberately deferred. Revisit if the link
 - **Trigger for alt #2 (sharding):** `adv_status` shows per-queue poll latency climbing while a single worker is healthy.
 - **Trigger for alt #3 (external fleet):** plugin-restart-driven downtime on long-running workflows becomes user-visible.
 
-Until one of those triggers fires, keep the single in-process worker. Adding processes, shards, or services before they're needed pays the operational cost without the benefit.
+Until one of those triggers fires, keep the current runtime-selected hybrid worker model. Adding shards or dedicated services before they're needed pays the operational cost without the benefit.
 
 ## Post-crash recovery entry point
 
@@ -417,7 +417,7 @@ Reload paths are intentionally separate:
 
 | Changed or failed surface                                                             | Correct reload / recovery                                                                                                                                              |
 | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin/src/tools/*.ts` tool code                                                     | Restart OpenCode. `adv_temporal_worker_restart` does not reload host-loaded tool modules.                                                                              |
+| `plugin/src/tools/*.ts` tool code                                                     | Run `pnpm run build` in `plugin/`, then restart OpenCode. `adv_temporal_worker_restart` does not reload host-loaded tool modules.                                      |
 | `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_temporal_worker_restart`. The worker loads from `dist/temporal/`.                                              |
 | Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_temporal_worker_restart`, then verify with `adv_status` or `adv_temporal_diagnose`.                                                                           |
 | Suspect live legacy v1 `worker.lock` (alive PID, no heartbeat, queue not serviceable) | Restart the owning OpenCode session (preferred), or rerun `adv_temporal_worker_restart` with `approvedLockReclaim: true` + `approvalEvidence`. Never reclaim silently. |

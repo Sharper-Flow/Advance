@@ -89,12 +89,33 @@ async function resolveTrunkContext(
   const worktreePaths = await deps.getWorktreePaths();
 
   let gitRoot: string | null = null;
-  const probeCwd = dirname(normalizedTarget);
+  const containingWorktree = worktreePaths.find((worktreePath) =>
+    isSameOrChildPath(normalizedTarget, worktreePath),
+  );
+  const probeCwd = containingWorktree
+    ? containingWorktree
+    : isSameOrChildPath(normalizedTarget, projectRoot)
+      ? projectRoot
+      : dirname(normalizedTarget);
   try {
     gitRoot = (
       await deps.execGit(["rev-parse", "--show-toplevel"], probeCwd)
     ).trim();
   } catch (error) {
+    if (isSameOrChildPath(normalizedTarget, projectRoot)) {
+      deps.onWarning?.(
+        `trunk-write-firewall: git root detection failed inside protected checkout for ${normalizedTarget}; blocking (${error instanceof Error ? error.message : String(error)})`,
+      );
+      return {
+        targetPath: normalizedTarget,
+        gitRoot: projectRoot,
+        branch: "HEAD",
+        defaultBranchKnown: false,
+        isDefaultBranch: false,
+        isWorktree: false,
+        repoState: "ok",
+      };
+    }
     deps.onWarning?.(
       `trunk-write-firewall: git root detection failed for ${normalizedTarget}; allowing (${error instanceof Error ? error.message : String(error)})`,
     );
@@ -153,13 +174,20 @@ function evaluateTarget(
   context: TrunkContext,
   deps: TrunkWriteFirewallDeps,
 ): TrunkWriteResult {
+  const projectRoot = deps.getProjectRoot();
+  const isTrunkCheckout = isSameOrChildPath(context.targetPath, projectRoot);
   if (context.gitRoot === null || context.repoState === "not_git") {
+    if (isTrunkCheckout) {
+      return {
+        decision: "BLOCK",
+        targetPath: context.targetPath,
+        reason: `Trunk write firewall: direct file write to trunk checkout is blocked because git state could not be verified (${context.targetPath}). Create or use an ADV worktree instead.`,
+      };
+    }
     return { decision: "ALLOW", targetPath: context.targetPath };
   }
   if (context.isWorktree)
     return { decision: "ALLOW", targetPath: context.targetPath };
-  const projectRoot = deps.getProjectRoot();
-  const isTrunkCheckout = isSameOrChildPath(context.targetPath, projectRoot);
   if (!context.defaultBranchKnown && isTrunkCheckout) {
     return {
       decision: "BLOCK",
@@ -218,9 +246,30 @@ function unquote(value: string): string {
 }
 
 function tokenize(segment: string): string[] {
-  return Array.from(segment.matchAll(/"[^"]*"|'[^']*'|\S+/g)).map((match) =>
-    unquote(match[0]),
-  );
+  return Array.from(
+    segment.matchAll(/(?:>>|>)?"[^"]*"|(?:>>|>)?'[^']*'|\S+/g),
+  ).map((match) => unquote(match[0]));
+}
+
+function extractRedirectTargets(tokens: string[]): string[] {
+  const targets: string[] = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === ">" || token === ">>") {
+      const target = tokens[index + 1];
+      if (target) targets.push(target);
+      index += 1;
+      continue;
+    }
+    if (token.startsWith(">>") && token.length > 2) {
+      targets.push(token.slice(2));
+      continue;
+    }
+    if (token.startsWith(">") && token.length > 1) {
+      targets.push(token.slice(1));
+    }
+  }
+  return targets;
 }
 
 function resolveCommandPath(pathValue: string, workdir: string): string {
@@ -233,11 +282,11 @@ export function classifyDestructiveBash(
 ): string[] {
   const targets: string[] = [];
   for (const segment of splitShellSegments(command)) {
-    for (const match of segment.matchAll(/(?:^|\s)(?:>>|>)\s*([^\s;&|]+)/g)) {
-      targets.push(resolveCommandPath(match[1], workdir));
+    const tokens = tokenize(segment);
+    for (const target of extractRedirectTargets(tokens)) {
+      targets.push(resolveCommandPath(target, workdir));
     }
 
-    const tokens = tokenize(segment);
     const commandName = tokens[0];
     if (!commandName) continue;
 

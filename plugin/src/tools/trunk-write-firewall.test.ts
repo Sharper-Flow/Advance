@@ -91,12 +91,50 @@ describe("checkTrunkWrite", () => {
     ).resolves.toMatchObject({ decision: "ALLOW" });
   });
 
+  it("blocks protected checkout paths when git root cannot be resolved", async () => {
+    await expect(
+      checkTrunkWrite(
+        "/repo/src/file.ts",
+        deps({
+          execGit: vi.fn(async (args: string[]) => {
+            if (args.join(" ") === "rev-parse --show-toplevel") {
+              throw new Error("temporary git failure");
+            }
+            return "";
+          }),
+        }),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
+  it("blocks protected checkout paths when repo state cannot be verified", async () => {
+    await expect(
+      checkTrunkWrite(
+        "/repo/src/file.ts",
+        deps({ getRepoState: vi.fn(async () => "not_git") }),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
   it("blocks trunk writes when the default branch cannot be resolved", async () => {
     await expect(
       checkTrunkWrite(
         "/repo/src/index.ts",
         deps({ getDefaultBranch: vi.fn(async () => "") }),
       ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
+  });
+
+  it("blocks new trunk files even when the parent directory does not exist", async () => {
+    const execGit = vi.fn(async (args: string[], cwd: string) => {
+      expect(cwd).toBe("/repo");
+      if (args.join(" ") === "rev-parse --show-toplevel") return "/repo";
+      if (args.join(" ") === "rev-parse --abbrev-ref HEAD") return "main";
+      return "";
+    });
+
+    await expect(
+      checkTrunkWrite("/repo/new-dir/file.ts", deps({ execGit })),
     ).resolves.toMatchObject({ decision: "BLOCK" });
   });
 
@@ -156,6 +194,9 @@ describe("classifyDestructiveBash", () => {
     ["cp /tmp/a /repo/file.txt", ["/repo/file.txt"]],
     ["mv /tmp/a /repo/file.txt", ["/repo/file.txt"]],
     ["rm /repo/file.txt", ["/repo/file.txt"]],
+    ['echo x > "/repo/file with spaces.txt"', ["/repo/file with spaces.txt"]],
+    ["echo x >/repo/file.txt", ["/repo/file.txt"]],
+    ["echo x >>'/repo/file with spaces.txt'", ["/repo/file with spaces.txt"]],
   ])("extracts write targets from %s", (command, expected) => {
     expect(classifyDestructiveBash(command)).toEqual(expected);
   });
@@ -207,6 +248,16 @@ describe("checkTrunkWriteBash", () => {
         deps(),
       ),
     ).resolves.toMatchObject({ decision: "ALLOW" });
+  });
+
+  it("blocks quoted redirect targets with spaces", async () => {
+    await expect(
+      checkTrunkWriteBash(
+        'echo x > "/repo/file with spaces.txt"',
+        "/repo",
+        deps(),
+      ),
+    ).resolves.toMatchObject({ decision: "BLOCK" });
   });
 
   it("allows canonical archive push from the default branch", async () => {

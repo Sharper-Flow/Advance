@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { mkdtemp, mkdir, writeFile } from "fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createDiskStore } from "./store-disk";
@@ -30,6 +30,20 @@ async function makeTempProject(): Promise<string> {
 }
 
 describe("store-disk — judgment_calls removal", () => {
+  test("init writes explicit worktree_guard_enforce false by default", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "adv-store-init-"));
+    const store = await createDiskStore(dir);
+
+    await store.init();
+
+    const config = JSON.parse(
+      await readFile(join(dir, "project.json"), "utf8"),
+    ) as {
+      features?: { worktree_guard_enforce?: unknown };
+    };
+    expect(config.features?.worktree_guard_enforce).toBe(false);
+  });
+
   test("(a) createChange does NOT initialize judgment_calls", async () => {
     const dir = await makeTempProject();
     const store = await createDiskStore(dir);
