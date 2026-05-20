@@ -112,8 +112,7 @@ function scanSurface(surface: string): Finding[] {
       pattern.lastIndex = 0;
       let match: RegExpExecArray | null;
       while ((match = pattern.exec(content)) !== null) {
-        const lineNum =
-          content.substring(0, match.index).split("\n").length;
+        const lineNum = content.substring(0, match.index).split("\n").length;
         const lineText = (lines[lineNum - 1] ?? "").trim();
         findings.push({
           surface,

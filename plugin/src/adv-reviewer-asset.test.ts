@@ -26,7 +26,10 @@ const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-reviewer.md");
  * Split a frontmatter+markdown file into { frontmatter, body }.
  * Frontmatter is the content between the first two `---` delimiter lines.
  */
-function splitFrontmatter(content: string): { frontmatter: string; body: string } {
+function splitFrontmatter(content: string): {
+  frontmatter: string;
+  body: string;
+} {
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     throw new Error("File does not have a valid YAML frontmatter block");

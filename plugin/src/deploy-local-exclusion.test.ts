@@ -32,10 +32,7 @@ const DEPLOY_SCRIPT_PATH = resolve(REPO_ROOT, "scripts/deploy-local.sh");
  */
 function extractList(script: string, varName: string): string[] | null {
   // Match: ^\s*VARNAME="..."  (optionally with leading export, indent)
-  const re = new RegExp(
-    `^\\s*(?:export\\s+)?${varName}=\"([^\"]*)\"`,
-    "m",
-  );
+  const re = new RegExp(`^\\s*(?:export\\s+)?${varName}="([^"]*)"`, "m");
   const match = script.match(re);
   if (!match) return null;
   return match[1]

@@ -702,7 +702,7 @@ Use for 3+ independent scan dimensions. Single-level only.
 | research/task                          | Context7 + Exa + lgrep | `adv-researcher`                                                                                           |
 | review/harden                          | Sequential scans       | `explore` for scoped scans; `adv-reviewer` for review/harden analysis + scoped remediation; `adv-engineer` for primary implementation fixes |
 | audit/slop-scan/refactor               | Sequential scans       | `explore`/`general` as command docs specify                                                                |
-| slop-scan                              | Sequential categories  | `explore` × 9 (single-level only)                                                                          |
+| slop-scan                              | Sequential categories  | explore × 9 (single-level only)                                                                            |
 | tron                                   | lgrep + read           | `adv-tron`                                                                                                 |
 
 Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
