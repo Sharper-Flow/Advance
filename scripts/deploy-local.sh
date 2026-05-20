@@ -2,6 +2,7 @@
 # deploy-local.sh
 #
 # Deploys this repo's ADV assets to the local machine:
+#   - Runtime plugin -> ~/.local/share/Advance/plugin
 #   - Slash commands, agents, skills, instructions -> ~/.config/opencode/
 #   - Companion binaries (acp-mux) -> ~/.local/bin/
 #
@@ -135,11 +136,17 @@ else
 	GLOBAL_JSON="$GLOBAL_CONFIG/opencode.json"
 fi
 
-# ADV entries that must exist in opencode.json(c)
-ADV_PLUGIN_PATH="$REPO_ROOT/plugin"
+# ADV entries that must exist in opencode.json(c). OpenCode must load the
+# stable deployed plugin copy, not the mutable dev checkout. The pre-push hook
+# runs this script so the deployed copy is refreshed before publication.
+LOCAL_DEPLOY_ROOT="${ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}"
+ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"
+ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"
+ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
 echo "==> ADV deploy-local ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
+echo "    runtime plugin: $ADV_SOURCE_PLUGIN_PATH -> $ADV_RUNTIME_PLUGIN_PATH"
 if [ "$DRY_RUN" = true ]; then
 	echo "    preview mode: --dry-run enabled"
 fi
@@ -156,12 +163,12 @@ fi
 # Warn loudly but do not abort — sync can still copy assets even if the
 # plugin itself isn't built yet.
 # ---------------------------------------------------------------------------
-ADV_PLUGIN_DIST="$ADV_PLUGIN_PATH/dist/index.js"
+ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
 if [ ! -f "$ADV_PLUGIN_DIST" ]; then
 	echo ""
 	echo "    ⚠  Plugin not built: $ADV_PLUGIN_DIST is missing"
 	echo "       OpenCode will fail to load the ADV plugin without it."
-	echo "       Run:  (cd \"$ADV_PLUGIN_PATH\" && pnpm install && pnpm build)"
+	echo "       Run:  (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm build)"
 	echo ""
 fi
 
@@ -801,6 +808,23 @@ fi
 # ===========================================================================
 # Asset sync (runs for both "sync" and "fix" modes)
 # ===========================================================================
+
+# ---------------------------------------------------------------------------
+# 0. Deploy runtime plugin to stable local-share path
+# ---------------------------------------------------------------------------
+echo ""
+echo "==> Deploying ADV runtime plugin"
+if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then
+	echo "    ✗  Source plugin missing: $ADV_SOURCE_PLUGIN_PATH"
+	exit 1
+fi
+if [ "$DRY_RUN" = true ]; then
+	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
+else
+	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
+	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
+	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
+fi
 
 # ---------------------------------------------------------------------------
 # 1. Ensure global command dir exists
