@@ -485,24 +485,46 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     await initGitRepo();
     await enableWorktreeGuard();
     const worktreePath = `${tempDir}-wt`;
-    execSync(`git worktree add -b change/test ${worktreePath}`, {
-      cwd: tempDir,
-    });
-    mkdirSync(join(worktreePath, "src"), { recursive: true });
+    try {
+      execSync(
+        `git worktree add -b change/test ${JSON.stringify(worktreePath)}`,
+        {
+          cwd: tempDir,
+        },
+      );
+      mkdirSync(join(worktreePath, "src"), { recursive: true });
 
-    hooks = await AdvancePlugin({
-      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
-      directory: tempDir,
-      worktree: tempDir,
-      serverUrl: new URL("http://localhost"),
-    } as any);
+      hooks = await AdvancePlugin({
+        project: {
+          id: "test",
+          worktree: tempDir,
+          time: { created: Date.now() },
+        },
+        directory: tempDir,
+        worktree: tempDir,
+        serverUrl: new URL("http://localhost"),
+      } as any);
 
-    await expect(
-      hooks["tool.execute.before"]!(
-        { tool: "write", sessionID: "test" } as any,
-        { args: { filePath: join(worktreePath, "src/file.ts") } } as any,
-      ),
-    ).resolves.toBeUndefined();
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: "write", sessionID: "test" } as any,
+          { args: { filePath: join(worktreePath, "src/file.ts") } } as any,
+        ),
+      ).resolves.toBeUndefined();
+    } finally {
+      try {
+        execSync(
+          `git worktree remove --force ${JSON.stringify(worktreePath)}`,
+          {
+            cwd: tempDir,
+            stdio: "ignore",
+          },
+        );
+      } catch {
+        // Best-effort cleanup; cleanupTempDir removes any remaining files.
+      }
+      await cleanupTempDir(worktreePath);
+    }
   }, 30_000);
 
   test("allows destructive bash targeting trunk checkout when worktree guard is omitted", async () => {

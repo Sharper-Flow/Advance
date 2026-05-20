@@ -25,7 +25,7 @@ Complete installation instructions for the ADV spec-driven development plugin.
 | ------------ | ------------------ | -------------------- |
 | Node.js      | 20.x or higher     | `node --version`     |
 | pnpm         | 10.x (recommended) | `pnpm --version`     |
-| OpenCode CLI | Latest             | `opencode --version` |
+| OpenCode CLI | 1.15.5 or newer    | `opencode --version` |
 
 `pnpm` must be on `PATH` when worktrees are created: `.opencode/worktree.jsonc`
 uses a `postCreate` hook to run `pnpm install --frozen-lockfile -C plugin` in

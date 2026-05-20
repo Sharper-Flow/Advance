@@ -24,6 +24,8 @@ import {
   createTestProject,
 } from "./__tests__/setup";
 
+type ToolArgsSchema = Record<string, z.ZodTypeAny>;
+
 describe("tool-registry module contract", () => {
   const srcDir = resolve(new URL(".", import.meta.url).pathname);
 
@@ -102,9 +104,23 @@ describe("createDegradedToolMap parity with createToolMap", () => {
       expect(hasExplicitAdvToolTitle(name), `explicit title for ${name}`).toBe(
         true,
       );
-      const title = formatAdvToolTitle(name, {}).title;
+      const first = formatAdvToolTitle(name, {});
+      const second = formatAdvToolTitle(name, {});
+      expect(second, `deterministic display title for ${name}`).toEqual(first);
+      const title = first.title;
       expect(title, `display title for ${name}`).toEqual(expect.any(String));
       expect(title.trim(), `display title for ${name}`).not.toBe("");
+      expect(
+        title.length,
+        `bounded display title for ${name}`,
+      ).toBeLessThanOrEqual(96);
+      const hasControlChar = [...title].some((char) => {
+        const code = char.charCodeAt(0);
+        return code <= 0x1f || (code >= 0x7f && code <= 0x9f);
+      });
+      expect(hasControlChar, `control-free display title for ${name}`).toBe(
+        false,
+      );
     }
   });
 
@@ -434,14 +450,12 @@ describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK bound
     // shape. Full schema parsing is done by registerTool itself during test
     // runs — if any tool's schema is unparseable registerTool throws before
     // we even reach this assertion.
-    const store = await createLegacyStore(await createTempDir());
+    const storeTempDir = await createTempDir();
+    const mapTempDir = await createTempDir();
+    const store = await createLegacyStore(storeTempDir);
     await store.init();
     try {
-      const map = createToolMap(
-        store,
-        await createTempDir(),
-        store.paths.agenda,
-      );
+      const map = createToolMap(store, mapTempDir, store.paths.agenda);
       for (const name of ADV_TOOL_NAMES) {
         const tool = (map as Record<string, { args: unknown }>)[name];
         expect(tool, `tool "${name}" should exist`).toBeDefined();
@@ -456,6 +470,8 @@ describe("rq-zodParseValidation01 — runtime Zod schema validation at SDK bound
       }
     } finally {
       store.close();
+      await cleanupTempDir(mapTempDir);
+      await cleanupTempDir(storeTempDir);
     }
   });
 

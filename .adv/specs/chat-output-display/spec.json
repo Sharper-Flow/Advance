@@ -440,8 +440,8 @@
     {
       "id": "rq-toolTitle01",
       "title": "ADV Tool Display Titles",
-      "body": "ADV plugin tools SHOULD provide deterministic, concise display titles through the OpenCode plugin SDK title surfaces when those surfaces are available. The title is presentation metadata only; the tool's machine-readable response MUST remain available as the JSON `output` string when a structured ToolResult is returned.",
-      "priority": "should",
+      "body": "ADV plugin tools MUST provide deterministic, concise display titles through the OpenCode plugin SDK title surfaces when those surfaces are available. The title is presentation metadata only; the tool's machine-readable response MUST remain available as the JSON `output` string when a structured ToolResult is returned.",
+      "priority": "must",
       "tags": ["chat-output-display", "tool-title", "sdk-metadata"],
       "scenarios": [
         {
