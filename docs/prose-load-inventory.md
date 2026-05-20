@@ -125,59 +125,59 @@ Canonical columns: `| Section | Lines | Class | Code Reference | Gap Rationale |
 
 > Per-file granularity. Each command doc has own structure but shares patterns: frontmatter + Command Boundary + Phase blocks + Output. T3/T4/T5/T6 visit each file individually and apply same templates.
 
-| File                | Lines      | Dominant Class | Code Reference                                                       | Gap Rationale                                                       | Pass     | Status |
-| ------------------- | ---------- | -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------- | -------- | ------ |
-| adv-apply.md        | 619        | partial        | `adv_run_test`, `adv_task_checkpoint`, manifest entry                | Phase loop agent-driven; tools record state                         | T3+T4+T6 | done   |
-| adv-discover.md     | 504        | partial        | `adv_change_validate`, `clarify-readiness.ts`                        | Discovery protocol agent-driven; trigger thresholds machine-checked | T3+T4+T6 | done   |
-| adv-harden.md       | 442        | partial        | `adv_change_validate`, `adv-slop-detection` skill                    | Auto-fix scope is agent judgment                                    | T3+T4+T6 | done   |
-| adv-archive.md      | 422        | full           | `adv_change_archive`, `adv_gate_complete release`                    | —                                                                   | T3+T6    | done   |
-| adv-prep.md         | 420        | partial        | `adv_gate_complete` (planning userApproved), `prep-readiness.ts`     | Planning machine-enforced; gap analysis agent-driven                | T3+T4+T6 | done   |
-| adv-research.md     | 391        | inherent       | —                                                                    | Research methodology; agent process                                 | T5+T6    | done   |
-| adv-review.md       | 376        | partial        | `adv_change_validate`                                                | Review dimensions agent-driven                                      | T3+T4+T6 | done   |
-| adv-design.md       | 234        | partial        | (validator subagent), `adv_change_update`                            | Design judgment is agent-driven                                     | T3+T4+T6 | done   |
-| adv-proposal.md     | 174        | partial        | `adv_change_create` (problemStatement param), `clarify-readiness.ts` | Synthesis is agent-driven                                           | T3+T4+T6 | done   |
-| adv-slop-scan.md    | 150        | inherent       | `adv-slop-detection` skill                                           | Methodology in skill                                                | T5+T6    | done   |
-| adv-roadmap.md      | 136        | partial        | `adv_roadmap`                                                        | Ranking data external; recommendation agent-driven                  | T6       | done   |
-| adv-triage.md       | 129        | inherent       | `adv-triage` skill                                                   | Methodology in skill                                                | T6       | done   |
-| adv-improve.md      | 123        | inherent       | `adv-improve` skill                                                  | Methodology in skill                                                | T5+T6    | done   |
-| adv-task.md         | 122        | partial        | `adv_change_create` + bundled gate completions                       | Bundling is agent-driven                                            | T3+T4+T6 | done   |
-| adv-cleanup.md      | 120        | partial        | `adv-cleanup` skill, `adv_change_bulk_close`                         | Closure approval is command contract; triage in skill               | T3+T4+T6 | done   |
-| adv-reflect.md      | 117        | full           | `adv-reflect` skill, `adv_reflect`                                   | Methodology in skill; persistence by tool                           | T3+T6    | done   |
-| adv-problem.md      | 112        | inherent       | —                                                                    | Triage methodology                                                  | T5+T6    | done   |
-| adv-arch-scan.md    | 109        | inherent       | `adv-arch-detection` skill                                           | Methodology in skill                                                | T5+T6    | done   |
-| adv-audit.md        | 98         | inherent       | `adv-audit` skill                                                    | Methodology in skill                                                | T5+T6    | done   |
-| adv-idea.md         | 97         | inherent       | —                                                                    | Triage methodology                                                  | T5+T6    | done   |
-| adv-clarify.md      | 88         | inherent       | `adv-clarify` skill                                                  | Methodology in skill                                                | T5+T6    | done   |
-| adv-refactor.md     | 88         | inherent       | `adv-refactor` skill                                                 | Methodology in skill                                                | T5+T6    | done   |
-| adv-comp-scan.md    | 86         | inherent       | `adv-comp-research` skill                                            | Methodology in skill                                                | T5+T6    | done   |
-| adv-status.md       | 73         | full           | `adv_status`                                                         | —                                                                   | T3+T6    | done   |
-| adv-tron.md         | 61         | full           | `adv-tron` skill, `adv-tron` agent                                   | —                                                                   | T3+T6    | done   |
-| adv-validate.md     | 46         | full           | `adv_change_validate`                                                | —                                                                   | T3+T6    | done   |
-| adv-atc.md          | 36         | partial        | GitHub issue comments + ADV gates                                    | HITL deferred to GitHub                                             | T6       | done   |
-| adv-tron.md → SKILL | (in skill) | inherent       | —                                                                    | Investigation methodology                                           | T5       | done   |
+| File                  | Lines      | Dominant Class | Code Reference                                                       | Gap Rationale                                                       | Pass     | Status |
+| --------------------- | ---------- | -------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------- | -------- | ------ |
+| adv-apply.md          | 619        | partial        | `adv_run_test`, `adv_task_checkpoint`, manifest entry                | Phase loop agent-driven; tools record state                         | T3+T4+T6 | done   |
+| adv-discover.md       | 504        | partial        | `adv_change_validate`, `clarify-readiness.ts`                        | Discovery protocol agent-driven; trigger thresholds machine-checked | T3+T4+T6 | done   |
+| adv-harden.md         | 442        | partial        | `adv_change_validate`, `adv-slop-detection` skill                    | Auto-fix scope is agent judgment                                    | T3+T4+T6 | done   |
+| adv-archive.md        | 422        | full           | `adv_change_archive`, `adv_gate_complete release`                    | —                                                                   | T3+T6    | done   |
+| adv-prep.md           | 420        | partial        | `adv_gate_complete` (planning userApproved), `prep-readiness.ts`     | Planning machine-enforced; gap analysis agent-driven                | T3+T4+T6 | done   |
+| adv-research.md       | 391        | inherent       | —                                                                    | Research methodology; agent process                                 | T5+T6    | done   |
+| adv-review.md         | 376        | partial        | `adv_change_validate`                                                | Review dimensions agent-driven                                      | T3+T4+T6 | done   |
+| adv-design.md         | 234        | partial        | (validator subagent), `adv_change_update`                            | Design judgment is agent-driven                                     | T3+T4+T6 | done   |
+| adv-proposal.md       | 174        | partial        | `adv_change_create` (problemStatement param), `clarify-readiness.ts` | Synthesis is agent-driven                                           | T3+T4+T6 | done   |
+| adv-slop-scan.md      | 150        | inherent       | `adv-slop-detection` skill                                           | Methodology in skill                                                | T5+T6    | done   |
+| adv-roadmap.md        | 136        | partial        | `adv_roadmap`                                                        | Ranking data external; recommendation agent-driven                  | T6       | done   |
+| adv-triage.md         | 129        | inherent       | `adv-triage` skill                                                   | Methodology in skill                                                | T6       | done   |
+| adv-improve.md        | 123        | inherent       | `adv-improve` skill                                                  | Methodology in skill                                                | T5+T6    | done   |
+| adv-task.md           | 122        | partial        | `adv_change_create` + bundled gate completions                       | Bundling is agent-driven                                            | T3+T4+T6 | done   |
+| adv-cleanup.md        | 120        | partial        | `adv-cleanup` skill, `adv_change_bulk_close`                         | Closure approval is command contract; triage in skill               | T3+T4+T6 | done   |
+| adv-reflect.md        | 117        | full           | `adv-reflect` skill, `adv_reflect`                                   | Methodology in skill; persistence by tool                           | T3+T6    | done   |
+| adv-problem.md        | 123        | inherent       | —                                                                    | Triage methodology                                                  | T5+T6    | done   |
+| adv-arch-scan.md      | 109        | inherent       | `adv-arch-detection` skill                                           | Methodology in skill                                                | T5+T6    | done   |
+| adv-audit.md          | 98         | inherent       | `adv-audit` skill                                                    | Methodology in skill                                                | T5+T6    | done   |
+| adv-idea.md           | 97         | inherent       | —                                                                    | Triage methodology                                                  | T5+T6    | done   |
+| adv-clarify.md        | 88         | inherent       | `adv-clarify` skill                                                  | Methodology in skill                                                | T5+T6    | done   |
+| adv-refactor.md       | 88         | inherent       | `adv-refactor` skill                                                 | Methodology in skill                                                | T5+T6    | done   |
+| adv-comp-scan.md      | 86         | inherent       | `adv-comp-research` skill                                            | Methodology in skill                                                | T5+T6    | done   |
+| adv-status.md         | 73         | full           | `adv_status`                                                         | —                                                                   | T3+T6    | done   |
+| adv-tron.md           | 61         | full           | `adv-tron` skill, `adv-tron` agent                                   | —                                                                   | T3+T6    | done   |
+| adv-validate.md       | 46         | full           | `adv_change_validate`                                                | —                                                                   | T3+T6    | done   |
+| adv-atc.md            | 36         | partial        | GitHub issue comments + ADV gates                                    | HITL deferred to GitHub                                             | T6       | done   |
+| adv-tron.md → SKILL   | (in skill) | inherent       | —                                                                    | Investigation methodology                                           | T5       | done   |
 | ~~adv-coordinate.md~~ | ~~43~~     | ~~removed~~    | —                                                                    | Functionality integrated into /adv-archive, /adv-status, /adv-apply | T5       | done   |
 
 ---
 
 ## Inventory: skills/\*/SKILL.md (19 tracked files, ~2,222 lines)
 
-| File                            | Lines | Dominant Class | Code Reference          | Gap Rationale                                                | Pass | Status |
-| ------------------------------- | ----- | -------------- | ----------------------- | ------------------------------------------------------------ | ---- | ------ |
-| skills/adv-triage/SKILL.md      | 69    | inherent       | `adv_roadmap`, GH issues | Post-split index; WSJF/bootstrap/schema/prompts/anti-patterns live in sibling docs | P4.1 | done   |
-| skills/adv-ci-release/SKILL.md  | 78    | inherent       | GitHub Actions | Post-split index; CI/release/commit/troubleshooting detail lives in sibling docs | P4.2 | done   |
-| skills/adv-backend-stack-eval/SKILL.md | 119 | partial | Context7/Exa/GH-grep | Post-split index; language/database/async/API dimensions live in sibling docs | P4.4 | done |
-| adv-cost-governance-methodology | 291   | partial        | `adv_investment_report` | Methodology + worked example; tool exists for thresholds     | T4   | done   |
-| skills/adv-slop-detection/SKILL.md | 110 | partial        | slop scan command       | Post-split index; categories/structural-correctness/dead-code detail lives in sibling docs | P4.3+P7 | done  |
-| skills/adv-audit/SKILL.md       | 98    | inherent       | `adv_spec`              | Post-split cohesive summary; report schema lives in sibling doc | P4.5 | done   |
-| skills/adv-reflect/SKILL.md     | 181   | inherent       | `adv_reflect`           | Reflection rubric/template; tool persists                    | T6   | done   |
-| skills/adv-improve/SKILL.md     | 181   | inherent       | Context7/Exa tools     | Improvement research methodology                             | T6   | done   |
-| skills/adv-cleanup/SKILL.md     | 172   | partial        | `adv_change_bulk_close` | Bucket methodology; command owns Tier B approval             | T6   | done   |
-| skills/adv-refactor/SKILL.md    | 155   | inherent       | `adv_change_validate`   | Refresh methodology; command owns mutations                  | T6   | done   |
-| adv-user-intuit                 | 155   | inherent       | —                       | Comparison protocol; agent-driven                            | T5   | done   |
-| skills/adv-clarify/SKILL.md     | 145   | inherent       | `question` tool         | Socratic methodology; command owns proposal update boundary  | T6   | done   |
-| adv-tron                        | 138   | inherent       | —                       | Investigation methodology                                    | T5   | done   |
-| adv-arch-detection              | 95    | inherent       | —                       | Detection methodology                                        | T5   | done   |
-| adv-comp-research               | 76    | inherent       | —                       | Research methodology                                         | T5   | done   |
+| File                                   | Lines | Dominant Class | Code Reference           | Gap Rationale                                                                              | Pass    | Status |
+| -------------------------------------- | ----- | -------------- | ------------------------ | ------------------------------------------------------------------------------------------ | ------- | ------ |
+| skills/adv-triage/SKILL.md             | 69    | inherent       | `adv_roadmap`, GH issues | Post-split index; WSJF/bootstrap/schema/prompts/anti-patterns live in sibling docs         | P4.1    | done   |
+| skills/adv-ci-release/SKILL.md         | 78    | inherent       | GitHub Actions           | Post-split index; CI/release/commit/troubleshooting detail lives in sibling docs           | P4.2    | done   |
+| skills/adv-backend-stack-eval/SKILL.md | 119   | partial        | Context7/Exa/GH-grep     | Post-split index; language/database/async/API dimensions live in sibling docs              | P4.4    | done   |
+| adv-cost-governance-methodology        | 291   | partial        | `adv_investment_report`  | Methodology + worked example; tool exists for thresholds                                   | T4      | done   |
+| skills/adv-slop-detection/SKILL.md     | 110   | partial        | slop scan command        | Post-split index; categories/structural-correctness/dead-code detail lives in sibling docs | P4.3+P7 | done   |
+| skills/adv-audit/SKILL.md              | 98    | inherent       | `adv_spec`               | Post-split cohesive summary; report schema lives in sibling doc                            | P4.5    | done   |
+| skills/adv-reflect/SKILL.md            | 181   | inherent       | `adv_reflect`            | Reflection rubric/template; tool persists                                                  | T6      | done   |
+| skills/adv-improve/SKILL.md            | 181   | inherent       | Context7/Exa tools       | Improvement research methodology                                                           | T6      | done   |
+| skills/adv-cleanup/SKILL.md            | 172   | partial        | `adv_change_bulk_close`  | Bucket methodology; command owns Tier B approval                                           | T6      | done   |
+| skills/adv-refactor/SKILL.md           | 155   | inherent       | `adv_change_validate`    | Refresh methodology; command owns mutations                                                | T6      | done   |
+| adv-user-intuit                        | 155   | inherent       | —                        | Comparison protocol; agent-driven                                                          | T5      | done   |
+| skills/adv-clarify/SKILL.md            | 145   | inherent       | `question` tool          | Socratic methodology; command owns proposal update boundary                                | T6      | done   |
+| adv-tron                               | 138   | inherent       | —                        | Investigation methodology                                                                  | T5      | done   |
+| adv-arch-detection                     | 95    | inherent       | —                        | Detection methodology                                                                      | T5      | done   |
+| adv-comp-research                      | 76    | inherent       | —                        | Research methodology                                                                       | T5      | done   |
 
 ---
 
