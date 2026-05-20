@@ -97,6 +97,7 @@ import {
 import {
   createAdvWorkspace,
   deleteAdvWorkspace,
+  findWorkspaceByDirectory,
   warpFlagEnabled,
   warpSession,
   workspaceAndWarpAvailable,
@@ -1255,6 +1256,7 @@ export interface AdvWorktreeDeleteDeps {
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
   registry?: { branch: string; changeId?: string; path: string }[];
+  warpDeps?: WarpDeps;
   mergedBranches?: (
     defaultBranch: string,
     repoRoot: string,
@@ -1274,6 +1276,27 @@ export type AdvWorktreeDeleteResult =
       hint: string;
     }
   | { ok: false; error: "REMOVE_FAILED"; reason: string };
+
+async function cleanupOpenCodeWorkspaceForWorktree(
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<void> {
+  if (!deps.warpDeps) return;
+
+  const found = await findWorkspaceByDirectory(deps.warpDeps, worktreePath);
+  if (!found) return;
+
+  try {
+    await deleteAdvWorkspace(deps.warpDeps, found.workspaceID);
+    deps.log.debug(
+      `[worktree] Cleaned up OpenCode workspace ${found.workspaceID}`,
+    );
+  } catch (error) {
+    deps.log.warn(
+      `[worktree] Failed to delete OpenCode workspace ${found.workspaceID} (continuing worktree delete): ${error}`,
+    );
+  }
+}
 
 async function getWorktreeRegistryEntry(
   branch: string,
@@ -1581,6 +1604,7 @@ export async function advWorktreeDelete(
       `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`,
     );
   }
+  await cleanupOpenCodeWorkspaceForWorktree(worktreePath, deps);
   const removeResult = await gitWorktreeRemove(
     deps.projectRoot,
     worktreePath,

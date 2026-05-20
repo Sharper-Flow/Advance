@@ -232,6 +232,7 @@ export function createToolMap(
   store: Store,
   directory: string,
   agendaPath: string | undefined,
+  serverUrl?: URL,
 ) {
   return {
     // Spec Tools
@@ -595,10 +596,23 @@ export function createToolMap(
       "adv_worktree_resume",
       store,
     ),
-    adv_worktree_delete: bindTool(
-      advWorktreeTools.adv_worktree_delete,
-      "adv_worktree_delete",
-      store,
+    adv_worktree_delete: registerTool(
+      advWorktreeTools.adv_worktree_delete.description,
+      advWorktreeTools.adv_worktree_delete.args,
+      namedExecute(
+        "adv_worktree_delete",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_delete.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_delete.execute
+              >[0],
+              store,
+              { serverUrl },
+            ),
+          "adv_worktree_delete",
+        ),
+      ),
     ),
     adv_worktree_cleanup: bindTool(
       advWorktreeTools.adv_worktree_cleanup,
@@ -644,6 +658,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_delete.execute
               >[0],
               store,
+              { serverUrl },
             ),
           "worktree_delete",
         ),

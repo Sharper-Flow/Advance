@@ -774,7 +774,7 @@ const advancePluginImpl: Plugin = async (input) => {
     // MCP Tools — degraded map on init failure so agents see ADV_PLUGIN_INIT_FAILED
     tool:
       store && !initError
-        ? createToolMap(store, directory, store.paths.agenda)
+        ? createToolMap(store, directory, store.paths.agenda, input.serverUrl)
         : createDegradedToolMap(
             initError ?? new Error("Plugin store unavailable"),
             effectiveDir,

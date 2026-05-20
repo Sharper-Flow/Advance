@@ -144,6 +144,8 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
 
   afterEach(() => {
     rmSync(repoRoot, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("INTEGRATION_REQUIRED — blocks delete when branch integration fails", async () => {
@@ -196,6 +198,136 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).toContain(branch);
+  });
+
+  it("deletes matching OpenCode workspace before removing the git worktree", async () => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/warp-delete";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: "ws-abc", directory: wtPath }]), {
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(""));
+
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: true,
+      branch,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(String(fetchImpl.mock.calls[0]?.[0])).toBe(
+      "http://127.0.0.1:4096/experimental/workspace",
+    );
+    expect(String(fetchImpl.mock.calls[1]?.[0])).toBe(
+      "http://127.0.0.1:4096/experimental/workspace/ws-abc",
+    );
+    expect(fetchImpl.mock.calls[1]?.[1]).toMatchObject({ method: "DELETE" });
+    expect(deps.log.warn).not.toHaveBeenCalledWith(
+      expect.stringContaining("Failed to delete OpenCode workspace"),
+    );
+  });
+
+  it("skips OpenCode workspace delete when no workspace matches", async () => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/no-workspace";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify([])));
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: true,
+      branch,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call workspace HTTP when the warp flag is disabled at delete time", async () => {
+    const branch = "feature/flag-off";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi.fn();
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: true,
+      branch,
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("continues git worktree deletion when OpenCode workspace cleanup 404s", async () => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/workspace-404";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: "ws-gone", directory: wtPath }]), {
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("missing", { status: 404 }));
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: true,
+      branch,
+    });
+    expect(deps.log.warn).not.toHaveBeenCalledWith(
+      expect.stringContaining("Failed to delete OpenCode workspace"),
+    );
+  });
+
+  it("warns but still removes git worktree when OpenCode workspace cleanup fails", async () => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+    const branch = "feature/workspace-error";
+    const wtPath = addWorktree(repoRoot, branch);
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ id: "ws-error", directory: wtPath }]), {
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response("boom", { status: 503 }));
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.warpDeps = {
+      serverUrl: new URL("http://127.0.0.1:4096"),
+      fetchImpl,
+    };
+
+    await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
+      ok: true,
+      branch,
+    });
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to delete OpenCode workspace ws-error"),
+    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
   });
 
   it("HOOK_INTRODUCED_CHANGES — blocks delete when hook creates uncommitted changes", async () => {

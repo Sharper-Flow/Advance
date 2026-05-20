@@ -17,6 +17,7 @@ import {
   advWorktreeDelete,
   advWorktreeCleanup,
 } from "./worktree";
+import type { WarpDeps } from "../utils/workspace-warp";
 import { triageWorktrees } from "./worktree/triage";
 import { initStateDb, type WorktreeStateAccess } from "./worktree/state";
 
@@ -137,14 +138,18 @@ export const advWorktreeTools = {
     execute: async (
       args: { branch: string; force?: boolean; dryRun?: boolean },
       store: Store,
+      options: { serverUrl?: URL } = {},
     ) => {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
+      const warpDeps: WarpDeps | undefined = options.serverUrl
+        ? { serverUrl: options.serverUrl }
+        : undefined;
       const result = await advWorktreeDelete(
         args.branch,
         { force: args.force, dryRun: args.dryRun },
-        { projectRoot, database, log, store },
+        { projectRoot, database, log, store, warpDeps },
       );
       return formatToolOutput(result);
     },
