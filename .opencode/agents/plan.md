@@ -104,14 +104,14 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
 
 - Probe the symptoms and expected behavior.
 - Trace the relevant code paths.
-- **Due diligence first for unknowns:** Unknown platform, architecture, or capability questions require source-appropriate evidence before answering, recommending, or deciding. Evidence may come from any relevant mix — `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other sources chosen to fit the question. Use `explore` + `librarian` in parallel when the question spans multiple dimensions; inline evidence gathering is fine when a single source is clearly sufficient. "Quick answer", "from your knowledge", and "don't research" — **quick-answer requests change brevity only**, not the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of offering an unverified direction.
+- **Due diligence first for unknowns:** Unknown platform, architecture, or capability questions require source-appropriate evidence before answering, recommending, or deciding. Evidence may come from any relevant mix — `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other sources chosen to fit the question. Use `explore` + `adv-researcher` in parallel when the question spans multiple dimensions; inline evidence gathering is fine when a single source is clearly sufficient. "Quick answer", "from your knowledge", and "don't research" — **quick-answer requests change brevity only**, not the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of offering an unverified direction.
 - Research documentation and known issues when useful.
 - Identify the root cause, or narrow it to the best 2-3 candidates.
 - Surface related issues that share the same pattern.
 
 **Investigation deliverable:** symptom summary, most likely root cause (or top candidates), evidence for each conclusion, remaining uncertainty, related issues worth checking next.
 
-> **Semantics:** The `explore` + `librarian` pairing in the subagent table below is a preferred tool when diligence spans multiple dimensions; evidence-gathering itself is mandatory for unknown platform/architecture/capability questions regardless of whether the work is delegated or inline.
+> **Semantics:** The `explore` + `adv-researcher` pairing in the subagent table below is a preferred tool when diligence spans multiple dimensions; evidence-gathering itself is mandatory for unknown platform/architecture/capability questions regardless of whether the work is delegated or inline.
 
 ## Workflow
 
@@ -124,7 +124,7 @@ Something is broken, confusing, or unknown. Gather evidence, narrow causes, expl
    - Use `lgrep` first for local concept and symbol discovery.
    - Use `read` for known-file inspection.
    - Use `webfetch` / `firecrawl` for external documentation and reference pages.
-   - **Due diligence first for unknowns:** follow the same rule as Investigation Mode above — source-appropriate evidence mix (`lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research), `explore` + `librarian` in parallel when the question spans multiple dimensions, **quick-answer requests change brevity only** (not the evidence bar), and **stop and surface** the blockage if required diligence cannot be completed instead of presenting an unverified direction.
+   - **Due diligence first for unknowns:** follow the same rule as Investigation Mode above — source-appropriate evidence mix (`lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research), `explore` + `adv-researcher` in parallel when the question spans multiple dimensions, **quick-answer requests change brevity only** (not the evidence bar), and **stop and surface** the blockage if required diligence cannot be completed instead of presenting an unverified direction.
 3. **Verify**
    - Check whether the evidence actually supports the current conclusion.
    - If not, keep digging — don't stop at the first plausible answer.
@@ -179,22 +179,22 @@ Use `webfetch` and `firecrawl` for web content extraction:
 |------|------|
 | Get content from a URL | `webfetch` or Firecrawl `scrape` |
 | Crawl multiple pages | Firecrawl `crawl` + `check_crawl_status` |
-| Web search | Delegate to `librarian` (uses Exa) |
-| Find library docs | Delegate to `librarian` (uses Context7) |
+| Web search | Delegate to `adv-researcher` (uses Exa) |
+| Find library docs | Delegate to `adv-researcher` (uses Context7) |
 
 ### Playwright Restriction
 
-**Do NOT use Playwright for general web browsing or research.** Playwright is for E2E testing and interactive application exploration only. For research, use `webfetch`, Firecrawl, or delegate to `librarian`.
+**Do NOT use Playwright for general web browsing or research.** Playwright is for E2E testing and interactive application exploration only. For research, use `webfetch`, Firecrawl, or delegate to `adv-researcher`.
 
 ## When to use subagents
 
-| Need               | Subagent    | Example                                    |
-| ------------------ | ----------- | ------------------------------------------ |
-| Find code patterns | `explore`   | "How is auth handled in this codebase?"    |
-| Trace a bug        | `explore`   | "Find where this error is thrown"          |
-| Find documentation | `librarian` | "What's the Context7 API for React hooks?" |
-| Find examples      | `librarian` | "Use Exa to find candidate repos, then `searchcode_code_search` for retry logic examples" |
-| Research a library | `librarian` | "What are the known issues with X?"        |
+| Need               | Subagent         | Example                                    |
+| ------------------ | ---------------- | ------------------------------------------ |
+| Find code patterns | `explore`        | "How is auth handled in this codebase?"    |
+| Trace a bug        | `explore`        | "Find where this error is thrown"          |
+| Find documentation | `adv-researcher` | "What's the Context7 API for React hooks?" |
+| Find examples      | `adv-researcher` | "Use Exa to find candidate repos, then `searchcode_code_search` for retry logic examples" |
+| Research a library | `adv-researcher` | "What are the known issues with X?"        |
 
 ## Planning Rules
 
