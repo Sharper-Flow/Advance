@@ -186,6 +186,70 @@ describe("Active Change Title Update on adv_change_create", () => {
     expect(getStatus().activeChangeId).toBe(newChangeId);
   });
 
+  test("after adv_change_create with ToolResult object output, activeChangeId is still set", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    const newChangeId = "addToolResultTitles";
+    await hooks["tool.execute.after"]!(
+      { tool: "adv_change_create" } as any,
+      {
+        args: { summary: "Add tool result titles" },
+        output: {
+          title: "Create change: Add tool result titles",
+          output: JSON.stringify({
+            changeId: newChangeId,
+            path: "/some/path/proposal.md",
+          }),
+          metadata: { adv: { toolName: "adv_change_create" } },
+        },
+      } as any,
+    );
+
+    expect(getStatus().activeChangeId).toBe(newChangeId);
+  });
+
+  test("after adv_task_update with ToolResult object output, completed task is tracked", async () => {
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await hooks["tool.execute.after"]!(
+      { tool: "adv_task_update" } as any,
+      {
+        args: { taskId: "tk-task0002", status: "done" },
+        output: {
+          title: "Update task: tk-task0002",
+          output: JSON.stringify({
+            success: true,
+            task: { id: "tk-task0002", title: "Object Output Task", status: "done" },
+          }),
+          metadata: { adv: { toolName: "adv_task_update" } },
+        },
+      } as any,
+    );
+
+    const out = { system: [] as string[] };
+    await hooks["experimental.chat.system.transform"]!(
+      { sessionID: "test" } as any,
+      out as any,
+    );
+
+    expect(out.system.some((s) => s.includes("[ADV:RECORD_WISDOM]"))).toBe(
+      true,
+    );
+    expect(out.system.some((s) => s.includes("Object Output Task"))).toBe(
+      true,
+    );
+  });
+
   test("after adv_change_create with braces inside path string, activeChangeId is still set", async () => {
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },

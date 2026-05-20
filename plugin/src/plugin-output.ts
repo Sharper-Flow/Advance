@@ -15,12 +15,19 @@
  * dead to the user.
  *
  * Strings: tries the post-banner segment first, then the full string.
- * Objects: returns the object directly.
+ * ToolResult objects: parses their `output` string first.
+ * Other objects: returns the object directly.
  * Other values: returns null.
  */
 function parseToolOutput<T>(rawOutput: unknown): T | null {
   if (rawOutput == null) return null;
-  if (typeof rawOutput === "object") return rawOutput as T;
+  if (typeof rawOutput === "object") {
+    const maybeToolResult = rawOutput as { output?: unknown };
+    if (typeof maybeToolResult.output === "string") {
+      return parseToolOutput<T>(maybeToolResult.output);
+    }
+    return rawOutput as T;
+  }
   if (typeof rawOutput !== "string") return null;
 
   const trimmed = rawOutput.trim();
