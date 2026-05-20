@@ -106,6 +106,109 @@ describe("gate readiness", () => {
     );
   });
 
+  it("reports missing acceptance review matrix rows", () => {
+    const gates = createDefaultGates();
+    gates.proposal.status = "done";
+    gates.discovery.status = "done";
+    gates.design.status = "done";
+    gates.planning.status = "done";
+    gates.execution.status = "done";
+
+    const result = evaluateGateReadiness(
+      makeState({
+        gates,
+        projectionChangesDir: "/tmp/changes",
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-05-20T00:00:00.000Z",
+          },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Gate artifacts are enforced.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          reviewMatrix: { reviewedAt: "2026-05-20T00:00:00.000Z", rows: [] },
+          amendments: [],
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ACCEPTANCE_REVIEW_ROW_MISSING",
+        contractId: "AC1",
+      }),
+    );
+  });
+
+  it("reports failing acceptance review matrix rows", () => {
+    const gates = createDefaultGates();
+    gates.proposal.status = "done";
+    gates.discovery.status = "done";
+    gates.design.status = "done";
+    gates.planning.status = "done";
+    gates.execution.status = "done";
+
+    const result = evaluateGateReadiness(
+      makeState({
+        gates,
+        projectionChangesDir: "/tmp/changes",
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-05-20T00:00:00.000Z",
+          },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Gate artifacts are enforced.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          reviewMatrix: {
+            reviewedAt: "2026-05-20T00:00:00.000Z",
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "fail",
+                evidencePolicy: "test",
+                evidence: "missing proof",
+              },
+            ],
+          },
+          amendments: [],
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ACCEPTANCE_REVIEW_ROW_FAILING",
+        contractId: "AC1",
+      }),
+    );
+  });
+
   it("parses backward-compatible gate artifact evidence", () => {
     expect(
       gateArtifactEvidenceSchema.parse({

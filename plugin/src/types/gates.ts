@@ -90,9 +90,7 @@ export const GateArtifactEvidenceSchema = z.object({
   compatibility_reason: z.string().optional(),
 });
 
-export type GateArtifactEvidence = z.infer<
-  typeof GateArtifactEvidenceSchema
->;
+export type GateArtifactEvidence = z.infer<typeof GateArtifactEvidenceSchema>;
 
 export const GateReadinessBlockerSchema = z.object({
   code: z.string(),
@@ -104,9 +102,7 @@ export const GateReadinessBlockerSchema = z.object({
   contractId: z.string().optional(),
 });
 
-export type GateReadinessBlocker = z.infer<
-  typeof GateReadinessBlockerSchema
->;
+export type GateReadinessBlocker = z.infer<typeof GateReadinessBlockerSchema>;
 
 /**
  * Ordered list of gate IDs for sequence enforcement.

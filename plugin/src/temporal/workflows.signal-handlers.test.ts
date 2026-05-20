@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -43,7 +44,7 @@ import {
   worktreeDeletedSignal,
 } from "./messages";
 import { withTestWorkflowEnvironment } from "./__tests__/with-test-env";
-import { inspectArtifactActivity } from "./activities";
+import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
@@ -119,7 +120,7 @@ async function withArtifactSignalWorker(
         connection: env.nativeConnection,
         workflowsPath,
         taskQueue,
-        activities: { inspectArtifactActivity },
+        activities: { inspectArtifactActivity, writeArtifactActivity },
       });
 
       await worker.runUntil(async () => {
@@ -273,7 +274,8 @@ describe("changeWorkflow signal handlers", () => {
         approvalEvidence: "approved in test",
         completedBy: "tester",
         completedAt: "2026-05-05T00:02:03.000Z",
-        compatibilityReason: "legacy signal handler fixture has no artifact store",
+        compatibilityReason:
+          "legacy signal handler fixture has no artifact store",
       });
 
       await handle.signal(wisdomAddedSignal, {
@@ -441,19 +443,22 @@ describe("changeWorkflow signal handlers", () => {
         gateId: "proposal",
         completedBy: "tester",
         completedAt: "2026-05-05T00:00:01.000Z",
-        compatibilityReason: "legacy signal handler fixture has no artifact store",
+        compatibilityReason:
+          "legacy signal handler fixture has no artifact store",
       });
       await handle.signal(gateCompletedSignal, {
         gateId: "discovery",
         completedBy: "tester",
         completedAt: "2026-05-05T00:00:02.000Z",
-        compatibilityReason: "legacy signal handler fixture has no artifact store",
+        compatibilityReason:
+          "legacy signal handler fixture has no artifact store",
       });
       await handle.signal(gateCompletedSignal, {
         gateId: "design",
         completedBy: "tester",
         completedAt: "2026-05-05T00:00:03.000Z",
-        compatibilityReason: "legacy signal handler fixture has no artifact store",
+        compatibilityReason:
+          "legacy signal handler fixture has no artifact store",
       });
       await waitForGateStatus(handle, "design", "done");
       await handle.signal(gateReenteredSignal, {
@@ -486,17 +491,23 @@ describe("changeWorkflow signal handlers", () => {
         projectionChangesDir: join(dir, "changes"),
       };
 
-      await withArtifactSignalWorker("missing-artifact", input, async (handle) => {
-        await handle.signal(gateCompletedSignal, {
-          gateId: "proposal",
-          completedBy: "tester",
-          completedAt: "2026-05-05T00:00:01.000Z",
-        });
+      await withArtifactSignalWorker(
+        "missing-artifact",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "proposal",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:00:01.000Z",
+          });
 
-        const state = await waitForGateStatus(handle, "proposal", "stuck");
-        expect(state.gates.proposal.status).toBe("stuck");
-        expect(state.gates.proposal.stuck_reason).toContain("ARTIFACT_MISSING");
-      });
+          const state = await waitForGateStatus(handle, "proposal", "stuck");
+          expect(state.gates.proposal.status).toBe("stuck");
+          expect(state.gates.proposal.stuck_reason).toContain(
+            "ARTIFACT_MISSING",
+          );
+        },
+      );
     } finally {
       await cleanupTempDir(dir);
     }
@@ -517,20 +528,24 @@ describe("changeWorkflow signal handlers", () => {
         projectionChangesDir: changesDir,
       };
 
-      await withArtifactSignalWorker("valid-artifact", input, async (handle) => {
-        await handle.signal(gateCompletedSignal, {
-          gateId: "proposal",
-          completedBy: "tester",
-          completedAt: "2026-05-05T00:00:01.000Z",
-        });
+      await withArtifactSignalWorker(
+        "valid-artifact",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "proposal",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:00:01.000Z",
+          });
 
-        const state = await waitForGateStatus(handle, "proposal", "done");
-        expect(state.gates.proposal.status).toBe("done");
-        expect(state.gates.proposal.artifact_evidence).toMatchObject({
-          kind: "proposal",
-          non_whitespace_chars: expect.any(Number),
-        });
-      });
+          const state = await waitForGateStatus(handle, "proposal", "done");
+          expect(state.gates.proposal.status).toBe("done");
+          expect(state.gates.proposal.artifact_evidence).toMatchObject({
+            kind: "proposal",
+            non_whitespace_chars: expect.any(Number),
+          });
+        },
+      );
     } finally {
       await cleanupTempDir(dir);
     }
@@ -544,19 +559,101 @@ describe("changeWorkflow signal handlers", () => {
         projectionChangesDir: join(dir, "changes"),
       };
 
-      await withArtifactSignalWorker("sequence-artifact", input, async (handle) => {
-        await handle.signal(gateCompletedSignal, {
-          gateId: "design",
-          completedBy: "tester",
-          completedAt: "2026-05-05T00:00:01.000Z",
-        });
+      await withArtifactSignalWorker(
+        "sequence-artifact",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "design",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:00:01.000Z",
+          });
 
-        const state = await waitForGateStatus(handle, "design", "stuck");
-        expect(state.gates.design.status).toBe("stuck");
-        expect(state.gates.design.stuck_reason).toContain(
-          "PRIOR_GATE_INCOMPLETE",
-        );
-      });
+          const state = await waitForGateStatus(handle, "design", "stuck");
+          expect(state.gates.design.status).toBe("stuck");
+          expect(state.gates.design.stuck_reason).toContain(
+            "PRIOR_GATE_INCOMPLETE",
+          );
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  it("generates acceptance.md from typed contract review proof", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-projection"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-projection").seedState,
+          gates,
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "Artifact-backed gates are enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "acceptance-projection",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "done");
+          expect(state.gates.acceptance.artifact_evidence).toMatchObject({
+            kind: "acceptance",
+          });
+          await expect(
+            readFile(
+              join(changesDir, "acceptance-projection", "acceptance.md"),
+              "utf-8",
+            ),
+          ).resolves.toContain("Artifact-backed gates are enforced.");
+        },
+      );
     } finally {
       await cleanupTempDir(dir);
     }

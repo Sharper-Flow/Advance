@@ -4,6 +4,7 @@ import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
+  renderAcceptanceProjection,
 } from "./gate-readiness";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
@@ -98,13 +99,25 @@ interface ChangeProjectionActivities {
         checkedAt: string;
       }
   >;
+  writeArtifactActivity(input: {
+    changesDir: string;
+    changeId: string;
+    kind: "proposal" | "agreement" | "design" | "acceptance";
+    content: string;
+  }): Promise<
+    { ok: true; path: string } | { ok: false; error: string; path?: undefined }
+  >;
 }
 
-const { archiveChangeActivity, inspectArtifactActivity, writeChangeProjection } =
-  wf.proxyActivities<ChangeProjectionActivities>({
-    startToCloseTimeout: "10 seconds",
-    retry: { maximumAttempts: 3 },
-  });
+const {
+  archiveChangeActivity,
+  inspectArtifactActivity,
+  writeArtifactActivity,
+  writeChangeProjection,
+} = wf.proxyActivities<ChangeProjectionActivities>({
+  startToCloseTimeout: "10 seconds",
+  retry: { maximumAttempts: 3 },
+});
 
 const changeBootstrapQuery = wf.defineQuery<ChangeWorkflowBootstrapState>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.bootstrap,
@@ -322,7 +335,7 @@ function safeUpdateHandler<Args extends unknown[], R>(
         "then" in result &&
         typeof result.then === "function"
       ) {
-        return result.catch((err: unknown) => {
+        return Promise.resolve(result).catch((err: unknown) => {
           const message = err instanceof Error ? err.message : String(err);
           throw wf.ApplicationFailure.nonRetryable(
             message,
@@ -676,6 +689,23 @@ export async function changeWorkflow(
     let artifactEvidence = readiness.evidence;
     const artifactKind = ARTIFACT_BACKED_GATES[payload.gateId];
     if (artifactKind && state.projectionChangesDir && !artifactEvidence) {
+      if (artifactKind === "acceptance") {
+        const writeResult = await writeArtifactActivity({
+          changesDir: state.projectionChangesDir,
+          changeId: state.changeId,
+          kind: "acceptance",
+          content: renderAcceptanceProjection(state),
+        });
+        if (!writeResult.ok) {
+          markGateStuckForBlockers(payload, [
+            {
+              code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+              message: writeResult.error,
+            },
+          ]);
+          return;
+        }
+      }
       const artifact = await inspectArtifactActivity({
         changesDir: state.projectionChangesDir,
         changeId: state.changeId,
@@ -684,7 +714,10 @@ export async function changeWorkflow(
       if (!artifact.ok) {
         markGateStuckForBlockers(payload, [
           {
-            code: artifact.code === "missing" ? "ARTIFACT_MISSING" : "ARTIFACT_UNREADABLE",
+            code:
+              artifact.code === "missing"
+                ? "ARTIFACT_MISSING"
+                : "ARTIFACT_UNREADABLE",
             message: artifact.error,
           },
         ]);

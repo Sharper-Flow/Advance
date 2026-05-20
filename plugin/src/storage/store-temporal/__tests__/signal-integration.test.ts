@@ -52,7 +52,9 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
 }
 
 async function waitForProposalStatus(
-  handle: WorkflowHandle<typeof import("../../../temporal/workflows").changeWorkflow>,
+  handle: WorkflowHandle<
+    typeof import("../../../temporal/workflows").changeWorkflow
+  >,
   status: string,
 ): Promise<ChangeWorkflowState> {
   for (let i = 0; i < 20; i++) {
@@ -85,7 +87,8 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             approvalEvidence: "test",
             completedBy: "tester",
             completedAt: new Date().toISOString(),
-            compatibilityReason: "legacy signal integration fixture has no artifact store",
+            compatibilityReason:
+              "legacy signal integration fixture has no artifact store",
           });
           const state = await waitForProposalStatus(handle, "done");
           expect(state.gates.proposal.status).toBe("done");
@@ -116,7 +119,8 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             approvalEvidence: "test",
             completedBy: "tester",
             completedAt: new Date().toISOString(),
-            compatibilityReason: "legacy signal integration fixture has no artifact store",
+            compatibilityReason:
+              "legacy signal integration fixture has no artifact store",
           });
           await waitForProposalStatus(handle, "done");
           // Then reopen it

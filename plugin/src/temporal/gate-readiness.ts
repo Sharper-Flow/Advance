@@ -8,12 +8,13 @@ import {
 } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
 
-export const ARTIFACT_BACKED_GATES = {
-  proposal: "proposal",
-  discovery: "agreement",
-  design: "design",
-  acceptance: "acceptance",
-} satisfies Partial<Record<GateId, GateArtifactKind>>;
+export const ARTIFACT_BACKED_GATES: Partial<Record<GateId, GateArtifactKind>> =
+  {
+    proposal: "proposal",
+    discovery: "agreement",
+    design: "design",
+    acceptance: "acceptance",
+  } satisfies Partial<Record<GateId, GateArtifactKind>>;
 
 export const gateArtifactEvidenceSchema = GateArtifactEvidenceSchema;
 
@@ -35,7 +36,8 @@ function makeBlocker(
 ): GateReadinessBlocker {
   return {
     message: blocker.message ?? blocker.code,
-    remediation: blocker.remediation ?? "Resolve the blocker and retry gate completion.",
+    remediation:
+      blocker.remediation ?? "Resolve the blocker and retry gate completion.",
     ...blocker,
   };
 }
@@ -113,7 +115,69 @@ function acceptanceContractBlockers(
       }),
     ];
   }
-  return [];
+  const rowsByContractId = new Map(
+    state.contract.reviewMatrix.rows.map((row) => [row.contractId, row]),
+  );
+  return state.contract.items
+    .filter((item) => item.verificationRequired !== false)
+    .flatMap((item) => {
+      const row = rowsByContractId.get(item.id);
+      if (!row) {
+        return [
+          makeBlocker({
+            code: "ACCEPTANCE_REVIEW_ROW_MISSING",
+            gateId,
+            artifactKind: "acceptance",
+            contractId: item.id,
+            message: `Acceptance review matrix is missing row ${item.id}.`,
+            remediation:
+              "Complete the contract review matrix before retrying acceptance.",
+          }),
+        ];
+      }
+      if (["fail", "violated", "unknown"].includes(row.status)) {
+        return [
+          makeBlocker({
+            code: "ACCEPTANCE_REVIEW_ROW_FAILING",
+            gateId,
+            artifactKind: "acceptance",
+            contractId: item.id,
+            message: `Acceptance review row ${item.id} has non-passing status ${row.status}.`,
+            remediation:
+              "Resolve the failing contract review row before retrying acceptance.",
+          }),
+        ];
+      }
+      return [];
+    });
+}
+
+export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
+  const contract = state.contract;
+  if (!contract?.reviewMatrix) {
+    return "# Acceptance\n\nNo typed acceptance proof available.\n";
+  }
+  const rowsByContractId = new Map(
+    contract.reviewMatrix.rows.map((row) => [row.contractId, row]),
+  );
+  const lines = [
+    "# Acceptance",
+    "",
+    `Reviewed at: ${contract.reviewMatrix.reviewedAt}`,
+    "",
+    "## Contract Review Matrix",
+    "",
+    "| ID | Kind | Requirement | Status | Evidence |",
+    "|---|---|---|---|---|",
+  ];
+  for (const item of contract.items) {
+    const row = rowsByContractId.get(item.id);
+    lines.push(
+      `| ${item.id} | ${item.kind} | ${item.text} | ${row?.status ?? "missing"} | ${row?.evidence ?? ""} |`,
+    );
+  }
+  lines.push("");
+  return `${lines.join("\n")}\n`;
 }
 
 export function evaluateGateReadiness(
@@ -131,7 +195,10 @@ export function evaluateGateReadiness(
 
   if (artifactKind && !state.projectionChangesDir) {
     if (options.compatibilityReason) {
-      evidence = compatibilityEvidence(artifactKind, options.compatibilityReason);
+      evidence = compatibilityEvidence(
+        artifactKind,
+        options.compatibilityReason,
+      );
     } else {
       blockers.push(artifactStoreBlocker(gateId, artifactKind));
     }
@@ -139,7 +206,10 @@ export function evaluateGateReadiness(
 
   if (artifactKind === "acceptance") {
     if (options.compatibilityReason && !state.contract) {
-      evidence = compatibilityEvidence(artifactKind, options.compatibilityReason);
+      evidence = compatibilityEvidence(
+        artifactKind,
+        options.compatibilityReason,
+      );
     } else {
       blockers.push(...acceptanceContractBlockers(state, gateId));
     }
