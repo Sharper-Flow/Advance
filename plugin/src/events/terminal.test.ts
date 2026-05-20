@@ -8,6 +8,9 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, readFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 // Mock child_process BEFORE importing the terminal module so the
 // module picks up the mocked exports.
@@ -124,6 +127,38 @@ describe("tmux rename-window safety", () => {
     term._setTitle("Feature\x07\x1b]2;pwn\x1b\\Implementation");
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
     expect(args[1]).toBe("Feature ]2;pwn \\Implementation");
+  });
+
+  test("title with BEL and ESC is sanitized before debug logging", async () => {
+    const originalDebug = process.env.ADV_DEBUG;
+    const originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
+    const tempDir = mkdtempSync(join(tmpdir(), "adv-terminal-log-"));
+
+    try {
+      process.env.ADV_DEBUG = "1";
+      process.env.OPEN_CHAD_CACHE_DIR = tempDir;
+      vi.resetModules();
+
+      const term = await import("./terminal");
+      term._setTitle("Feature\x07\x1b]2;pwn\x1b\\Implementation");
+
+      const debugLog = readFileSync(join(tempDir, "adv-debug.log"), "utf8");
+      expect(debugLog).not.toContain("\x07");
+      expect(debugLog).not.toContain("\x1b");
+      expect(debugLog).toContain("Feature ]2;pwn");
+    } finally {
+      if (originalDebug === undefined) {
+        delete process.env.ADV_DEBUG;
+      } else {
+        process.env.ADV_DEBUG = originalDebug;
+      }
+      if (originalCacheDir === undefined) {
+        delete process.env.OPEN_CHAD_CACHE_DIR;
+      } else {
+        process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+      }
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("title with double quotes is passed raw", async () => {

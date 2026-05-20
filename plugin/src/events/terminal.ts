@@ -168,8 +168,8 @@ const sanitizeOscTitlePayload = (title: string): string =>
  * Set terminal title via OSC sequence.
  */
 const setTitle = (title: string): void => {
-  log(`setTitle: "${title}"`);
   const sanitizedTitle = sanitizeOscTitlePayload(title);
+  log(`setTitle: ${JSON.stringify(sanitizedTitle)}`);
   const sequence = `\x1b]0;${sanitizedTitle}\x1b\\`;
 
   if (isTmux()) {
