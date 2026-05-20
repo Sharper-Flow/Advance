@@ -71,6 +71,7 @@ import {
   normalizeTodoWriteItems,
   type TodoWriteTaskState,
 } from "./utils/todowrite-guard";
+import { buildAdvWorktreeAdapter } from "./utils/workspace-adapter";
 
 export { resolveGitSessionContext } from "./utils/git-session";
 
@@ -304,7 +305,10 @@ function buildFactoryFailureHooks(
   };
 }
 
-const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
+const advancePluginImpl: Plugin = async (input) => {
+  const { directory, worktree, project, experimental_workspace } = input;
+  experimental_workspace?.register?.("adv-worktree", buildAdvWorktreeAdapter());
+
   const gitSession = resolveGitSessionContext(directory, worktree);
   const { isWorktree, isMainCheckout } = gitSession;
   debugLog(
@@ -328,7 +332,9 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // derived (e.g. fixtures without `git-common-dir`).
   // See change `fixWorktreeSessionRoot` task `tk-180a72cea67c`.
   const firewallConfigRoot =
-    gitSession.mainCheckoutPath ?? gitSession.currentCheckoutPath ?? effectiveDir;
+    gitSession.mainCheckoutPath ??
+    gitSession.currentCheckoutPath ??
+    effectiveDir;
   const projectConfigResult =
     await loadProjectConfigWithDiagnostics(firewallConfigRoot);
   if (projectConfigResult.success) {

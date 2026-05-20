@@ -596,7 +596,15 @@ async function forkWithContext(
 /** Database instance - initialized once per plugin lifecycle */
 let db: Database | null = null;
 
-/** Project root path - stored on first initialization */
+/**
+ * Project root path - stored on first initialization.
+ *
+ * In post-warp double-init scenarios, the second plugin's projectRoot value is
+ * ignored because the DB handle is cached against the first init's path. This
+ * is correct: external state is project-id-keyed (same root commit SHA), so
+ * both plugin instances target the same DB file. The cosmetic stale value is
+ * benign.
+ */
 let projectRoot: string | null = null;
 
 /** Flag to prevent duplicate cleanup handler registration */

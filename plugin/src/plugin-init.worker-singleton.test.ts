@@ -153,5 +153,22 @@ describe("plugin-init worker singleton plan", () => {
         handlers.removeProcessListeners();
       }
     });
+
+    test("does not register duplicate process listeners on repeated init", () => {
+      const before = process.listenerCount("SIGINT");
+      const first = registerShutdownHandlers(null);
+      const afterFirst = process.listenerCount("SIGINT");
+      const second = registerShutdownHandlers(null);
+
+      try {
+        expect(afterFirst).toBe(before + 1);
+        expect(process.listenerCount("SIGINT")).toBe(afterFirst);
+      } finally {
+        second.removeProcessListeners();
+        first.removeProcessListeners();
+      }
+
+      expect(process.listenerCount("SIGINT")).toBe(before);
+    });
   });
 });
