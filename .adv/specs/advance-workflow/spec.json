@@ -9,7 +9,7 @@
     {
       "id": "rq-problemSpecLaw01",
       "title": "Behavior-Significant Problem Findings Preserve Spec-Law Intent",
-      "body": "/adv-problem MUST include a spec-law impact assessment when triage clarifies expected durable product/system behavior. If the finding is behavior-significant, the triage outcome MUST either route to /adv-proposal with a draft spec-delta obligation carried forward, or explicitly record why no spec law update is required. A finding that requires spec-law change MUST NOT be classified as a trivial direct-fix candidate. /adv-problem remains read-only and MUST NOT create changes, tasks, gates, or spec deltas directly.",
+      "body": "/adv-problem MUST include a spec-law impact assessment when triage clarifies expected durable product/system behavior. If the finding requires spec-law change, the triage outcome MUST route to /adv-proposal with a draft spec-delta obligation carried forward. If no spec law update is required, direct fix remains allowed only when all direct-fix guardrails pass and the triage summary records the no-delta rationale. A finding with uncertain spec-law impact MUST NOT be classified as a trivial direct-fix candidate. /adv-problem remains read-only and MUST NOT create changes, tasks, gates, or spec deltas directly.",
       "priority": "must",
       "tags": ["workflow", "adv-problem", "spec-law", "triage"],
       "scenarios": [
@@ -22,7 +22,7 @@
           "when": "Triage concludes behavior Y is a durable expected behavior or contract change",
           "then": [
             "The triage summary includes a spec-law impact assessment",
-            "The next step is proposal-sized, carrying a draft spec-delta obligation or explicit no-delta rationale",
+            "The next step is proposal-sized, carrying a draft spec-delta obligation",
             "The issue is not classified as a trivial direct-fix candidate"
           ]
         },
@@ -35,6 +35,7 @@
           "when": "The command recommends a direct-fix candidate",
           "then": [
             "The triage summary states that no spec law update is required and why",
+            "Direct fix remains allowed only when all direct-fix guardrails pass",
             "The existing direct-fix guardrails remain satisfied"
           ]
         },

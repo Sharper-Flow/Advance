@@ -19,7 +19,11 @@ describe("adv-problem spec-law impact contract", () => {
   test("command requires spec-law impact assessment in triage output", () => {
     expect(command).toContain("Spec-law impact");
     expect(command).toContain("durable product/system behavior");
+    expect(command).toContain("Spec-law change required");
     expect(command).toContain("No spec law update required");
+    expect(command).toContain(
+      "direct fix remains allowed only when all direct-fix guardrails pass",
+    );
   });
 
   test("command defaults uncertain spec-law impact to proposal path", () => {
@@ -43,7 +47,13 @@ describe("adv-problem spec-law impact contract", () => {
     expect(requirement).toBeDefined();
     expect(requirement?.body).toContain("spec-law impact assessment");
     expect(requirement?.body).toContain("durable product/system behavior");
-    expect(requirement?.body).toContain("trivial direct-fix candidate");
+    expect(requirement?.body).toContain("requires spec-law change");
+    expect(requirement?.body).toContain(
+      "direct fix remains allowed only when all direct-fix guardrails pass",
+    );
+    expect(requirement?.body).toContain(
+      "uncertain spec-law impact MUST NOT be classified as a trivial direct-fix candidate",
+    );
     expect(requirement?.body).toContain(
       "MUST NOT create changes, tasks, gates, or spec deltas directly",
     );

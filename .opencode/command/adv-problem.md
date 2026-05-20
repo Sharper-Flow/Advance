@@ -49,8 +49,8 @@ Direct-fix outcome is a handoff outcome only. `/adv-problem` does not own the fi
 
 When triage clarifies expected durable product/system behavior, the summary MUST include **Spec-law impact**:
 
-- **Behavior-significant** — route to `/adv-proposal` with a draft spec-delta obligation, or explicitly record why no spec law update is required.
-- **No spec law update required** — for direct-fix candidates, state the rationale explicitly.
+- **Spec-law change required** — route to `/adv-proposal` with a draft spec-delta obligation.
+- **No spec law update required** — direct fix remains allowed only when all direct-fix guardrails pass; state the rationale explicitly.
 - **Uncertain** — When spec-law impact is uncertain, prefer proposal-sized routing via `/adv-proposal`, not direct fix.
 
 `/adv-problem` remains read-only: it MUST NOT create changes, tasks, gates, or spec deltas directly.
