@@ -1,0 +1,167 @@
+{
+  "id": "requireProblemSpecLaw",
+  "title": "Require problem spec law",
+  "status": "archived",
+  "created_at": "2026-05-20T04:32:52.720Z",
+  "tasks": [
+    {
+      "id": "tk-4b987aa99f12",
+      "title": "Implement `/adv-problem` spec-law impact contract with asset coverage",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T04:46:24.472Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": {
+          "implements": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC4",
+            "AC5"
+          ],
+          "verifies": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC4",
+            "AC5"
+          ],
+          "respects": [
+            "C1",
+            "C2",
+            "C3",
+            "C4",
+            "DONT1",
+            "DONT2",
+            "DONT3",
+            "DONT4"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:52:56.012Z",
+      "verification": "Implemented `/adv-problem` spec-law impact contract. Added RED/GREEN asset coverage, command doc contract text, and `rq-problemSpecLaw01` in `advance-workflow`. Checkpoint commit: 3b49fa37ecdd214ce16309d12768208398314aa0.",
+      "summary": "Added `plugin/src/adv-problem-assets.test.ts` to enforce stable command/spec-law contract phrases. Updated `.opencode/command/adv-problem.md` to require Spec-law impact in triage output, direct-fix no-spec-law rationale, uncertainty-to-proposal routing, and read-only boundary. Added `rq-problemSpecLaw01` with three scenarios to `.adv/specs/advance-workflow/spec.json` and bumped version to 1.8.2.",
+      "implementation_summary": "Added `plugin/src/adv-problem-assets.test.ts` to enforce stable command/spec-law contract phrases. Updated `.opencode/command/adv-problem.md` to require Spec-law impact in triage output, direct-fix no-spec-law rationale, uncertainty-to-proposal routing, and read-only boundary. Added `rq-problemSpecLaw01` with three scenarios to `.adv/specs/advance-workflow/spec.json` and bumped version to 1.8.2.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:56:38.498Z",
+      "completed_at": "2026-05-20T04:56:38.498Z"
+    },
+    {
+      "id": "tk-856db6581a8a",
+      "title": "Run verification for `/adv-problem` spec-law contract",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T04:46:33.572Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4b987aa99f12"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": {
+          "verifies": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC4",
+            "AC5"
+          ],
+          "respects": [
+            "C1",
+            "C2",
+            "C3",
+            "C4",
+            "DONT1",
+            "DONT2",
+            "DONT3",
+            "DONT4"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:56:51.918Z",
+      "verification": "Verification, review remediation, and hardening remediation complete. Final targeted asset test passed; final `pnpm run check` passed; harden findings resolved; checkpoint commit e43ebca66179cf8dbfaaf3d5e4a9d6b7c3218b21 recorded.",
+      "summary": "Verified and hardened `/adv-problem` spec-law contract. Added docs mirror update and prose-load inventory update during hardening. Resolved production-readiness ambiguity by making proposal path an explicit handoff to `/adv-proposal` while preserving `/adv-problem` no-artifact boundary.",
+      "implementation_summary": "Verified and hardened `/adv-problem` spec-law contract. Added docs mirror update and prose-load inventory update during hardening. Resolved production-readiness ambiguity by making proposal path an explicit handoff to `/adv-proposal` while preserving `/adv-problem` no-artifact boundary.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T05:15:41.935Z",
+      "completed_at": "2026-05-20T05:15:41.935Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:36:12.684Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the proposal framing with `continue`; B/F/S proposal scan had no critical findings."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:42:26.498Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded; acceptance criteria and agreement approved by user reply `approve`. Contract items are represented in agreement.md pending any typed contract persistence supported by tooling."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:45:49.381Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Independent adv-researcher validation returned VALIDATED with no conflicts. No user-value tradeoff or contract-compromise risk identified."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:52:15.115Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision/task graph with reply `approve`; validation passed with non-blocking NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:58:27.754Z",
+      "completed_by": "agent",
+      "approval_evidence": "All non-cancelled tasks done. Verification passed: targeted asset test and `pnpm run check` exit 0. Non-blocking validation warning remains: NO_DELTAS because spec law was edited directly in branch and no change.deltas tool exists in this workflow."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:07:07.581Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Review verdict APPROVED; all review findings fixed; targeted asset test and `pnpm run check` passed."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:17:45.721Z",
+      "completed_by": "agent",
+      "approval_evidence": "User gave Tier B archive sign-off with exact whitelist reply `sign off`. Harden status READY; conformance state has no required specs; pre-archive validation passed with non-blocking NO_DELTAS warning."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-20T04:42:31.398Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T04:45:56.938Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-20T04:45:56.938Z"
+    }
+  ]
+}
