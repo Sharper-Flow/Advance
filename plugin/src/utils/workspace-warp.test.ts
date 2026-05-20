@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createAdvWorkspace,
   deleteAdvWorkspace,
+  findWorkspaceByDirectory,
   warpFlagEnabled,
   warpSession,
   workspaceAndWarpAvailable,
@@ -228,5 +229,84 @@ describe("workspace-warp", () => {
     await expect(
       deleteAdvWorkspace({ serverUrl, fetchImpl }, "ws-abc"),
     ).rejects.toThrow("deleteAdvWorkspace failed: 503 boom");
+  });
+
+  describe("findWorkspaceByDirectory", () => {
+    it("short-circuits without HTTP when the warp flag is off", async () => {
+      const fetchImpl = vi.fn();
+
+      await expect(
+        findWorkspaceByDirectory({ serverUrl, fetchImpl }, "/tmp/wt"),
+      ).resolves.toBeNull();
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it("returns the matching workspace id by exact directory", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse([
+          { id: "ws-other", directory: "/tmp/other" },
+          { id: "ws-match", directory: "/tmp/wt" },
+        ]),
+      );
+
+      await expect(
+        findWorkspaceByDirectory({ serverUrl, fetchImpl }, "/tmp/wt"),
+      ).resolves.toEqual({ workspaceID: "ws-match" });
+      expect(String(getCall(fetchImpl)[0])).toBe(
+        "http://127.0.0.1:4096/experimental/workspace",
+      );
+    });
+
+    it("returns null when no workspace directory matches", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse([{ id: "ws-other", directory: "/tmp/other" }]),
+        );
+
+      await expect(
+        findWorkspaceByDirectory({ serverUrl, fetchImpl }, "/tmp/wt"),
+      ).resolves.toBeNull();
+    });
+
+    it("returns null on non-2xx, fetch errors, or malformed list responses", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+
+      await expect(
+        findWorkspaceByDirectory(
+          {
+            serverUrl,
+            fetchImpl: vi
+              .fn()
+              .mockResolvedValue(textResponse("no", { status: 500 })),
+          },
+          "/tmp/wt",
+        ),
+      ).resolves.toBeNull();
+
+      await expect(
+        findWorkspaceByDirectory(
+          {
+            serverUrl,
+            fetchImpl: vi.fn().mockRejectedValue(new Error("network")),
+          },
+          "/tmp/wt",
+        ),
+      ).resolves.toBeNull();
+
+      await expect(
+        findWorkspaceByDirectory(
+          {
+            serverUrl,
+            fetchImpl: vi
+              .fn()
+              .mockResolvedValue(jsonResponse({ id: "not-list" })),
+          },
+          "/tmp/wt",
+        ),
+      ).resolves.toBeNull();
+    });
   });
 });

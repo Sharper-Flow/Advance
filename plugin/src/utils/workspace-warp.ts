@@ -126,3 +126,35 @@ export async function deleteAdvWorkspace(
     )}`,
   );
 }
+
+const isWorkspaceListItem = (
+  value: unknown,
+): value is { id: string; directory: string | null } =>
+  typeof value === "object" &&
+  value !== null &&
+  "id" in value &&
+  typeof value.id === "string" &&
+  "directory" in value &&
+  (typeof value.directory === "string" || value.directory === null);
+
+export async function findWorkspaceByDirectory(
+  deps: WarpDeps,
+  directory: string,
+): Promise<WorkspaceHandle | null> {
+  if (!warpFlagEnabled()) return null;
+
+  try {
+    const response = await fetchWith(deps)(workspaceUrl(deps));
+    if (!response.ok) return null;
+
+    const list: unknown = await response.json();
+    if (!Array.isArray(list)) return null;
+
+    const match = list.find(
+      (item) => isWorkspaceListItem(item) && item.directory === directory,
+    );
+    return isWorkspaceListItem(match) ? { workspaceID: match.id } : null;
+  } catch {
+    return null;
+  }
+}
