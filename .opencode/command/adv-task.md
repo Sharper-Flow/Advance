@@ -47,15 +47,15 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 ## Phase 2: Discovery + Design Validation
 ### Load Context
 `adv_project_context` → full tech stack.
-### Spawn Research Sub-Agents
-1-2 agents in parallel (single message):
+### Spawn Research Sub-Agent
+Spawn `adv-researcher` for docs/API/examples + architecture validation in a single message:
 | Target Type | Agent |
 |-------------|-------|
-| Library/API | `librarian` |
+| Library/API | `adv-researcher` |
 | Architecture/pattern | `adv-researcher` (independent validator) |
-| Both | Both |
+| Both | `adv-researcher` |
 
-Pass the minimum project context each agent needs. Redact secrets, internal URLs, and unrelated operational details before external research. If sub-agents fail → inline Context7 fallback → if no result → Exa.
+Pass the minimum project context the agent needs. Redact secrets, internal URLs, and unrelated operational details before external research. If the sub-agent fails → inline Context7 fallback → if no result → Exa.
 ### Synthesize Verdicts
 | Verdict | Meaning |
 |---------|---------|
@@ -114,7 +114,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 | Purpose | Tool |
 |---------|------|
 | Create change | `adv_change_create` |
-| Research | Task tool (librarian, adv-researcher) |
+| Research | Task tool (adv-researcher) |
 | Fallback | Context7 (`context7_resolve-library-id` + `context7_query-docs`) for library docs, `webfetch` if Context7 is absent, `exa_web_search_exa` |
 | Context | `adv_project_context` |
 | Conflicts | `adv_change_list` |

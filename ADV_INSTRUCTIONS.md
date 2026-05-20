@@ -297,11 +297,11 @@ Write-in option enforced by P26 (`rules.yaml`). ADV notes:
 
 ### Tradeoff Prioritizer Protocol
 
-When 2+ viable approaches depend on user values → run prioritizer before asking.
+When 2+ viable approaches depend on user values → run the prioritizer protocol before asking.
 
 **Default (inline):** Scan code → research tradeoffs → draft criteria questions → pass to `question` tool → restate priorities → recommend.
 
-**Optional (skill):** Load `skill("prioritizer")` for structured criteria question templates and decision map guidance.
+**Optional (skill):** Load `skill("prioritizer")` for structured criteria question templates and decision map guidance. The prioritizer is a skill/inline protocol, not a spawnable sub-agent.
 
 Skip for: bug fixes, mechanical work, choices constrained by security/API/architecture.
 
@@ -697,12 +697,13 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 Use for 3+ independent scan dimensions. Single-level only.
 
-| Command                                | Inline                 | Sub-Agent                               |
-| -------------------------------------- | ---------------------- | --------------------------------------- |
-| research/task                          | Context7 + Exa + lgrep | librarian + adv-researcher              |
-| review/harden/audit/slop-scan/refactor | Sequential scans       | explore/general as command docs specify |
-| slop-scan                              | Sequential categories  | explore × 9 (single-level only)         |
-| tron                                   | lgrep + read           | adv-tron                                |
+| Command                                | Inline                 | Sub-Agent                                                                                                  |
+| -------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| research/task                          | Context7 + Exa + lgrep | `adv-researcher`                                                                                           |
+| review/harden                          | Sequential scans       | `explore` for scoped scans; `adv-reviewer` for review/harden analysis + scoped remediation; `adv-engineer` for primary implementation fixes |
+| audit/slop-scan/refactor               | Sequential scans       | `explore`/`general` as command docs specify                                                                |
+| slop-scan                              | Sequential categories  | explore × 9 (single-level only)                                                                            |
+| tron                                   | lgrep + read           | `adv-tron`                                                                                                 |
 
 Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
 
@@ -758,28 +759,28 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 ### Agent Tiers
 
-| Tier                      | Agents                                                       | Loading             |
-| ------------------------- | ------------------------------------------------------------ | ------------------- |
-| Primary (user-selectable) | `adv`, `plan`, `build`                                       | Global agents       |
-| Common subagents          | `explore`, `general`, `librarian`, `mechanic`, `prioritizer` | Global agents       |
-| ADV specialists           | `adv-researcher`, `adv-engineer`                             | Bundled global      |
-| Repo-local                | `adv-tron`                                                   | `.opencode/agents/` |
+| Tier                      | Agents                                                                | Loading             |
+| ------------------------- | --------------------------------------------------------------------- | ------------------- |
+| Primary (user-selectable) | `adv`, `plan`, `build`                                                | Global agents       |
+| Common subagents          | `explore`, `general`                                                  | Global agents       |
+| ADV specialists           | `adv-researcher`, `adv-engineer`, `adv-reviewer`                      | Bundled global      |
+| Repo-local                | `adv-tron`                                                            | `.opencode/agents/` |
+| Skill/inline (not spawnable) | `prioritizer` (load `skill("prioritizer")`); MCP/infra diagnostics handled inline by the orchestrator | n/a                 |
 
 Only `mode: subagent` agents spawn via Task. `adv`, `plan`, `build` are primary only.
 
 ### Agent Roster
 
-| Agent            | Use                                                   |
-| ---------------- | ----------------------------------------------------- |
-| `librarian`      | Docs, API refs, examples                              |
-| `adv-researcher` | Architecture validation                               |
-| `explore`        | Code navigation                                       |
-| `adv-engineer`   | Delegated ADV code-writing; must use packet `workdir` |
-| `general`        | Verify bursts + generic multi-step work               |
-| `mechanic`       | MCP/config/ADV diagnostics                            |
-| `adv-tron`       | Recon + hotspots                                      |
+| Agent            | Use                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `explore`        | Code navigation, scoped read-only scans                                                                          |
+| `adv-researcher` | Docs/API/examples research (Context7, Exa, searchcode, webfetch) AND architecture validation; independent validator |
+| `adv-engineer`   | Delegated ADV code-writing; must use packet `workdir`                                                            |
+| `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, `/adv-harden` analysis with scoped repo-write remediation; emits `REVIEWER_REPORT` |
+| `general`        | Verify bursts + generic multi-step work                                                                          |
+| `adv-tron`       | Recon + hotspots (repo-local)                                                                                    |
 
-`adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/deploy-local.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
+`adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn.
 
 ## Skill Discovery Protocol
 

@@ -128,47 +128,18 @@ Spawn in SINGLE message for parallel execution.
 
 ### No Nested Research Delegation (CRITICAL)
 
-The `/adv-research` orchestrator may spawn the first-level research agents only.
+The `/adv-research` orchestrator may spawn the first-level research agent only.
 
-- `librarian` and `adv-researcher` must perform all analysis inline with their own tools
-- They must NOT spawn additional research sub-agents, delegates, or worker agents
-- They must NOT invoke any `/adv-*` slash commands; if they need ADV context they must use ADV tools directly
+- `adv-researcher` must perform all analysis inline with its own tools
+- It must NOT spawn additional research sub-agents, delegates, or worker agents
+- It must NOT invoke any `/adv-*` slash commands; if it needs ADV context it must use ADV tools directly
 - If deeper analysis is needed, return the gap to the orchestrator or use the inline fallback research flow in this command
 
 ### Orchestrator Pattern
 
-Two agents in parallel:
-1. **librarian** — docs, API refs, code examples
-2. **adv-researcher** — architecture validation, simplicity analysis
+Spawn `adv-researcher` as the single research agent. It owns docs/API/examples lookup (Context7, Exa, searchcode, webfetch, Firecrawl) AND architecture validation / simplicity analysis — its tool grants and system prompt already cover both responsibilities.
 
-Skip librarian if research is purely architectural (no library/API lookups, version-specific docs, or framework behavior questions).
-
-Check agent availability: `glob .opencode/agents/adv-researcher.md`. Librarian is always available. If `adv-researcher` is unavailable, use the Explore Fallback Template immediately; if it is available but returns an empty/failed result, apply the retry protocol first.
-
-### Librarian Prompt
-
-```
-Find documentation and examples for the following:
-
-TOPIC: {technology or pattern being researched}
-
-PROJECT CONTEXT:
-{brief description of what we're building}
-
-SPECIFIC QUESTIONS:
-{list of documentation/example questions}
-
-Before sending:
-- Redact secrets/internal-only details
-- Keep queries generic; do not include proprietary code, internal URLs, or customer data
-- Do all research inline with your own tools; do not delegate to additional sub-agents
-- Do not invoke `/adv-*` slash commands; use ADV tools directly if ADV state is needed
-
-Return:
-- Key documentation findings with sources
-- Code examples from real projects
-- API reference information if relevant
-```
+Check agent availability: `glob .opencode/agents/adv-researcher.md`. If `adv-researcher` is unavailable, use the Explore Fallback Template immediately; if it is available but returns an empty/failed result, apply the retry protocol first.
 
 ### adv-researcher Prompt
 
@@ -210,10 +181,9 @@ Retry Protocol governs execution failures. This table governs which fallback pat
 
 | Failure | Action |
 |---------|--------|
-| Librarian fails | Continue with adv-researcher only, note "docs research incomplete" |
-| adv-researcher unavailable | Use `explore` agent with full research protocol instructions |
-| adv-researcher fails | Retry once, then fall back to `explore` |
-| Both fallback paths fail | Manual research via Context7 + Exa + searchcode directly |
+| adv-researcher unavailable | Use `explore` agent with full research protocol instructions (Explore Fallback Template below) |
+| adv-researcher fails | Retry once, then fall back to `explore` with the same template |
+| Explore fallback fails | Manual research via Context7 + Exa + searchcode directly, inline in this command |
 
 Fallbacks must also remain single-level: `explore` performs the work inline and does not delegate further.
 Fallback workers must not invoke `/adv-*` slash commands either.

@@ -349,6 +349,15 @@ This is the single declarative drift detection rule. It applies to every finding
 
 **Anti-pattern:** The drift-detection auto-fix path must NOT silently absorb non-campsite scope. If the fix would expand the agreement, always defer to the scope-discovery protocol above.
 
+### Sub-Agent Routing for Fixes
+
+| Fix shape | Worker | Returns |
+|---|---|---|
+| Scoped review-style (single file or local subsystem; no architectural risk) | `adv-reviewer` | fenced `REVIEWER_REPORT` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| Primary implementation or multi-file refactor | `adv-engineer` | fenced `ENGINEER_REPORT` |
+
+Both workers honor the drift detection rule and `stop_and_report` on scope drift. The orchestrator ingests verdict + findings from whichever report shape is returned.
+
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
 
 ---
