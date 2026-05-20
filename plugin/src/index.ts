@@ -320,7 +320,15 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // on-disk paths. No migration step needed.
 
   let trunkWriteFirewallEnforced = false;
-  const firewallConfigRoot = gitSession.currentCheckoutPath ?? effectiveDir;
+  // Read project config from the MAIN CHECKOUT (trunk), not from the
+  // current session's directory. In post-warp scenarios `directory` is the
+  // worktree, but worktrees don't carry the trunk-rooted `project.json`
+  // that gates `worktree_guard_enforce`. Falling back to currentCheckoutPath
+  // preserves behavior for sessions where mainCheckoutPath cannot be
+  // derived (e.g. fixtures without `git-common-dir`).
+  // See change `fixWorktreeSessionRoot` task `tk-180a72cea67c`.
+  const firewallConfigRoot =
+    gitSession.mainCheckoutPath ?? gitSession.currentCheckoutPath ?? effectiveDir;
   const projectConfigResult =
     await loadProjectConfigWithDiagnostics(firewallConfigRoot);
   if (projectConfigResult.success) {
@@ -569,6 +577,16 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       }
     }
 
+    // Identify trunk by git topology (main checkout containing the default
+    // branch), not by the session's bound directory. In post-warp scenarios
+    // `directory` is the worktree path, so deriving `projectRoot = directory`
+    // would mis-classify worktree writes as trunk-rooted and miss real trunk
+    // writes. mainCheckoutPath comes from `git rev-parse --git-common-dir`
+    // and is project-stable across worktrees. Falls back to `directory` for
+    // fixtures or environments where git-common-dir cannot be derived.
+    // Paired with the firewallConfigRoot derivation above so config and
+    // projectRoot consistently resolve to the trunk.
+    // See change `fixWorktreeSessionRoot` task `tk-180a72cea67c`.
     const projectRoot = gitSession.mainCheckoutPath ?? directory;
     const firewallDeps: TrunkWriteFirewallDeps = {
       getDefaultBranch: (cwd: string) => getDefaultBranch(cwd),
