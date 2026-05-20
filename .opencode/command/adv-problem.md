@@ -102,7 +102,7 @@ When triage reaches a clear branch, ask via `question` tool:
   - **Keep investigating**
   - **Stop after triage**
 
-If user chooses fix-now, hand off to normal fix work outside this command. Do not create ADV artifacts unless user chooses proposal path.
+If user chooses fix-now, hand off to normal fix work outside this command. If user chooses proposal path, hand off to `/adv-proposal`; `/adv-problem` still must not create ADV artifacts directly.
 
 ## Output
 
