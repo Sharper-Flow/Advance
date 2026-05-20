@@ -35,9 +35,13 @@ The signal-driven model exposes per-gate state transitions via dedicated signals
 
 ## Enforcement Rules
 
+<!-- rq-gateArtifactEnforcement01 rq-gateReadiness01 rq-gateArtifactAudit01 rq-acceptanceProjection01 -->
+
 1. **Sequential**: Gates MUST be completed in order (cannot skip ahead)
 2. **Blocking**: Archive/Complete BLOCKS unless all 7 gates satisfied
 3. **Cancelled Tasks**: At `execution` gate, cancelled tasks need user approval
+4. **Artifact-backed**: The workflow validates proposal.md, agreement.md, design.md, and generated acceptance.md before marking their gates done.
+5. **Structured blockers**: When workflow readiness rejects completion, the gate enters `stuck` with `stuck_reason` and machine-readable `readiness_blockers` for tool surfacing.
 
 ## Gate-Specific Behaviors
 
@@ -45,19 +49,19 @@ The signal-driven model exposes per-gate state transitions via dedicated signals
 
 Owner: `/adv-proposal` | **Pauses for:** proposal confirmation
 
-Produces `problem-statement.md` — the confirmed problem statement with success criteria and constraints. This is the entry point for all changes.
+Produces `proposal.md` and `problem-statement.md` — the confirmed problem statement with success criteria and constraints. This is the entry point for all changes. The proposal gate is artifact-backed: direct `gateCompletedSignal` calls still require workflow-readable `proposal.md` evidence unless an explicit migration/replay compatibility rationale is recorded.
 
 ### Discovery Gate
 
 Owner: `/adv-discover` | **Pauses for:** agreement sign-off (user-facing outcome questions only)
 
-Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-discover` Phase 4 (the agreement phase) includes a mandatory clarification loop that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. Phase 4.5.1 adds an explicit **Acceptance Criteria Checkpoint** before `agreement.md` is persisted and the discovery gate completes, offering approve, `/adv-clarify` handoff, or write-in edit outcomes; if the user selects `/adv-clarify`, discovery stops and resumes only after the user reruns `/adv-discover`. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found.
+Produces `agreement.md` — context analysis, objectives, and constraints agreed with the user. `/adv-discover` Phase 4 (the agreement phase) includes a mandatory clarification loop that triages all open questions from discovery: technical questions are resolved autonomously via LBP research, while user-facing questions (priorities, behavior, downsides, AC boundaries) are presented to the user. No question may be silently deferred. Phase 4.5.1 adds an explicit **Acceptance Criteria Checkpoint** before `agreement.md` is persisted and the discovery gate completes, offering approve, `/adv-clarify` handoff, or write-in edit outcomes; if the user selects `/adv-clarify`, discovery stops and resumes only after the user reruns `/adv-discover`. The discovery and planning gates evaluate the full change including completed tasks — completed work is evidence to validate, not acceptance proof. Follow-up tasks are added where gaps are found. The discovery gate is artifact-backed by workflow-readable `agreement.md`.
 
 ### Design Gate
 
 Owner: `/adv-design` | **Pauses for:** design approval when real tradeoffs depend on user values, when the design validator returns CONFLICT, or when the agent identifies contract-compromise risk (rq-designval04); auto-continues for straightforward deterministic designs with no compromise risk
 
-Produces `design.md` — validated architecture decisions and implementation strategy. Design decisions are frozen after this gate completes.
+Produces `design.md` — validated architecture decisions and implementation strategy. Design decisions are frozen after this gate completes. The design gate is artifact-backed by workflow-readable `design.md`.
 
 ### Planning Gate
 
@@ -75,7 +79,7 @@ All tasks must be done (or properly cancelled with user approval). `/adv-apply` 
 
 Owner: `/adv-review` | **Pauses for:** user acceptance of delivered work
 
-Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question), presents the acceptance criteria checklist, and completes the acceptance gate after user confirmation.
+Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question), presents the acceptance criteria checklist, and completes the acceptance gate after user confirmation. The acceptance gate is artifact-backed by a generated `acceptance.md` projection derived from `ChangeContract` items and `contract.reviewMatrix`; manually edited markdown is not authoritative acceptance proof.
 
 ### Release Gate
 

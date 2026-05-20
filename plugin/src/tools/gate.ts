@@ -9,6 +9,7 @@ import { join } from "path";
 import type { Store } from "../storage/store";
 import {
   type GateId,
+  type GateCompletion,
   type Gates,
   type Task,
   type FeatureFlags,
@@ -48,6 +49,62 @@ import {
   type WorktreeIsolationDeps,
   type WorktreeIsolationResult,
 } from "./worktree-isolation-guard";
+import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+
+const GATE_COMPLETION_POLL_ATTEMPTS = 40;
+const GATE_COMPLETION_POLL_DELAY_MS = 25;
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForGateCompletionResult(
+  handle: WorkflowHandleLike,
+  gateId: GateId,
+): Promise<GateCompletion | undefined> {
+  let latest: GateCompletion | undefined;
+  for (let attempt = 0; attempt < GATE_COMPLETION_POLL_ATTEMPTS; attempt++) {
+    latest = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      gateId,
+    );
+    if (latest?.status === "done" || latest?.status === "stuck") {
+      return latest;
+    }
+    await delay(GATE_COMPLETION_POLL_DELAY_MS);
+  }
+  return latest;
+}
+
+function workflowReadinessBlockedResponse(input: {
+  changeId: string;
+  gateId: GateId;
+  gate: GateCompletion;
+}): string {
+  return formatToolOutput({
+    error: `Cannot complete ${input.gateId}: workflow readiness blocked gate completion`,
+    changeId: input.changeId,
+    gateId: input.gateId,
+    workflowGateStatus: input.gate.status,
+    stuckReason: input.gate.stuck_reason,
+    readinessBlockers: input.gate.readiness_blockers ?? [],
+    hint: "Fix the workflow readiness blockers listed above, then retry adv_gate_complete.",
+  });
+}
+
+function gateCompletionNotConfirmedResponse(input: {
+  changeId: string;
+  gateId: GateId;
+  gate?: GateCompletion;
+}): string {
+  return formatToolOutput({
+    error: `Cannot confirm ${input.gateId} gate completion from workflow state`,
+    changeId: input.changeId,
+    gateId: input.gateId,
+    workflowGateStatus: input.gate?.status,
+    hint: "Retry adv_gate_status to inspect workflow state before retrying adv_gate_complete.",
+  });
+}
 
 function readBooleanFeatureFlag(
   features: unknown,
@@ -279,12 +336,28 @@ async function handlePlanningGateCompletion({
     approvalEvidence: notes,
   });
 
+  const postSignalGate = await waitForGateCompletionResult(handle, gateId);
+  if (postSignalGate?.status === "stuck") {
+    return workflowReadinessBlockedResponse({
+      changeId,
+      gateId,
+      gate: postSignalGate,
+    });
+  }
+  if (postSignalGate?.status !== "done") {
+    return gateCompletionNotConfirmedResponse({
+      changeId,
+      gateId,
+      gate: postSignalGate,
+    });
+  }
+
   return completeGateAndBuildResponse({
     store,
     change,
     changeId,
     gateId,
-    gates,
+    gates: { ...gates, [gateId]: postSignalGate },
     notes,
     completedBy,
     boundaryWarning,
@@ -609,12 +682,31 @@ export const gateTools = {
           },
         );
 
+        const postSignalGate = await waitForGateCompletionResult(
+          handle,
+          gateId,
+        );
+        if (postSignalGate?.status === "stuck") {
+          return workflowReadinessBlockedResponse({
+            changeId,
+            gateId,
+            gate: postSignalGate,
+          });
+        }
+        if (postSignalGate?.status !== "done") {
+          return gateCompletionNotConfirmedResponse({
+            changeId,
+            gateId,
+            gate: postSignalGate,
+          });
+        }
+
         return completeGateAndBuildResponse({
           store: activeStore,
           change,
           changeId,
           gateId,
-          gates,
+          gates: { ...gates, [gateId]: postSignalGate },
           notes,
           completedBy,
           boundaryWarning,

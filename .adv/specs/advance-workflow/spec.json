@@ -3,7 +3,7 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "updated_at": "2026-05-20T00:00:00.000Z",
   "requirements": [
     {
@@ -2087,6 +2087,165 @@
           ],
           "when": "The preflight error response is formatted",
           "then": ["Sensitive values in `received_args` are redacted"]
+        }
+      ]
+    },
+    {
+      "id": "rq-gateArtifactEnforcement01",
+      "title": "Workflow-Level Gate Artifact Enforcement",
+      "body": "The Temporal change workflow MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for replay or migration safety. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in workflow code.",
+      "priority": "must",
+      "tags": ["workflow", "gates", "artifacts", "temporal"],
+      "scenarios": [
+        {
+          "id": "rq-gateArtifactEnforcement01.1",
+          "title": "Missing artifact blocks artifact-backed gate",
+          "given": ["An artifact-backed gate completion signal is handled by the change workflow"],
+          "when": "The gate's required artifact is missing or unreadable",
+          "then": [
+            "The workflow does not mark the gate done",
+            "The gate remains pending or records a structured blocker",
+            "The blocker identifies the gate and missing artifact kind"
+          ]
+        },
+        {
+          "id": "rq-gateArtifactEnforcement01.2",
+          "title": "Blank or undersized artifact blocks completion",
+          "given": ["A required gate artifact exists"],
+          "when": "The artifact is blank, whitespace-only, or below deterministic minimum-content rules",
+          "then": [
+            "The workflow refuses gate completion",
+            "The refusal is deterministic and does not depend on LLM quality scoring"
+          ]
+        },
+        {
+          "id": "rq-gateArtifactEnforcement01.3",
+          "title": "Valid required artifact permits completion",
+          "given": ["All prior gates are done", "The required artifact exists and passes deterministic checks"],
+          "when": "gateCompletedSignal is handled for the artifact-backed gate",
+          "then": [
+            "The workflow may mark the gate done",
+            "Artifact evidence is available for audit when configured"
+          ]
+        },
+        {
+          "id": "rq-gateArtifactEnforcement01.4",
+          "title": "Compatibility requires explicit rationale",
+          "given": ["A replay or migration fixture cannot provide the required artifact evidence"],
+          "when": "Compatibility completion is allowed",
+          "then": [
+            "The completion records an explicit compatibility rationale",
+            "Silent legacy bypasses are not accepted for new gate completions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-gateReadiness01",
+      "title": "Deterministic Gate Readiness Blockers",
+      "body": "Gate readiness MUST be derived from workflow-owned state and expose deterministic blockers for incomplete prior gates and missing required artifacts. Tool-layer preflight may improve user experience, but workflow readiness remains authoritative and must not rely on heuristic agent judgment.",
+      "priority": "must",
+      "tags": ["workflow", "gates", "readiness", "blockers"],
+      "scenarios": [
+        {
+          "id": "rq-gateReadiness01.1",
+          "title": "Prior gate blocker is reported",
+          "given": ["A gate completion is requested while an earlier gate is not done"],
+          "when": "Readiness is evaluated",
+          "then": [
+            "Readiness fails",
+            "The blocker identifies the prior incomplete gate",
+            "The workflow does not complete the requested gate"
+          ]
+        },
+        {
+          "id": "rq-gateReadiness01.2",
+          "title": "Artifact blocker is reported",
+          "given": ["Prior gates are complete", "The requested gate requires an artifact"],
+          "when": "The required artifact is missing or invalid",
+          "then": [
+            "Readiness fails with a stable blocker code",
+            "The blocker includes gateId, artifactKind, and remediation text"
+          ]
+        },
+        {
+          "id": "rq-gateReadiness01.3",
+          "title": "Tool surfaces workflow readiness blockers",
+          "given": ["Workflow readiness rejects a gate completion"],
+          "when": "adv_gate_complete or adv_gate_status reports the result",
+          "then": [
+            "The tool response includes the workflow-derived blockers",
+            "Tool success is not reported unless workflow state actually advanced"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-gateArtifactAudit01",
+      "title": "Gate Completion Artifact Audit Evidence",
+      "body": "When a gate requires artifact evidence, successful gate completion SHOULD record artifact audit metadata such as artifact kind, path or projection identity, content hash when available, checked timestamp, and compatibility rationale when used. Audit metadata must not be caller-forgeable proof; workflow validation remains authoritative.",
+      "priority": "should",
+      "tags": ["workflow", "gates", "audit", "artifacts"],
+      "scenarios": [
+        {
+          "id": "rq-gateArtifactAudit01.1",
+          "title": "Artifact evidence recorded on completion",
+          "given": ["A gate requiring artifact evidence completes successfully"],
+          "when": "The gate completion record is persisted",
+          "then": [
+            "The record includes the artifact kind and checked timestamp",
+            "The record includes artifact path or projection identity when available"
+          ]
+        },
+        {
+          "id": "rq-gateArtifactAudit01.2",
+          "title": "Caller-provided audit data is not authoritative",
+          "given": ["A caller sends gate completion payload data that claims artifact evidence"],
+          "when": "The workflow handles the completion signal",
+          "then": [
+            "The workflow validates the artifact independently or rejects completion",
+            "Caller-provided metadata alone cannot mark the gate done"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-acceptanceProjection01",
+      "title": "Acceptance Projection from Typed Contract Review State",
+      "body": "Acceptance gate completion MUST use typed contract and review matrix state as the source of truth for acceptance proof. For new contract-era changes, the workflow MUST generate a durable acceptance.md projection from ChangeContract items and the contract review matrix before marking acceptance done. Manually edited markdown must not be treated as the authoritative acceptance proof.",
+      "priority": "must",
+      "tags": ["workflow", "acceptance", "contract", "artifacts"],
+      "scenarios": [
+        {
+          "id": "rq-acceptanceProjection01.1",
+          "title": "Missing contract blocks acceptance",
+          "given": ["A new contract-era change reaches acceptance gate completion"],
+          "when": "ChangeContract state is missing and no explicit compatibility rationale applies",
+          "then": [
+            "The workflow refuses acceptance completion",
+            "The blocker identifies the missing contract proof"
+          ]
+        },
+        {
+          "id": "rq-acceptanceProjection01.2",
+          "title": "Incomplete or failing review matrix blocks acceptance",
+          "given": ["A ChangeContract exists"],
+          "when": "A verification-required contract item lacks a review row or has a failing/violated status",
+          "then": [
+            "The workflow refuses acceptance completion",
+            "The blocker identifies the unmet contract item"
+          ]
+        },
+        {
+          "id": "rq-acceptanceProjection01.3",
+          "title": "Passing matrix generates durable acceptance projection",
+          "given": ["All verification-required contract items have acceptable review rows"],
+          "when": "The acceptance gate is completed",
+          "then": [
+            "The workflow writes acceptance.md through an activity or storage boundary",
+            "The workflow records acceptance artifact evidence",
+            "The acceptance gate may be marked done"
+          ]
         }
       ]
     }

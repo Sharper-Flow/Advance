@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-w_G3wy",
+      "type": "gotcha",
+      "content": "Async Temporal signal handlers can apply older signal timestamps after later synchronous handlers. Keep workflow last-activity timestamps monotonic (max existing/new ISO) and poll workflow state in tests/tools when a signal handler awaits activities; `handle.signal()` only confirms signal acceptance, not handler completion.",
+      "source_task": "tk-bf45f16f0394",
+      "recorded_at": "2026-05-20T17:42:56.147Z"
+    },
+    {
+      "id": "ws-pEzmXS",
+      "type": "pattern",
+      "content": "When a workflow must materialize a derived markdown artifact, keep rendering deterministic and workflow-safe (pure function over ChangeWorkflowState), then perform only the filesystem write/inspection through activities before recording artifact evidence.",
+      "source_task": "tk-4b7bb3ac936b",
+      "recorded_at": "2026-05-20T17:52:39.602Z"
+    },
+    {
+      "id": "ws-qNjsJw",
+      "type": "pattern",
+      "content": "When a Temporal signal can be rejected asynchronously by workflow readiness, tool-layer mutation responses must query/poll the post-signal workflow state before reporting success; otherwise the tool can claim a gate is done while the workflow marked it stuck.",
+      "source_task": "tk-cebd0479b385",
+      "recorded_at": "2026-05-20T17:59:56.804Z"
+    }
+  ],
+  "count": 3
+}

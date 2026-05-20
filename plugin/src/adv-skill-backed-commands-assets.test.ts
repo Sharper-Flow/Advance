@@ -484,6 +484,28 @@ describe("thin-command shape enforcement", () => {
     expect(archive).toMatch(/fail.*violated.*unknown/s);
   });
 
+  test("gate artifact contracts document workflow-enforced artifacts", () => {
+    const gatesDoc = readFileSync(join(REPO_ROOT, "docs/adv-gates.md"), "utf8");
+    const prep = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-prep.md"),
+      "utf8",
+    );
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+
+    expect(gatesDoc).toContain(
+      "workflow validates proposal.md, agreement.md, design.md, and generated acceptance.md",
+    );
+    expect(gatesDoc).toContain("readiness_blockers");
+    expect(prep).toContain("Artifact Excerpts");
+    expect(prep).toContain("problem-statement.md excerpt");
+    expect(review).toContain("generated acceptance.md projection");
+    expect(review).toContain("Do not manually edit acceptance.md");
+    expect(review).toContain("readinessBlockers");
+  });
+
   test("harden and slop-scan retain shared adv-slop-detection skill reference", () => {
     const hardenContent = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-harden.md"),

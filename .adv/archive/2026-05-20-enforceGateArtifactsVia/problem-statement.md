@@ -1,0 +1,1 @@
+ADV gate completion is not structurally enforced for artifact-backed gates. Agents can mark discovery, design, or acceptance complete without durable agreement/design/acceptance evidence. Move required artifact validation into the Temporal workflow gate state machine so gate state cannot advance unless required evidence exists or a documented compatibility exemption applies.
