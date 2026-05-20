@@ -1,7 +1,7 @@
 # Chat Output Display
 
-> **Version:** 1.3.0
-> **Updated:** 2026-04-28
+> **Version:** 1.5.0
+> **Updated:** 2026-05-20
 > **Supersedes:** `context-display` v1.2.0
 
 ## Purpose
@@ -274,17 +274,17 @@ The `STATUS_MARKERS` enum MUST contain an `IDLE` entry mapping to the textual ma
 
 ---
 
-### IDLE Bell Policy
+### IDLE Host-Owned Notifications
 
 **ID:** `rq-idleMarker03` | **Priority:** **[MUST]**
 
-The terminal bell MUST ring on transitions from active work into the IDLE marker (`WORK→IDLE` and `TOOLING→IDLE`) using the same debounce/armed state machine as ATTN. The bell MUST NOT ring on `IDLE→IDLE` (no transition), on `BLOCKED→IDLE` (recovery without user action), or on lateral `IDLE↔ATTN` transitions (already user-visible state).
+ADV status transitions MUST NOT emit BEL (U+0007 / `\x07`) or any replacement terminal notification protocol. IDLE completion visibility is provided by deterministic status markers and by host/tool integrations outside ADV's correctness path. `WORK→IDLE`, `TOOLING→IDLE`, `BLOCKED→IDLE`, `IDLE→IDLE`, and `IDLE↔ATTN` transitions MUST remain non-audible from ADV itself.
 
-**Tags:** `chat-output-display`, `status-marker`, `bell`
+**Tags:** `chat-output-display`, `status-marker`, `notification`
 
 #### Scenarios
 
-**WORK → IDLE rings** (`rq-idleMarker03.1`)
+**WORK → IDLE does not emit BEL** (`rq-idleMarker03.1`)
 
 **Given:**
 - Previous status is `WORK`
@@ -292,9 +292,10 @@ The terminal bell MUST ring on transitions from active work into the IDLE marker
 **When:** Status transitions to `IDLE`
 
 **Then:**
-- The bell rings (immediately when not armed, debounced when armed)
+- ADV emits no BEL byte
+- The visible status marker still resolves to `IDLE`
 
-**BLOCKED → IDLE does not ring** (`rq-idleMarker03.2`)
+**BLOCKED → IDLE remains non-audible** (`rq-idleMarker03.2`)
 
 **Given:**
 - Previous status is `BLOCKED`
@@ -302,18 +303,53 @@ The terminal bell MUST ring on transitions from active work into the IDLE marker
 **When:** Status transitions to `IDLE`
 
 **Then:**
-- The bell does not ring
-- Any pending bell timer is cancelled
+- ADV emits no BEL byte
+- No pending ADV-owned bell timer exists or is armed
 
-**IDLE ↔ ATTN does not double-ring** (`rq-idleMarker03.3`)
+**Host notifications are advisory only** (`rq-idleMarker03.3`)
 
 **Given:**
-- Status has already transitioned into `IDLE` or `ATTN` and rung the bell
+- A host or tool integration provides its own completion notification
 
-**When:** Status moves laterally between `IDLE` and `ATTN`
+**When:** ADV status transitions into `IDLE`
 
 **Then:**
-- The bell does not ring again for the lateral transition
+- ADV correctness does not depend on that host notification
+- ADV does not emit BEL or OSC notification bytes as a fallback
+
+---
+
+### Terminal Title Bell Exclusion
+
+**ID:** `rq-titleBell01` | **Priority:** **[MUST]**
+
+Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title sequences MUST terminate with ST (`ESC \\`) rather than BEL, and title payloads MUST remove C0/C1 control bytes before emission. ADV MUST NOT replace removed BEL usage with OSC 9, OSC 777, or another ADV-owned terminal notification protocol.
+
+**Tags:** `chat-output-display`, `terminal-title`, `notification`
+
+#### Scenarios
+
+**OSC title uses ST terminator** (`rq-titleBell01.1`)
+
+**Given:**
+- ADV formats a terminal title update
+
+**When:** The title sequence is emitted
+
+**Then:**
+- The sequence terminates with ST (`ESC \\`)
+- The sequence contains no BEL byte
+
+**Title payload control bytes are sanitized** (`rq-titleBell01.2`)
+
+**Given:**
+- A status or worktree label contains control bytes
+
+**When:** ADV builds the terminal title payload
+
+**Then:**
+- C0/C1 control bytes are removed before emission
+- The emitted title path remains deterministic and non-audible
 
 ---
 
@@ -438,5 +474,97 @@ The context snapshot and ticker formatters MUST gracefully handle missing or par
 **Then:**
 - Task counts show 0 for all statuses
 - No error is thrown
+
+---
+
+### ADV Tool Display Titles
+
+**ID:** `rq-toolTitle01` | **Priority:** **[MUST]**
+
+ADV plugin tools MUST provide deterministic, concise display titles through the OpenCode plugin SDK title surfaces when those surfaces are available. The title is presentation metadata only; the tool's machine-readable response MUST remain available as the JSON `output` string when a structured ToolResult is returned.
+
+**Tags:** `chat-output-display`, `tool-title`, `sdk-metadata`
+
+#### Scenarios
+
+**Registered ADV tool returns display title and parseable output** (`rq-toolTitle01.1`)
+
+**Given:**
+- An ADV tool is registered through the plugin registry
+
+**When:** The tool executes successfully
+
+**Then:**
+- The result includes a concise display title when returned through a structured ToolResult
+- The result output field remains a JSON-parseable string
+- The public tool name and argument schema are unchanged
+
+**Title generation is deterministic** (`rq-toolTitle01.2`)
+
+**Given:**
+- The same ADV tool name and same display-safe arguments
+
+**When:** A display title is generated twice
+
+**Then:**
+- Both generated titles are identical
+- No ADV state, workflow query, or tool output parsing is required to compute the title
+
+---
+
+### Tool Titles Are Display-Only Metadata
+
+**ID:** `rq-toolTitle02` | **Priority:** **[MUST]**
+
+Tool display titles MUST NOT be used as authority for correctness, security, permissions, persistence, workflow state, gate completion, or spec compliance. Those decisions MUST continue to use structural tool names, typed arguments, schemas, state machines, validators, persisted state, and tests.
+
+**Tags:** `chat-output-display`, `tool-title`, `structural-correctness`
+
+#### Scenarios
+
+**Permission and workflow logic ignore titles** (`rq-toolTitle02.1`)
+
+**Given:**
+- An ADV tool result includes a display title
+
+**When:** Permission, workflow, gate, or persistence logic evaluates the tool call
+
+**Then:**
+- The logic uses the structural tool name, arguments, schemas, and persisted workflow state
+- Changing or omitting the display title does not change authorization, gate, or persistence behavior
+
+---
+
+### Tool Title Redaction and Bounds
+
+**ID:** `rq-toolTitle03` | **Priority:** **[MUST]**
+
+Tool display titles and display metadata MUST redact sensitive argument values and bound long or opaque values before exposing them. Sensitive keys include password, token, secret, apiKey, credential, and privateKey variants. Long display snippets MUST be truncated rather than wrapped or emitted in full.
+
+**Tags:** `chat-output-display`, `tool-title`, `privacy`, `format`
+
+#### Scenarios
+
+**Sensitive values are redacted** (`rq-toolTitle03.1`)
+
+**Given:**
+- Tool arguments include token-like, secret-like, credential-like, or password-like keys
+
+**When:** A display title or display metadata is generated
+
+**Then:**
+- Sensitive values are omitted or replaced with a redaction marker
+- The raw sensitive value does not appear in the title or display metadata
+
+**Long values are bounded** (`rq-toolTitle03.2`)
+
+**Given:**
+- Tool arguments include a long command, path, query, or identifier
+
+**When:** A display title is generated
+
+**Then:**
+- The display title remains bounded to a concise single-line label
+- Long snippets are truncated with an ellipsis rather than emitted in full
 
 ---

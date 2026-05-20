@@ -3,7 +3,7 @@
   "name": "chat-output-display",
   "title": "Chat Output Display",
   "purpose": "Unified formatting for the chat-output surface — context snapshots (full box), context tickers (compact 1-line for transient transitions), cross-repo switch indicators, and status markers. Consolidates the previous `context-display` and `task-status-report` rules under one capability so all surfaces share a glyph vocabulary and emission policy. Closes the context-agreement gap between agent state and user visibility.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "updated_at": "2026-05-20T00:00:00.000Z",
   "supersedes": ["context-display"],
   "requirements": [
@@ -273,43 +273,78 @@
     },
     {
       "id": "rq-idleMarker03",
-      "title": "IDLE Bell Policy",
-      "body": "The terminal bell MUST ring on transitions from active work into the IDLE marker (WORK→IDLE and TOOLING→IDLE) using the same debounce/armed state machine as ATTN. The bell MUST NOT ring on IDLE→IDLE (no transition), on BLOCKED→IDLE (recovery without user action), or on lateral IDLE↔ATTN transitions (already user-visible state).",
+      "title": "IDLE Host-Owned Notifications",
+      "body": "ADV status transitions MUST NOT emit BEL (U+0007 / `\\x07`) or any replacement terminal notification protocol. IDLE completion visibility is provided by deterministic status markers and by host/tool integrations outside ADV's correctness path. WORK→IDLE, TOOLING→IDLE, BLOCKED→IDLE, IDLE→IDLE, and IDLE↔ATTN transitions MUST remain non-audible from ADV itself.",
       "priority": "must",
-      "tags": ["chat-output-display", "status-marker", "bell"],
+      "tags": ["chat-output-display", "status-marker", "notification"],
       "scenarios": [
         {
           "id": "rq-idleMarker03.1",
-          "title": "WORK → IDLE rings",
+          "title": "WORK → IDLE does not emit BEL",
           "given": [
             "Previous status is WORK"
           ],
           "when": "Status transitions to IDLE",
           "then": [
-            "The bell rings (immediately when not armed, debounced when armed)"
+            "ADV emits no BEL byte",
+            "The visible status marker still resolves to IDLE"
           ]
         },
         {
           "id": "rq-idleMarker03.2",
-          "title": "BLOCKED → IDLE does not ring",
+          "title": "BLOCKED → IDLE remains non-audible",
           "given": [
             "Previous status is BLOCKED"
           ],
           "when": "Status transitions to IDLE",
           "then": [
-            "The bell does not ring",
-            "Any pending bell timer is cancelled"
+            "ADV emits no BEL byte",
+            "No pending ADV-owned bell timer exists or is armed"
           ]
         },
         {
           "id": "rq-idleMarker03.3",
-          "title": "IDLE ↔ ATTN does not double-ring",
+          "title": "Host notifications are advisory only",
           "given": [
-            "Status has already transitioned into IDLE or ATTN and rung the bell"
+            "A host or tool integration provides its own completion notification"
           ],
-          "when": "Status moves laterally between IDLE and ATTN",
+          "when": "ADV status transitions into IDLE",
           "then": [
-            "The bell does not ring again for the lateral transition"
+            "ADV correctness does not depend on that host notification",
+            "ADV does not emit BEL or OSC notification bytes as a fallback"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-titleBell01",
+      "title": "Terminal Title Bell Exclusion",
+      "body": "Terminal status/title paths MUST NOT emit BEL (U+0007 / `\\x07`). OSC title sequences MUST terminate with ST (`ESC \\\\`) rather than BEL, and title payloads MUST remove C0/C1 control bytes before emission. ADV MUST NOT replace removed BEL usage with OSC 9, OSC 777, or another ADV-owned terminal notification protocol.",
+      "priority": "must",
+      "tags": ["chat-output-display", "terminal-title", "notification"],
+      "scenarios": [
+        {
+          "id": "rq-titleBell01.1",
+          "title": "OSC title uses ST terminator",
+          "given": [
+            "ADV formats a terminal title update"
+          ],
+          "when": "The title sequence is emitted",
+          "then": [
+            "The sequence terminates with ST (`ESC \\\\`)",
+            "The sequence contains no BEL byte"
+          ]
+        },
+        {
+          "id": "rq-titleBell01.2",
+          "title": "Title payload control bytes are sanitized",
+          "given": [
+            "A status or worktree label contains control bytes"
+          ],
+          "when": "ADV builds the terminal title payload",
+          "then": [
+            "C0/C1 control bytes are removed before emission",
+            "The emitted title path remains deterministic and non-audible"
           ]
         }
       ]

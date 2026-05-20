@@ -141,7 +141,11 @@ Requirements are defined in canonical JSON at `.adv/specs/chat-output-display/sp
 | `rq-ctxticker2` | Ticker emission triggers (transient task tools — update, ready, add, cancel) |
 | `rq-idleMarker01` | IDLE / ATTN status marker split |
 | `rq-idleMarker02` | `STATUS_MARKERS.IDLE` constant + ⬜ emoji |
-| `rq-idleMarker03` | IDLE bell policy (WORK/TOOLING→IDLE rings; IDLE↔IDLE / BLOCKED→IDLE / lateral IDLE↔ATTN do not) |
+| `rq-idleMarker03` | IDLE host-owned notifications; ADV status transitions do not emit BEL or replacement notification protocols |
+| `rq-titleBell01` | Terminal status/title paths do not emit BEL; OSC titles use ST terminators and sanitized payloads |
 | `rq-ctxswitch` | Cross-repo switch indicator format (≤3 content lines) |
 | `rq-ctxformat` | Box-drawing format, max 10 lines, ≤80 cols, deterministic |
 | `rq-ctxfallback` | Graceful degradation for missing data |
+| `rq-toolTitle01` | Deterministic ADV tool display titles with parseable structured output preserved |
+| `rq-toolTitle02` | Tool display titles are presentation-only and never correctness authority |
+| `rq-toolTitle03` | Tool display titles redact sensitive values and bound long snippets |
