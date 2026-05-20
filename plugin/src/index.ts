@@ -23,6 +23,7 @@ import {
 } from "./events";
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
+import { withStabilityFeatureDefaults } from "./types";
 import { resolveProjectContext } from "./plugin-context";
 // P2.7: legacy-state migration removed. Disk-only store reads from existing
 // .adv/ paths or external state directly; no migration step needed.
@@ -40,6 +41,7 @@ import {
 } from "./utils/metrics";
 
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
+import { loadProjectConfig } from "./storage/json";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
 import { detectStaleBranchHead } from "./utils/stale-head";
@@ -315,6 +317,23 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // can register a degraded tool map rather than nuking every adv_* tool.
   const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
 
+  let trunkWriteFirewallEnforced = false;
+  try {
+    const projectConfig = await loadProjectConfig(effectiveDir);
+    const effectiveFeatures = withStabilityFeatureDefaults(
+      projectConfig?.features as Record<string, unknown> | undefined,
+    );
+    trunkWriteFirewallEnforced =
+      effectiveFeatures.worktree_guard_enforce === true;
+  } catch (error) {
+    // Malformed/unreadable project config must not silently disable a strict
+    // safety policy. Fail closed for the hook-level firewall and surface a log.
+    trunkWriteFirewallEnforced = true;
+    debugLog(
+      `trunk-write-firewall: project config unavailable; enforcing firewall (${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+
   // Initialize terminal status
   const projectName = getProjectName(directory);
   debugLog(`Initializing status: projectName=${projectName}`);
@@ -566,9 +585,10 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
     };
 
     if (
-      toolName === "write" ||
-      toolName === "edit" ||
-      toolName === "morph_edit"
+      trunkWriteFirewallEnforced &&
+      (toolName === "write" ||
+        toolName === "edit" ||
+        toolName === "morph_edit")
     ) {
       const targetPath =
         typeof args.filePath === "string"
@@ -588,7 +608,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       }
     }
 
-    if (toolName === "bash") {
+    if (trunkWriteFirewallEnforced && toolName === "bash") {
       const command = typeof args.command === "string" ? args.command : "";
       const argsWorkdir =
         typeof args.workdir === "string" ? args.workdir : undefined;

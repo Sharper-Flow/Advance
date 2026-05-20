@@ -309,8 +309,42 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     execSync("git commit -m 'initial'", { cwd: tempDir });
   }
 
-  test("blocks write tool targeting trunk checkout on default branch", async () => {
+  async function enableWorktreeGuard() {
+    const { writeFile } = await import("fs/promises");
+    const { join } = await import("path");
+    await writeFile(
+      join(tempDir, "project.json"),
+      JSON.stringify(
+        {
+          name: "test-project",
+          features: { worktree_guard_enforce: true },
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
+  test("allows write tool targeting trunk checkout when worktree guard is omitted", async () => {
     await initGitRepo();
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: `${tempDir}/src/file.ts` } } as any,
+      ),
+    ).resolves.toBeUndefined();
+  }, 30_000);
+
+  test("blocks write tool targeting trunk checkout when worktree guard is enabled", async () => {
+    await initGitRepo();
+    await enableWorktreeGuard();
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
       directory: tempDir,
@@ -326,12 +360,13 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).rejects.toThrow(/Trunk write firewall/);
   }, 30_000);
 
-  test("allows write tool targeting an active worktree path", async () => {
+  test("allows write tool targeting an active worktree path when worktree guard is enabled", async () => {
     const { execSync } = await import("child_process");
     const { mkdirSync } = await import("fs");
     const { join } = await import("path");
 
     await initGitRepo();
+    await enableWorktreeGuard();
     const worktreePath = `${tempDir}-wt`;
     execSync(`git worktree add -b change/test ${worktreePath}`, {
       cwd: tempDir,
@@ -353,7 +388,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).resolves.toBeUndefined();
   }, 30_000);
 
-  test("blocks destructive bash targeting trunk checkout", async () => {
+  test("allows destructive bash targeting trunk checkout when worktree guard is omitted", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
@@ -366,6 +401,45 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
       hooks["tool.execute.before"]!(
         { tool: "bash", sessionID: "test" } as any,
         { args: { command: `echo hello > ${tempDir}/src/file.ts` } } as any,
+      ),
+    ).resolves.toBeUndefined();
+  }, 30_000);
+
+  test("blocks destructive bash targeting trunk checkout when worktree guard is enabled", async () => {
+    await initGitRepo();
+    await enableWorktreeGuard();
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "test" } as any,
+        { args: { command: `echo hello > ${tempDir}/src/file.ts` } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  }, 30_000);
+
+  test("malformed project config fails closed for trunk write firewall", async () => {
+    const { writeFile } = await import("fs/promises");
+    const { join } = await import("path");
+
+    await initGitRepo();
+    await writeFile(join(tempDir, "project.json"), "{");
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: `${tempDir}/src/file.ts` } } as any,
       ),
     ).rejects.toThrow(/Trunk write firewall/);
   }, 30_000);
