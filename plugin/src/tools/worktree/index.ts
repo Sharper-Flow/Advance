@@ -94,6 +94,14 @@ import {
   getExternalRoot,
   getWorktreeBase,
 } from "../../utils/project-id";
+import {
+  createAdvWorkspace,
+  deleteAdvWorkspace,
+  warpFlagEnabled,
+  warpSession,
+  workspaceAndWarpAvailable,
+  type WarpDeps,
+} from "../../utils/workspace-warp";
 import { getService } from "../../temporal/service";
 import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
 import {
@@ -1800,6 +1808,59 @@ async function loadWorktreeConfig(
   }
 }
 
+async function getCurrentSessionWorkspaceID(
+  client: OpencodeClient,
+  sessionID: string,
+): Promise<string | null> {
+  const currentSession = await client.session.get({ path: { id: sessionID } });
+  const workspaceID = (currentSession.data as { workspaceID?: unknown } | null)
+    ?.workspaceID;
+  return typeof workspaceID === "string" && workspaceID.length > 0
+    ? workspaceID
+    : null;
+}
+
+async function resolveEffectiveWorktreeMode(
+  requestedMode: WorktreeMode,
+  warpDeps: WarpDeps,
+  client: OpencodeClient,
+  sessionID: string,
+  log: Logger,
+): Promise<{ mode: WorktreeMode } | { mode: "blocked"; message: string }> {
+  if (requestedMode !== "warp") return { mode: requestedMode };
+
+  if (!warpFlagEnabled()) {
+    log.warn(
+      "[worktree] mode:warp unavailable because OpenCode workspace sync is not enabled. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true (or OPENCODE_EXPERIMENTAL=true) and restart OpenCode to enable workspace warp; falling back to mode:terminal.",
+    );
+    return { mode: "terminal" };
+  }
+
+  const currentWorkspaceID = await getCurrentSessionWorkspaceID(
+    client,
+    sessionID,
+  );
+  if (currentWorkspaceID) {
+    return {
+      mode: "blocked",
+      message: [
+        `[ADV:BLOCKED] Cannot create worktree while session is already warped.`,
+        `Session ${sessionID} is in workspace ${currentWorkspaceID}.`,
+        `Open a fresh OpenCode session from the trunk checkout to create a new worktree.`,
+      ].join("\n"),
+    };
+  }
+
+  if (!(await workspaceAndWarpAvailable(warpDeps))) {
+    log.warn(
+      "[worktree] mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.",
+    );
+    return { mode: "terminal" };
+  }
+
+  return { mode: "warp" };
+}
+
 // =============================================================================
 // ADV WORKTREE CLEANUP (extracted for tool-registry wiring, T24)
 // =============================================================================
@@ -1875,7 +1936,7 @@ export async function advWorktreeCleanup(
 // =============================================================================
 
 export const WorktreePlugin: Plugin = async (ctx) => {
-  const { directory, client } = ctx;
+  const { directory, client, serverUrl } = ctx;
 
   const log = {
     debug: (msg: string) =>
@@ -1984,6 +2045,20 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             }
           }
 
+          const worktreeConfig = await loadWorktreeConfig(directory, log);
+          const warpDeps: WarpDeps = { serverUrl };
+          const modeResolution = await resolveEffectiveWorktreeMode(
+            worktreeConfig.mode,
+            warpDeps,
+            client,
+            toolCtx.sessionID,
+            log,
+          );
+          if (modeResolution.mode === "blocked") {
+            return modeResolution.message;
+          }
+          const effectiveMode = modeResolution.mode;
+
           // Create worktree using ADV-safe flow (T10)
           const createResult = await advWorktreeCreate(
             args.branch,
@@ -2016,35 +2091,80 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
           const worktreePath = createResult.path;
 
-          // Read config for inline-mode session behavior. File sync and
-          // postCreate hooks already ran inside advWorktreeCreate.
-          const worktreeConfig = await loadWorktreeConfig(directory, log);
+          switch (effectiveMode) {
+            case "warp": {
+              let workspaceID: string | undefined;
+              try {
+                const created = await createAdvWorkspace(warpDeps, {
+                  directory: worktreePath,
+                  branch: args.branch,
+                });
+                workspaceID = created.workspaceID;
+                await warpSession(warpDeps, {
+                  workspaceID,
+                  sessionID: toolCtx.sessionID,
+                });
+              } catch (error) {
+                if (workspaceID) {
+                  try {
+                    await deleteAdvWorkspace(warpDeps, workspaceID);
+                  } catch (cleanupError) {
+                    log.warn(
+                      `[worktree] Warp failed AND orphan workspace cleanup failed for ${workspaceID}: ${cleanupError}`,
+                    );
+                  }
+                }
+                throw error;
+              }
 
-          // Inline mode: skip session fork and terminal spawn
-          if (worktreeConfig.inline) {
-            log.info(
-              `[worktree] Inline mode — skipping terminal spawn for ${args.branch}`,
-            );
+              await addSession(
+                database,
+                {
+                  sessionId: toolCtx.sessionID,
+                  branch: args.branch,
+                  path: worktreePath,
+                },
+                undefined,
+                inferChangeIdFromBranch(args.branch),
+              );
 
-            // Record session for tracking (used by delete flow).
-            // T13: addSession now async + sessionId/branch/path shape.
-            await addSession(
-              database,
-              {
-                sessionId: `inline:${args.branch}`,
-                branch: args.branch,
-                path: worktreePath,
-              },
-              undefined,
-              inferChangeIdFromBranch(args.branch),
-            );
+              return [
+                `Worktree created at ${worktreePath}`,
+                `Branch: ${args.branch}`,
+                ``,
+                `Session warped to workspace ${workspaceID}.`,
+                `Subsequent tool calls operate with the worktree as the project root — no per-tool workdir override needed.`,
+              ].join("\n");
+            }
+            case "terminal": {
+              log.info(
+                `[worktree] Terminal mode — skipping terminal spawn for ${args.branch}`,
+              );
 
-            return [
-              `Worktree created at ${worktreePath}`,
-              `Branch: ${args.branch}`,
-              ``,
-              `IMPORTANT: Inline mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
-            ].join("\n");
+              await addSession(
+                database,
+                {
+                  sessionId: `inline:${args.branch}`,
+                  branch: args.branch,
+                  path: worktreePath,
+                },
+                undefined,
+                inferChangeIdFromBranch(args.branch),
+              );
+
+              return [
+                `Worktree created at ${worktreePath}`,
+                `Branch: ${args.branch}`,
+                ``,
+                `IMPORTANT: Terminal mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
+              ].join("\n");
+            }
+            case "spawn":
+              break;
+            default: {
+              const _exhaustive: never = effectiveMode;
+              return `Failed to create worktree: unknown mode (${String(_exhaustive)})`;
+            }
           }
 
           // Fork session with context (replaces --session resume)
