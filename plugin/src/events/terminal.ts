@@ -239,474 +239,41 @@ export const getProjectName = (directory: string): string => {
 // Tab Title Helpers
 // =============================================================================
 
-/**
- * Common verb prefixes to strip from camelCase/kebab/snake change IDs.
- * Applied before title-casing to surface the meaningful noun phrase.
- */
-const CHANGE_ID_PREFIXES = [
-  "refactor",
-  "improve",
-  "remove",
-  "create",
-  "update",
-  "change",
-  "add",
-  "fix",
-];
+const cleanTitlePart = (value: string | undefined): string =>
+  (value ?? "").trim();
 
 /**
- * Normalize a camelCase, kebab-case, or snake_case change ID into
- * a human-readable Title Case label suitable for a terminal tab title.
+ * Build tab title from raw project name, raw change ID, and optional prefix.
  *
- * Algorithm:
- *   1. Insert space at camelCase boundaries
- *   2. Replace separators (- _) with spaces
- *   3. Normalize whitespace
- *   4. Strip leading verb prefix (if result would remain non-empty)
- *   5. Title-case each word
- *   6. Fall back to full raw ID (title-cased) if result is empty
+ * Deliberately avoids semantic normalization, shortname generation, acronym
+ * generation, verb stripping, or AI/agent-driven naming. The terminal title is
+ * a direct reflection of the project basename and active ADV change ID:
  *
- * Examples:
- *   addFeatureX            → "Feature X"
- *   fixAuthTimeout         → "Auth Timeout"
- *   improve-terminal-tab   → "Terminal Tab"
- *   fix_auth_timeout       → "Auth Timeout"
- *   terminalTabTitle       → "Terminal Tab Title"
- */
-export const normalizeChangeCode = (changeId: string): string => {
-  if (!changeId) return "";
-
-  // Step 1: split camelCase → "add Feature X"
-  // Step 2: replace separators → words
-  // Step 3: normalise whitespace
-  const spaced = changeId
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[-_]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const words = spaced.split(" ").filter(Boolean);
-  if (words.length === 0) return changeId;
-
-  // Step 4: strip leading verb prefix (case-insensitive, whole-word only)
-  const firstLower = words[0].toLowerCase();
-  const matchedPrefix = CHANGE_ID_PREFIXES.find((p) => firstLower === p);
-  const remainder = matchedPrefix && words.length > 1 ? words.slice(1) : words;
-
-  // Step 5: title-case
-  const titled = remainder
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
-
-  // Step 6: fallback — should not be empty given the guard above, but be safe
-  return (
-    titled ||
-    words
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(" ")
-  );
-};
-
-/**
- * Dictionary of common tech + english tokens used by `segmentToken` to split
- * concatenated single-token project names (e.g. `opencodeadvance` → `open`,
- * `code`, `advance`). Lowercase only. Minimum length 2.
- *
- * Kept inline — the list is small (~150 entries, <2 KB in the tsup bundle) and
- * used by a hot-path title helper. An external data file would add bundling
- * complexity for no real benefit at this size.
- *
- * Grouped by category for ease of maintenance. When adding entries, prefer
- * tokens that actually appear in repo/project names and keep min length 2.
- */
-export const SHORTNAME_DICTIONARY: readonly string[] = [
-  // --- tech stack + domain tokens ---
-  "open",
-  "code",
-  "advance",
-  "plugin",
-  "plugins",
-  "server",
-  "client",
-  "edge",
-  "fast",
-  "apply",
-  "morph",
-  "react",
-  "vue",
-  "next",
-  "node",
-  "lib",
-  "web",
-  "app",
-  "apps",
-  "api",
-  "auth",
-  "user",
-  "admin",
-  "dev",
-  "test",
-  "build",
-  "deploy",
-  "flow",
-  "chat",
-  "bot",
-  "cli",
-  "ui",
-  "ux",
-  "data",
-  "db",
-  "sql",
-  "json",
-  "yaml",
-  "http",
-  "mcp",
-  "llm",
-  "ai",
-  "ml",
-  "nlp",
-  "sdk",
-  "pkg",
-  "sync",
-  "async",
-  "gate",
-  "port",
-  "wire",
-  "pipe",
-  "hub",
-  "bridge",
-  "relay",
-  "queue",
-  "task",
-  "tasks",
-  "job",
-  "jobs",
-  "run",
-  "runner",
-  "cache",
-  "store",
-  "state",
-  "event",
-  "events",
-  "stream",
-  "proxy",
-  "router",
-  "route",
-  "shell",
-  "term",
-  "terminal",
-  "agent",
-  "spec",
-  "specs",
-  "rule",
-  "rules",
-  "model",
-  "prompt",
-  // --- common modifiers / connectors ---
-  "my",
-  "new",
-  "old",
-  "big",
-  "small",
-  "slow",
-  "first",
-  "last",
-  "top",
-  "end",
-  "mid",
-  "core",
-  "main",
-  "util",
-  "utils",
-  "helper",
-  "helpers",
-  "tool",
-  "tools",
-  "kit",
-  "box",
-  "ship",
-  "stop",
-  "start",
-  "make",
-  "get",
-  "set",
-  "fix",
-  "add",
-  "log",
-  "logs",
-  "err",
-  "info",
-  "debug",
-  "warn",
-  "trace",
-  "mock",
-  "real",
-  "prod",
-  "pro",
-  "lite",
-  "micro",
-  "mini",
-  // --- generic nouns that commonly appear in repo names ---
-  "spark",
-  "cloud",
-  "link",
-  "lane",
-  "stack",
-  "site",
-  "page",
-  "form",
-  "field",
-  "group",
-  "list",
-  "line",
-  "text",
-  "file",
-  "path",
-  "dir",
-  "folder",
-  "repo",
-  "branch",
-  "commit",
-  "push",
-  "pull",
-  "poke",
-  "snap",
-  "board",
-  "deck",
-  "scope",
-  "guard",
-  "mesh",
-  "grid",
-] as const;
-
-/**
- * O(1)-lookup set view of `SHORTNAME_DICTIONARY`, derived once at module load.
- */
-export const SHORTNAME_DICT_SET: ReadonlySet<string> = new Set(
-  SHORTNAME_DICTIONARY,
-);
-
-/**
- * Dynamic-programming word-break segmentation.
- *
- * Given a lowercase `token` and a `dict` of allowed subwords, returns an
- * array of subwords whose concatenation exactly equals `token`, or `null`
- * if no such decomposition exists (i.e. at least one character cannot be
- * covered by a dictionary entry).
- *
- * Algorithm:
- *   - `dp[i]` is true iff `token[0..i]` can be fully segmented.
- *   - `parent[i]` records the start index of the last matched subword.
- *   - After filling dp/parent, reconstruct the subword list from the tail.
- *
- * Complexity: O(n² · hashCost) for token length n. For typical project
- * names (n ≤ 30) and a ~160-entry dictionary, runtime is microseconds.
- *
- * The "full character cover" requirement is the key correctness guard —
- * it prevents greedy overextension and lets callers safely fall back to
- * the default truncation path when segmentation fails.
- */
-export const segmentToken = (
-  token: string,
-  dict: ReadonlySet<string>,
-): string[] | null => {
-  const n = token.length;
-  if (n === 0) return null;
-
-  const dp: boolean[] = new Array(n + 1).fill(false);
-  const parent: number[] = new Array(n + 1).fill(-1);
-  dp[0] = true;
-
-  for (let i = 1; i <= n; i++) {
-    for (let j = 0; j < i; j++) {
-      if (dp[j] && dict.has(token.slice(j, i))) {
-        dp[i] = true;
-        parent[i] = j;
-        break;
-      }
-    }
-  }
-
-  if (!dp[n]) return null;
-
-  const result: string[] = [];
-  let i = n;
-  while (i > 0) {
-    const j = parent[i];
-    result.unshift(token.slice(j, i));
-    i = j;
-  }
-  return result;
-};
-
-/**
- * Project name prefixes stripped before shortname generation.
- * Match is case-insensitive and only the first matching prefix is removed.
- */
-const SHORTNAME_PREFIXES = ["oc-", "lib-", "node-"];
-
-/**
- * Project name suffixes stripped before shortname generation.
- * Match is case-insensitive and only the first matching suffix is removed.
- */
-const SHORTNAME_SUFFIXES = [
-  "-plugin",
-  "-plugins",
-  "-app",
-  "-cli",
-  "-server",
-  "-client",
-  "-mcp",
-  ".js",
-  ".ts",
-];
-
-/**
- * Hard cap on shortname length. Balances readability against tmux status-bar
- * and terminal tab-strip compactness. Chosen at 8 because:
- *
- *   - Fits short-but-meaningful words whole (`Advance`, `Plugin`, `Opencode`).
- *   - Keeps the composed title `<emoji> <shortname> · <change>` well under
- *     typical tmux `status-*-length` defaults (~20) and terminal tab strips.
- *   - Acronyms still fit (`OMFA`, `ABGDEZE`) without change.
- *
- * Acronyms and truncated single words both obey this limit.
- */
-const SHORTNAME_MAX_LEN = 8;
-
-/**
- * Generate a compact project shortname (≤ 8 chars) from a project/repo name.
- *
- * Algorithm (deterministic — no AI):
- *   1. Trim and strip a single matching prefix (oc-, lib-, node-)
- *   2. Strip a single matching suffix (-plugin, -app, -cli, -server, etc.)
- *   3. Split into words on camelCase boundaries and `-`/`_` separators
- *   4. If a single lowercase token ≥ 4 chars remains, try dictionary
- *      segmentation (`segmentToken`) against `SHORTNAME_DICT_SET`; on
- *      success with 2+ subwords, use those as the word list
- *   5. Multi-word + total > 8 chars → acronym (first letter each, UPPER,
- *      capped to 8)
- *   6. Otherwise join lowercase + truncate to 8 + title-case first letter
- *
- * Examples:
- *   advance                   → "Advance"     (whole, ≤ cap)
- *   opencode                  → "Opencode"    (segments open+code, at cap → compact)
- *   opencodeadvance           → "OCA"         (segments open+code+advance, over cap → acronym)
- *   pokeedge                  → "Pokeedge"    (segments poke+edge, at cap → compact)
- *   xyzzyabcdef               → "Xyzzyabc"    (opaque, truncate to 8)
- *   my-cool-project           → "MCP"         (explicit boundaries, acronym)
- *   opencode-morph-fast-apply → "OMFA"        (explicit boundaries, acronym)
- *   oc-plugins                → "Plugins"     (prefix stripped, whole word fits)
- *   morph-plugin              → "Morph"       (suffix stripped, whole word fits)
- *
- * NOTE: This is the deterministic-only fallback. AI-generated shortnames
- * (cached per project-id) are planned as a future enhancement; they will
- * front-run this function, leaving this path in place for cold-cache and
- * offline cases.
- */
-export const generateProjectShortname = (projectName: string): string => {
-  if (!projectName) return "";
-
-  const trimmed = projectName.trim();
-  if (!trimmed) return "";
-
-  // 1. Strip prefix (case-insensitive, first match only)
-  let working = trimmed;
-  const lowerTrimmed = trimmed.toLowerCase();
-  for (const prefix of SHORTNAME_PREFIXES) {
-    if (lowerTrimmed.startsWith(prefix)) {
-      working = trimmed.slice(prefix.length);
-      break;
-    }
-  }
-
-  // 2. Strip suffix (case-insensitive, first match only)
-  const lowerWorking = working.toLowerCase();
-  for (const suffix of SHORTNAME_SUFFIXES) {
-    if (lowerWorking.endsWith(suffix) && working.length > suffix.length) {
-      working = working.slice(0, -suffix.length);
-      break;
-    }
-  }
-
-  // Fallback if strip emptied the string
-  if (!working) working = trimmed;
-
-  // 3. Split into words (camelCase + separators)
-  let words = working
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[-_]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean);
-
-  if (words.length === 0) return "";
-
-  // 4. Dictionary-backed segmentation for single alphabetic tokens ≥ 4 chars.
-  //    Restores structure for concatenated names like "opencodeadvance" or
-  //    "Opencodeadvance". Lowercased before lookup so capitalization doesn't
-  //    change the outcome; the dictionary itself is lowercase-only.
-  //    The `≥ 4` threshold is a "nothing to gain below this" guard — 3-char
-  //    tokens already fit the 8-char cap whole, so acronymization would make
-  //    the result less readable, not more.
-  //    The "full cover" requirement of `segmentToken` ensures we only replace
-  //    `words` when every character decomposes cleanly; partial matches fall
-  //    through to the default truncation path.
-  if (
-    words.length === 1 &&
-    words[0].length >= 4 &&
-    /^[a-zA-Z]+$/.test(words[0])
-  ) {
-    const segments = segmentToken(words[0].toLowerCase(), SHORTNAME_DICT_SET);
-    if (segments && segments.length >= 2) {
-      words = segments;
-    }
-  }
-
-  const totalLen = words.reduce((sum, w) => sum + w.length, 0);
-
-  // 5. Multi-word + total over limit → acronym (UPPERCASE, capped)
-  if (words.length >= 2 && totalLen > SHORTNAME_MAX_LEN) {
-    return words
-      .map((w) => w.charAt(0).toUpperCase())
-      .join("")
-      .slice(0, SHORTNAME_MAX_LEN);
-  }
-
-  // 6. Single word OR short multi-word → join + truncate + title-case
-  const joined = words.join("").toLowerCase();
-  const truncated =
-    joined.length <= SHORTNAME_MAX_LEN
-      ? joined
-      : joined.slice(0, SHORTNAME_MAX_LEN);
-  return truncated.charAt(0).toUpperCase() + truncated.slice(1);
-};
-
-/**
- * Build tab title from emoji, project name, change code, and optional suffix.
+ *   Project
+ *   Project: change-id
+ *   💀 Project: change-id
  */
 export const buildTabTitle = (
-  emoji: string,
+  _emoji: string,
   projectName: string,
   changeId: string | undefined,
-  suffix?: string,
+  prefix?: string,
 ): string => {
-  const shortname = generateProjectShortname(projectName);
-  const changeLabel = changeId ? normalizeChangeCode(changeId) : "";
+  const projectLabel = cleanTitlePart(projectName);
+  const changeLabel = cleanTitlePart(changeId);
+  const prefixLabel = cleanTitlePart(prefix);
+  const prefixStr = prefixLabel ? `${prefixLabel} ` : "";
 
-  const suffixStr = suffix ? ` ${suffix}` : "";
-
-  if (shortname && changeLabel) {
-    return `${emoji} ${shortname} · ${changeLabel}${suffixStr}`;
+  if (projectLabel && changeLabel) {
+    return `${prefixStr}${projectLabel}: ${changeLabel}`;
   }
-  if (shortname) {
-    return `${emoji} ${shortname}${suffixStr}`;
+  if (projectLabel) {
+    return `${prefixStr}${projectLabel}`;
   }
   if (changeLabel) {
-    return `${emoji} ${changeLabel}${suffixStr}`;
+    return `${prefixStr}${changeLabel}`;
   }
-  return `${emoji}${suffixStr}`;
+  return prefixLabel;
 };
 
 // Test seam: injectable callback replaces real bell I/O in tests.
@@ -800,9 +367,9 @@ const cancelPendingBell = (): void => {
 /**
  * Update terminal based on status.
  * Title format:
- *   - Active change: "<emoji> <normalizedChangeCode>"
- *   - No active change: "<emoji>"
- *   - BLOCKED: appends "💀" suffix
+ *   - Active change: "<project>: <change-id>"
+ *   - No active change: "<project>"
+ *   - BLOCKED: prepends "💀" prefix
  *
  * Bell policy:
  *   - ATTN (permission pending): ring immediately, clear any pending final alert
@@ -820,8 +387,8 @@ export const updateTerminalStatus = (
   _progress?: string,
 ): void => {
   const emoji = getStatusEmoji(status);
-  const suffix = status === "BLOCKED" ? "💀" : undefined;
-  const title = buildTabTitle(emoji, projectName, changeId, suffix);
+  const prefix = status === "BLOCKED" ? "💀" : undefined;
+  const title = buildTabTitle(emoji, projectName, changeId, prefix);
 
   setTitle(title);
 

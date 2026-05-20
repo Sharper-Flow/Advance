@@ -139,10 +139,15 @@ describe("tmux rename-window safety", () => {
 
 describe("terminal title status contract", () => {
   const originalTmux = process.env.TMUX;
+  const originalStdoutIsTTY = process.stdout.isTTY;
 
   beforeEach(() => {
     vi.clearAllMocks();
     delete process.env.TMUX;
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: true,
+      configurable: true,
+    });
     vi.resetModules();
   });
 
@@ -152,10 +157,14 @@ describe("terminal title status contract", () => {
     } else {
       process.env.TMUX = originalTmux;
     }
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: originalStdoutIsTTY,
+      configurable: true,
+    });
     vi.clearAllMocks();
   });
 
-  test("ATTN without active change writes emoji + shortname title", async () => {
+  test("ATTN without active change writes raw project title", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
@@ -165,11 +174,11 @@ describe("terminal title status contract", () => {
 
     expect(stdoutSpy).toHaveBeenCalled();
     expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;🟥 Advance\x07",
+      "\x1b]0;advance\x07",
     );
   });
 
-  test("WORK with active change writes emoji + shortname + change title", async () => {
+  test("WORK with active change writes raw project + raw change title", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
@@ -179,11 +188,11 @@ describe("terminal title status contract", () => {
 
     expect(stdoutSpy).toHaveBeenCalled();
     expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;🟩 Advance · Feature X\x07",
+      "\x1b]0;advance: addFeatureX\x07",
     );
   });
 
-  test("BLOCKED without active change keeps skull suffix", async () => {
+  test("BLOCKED without active change prefixes skull", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
@@ -193,7 +202,7 @@ describe("terminal title status contract", () => {
 
     expect(stdoutSpy).toHaveBeenCalled();
     expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;🟥 Advance 💀\x07",
+      "\x1b]0;💀 advance\x07",
     );
   });
 });

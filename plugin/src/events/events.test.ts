@@ -20,14 +20,7 @@ import {
   getEffectiveDoomLoopInfo,
 } from "./status";
 import { getProjectName, isTmux } from "./terminal";
-import {
-  normalizeChangeCode,
-  buildTabTitle,
-  generateProjectShortname,
-  SHORTNAME_DICTIONARY,
-  SHORTNAME_DICT_SET,
-  segmentToken,
-} from "./terminal";
+import { buildTabTitle } from "./terminal";
 import {
   updateTerminalStatus,
   cleanupTerminal,
@@ -258,424 +251,61 @@ describe("Terminal Utilities", () => {
 });
 
 // =============================================================================
-// normalizeChangeCode
-// =============================================================================
-
-describe("normalizeChangeCode", () => {
-  describe("camelCase inputs", () => {
-    it("strips leading add prefix and title-cases remainder", () => {
-      expect(normalizeChangeCode("addFeatureX")).toBe("Feature X");
-    });
-
-    it("strips leading fix prefix", () => {
-      expect(normalizeChangeCode("fixAuthTimeout")).toBe("Auth Timeout");
-    });
-
-    it("strips leading improve prefix", () => {
-      expect(normalizeChangeCode("improveTerminalTabTitle")).toBe(
-        "Terminal Tab Title",
-      );
-    });
-
-    it("strips leading update prefix", () => {
-      expect(normalizeChangeCode("updateUserProfile")).toBe("User Profile");
-    });
-
-    it("strips leading create prefix", () => {
-      expect(normalizeChangeCode("createNewSession")).toBe("New Session");
-    });
-
-    it("strips leading remove prefix", () => {
-      expect(normalizeChangeCode("removeDeprecatedApi")).toBe("Deprecated Api");
-    });
-
-    it("strips leading refactor prefix", () => {
-      expect(normalizeChangeCode("refactorStorageLayer")).toBe("Storage Layer");
-    });
-
-    it("strips leading change prefix", () => {
-      expect(normalizeChangeCode("changeTabTitle")).toBe("Tab Title");
-    });
-
-    it("handles multi-word camelCase without prefix", () => {
-      expect(normalizeChangeCode("terminalTabTitle")).toBe(
-        "Terminal Tab Title",
-      );
-    });
-  });
-
-  describe("kebab-case inputs", () => {
-    it("normalizes kebab-case with prefix", () => {
-      expect(normalizeChangeCode("fix-auth-timeout")).toBe("Auth Timeout");
-    });
-
-    it("normalizes kebab-case without prefix", () => {
-      expect(normalizeChangeCode("terminal-tab-title")).toBe(
-        "Terminal Tab Title",
-      );
-    });
-
-    it("normalizes improve- prefix kebab", () => {
-      expect(normalizeChangeCode("improve-terminal-tab-title")).toBe(
-        "Terminal Tab Title",
-      );
-    });
-  });
-
-  describe("snake_case inputs", () => {
-    it("normalizes snake_case with prefix", () => {
-      expect(normalizeChangeCode("fix_auth_timeout")).toBe("Auth Timeout");
-    });
-
-    it("normalizes snake_case without prefix", () => {
-      expect(normalizeChangeCode("terminal_tab_title")).toBe(
-        "Terminal Tab Title",
-      );
-    });
-  });
-
-  describe("edge cases", () => {
-    it("falls back to raw ID title-cased when prefix consumes entire string", () => {
-      // 'add' alone — prefix strip yields empty, fallback to title-cased raw
-      expect(normalizeChangeCode("add")).toBe("Add");
-    });
-
-    it("falls back to raw ID title-cased for very short unknown IDs", () => {
-      expect(normalizeChangeCode("x")).toBe("X");
-    });
-
-    it("handles nanoid suffix style change IDs (add-claude-code-lP0b)", () => {
-      const result = normalizeChangeCode("add-claude-code-lP0b");
-      // strips 'add' prefix → 'Claude Code L P0b' — acceptable output
-      expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
-    });
-
-    it("does not strip prefix that is a substring match only", () => {
-      // 'address' starts with 'add' but 'address' is not the prefix alone
-      expect(normalizeChangeCode("addressBug")).toBe("Address Bug");
-    });
-
-    it("returns non-empty string for any non-empty input", () => {
-      const inputs = [
-        "addFeatureX",
-        "fix-bug",
-        "refactor_code",
-        "someChange",
-        "x",
-      ];
-      for (const input of inputs) {
-        expect(normalizeChangeCode(input).length).toBeGreaterThan(0);
-      }
-    });
-  });
-});
-
-// =============================================================================
-// generateProjectShortname
-// =============================================================================
-
-describe("generateProjectShortname", () => {
-  describe("single-word names within limit", () => {
-    it("title-cases a short single-word name", () => {
-      expect(generateProjectShortname("app")).toBe("App");
-    });
-
-    it("preserves a 6-char single word name", () => {
-      expect(generateProjectShortname("plugin")).toBe("Plugin");
-    });
-  });
-
-  describe("single-word names over limit", () => {
-    it("keeps a 7-char name whole under the 8-char cap", () => {
-      expect(generateProjectShortname("advance")).toBe("Advance");
-    });
-
-    it("keeps an 8-char compound name whole when it segments and totals ≤ cap", () => {
-      // "pokeedge" → segments via poke+edge, total 8 ≤ cap → compact join
-      expect(generateProjectShortname("pokeedge")).toBe("Pokeedge");
-    });
-
-    it("truncates an opaque single-token name past the 8-char cap", () => {
-      expect(generateProjectShortname("xyzzyabcdef")).toBe("Xyzzyabc");
-    });
-  });
-
-  describe("dictionary-segmented single tokens", () => {
-    it("segments and acronymizes when combined length exceeds cap", () => {
-      expect(generateProjectShortname("opencodeadvance")).toBe("OCA");
-    });
-
-    it("segments and compacts when combined length is at cap", () => {
-      // "opencode" → segments open+code, total 8 = cap → compact join
-      expect(generateProjectShortname("opencode")).toBe("Opencode");
-    });
-
-    it("does not segment when the token is short enough to keep whole", () => {
-      // "plugin" → 6 chars ≤ cap, even though segmentation might succeed,
-      // the compact path is chosen because acronym-kick-in requires over-cap
-      expect(generateProjectShortname("plugin")).toBe("Plugin");
-    });
-
-    it("falls back to truncation when no segmentation is possible", () => {
-      expect(generateProjectShortname("xyzzyzzzy")).toBe("Xyzzyzzz");
-    });
-
-    it("segments case-insensitively when the token starts with a capital", () => {
-      // Regression: leading-capital tokens used to bypass segmentation
-      // because the all-lowercase guard excluded them.
-      expect(generateProjectShortname("Opencodeadvance")).toBe("OCA");
-    });
-
-    it("segments case-insensitively for mixed-case single tokens", () => {
-      expect(generateProjectShortname("OPENCODEADVANCE")).toBe("OCA");
-    });
-  });
-
-  describe("multi-word names", () => {
-    it("acronymizes kebab-case multi-word names", () => {
-      expect(generateProjectShortname("my-cool-project")).toBe("MCP");
-    });
-
-    it("acronymizes snake_case multi-word names", () => {
-      expect(generateProjectShortname("my_cool_project")).toBe("MCP");
-    });
-
-    it("acronymizes camelCase multi-word names", () => {
-      expect(generateProjectShortname("myCoolProject")).toBe("MCP");
-    });
-
-    it("acronymizes long multi-word names", () => {
-      expect(generateProjectShortname("opencode-morph-fast-apply")).toBe(
-        "OMFA",
-      );
-    });
-
-    it("caps acronym at 8 chars", () => {
-      expect(
-        generateProjectShortname("alpha-beta-gamma-delta-epsilon-zeta-eta"),
-      ).toBe("ABGDEZE");
-    });
-
-    it("joins short multi-word names without acronymizing", () => {
-      // "a-b" → words ['a','b'] total=2, ≤ 6 → join+title-case
-      expect(generateProjectShortname("a-b")).toBe("Ab");
-    });
-  });
-
-  describe("prefix and suffix stripping", () => {
-    it("strips oc- prefix", () => {
-      expect(generateProjectShortname("oc-plugins")).toBe("Plugins");
-    });
-
-    it("strips lib- prefix", () => {
-      expect(generateProjectShortname("lib-utils")).toBe("Utils");
-    });
-
-    it("strips node- prefix", () => {
-      expect(generateProjectShortname("node-fetch")).toBe("Fetch");
-    });
-
-    it("strips -plugin suffix", () => {
-      expect(generateProjectShortname("morph-plugin")).toBe("Morph");
-    });
-
-    it("strips -app suffix", () => {
-      expect(generateProjectShortname("my-app")).toBe("My");
-    });
-
-    it("strips -cli suffix", () => {
-      expect(generateProjectShortname("foo-cli")).toBe("Foo");
-    });
-
-    it("strips -server suffix", () => {
-      expect(generateProjectShortname("api-server")).toBe("Api");
-    });
-
-    it("strips -mcp suffix", () => {
-      expect(generateProjectShortname("exa-mcp")).toBe("Exa");
-    });
-
-    it("only strips one prefix and one suffix", () => {
-      // "oc-foo-cli" → strip "oc-" → "foo-cli" → strip "-cli" → "foo"
-      expect(generateProjectShortname("oc-foo-cli")).toBe("Foo");
-    });
-
-    it("falls back to original name if strip leaves nothing", () => {
-      expect(generateProjectShortname("oc-")).toBe("Oc");
-    });
-
-    it("is case-insensitive when matching prefixes", () => {
-      expect(generateProjectShortname("OC-Plugins")).toBe("Plugins");
-    });
-  });
-
-  describe("edge cases", () => {
-    it("returns empty string for empty input", () => {
-      expect(generateProjectShortname("")).toBe("");
-    });
-
-    it("returns empty string for whitespace-only input", () => {
-      expect(generateProjectShortname("   ")).toBe("");
-    });
-
-    it("trims leading and trailing whitespace", () => {
-      expect(generateProjectShortname("  app  ")).toBe("App");
-    });
-
-    it("handles a single-letter name", () => {
-      expect(generateProjectShortname("x")).toBe("X");
-    });
-  });
-});
-
-// =============================================================================
-// SHORTNAME_DICTIONARY
-// =============================================================================
-
-describe("SHORTNAME_DICTIONARY", () => {
-  it("contains spot-check tech tokens", () => {
-    for (const entry of ["open", "code", "advance", "plugin", "api", "edge"]) {
-      expect(SHORTNAME_DICT_SET.has(entry)).toBe(true);
-    }
-  });
-
-  it("contains only lowercase entries", () => {
-    for (const entry of SHORTNAME_DICTIONARY) {
-      expect(entry).toBe(entry.toLowerCase());
-    }
-  });
-
-  it("enforces minimum length of 2", () => {
-    for (const entry of SHORTNAME_DICTIONARY) {
-      expect(entry.length).toBeGreaterThanOrEqual(2);
-    }
-  });
-
-  it("has no duplicate entries", () => {
-    expect(SHORTNAME_DICT_SET.size).toBe(SHORTNAME_DICTIONARY.length);
-  });
-
-  it("has a reasonable number of entries (~120-200)", () => {
-    expect(SHORTNAME_DICTIONARY.length).toBeGreaterThanOrEqual(100);
-    expect(SHORTNAME_DICTIONARY.length).toBeLessThanOrEqual(250);
-  });
-});
-
-// =============================================================================
-// segmentToken (DP word-break)
-// =============================================================================
-
-describe("segmentToken", () => {
-  const dict = new Set(["open", "code", "advance", "a", "b"]);
-
-  it("returns null for empty input", () => {
-    expect(segmentToken("", dict)).toBeNull();
-  });
-
-  it("returns null when no dictionary entries cover the token", () => {
-    expect(segmentToken("xyzzy", dict)).toBeNull();
-  });
-
-  it("returns null on partial cover", () => {
-    // "openx" — "open" matches but trailing "x" has no dict entry
-    expect(segmentToken("openx", dict)).toBeNull();
-  });
-
-  it("returns a single-element array when the whole token is a dict entry", () => {
-    expect(segmentToken("open", dict)).toEqual(["open"]);
-  });
-
-  it("segments a two-word concatenation", () => {
-    expect(segmentToken("opencode", dict)).toEqual(["open", "code"]);
-  });
-
-  it("segments a three-word concatenation", () => {
-    expect(segmentToken("opencodeadvance", dict)).toEqual([
-      "open",
-      "code",
-      "advance",
-    ]);
-  });
-
-  it("handles single-char dictionary entries", () => {
-    expect(segmentToken("ab", dict)).toEqual(["a", "b"]);
-  });
-
-  it("works against the real SHORTNAME_DICT_SET for known compound names", () => {
-    expect(segmentToken("opencode", SHORTNAME_DICT_SET)).toEqual([
-      "open",
-      "code",
-    ]);
-    expect(segmentToken("opencodeadvance", SHORTNAME_DICT_SET)).toEqual([
-      "open",
-      "code",
-      "advance",
-    ]);
-  });
-
-  it("returns null for opaque names not in the real dictionary", () => {
-    expect(segmentToken("pokeedge", SHORTNAME_DICT_SET)).not.toBeNull();
-    // 'pokeedge' actually segments via 'poke' + 'edge' — both in the real dict.
-    // Use a genuinely opaque string instead:
-    expect(segmentToken("xyzzyzzzy", SHORTNAME_DICT_SET)).toBeNull();
-  });
-});
-
-// =============================================================================
 // buildTabTitle
 // =============================================================================
 
 describe("buildTabTitle", () => {
-  it("shows shortname and change code when both present", () => {
-    expect(buildTabTitle("🟩", "advance", "addFeatureX")).toBe(
-      "🟩 Advance · Feature X",
+  it("shows raw project and raw change ID when both present", () => {
+    expect(buildTabTitle("🟩", "Jester", "working-on-adv-change-x")).toBe(
+      "Jester: working-on-adv-change-x",
     );
   });
 
-  it("shows shortname only when no active change", () => {
-    expect(buildTabTitle("🟩", "advance", undefined)).toBe("🟩 Advance");
+  it("shows raw project only when no active change", () => {
+    expect(buildTabTitle("🟩", "Jester", undefined)).toBe("Jester");
   });
 
-  it("shows shortname only when change ID is empty string", () => {
-    expect(buildTabTitle("🟩", "advance", "")).toBe("🟩 Advance");
+  it("shows raw project only when change ID is empty string", () => {
+    expect(buildTabTitle("🟩", "Jester", "")).toBe("Jester");
   });
 
-  it("uses acronym shortname for multi-word project names", () => {
+  it("does not acronymize multi-word project names", () => {
     expect(buildTabTitle("🟩", "my-cool-project", "fixAuthTimeout")).toBe(
-      "🟩 MCP · Auth Timeout",
+      "my-cool-project: fixAuthTimeout",
     );
   });
 
-  it("shows emoji only when project name is empty and no change", () => {
-    expect(buildTabTitle("🟩", "", undefined)).toBe("🟩");
+  it("shows empty title when project name is empty and no change", () => {
+    expect(buildTabTitle("🟩", "", undefined)).toBe("");
   });
 
-  it("shows emoji and change only when project name is empty", () => {
-    expect(buildTabTitle("🟩", "", "addFeatureX")).toBe("🟩 Feature X");
+  it("shows raw change only when project name is empty", () => {
+    expect(buildTabTitle("🟩", "", "addFeatureX")).toBe("addFeatureX");
+  });
+
+  it("trims leading and trailing whitespace without semantic normalization", () => {
+    expect(buildTabTitle("🟩", "  Jester  ", "  changeX  ")).toBe(
+      "Jester: changeX",
+    );
   });
 
   it("never includes progress text", () => {
-    const title = buildTabTitle("🟩", "advance", "addFeatureX");
+    const title = buildTabTitle("🟩", "Jester", "changeX");
     expect(title).not.toMatch(/\[\d+\/\d+\]/);
   });
 
-  it("appends 💀 suffix for BLOCKED status", () => {
-    expect(buildTabTitle("🟥", "advance", "addFeatureX", "💀")).toBe(
-      "🟥 Advance · Feature X 💀",
+  it("prefixes 💀 for BLOCKED status", () => {
+    expect(buildTabTitle("🟥", "Jester", "changeX", "💀")).toBe(
+      "💀 Jester: changeX",
     );
   });
 
-  it("shows BLOCKED with 💀 suffix when no active change", () => {
-    expect(buildTabTitle("🟥", "advance", undefined, "💀")).toBe(
-      "🟥 Advance 💀",
-    );
+  it("shows BLOCKED with 💀 prefix when no active change", () => {
+    expect(buildTabTitle("🟥", "Jester", undefined, "💀")).toBe("💀 Jester");
   });
 
-  it("shows WORK without suffix when not blocked", () => {
-    expect(buildTabTitle("🟩", "advance", "addFeatureX")).toBe(
-      "🟩 Advance · Feature X",
-    );
+  it("ignores status emoji in the tab title", () => {
+    expect(buildTabTitle("🟩", "Jester", "changeX")).toBe("Jester: changeX");
   });
 });
 

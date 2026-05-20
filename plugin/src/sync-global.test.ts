@@ -4,7 +4,7 @@ import { join, resolve } from "path";
 import { SpecSchema } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
-const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
 const ADV_ATC_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-atc.md");
@@ -43,16 +43,19 @@ function duplicateFrontmatterKeys(markdown: string) {
     if (!match) continue;
 
     const indent = line.length - line.trimStart().length;
-    while (parents.length > 0 && parents[parents.length - 1].indent >= indent) {
+    while (
+      parents.length > 0 &&
+      parents[parents.length - 1]!.indent >= indent
+    ) {
       parents.pop();
     }
 
-    const key = match[1];
+    const key = match[1]!;
     const scope = [...parents.map((parent) => parent.key), key].join(".");
     if (seen.has(scope)) duplicates.push(scope);
     seen.add(scope);
 
-    const remainder = line.split(":", 2)[1].trim();
+    const remainder = line.split(":", 2)[1]?.trim() ?? "";
     if (["", "|", ">", "|-", ">-"].includes(remainder)) {
       parents.push({ indent, key });
     }
@@ -61,11 +64,11 @@ function duplicateFrontmatterKeys(markdown: string) {
   return duplicates;
 }
 
-describe("sync-global.sh", () => {
-  const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
+describe("deploy-local.sh", () => {
+  const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
 
   test("script exists and is non-empty", () => {
-    expect(existsSync(SYNC_SCRIPT_PATH)).toBe(true);
+    expect(existsSync(DEPLOY_SCRIPT_PATH)).toBe(true);
     expect(content.length).toBeGreaterThan(100);
   });
 
@@ -234,8 +237,12 @@ describe("sync-global.sh", () => {
     });
 
     test("primary ADV agent frontmatter has no duplicate mapping keys", () => {
-      expect(duplicateFrontmatterKeys(readFileSync(ADV_AGENT_PATH, "utf8"))).toEqual([]);
-      expect(duplicateFrontmatterKeys(readFileSync(ADV_ATC_AGENT_PATH, "utf8"))).toEqual([]);
+      expect(
+        duplicateFrontmatterKeys(readFileSync(ADV_AGENT_PATH, "utf8")),
+      ).toEqual([]);
+      expect(
+        duplicateFrontmatterKeys(readFileSync(ADV_ATC_AGENT_PATH, "utf8")),
+      ).toEqual([]);
     });
 
     test("handles tilde-expanded paths in json_array_contains", () => {
@@ -587,7 +594,7 @@ describe("sync-global.sh", () => {
       const lines = advAgent.split(/\r?\n/).length;
       // Ceiling raised from 360 → 361 after the signal-driven workflow
       // refactor exposed `adv_worktree_resume` and we added it to the
-      // canonical allowlist to clear sync-global tool-drift checks.
+      // canonical allowlist to clear deploy-local tool-drift checks.
       // Re-ratchet here once the prompt has been audited for excess.
       expect(lines).toBeLessThanOrEqual(361);
     });
@@ -618,14 +625,14 @@ describe("sync-global.sh", () => {
       ).toBe(true);
     });
 
-    test("sync-global.sh covers skills/adv-* glob", () => {
+    test("deploy-local.sh covers skills/adv-* glob", () => {
       // Pattern must match the adv-* prefix so adv-worktree (and future
       // adv-<name> skills) are picked up by the sync loop.
       expect(content).toMatch(/skills.*adv-/);
       expect(content).toContain('"$REPO_SKILLS"/adv-*/');
     });
 
-    test("sync-global.sh removes stale adv-* skills from global", () => {
+    test("deploy-local.sh removes stale adv-* skills from global", () => {
       expect(content).toContain('"$GLOBAL_SKILLS"/adv-*/');
       expect(content).toMatch(/removed stale skill|stale skill\(s\) removed/);
     });

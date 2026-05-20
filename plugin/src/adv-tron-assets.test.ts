@@ -6,7 +6,7 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-tron.md");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-tron.md");
 const SKILL_PATH = join(REPO_ROOT, "skills/adv-tron/SKILL.md");
-const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 
 describe("adv-tron assets", () => {
   test("ships command, agent, and skill definitions", () => {
@@ -30,8 +30,8 @@ describe("adv-tron assets", () => {
     expect(content).toContain("If the skill is unavailable");
   });
 
-  test("sync script installs the bundled adv-tron skill globally", () => {
-    const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
+  test("deploy script installs the bundled adv-tron skill globally", () => {
+    const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
 
     expect(content).toContain('REPO_SKILLS="$ASSET_ROOT/skills"');
     expect(content).toContain('GLOBAL_SKILLS="$HOME/.config/opencode/skills"');

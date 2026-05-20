@@ -7,9 +7,7 @@
 // Terminal utilities
 export {
   getProjectName,
-  generateProjectShortname,
   buildTabTitle,
-  normalizeChangeCode,
   armPendingFinalAlert,
   _clearPendingFinalAlert,
 } from "./terminal";

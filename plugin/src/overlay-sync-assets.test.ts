@@ -12,14 +12,14 @@ import { tmpdir } from "os";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
-const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 
-// sync-global.sh copies provider-specific agent assets and can exceed the
+// deploy-local.sh copies provider-specific agent assets and can exceed the
 // default 5s Vitest timeout on loaded machines.
 vi.setConfig({ testTimeout: 20_000 });
 
 describe("overlay sync script support", () => {
-  const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
+  const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
 
   test("supports dry-run and diff options for overlay review", () => {
     expect(content).toContain("--dry-run");
@@ -48,7 +48,7 @@ describe("overlay sync script support", () => {
         JSON.stringify({ plugin: [], instructions: [] }),
       );
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -79,7 +79,7 @@ describe("overlay sync script support", () => {
       );
       writeFileSync(join(globalAgents, "orca.md"), "stale orca\n");
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -112,7 +112,7 @@ describe("overlay sync script support", () => {
       writeFileSync(join(globalAgents, "scout.md"), "stale scout\n");
       writeFileSync(join(globalAgents, "refine.md"), "stale refine\n");
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -157,7 +157,7 @@ describe("overlay sync script support", () => {
         "---\ndescription: temp adv\n---\n",
       );
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -266,7 +266,7 @@ describe("overlay sync script support", () => {
         "---\ndescription: temp adv\n---\nCANONICAL BODY SHOULD MOVE TO PROMPT PART\n",
       );
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -302,7 +302,7 @@ describe("overlay sync script support", () => {
         "---\ndescription: temp adv\n---\nCANONICAL BODY SHOULD MOVE TO PROMPT PART\n",
       );
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -352,7 +352,7 @@ describe("overlay sync script support", () => {
         writeFileSync(join(globalAgents, `adv-${p}.md`), `stale ${p}\n`);
       }
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -380,7 +380,7 @@ describe("overlay sync script support", () => {
         JSON.stringify({ plugin: [], instructions: [], agent: {} }),
       );
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",
@@ -415,7 +415,7 @@ describe("overlay sync script support", () => {
         }`,
       );
 
-      const result = spawnSync("bash", [SYNC_SCRIPT_PATH, "--fix"], {
+      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
         cwd: REPO_ROOT,
         env: { ...process.env, HOME: tempHome, CI: "true" },
         encoding: "utf8",

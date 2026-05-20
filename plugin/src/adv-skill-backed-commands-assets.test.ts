@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
-const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const TOKEN_BUDGETS_PATH = join(REPO_ROOT, ".opencode/token-budgets.json");
 
 const SHARED_SKILL_COMMANDS = [
@@ -135,8 +135,8 @@ describe("skill-backed command assets", () => {
     });
   }
 
-  test("sync-global.sh glob covers adv-* skill directories", () => {
-    const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
+  test("deploy-local.sh glob covers adv-* skill directories", () => {
+    const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
 
     expect(content).toContain('for skill_dir in "$REPO_SKILLS"/adv-*/; do');
   });

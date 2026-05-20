@@ -5,7 +5,7 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-engineer.md");
 const APPLY_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-apply.md");
-const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
+const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 
 describe("adv-engineer assets", () => {
   test("ships adv-engineer.md agent definition", () => {
@@ -112,8 +112,8 @@ describe("adv-engineer assets", () => {
     }
   });
 
-  test("sync script installs adv-engineer.md globally", () => {
-    const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
+  test("deploy script installs adv-engineer.md globally", () => {
+    const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
     expect(content).toContain('for src in "$REPO_AGENTS"/*.md; do');
     expect(content).not.toMatch(/REPO_LOCAL_ONLY=.*adv-engineer/);
     expect(content).not.toMatch(/SHARED_OVERLAY_ONLY=.*adv-engineer/);
