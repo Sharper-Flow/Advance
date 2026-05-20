@@ -77,7 +77,7 @@ describe("tmux rename-window safety", () => {
           c[0] === "tmux" && Array.isArray(c[1]) && c[1][0] === "rename-window",
       );
     expect(renameCall).toBeDefined();
-    expect(renameCall![1]).toEqual(["rename-window", "boring-title"]);
+    expect(renameCall![1]).toEqual(["rename-window", "--", "boring-title"]);
     expect(renameCall![2]).toMatchObject({
       stdio: "ignore",
       timeout: 1000,
@@ -91,7 +91,7 @@ describe("tmux rename-window safety", () => {
     term._setTitle(risky);
     expect(execFileSync).toHaveBeenCalled();
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("title with dollar sign is passed raw", async () => {
@@ -100,7 +100,7 @@ describe("tmux rename-window safety", () => {
     const risky = "Price $100 feature";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("title with backslash is passed raw", async () => {
@@ -109,7 +109,7 @@ describe("tmux rename-window safety", () => {
     const risky = "Fix C:\\Users\\path";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("title with newline is sanitized before rename-window", async () => {
@@ -118,7 +118,7 @@ describe("tmux rename-window safety", () => {
     const risky = "Feature\nImplementation";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe("Feature Implementation");
+    expect(args[2]).toBe("Feature Implementation");
   });
 
   test("title with BEL and ESC is sanitized before rename-window", async () => {
@@ -126,7 +126,15 @@ describe("tmux rename-window safety", () => {
     const term = await import("./terminal");
     term._setTitle("Feature\x07\x1b]2;pwn\x1b\\Implementation");
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe("Feature ]2;pwn \\Implementation");
+    expect(args[2]).toBe("Feature ]2;pwn \\Implementation");
+  });
+
+  test("title beginning with hyphen is passed after end-of-options delimiter", async () => {
+    const { execFileSync } = await import("child_process");
+    const term = await import("./terminal");
+    term._setTitle("-t risky title");
+    const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
+    expect(args).toEqual(["rename-window", "--", "-t risky title"]);
   });
 
   test("title with BEL and ESC is sanitized before debug logging", async () => {
@@ -167,7 +175,7 @@ describe("tmux rename-window safety", () => {
     const risky = `"quoted" title`;
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("execFileSync failure is caught and does not propagate", async () => {
@@ -283,5 +291,31 @@ describe("terminal title status contract", () => {
     const sequence = String(stdoutSpy.mock.calls.at(-1)?.[0]);
     expect(sequence).toContain("\x1b]0;adv ]2;pwn \\ance\x1b\\");
     expect(sequence.split("\x1b").length - 1).toBe(2);
+  });
+
+  test("failed title emission does not suppress retry for same title", async () => {
+    const term = await import("./terminal");
+
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: false,
+      configurable: true,
+    });
+    term.updateTerminalStatus("WORK", "advance", "removeTerminalBells");
+
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: true,
+      configurable: true,
+    });
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+
+    term.updateTerminalStatus("WORK", "advance", "removeTerminalBells");
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expectNonAudibleTitleSequence(
+      stdoutSpy.mock.calls[0]?.[0],
+      "advance: removeTerminalBells",
+    );
   });
 });

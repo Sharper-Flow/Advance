@@ -167,50 +167,55 @@ const sanitizeOscTitlePayload = (title: string): string =>
 /**
  * Set terminal title via OSC sequence.
  */
-const setTitle = (title: string): void => {
+const setTitle = (title: string): boolean => {
   const sanitizedTitle = sanitizeOscTitlePayload(title);
   log(`setTitle: ${JSON.stringify(sanitizedTitle)}`);
   const sequence = `\x1b]0;${sanitizedTitle}\x1b\\`;
 
   if (isTmux()) {
+    let titleEmitted = false;
     const clientTty = getClientTty();
     if (clientTty) {
-      writeToTty(clientTty, sequence);
+      titleEmitted = writeToTty(clientTty, sequence) || titleEmitted;
     }
 
     const paneTty = getPaneTty();
     if (paneTty) {
-      writeToTty(paneTty, sequence);
+      titleEmitted = writeToTty(paneTty, sequence) || titleEmitted;
     }
 
     // Also update tmux window name — use argv-based execFileSync so the
     // title bypasses shell parsing entirely. No escaping needed for
     // backtick, `$`, backslash, newline, or quotes.
     try {
-      execFileSync("tmux", ["rename-window", sanitizedTitle], {
+      execFileSync("tmux", ["rename-window", "--", sanitizedTitle], {
         stdio: "ignore",
         timeout: 1000,
       });
+      titleEmitted = true;
     } catch (error) {
       log(`tmux rename-window failed: ${String(error)}`);
     }
-    return;
+    return titleEmitted;
   }
 
   // Non-tmux: try /dev/tty, then stdout
   try {
     fs.accessSync("/dev/tty", fs.constants.W_OK);
     fs.writeFileSync("/dev/tty", sequence);
+    return true;
   } catch (ttyError) {
     log(`setTitle /dev/tty write failed: ${String(ttyError)}`);
     if (!process.stdout.isTTY) {
       log("setTitle stdout fallback skipped: stdout is not a TTY");
-      return;
+      return false;
     }
     try {
       process.stdout.write(sequence);
+      return true;
     } catch (stdoutError) {
       log(`setTitle stdout write failed: ${String(stdoutError)}`);
+      return false;
     }
   }
 };
@@ -310,8 +315,9 @@ export const updateTerminalStatus = (
   const title = buildTabTitle(getStatusEmoji(status), projectName, changeId);
 
   if (title !== lastTitle) {
-    lastTitle = title;
-    setTitle(title);
+    if (setTitle(title)) {
+      lastTitle = title;
+    }
   }
 };
 
