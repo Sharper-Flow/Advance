@@ -20,7 +20,6 @@ import {
   setStatus,
   setActiveChange,
   pruneStaleRetries,
-  armPendingFinalAlert,
 } from "./events";
 import { tryInitStore, registerShutdownHandlers } from "./plugin-init";
 import type { StatusMarker } from "./types";
@@ -702,7 +701,6 @@ const advancePluginImpl: Plugin = async (input) => {
 
   const handleSessionDeletedEvent = () => {
     mainSessionId = null;
-    lastObservedCompletedMessageId = null;
     cleanupTerminal();
     removeProcessListeners();
     try {
@@ -712,57 +710,9 @@ const advancePluginImpl: Plugin = async (input) => {
     }
   };
 
-  const getCompletedMainMessageId = (event: {
-    properties: Record<string, unknown>;
-  }): string | null => {
-    const info = event.properties?.info as Record<string, unknown> | undefined;
-    if (!info || !mainSessionId) return null;
-    if (info.sessionID !== mainSessionId) return null;
-    if (info.role !== "assistant") return null;
-
-    const time = info.time as Record<string, unknown> | undefined;
-    if (!time?.completed) return null;
-
-    if (!isTerminalAssistantMessage(info)) {
-      return null;
-    }
-
-    const messageId = info.id as string | undefined;
-    if (!messageId || messageId === lastObservedCompletedMessageId) {
-      return null;
-    }
-
-    return messageId;
-  };
-
-  const isTerminalAssistantMessage = (
-    info: Record<string, unknown>,
-  ): boolean => {
-    const finish = info.finish as string | undefined;
-    return !!finish && finish !== "tool-calls" && finish !== "unknown";
-  };
-
-  const handleMessageUpdatedEvent = (event: {
-    properties: Record<string, unknown>;
-  }) => {
-    const messageId = getCompletedMainMessageId(event);
-    if (!messageId) return;
-
-    lastObservedCompletedMessageId = messageId;
-    debugLog(
-      `message.updated: arming bell for main agent message ${messageId}`,
-    );
-    armPendingFinalAlert(messageId);
-  };
-
-  // Main session ID — used to distinguish main-agent message.updated events
-  // from sub-agent events. Captured from system.transform input (fires every
-  // turn with sessionID). Fail-closed: null means no bell arming.
+  // Main session ID — used to distinguish orchestrator calls from sub-agent
+  // calls for session-scoped status/todo handling.
   let mainSessionId: string | null = null;
-
-  // Dedup for message.updated handler — tracks last completed assistant
-  // message ID we've seen to avoid re-arming on duplicate events.
-  let lastObservedCompletedMessageId: string | null = null;
 
   // Provider-switch detection lives in `state.lastProviderID` — see
   // applyAdvSystemBlock invocation in the system.transform hook below.
@@ -799,10 +749,6 @@ const advancePluginImpl: Plugin = async (input) => {
           setFlags({ permissionPending: false });
         } else if (eventType === "session.error") {
           handleSessionErrorEvent(event as { properties: unknown });
-        } else if (eventType === "message.updated") {
-          handleMessageUpdatedEvent(
-            event as { properties: Record<string, unknown> },
-          );
         }
       } catch (e) {
         debugLog(`Event hook error: ${e}`);

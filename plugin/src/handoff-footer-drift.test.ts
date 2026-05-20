@@ -467,8 +467,8 @@ describe("command-as-approval semantics", () => {
 // chat-output-display spec rename. Preserves the blockquote wayfinder
 // assertions above (rq-handoffVoice01) unmodified.
 //
-// Spec ref: rq-idleMarker01, rq-idleMarker02, rq-idleMarker03, rq-ctxticker1,
-// rq-ctxticker2, rq-toolTitle01, rq-toolTitle02, rq-toolTitle03.
+// Spec ref: rq-idleMarker01, rq-idleMarker02, rq-idleMarker03, rq-titleBell01,
+// rq-ctxticker1, rq-ctxticker2, rq-toolTitle01, rq-toolTitle02, rq-toolTitle03.
 
 describe("chat-output-display drift contract", () => {
   test("STATUS_MARKERS.IDLE exists in types/status.ts", () => {
@@ -533,7 +533,7 @@ describe("chat-output-display drift contract", () => {
     expect(output.length).toBeLessThanOrEqual(80);
   });
 
-  test("chat-output-display spec exists with v1.4.0 and required requirements", () => {
+  test("chat-output-display spec exists with v1.5.0 and required requirements", () => {
     const specPath = join(
       REPO_ROOT,
       ".adv",
@@ -544,7 +544,7 @@ describe("chat-output-display drift contract", () => {
     const spec = JSON.parse(readFileSync(specPath, "utf8"));
 
     expect(spec.name).toBe("chat-output-display");
-    expect(spec.version).toBe("1.4.0");
+    expect(spec.version).toBe("1.5.0");
     expect(spec.supersedes).toContain("context-display");
 
     const requirementIds = spec.requirements.map((r: any) => r.id);
@@ -560,6 +560,39 @@ describe("chat-output-display drift contract", () => {
     expect(requirementIds).toContain("rq-toolTitle01");
     expect(requirementIds).toContain("rq-toolTitle02");
     expect(requirementIds).toContain("rq-toolTitle03");
+
+    const idleBellRequirement = spec.requirements.find(
+      (r: any) => r.id === "rq-idleMarker03",
+    );
+    expect(idleBellRequirement).toBeTruthy();
+    expect(idleBellRequirement.title).toContain("Host-Owned Notifications");
+    expect(idleBellRequirement.body).toContain("MUST NOT emit BEL");
+    expect(idleBellRequirement.body).toContain("host/tool integrations");
+
+    const titleBellRequirement = spec.requirements.find(
+      (r: any) => r.id === "rq-titleBell01",
+    );
+    expect(titleBellRequirement).toBeTruthy();
+    expect(titleBellRequirement.body).toContain("MUST NOT emit BEL");
+    expect(titleBellRequirement.body).toContain("ST (`ESC \\\\`)");
+    expect(titleBellRequirement.body).toContain("status/title paths");
+  });
+
+  test("chat-output-display markdown mirror lists every JSON requirement", () => {
+    const specPath = join(
+      REPO_ROOT,
+      ".adv",
+      "specs",
+      "chat-output-display",
+      "spec.json",
+    );
+    const docsPath = join(REPO_ROOT, "docs", "specs", "chat-output-display.md");
+    const spec = JSON.parse(readFileSync(specPath, "utf8"));
+    const docs = readFileSync(docsPath, "utf8");
+
+    for (const requirement of spec.requirements) {
+      expect(docs).toContain(`\`${requirement.id}\``);
+    }
   });
 
   test("legacy context-display spec directory has been retired (renamed)", () => {

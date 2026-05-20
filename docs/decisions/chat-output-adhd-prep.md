@@ -8,7 +8,7 @@
 
 ## Purpose & Scope
 
-Captures evidence and design options for how ADV emits user-facing chat content (status markers, gate-handoff voice, context snapshot, task status report, tab title) when the human is ADHD-coded or running 3+ OpenCode tabs / agents simultaneously. Covers chat-side text only — does not cover terminal UI bell/title (already adequate), nor IDE side-panel UX, nor anything outside the existing ADV output surfaces.
+Captures evidence and design options for how ADV emits user-facing chat content (status markers, gate-handoff voice, context snapshot, task status report, tab title) when the human is ADHD-coded or running 3+ OpenCode tabs / agents simultaneously. Covers chat-side text only — terminal title/status notification policy is now governed by `rq-idleMarker03` and `rq-titleBell01` (host-owned notifications, no ADV BEL), not by this historical research pack.
 
 Out of scope: redesigning gate semantics, sub-agent dispatch, or commands themselves. Treat as input to a possible `/adv-proposal` for `chatOutputAdhdMultiTab` (or similar).
 
@@ -180,7 +180,7 @@ Questions a future `/adv-discover` (or `/adv-research`) phase should resolve bef
 2. **Compact ticker emission policy:** Should the 1-line ticker REPLACE the box on transient task transitions and the FULL box only emit on `adv_change_show` / first session load? Or always emit ticker, with full box on demand via a new `adv_status` flag?
 3. **Heartbeat granularity:** Every N tool calls (concrete, predictable) or every T seconds (more "alive-feeling" but harder to enforce in pure-prompting)? What's the right N or T?
 4. **Tab-title gate state — opt-in or default?** Reintroducing progress in tab title was a deliberate undo. If we reintroduce gate-state (different from progress), do users prefer it default-on or default-off behind `opencode.json` flag?
-5. **`ATTN` split — do tools care?** Does any downstream consumer (terminal bell, IDE indicator) treat `ATTN` as one state? Audit `plugin/src/events/terminal.ts:751-760` bell logic and any external consumers before splitting.
+5. **`ATTN` split — do tools care?** Does any downstream consumer (host notifications, IDE indicator) treat `ATTN` as one state? The old ADV terminal bell logic referenced by this research pack was removed by `removeTerminalBells`; audit any external consumers before splitting.
 6. **One Question Rule — enforcement?** Soft prompting in `adv.md` only, or runtime check in plugin (refuse to render multiple `question` tool calls per response)?
 7. **Three-formats consolidation — backwards compat?** Existing `context-display` and `task-status-report` specs are referenced by drift tests and storage. Can they be unified without churn, or is "shared glyph vocabulary, separate specs" the correct middle ground?
 
