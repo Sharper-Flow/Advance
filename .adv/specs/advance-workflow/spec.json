@@ -3,9 +3,53 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.8.1",
-  "updated_at": "2026-05-11T22:38:00.000Z",
+  "version": "1.8.2",
+  "updated_at": "2026-05-20T00:00:00.000Z",
   "requirements": [
+    {
+      "id": "rq-problemSpecLaw01",
+      "title": "Behavior-Significant Problem Findings Preserve Spec-Law Intent",
+      "body": "/adv-problem MUST include a spec-law impact assessment when triage clarifies expected durable product/system behavior. If the finding is behavior-significant, the triage outcome MUST either route to /adv-proposal with a draft spec-delta obligation carried forward, or explicitly record why no spec law update is required. A finding that requires spec-law change MUST NOT be classified as a trivial direct-fix candidate. /adv-problem remains read-only and MUST NOT create changes, tasks, gates, or spec deltas directly.",
+      "priority": "must",
+      "tags": ["workflow", "adv-problem", "spec-law", "triage"],
+      "scenarios": [
+        {
+          "id": "rq-problemSpecLaw01.1",
+          "title": "Behavior-significant finding routes to proposal with spec-law obligation",
+          "given": [
+            "A user reports through /adv-problem that page X must have behavior Y"
+          ],
+          "when": "Triage concludes behavior Y is a durable expected behavior or contract change",
+          "then": [
+            "The triage summary includes a spec-law impact assessment",
+            "The next step is proposal-sized, carrying a draft spec-delta obligation or explicit no-delta rationale",
+            "The issue is not classified as a trivial direct-fix candidate"
+          ]
+        },
+        {
+          "id": "rq-problemSpecLaw01.2",
+          "title": "Non-law direct fix requires no-delta rationale",
+          "given": [
+            "/adv-problem identifies a narrow defect that does not alter durable behavior or existing spec law"
+          ],
+          "when": "The command recommends a direct-fix candidate",
+          "then": [
+            "The triage summary states that no spec law update is required and why",
+            "The existing direct-fix guardrails remain satisfied"
+          ]
+        },
+        {
+          "id": "rq-problemSpecLaw01.3",
+          "title": "Problem triage remains read-only",
+          "given": ["/adv-problem identifies a behavior-significant issue"],
+          "when": "The command completes triage",
+          "then": [
+            "It does not create or mutate changes, tasks, gates, or spec files",
+            "It hands off to /adv-proposal for artifact creation"
+          ]
+        }
+      ]
+    },
     {
       "id": "rq-R3v13wR1",
       "title": "Adversarial Review Enforcement",

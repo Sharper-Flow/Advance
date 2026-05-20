@@ -2,6 +2,7 @@
 name: adv-problem
 description: "Triage issues before fixing or drafting a proposal"
 ---
+
 <!-- manifest: adv-problem · requiresChangeId: false · scope: reads[specs, codebase] -->
 
 # ADV Problem — Collaborative Issue Triage Before Fix
@@ -14,7 +15,7 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 
 ## Command Boundary
 
-**Produces:** triage summary, evidence gathered, likely hypotheses, scope assessment, and a next-step recommendation.
+**Produces:** triage summary, evidence gathered, likely hypotheses, scope assessment, spec-law impact, and a next-step recommendation.
 
 **× MUST NOT:** create change, create tasks, complete gates, or silently turn triage into fix implementation.
 
@@ -22,12 +23,12 @@ Investigate a bug, failure, or confusing behavior before deciding whether it is 
 
 ## Exit Paths
 
-| Exit | Condition |
-|------|-----------|
+| Exit                    | Condition                                                               |
+| ----------------------- | ----------------------------------------------------------------------- |
 | ✅ Direct-fix candidate | Evidence suggests a trivial fix and user explicitly approves fixing now |
-| ✅ Proposal candidate | Scope looks larger, riskier, or more systemic |
-| 🔄 Need more info | Triage narrowed the issue, but evidence is still incomplete |
-| 🛑 Stop here | User chooses to stop after triage |
+| ✅ Proposal candidate   | Scope looks larger, riskier, or more systemic                           |
+| 🔄 Need more info       | Triage narrowed the issue, but evidence is still incomplete             |
+| 🛑 Stop here            | User chooses to stop after triage                                       |
 
 ## Direct-Fix Guardrails
 
@@ -43,6 +44,16 @@ Only treat the outcome as a direct-fix candidate when all are true:
 If any guardrail fails, the next step is `/adv-proposal`, not direct fix.
 
 Direct-fix outcome is a handoff outcome only. `/adv-problem` does not own the fix implementation and must not route that work into `/adv-apply`.
+
+## Spec-Law Impact Assessment
+
+When triage clarifies expected durable product/system behavior, the summary MUST include **Spec-law impact**:
+
+- **Behavior-significant** — route to `/adv-proposal` with a draft spec-delta obligation, or explicitly record why no spec law update is required.
+- **No spec law update required** — for direct-fix candidates, state the rationale explicitly.
+- **Uncertain** — When spec-law impact is uncertain, prefer proposal-sized routing via `/adv-proposal`, not direct fix.
+
+`/adv-problem` remains read-only: it MUST NOT create changes, tasks, gates, or spec deltas directly.
 
 ---
 
@@ -62,6 +73,7 @@ Use `question` tool only.
 - Use targeted local investigation when it will materially reduce uncertainty.
 
 Useful prompts:
+
 - "What exactly did you expect instead?"
 - "Can you reproduce it reliably?"
 - "What changed shortly before this started?"
@@ -72,7 +84,7 @@ Useful prompts:
 Classify the issue as one of:
 
 - **trivial direct-fix candidate** — narrow, low-risk, guardrails satisfied
-- **proposal-sized fix** — unclear root cause, wider surface area, or systemic behavior
+- **proposal-sized fix** — unclear root cause, wider surface area, systemic behavior, or uncertain spec-law impact
 - **needs more evidence** — not enough signal yet
 
 Do not over-call triviality. When uncertain, prefer proposal-sized fix.
@@ -100,9 +112,8 @@ Always emit a compact triage summary:
 - Evidence gathered
 - Leading hypothesis / ruled-out paths
 - Scope assessment
+- Spec-law impact
 - Suggested next command or action
-
-
 
 ## Anti-Patterns
 
