@@ -114,10 +114,18 @@ export function registerTool(
           metadata: display.metadata,
         };
       }
+      const existingMetadata = result.metadata ?? {};
+      const existingAdv =
+        existingMetadata.adv && typeof existingMetadata.adv === "object"
+          ? (existingMetadata.adv as Record<string, unknown>)
+          : {};
       return {
         ...result,
-        title: result.title ?? display.title,
-        metadata: { ...display.metadata, ...(result.metadata ?? {}) },
+        title: display.title,
+        metadata: {
+          ...existingMetadata,
+          adv: { ...existingAdv, ...display.metadata.adv },
+        },
       };
     };
 

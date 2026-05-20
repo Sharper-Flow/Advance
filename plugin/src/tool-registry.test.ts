@@ -6,12 +6,17 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
+import { z } from "zod";
 import {
   ADV_TOOL_NAMES,
   createDegradedToolMap,
   createToolMap,
+  registerTool,
 } from "./tool-registry";
-import { formatAdvToolTitle } from "./utils/tool-title";
+import {
+  formatAdvToolTitle,
+  hasExplicitAdvToolTitle,
+} from "./utils/tool-title";
 import { createLegacyStore } from "./storage/store";
 import {
   createTempDir,
@@ -94,6 +99,9 @@ describe("createDegradedToolMap parity with createToolMap", () => {
 
   test("every registered ADV tool name has a display title", () => {
     for (const name of ADV_TOOL_NAMES) {
+      expect(hasExplicitAdvToolTitle(name), `explicit title for ${name}`).toBe(
+        true,
+      );
       const title = formatAdvToolTitle(name, {}).title;
       expect(title, `display title for ${name}`).toEqual(expect.any(String));
       expect(title.trim(), `display title for ${name}`).not.toBe("");
@@ -149,6 +157,34 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     } finally {
       store.close();
     }
+  });
+
+  test("registry display metadata overrides object result title and deep-merges adv namespace", async () => {
+    const execute = async () => ({
+      title: "Custom raw title",
+      output: JSON.stringify({ ok: true }),
+      metadata: { adv: { custom: "kept", title: "Wrong title" }, other: true },
+    });
+    (execute as { __advToolName?: string }).__advToolName = "adv_change_show";
+    const registered = registerTool("test", { changeId: z.string() }, execute);
+
+    const result = await registered.execute({ changeId: "abc" }, {} as any);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        title: "Show change: abc",
+        output: JSON.stringify({ ok: true }),
+        metadata: expect.objectContaining({
+          other: true,
+          adv: expect.objectContaining({
+            custom: "kept",
+            toolName: "adv_change_show",
+            title: "Show change: abc",
+            changeId: "abc",
+          }),
+        }),
+      }),
+    );
   });
 });
 

@@ -14,13 +14,19 @@ export interface AdvToolTitleResult {
       changeId?: string;
       taskId?: string;
       gateId?: string;
-      displayArgs?: unknown;
     };
   };
 }
 
 const TITLE_MAX_LENGTH = 96;
 const VALUE_MAX_LENGTH = 64;
+const ESC = String.fromCharCode(0x1b);
+const BEL = String.fromCharCode(0x07);
+const OSC_SEQUENCE = new RegExp(
+  `${escapeRegex(ESC)}\\][^${escapeRegex(BEL)}]*(?:${escapeRegex(BEL)}|${escapeRegex(ESC)}\\\\)`,
+  "g",
+);
+const CSI_SEQUENCE = new RegExp(`${escapeRegex(ESC)}\\[[0-?]*[ -/]*[@-~]`, "g");
 
 type TitleBuilder = (args: Record<string, unknown>) => {
   title: string;
@@ -146,9 +152,6 @@ export function formatAdvToolTitle(
     };
   const title = truncate(base.title, TITLE_MAX_LENGTH);
   const ids = extractDisplayIds(args);
-  const displayArgs = containsSensitiveKey(args)
-    ? sanitizeDisplayArgs(args)
-    : undefined;
 
   return {
     title,
@@ -159,10 +162,13 @@ export function formatAdvToolTitle(
         title,
         titleKind: base.titleKind,
         ...ids,
-        ...(displayArgs === undefined ? {} : { displayArgs }),
       },
     },
   };
+}
+
+export function hasExplicitAdvToolTitle(toolName: string): boolean {
+  return toolName in STATIC_TITLES || toolName in TITLE_BUILDERS;
 }
 
 function read(title: string) {
@@ -228,38 +234,10 @@ function asRecord(rawArgs: unknown): Record<string, unknown> {
 
 function sanitizeDisplayValue(key: string, value: string): string {
   if (isSensitiveKey(key)) return "[redacted]";
-  return truncate(value.replace(/\s+/g, " ").trim(), VALUE_MAX_LENGTH);
-}
-
-function containsSensitiveKey(value: unknown): boolean {
-  if (Array.isArray(value))
-    return value.some((entry) => containsSensitiveKey(entry));
-  if (!value || typeof value !== "object") return false;
-  return Object.entries(value as Record<string, unknown>).some(
-    ([key, entry]) => isSensitiveKey(key) || containsSensitiveKey(entry),
+  return truncate(
+    redactSensitivePatterns(stripControlSequences(value)),
+    VALUE_MAX_LENGTH,
   );
-}
-
-function sanitizeDisplayArgs(
-  value: unknown,
-  seen = new WeakSet<object>(),
-): unknown {
-  if (typeof value === "string") return truncate(value, VALUE_MAX_LENGTH);
-  if (value === null || typeof value !== "object") return value;
-  if (seen.has(value)) return "[circular]";
-  seen.add(value);
-
-  if (Array.isArray(value)) {
-    return value.slice(0, 10).map((entry) => sanitizeDisplayArgs(entry, seen));
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value)) {
-    result[key] = isSensitiveKey(key)
-      ? "[redacted]"
-      : sanitizeDisplayArgs(entry, seen);
-  }
-  return result;
 }
 
 function isSensitiveKey(key: string): boolean {
@@ -279,6 +257,37 @@ function isSensitiveKey(key: string): boolean {
 function truncate(value: string, maxLength: number): string {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripControlSequences(value: string): string {
+  return value
+    .replace(OSC_SEQUENCE, "")
+    .replace(CSI_SEQUENCE, "")
+    .split("")
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      return code <= 0x1f || (code >= 0x7f && code <= 0x9f) ? " " : char;
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function redactSensitivePatterns(value: string): string {
+  return value
+    .replace(/(authorization\s*:\s*bearer\s+)[^\s"']+/gi, "$1[redacted]")
+    .replace(
+      /\b([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY|PRIVATE_KEY|CREDENTIAL)[A-Z0-9_]*)=([^\s]+)/gi,
+      "$1=[redacted]",
+    )
+    .replace(
+      /(--?(?:token|secret|password|api-key|private-key|credential)(?:=|\s+))[^\s]+/gi,
+      "$1[redacted]",
+    );
 }
 
 function titleizeToolName(toolName: string): string {

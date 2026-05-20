@@ -201,10 +201,10 @@ describe("Active Change Title Update on adv_change_create", () => {
         args: { summary: "Add tool result titles" },
         output: {
           title: "Create change: Add tool result titles",
-          output: JSON.stringify({
+          output: {
             changeId: newChangeId,
             path: "/some/path/proposal.md",
-          }),
+          },
           metadata: { adv: { toolName: "adv_change_create" } },
         },
       } as any,

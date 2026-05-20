@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatAdvToolTitle } from "./tool-title";
+import { formatAdvToolTitle, hasExplicitAdvToolTitle } from "./tool-title";
 
 describe("formatAdvToolTitle", () => {
   test("formats representative ADV tool titles", () => {
@@ -18,17 +18,32 @@ describe("formatAdvToolTitle", () => {
     expect(formatAdvToolTitle("adv_status", {}).title).toBe("Show ADV status");
   });
 
-  test("redacts sensitive values from title metadata", () => {
-    const result = formatAdvToolTitle("adv_project_metadata", {
-      action: "write",
-      key: "scan",
-      apiKey: "super-secret",
-      nested: { token: "also-secret" },
+  test("redacts sensitive values from title strings", () => {
+    const result = formatAdvToolTitle("adv_run_test", {
+      command: "FOO_TOKEN=super-secret pnpm test -- --password=also-secret",
     });
 
     expect(result.title).not.toContain("super-secret");
-    expect(JSON.stringify(result.metadata)).not.toContain("also-secret");
-    expect(JSON.stringify(result.metadata)).toContain("[redacted]");
+    expect(result.title).not.toContain("also-secret");
+    expect(result.title).toContain("[redacted]");
+    expect(JSON.stringify(result.metadata)).not.toContain("super-secret");
+  });
+
+  test("strips terminal control sequences from title strings", () => {
+    const result = formatAdvToolTitle("adv_change_create", {
+      summary:
+        "Add \u001b]8;;https://evil.example\u0007hidden\u001b]8;;\u0007 title",
+    });
+
+    expect(result.title).not.toContain("\u001b");
+    expect(result.title).not.toContain("\u0007");
+    expect(result.title).not.toContain("https://evil.example");
+  });
+
+  test("distinguishes explicit coverage from fallback titles", () => {
+    expect(hasExplicitAdvToolTitle("adv_change_show")).toBe(true);
+    expect(hasExplicitAdvToolTitle("adv_future_tool")).toBe(false);
+    expect(formatAdvToolTitle("adv_future_tool", {}).title).toBe("Future tool");
   });
 
   test("truncates long opaque values", () => {
