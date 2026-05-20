@@ -12,6 +12,7 @@
  */
 
 import { type Plugin } from "@opencode-ai/plugin";
+import { isAbsolute, resolve } from "node:path";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -41,7 +42,7 @@ import {
 } from "./utils/metrics";
 
 import { createToolMap, createDegradedToolMap } from "./tool-registry";
-import { loadProjectConfig } from "./storage/json";
+import { loadProjectConfigWithDiagnostics } from "./storage/json";
 import { appendDebugLog, createLogger } from "./utils/debug-log";
 import { detectPeerSessions } from "./utils/peer-sessions";
 import { detectStaleBranchHead } from "./utils/stale-head";
@@ -79,6 +80,12 @@ const PROMPT_EXCERPT_CHARS = 2_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
+
+const normalizeToolTargetPath = (
+  targetPath: string,
+  basePath: string,
+): string =>
+  isAbsolute(targetPath) ? targetPath : resolve(basePath, targetPath);
 
 const compactLargeText = (
   marker: "TOOL_OUTPUT" | "DIFF",
@@ -312,27 +319,28 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // P2.7: legacy migration removed — disk-only store reads/writes the same
   // on-disk paths. No migration step needed.
 
-  // Initialize store. tryInitStore() never throws — if createStore or
-  // store.init() fails, it returns { store: null, initError: Error } so we
-  // can register a degraded tool map rather than nuking every adv_* tool.
-  const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
-
   let trunkWriteFirewallEnforced = false;
-  try {
-    const projectConfig = await loadProjectConfig(effectiveDir);
+  const projectConfigResult =
+    await loadProjectConfigWithDiagnostics(effectiveDir);
+  if (projectConfigResult.success) {
     const effectiveFeatures = withStabilityFeatureDefaults(
-      projectConfig?.features as Record<string, unknown> | undefined,
+      projectConfigResult.data.features as Record<string, unknown> | undefined,
     );
     trunkWriteFirewallEnforced =
       effectiveFeatures.worktree_guard_enforce === true;
-  } catch (error) {
+  } else if (projectConfigResult.type !== "not_found") {
     // Malformed/unreadable project config must not silently disable a strict
     // safety policy. Fail closed for the hook-level firewall and surface a log.
     trunkWriteFirewallEnforced = true;
     debugLog(
-      `trunk-write-firewall: project config unavailable; enforcing firewall (${error instanceof Error ? error.message : String(error)})`,
+      `trunk-write-firewall: project config invalid; enforcing firewall (${projectConfigResult.error})`,
     );
   }
+
+  // Initialize store. tryInitStore() never throws — if createStore or
+  // store.init() fails, it returns { store: null, initError: Error } so we
+  // can register a degraded tool map rather than nuking every adv_* tool.
+  const { store, initError } = await tryInitStore(effectiveDir, externalRoot);
 
   // Initialize terminal status
   const projectName = getProjectName(directory);
@@ -560,7 +568,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
       }
     }
 
-    const projectRoot = directory;
+    const projectRoot = gitSession.mainCheckoutPath ?? directory;
     const firewallDeps: TrunkWriteFirewallDeps = {
       getDefaultBranch: (cwd: string) => getDefaultBranch(cwd),
       execGit: (gitArgs: string[], cwd: string) => execGit(gitArgs, cwd),
@@ -597,7 +605,10 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
               ? args.path
               : undefined;
       if (targetPath) {
-        const result = await checkTrunkWrite(targetPath, firewallDeps);
+        const result = await checkTrunkWrite(
+          normalizeToolTargetPath(targetPath, directory),
+          firewallDeps,
+        );
         if (result.decision === "BLOCK") {
           throw new Error(
             result.reason ?? "Trunk write firewall blocked file write.",
@@ -612,7 +623,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
         typeof args.workdir === "string" ? args.workdir : undefined;
       const result = await checkTrunkWriteBash(
         command,
-        argsWorkdir,
+        argsWorkdir ?? directory,
         firewallDeps,
       );
       if (result.decision === "BLOCK") {

@@ -444,6 +444,76 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).rejects.toThrow(/Trunk write firewall/);
   }, 30_000);
 
+  test("schema-invalid project config fails closed for trunk write firewall", async () => {
+    const { writeFile } = await import("fs/promises");
+    const { join } = await import("path");
+
+    await initGitRepo();
+    await writeFile(
+      join(tempDir, "project.json"),
+      JSON.stringify({
+        name: "test-project",
+        features: { worktree_guard_enforce: "yes" },
+      }),
+    );
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: `${tempDir}/src/file.ts` } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  }, 30_000);
+
+  test("blocks writes from an ADV worktree back into the main checkout", async () => {
+    const { execSync } = await import("child_process");
+    const { mkdirSync, writeFileSync } = await import("fs");
+    const { join } = await import("path");
+
+    await initGitRepo();
+    await enableWorktreeGuard();
+    execSync("git add project.json && git commit -m 'enable guard'", {
+      cwd: tempDir,
+    });
+    const worktreePath = `${tempDir}-wt`;
+    execSync(`git worktree add -b change/test ${worktreePath}`, {
+      cwd: tempDir,
+    });
+    mkdirSync(join(worktreePath, "src"), { recursive: true });
+    writeFileSync(join(worktreePath, "src", "local.ts"), "local");
+
+    hooks = await AdvancePlugin({
+      project: {
+        id: "test",
+        worktree: worktreePath,
+        time: { created: Date.now() },
+      },
+      directory: worktreePath,
+      worktree: worktreePath,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: join(tempDir, "src/file.ts") } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: "src/local.ts" } } as any,
+      ),
+    ).resolves.toBeUndefined();
+  }, 30_000);
+
   test("allows all git commands without firewall classification", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({

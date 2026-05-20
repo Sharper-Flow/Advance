@@ -425,7 +425,7 @@ Black-box AC verification run by external CI. Specs under conformance are "locke
 
 <!-- rq-twf01 -->
 
-**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes to the trunk checkout on the default branch.
+**Enforcement layers:** (1) conformance bash guard blocks git clone/curl/wget on locked sibling paths, (2) `tool.execute.before` blocks `adv_conformance` during execution gate, (3) path policy blocks read/glob/grep/lgrep on locked conformance directories, (4) in strict mode (`worktree_guard_enforce=true`), trunk write firewall (`plugin/src/tools/trunk-write-firewall.ts`) blocks direct file writes to the trunk checkout on the default branch.
 
 ### Trunk Write Firewall
 
