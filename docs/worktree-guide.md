@@ -4,6 +4,37 @@ ADV worktrees isolate implementation work from the trunk checkout. The trunk
 checkout remains a clean integration surface; agents edit files in worktrees and
 publish to trunk through verified merge/archive flows.
 
+## Worktree Location
+
+Default ADV-managed worktrees live under the OpenCode data home:
+
+```text
+$XDG_DATA_HOME/opencode/worktree/{project-id}/{branch}
+```
+
+For heavy local development, prefer a visible source/worktree split:
+
+```text
+~/dev/repos/<owner>/<repo>        # canonical trunk checkout
+~/dev/worktrees/<project-id>/*    # ADV-created worktrees
+```
+
+Set an absolute `ADV_WORKTREE_HOME` to move only worktree checkouts while keeping
+ADV state under `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}`:
+
+```sh
+export ADV_WORKTREE_HOME="$HOME/dev/worktrees"
+```
+
+Then ADV creates worktrees at:
+
+```text
+$ADV_WORKTREE_HOME/{project-id}/{branch}
+```
+
+Use an absolute path. Relative `ADV_WORKTREE_HOME` values are rejected so cleanup
+and namespace guards cannot accidentally target the wrong directory.
+
 ## Worktree Include (AC8)
 
 ADV worktrees can copy selected files from the main checkout into each new

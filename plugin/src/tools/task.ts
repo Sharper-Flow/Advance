@@ -19,6 +19,7 @@ import {
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import { fetchChangeContextTicker } from "../storage/context-snapshot-fetch";
 import {
+  buildTodoProjection,
   formatTaskReadyOutput,
   formatDoomLoopDiagnostics,
 } from "../utils/tool-formatters";
@@ -315,8 +316,22 @@ export const taskTools = {
               blockedBy: b.blockedBy,
             })),
           });
+          const changeResult = await activeStore.changes.get(changeId);
+          const currentTask = changeResult.success
+            ? changeResult.data?.tasks.find(
+                (task) => task.status === "in_progress",
+              )
+            : undefined;
           return formatToolOutput({
             ...result,
+            _todoProjection: buildTodoProjection({
+              current: currentTask ?? null,
+              ready: result.ready.map((task) => ({
+                id: task.id,
+                title: task.title,
+                status: task.status,
+              })),
+            }),
             formatted,
             ...(snapshot ? { _contextSnapshot: snapshot } : {}),
             ...(projectContext ? { _projectContext: projectContext } : {}),

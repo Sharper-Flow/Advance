@@ -6,6 +6,9 @@
  * of the same repo share the same state directory.
  *
  * Convention: $XDG_DATA_HOME/opencode/plugins/advance/{project-id}/
+ * Worktrees default to $XDG_DATA_HOME/opencode/worktree/{project-id}/, with
+ * ADV_WORKTREE_HOME as an absolute-path override for developer-visible
+ * worktree roots (for example ~/dev/worktrees).
  * Matches kdcokenny's worktree plugin pattern.
  *
  * Test-mode override:
@@ -155,6 +158,22 @@ export function getDataHome(): string {
 }
 
 /**
+ * Resolve the optional user-facing worktree home.
+ *
+ * Empty / unset ADV_WORKTREE_HOME preserves the historical XDG worktree
+ * location. Relative values are rejected because worktree creation/deletion
+ * guards rely on absolute namespace boundaries.
+ */
+export function getWorktreeHomeOverride(): string | null {
+  const configured = process.env.ADV_WORKTREE_HOME;
+  if (configured === undefined || configured === "") return null;
+  if (!isAbsolute(configured)) {
+    throw new Error(`ADV_WORKTREE_HOME must be absolute: ${configured}`);
+  }
+  return resolve(configured);
+}
+
+/**
  * Resolve the external state directory for a given project ID.
  *
  * Path: $XDG_DATA_HOME/opencode/plugins/advance/{projectId}/
@@ -168,9 +187,12 @@ export function getExternalRoot(projectId: string): string {
 /**
  * Resolve the per-project worktree base directory.
  *
- * Path: $XDG_DATA_HOME/opencode/worktree/{projectId}/
+ * Default path: $XDG_DATA_HOME/opencode/worktree/{projectId}/
+ * Override path: $ADV_WORKTREE_HOME/{projectId}/
  */
 export function getWorktreeBase(projectId: string): string {
+  const override = getWorktreeHomeOverride();
+  if (override) return join(override, projectId);
   return join(getDataHome(), "opencode/worktree", projectId);
 }
 

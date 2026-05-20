@@ -12,6 +12,7 @@ import {
   getProjectIdFromGit,
   getDataHome,
   getExternalRoot,
+  getWorktreeHomeOverride,
   getWorktreeBase,
   isPathInsideDirectory,
   assertPathInsideDirectory,
@@ -212,10 +213,14 @@ describe("getExternalRoot", () => {
 
 describe("getWorktreeBase", () => {
   const originalEnv = process.env.XDG_DATA_HOME;
+  const originalWorktreeHome = process.env.ADV_WORKTREE_HOME;
 
   afterEach(() => {
     if (originalEnv !== undefined) process.env.XDG_DATA_HOME = originalEnv;
     else delete process.env.XDG_DATA_HOME;
+    if (originalWorktreeHome !== undefined)
+      process.env.ADV_WORKTREE_HOME = originalWorktreeHome;
+    else delete process.env.ADV_WORKTREE_HOME;
   });
 
   test("uses the XDG opencode worktree namespace", () => {
@@ -227,8 +232,35 @@ describe("getWorktreeBase", () => {
 
   test("shares default data-home handling with external root", () => {
     delete process.env.XDG_DATA_HOME;
+    delete process.env.ADV_WORKTREE_HOME;
     expect(getWorktreeBase("abc123")).toBe(
       join(homedir(), ".local/share/opencode/worktree/abc123"),
+    );
+  });
+
+  test("uses ADV_WORKTREE_HOME when set", () => {
+    process.env.XDG_DATA_HOME = "/custom/data";
+    process.env.ADV_WORKTREE_HOME = "/home/dev/worktrees";
+    expect(getWorktreeHomeOverride()).toBe("/home/dev/worktrees");
+    expect(getWorktreeBase("abc123")).toBe("/home/dev/worktrees/abc123");
+  });
+
+  test("treats empty ADV_WORKTREE_HOME as unset", () => {
+    process.env.XDG_DATA_HOME = "/custom/data";
+    process.env.ADV_WORKTREE_HOME = "";
+    expect(getWorktreeHomeOverride()).toBeNull();
+    expect(getWorktreeBase("abc123")).toBe(
+      "/custom/data/opencode/worktree/abc123",
+    );
+  });
+
+  test("rejects relative ADV_WORKTREE_HOME paths", () => {
+    process.env.ADV_WORKTREE_HOME = "dev/worktrees";
+    expect(() => getWorktreeHomeOverride()).toThrow(
+      /ADV_WORKTREE_HOME must be absolute/,
+    );
+    expect(() => getWorktreeBase("abc123")).toThrow(
+      /ADV_WORKTREE_HOME must be absolute/,
     );
   });
 });

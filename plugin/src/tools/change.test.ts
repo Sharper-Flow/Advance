@@ -154,7 +154,9 @@ function createMockStore(
       close: vi.fn(),
       closeBatch: vi.fn(),
     } as Store["changes"],
-    tasks: {} as Store["tasks"],
+    tasks: {
+      ready: vi.fn(async () => ({ ready: [], blocked: [] })),
+    } as unknown as Store["tasks"],
     wisdom: {} as Store["wisdom"],
     gates: {
       get: vi.fn(async () => change.gates),
@@ -207,6 +209,59 @@ describe("change tools — signal-driven lifecycle", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("adv_change_show", () => {
+    test("includes TodoWrite projection when readyTasks include flag is set", async () => {
+      const store = createMockStore({
+        tasks: [
+          {
+            id: "tk-current",
+            title: "Current Task",
+            status: "in_progress",
+            priority: 0,
+            created_at: "2026-01-01T00:00:00Z",
+          } as Change["tasks"][number],
+        ],
+      });
+      vi.mocked(store.tasks.ready).mockResolvedValue({
+        ready: [
+          {
+            id: "tk-ready",
+            title: "Ready Task",
+            status: "pending",
+            priority: 1,
+            created_at: "2026-01-01T00:00:00Z",
+          } as Change["tasks"][number],
+        ],
+        blocked: [],
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { readyTasks: true } },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed._todoProjection).toEqual({
+        rows: [
+          {
+            taskId: "tk-current",
+            title: "Current Task",
+            status: "in_progress",
+            content: "tk-current — Current Task",
+          },
+          {
+            taskId: "tk-ready",
+            title: "Ready Task",
+            status: "pending",
+            content: "tk-ready — Ready Task",
+          },
+        ],
+        format: "task-id-em-dash-title",
+        window: { includeCurrent: true, readyLimit: 3, omitDone: true },
+      });
+    });
   });
 
   describe("adv_change_close", () => {

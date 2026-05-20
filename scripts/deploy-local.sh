@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
-# sync-global.sh
+# deploy-local.sh
 #
-# Syncs the ADV plugin's slash commands, agents, skills, and instructions
-# to the global OpenCode config at ~/.config/opencode/
+# Deploys this repo's ADV assets to the local machine:
+#   - Slash commands, agents, skills, instructions -> ~/.config/opencode/
+#   - Companion binaries (acp-mux) -> ~/.local/bin/
+#
+# Single source of truth for "what's installed on this machine from this repo".
+# Run via pre-push hook so deployed copy never drifts from dev repo HEAD.
+# Renamed from sync-global.sh (2026-05-19) to reflect that it also deploys
+# binaries, not just syncs OpenCode config assets.
 #
 # Usage:
-#   ./scripts/sync-global.sh           # Sync assets + check config (report only)
-#   ./scripts/sync-global.sh --check   # Check config only, no file changes
-#   ./scripts/sync-global.sh --fix     # Sync assets + auto-patch opencode.json
-#   ./scripts/sync-global.sh --dry-run # Preview overlay/config changes without writing
-#   ./scripts/sync-global.sh --diff    # Show overlay diffs when managed blocks change
+#   ./scripts/deploy-local.sh           # Deploy assets + check config (report only)
+#   ./scripts/deploy-local.sh --check   # Check config only, no file changes
+#   ./scripts/deploy-local.sh --fix     # Deploy assets + auto-patch opencode.json
+#   ./scripts/deploy-local.sh --dry-run # Preview changes without writing
+#   ./scripts/deploy-local.sh --diff    # Show overlay diffs when managed blocks change
 #
 # What it does:
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
@@ -19,6 +25,11 @@
 #   5. Copies skills/adv-*/SKILL.md  -> ~/.config/opencode/skills/adv-*/
 #   6. Validates opencode.json has ADV plugin + instruction entries
 #   7. (--fix only) Patches opencode.json to add missing ADV entries
+#   8. Deploys acp-mux/bin/acp-mux  -> ~/.local/bin/acp-mux (real file, no symlink)
+#
+# Deploy semantics: every binary is a real file copy. NO SYMLINKS — a stale
+# bin link is worse than a stale copy because it fails in surprising ways.
+# Re-run deploy-local.sh whenever you change a deployed asset.
 #
 # It does NOT touch non-ADV commands, agents, skills, or config entries,
 # except removing legacy assets/config previously installed by this repo
@@ -42,9 +53,9 @@ for arg in "$@"; do
 	--help | -h)
 		echo "Usage: $0 [--check | --fix] [--dry-run] [--diff]"
 		echo ""
-		echo "  (no flags)  Sync assets + check config (report issues)"
+		echo "  (no flags)  Deploy assets + check config (report issues)"
 		echo "  --check     Check config only, no file changes at all"
-		echo "  --fix       Sync assets + auto-patch opencode.json if needed"
+		echo "  --fix       Deploy assets + binaries + auto-patch opencode.json if needed"
 		echo "  --dry-run   Preview managed overlay/config changes without writing"
 		echo "  --diff      Show managed overlay diffs when blocks change"
 		exit 0
@@ -244,7 +255,7 @@ apply_overlay_block() {
 
 	local start_count end_count
 	read -r start_count end_count <<<"$(
-		python - "$source_file" "$start_marker" "$end_marker" <<'PY'
+		python3 - "$source_file" "$start_marker" "$end_marker" <<'PY'
 from pathlib import Path
 import sys
 text = Path(sys.argv[1]).read_text()
@@ -265,7 +276,7 @@ PY
 	new_tmp="$(mktemp)"
 	cp "$source_file" "$current_tmp"
 
-	python - "$source_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp" <<'PY'
+	python3 - "$source_file" "$overlay_file" "$start_marker" "$end_marker" "$new_tmp" <<'PY'
 from pathlib import Path
 import sys
 
@@ -340,7 +351,7 @@ sync_adv_runtime_agent() {
 	fi
 
 	mkdir -p "$GLOBAL_AGENTS"
-	python - "$canonical" "$ADV_INSTRUCTION_PATH" "$GLOBAL_AGENTS/adv.md" <<'PY'
+	python3 - "$canonical" "$ADV_INSTRUCTION_PATH" "$GLOBAL_AGENTS/adv.md" <<'PY'
 from pathlib import Path
 import sys
 
@@ -366,6 +377,83 @@ remove_retired_provider_prompt_parts() {
 	done
 }
 
+# Agent Frontmatter Structural Check
+#
+# OpenCode uses gray-matter/js-yaml for agent frontmatter. Duplicate YAML keys
+# make gray-matter reject the frontmatter, after which the agent degrades to an
+# `all`-mode shell with the raw frontmatter embedded in the prompt. Detect the
+# simple mapping shape used by agent files before sync/deploy says everything is
+# healthy.
+# ---------------------------------------------------------------------------
+check_agent_frontmatter() {
+	local agent_file="$1"
+
+	if [ ! -f "$agent_file" ]; then
+		echo "    ✗  frontmatter: missing agent file $agent_file"
+		((config_issues++)) || true
+		return
+	fi
+
+	python3 - "$agent_file" <<'PY' || ((config_issues++)) || true
+import re
+import sys
+from pathlib import Path
+
+agent_path = Path(sys.argv[1])
+text = agent_path.read_text()
+agent_name = agent_path.name
+
+if not text.startswith("---\n"):
+    print(f"    ✗  frontmatter: {agent_name} missing YAML frontmatter")
+    sys.exit(1)
+
+end = text.find("\n---\n", 4)
+if end == -1:
+    print(f"    ✗  frontmatter: {agent_name} frontmatter not terminated")
+    sys.exit(1)
+
+seen: set[tuple[tuple[str, ...], str]] = set()
+parents: list[tuple[int, str]] = []
+duplicates: list[tuple[int, str, str]] = []
+
+for line_no, line in enumerate(text[4:end].splitlines(), start=2):
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#") or stripped.startswith("-"):
+        continue
+    if ":" not in line:
+        continue
+
+    indent = len(line) - len(line.lstrip(" "))
+    key_match = re.match(r"^\s*([A-Za-z0-9_*.-]+)\s*:", line)
+    if not key_match:
+        continue
+
+    while parents and parents[-1][0] >= indent:
+        parents.pop()
+
+    key = key_match.group(1)
+    parent_path = tuple(parent for _, parent in parents)
+    marker = (parent_path, key)
+    if marker in seen:
+        scope = ".".join((*parent_path, key)) if parent_path else key
+        duplicates.append((line_no, scope, line.strip()))
+    else:
+        seen.add(marker)
+
+    remainder = line.split(":", 1)[1].strip()
+    if remainder == "" or remainder in {"|", ">", "|-", ">-"}:
+        parents.append((indent, key))
+
+if duplicates:
+    print(f"    ✗  frontmatter: {agent_name} has duplicate YAML key(s)")
+    for line_no, scope, raw in duplicates:
+        print(f"       line {line_no}: {scope} — {raw}")
+    sys.exit(1)
+
+print(f"    ✓  frontmatter: {agent_name} has unique mapping keys")
+PY
+}
+
 # Agent Tool Allowlist Drift Check
 #
 # Cross-references the `adv` agent's `tools:` allowlist in
@@ -387,7 +475,7 @@ check_tool_drift() {
 		return
 	fi
 
-	python - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
+	python3 - "$agent_file" "$registry_file" <<'PY' || ((config_issues++)) || true
 import re
 import sys
 from pathlib import Path
@@ -515,8 +603,10 @@ check_config() {
 	done
 
 	# Cross-check agent tool allowlist against plugin registry
+	check_agent_frontmatter "$REPO_AGENTS/adv.md"
 	check_tool_drift
 	if [ -f "$REPO_AGENTS/adv-atc.md" ]; then
+		check_agent_frontmatter "$REPO_AGENTS/adv-atc.md"
 		check_tool_drift "$REPO_AGENTS/adv-atc.md"
 	fi
 
@@ -588,16 +678,21 @@ fix_config() {
 	fi
 
 	# Refuse to patch JSONC files — jq cannot preserve comments, so --fix
-	# would silently rewrite JSONC as plain JSON. Fail with guidance instead.
+	# would silently rewrite JSONC as plain JSON. Warn but continue so other
+	# deploy stages (binaries, etc.) still run. Config drift surfaces in the
+	# `check_config` summary at the end.
 	if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
 		if [ "$DRY_RUN" = true ]; then
-			echo "    dry-run: would refuse to patch JSONC (comments would be stripped)"
+			echo "    dry-run: would skip JSONC patch (comments would be stripped)"
 		else
-			echo "    ✗  Config is JSONC — auto-patch would strip comments"
+			echo "    ⚠  Config is JSONC — skipping auto-patch (comments would be stripped)"
 			echo "       Backup preserved at: $backup"
-			echo "       Convert to plain JSON, or apply the needed changes manually"
-			return 1
+			echo "       If config drift is reported, apply changes manually to $GLOBAL_JSON"
 		fi
+		# Run check_config so the user sees whether actual entries are missing
+		# (the JSONC reader is comment-tolerant).
+		check_config || true
+		return 0
 	fi
 
 	local patched=0
@@ -992,6 +1087,63 @@ else
 fi
 
 # ===========================================================================
+# Local binaries deployment
+# ===========================================================================
+# Deploy companion binaries (acp-mux, future tools) into ~/.local/bin/ as
+# REAL FILES — never symlinks. Symlinks across a dev/install boundary fail in
+# surprising ways (broken when dev path moves, ambiguous under realpath,
+# invisible to backup tools). Idempotent: only writes when source differs.
+echo ""
+echo "==> Deploying local binaries"
+
+LOCAL_BIN="$HOME/.local/bin"
+mkdir -p "$LOCAL_BIN"
+
+bin_deployed=0
+bin_skipped=0
+
+deploy_bin() {
+	local src="$1" name="$2"
+	local dst="$LOCAL_BIN/$name"
+	if [ ! -f "$src" ]; then
+		echo "    skip: $name (source missing at $src)"
+		return 0
+	fi
+
+	# If dst exists as a symlink, remove it — we deploy real files only.
+	local was_symlink=0
+	if [ -L "$dst" ]; then
+		was_symlink=1
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run remove symlink: $dst"
+		else
+			rm "$dst"
+			echo "    removed legacy symlink: $dst"
+		fi
+	fi
+
+	# If dst is a real file with identical content, skip (idempotent).
+	# Don't take this branch if dst was a symlink — that would falsely
+	# report "unchanged" because the symlink dereferences to the same file.
+	if [ "$was_symlink" = 0 ] && [ -f "$dst" ] && cmp -s "$src" "$dst"; then
+		((bin_skipped++)) || true
+		return 0
+	fi
+
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run deploy: $src -> $dst"
+	else
+		install -m 0755 "$src" "$dst"
+		echo "    deployed: $name"
+		((bin_deployed++)) || true
+	fi
+}
+
+deploy_bin "$REPO_ROOT/acp-mux/bin/acp-mux" "acp-mux"
+
+echo "    $bin_deployed binary(ies) deployed, $bin_skipped unchanged"
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 echo ""
@@ -1000,6 +1152,7 @@ echo ""
 echo "    Commands in global: $(ls "$GLOBAL_COMMANDS"/adv-*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Agents in global:  $(ls "$GLOBAL_AGENTS"/*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l | tr -d ' ')"
+echo "    Local bins:        $(ls "$LOCAL_BIN"/acp-mux 2>/dev/null | wc -l | tr -d ' ')"
 
 if [ "$MODE" = "fix" ]; then
 	echo "    Config: patched (if needed)"

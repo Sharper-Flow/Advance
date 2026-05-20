@@ -99,6 +99,7 @@ import {
 } from "../archive";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 import {
+  buildTodoProjection,
   formatValidationOutput,
   formatSmellReport,
 } from "../utils/tool-formatters";
@@ -1446,6 +1447,17 @@ export const changeTools = {
                   limit: readyLimit,
                   blockedCount: readyResult.blocked.length,
                 };
+                output._todoProjection = buildTodoProjection({
+                  current:
+                    change.tasks.find(
+                      (task) => task.status === "in_progress",
+                    ) ?? null,
+                  ready: readyResult.ready.map((task) => ({
+                    id: task.id,
+                    title: task.title,
+                    status: task.status,
+                  })),
+                });
               } catch (e) {
                 output._readyTasksError =
                   e instanceof Error ? e.message : String(e);

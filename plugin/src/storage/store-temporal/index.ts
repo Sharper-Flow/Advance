@@ -286,9 +286,21 @@ export function createTemporalStoreBackend(
     }
   };
 
+  const indexTasksFromChange = (change: Change): void => {
+    for (const task of change.tasks ?? []) {
+      taskChangeIndex.set(task.id, change.id);
+    }
+  };
+
   const resolveChangeId = async (taskId: string): Promise<string | null> => {
     const cached = taskChangeIndex.get(taskId);
     if (cached) return cached;
+    for (const change of changeCache.values()) {
+      if ((change.tasks ?? []).some((task) => task.id === taskId)) {
+        taskChangeIndex.set(taskId, change.id);
+        return change.id;
+      }
+    }
     const shown = await legacy.tasks.show(taskId);
     if (shown) {
       taskChangeIndex.set(taskId, shown.changeId);
@@ -442,6 +454,7 @@ export function createTemporalStoreBackend(
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
     const cached = changeCache.get(changeId);
     if (cached) {
+      indexTasksFromChange(cached);
       return { success: true, data: cached };
     }
     try {

@@ -1,29 +1,30 @@
 #!/usr/bin/env bash
-# post-commit: auto-sync ADV assets to the global OpenCode config when the
-# commit touches anything that the global install mirrors.
+# post-commit: auto-deploy ADV assets + binaries to the local install when the
+# commit touches anything that the local install mirrors.
 #
 # Prevents the drift class this hook was created to fix: a commit lands in
 # the repo but `~/.config/opencode/` still has the old command/agent/skill
 # files, so agents invoking `/adv-*` from other repos see stale contracts.
 #
 # Behavior:
-# - Silent no-op if the commit touched none of the synced paths.
-# - Runs scripts/sync-global.sh --fix otherwise (idempotent, ~1s).
+# - Silent no-op if the commit touched none of the deployed paths.
+# - Runs scripts/deploy-local.sh --fix otherwise (idempotent, ~1s).
 # - Never blocks the commit (post-commit fires after the commit is already
 #   recorded, so a non-zero exit would only emit a warning).
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-SYNC_SCRIPT="$REPO_ROOT/scripts/sync-global.sh"
+DEPLOY_SCRIPT="$REPO_ROOT/scripts/deploy-local.sh"
 
-# Paths that sync-global mirrors to ~/.config/opencode. Keep in sync with
-# scripts/sync-global.sh.
-SYNCED_PATHS=(
+# Paths that deploy-local mirrors to ~/.config/opencode and ~/.local/bin.
+# Keep in sync with scripts/deploy-local.sh.
+DEPLOYED_PATHS=(
   ".opencode/command/"
   ".opencode/agents/"
   ".opencode/overlays/"
   "ADV_INSTRUCTIONS.md"
   "skills/"
+  "acp-mux/bin/"
 )
 
 # Look at the diff introduced by HEAD (the commit that just landed).
@@ -33,26 +34,26 @@ if [[ -z "$CHANGED" ]]; then
   exit 0
 fi
 
-NEEDS_SYNC=0
-for path in "${SYNCED_PATHS[@]}"; do
+NEEDS_DEPLOY=0
+for path in "${DEPLOYED_PATHS[@]}"; do
   if grep -qE "^${path}" <<< "$CHANGED"; then
-    NEEDS_SYNC=1
+    NEEDS_DEPLOY=1
     break
   fi
 done
 
-if [[ "$NEEDS_SYNC" -eq 0 ]]; then
+if [[ "$NEEDS_DEPLOY" -eq 0 ]]; then
   exit 0
 fi
 
-if [[ ! -x "$SYNC_SCRIPT" ]]; then
-  echo "[adv-post-commit] scripts/sync-global.sh not found or not executable; skipping sync." >&2
+if [[ ! -x "$DEPLOY_SCRIPT" ]]; then
+  echo "[adv-post-commit] scripts/deploy-local.sh not found or not executable; skipping deploy." >&2
   exit 0
 fi
 
-echo "[adv-post-commit] Synced ADV assets to the global OpenCode install (touched: $(echo "$CHANGED" | head -3 | tr '\n' ' '))"
-"$SYNC_SCRIPT" --fix >/dev/null 2>&1 || {
-  echo "[adv-post-commit] sync-global.sh failed; run manually:" >&2
-  echo "  $SYNC_SCRIPT --fix" >&2
+echo "[adv-post-commit] Deployed ADV assets to the local install (touched: $(echo "$CHANGED" | head -3 | tr '\n' ' '))"
+"$DEPLOY_SCRIPT" --fix >/dev/null 2>&1 || {
+  echo "[adv-post-commit] deploy-local.sh failed; run manually:" >&2
+  echo "  $DEPLOY_SCRIPT --fix" >&2
   exit 0
 }

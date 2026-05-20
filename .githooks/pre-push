@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# pre-push: final sync belt-and-braces. Runs sync-global before pushing so
-# the global install is current by the time CI / reviewers pull the branch.
+# pre-push: final deploy belt-and-braces. Runs deploy-local.sh before pushing
+# so the local install is current by the time CI / reviewers pull the branch.
 #
 # The repo previously had a .git/hooks/post-push file but git has no
 # post-push hook — it never fires. pre-push is the real hook.
 #
-# Idempotent: post-commit already syncs per commit, so this is usually a
+# Idempotent: post-commit already deploys per commit, so this is usually a
 # no-op. Kept as a safety net for clones that missed the post-commit
 # install or for commits made via tooling that bypasses hooks.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-SYNC_SCRIPT="$REPO_ROOT/scripts/sync-global.sh"
+DEPLOY_SCRIPT="$REPO_ROOT/scripts/deploy-local.sh"
 
-if [[ -x "$SYNC_SCRIPT" ]]; then
-  "$SYNC_SCRIPT" --fix >/dev/null 2>&1 || {
-    echo "[adv-pre-push] sync-global.sh failed; continuing push anyway" >&2
+if [[ -x "$DEPLOY_SCRIPT" ]]; then
+  "$DEPLOY_SCRIPT" --fix >/dev/null 2>&1 || {
+    echo "[adv-pre-push] deploy-local.sh failed; continuing push anyway" >&2
   }
 fi
 

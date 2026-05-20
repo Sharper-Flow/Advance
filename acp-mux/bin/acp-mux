@@ -13,6 +13,11 @@ OPENCODE_BIN="${OPENCODE_BIN:-$HOME/.opencode/bin/opencode}"
 MASTER_DATA="${OPENCODE_MASTER_DATA:-$HOME/.local/share/opencode}"
 INSTANCES_ROOT="${ACP_MUX_INSTANCES_ROOT:-$HOME/.local/share/acp-mux/instances}"
 LEGACY_INSTANCES_ROOT="${OPENCODE_LEGACY_INSTANCES_ROOT:-$HOME/.local/share/opencode-instances}"
+# Transitional legacy root from the opencode-zed → acp-mux rename (2026-05-19).
+# Pre-rename instances live under ~/.local/share/opencode-zed/instances/. The
+# launcher scans them so `instances`, `sync-db`, and `cleanup` see them until
+# they drain naturally. Remove this once no opencode-zed-era PIDs remain.
+LEGACY_INSTANCES_ROOT_OPENCODE_ZED="$HOME/.local/share/opencode-zed/instances"
 BIN_LINK="${ACP_MUX_BIN_LINK:-$HOME/.local/bin/acp-mux}"
 
 usage() {
@@ -100,6 +105,8 @@ iter_instance_dirs() {
   local roots=("$INSTANCES_ROOT")
   if [[ "${ACP_MUX_SYNC_LEGACY:-1}" == "1" ]]; then
     roots+=("$LEGACY_INSTANCES_ROOT")
+    # Transitional: scan opencode-zed-era instances too (see header comment).
+    [[ -d "$LEGACY_INSTANCES_ROOT_OPENCODE_ZED" ]] && roots+=("$LEGACY_INSTANCES_ROOT_OPENCODE_ZED")
   fi
 
   local root dir pid
@@ -128,6 +135,9 @@ doctor() {
   echo "- master data: $MASTER_DATA"
   echo "- instance root: $INSTANCES_ROOT"
   echo "- legacy instance root: $LEGACY_INSTANCES_ROOT"
+  if [[ -d "$LEGACY_INSTANCES_ROOT_OPENCODE_ZED" ]]; then
+    echo "- transitional legacy root: $LEGACY_INSTANCES_ROOT_OPENCODE_ZED"
+  fi
   echo "- bin link: $BIN_LINK"
   echo "- expected Zed command: acp-mux"
   echo "- expected Zed args: [\"acp\"]"

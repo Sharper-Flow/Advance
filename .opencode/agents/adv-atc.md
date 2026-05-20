@@ -90,9 +90,6 @@ tools:
   adv_conformance: true
   # Project metadata
   adv_project_metadata: true
-  # Sessions
-  adv_session_list: true
-  adv_session_show: true
   # Mesh
   adv_wip_state: true
   # Worktree — orchestrator owns lifecycle

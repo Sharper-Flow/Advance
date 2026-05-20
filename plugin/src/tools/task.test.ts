@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
   const getHandleMock = vi.fn(() => handleMock);
   const targetStore = {
     paths: { root: "/tmp/target", changes: "/tmp/target/.adv/changes" },
+    changes: { get: vi.fn() },
     gates: { get: vi.fn(), complete: vi.fn(), reopenFrom: vi.fn() },
     tasks: { show: vi.fn(), get: vi.fn(), list: vi.fn() },
     close: vi.fn(),
@@ -128,7 +129,20 @@ function createMockStore(
     close: vi.fn(),
     flush: vi.fn(),
     specs: {} as Store["specs"],
-    changes: {} as Store["changes"],
+    changes: {
+      get: vi.fn(async () => ({
+        success: true,
+        data: {
+          tasks: [
+            {
+              id: "tk-current",
+              title: "Current Task",
+              status: "in_progress",
+            },
+          ],
+        },
+      })),
+    } as unknown as Store["changes"],
     tasks: {
       show: vi.fn(async (taskId: string) => ({
         task: {
@@ -267,6 +281,20 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.ready).toHaveLength(1);
+      expect(parsed._todoProjection.rows).toEqual([
+        {
+          taskId: "tk-current",
+          title: "Current Task",
+          status: "in_progress",
+          content: "tk-current — Current Task",
+        },
+        {
+          taskId: "tk-1",
+          title: "Ready Task",
+          status: "pending",
+          content: "tk-1 — Ready Task",
+        },
+      ]);
       expect(mocks.querySignal).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),

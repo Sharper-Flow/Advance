@@ -7,6 +7,7 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const SYNC_SCRIPT_PATH = join(REPO_ROOT, "scripts/sync-global.sh");
 const PROVIDER_EVAL_PATH = join(REPO_ROOT, "scripts/provider-eval.ts");
 const ADV_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv.md");
+const ADV_ATC_AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-atc.md");
 const PROVIDER_ASSEMBLY_DOC_PATH = join(
   REPO_ROOT,
   "docs/provider-agent-assembly.md",
@@ -23,6 +24,42 @@ const WORKTREE_LIFECYCLE_SPEC_PATH = join(
   REPO_ROOT,
   ".adv/specs/worktree-lifecycle/spec.json",
 );
+
+function duplicateFrontmatterKeys(markdown: string) {
+  const end = markdown.indexOf("\n---\n", 4);
+  expect(markdown.startsWith("---\n")).toBe(true);
+  expect(end).toBeGreaterThan(0);
+
+  const seen = new Set<string>();
+  const parents: Array<{ indent: number; key: string }> = [];
+  const duplicates: string[] = [];
+
+  for (const line of markdown.slice(4, end).split("\n")) {
+    const stripped = line.trim();
+    if (!stripped || stripped.startsWith("#") || stripped.startsWith("-")) {
+      continue;
+    }
+    const match = line.match(/^\s*([A-Za-z0-9_*.-]+)\s*:/);
+    if (!match) continue;
+
+    const indent = line.length - line.trimStart().length;
+    while (parents.length > 0 && parents[parents.length - 1].indent >= indent) {
+      parents.pop();
+    }
+
+    const key = match[1];
+    const scope = [...parents.map((parent) => parent.key), key].join(".");
+    if (seen.has(scope)) duplicates.push(scope);
+    seen.add(scope);
+
+    const remainder = line.split(":", 2)[1].trim();
+    if (["", "|", ">", "|-", ">-"].includes(remainder)) {
+      parents.push({ indent, key });
+    }
+  }
+
+  return duplicates;
+}
 
 describe("sync-global.sh", () => {
   const content = readFileSync(SYNC_SCRIPT_PATH, "utf8");
@@ -188,6 +225,17 @@ describe("sync-global.sh", () => {
     test("warns about stale duplicate ADV_INSTRUCTIONS.md in global instructions", () => {
       expect(content).toContain("stale duplicate found");
       expect(content).toContain("wastes ~17K tokens");
+    });
+
+    test("validates agent frontmatter before reporting healthy sync", () => {
+      expect(content).toContain("check_agent_frontmatter");
+      expect(content).toContain("duplicate YAML key");
+      expect(content).toContain("has unique mapping keys");
+    });
+
+    test("primary ADV agent frontmatter has no duplicate mapping keys", () => {
+      expect(duplicateFrontmatterKeys(readFileSync(ADV_AGENT_PATH, "utf8"))).toEqual([]);
+      expect(duplicateFrontmatterKeys(readFileSync(ADV_ATC_AGENT_PATH, "utf8"))).toEqual([]);
     });
 
     test("handles tilde-expanded paths in json_array_contains", () => {
