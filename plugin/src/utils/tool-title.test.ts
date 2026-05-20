@@ -15,9 +15,7 @@ describe("formatAdvToolTitle", () => {
     expect(
       formatAdvToolTitle("adv_run_test", { command: "pnpm test" }).title,
     ).toBe("Run test: pnpm test");
-    expect(formatAdvToolTitle("adv_status", {}).title).toBe(
-      "Show ADV status",
-    );
+    expect(formatAdvToolTitle("adv_status", {}).title).toBe("Show ADV status");
   });
 
   test("redacts sensitive values from title metadata", () => {

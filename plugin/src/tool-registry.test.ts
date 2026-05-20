@@ -119,9 +119,9 @@ describe("createDegradedToolMap parity with createToolMap", () => {
           }),
         }),
       );
-      expect(JSON.parse((result as { output: string }).output).sessions).toEqual(
-        [],
-      );
+      expect(
+        JSON.parse((result as { output: string }).output).sessions,
+      ).toEqual([]);
     } finally {
       store.close();
     }

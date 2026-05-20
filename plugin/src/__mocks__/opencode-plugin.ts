@@ -63,8 +63,10 @@ export interface ToolContext {
   messageID: string;
   agent: string;
   abort: AbortSignal;
-  metadata: (input: { title?: string; metadata?: { [key: string]: unknown } }) =>
-    void;
+  metadata: (input: {
+    title?: string;
+    metadata?: { [key: string]: unknown };
+  }) => void;
   ask: () => Promise<void>;
 }
 

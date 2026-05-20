@@ -229,7 +229,11 @@ describe("Active Change Title Update on adv_change_create", () => {
           title: "Update task: tk-task0002",
           output: JSON.stringify({
             success: true,
-            task: { id: "tk-task0002", title: "Object Output Task", status: "done" },
+            task: {
+              id: "tk-task0002",
+              title: "Object Output Task",
+              status: "done",
+            },
           }),
           metadata: { adv: { toolName: "adv_task_update" } },
         },
@@ -245,9 +249,7 @@ describe("Active Change Title Update on adv_change_create", () => {
     expect(out.system.some((s) => s.includes("[ADV:RECORD_WISDOM]"))).toBe(
       true,
     );
-    expect(out.system.some((s) => s.includes("Object Output Task"))).toBe(
-      true,
-    );
+    expect(out.system.some((s) => s.includes("Object Output Task"))).toBe(true);
   });
 
   test("after adv_change_create with braces inside path string, activeChangeId is still set", async () => {

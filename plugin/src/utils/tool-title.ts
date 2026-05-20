@@ -1,3 +1,6 @@
+// rq-toolTitle01 rq-toolTitle02 rq-toolTitle03
+// ADV tool titles are deterministic display-only metadata. They preserve
+// structural tool names/args as authority and redact/bound display values.
 export type AdvToolTitleKind = "read" | "write" | "execute" | "operator";
 
 export interface AdvToolTitleResult {
@@ -24,7 +27,10 @@ type TitleBuilder = (args: Record<string, unknown>) => {
   titleKind: AdvToolTitleKind;
 };
 
-const STATIC_TITLES: Record<string, { title: string; titleKind: AdvToolTitleKind }> = {
+const STATIC_TITLES: Record<
+  string,
+  { title: string; titleKind: AdvToolTitleKind }
+> = {
   adv_change_list: { title: "List changes", titleKind: "read" },
   adv_wip_state: { title: "Show WIP state", titleKind: "read" },
   adv_status: { title: "Show ADV status", titleKind: "read" },
@@ -53,55 +59,78 @@ const STATIC_TITLES: Record<string, { title: string; titleKind: AdvToolTitleKind
 };
 
 const TITLE_BUILDERS: Record<string, TitleBuilder> = {
-  adv_spec: (args) => byAction(args, "Manage specs", {
-    list: "List specs",
-    show: `Show spec${suffix(args, "capability")}`,
-    search: `Search specs${suffix(args, "query")}`,
-  }),
+  adv_spec: (args) =>
+    byAction(args, "Manage specs", {
+      list: "List specs",
+      show: `Show spec${suffix(args, "capability")}`,
+      search: `Search specs${suffix(args, "query")}`,
+    }),
   adv_roadmap: (args) => read(`Show roadmap${suffix(args, "kind")}`),
   adv_backlog_state: (args) => read(`Show backlog${suffix(args, "kind")}`),
   adv_change_show: (args) => read(`Show change${suffix(args, "changeId")}`),
   adv_change_create: (args) => write(`Create change${suffix(args, "summary")}`),
-  adv_change_update: (args) => write(`Update change${suffix(args, "changeId")}`),
+  adv_change_update: (args) =>
+    write(`Update change${suffix(args, "changeId")}`),
   adv_change_close: (args) => write(`Close change${suffix(args, "changeId")}`),
   adv_change_bulk_close: () => write("Bulk close changes"),
-  adv_change_validate: (args) => read(`Validate change${suffix(args, "changeId")}`),
-  adv_change_archive: (args) => write(`Archive change${suffix(args, "changeId")}`),
-  adv_change_update_issues: (args) => write(`Update change issues${suffix(args, "changeId")}`),
-  adv_change_reenter: (args) => write(`Re-enter change${suffix(args, "changeId")}`),
+  adv_change_validate: (args) =>
+    read(`Validate change${suffix(args, "changeId")}`),
+  adv_change_archive: (args) =>
+    write(`Archive change${suffix(args, "changeId")}`),
+  adv_change_update_issues: (args) =>
+    write(`Update change issues${suffix(args, "changeId")}`),
+  adv_change_reenter: (args) =>
+    write(`Re-enter change${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),
   adv_task_add: (args) => write(`Add task${suffix(args, "changeId")}`),
   adv_task_cancel: () => write("Cancel tasks"),
-  adv_task_reclassify_tdd: (args) => write(`Reclassify TDD${suffix(args, "taskId")}`),
+  adv_task_reclassify_tdd: (args) =>
+    write(`Reclassify TDD${suffix(args, "taskId")}`),
   adv_wisdom_add: (args) => write(`Add wisdom${suffix(args, "changeId")}`),
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
-  adv_snapshot_health: (args) => operator(`Check snapshot health${suffix(args, "action")}`),
-  adv_investment_report: (args) => read(`Show investment${suffix(args, "changeId")}`),
+  adv_snapshot_health: (args) =>
+    operator(`Check snapshot health${suffix(args, "action")}`),
+  adv_investment_report: (args) =>
+    read(`Show investment${suffix(args, "changeId")}`),
   adv_agenda_list: () => read("List agenda"),
   adv_agenda_add: (args) => write(`Add agenda item${suffix(args, "title")}`),
-  adv_agenda_start: (args) => write(`Start agenda item${suffix(args, "itemId")}`),
-  adv_agenda_complete: (args) => write(`Complete agenda item${suffix(args, "itemId")}`),
-  adv_agenda_cancel: (args) => write(`Cancel agenda item${suffix(args, "itemId")}`),
-  adv_agenda_prioritize: (args) => write(`Prioritize agenda item${suffix(args, "itemId")}`),
-  adv_project_metadata: (args) => byAction(args, "Project metadata", {
-    read: `Read project metadata${suffix(args, "key")}`,
-    write: `Write project metadata${suffix(args, "key")}`,
-    list: "List project metadata",
-  }),
-  adv_temporal_diagnose: (args) => operator(`Diagnose Temporal${suffix(args, "changeId")}`),
-  adv_gate_status: (args) => read(`Show gate status${suffix(args, "changeId")}`),
+  adv_agenda_start: (args) =>
+    write(`Start agenda item${suffix(args, "itemId")}`),
+  adv_agenda_complete: (args) =>
+    write(`Complete agenda item${suffix(args, "itemId")}`),
+  adv_agenda_cancel: (args) =>
+    write(`Cancel agenda item${suffix(args, "itemId")}`),
+  adv_agenda_prioritize: (args) =>
+    write(`Prioritize agenda item${suffix(args, "itemId")}`),
+  adv_project_metadata: (args) =>
+    byAction(args, "Project metadata", {
+      read: `Read project metadata${suffix(args, "key")}`,
+      write: `Write project metadata${suffix(args, "key")}`,
+      list: "List project metadata",
+    }),
+  adv_temporal_diagnose: (args) =>
+    operator(`Diagnose Temporal${suffix(args, "changeId")}`),
+  adv_gate_status: (args) =>
+    read(`Show gate status${suffix(args, "changeId")}`),
   adv_gate_complete: (args) => write(`Complete gate${suffix(args, "gateId")}`),
   adv_run_test: (args) => execute(`Run test${suffix(args, "command")}`),
-  adv_task_checkpoint: (args) => execute(`Checkpoint task${suffix(args, "taskId")}`),
+  adv_task_checkpoint: (args) =>
+    execute(`Checkpoint task${suffix(args, "taskId")}`),
   adv_reflect: (args) => write(`Reflect on change${suffix(args, "changeId")}`),
-  adv_conformance: (args) => operator(`Run conformance${suffix(args, "action")}`),
-  adv_worktree_create: (args) => operator(`Create worktree${suffix(args, "branch")}`),
-  adv_worktree_resume: (args) => operator(`Resume worktree${suffix(args, "changeId", "branch")}`),
-  adv_worktree_delete: (args) => operator(`Delete worktree${suffix(args, "branch")}`),
-  worktree_create: (args) => operator(`Create worktree${suffix(args, "branch")}`),
-  worktree_delete: (args) => operator(`Delete worktree${suffix(args, "branch")}`),
+  adv_conformance: (args) =>
+    operator(`Run conformance${suffix(args, "action")}`),
+  adv_worktree_create: (args) =>
+    operator(`Create worktree${suffix(args, "branch")}`),
+  adv_worktree_resume: (args) =>
+    operator(`Resume worktree${suffix(args, "changeId", "branch")}`),
+  adv_worktree_delete: (args) =>
+    operator(`Delete worktree${suffix(args, "branch")}`),
+  worktree_create: (args) =>
+    operator(`Create worktree${suffix(args, "branch")}`),
+  worktree_delete: (args) =>
+    operator(`Delete worktree${suffix(args, "branch")}`),
   adv_session_show: (args) => read(`Show session${suffix(args, "sessionId")}`),
 };
 
@@ -117,7 +146,9 @@ export function formatAdvToolTitle(
     };
   const title = truncate(base.title, TITLE_MAX_LENGTH);
   const ids = extractDisplayIds(args);
-  const displayArgs = containsSensitiveKey(args) ? sanitizeDisplayArgs(args) : undefined;
+  const displayArgs = containsSensitiveKey(args)
+    ? sanitizeDisplayArgs(args)
+    : undefined;
 
   return {
     title,
@@ -157,7 +188,10 @@ function byAction(
 ) {
   const action = typeof args.action === "string" ? args.action : "";
   const title = titles[action] ?? fallback;
-  return action === "show" || action === "read" || action === "list" || action === "search"
+  return action === "show" ||
+    action === "read" ||
+    action === "list" ||
+    action === "search"
     ? read(title)
     : write(title);
 }
@@ -198,7 +232,8 @@ function sanitizeDisplayValue(key: string, value: string): string {
 }
 
 function containsSensitiveKey(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some((entry) => containsSensitiveKey(entry));
+  if (Array.isArray(value))
+    return value.some((entry) => containsSensitiveKey(entry));
   if (!value || typeof value !== "object") return false;
   return Object.entries(value as Record<string, unknown>).some(
     ([key, entry]) => isSensitiveKey(key) || containsSensitiveKey(entry),

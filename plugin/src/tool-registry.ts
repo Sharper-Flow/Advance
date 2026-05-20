@@ -132,16 +132,20 @@ export function registerTool(
     return wrapResult(await execute(rawArgs, contextOrExtra));
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return tool({
     description,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     args: args as any,
     execute: executeWithPreflight,
   });
 }
 
 function isToolContext(value: unknown): value is ToolContext {
-  return !!value && typeof value === "object" && typeof (value as ToolContext).metadata === "function";
+  return (
+    !!value &&
+    typeof value === "object" &&
+    typeof (value as ToolContext).metadata === "function"
+  );
 }
 
 function namedExecute<TArgs>(

@@ -533,7 +533,7 @@ describe("chat-output-display drift contract", () => {
     expect(output.length).toBeLessThanOrEqual(80);
   });
 
-  test("chat-output-display spec exists with v1.3.0 and required requirements", () => {
+  test("chat-output-display spec exists with v1.4.0 and required requirements", () => {
     const specPath = join(
       REPO_ROOT,
       ".adv",
@@ -544,7 +544,7 @@ describe("chat-output-display drift contract", () => {
     const spec = JSON.parse(readFileSync(specPath, "utf8"));
 
     expect(spec.name).toBe("chat-output-display");
-    expect(spec.version).toBe("1.3.0");
+    expect(spec.version).toBe("1.4.0");
     expect(spec.supersedes).toContain("context-display");
 
     const requirementIds = spec.requirements.map((r: any) => r.id);
@@ -557,6 +557,9 @@ describe("chat-output-display drift contract", () => {
     expect(requirementIds).toContain("rq-ctxsnap1");
     expect(requirementIds).toContain("rq-ctxswitch");
     expect(requirementIds).toContain("rq-ctxformat");
+    expect(requirementIds).toContain("rq-toolTitle01");
+    expect(requirementIds).toContain("rq-toolTitle02");
+    expect(requirementIds).toContain("rq-toolTitle03");
   });
 
   test("legacy context-display spec directory has been retired (renamed)", () => {
