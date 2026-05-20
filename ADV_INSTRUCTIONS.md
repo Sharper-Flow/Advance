@@ -267,6 +267,7 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
 - `adv_temporal_diagnose` — peer count, worker-lock holder PID, change workflow presence
 - Stability: `adv_status view:"health"` shows worker_singleton_enforce default true; worktree_guard_enforce default false; `worker_role` = `host`/`client`/`degraded`; rollback/debug: flag false or `ADV_FORCE_IN_PROCESS_WORKER=1`.
+- Worktree guard: trunk write firewall enforcement is opt-in; `worktree_guard_enforce` omitted or false allows default-checkout file writes and classified destructive bash writes. `worktree_guard_enforce=true` enables strict blocking. Advance repo opts into strict mode via `project.json`.
 - Health probes: `_freshness.{probe}` = `cached_at`, `stale`, optional `error`. Stale values are diagnostic-only; never use stale probe data for worker-lock reclaim, restart success, conformance override, or archive.
 
 **Known OpenCode-core race (out of ADV's layer):** OpenCode's snapshot service is keyed on `projectID`, not on worktree path. Two sessions on the same project — even in different worktrees — race on `~/.local/share/opencode/snapshot/{projectID}/{sha}/index.lock` and lose between-turn snapshots with `exitCode=128 ... 'index.lock': File exists`. ADV's task-checkpoint commits (separate git ops in the worktree) are unaffected, but OpenCode's snapshot history develops gaps. Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Opencode-Advance/issues/1) — fix is oca/OpenCode-core, not ADV. The "Multi-session is the supported design center" claim above applies to **ADV state and per-worktree git**, not to OpenCode's snapshot subsystem.
@@ -696,12 +697,12 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 Use for 3+ independent scan dimensions. Single-level only.
 
-| Command                                | Inline                  | Sub-Agent                               |
-| -------------------------------------- | ----------------------- | --------------------------------------- |
+| Command                                | Inline                 | Sub-Agent                               |
+| -------------------------------------- | ---------------------- | --------------------------------------- |
 | research/task                          | Context7 + Exa + lgrep | librarian + adv-researcher              |
-| review/harden/audit/slop-scan/refactor | Sequential scans        | explore/general as command docs specify |
-| slop-scan                              | Sequential categories   | explore × 9 (single-level only)         |
-| tron                                   | lgrep + read            | adv-tron                                |
+| review/harden/audit/slop-scan/refactor | Sequential scans       | explore/general as command docs specify |
+| slop-scan                              | Sequential categories  | explore × 9 (single-level only)         |
+| tron                                   | lgrep + read           | adv-tron                                |
 
 Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
 
@@ -906,7 +907,7 @@ ADV always isolates mutating work in per-change worktrees.
 - Every change runs in a worktree — create/reuse before Phase 1
 - Worktree tools unavailable → hard block with error. Do not proceed in-place
 - Existing worktree for same change → auto-reuse
-- `worktree_guard_enforce=true` → main-checkout task/gate execution mutations block with `WorktreeIsolationViolation`, `mainCheckoutPath`, remediation; switch to `adv_worktree_resume` path. Proposal gate remains exempt. Read-only tools allowed.
+- Trunk write firewall enforcement is opt-in: omitted or false allows default-checkout file writes and classified destructive bash writes. `worktree_guard_enforce=true` blocks main-checkout file writes/destructive bash and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation; switch to `adv_worktree_resume` path. Proposal gate remains exempt. Read-only tools and git commands allowed. Advance repo opts into strict mode via `project.json`.
 
 ### Worktree Reuse
 

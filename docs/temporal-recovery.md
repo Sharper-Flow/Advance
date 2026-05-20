@@ -101,7 +101,9 @@ The diagnostic output reports:
 `adv_status view: "health"` also shows feature flags. `worker_singleton_enforce`
 default true; rollback/debug escape hatches are setting that flag false or
 `ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` default false during
-rollout.
+rollout; when omitted or false, the trunk write firewall does not block
+default-checkout file writes or classified destructive bash writes. Projects that
+want strict mode set `features.worktree_guard_enforce: true` explicitly.
 
 Restart verification timeout: `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` defaults to
 10000 ms. Raise only when Temporal queue serviceability is slow but healthy.

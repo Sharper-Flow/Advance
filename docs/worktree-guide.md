@@ -87,10 +87,24 @@ Implementation refs:
 ## Machine Worktree Guard
 
 `worktree_guard_enforce` default false for rollout (plain key:
-worktree_guard_enforce default false). When enabled, ADV
-mutating execution tools reject main-checkout task/gate mutations with
+worktree_guard_enforce default false). In plain terms, trunk write firewall
+enforcement is opt-in: omitted or false allows default-checkout file writes and
+classified destructive bash writes. When enabled, ADV blocks main-checkout file writes,
+classified destructive bash writes, and mutating execution task/gate calls with
 `WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation. Use
-`adv_worktree_resume` and rerun from returned workdir.
+`adv_worktree_resume` and rerun from returned workdir. Git commands stay
+allowed so recovery and normal git operations are not routed through the
+firewall classifier.
+
+Advance repo opts into strict mode via root `project.json`:
+
+```json
+{
+  "features": {
+    "worktree_guard_enforce": true
+  }
+}
+```
 
 Guarded examples:
 

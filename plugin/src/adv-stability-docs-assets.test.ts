@@ -8,6 +8,10 @@ function readRepoFile(path: string): string {
   return readFileSync(join(REPO_ROOT, path), "utf8");
 }
 
+function expectPhrase(text: string, phrase: string): void {
+  expect(text.replace(/\s+/g, " ")).toContain(phrase);
+}
+
 describe("ADV stability hardening docs", () => {
   test("ADV_INSTRUCTIONS documents machine-enforced worktree guard behavior", () => {
     const instructions = readRepoFile("ADV_INSTRUCTIONS.md");
@@ -18,9 +22,15 @@ describe("ADV stability hardening docs", () => {
       "mainCheckoutPath",
       "adv_worktree_resume",
       "Proposal gate remains exempt",
+      "Advance repo opts into strict mode",
     ]) {
       expect(instructions).toContain(marker);
     }
+    expectPhrase(instructions, "trunk write firewall enforcement is opt-in");
+    expectPhrase(
+      instructions,
+      "omitted or false allows default-checkout file writes",
+    );
   });
 
   test("ADV_INSTRUCTIONS documents stability feature flag defaults and worker role", () => {
@@ -58,6 +68,12 @@ describe("ADV stability hardening docs", () => {
     const temporalRecovery = readRepoFile("docs/temporal-recovery.md");
 
     expect(worktreeGuide).toContain("worktree_guard_enforce default false");
+    expectPhrase(worktreeGuide, "trunk write firewall enforcement is opt-in");
+    expectPhrase(
+      worktreeGuide,
+      "omitted or false allows default-checkout file writes",
+    );
+    expect(worktreeGuide).toContain("Advance repo opts into strict mode");
     expect(worktreeGuide).toContain("WorktreeIsolationViolation");
     expect(worktreeGuide).toContain("adv_worktree_resume");
 
