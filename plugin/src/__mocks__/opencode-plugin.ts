@@ -27,8 +27,17 @@ export interface PluginInput {
 export interface ToolDefinition {
   description: string;
   args: Record<string, z.ZodType>;
-  execute: (args: unknown, context: unknown) => Promise<string>;
+  execute: (args: unknown, context: unknown) => Promise<ToolResult>;
 }
+
+export type ToolResult =
+  | string
+  | {
+      title?: string;
+      output: string;
+      metadata?: { [key: string]: unknown };
+      attachments?: unknown[];
+    };
 
 export interface Hooks {
   tool?: Record<string, ToolDefinition>;
@@ -54,7 +63,8 @@ export interface ToolContext {
   messageID: string;
   agent: string;
   abort: AbortSignal;
-  metadata: () => void;
+  metadata: (input: { title?: string; metadata?: { [key: string]: unknown } }) =>
+    void;
   ask: () => Promise<void>;
 }
 
@@ -65,7 +75,7 @@ export const tool = <TArgs extends Record<string, z.ZodType>>(definition: {
   execute: (
     args: z.infer<z.ZodObject<TArgs>>,
     context: ToolContext,
-  ) => Promise<string>;
+  ) => Promise<ToolResult>;
 }): ToolDefinition => {
   return {
     description: definition.description,
@@ -73,7 +83,7 @@ export const tool = <TArgs extends Record<string, z.ZodType>>(definition: {
     execute: definition.execute as (
       args: unknown,
       context: unknown,
-    ) => Promise<string>,
+    ) => Promise<ToolResult>,
   };
 };
 

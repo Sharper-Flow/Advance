@@ -16,10 +16,11 @@
  * identity — a single structural cast, not a version bridge.
  */
 
-import { tool } from "@opencode-ai/plugin";
+import { tool, type ToolContext, type ToolResult } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 import { formatToolArgPreflightError } from "./utils/tool-arg-preflight";
+import { formatAdvToolTitle } from "./utils/tool-title";
 import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
@@ -46,7 +47,7 @@ type ToolArgsSchema = Record<string, z.ZodTypeAny>;
 type ToolExecute<TArgs> = (
   args: TArgs,
   contextOrExtra?: unknown,
-) => Promise<string>;
+) => Promise<ToolResult>;
 
 /** Low-level helper: explicit description, args, and pre-wrapped execute. */
 export function registerTool(
@@ -90,15 +91,45 @@ export function registerTool(
     contextOrExtra,
   ) => {
     const toolName = (execute as { __advToolName?: string }).__advToolName;
+    const display = toolName
+      ? formatAdvToolTitle(toolName, rawArgs)
+      : undefined;
+    if (display && isToolContext(contextOrExtra)) {
+      try {
+        contextOrExtra.metadata({
+          title: display.title,
+          metadata: display.metadata,
+        });
+      } catch {
+        // Display metadata is best-effort and must never affect tool behavior.
+      }
+    }
+
+    const wrapResult = (result: ToolResult): ToolResult => {
+      if (!display) return result;
+      if (typeof result === "string") {
+        return {
+          title: display.title,
+          output: result,
+          metadata: display.metadata,
+        };
+      }
+      return {
+        ...result,
+        title: result.title ?? display.title,
+        metadata: { ...display.metadata, ...(result.metadata ?? {}) },
+      };
+    };
+
     if (toolName) {
       const validationError = formatToolArgPreflightError(
         toolName,
         args,
         rawArgs,
       );
-      if (validationError) return validationError;
+      if (validationError) return wrapResult(validationError);
     }
-    return execute(rawArgs, contextOrExtra);
+    return wrapResult(await execute(rawArgs, contextOrExtra));
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,6 +138,10 @@ export function registerTool(
     args: args as any,
     execute: executeWithPreflight,
   });
+}
+
+function isToolContext(value: unknown): value is ToolContext {
+  return !!value && typeof value === "object" && typeof (value as ToolContext).metadata === "function";
 }
 
 function namedExecute<TArgs>(
@@ -737,7 +772,7 @@ export function createDegradedToolMap(
     map[name] = registerTool(
       `[ADV plugin init failed — ${name} stub] ${initError.message.slice(0, 160)}`,
       {} as ToolArgsSchema,
-      stubExecute,
+      namedExecute(name, stubExecute),
     );
   }
   return map;

@@ -11,6 +11,7 @@ import {
   createDegradedToolMap,
   createToolMap,
 } from "./tool-registry";
+import { formatAdvToolTitle } from "./utils/tool-title";
 import { createLegacyStore } from "./storage/store";
 import {
   createTempDir,
@@ -90,6 +91,65 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     }
     expect(Object.keys(map).length).toBe(ADV_TOOL_NAMES.length);
   });
+
+  test("every registered ADV tool name has a display title", () => {
+    for (const name of ADV_TOOL_NAMES) {
+      const title = formatAdvToolTitle(name, {}).title;
+      expect(title, `display title for ${name}`).toEqual(expect.any(String));
+      expect(title.trim(), `display title for ${name}`).not.toBe("");
+    }
+  });
+
+  test("registered tools return ToolResult objects with title and parseable output", async () => {
+    const store = await createLegacyStore(tempDir);
+    await store.init();
+    try {
+      const map = createToolMap(store, tempDir, store.paths.agenda);
+      const result = await map.adv_session_list.execute({});
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          title: "List sessions",
+          output: expect.any(String),
+          metadata: expect.objectContaining({
+            adv: expect.objectContaining({
+              toolName: "adv_session_list",
+              title: "List sessions",
+            }),
+          }),
+        }),
+      );
+      expect(JSON.parse((result as { output: string }).output).sessions).toEqual(
+        [],
+      );
+    } finally {
+      store.close();
+    }
+  });
+
+  test("registered tools set running metadata when context supports it", async () => {
+    const store = await createLegacyStore(tempDir);
+    await store.init();
+    try {
+      const map = createToolMap(store, tempDir, store.paths.agenda);
+      const metadataCalls: unknown[] = [];
+      await map.adv_session_list.execute(
+        {},
+        { metadata: (input: unknown) => metadataCalls.push(input) },
+      );
+
+      expect(metadataCalls).toEqual([
+        expect.objectContaining({
+          title: "List sessions",
+          metadata: expect.objectContaining({
+            adv: expect.objectContaining({ toolName: "adv_session_list" }),
+          }),
+        }),
+      ]);
+    } finally {
+      store.close();
+    }
+  });
 });
 
 describe("KD-8 worktree + session tool registrations", () => {
@@ -152,10 +212,11 @@ describe("KD-8 worktree + session tool registrations", () => {
   test("adv_session_list smoke-test returns empty sessions in test fixture", async () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const tool = map.adv_session_list as {
-      execute: (args: unknown) => Promise<string>;
+      execute: (args: unknown) => Promise<string | { output: string }>;
     };
     const raw = await tool.execute({});
-    const parsed = JSON.parse(raw) as {
+    const output = typeof raw === "string" ? raw : raw.output;
+    const parsed = JSON.parse(output) as {
       unavailable?: boolean;
       sessions?: unknown[];
       total?: number;
