@@ -514,6 +514,28 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ).resolves.toBeUndefined();
   }, 30_000);
 
+  test("loads root project config when launched from a repository subdirectory", async () => {
+    const { join } = await import("path");
+
+    await initGitRepo();
+    await enableWorktreeGuard();
+    const subdir = join(tempDir, "src");
+
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: subdir, time: { created: Date.now() } },
+      directory: subdir,
+      worktree: subdir,
+      serverUrl: new URL("http://localhost"),
+    } as any);
+
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "write", sessionID: "test" } as any,
+        { args: { filePath: "file.ts" } } as any,
+      ),
+    ).rejects.toThrow(/Trunk write firewall/);
+  }, 30_000);
+
   test("allows all git commands without firewall classification", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({
@@ -558,6 +580,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     const { join } = await import("path");
 
     await initGitRepo();
+    await enableWorktreeGuard();
     const headSha = execSync("git rev-parse HEAD", { cwd: tempDir })
       .toString()
       .trim();

@@ -38,16 +38,19 @@ describe("resolveGitSessionContext", () => {
         isMainCheckout: true,
         isWorktree: false,
         mainCheckoutPath: main,
+        currentCheckoutPath: main,
       });
       expect(resolveGitSessionContext(linked, undefined)).toMatchObject({
         isMainCheckout: false,
         isWorktree: true,
         mainCheckoutPath: main,
+        currentCheckoutPath: linked,
       });
       expect(resolveGitSessionContext(root, linked)).toMatchObject({
         isMainCheckout: false,
         isWorktree: true,
         mainCheckoutPath: main,
+        currentCheckoutPath: linked,
       });
     } finally {
       rmSync(root, { recursive: true, force: true });

@@ -5,6 +5,7 @@ export interface GitSessionContext {
   isWorktree: boolean;
   isMainCheckout: boolean;
   mainCheckoutPath?: string;
+  currentCheckoutPath?: string;
 }
 
 export function resolveGitSessionContext(
@@ -29,6 +30,7 @@ export function resolveGitSessionContext(
       isWorktree: !isMainCheckout,
       isMainCheckout,
       mainCheckoutPath,
+      currentCheckoutPath: topLevel,
     };
   } catch {
     const isWorktree = !!worktree && worktree !== directory;

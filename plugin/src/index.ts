@@ -320,8 +320,9 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
   // on-disk paths. No migration step needed.
 
   let trunkWriteFirewallEnforced = false;
+  const firewallConfigRoot = gitSession.currentCheckoutPath ?? effectiveDir;
   const projectConfigResult =
-    await loadProjectConfigWithDiagnostics(effectiveDir);
+    await loadProjectConfigWithDiagnostics(firewallConfigRoot);
   if (projectConfigResult.success) {
     const effectiveFeatures = withStabilityFeatureDefaults(
       projectConfigResult.data.features as Record<string, unknown> | undefined,
