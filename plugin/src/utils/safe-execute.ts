@@ -125,7 +125,7 @@ function isSensitiveArgKey(key: string): boolean {
   ].some((sensitive) => normalized.includes(sensitive));
 }
 
-function redactSensitiveArgs(
+export function redactSensitiveArgs(
   value: unknown,
   seen = new WeakSet<object>(),
 ): unknown {

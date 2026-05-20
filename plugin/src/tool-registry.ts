@@ -19,6 +19,7 @@
 import { tool } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
+import { formatToolArgPreflightError } from "./utils/tool-arg-preflight";
 import type { Store } from "./storage/store-types";
 
 import { specTools } from "./tools/spec";
@@ -84,8 +85,36 @@ export function registerTool(
       }
     }
   }
+  const executeWithPreflight: ToolExecute<unknown> = async (
+    rawArgs,
+    contextOrExtra,
+  ) => {
+    const toolName = (execute as { __advToolName?: string }).__advToolName;
+    if (toolName) {
+      const validationError = formatToolArgPreflightError(
+        toolName,
+        args,
+        rawArgs,
+      );
+      if (validationError) return validationError;
+    }
+    return execute(rawArgs, contextOrExtra);
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return tool({ description, args: args as any, execute });
+  return tool({
+    description,
+    args: args as any,
+    execute: executeWithPreflight,
+  });
+}
+
+function namedExecute<TArgs>(
+  name: string,
+  execute: ToolExecute<TArgs>,
+): ToolExecute<TArgs> {
+  (execute as { __advToolName?: string }).__advToolName = name;
+  return execute;
 }
 
 /** Tool definition shape expected by bindTool / bindToolSimple. */
@@ -114,7 +143,10 @@ function bindTool<TArgs, TStore>(
   return registerTool(
     def.description,
     def.args,
-    safeExecute(async (args) => def.execute(args as TArgs, store), name),
+    namedExecute(
+      name,
+      safeExecute(async (args) => def.execute(args as TArgs, store), name),
+    ),
   );
 }
 
@@ -135,8 +167,10 @@ function bindToolSimple<TArgs>(
     async (args) => def.execute(args as TArgs, dir, path),
     name,
   );
-  return registerTool(def.description, def.args, async (args: unknown) =>
-    wrapped(args, dir, path),
+  return registerTool(
+    def.description,
+    def.args,
+    namedExecute(name, async (args: unknown) => wrapped(args, dir, path)),
   );
 }
 
@@ -235,22 +269,25 @@ export function createToolMap(
     adv_task_cancel: registerTool(
       taskTools.adv_task_cancel.description,
       taskTools.adv_task_cancel.args,
-      safeExecute(
-        async (args) =>
-          taskTools.adv_task_cancel.execute(
-            {
-              ...(args as Record<string, unknown>),
-              reasons: (args as Record<string, unknown>).reasons as Record<
-                string,
-                string
-              >,
-              supersededBy: (args as Record<string, unknown>).supersededBy as
-                | Record<string, string>
-                | undefined,
-            } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
-            store,
-          ),
+      namedExecute(
         "adv_task_cancel",
+        safeExecute(
+          async (args) =>
+            taskTools.adv_task_cancel.execute(
+              {
+                ...(args as Record<string, unknown>),
+                reasons: (args as Record<string, unknown>).reasons as Record<
+                  string,
+                  string
+                >,
+                supersededBy: (args as Record<string, unknown>).supersededBy as
+                  | Record<string, string>
+                  | undefined,
+              } as Parameters<typeof taskTools.adv_task_cancel.execute>[0],
+              store,
+            ),
+          "adv_task_cancel",
+        ),
       ),
     ),
 
@@ -258,23 +295,26 @@ export function createToolMap(
     adv_task_reclassify_tdd: registerTool(
       taskTools.adv_task_reclassify_tdd.description,
       taskTools.adv_task_reclassify_tdd.args,
-      safeExecute(
-        async (args) =>
-          taskTools.adv_task_reclassify_tdd.execute(
-            {
-              ...(args as Record<string, unknown>),
-              toIntent: (args as Record<string, unknown>).toIntent as
-                | "inline"
-                | "separate_verification"
-                | "not_applicable",
-              approvedByUser: (args as Record<string, unknown>)
-                .approvedByUser as true,
-            } as Parameters<
-              typeof taskTools.adv_task_reclassify_tdd.execute
-            >[0],
-            store,
-          ),
+      namedExecute(
         "adv_task_reclassify_tdd",
+        safeExecute(
+          async (args) =>
+            taskTools.adv_task_reclassify_tdd.execute(
+              {
+                ...(args as Record<string, unknown>),
+                toIntent: (args as Record<string, unknown>).toIntent as
+                  | "inline"
+                  | "separate_verification"
+                  | "not_applicable",
+                approvedByUser: (args as Record<string, unknown>)
+                  .approvedByUser as true,
+              } as Parameters<
+                typeof taskTools.adv_task_reclassify_tdd.execute
+              >[0],
+              store,
+            ),
+          "adv_task_reclassify_tdd",
+        ),
       ),
     ),
 
@@ -388,17 +428,20 @@ export function createToolMap(
       // rq-toolTimeoutOverride01.2: inner verification budget is 10s.
       temporalOpsTools.adv_temporal_worker_restart.description,
       temporalOpsTools.adv_temporal_worker_restart.args,
-      safeExecute(
-        async (args) =>
-          temporalOpsTools.adv_temporal_worker_restart.execute(
-            args as Parameters<
-              typeof temporalOpsTools.adv_temporal_worker_restart.execute
-            >[0],
-            store,
-          ),
+      namedExecute(
         "adv_temporal_worker_restart",
-        undefined,
-        { timeoutMs: 15_000 },
+        safeExecute(
+          async (args) =>
+            temporalOpsTools.adv_temporal_worker_restart.execute(
+              args as Parameters<
+                typeof temporalOpsTools.adv_temporal_worker_restart.execute
+              >[0],
+              store,
+            ),
+          "adv_temporal_worker_restart",
+          undefined,
+          { timeoutMs: 15_000 },
+        ),
       ),
     ),
 
@@ -411,13 +454,16 @@ export function createToolMap(
     adv_gate_complete: registerTool(
       gateTools.adv_gate_complete.description,
       gateTools.adv_gate_complete.args,
-      safeExecute(
-        async (args) =>
-          gateTools.adv_gate_complete.execute(
-            args as Parameters<typeof gateTools.adv_gate_complete.execute>[0],
-            store,
-          ),
+      namedExecute(
         "adv_gate_complete",
+        safeExecute(
+          async (args) =>
+            gateTools.adv_gate_complete.execute(
+              args as Parameters<typeof gateTools.adv_gate_complete.execute>[0],
+              store,
+            ),
+          "adv_gate_complete",
+        ),
       ),
     ),
 
@@ -433,16 +479,19 @@ export function createToolMap(
     adv_run_test: registerTool(
       testTools.adv_run_test.description,
       testTools.adv_run_test.args,
-      safeExecute(
-        async (args) =>
-          testTools.adv_run_test.execute(
-            args as Parameters<typeof testTools.adv_run_test.execute>[0],
-            store,
-            directory,
-          ),
+      namedExecute(
         "adv_run_test",
-        undefined,
-        { timeoutMs: 305_000 },
+        safeExecute(
+          async (args) =>
+            testTools.adv_run_test.execute(
+              args as Parameters<typeof testTools.adv_run_test.execute>[0],
+              store,
+              directory,
+            ),
+          "adv_run_test",
+          undefined,
+          { timeoutMs: 305_000 },
+        ),
       ),
     ),
 
@@ -455,18 +504,21 @@ export function createToolMap(
     adv_task_checkpoint: registerTool(
       checkpointTools.adv_task_checkpoint.description,
       checkpointTools.adv_task_checkpoint.args,
-      safeExecute(
-        async (args) =>
-          checkpointTools.adv_task_checkpoint.execute(
-            args as Parameters<
-              typeof checkpointTools.adv_task_checkpoint.execute
-            >[0],
-            store,
-            directory,
-          ),
+      namedExecute(
         "adv_task_checkpoint",
-        undefined,
-        { timeoutMs: 35_000 },
+        safeExecute(
+          async (args) =>
+            checkpointTools.adv_task_checkpoint.execute(
+              args as Parameters<
+                typeof checkpointTools.adv_task_checkpoint.execute
+              >[0],
+              store,
+              directory,
+            ),
+          "adv_task_checkpoint",
+          undefined,
+          { timeoutMs: 35_000 },
+        ),
       ),
     ),
 
@@ -519,43 +571,52 @@ export function createToolMap(
     worktree_create: registerTool(
       "Alias → adv_worktree_create (backward compat). Will be removed in a future change once standalone-plugin users have migrated.",
       advWorktreeTools.adv_worktree_create.args,
-      safeExecute(
-        async (args) =>
-          advWorktreeTools.adv_worktree_create.execute(
-            args as Parameters<
-              typeof advWorktreeTools.adv_worktree_create.execute
-            >[0],
-            store,
-          ),
+      namedExecute(
         "worktree_create",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_create.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_create.execute
+              >[0],
+              store,
+            ),
+          "worktree_create",
+        ),
       ),
     ),
     worktree_delete: registerTool(
       "Alias → adv_worktree_delete (backward compat).",
       advWorktreeTools.adv_worktree_delete.args,
-      safeExecute(
-        async (args) =>
-          advWorktreeTools.adv_worktree_delete.execute(
-            args as Parameters<
-              typeof advWorktreeTools.adv_worktree_delete.execute
-            >[0],
-            store,
-          ),
+      namedExecute(
         "worktree_delete",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_delete.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_delete.execute
+              >[0],
+              store,
+            ),
+          "worktree_delete",
+        ),
       ),
     ),
     worktree_cleanup: registerTool(
       "Alias → adv_worktree_cleanup (backward compat).",
       advWorktreeTools.adv_worktree_cleanup.args,
-      safeExecute(
-        async (args) =>
-          advWorktreeTools.adv_worktree_cleanup.execute(
-            args as Parameters<
-              typeof advWorktreeTools.adv_worktree_cleanup.execute
-            >[0],
-            store,
-          ),
+      namedExecute(
         "worktree_cleanup",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_cleanup.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_cleanup.execute
+              >[0],
+              store,
+            ),
+          "worktree_cleanup",
+        ),
       ),
     ),
 
