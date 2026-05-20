@@ -72,6 +72,42 @@ export const GateIdSchema = z.enum(GATE_IDS);
 
 export type GateId = z.infer<typeof GateIdSchema>;
 
+export const GateArtifactKindSchema = z.enum([
+  "proposal",
+  "agreement",
+  "design",
+  "acceptance",
+]);
+
+export type GateArtifactKind = z.infer<typeof GateArtifactKindSchema>;
+
+export const GateArtifactEvidenceSchema = z.object({
+  kind: GateArtifactKindSchema,
+  path: z.string().optional(),
+  content_hash: z.string().optional(),
+  non_whitespace_chars: z.number().int().nonnegative().optional(),
+  checked_at: z.string(),
+  compatibility_reason: z.string().optional(),
+});
+
+export type GateArtifactEvidence = z.infer<
+  typeof GateArtifactEvidenceSchema
+>;
+
+export const GateReadinessBlockerSchema = z.object({
+  code: z.string(),
+  gateId: GateIdSchema,
+  message: z.string(),
+  remediation: z.string(),
+  blockingGateId: GateIdSchema.optional(),
+  artifactKind: GateArtifactKindSchema.optional(),
+  contractId: z.string().optional(),
+});
+
+export type GateReadinessBlocker = z.infer<
+  typeof GateReadinessBlockerSchema
+>;
+
 /**
  * Ordered list of gate IDs for sequence enforcement.
  * Derived from GATE_DEFS order.
@@ -130,6 +166,8 @@ export const GateCompletionSchema = z.object({
       }),
     )
     .optional(),
+  /** Artifact evidence validated by the workflow before gate completion */
+  artifact_evidence: GateArtifactEvidenceSchema.optional(),
 });
 
 export type GateCompletion = z.infer<typeof GateCompletionSchema>;
