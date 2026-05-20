@@ -16,7 +16,12 @@ describe("trunk write firewall spec assets", () => {
       requirements: Array<{
         id: string;
         body: string;
-        scenarios?: Array<{ id: string; title: string; given?: string[]; then?: string[] }>;
+        scenarios?: Array<{
+          id: string;
+          title: string;
+          given?: string[];
+          then?: string[];
+        }>;
       }>;
     };
 
@@ -27,7 +32,9 @@ describe("trunk write firewall spec assets", () => {
     expect(requirement?.body).toContain("true");
 
     const scenarios = requirement?.scenarios ?? [];
-    expect(scenarios.some((scenario) => scenario.id === "rq-twf01.1")).toBe(true);
+    expect(scenarios.some((scenario) => scenario.id === "rq-twf01.1")).toBe(
+      true,
+    );
     expect(
       scenarios.some(
         (scenario) =>

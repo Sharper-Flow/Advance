@@ -586,9 +586,7 @@ const advancePluginImpl: Plugin = async ({ directory, worktree, project }) => {
 
     if (
       trunkWriteFirewallEnforced &&
-      (toolName === "write" ||
-        toolName === "edit" ||
-        toolName === "morph_edit")
+      (toolName === "write" || toolName === "edit" || toolName === "morph_edit")
     ) {
       const targetPath =
         typeof args.filePath === "string"

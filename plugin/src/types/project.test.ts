@@ -1,9 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  FeatureFlagsSchema,
-  withStabilityFeatureDefaults,
-} from "./project";
+import { FeatureFlagsSchema, withStabilityFeatureDefaults } from "./project";
 
 describe("FeatureFlagsSchema stability defaults", () => {
   test("defaults worktree_guard_enforce to false when omitted", () => {

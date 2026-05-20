@@ -129,6 +129,7 @@ export async function createDiskStore(
           features: {
             tdd_enforcement: "strict",
             worktree_auto_create: true,
+            worktree_guard_enforce: false,
             gate_enforcement: "strict",
             wisdom_accumulation: true,
             clarify_enforcement: "advisory",
