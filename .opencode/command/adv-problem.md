@@ -51,7 +51,7 @@ When triage clarifies expected durable product/system behavior, the summary MUST
 
 - **Spec-law change required** — route to `/adv-proposal` with a draft spec-delta obligation.
 - **No spec law update required** — direct fix remains allowed only when all direct-fix guardrails pass; state the rationale explicitly.
-- **Uncertain** — When spec-law impact is uncertain, prefer proposal-sized routing via `/adv-proposal`, not direct fix.
+- **Uncertain** — uncertain spec-law impact MUST NOT be direct-fix; route to `/adv-proposal` or keep investigating until impact is clear.
 
 `/adv-problem` remains read-only: it MUST NOT create changes, tasks, gates, or spec deltas directly.
 
@@ -65,7 +65,7 @@ When triage clarifies expected durable product/system behavior, the summary MUST
 
 ## Phase 2: Triage Loop
 
-Use `question` tool only.
+Use `question` tool only for user prompts. Use read-only search/read tools for targeted code/spec investigation when it materially reduces uncertainty.
 
 - Ask 1-2 focused questions per turn.
 - Prefer narrowing questions over broad speculation.

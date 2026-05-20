@@ -27,10 +27,9 @@ describe("adv-problem spec-law impact contract", () => {
   });
 
   test("command defaults uncertain spec-law impact to proposal path", () => {
-    expect(command).toContain(
-      "When spec-law impact is uncertain, prefer proposal-sized routing",
+    expect(command).toMatch(
+      /uncertain spec-law impact MUST NOT be direct-fix; route to `\/adv-proposal` or keep investigating/,
     );
-    expect(command).toContain("/adv-proposal");
   });
 
   test("command preserves read-only problem triage boundary", () => {
