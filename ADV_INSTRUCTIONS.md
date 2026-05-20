@@ -926,12 +926,13 @@ Worktree setup lives in `.opencode/worktree.jsonc`. `sync.copyFiles` copies expl
 
 Spec changes in worktree A invisible to B until merged; merge promptly after archive.
 
-### Inline Worktree Protocol
+### Worktree Protocol
 
-1. `adv_worktree_create` → capture path
-2. Immediately use worktree path as `workdir` for ALL later tools
-3. Continue inline
-4. Delete via `adv_worktree_delete branch:<branch>` only after merge
+`adv_worktree_create` defaults to `mode: "warp"`: create/reuse git worktree → register OpenCode `adv-worktree` workspace → warp current session so later tools run from the worktree root. Enable by launching OpenCode with `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or broader `OPENCODE_EXPERIMENTAL=true`) and restarting; ADV does not mutate `process.env`. If the flag or `/experimental/workspace` surface is unavailable, ADV downgrades to `mode: "terminal"` with an actionable warning.
+
+Advanced side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering so cross-workspace sessions of the same project are included by default instead of filtered by directory. ADV does not rely on this. No graduation timeline is published; env-var opt-in is the current mechanism.
+
+Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` opens a forked OpenCode session in a new terminal. Delete via `adv_worktree_delete branch:<branch>` only after merge; warp-mode delete also removes the matching OpenCode workspace row before git worktree removal.
 
 ### Worktree Cleanup
 
