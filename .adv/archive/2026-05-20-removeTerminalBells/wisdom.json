@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-E5v4ui",
+      "type": "pattern",
+      "content": "For spec/docs changes, add a drift assertion that the markdown mirror lists every JSON requirement ID. This catches stale human docs when spec.json gains requirements such as rq-titleBell01 or tool-title requirements.",
+      "source_task": "tk-f7d4419b867d",
+      "recorded_at": "2026-05-20T19:41:12.602Z"
+    },
+    {
+      "id": "ws-aGkgxk",
+      "type": "gotcha",
+      "content": "Full test suites in ADV worktrees can expose stale tests that still expect source-checkout plugin paths even though deploy-local.sh now registers the stable runtime plugin path under `$HOME/.local/share/Advance/plugin`. Treat this as contract drift: align tests to runtime plugin path and keep source paths only for asset copy/build inputs.",
+      "source_task": "tk-f911d28a4d06",
+      "recorded_at": "2026-05-20T19:46:46.105Z"
+    }
+  ],
+  "count": 2
+}
