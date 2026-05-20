@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-8Gf9hP",
+      "type": "pattern",
+      "content": "For spec-law changes with no existing drift assertion, add a narrow asset test that reads `.adv/specs/*/spec.json` directly from repo source and asserts the requirement wording/scenario anchors before editing the spec. This gives a concrete RED for prose/spec contract updates.",
+      "source_task": "tk-7b805d5a5b31",
+      "recorded_at": "2026-05-20T04:32:40.735Z"
+    },
+    {
+      "id": "ws-PFVh_W",
+      "type": "gotcha",
+      "content": "Feature flags that start as passthrough config can still be live policy. Once a flag controls hook behavior, add it to `FeatureFlagsSchema` and export a shared effective-default helper so `adv_status` and runtime hooks cannot drift via duplicate ad-hoc defaulting.",
+      "source_task": "tk-1b63295d2d75",
+      "recorded_at": "2026-05-20T04:34:40.630Z"
+    },
+    {
+      "id": "ws-0gZXok",
+      "type": "gotcha",
+      "content": "For hook-level safety flags, compute the effective policy once at plugin initialization rather than inside every tool call. For malformed/unreadable project config, fail closed for safety-critical hooks and log the diagnostic; otherwise omitted/false config should follow the documented default.",
+      "source_task": "tk-2294d8b0934b",
+      "recorded_at": "2026-05-20T04:37:15.004Z"
+    },
+    {
+      "id": "ws-pMvKOn",
+      "type": "pattern",
+      "content": "For docs asset tests that assert prose requirements, normalize whitespace before phrase assertions. This lets docs be wrapped/formatted naturally while still locking critical user-facing semantics.",
+      "source_task": "tk-eecfe2a3028d",
+      "recorded_at": "2026-05-20T04:43:50.975Z"
+    }
+  ],
+  "count": 4
+}

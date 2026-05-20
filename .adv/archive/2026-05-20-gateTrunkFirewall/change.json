@@ -1,0 +1,355 @@
+{
+  "id": "gateTrunkFirewall",
+  "title": "Gate trunk firewall",
+  "status": "archived",
+  "created_at": "2026-05-20T03:59:31.213Z",
+  "tasks": [
+    {
+      "id": "tk-7b805d5a5b31",
+      "title": "Update trunk firewall spec law for opt-in enforcement",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T04:15:56.652Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": {
+          "implements": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC5"
+          ],
+          "verifies": [
+            "AC5"
+          ],
+          "respects": [
+            "C1",
+            "DONT1"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:31:03.373Z",
+      "verification": "Updated rq-twf01 to define worktree_guard_enforce opt-in semantics and added asset test locking flag-off/strict scenarios. Checkpoint cdc371f.",
+      "summary": "Added plugin/src/trunk-write-firewall-spec-assets.test.ts to enforce rq-twf01 opt-in wording. Updated .adv/specs/advance-meta/spec.json so flag omitted/false allows trunk file/destructive bash writes, while strict true blocks and preserves exceptions.",
+      "implementation_summary": "Added plugin/src/trunk-write-firewall-spec-assets.test.ts to enforce rq-twf01 opt-in wording. Updated .adv/specs/advance-meta/spec.json so flag omitted/false allows trunk file/destructive bash writes, while strict true blocks and preserves exceptions.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:32:30.008Z",
+      "completed_at": "2026-05-20T04:32:30.008Z"
+    },
+    {
+      "id": "tk-1b63295d2d75",
+      "title": "Add typed effective worktree guard feature default",
+      "type": "code",
+      "section": "Feature Policy",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T04:16:04.910Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": {
+          "implements": [
+            "AC1",
+            "AC5"
+          ],
+          "verifies": [
+            "AC1",
+            "AC5",
+            "AC7"
+          ],
+          "respects": [
+            "C2",
+            "C3"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:32:51.051Z",
+      "verification": "Added explicit typed worktree_guard_enforce default and shared stability feature default helper. Status now uses shared helper. Checkpoint 2eaec7a.",
+      "summary": "Added worktree_guard_enforce: false to FeatureFlagsSchema, exported withStabilityFeatureDefaults from types, moved status feature defaulting to the shared helper, and added src/types/project.test.ts coverage for default/preserved values.",
+      "implementation_summary": "Added worktree_guard_enforce: false to FeatureFlagsSchema, exported withStabilityFeatureDefaults from types, moved status feature defaulting to the shared helper, and added src/types/project.test.ts coverage for default/preserved values.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:34:31.330Z",
+      "completed_at": "2026-05-20T04:34:31.330Z"
+    },
+    {
+      "id": "tk-2294d8b0934b",
+      "title": "Gate trunk write firewall in tool execution hook",
+      "type": "code",
+      "section": "Hook Policy",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T04:16:17.566Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b63295d2d75"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": {
+          "implements": [
+            "AC1",
+            "AC2",
+            "AC3"
+          ],
+          "verifies": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC7"
+          ],
+          "respects": [
+            "C2",
+            "C3",
+            "DONT3",
+            "DONT4"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:34:58.058Z",
+      "verification": "Gated trunk firewall hook behind effective worktree_guard_enforce and added integration coverage for default allow, strict block, strict worktree allow, destructive bash, git command allowance, and malformed config fail-closed. Checkpoint b93c543.",
+      "summary": "Imported loadProjectConfig and withStabilityFeatureDefaults into plugin init, computed trunkWriteFirewallEnforced once near initialization, skipped file/bash firewall checks when false, and fail-closed on config read/parse errors. Updated integration tests to cover omitted flag allowance, true flag blocking, strict worktree exception, and malformed config.",
+      "implementation_summary": "Imported loadProjectConfig and withStabilityFeatureDefaults into plugin init, computed trunkWriteFirewallEnforced once near initialization, skipped file/bash firewall checks when false, and fail-closed on config read/parse errors. Updated integration tests to cover omitted flag allowance, true flag blocking, strict worktree exception, and malformed config.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:37:07.547Z",
+      "completed_at": "2026-05-20T04:37:07.547Z"
+    },
+    {
+      "id": "tk-818ebb0917b4",
+      "title": "Opt Advance repo into strict worktree enforcement",
+      "type": "code",
+      "section": "Repo Config",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-20T04:16:25.010Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1b63295d2d75"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": {
+          "implements": [
+            "AC4"
+          ],
+          "verifies": [
+            "AC4",
+            "AC7"
+          ],
+          "respects": [
+            "C5",
+            "DONT2"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:37:34.346Z",
+      "verification": "Advance project now opts into strict worktree enforcement via root project.json, with a spec asset regression test. Checkpoint 83fa4d8.",
+      "summary": "Added project.json features.worktree_guard_enforce: true so the Advance repo preserves strict trunk/default checkout blocking. Added trunk-write-firewall spec asset coverage that parses root project.json and requires the opt-in flag to remain true.",
+      "implementation_summary": "Added project.json features.worktree_guard_enforce: true so the Advance repo preserves strict trunk/default checkout blocking. Added trunk-write-firewall spec asset coverage that parses root project.json and requires the opt-in flag to remain true.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:39:45.321Z",
+      "completed_at": "2026-05-20T04:39:45.321Z"
+    },
+    {
+      "id": "tk-eecfe2a3028d",
+      "title": "Update strict-mode docs and instruction surfaces",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-20T04:16:33.134Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7b805d5a5b31"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": {
+          "implements": [
+            "AC5",
+            "AC6"
+          ],
+          "verifies": [
+            "AC5",
+            "AC6",
+            "AC7"
+          ],
+          "respects": [
+            "DONT6"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:39:59.292Z",
+      "verification": "Docs now state opt-in trunk firewall behavior, strict-mode enablement, flag-off allowance, git-command exception, and Advance repo strict opt-in. Checkpoint 569535b.",
+      "summary": "Updated ADV_INSTRUCTIONS, docs/worktree-guide.md, and docs/temporal-recovery.md to explain that trunk write firewall enforcement is opt-in through worktree_guard_enforce, that omitted/false allows default-checkout file and classified destructive bash writes, and that strict mode is explicit. Added docs asset tests with whitespace-normalized phrase checks for the opt-in markers and Advance repo strict-mode anchor.",
+      "implementation_summary": "Updated ADV_INSTRUCTIONS, docs/worktree-guide.md, and docs/temporal-recovery.md to explain that trunk write firewall enforcement is opt-in through worktree_guard_enforce, that omitted/false allows default-checkout file and classified destructive bash writes, and that strict mode is explicit. Added docs asset tests with whitespace-normalized phrase checks for the opt-in markers and Advance repo strict-mode anchor.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:43:42.272Z",
+      "completed_at": "2026-05-20T04:43:42.272Z"
+    },
+    {
+      "id": "tk-f9efc56affe4",
+      "title": "Run final verification for trunk firewall opt-in policy",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-20T04:16:42.326Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2294d8b0934b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-818ebb0917b4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-eecfe2a3028d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred",
+        "contract_refs": {
+          "verifies": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC4",
+            "AC5",
+            "AC6",
+            "AC7"
+          ],
+          "respects": [
+            "C1",
+            "C2",
+            "C3",
+            "C4",
+            "C5"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:44:04.595Z",
+      "verification": "Harden remediation completed. Verification passed: targeted harden regression tests, pnpm run check, pnpm test, pnpm run build. Checkpoint 4e00142.",
+      "summary": "Hardened trunk firewall and release docs after scanner findings. Git root detection now fails closed for protected checkout paths, repoState not_git blocks protected checkout writes, redirect parsing handles quoted/no-space targets, integration tests cover edit/morph_edit and explicit false, store init asserts worktree_guard_enforce false, specs use features.worktree_guard_enforce, and reload docs require build before OpenCode restart.",
+      "implementation_summary": "Hardened trunk firewall and release docs after scanner findings. Git root detection now fails closed for protected checkout paths, repoState not_git blocks protected checkout writes, redirect parsing handles quoted/no-space targets, integration tests cover edit/morph_edit and explicit false, store init asserts worktree_guard_enforce false, specs use features.worktree_guard_enforce, and reload docs require build before OpenCode restart.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T05:35:47.936Z",
+      "completed_at": "2026-05-20T05:35:47.936Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-8Gf9hP",
+      "type": "pattern",
+      "content": "For spec-law changes with no existing drift assertion, add a narrow asset test that reads `.adv/specs/*/spec.json` directly from repo source and asserts the requirement wording/scenario anchors before editing the spec. This gives a concrete RED for prose/spec contract updates.",
+      "source_task": "tk-7b805d5a5b31",
+      "recorded_at": "2026-05-20T04:32:40.735Z"
+    },
+    {
+      "id": "ws-PFVh_W",
+      "type": "gotcha",
+      "content": "Feature flags that start as passthrough config can still be live policy. Once a flag controls hook behavior, add it to `FeatureFlagsSchema` and export a shared effective-default helper so `adv_status` and runtime hooks cannot drift via duplicate ad-hoc defaulting.",
+      "source_task": "tk-1b63295d2d75",
+      "recorded_at": "2026-05-20T04:34:40.630Z"
+    },
+    {
+      "id": "ws-0gZXok",
+      "type": "gotcha",
+      "content": "For hook-level safety flags, compute the effective policy once at plugin initialization rather than inside every tool call. For malformed/unreadable project config, fail closed for safety-critical hooks and log the diagnostic; otherwise omitted/false config should follow the documented default.",
+      "source_task": "tk-2294d8b0934b",
+      "recorded_at": "2026-05-20T04:37:15.004Z"
+    },
+    {
+      "id": "ws-pMvKOn",
+      "type": "pattern",
+      "content": "For docs asset tests that assert prose requirements, normalize whitespace before phrase assertions. This lets docs be wrapped/formatted naturally while still locking critical user-facing semantics.",
+      "source_task": "tk-eecfe2a3028d",
+      "recorded_at": "2026-05-20T04:43:50.975Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:02:32.061Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed problem statement and replied `continue` to completed proposal summary. Proposal includes scope, success criteria, discovery agenda, and clean B/F/S scan."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:10:52.779Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded, agreement.md persisted, and user approved acceptance criteria with reply `approve`. Contract items are represented in agreement sections for objectives, AC, constraints, avoidances, and decisions."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:15:17.875Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Independent validator returned CAUTION; cautions resolved in design via explicit config-failure behavior/tests and required spec-first implementation. No unresolved CONFLICT, no user-value tradeoff, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:30:17.220Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with reply `approve`. Six-task graph created with TDD intent and dependencies; validation passed with only expected NO_DELTAS warning until spec task executes."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:46:46.145Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six planned tasks completed with checkpoint commits. Final verification passed: pnpm run check, pnpm test, pnpm run build. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:22:36.820Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Review verdict APPROVED; blockers/issues fixed and re-verified; acceptance criteria all satisfied; final verification passed."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:38:13.209Z",
+      "completed_by": "agent",
+      "approval_evidence": "User provided Tier B archive sign-off with exact reply `sign off`. Harden status READY; conformance state has no required specs; validation passed with only NO_DELTAS warning; verification passed before archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-20T04:08:15.144Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T04:09:36.182Z"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+ADV currently blocks direct file writes in the trunk/default checkout through the trunk write firewall, even when a project has not opted into strict worktree isolation. This causes unnecessary friction for lightweight ADV usage, such as `~/toolbox`, where changes are small and the project has `worktree_guard_enforce: false`.
+
+Desired outcome: make trunk/default checkout write blocking opt-in via explicit worktree isolation enforcement, while preserving strict protection for projects that enable it.
