@@ -206,10 +206,10 @@ describe("overlay sync script support", () => {
       expect(addResult.status).toBe(0);
 
       // The temp worktree is created from HEAD, but this test needs to execute
-      // the *current* working-tree version of sync-global.sh under test.
-      writeFileSync(join(tempWorktree, "scripts", "sync-global.sh"), content);
+      // the *current* working-tree version of deploy-local.sh under test.
+      writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
 
-      const worktreeScript = join(tempWorktree, "scripts", "sync-global.sh");
+      const worktreeScript = join(tempWorktree, "scripts", "deploy-local.sh");
       const fixResult = spawnSync("bash", [worktreeScript, "--fix"], {
         cwd: tempWorktree,
         env: { ...process.env, HOME: tempHome, CI: "true" },
