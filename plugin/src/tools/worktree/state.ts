@@ -15,8 +15,13 @@
  * `$XDG_DATA_HOME/opencode/plugins/advance/{projectId}/`.
  */
 
-import { join } from "node:path";
-import { getWorktreeBase } from "../../utils/project-id";
+import { mkdir, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import {
+  assertPathInsideDirectory,
+  getExternalRoot,
+  getWorktreeBase,
+} from "../../utils/project-id";
 import type {
   PendingWorktreeDelete,
   SessionRecord,
@@ -28,6 +33,7 @@ import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 import { getWorktreesQuery } from "../../temporal/messages";
 import { getService } from "../../temporal/service";
+import { acquireFileLock, atomicWriteFile } from "../../utils/fs";
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -133,9 +139,73 @@ function _recordToPending(r: PendingWorktreeDelete): PendingDelete {
 
 const CHANGE_BRANCH_PREFIX = "change/";
 const CHANGE_WORKFLOW_PREFIX = "adv/change/";
+const PENDING_DELETES_FILE = "worktree-pending-deletes.json";
 
 function escapeVisibilityValue(value: string): string {
   return value.replace(/"/g, '\\"');
+}
+
+function pendingDeletesPath(access: WorktreeStateAccess): string {
+  return join(getExternalRoot(access.projectId), PENDING_DELETES_FILE);
+}
+
+function isPendingDelete(value: unknown): value is PendingDelete {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.branch === "string" &&
+    typeof record.path === "string" &&
+    typeof record.reason === "string" &&
+    typeof record.recordedAt === "string" &&
+    typeof record.attempts === "number" &&
+    Number.isInteger(record.attempts) &&
+    record.attempts >= 0
+  );
+}
+
+async function readPendingDeletes(
+  access: WorktreeStateAccess,
+): Promise<PendingDelete[]> {
+  try {
+    const raw = await readFile(pendingDeletesPath(access), "utf8");
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isPendingDelete);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+}
+
+async function writePendingDeletes(
+  access: WorktreeStateAccess,
+  pendingDeletes: PendingDelete[],
+): Promise<void> {
+  const file = pendingDeletesPath(access);
+  await mkdir(dirname(file), { recursive: true });
+  await atomicWriteFile(file, `${JSON.stringify(pendingDeletes, null, 2)}\n`);
+}
+
+/**
+ * Serialize pending-delete read-modify-write through a per-file lock so peer
+ * sessions racing on the same project state directory cannot lose updates.
+ * Mirrors the pattern used by `storage/project-metadata.ts` and
+ * `storage/project-wisdom.ts`.
+ */
+async function withPendingDeleteLock<T>(
+  access: WorktreeStateAccess,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const file = pendingDeletesPath(access);
+  await mkdir(dirname(file), { recursive: true });
+  const release = await acquireFileLock(file);
+  try {
+    return await fn();
+  } finally {
+    await release();
+  }
 }
 
 interface WorkflowListClient {
@@ -216,33 +286,63 @@ export async function updateSessionActivity(
 // =============================================================================
 
 export async function setPendingDelete(
-  _access: WorktreeStateAccess,
-  _branch: string,
-  _reason: string,
-  _now?: string,
+  access: WorktreeStateAccess,
+  branch: string,
+  path: string,
+  reason: string,
+  now?: string,
 ): Promise<void> {
-  // Stub: pending deletes will be written to external JSONL.
+  await withPendingDeleteLock(access, async () => {
+    const pendingDeletes = await readPendingDeletes(access);
+    const existing = pendingDeletes.find((entry) => entry.branch === branch);
+    const next: PendingDelete = {
+      branch,
+      path,
+      reason,
+      recordedAt: existing?.recordedAt ?? now ?? new Date().toISOString(),
+      attempts: existing?.attempts ?? 0,
+    };
+    await writePendingDeletes(access, [
+      ...pendingDeletes.filter((entry) => entry.branch !== branch),
+      next,
+    ]);
+  });
 }
 
 export async function getPendingDeletes(
-  _access: WorktreeStateAccess,
+  access: WorktreeStateAccess,
 ): Promise<PendingDelete[]> {
-  // Stub: returns empty until external JSONL integration.
-  return [];
+  return readPendingDeletes(access);
 }
 
 export async function incrementPendingDeleteAttempts(
-  _access: WorktreeStateAccess,
-  _branch: string,
+  access: WorktreeStateAccess,
+  branch: string,
 ): Promise<void> {
-  // Stub.
+  await withPendingDeleteLock(access, async () => {
+    const pendingDeletes = await readPendingDeletes(access);
+    await writePendingDeletes(
+      access,
+      pendingDeletes.map((entry) =>
+        entry.branch === branch
+          ? { ...entry, attempts: entry.attempts + 1 }
+          : entry,
+      ),
+    );
+  });
 }
 
 export async function clearPendingDelete(
-  _access: WorktreeStateAccess,
-  _branch: string,
+  access: WorktreeStateAccess,
+  branch: string,
 ): Promise<void> {
-  // Stub.
+  await withPendingDeleteLock(access, async () => {
+    const pendingDeletes = await readPendingDeletes(access);
+    await writePendingDeletes(
+      access,
+      pendingDeletes.filter((entry) => entry.branch !== branch),
+    );
+  });
 }
 
 // =============================================================================
@@ -461,7 +561,10 @@ export async function getWorktreePath(
       `getWorktreePath: unable to resolve project id for ${projectRoot}`,
     );
   }
-  return join(getWorktreeBase(projectId), branch);
+  const base = getWorktreeBase(projectId);
+  const worktreePath = join(base, branch);
+  assertPathInsideDirectory(worktreePath, base);
+  return worktreePath;
 }
 
 export async function updateWorktreeRecord(

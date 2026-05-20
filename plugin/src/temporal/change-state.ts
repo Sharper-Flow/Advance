@@ -108,6 +108,7 @@ export function createChangeWorkflowState(input: {
 }
 
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
+  if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
 }
 
@@ -345,6 +346,7 @@ export function applyGateStuckToState(
     ...state.gates[payload.gateId],
     status: "stuck",
     stuck_reason: payload.reason,
+    readiness_blockers: payload.readinessBlockers,
     started_at: payload.triggeredAt,
   };
   setLastSignalAt(state, payload.triggeredAt);
@@ -358,9 +360,12 @@ export function applyGateCompletedToState(
   state.gates[payload.gateId] = {
     ...state.gates[payload.gateId],
     status: "done",
+    stuck_reason: undefined,
+    readiness_blockers: undefined,
     completed_at: payload.completedAt,
     completed_by: payload.completedBy,
     approval_evidence: payload.approvalEvidence,
+    artifact_evidence: payload.artifactEvidence,
   };
   setLastSignalAt(state, payload.completedAt);
   return state;

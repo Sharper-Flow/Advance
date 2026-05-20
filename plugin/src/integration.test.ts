@@ -2,9 +2,9 @@
  * ADV Wisdom Lifecycle Integration Test
  */
 
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { AdvancePlugin } from "./index";
-import { getStatus } from "./events/status";
+import { getStatus, resetStatusForTest } from "./events/status";
 import {
   createTempDir,
   cleanupTempDir,
@@ -16,6 +16,9 @@ describe("Wisdom Lifecycle Integration", () => {
   let hooks: any;
 
   beforeEach(async () => {
+    // Reset status idempotency sentinel so each test gets a fresh init.
+    // See `fixWorktreeSessionRoot` task tk-f96182eff2ad.
+    resetStatusForTest();
     tempDir = await createTempDir();
     await createTestProject(tempDir);
   });
@@ -106,11 +109,58 @@ describe("Wisdom Lifecycle Integration", () => {
   });
 });
 
+describe("Workspace adapter registration", () => {
+  let tempDir: string;
+  let hooks: any;
+
+  beforeEach(async () => {
+    resetStatusForTest();
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+  });
+
+  afterEach(async () => {
+    if (hooks?.event) {
+      try {
+        await hooks.event({
+          event: { type: "session.deleted", properties: {} },
+        });
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+    hooks = null;
+    await cleanupTempDir(tempDir);
+  });
+
+  test("registers the ADV worktree adapter when OpenCode exposes workspaces", async () => {
+    const register = vi.fn();
+
+    hooks = await AdvancePlugin({
+      project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
+      directory: tempDir,
+      worktree: tempDir,
+      serverUrl: new URL("http://localhost"),
+      experimental_workspace: { register },
+    } as any);
+
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(register).toHaveBeenCalledWith(
+      "adv-worktree",
+      expect.objectContaining({
+        name: "adv-worktree",
+        description: expect.stringContaining("ADV-managed git worktree"),
+      }),
+    );
+  });
+});
+
 describe("Active Change Title Update on adv_change_create", () => {
   let tempDir: string;
   let hooks: any;
 
   beforeEach(async () => {
+    resetStatusForTest();
     tempDir = await createTempDir();
     await createTestProject(tempDir);
   });
@@ -342,6 +392,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
   let hooks: any;
 
   beforeEach(async () => {
+    resetStatusForTest();
     tempDir = await createTempDir();
     await createTestProject(tempDir);
   });
@@ -522,6 +573,73 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         );
       } catch {
         // Best-effort cleanup; cleanupTempDir removes any remaining files.
+      }
+      await cleanupTempDir(worktreePath);
+    }
+  }, 30_000);
+
+  // Regression test for change `fixWorktreeSessionRoot` task tk-180a72cea67c.
+  //
+  // Post-warp scenario: plugin is initialized with `directory` set to the
+  // WORKTREE path (not trunk). Pre-fix, `projectRoot = directory` would
+  // classify worktree writes as trunk-rooted (BLOCK them) and miss real
+  // trunk writes. The fix at index.ts:572 derives `projectRoot` from
+  // `gitSession.mainCheckoutPath ?? directory`, so the firewall identifies
+  // trunk by git topology instead of session binding.
+  //
+  // This test locks in the post-fix contract so a regression that reverts
+  // to `projectRoot = directory` fails loudly.
+  test("post-warp scenario: firewall still identifies trunk correctly when directory is the worktree", async () => {
+    const { execSync } = await import("child_process");
+    const { mkdirSync } = await import("fs");
+    const { join } = await import("path");
+
+    await initGitRepo();
+    await enableWorktreeGuard();
+    const worktreePath = `${tempDir}-wt`;
+    try {
+      execSync(
+        `git worktree add -b change/test ${JSON.stringify(worktreePath)}`,
+        { cwd: tempDir },
+      );
+      mkdirSync(join(worktreePath, "src"), { recursive: true });
+
+      // Initialize the plugin with `directory` = worktree (post-warp).
+      // The trunk is reachable via gitSession.mainCheckoutPath.
+      hooks = await AdvancePlugin({
+        project: {
+          id: "test",
+          worktree: tempDir, // project still points at trunk
+          time: { created: Date.now() },
+        },
+        directory: worktreePath, // <-- session is rooted at the worktree
+        worktree: worktreePath,
+        serverUrl: new URL("http://localhost"),
+      } as any);
+
+      // 1. Writes to the actual trunk (tempDir) MUST still be blocked.
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: "write", sessionID: "test" } as any,
+          { args: { filePath: `${tempDir}/src/file.ts` } } as any,
+        ),
+      ).rejects.toThrow(/Trunk write firewall/);
+
+      // 2. Writes to the worktree path MUST be allowed.
+      await expect(
+        hooks["tool.execute.before"]!(
+          { tool: "write", sessionID: "test" } as any,
+          { args: { filePath: join(worktreePath, "src/file.ts") } } as any,
+        ),
+      ).resolves.toBeUndefined();
+    } finally {
+      try {
+        execSync(
+          `git worktree remove --force ${JSON.stringify(worktreePath)}`,
+          { cwd: tempDir, stdio: "ignore" },
+        );
+      } catch {
+        // best-effort cleanup
       }
       await cleanupTempDir(worktreePath);
     }

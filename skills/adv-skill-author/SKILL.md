@@ -125,7 +125,7 @@ After drafting, verify:
 
 When authoring skills for the ADV plugin:
 
-- **Bundled skills (`skills/adv-*/`)**: Synced to `~/.config/opencode/skills/` via `scripts/sync-global.sh`. Whole-directory sync (ADR-002) means sibling reference docs ship to global.
+- **Bundled skills (`skills/adv-*/`)**: Synced to `~/.config/opencode/skills/` via `scripts/deploy-local.sh`. Whole-directory sync (ADR-002) means sibling reference docs ship to global.
 - **Agent-created skills (`~/.config/opencode/skills/agent-{domain}/`)**: Use `agent-` prefix, NOT `adv-`. Set `metadata.source: "agent-created"`, `review_status: "pending"`. See ADV_INSTRUCTIONS.md § Skill Creation Protocol.
 - **Enforcement class**: For ADV bundled skills, classify per `rq-skillProseCompression01` (full / partial / inherent) in `docs/prose-load-inventory.md` before archive.
 - **Progressive disclosure**: SKILL.md as index + core; deep-dive content in sibling `*.md` files (preferred over inline for skills with 3+ natural domains).

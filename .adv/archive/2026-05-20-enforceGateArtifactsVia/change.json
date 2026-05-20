@@ -1,0 +1,339 @@
+{
+  "id": "enforceGateArtifactsVia",
+  "title": "Enforce gate artifacts via Temporal workflow",
+  "status": "archived",
+  "created_at": "2026-05-20T15:32:07.824Z",
+  "tasks": [
+    {
+      "id": "tk-9c253112be46",
+      "title": "Add spec deltas for workflow-level gate artifact enforcement",
+      "type": "code",
+      "section": "Spec deltas",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T17:19:44.499Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required",
+        "contract_refs_summary": "implements AC1 AC2 AC4 AC5 AC6; verifies AC1 AC5 AC6; respects determinism/signal-only/no-prose-bypass constraints"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:22:01.356Z",
+      "verification": "Completed spec deltas for workflow-level gate artifact enforcement and prep artifact excerpts. Added required citations for new requirement IDs so spec citation invariant passes. Checkpoint commit b1c2d98066125341a6772215ff9e70ea869c1458.",
+      "summary": "Updated `.adv/specs/advance-workflow/spec.json` to v1.9.0 with rq-gateArtifactEnforcement01, rq-gateReadiness01, rq-gateArtifactAudit01, and rq-acceptanceProjection01. Updated `.adv/specs/adv-prep/spec.json` to v1.2.0 with rq-prepArtifactExcerpt01. Added citation comments in `docs/adv-gates.md` and `.opencode/command/adv-prep.md`. Verified JSON parsing and `pnpm test -- src/tools/spec.test.ts` passed.",
+      "implementation_summary": "Updated `.adv/specs/advance-workflow/spec.json` to v1.9.0 with rq-gateArtifactEnforcement01, rq-gateReadiness01, rq-gateArtifactAudit01, and rq-acceptanceProjection01. Updated `.adv/specs/adv-prep/spec.json` to v1.2.0 with rq-prepArtifactExcerpt01. Added citation comments in `docs/adv-gates.md` and `.opencode/command/adv-prep.md`. Verified JSON parsing and `pnpm test -- src/tools/spec.test.ts` passed.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:25:14.998Z",
+      "completed_at": "2026-05-20T17:25:14.998Z"
+    },
+    {
+      "id": "tk-443210be97f3",
+      "title": "Add workflow-safe gate readiness and artifact evidence types",
+      "type": "code",
+      "section": "Core workflow model",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T17:19:59.088Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9c253112be46"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs_summary": "implements AC1 AC2 AC5; verifies AC5; respects workflow bundle boundary constraints"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:25:22.570Z",
+      "verification": "Completed workflow-safe gate readiness and artifact evidence model. Checkpoint commit b3d48fa5c1c4616c98b411c0bc6e242b41d5c859.",
+      "summary": "Added gate artifact kind/evidence and readiness blocker schemas/types in `plugin/src/types/gates.ts` and exports in `plugin/src/types/index.ts`. Added workflow-safe `plugin/src/temporal/gate-readiness.ts` with artifact-backed gate map, deterministic prior-gate blockers, artifact-store blockers, acceptance contract blockers, and explicit compatibility evidence. Added tests covering artifact map, prior gate blocker, missing artifact store, compatibility rationale, missing acceptance contract, and evidence parsing.",
+      "implementation_summary": "Added gate artifact kind/evidence and readiness blocker schemas/types in `plugin/src/types/gates.ts` and exports in `plugin/src/types/index.ts`. Added workflow-safe `plugin/src/temporal/gate-readiness.ts` with artifact-backed gate map, deterministic prior-gate blockers, artifact-store blockers, acceptance contract blockers, and explicit compatibility evidence. Added tests covering artifact map, prior gate blocker, missing artifact store, compatibility rationale, missing acceptance contract, and evidence parsing.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:29:16.385Z",
+      "completed_at": "2026-05-20T17:29:16.385Z"
+    },
+    {
+      "id": "tk-2fb4cefe1e68",
+      "title": "Add artifact inspection and acceptance artifact activity support",
+      "type": "code",
+      "section": "Activities",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T17:19:59.191Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9c253112be46"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs_summary": "implements AC1 AC3 AC4 AC6; verifies AC3 AC6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:29:25.945Z",
+      "verification": "Completed artifact inspection and acceptance artifact activity support. Checkpoint commit 01d07aeddc5110d17d5403f559b555f2c3455af5.",
+      "summary": "Extended Temporal artifact activity support with `acceptance.md` in `ArtifactKind` and artifact filename map. Added `inspectArtifactActivity` that reads artifact content in activity context, returns path/contentHash/nonWhitespaceChars/checkedAt metadata, and structured missing/unreadable errors without returning content. Added tests for acceptance read/write support, valid metadata, blank metadata, and missing errors.",
+      "implementation_summary": "Extended Temporal artifact activity support with `acceptance.md` in `ArtifactKind` and artifact filename map. Added `inspectArtifactActivity` that reads artifact content in activity context, returns path/contentHash/nonWhitespaceChars/checkedAt metadata, and structured missing/unreadable errors without returning content. Added tests for acceptance read/write support, valid metadata, blank metadata, and missing errors.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:32:57.406Z",
+      "completed_at": "2026-05-20T17:32:57.406Z"
+    },
+    {
+      "id": "tk-bf45f16f0394",
+      "title": "Guard gateCompletedSignal with workflow-level artifact readiness",
+      "type": "code",
+      "section": "Workflow enforcement",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-20T17:20:16.056Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-443210be97f3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2fb4cefe1e68"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs_summary": "implements AC1 AC2 AC3 AC5 AC6; verifies AC1 AC2 AC3 AC5 AC6; respects signal-only and workflow-determinism constraints"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:35:20.078Z",
+      "verification": "Completed workflow-level guard for gateCompletedSignal. Checkpoint commit 877d2b233873d04ea1037cca95d7b43e5e381a0e.",
+      "summary": "Changed `gateCompletedSignal` handling from direct synchronous mutation to guarded async workflow completion. The handler now serializes completion attempts, evaluates workflow-owned readiness, validates required artifacts via `inspectArtifactActivity`, marks gates stuck with deterministic blocker codes when readiness/artifacts fail, and records artifact evidence on success. Added async-safe handler rejection normalization and preserved projection/search-attribute updates. Carried `projectionChangesDir` into workflow state and made `lastSignalAt` monotonic for async signal ordering. Updated legacy tests to use explicit compatibility reasons where no artifact store is present and added direct-signal tests for missing artifact, valid artifact evidence, and prior-gate sequence blocking.",
+      "implementation_summary": "Changed `gateCompletedSignal` handling from direct synchronous mutation to guarded async workflow completion. The handler now serializes completion attempts, evaluates workflow-owned readiness, validates required artifacts via `inspectArtifactActivity`, marks gates stuck with deterministic blocker codes when readiness/artifacts fail, and records artifact evidence on success. Added async-safe handler rejection normalization and preserved projection/search-attribute updates. Carried `projectionChangesDir` into workflow state and made `lastSignalAt` monotonic for async signal ordering. Updated legacy tests to use explicit compatibility reasons where no artifact store is present and added direct-signal tests for missing artifact, valid artifact evidence, and prior-gate sequence blocking.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:42:47.935Z",
+      "completed_at": "2026-05-20T17:42:47.935Z"
+    },
+    {
+      "id": "tk-4b7bb3ac936b",
+      "title": "Generate acceptance.md from typed contract review proof",
+      "type": "code",
+      "section": "Acceptance projection",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-20T17:20:16.135Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-443210be97f3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2fb4cefe1e68"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs_summary": "implements AC4 AC6; verifies AC4 AC6; respects no-manual-acceptance-proof avoidance"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:43:03.394Z",
+      "verification": "Generated acceptance.md from typed ChangeContract review proof during acceptance gate completion; added workflow readiness blockers for missing/failing required review rows; verified focused workflow/readiness tests and package check.",
+      "summary": "Added renderAcceptanceProjection(state) in workflow-safe gate-readiness module, using ChangeContract.reviewMatrix as the source of truth. Acceptance gate completion now writes acceptance.md via writeArtifactActivity before inspecting the acceptance artifact and recording artifact evidence. Gate readiness now blocks required contract items with missing rows or unresolved statuses (fail/violated/unknown). Added RED/GREEN tests for missing review rows, failing rows, and generated acceptance.md artifact evidence. Also formatted files previously reported by Prettier so pnpm run check passes.",
+      "implementation_summary": "Added renderAcceptanceProjection(state) in workflow-safe gate-readiness module, using ChangeContract.reviewMatrix as the source of truth. Acceptance gate completion now writes acceptance.md via writeArtifactActivity before inspecting the acceptance artifact and recording artifact evidence. Gate readiness now blocks required contract items with missing rows or unresolved statuses (fail/violated/unknown). Added RED/GREEN tests for missing review rows, failing rows, and generated acceptance.md artifact evidence. Also formatted files previously reported by Prettier so pnpm run check passes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:52:33.220Z",
+      "completed_at": "2026-05-20T17:52:33.220Z"
+    },
+    {
+      "id": "tk-cebd0479b385",
+      "title": "Surface workflow readiness blockers through gate tools",
+      "type": "code",
+      "section": "Tool surfacing",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-20T17:20:35.030Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-bf45f16f0394"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4b7bb3ac936b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs_summary": "implements AC1 AC5 AC6; verifies AC1 AC5 AC6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:52:51.871Z",
+      "verification": "Surfaced workflow readiness blockers through adv_gate_complete and gate state; checkpoint d3f004046fd8177afc30031f643ef45e6227f6a6.",
+      "summary": "Added machine-readable readiness_blockers to gate state and GateStuckSignalPayload. Workflow gate readiness now records structured GateReadinessBlocker objects when artifact/contract checks reject a completion signal. adv_gate_complete now waits for the workflow gate result after firing gateCompletedSignal; it returns a blocker response with workflowGateStatus, stuckReason, and readinessBlockers when the workflow marks the gate stuck, and refuses to claim success if completion cannot be confirmed. Added tests for tool-level blocker surfacing and workflow state blocker persistence.",
+      "implementation_summary": "Added machine-readable readiness_blockers to gate state and GateStuckSignalPayload. Workflow gate readiness now records structured GateReadinessBlocker objects when artifact/contract checks reject a completion signal. adv_gate_complete now waits for the workflow gate result after firing gateCompletedSignal; it returns a blocker response with workflowGateStatus, stuckReason, and readinessBlockers when the workflow marks the gate stuck, and refuses to claim success if completion cannot be confirmed. Added tests for tool-level blocker surfacing and workflow state blocker persistence.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:59:49.059Z",
+      "completed_at": "2026-05-20T17:59:49.059Z"
+    },
+    {
+      "id": "tk-614ab9c438a7",
+      "title": "Update ADV gate, prep, and review contracts for artifact enforcement",
+      "type": "code",
+      "section": "Docs and command contracts",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-20T17:20:35.090Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9c253112be46"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs_summary": "implements AC5 AC6; verifies AC5; respects docs-as-contract constraints"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T18:00:21.112Z",
+      "verification": "Updated gate/prep/review docs and command contracts for artifact-backed gate enforcement; checkpoint 289fafc15df19f3f431114a2fbb20b25ebd070f3.",
+      "summary": "Added asset test coverage pinning workflow-enforced gate artifact documentation. Updated docs/adv-gates.md to describe artifact-backed proposal/discovery/design/acceptance gates and structured readiness_blockers. Updated adv-prep with Artifact Excerpts guidance so tasks carry relevant problem/agreement/design context and avoid manual acceptance.md work. Updated adv-review to document ChangeContract/reviewMatrix as authoritative acceptance proof, generated acceptance.md projection, manual-edit prohibition, and readinessBlockers handling when adv_gate_complete reports workflowGateStatus stuck.",
+      "implementation_summary": "Added asset test coverage pinning workflow-enforced gate artifact documentation. Updated docs/adv-gates.md to describe artifact-backed proposal/discovery/design/acceptance gates and structured readiness_blockers. Updated adv-prep with Artifact Excerpts guidance so tasks carry relevant problem/agreement/design context and avoid manual acceptance.md work. Updated adv-review to document ChangeContract/reviewMatrix as authoritative acceptance proof, generated acceptance.md projection, manual-edit prohibition, and readinessBlockers handling when adv_gate_complete reports workflowGateStatus stuck.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T18:04:18.201Z",
+      "completed_at": "2026-05-20T18:04:18.201Z"
+    },
+    {
+      "id": "tk-a11c2955e345",
+      "title": "Run full validation and fix integration fallout",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-20T17:20:48.548Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cebd0479b385"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-614ab9c438a7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs_summary": "verifies AC1 AC2 AC3 AC4 AC5 AC6; respects ship-complete verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T18:04:41.251Z",
+      "verification": "Final validation passed with clean checkpoint: pnpm test, pnpm run check, pnpm run build.",
+      "summary": "Ran full validation after all implementation and docs tasks. pnpm test passed, pnpm run check passed (typecheck, isolation/lockfile checks, lint, format), and pnpm run build passed for plugin and worker bundles. No integration fallout required code changes during this final task; checkpoint recorded clean at 289fafc15df19f3f431114a2fbb20b25ebd070f3.",
+      "implementation_summary": "Ran full validation after all implementation and docs tasks. pnpm test passed, pnpm run check passed (typecheck, isolation/lockfile checks, lint, format), and pnpm run build passed for plugin and worker bundles. No integration fallout required code changes during this final task; checkpoint recorded clean at 289fafc15df19f3f431114a2fbb20b25ebd070f3.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T18:06:08.609Z",
+      "completed_at": "2026-05-20T18:06:08.609Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-w_G3wy",
+      "type": "gotcha",
+      "content": "Async Temporal signal handlers can apply older signal timestamps after later synchronous handlers. Keep workflow last-activity timestamps monotonic (max existing/new ISO) and poll workflow state in tests/tools when a signal handler awaits activities; `handle.signal()` only confirms signal acceptance, not handler completion.",
+      "source_task": "tk-bf45f16f0394",
+      "recorded_at": "2026-05-20T17:42:56.147Z"
+    },
+    {
+      "id": "ws-pEzmXS",
+      "type": "pattern",
+      "content": "When a workflow must materialize a derived markdown artifact, keep rendering deterministic and workflow-safe (pure function over ChangeWorkflowState), then perform only the filesystem write/inspection through activities before recording artifact evidence.",
+      "source_task": "tk-4b7bb3ac936b",
+      "recorded_at": "2026-05-20T17:52:39.602Z"
+    },
+    {
+      "id": "ws-qNjsJw",
+      "type": "pattern",
+      "content": "When a Temporal signal can be rejected asynchronously by workflow readiness, tool-layer mutation responses must query/poll the post-signal workflow state before reporting success; otherwise the tool can claim a gate is done while the workflow marked it stuck.",
+      "source_task": "tk-cebd0479b385",
+      "recorded_at": "2026-05-20T17:59:56.804Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T15:37:07.711Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved problem framing via reply `continue`; proposal artifact updated with scope, success criteria, constraints, affected code, and discovery agenda."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:03:27.690Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery report and agreement.md already persisted. User approved acceptance criteria and agreement via prior `approve` reply recorded in agreement.md; resuming completed pending gate state."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:16:02.288Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design.md persisted. Independent validator returned CAUTION; cautions were resolved in design notes: proposal artifact/docs mismatch, missing contract compatibility, rejected alternatives, and implementation ordering. No unresolved CONFLICT or contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:21:35.910Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep task graph via reply `approve`. 8 tasks synthesized with dependencies, TDD intent, and verification task; strict validation passed with expected NO_DELTAS warning covered by first task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:06:34.797Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 8 execution tasks completed. Verification passed: pnpm test; pnpm run check; pnpm run build."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:08:50.001Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered work via reply `accept`. Verification summary: pnpm test, pnpm run check, pnpm run build all passed; adv_change_validate strict passed with warnings only for expected branch-local spec deltas/no runtime deltas."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:39:08.335Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "User signed off release via reply `sign off`. Harden verification already passed: pnpm test, pnpm run check, pnpm run build; working tree clean before archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-20T17:03:07.893Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T17:08:48.890Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-20T17:08:48.890Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T17:19:11.366Z"
+    }
+  ]
+}

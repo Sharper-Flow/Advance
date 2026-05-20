@@ -306,6 +306,8 @@ Rules:
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 
+`contract.reviewMatrix` is the authoritative acceptance proof. On gate completion, the workflow writes a generated acceptance.md projection from `ChangeContract` items and the review matrix before marking acceptance done. Do not manually edit acceptance.md as proof; fix the typed matrix or formally amend/re-enter the contract instead.
+
 ### Emit REVIEW_FINDINGS Block
 Always emit regardless of verdict:
 ```
@@ -409,6 +411,8 @@ If user identifies new objectives or acceptance criteria that require scope expa
 ### Complete Gate
 On acceptance:
 `adv_gate_complete changeId: {change-id} gateId: acceptance`
+
+If `adv_gate_complete` returns `workflowGateStatus: "stuck"`, inspect `readinessBlockers` and `stuckReason`. Resolve missing/failing contract rows or artifact-generation failures, then retry. Do not present acceptance as complete until the tool reports success.
 
 ---
 ## Output

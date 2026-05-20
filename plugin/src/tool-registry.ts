@@ -156,6 +156,14 @@ function isToolContext(value: unknown): value is ToolContext {
   );
 }
 
+function getToolContextSessionID(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const sessionID = (value as { sessionID?: unknown }).sessionID;
+  return typeof sessionID === "string" && sessionID.length > 0
+    ? sessionID
+    : undefined;
+}
+
 function namedExecute<TArgs>(
   name: string,
   execute: ToolExecute<TArgs>,
@@ -232,6 +240,7 @@ export function createToolMap(
   store: Store,
   directory: string,
   agendaPath: string | undefined,
+  serverUrl?: URL,
 ) {
   return {
     // Spec Tools
@@ -585,25 +594,64 @@ export function createToolMap(
     ),
 
     // Worktree Tools
-    adv_worktree_create: bindTool(
-      advWorktreeTools.adv_worktree_create,
-      "adv_worktree_create",
-      store,
+    adv_worktree_create: registerTool(
+      advWorktreeTools.adv_worktree_create.description,
+      advWorktreeTools.adv_worktree_create.args,
+      namedExecute(
+        "adv_worktree_create",
+        safeExecute(
+          async (args, context) =>
+            advWorktreeTools.adv_worktree_create.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_create.execute
+              >[0],
+              store,
+              { serverUrl, sessionID: getToolContextSessionID(context) },
+            ),
+          "adv_worktree_create",
+        ),
+      ),
     ),
     adv_worktree_resume: bindTool(
       advWorktreeTools.adv_worktree_resume,
       "adv_worktree_resume",
       store,
     ),
-    adv_worktree_delete: bindTool(
-      advWorktreeTools.adv_worktree_delete,
-      "adv_worktree_delete",
-      store,
+    adv_worktree_delete: registerTool(
+      advWorktreeTools.adv_worktree_delete.description,
+      advWorktreeTools.adv_worktree_delete.args,
+      namedExecute(
+        "adv_worktree_delete",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_delete.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_delete.execute
+              >[0],
+              store,
+              { serverUrl },
+            ),
+          "adv_worktree_delete",
+        ),
+      ),
     ),
-    adv_worktree_cleanup: bindTool(
-      advWorktreeTools.adv_worktree_cleanup,
-      "adv_worktree_cleanup",
-      store,
+    adv_worktree_cleanup: registerTool(
+      advWorktreeTools.adv_worktree_cleanup.description,
+      advWorktreeTools.adv_worktree_cleanup.args,
+      namedExecute(
+        "adv_worktree_cleanup",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_cleanup.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_cleanup.execute
+              >[0],
+              store,
+              { serverUrl },
+            ),
+          "adv_worktree_cleanup",
+        ),
+      ),
     ),
     adv_worktree_triage: bindTool(
       advWorktreeTools.adv_worktree_triage,
@@ -621,12 +669,13 @@ export function createToolMap(
       namedExecute(
         "worktree_create",
         safeExecute(
-          async (args) =>
+          async (args, context) =>
             advWorktreeTools.adv_worktree_create.execute(
               args as Parameters<
                 typeof advWorktreeTools.adv_worktree_create.execute
               >[0],
               store,
+              { serverUrl, sessionID: getToolContextSessionID(context) },
             ),
           "worktree_create",
         ),
@@ -644,6 +693,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_delete.execute
               >[0],
               store,
+              { serverUrl },
             ),
           "worktree_delete",
         ),
@@ -661,6 +711,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_cleanup.execute
               >[0],
               store,
+              { serverUrl },
             ),
           "worktree_cleanup",
         ),

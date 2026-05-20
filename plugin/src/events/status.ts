@@ -28,6 +28,25 @@ let state: StatusState = {
   lastUpdated: Date.now(),
 };
 
+/**
+ * Tracks whether initializeStatus has been called at least once in this
+ * process. Once true, subsequent initializeStatus calls preserve in-flight
+ * state (projectName, activeChangeId, currentStatus, taskProgress) instead of
+ * resetting.
+ *
+ * Required because OpenCode's InstanceState cache is keyed by directory, so a
+ * post-warp scenario instantiates a SECOND ADV plugin instance against the
+ * worktree directory. That second instance calls initializeStatus(projectName)
+ * again — pre-fix, this destructively reset activeChangeId, blowing away the
+ * terminal status marker mid-change. projectName stays anchored to the first
+ * init value so tab title remains the simple initial `project: advChange`
+ * identity instead of dynamically changing to the worktree basename.
+ *
+ * See change `fixWorktreeSessionRoot` task `tk-f96182eff2ad` and the audit at
+ * docs/spikes/module-singleton-audit.md Part A.
+ */
+let initialized = false;
+
 // =============================================================================
 // Status Marker Emission
 // =============================================================================
@@ -45,8 +64,20 @@ export const getStatusMarker = (status: StatusMarker): string => {
 
 /**
  * Initialize status tracking for a project.
+ *
+ * Idempotent: on the first call, resets `state` to defaults with the given
+ * `projectName`. On subsequent calls, preserves `currentStatus`,
+ * `projectName`, `activeChangeId`, and `taskProgress` (so warp-induced
+ * double-init doesn't blow away in-flight status or dynamically retitle the
+ * tab), and updates `lastUpdated` only.
+ *
+ * Tests reset the idempotency sentinel via `resetStatusForTest`.
  */
 export const initializeStatus = (projectName: string): void => {
+  if (initialized) {
+    state.lastUpdated = Date.now();
+    return;
+  }
   state = {
     currentStatus: "IDLE",
     projectName,
@@ -54,7 +85,23 @@ export const initializeStatus = (projectName: string): void => {
     taskProgress: null,
     lastUpdated: Date.now(),
   };
+  initialized = true;
   updateTerminal();
+};
+
+/**
+ * Test-only: reset the idempotency sentinel so the next `initializeStatus`
+ * call performs a full reset. Do NOT call from production code.
+ */
+export const resetStatusForTest = (): void => {
+  initialized = false;
+  state = {
+    currentStatus: "IDLE",
+    projectName: "Unknown",
+    activeChangeId: null,
+    taskProgress: null,
+    lastUpdated: Date.now(),
+  };
 };
 
 /**
@@ -123,6 +170,14 @@ export const resetStatus = (): void => {
  */
 export const cleanup = (): void => {
   cleanupTerminal();
+  initialized = false;
+  state = {
+    currentStatus: "IDLE",
+    projectName: "Unknown",
+    activeChangeId: null,
+    taskProgress: null,
+    lastUpdated: Date.now(),
+  };
   retryTrackers.clear();
 };
 

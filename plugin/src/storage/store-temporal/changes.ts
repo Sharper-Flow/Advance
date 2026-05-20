@@ -487,13 +487,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       const updates: Array<
         [
-          (
-            | "proposal"
-            | "problemStatement"
-            | "agreement"
-            | "design"
-            | "executiveSummary"
-          ),
+          "proposal" | "problemStatement" | "agreement" | "design",
           string | undefined,
         ]
       > = [
@@ -501,7 +495,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         ["problemStatement", result.problemStatementPath],
         ["agreement", result.agreementPath],
         ["design", result.designPath],
-        ["executiveSummary", result.executiveSummaryPath],
       ];
       for (const [kind, path] of updates) {
         if (!path) continue;

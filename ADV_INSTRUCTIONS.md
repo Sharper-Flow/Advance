@@ -196,7 +196,7 @@ Emit at START of each response:
 | `[ADV:REFLECTION]`         | Reflection report emitted                                     | 🟪    |
 | `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project         | ⬜    |
 
-Tab title: `<emoji> <shortname> · <normalized change>` when a change is active, or `<emoji> <shortname>` when idle. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+Tab title: initial identity only, `project: advChange` when a change is active or `project` when idle. No dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
@@ -779,7 +779,7 @@ Only `mode: subagent` agents spawn via Task. `adv`, `plan`, `build` are primary 
 | `mechanic`       | MCP/config/ADV diagnostics                            |
 | `adv-tron`       | Recon + hotspots                                      |
 
-`adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/sync-global.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
+`adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/deploy-local.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
 
 ## Skill Discovery Protocol
 
@@ -826,7 +826,7 @@ Enabled in `/adv-discover` and `/adv-research`. Conservative — only triggers f
 
 ### Naming Convention
 
-`agent-{domain-slug}` (lowercased, hyphenated). **× MUST NOT use `adv-` prefix** — `scripts/sync-global.sh` removes stale `adv-*` skills from global dir.
+`agent-{domain-slug}` (lowercased, hyphenated). **× MUST NOT use `adv-` prefix** — `scripts/deploy-local.sh` removes stale `adv-*` skills from global dir.
 
 ### Assembly Template
 
@@ -926,12 +926,13 @@ Worktree setup lives in `.opencode/worktree.jsonc`. `sync.copyFiles` copies expl
 
 Spec changes in worktree A invisible to B until merged; merge promptly after archive.
 
-### Inline Worktree Protocol
+### Worktree Protocol
 
-1. `adv_worktree_create` → capture path
-2. Immediately use worktree path as `workdir` for ALL later tools
-3. Continue inline
-4. Delete via `adv_worktree_delete branch:<branch>` only after merge
+`adv_worktree_create` defaults to `mode: "warp"`: create/reuse git worktree → register OpenCode `adv-worktree` workspace → warp current session so later tools run from the worktree root. Enable by launching OpenCode with `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or broader `OPENCODE_EXPERIMENTAL=true`) and restarting; ADV does not mutate `process.env`. If the flag or `/experimental/workspace` surface is unavailable, ADV downgrades to `mode: "terminal"` with an actionable warning. If the current session is already warped, `adv_worktree_create` blocks with `SESSION_ALREADY_WARPED`; open a fresh OpenCode session from the trunk checkout to create another worktree.
+
+Advanced side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering so cross-workspace sessions of the same project are included by default instead of filtered by directory. ADV does not rely on this. No graduation timeline is published; env-var opt-in is the current mechanism.
+
+Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` returns the worktree path for follow-up launch handling. Delete via `adv_worktree_delete branch:<branch>` only after merge; warp-mode delete attempts to remove the matching OpenCode workspace row before git worktree removal, warning and continuing if workspace cleanup fails.
 
 ### Worktree Cleanup
 
@@ -944,4 +945,4 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 
 ### Provider ADV runtime hints
 
-<!-- rq-scopedAdvInstructions01 --> `scripts/sync-global.sh` assembles one global `adv` runtime agent from `.opencode/agents/adv.md` plus this repository-scoped `ADV_INSTRUCTIONS.md`. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.
+<!-- rq-scopedAdvInstructions01 --> `scripts/deploy-local.sh` assembles one global `adv` runtime agent from `.opencode/agents/adv.md` plus this repository-scoped `ADV_INSTRUCTIONS.md`. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.

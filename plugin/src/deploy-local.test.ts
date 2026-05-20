@@ -174,6 +174,19 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("ADR-002");
     });
 
+    test("deploys runtime plugin to stable .local share path", () => {
+      expect(content).toContain(
+        'LOCAL_DEPLOY_ROOT="${ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}"',
+      );
+      expect(content).toContain('ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"');
+      expect(content).toContain(
+        'ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"',
+      );
+      expect(content).toContain(
+        'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
+      );
+    });
+
     test("removes legacy non-ADV commands", () => {
       expect(content).toContain("for stale in openprompt.md; do");
     });
@@ -324,8 +337,9 @@ describe("deploy-local.sh", () => {
       );
     });
 
-    test("derives ADV paths from repo root", () => {
-      expect(content).toContain('ADV_PLUGIN_PATH="$REPO_ROOT/plugin"');
+    test("derives ADV runtime plugin path from stable local deploy root", () => {
+      expect(content).not.toContain('ADV_PLUGIN_PATH="$REPO_ROOT/plugin"');
+      expect(content).toContain('ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"');
       expect(content).toContain(
         'ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"',
       );

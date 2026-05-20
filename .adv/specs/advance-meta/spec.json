@@ -338,7 +338,7 @@
     {
       "id": "rq-providerAdvSkinny01",
       "title": "Single ADV Runtime Agent with Provider Hints",
-      "body": "ADV must expose one canonical runtime agent while preserving provider-specific guidance through runtime system-block hint injection. sync-global.sh must not require generated adv-{provider}.md runtime agents or concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.",
+      "body": "ADV must expose one canonical runtime agent while preserving provider-specific guidance through runtime system-block hint injection. deploy-local.sh must not require generated adv-{provider}.md runtime agents or concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.",
       "priority": "must",
       "tags": ["provider-adv", "prompt-parts", "sync"],
       "scenarios": [
@@ -346,7 +346,7 @@
           "id": "rq-providerAdvSkinny01.1",
           "title": "Single ADV runtime agent is complete without generated provider variants",
           "given": [
-            "scripts/sync-global.sh --fix runs with canonical ADV and provider hint assets present"
+            "scripts/deploy-local.sh --fix runs with canonical ADV and provider hint assets present"
           ],
           "when": "ADV runtime assets are synced",
           "then": [
@@ -354,7 +354,7 @@
             "Global adv.md contains the canonical ADV body and ADV_INSTRUCTIONS.md protocol content",
             "Global adv-{provider}.md files are not generated as required runtime artifacts",
             "Concatenated provider prompt files are not generated as required runtime artifacts at agent-parts/advance/adv-{provider}.md",
-            "agent.adv-{provider}.prompt refs are not written by sync-global.sh",
+            "agent.adv-{provider}.prompt refs are not written by deploy-local.sh",
             "Generic adv visibility is not disabled because of retired provider variants"
           ]
         },
@@ -364,7 +364,7 @@
           "given": [
             "A stale generated adv-{provider}.md file or concatenated provider prompt file exists from the retired provider-variant architecture"
           ],
-          "when": "scripts/sync-global.sh --fix runs",
+          "when": "scripts/deploy-local.sh --fix runs",
           "then": [
             "Stale generated provider agent files are removed from the global agents directory",
             "Stale concatenated provider prompt files are removed or reported as retired artifacts with deterministic remediation",
@@ -1241,7 +1241,7 @@
       "priority": "must",
       "tags": [
         "instructions",
-        "sync-global",
+        "deploy-local",
         "prompt-scope",
         "provider-agents"
       ],
@@ -1250,7 +1250,7 @@
           "id": "rq-scopedAdvInstructions01.1",
           "title": "Single ADV runtime prompt embeds ADV protocol instructions",
           "given": [
-            "scripts/sync-global.sh --fix syncs the global ADV runtime agent"
+            "scripts/deploy-local.sh --fix syncs the global ADV runtime agent"
           ],
           "when": "The global adv.md runtime prompt content is inspected",
           "then": [
@@ -1265,14 +1265,14 @@
           "id": "rq-scopedAdvInstructions01.2",
           "title": "Global config excludes ADV_INSTRUCTIONS.md",
           "given": [
-            "scripts/sync-global.sh --fix manages a global opencode.json config"
+            "scripts/deploy-local.sh --fix manages a global opencode.json config"
           ],
           "when": "The config is created or repaired",
           "then": [
             "The plugin path remains registered in plugin[]",
             "The repository ADV_INSTRUCTIONS.md path is absent from instructions[]",
             "Any stale global-copy ADV_INSTRUCTIONS.md path is absent from instructions[]",
-            "scripts/sync-global.sh --check treats ADV_INSTRUCTIONS.md presence in instructions[] as drift"
+            "scripts/deploy-local.sh --check treats ADV_INSTRUCTIONS.md presence in instructions[] as drift"
           ]
         },
         {
@@ -1294,7 +1294,7 @@
           "given": [
             "opencode.json instructions[] contains unrelated user or organization instruction files alongside a legacy ADV_INSTRUCTIONS.md entry"
           ],
-          "when": "scripts/sync-global.sh --fix runs",
+          "when": "scripts/deploy-local.sh --fix runs",
           "then": [
             "Only ADV_INSTRUCTIONS.md entries managed by ADV are removed from instructions[]",
             "Unrelated instruction entries remain in their existing order",

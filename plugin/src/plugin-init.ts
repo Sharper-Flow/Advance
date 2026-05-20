@@ -656,6 +656,14 @@ export interface ShutdownHandlers {
   removeProcessListeners: () => void;
 }
 
+let shutdownHandlersRegistered = false;
+
+const noopShutdownHandlers: ShutdownHandlers = {
+  handleExit: () => {},
+  shutdownWithFlush: () => {},
+  removeProcessListeners: () => {},
+};
+
 /**
  * Build process-level shutdown handlers that tolerate a null store (init
  * failure). Returns handlers plus a disposer that removes the installed
@@ -667,6 +675,14 @@ export interface ShutdownHandlers {
 export function registerShutdownHandlers(
   store: Store | null,
 ): ShutdownHandlers {
+  if (shutdownHandlersRegistered) {
+    debugLog(
+      "registerShutdownHandlers: already registered, returning no-op handlers",
+    );
+    return noopShutdownHandlers;
+  }
+  shutdownHandlersRegistered = true;
+
   const handleExit = () => {
     cleanupTerminal();
     // Fire-and-forget: process.on("exit") handlers MUST be synchronous.
@@ -737,6 +753,7 @@ export function registerShutdownHandlers(
     process.removeListener("exit", handleExit);
     process.removeListener("SIGINT", shutdownWithFlush);
     process.removeListener("SIGTERM", shutdownWithFlush);
+    shutdownHandlersRegistered = false;
   };
 
   return { handleExit, shutdownWithFlush, removeProcessListeners };

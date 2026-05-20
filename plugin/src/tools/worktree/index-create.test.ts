@@ -86,6 +86,7 @@ vi.mock("./hooks", async (importOriginal) => {
 import {
   advWorktreeCreate,
   advWorktreeResume,
+  WorktreePlugin,
   type AdvWorktreeCreateDeps,
 } from "./index";
 
@@ -151,7 +152,36 @@ describe.skipIf(!isLinux)(
         rmSync(cleanupPath, { recursive: true, force: true });
       }
       rmSync(repoRoot, { recursive: true, force: true });
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
     });
+
+    async function createWorktreeCreateHarness(
+      options: {
+        workspaceID?: string | null;
+      } = {},
+    ) {
+      const client = {
+        app: { log: vi.fn(async () => undefined) },
+        session: {
+          get: vi.fn(async () => ({
+            data: { workspaceID: options.workspaceID ?? null },
+          })),
+        },
+      };
+      const hooks = await WorktreePlugin({
+        directory: repoRoot,
+        worktree: repoRoot,
+        project: {
+          id: "test",
+          worktree: repoRoot,
+          time: { created: Date.now() },
+        },
+        client,
+        serverUrl: new URL("http://127.0.0.1:4096"),
+      } as any);
+      return { client, create: hooks.tool!.worktree_create };
+    }
 
     it("reuses an existing change worktree before workflow recovery or create", async () => {
       const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-existing-"));
@@ -189,6 +219,49 @@ describe.skipIf(!isLinux)(
       expect(resolveDefaultBranch).not.toHaveBeenCalled();
       expect(detectStaleBasis).not.toHaveBeenCalled();
       expect(workflowExecuteUpdate).not.toHaveBeenCalled();
+    });
+
+    it("blocks an existing git worktree when another active change owns the branch", async () => {
+      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-owned-"));
+      rmSync(existingPath, { recursive: true, force: true });
+      cleanupPaths.push(existingPath);
+      execSync(`git worktree add -b change/owned ${existingPath} main`, {
+        cwd: repoRoot,
+      });
+      workflowList.mockImplementationOnce(() =>
+        (async function* () {
+          yield {
+            workflowId: "adv/change/test-id/other-change",
+          };
+        })(),
+      );
+
+      const result = await advWorktreeCreate(
+        "change/owned",
+        {},
+        createMockDeps(repoRoot),
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        error: "BRANCH_IN_USE",
+        branch: "change/owned",
+        ownerChangeIds: ["other-change"],
+        hint: "Branch is already registered by an active ADV change workflow",
+      });
+    });
+
+    it("rejects invalid branch names before deriving the worktree path", async () => {
+      const result = await advWorktreeCreate(
+        "../escape",
+        {},
+        createMockDeps(repoRoot),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        error: "INVALID_BRANCH",
+      });
     });
 
     it("prunes stale worktree metadata before fresh create", async () => {
@@ -512,6 +585,21 @@ describe.skipIf(!isLinux)(
       expect(list).not.toContain("feature/test");
     });
 
+    it("releases the acquired flock through the returned release callback", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      const release = vi.fn(async () => undefined);
+      deps.flock = {
+        acquire: async () => ({ owned: true, release }),
+      };
+
+      const result = await advWorktreeCreate("feature/release-lock", {}, deps);
+
+      expect(result.ok).toBe(true);
+      expect(release).toHaveBeenCalledOnce();
+    });
+
     it("BRANCH_IN_USE — blocks when Temporal visibility shows another active change owns the branch", async () => {
       workflowList.mockImplementationOnce(() =>
         (async function* () {
@@ -539,6 +627,119 @@ describe.skipIf(!isLinux)(
       });
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).not.toContain("change/feature");
+    });
+
+    it("worktree_create defaults to warp but downgrades to terminal when workspace flag is off", async () => {
+      const { client, create } = await createWorktreeCreateHarness();
+
+      const output = await create.execute({ branch: "change/mode-fallback" }, {
+        sessionID: "session-1",
+      } as any);
+
+      expect(output).toContain("Worktree created at");
+      expect(output).toContain('workdir="');
+      expect(output).toContain("Branch: change/mode-fallback");
+      expect(client.session.get).not.toHaveBeenCalled();
+      expect(client.app.log).toHaveBeenCalledWith({
+        body: expect.objectContaining({
+          level: "warn",
+          message: expect.stringContaining("OPENCODE_EXPERIMENTAL_WORKSPACES"),
+        }),
+      });
+    });
+
+    it("worktree_create warps the current session when workspace endpoints are available", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValueOnce(new Response("[]"))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ id: "ws-created" }), {
+            headers: { "content-type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(new Response(""));
+      vi.stubGlobal("fetch", fetchImpl);
+      const { client, create } = await createWorktreeCreateHarness();
+
+      const output = await create.execute({ branch: "change/mode-warp" }, {
+        sessionID: "session-1",
+      } as any);
+
+      expect(output).toContain("Session warped to workspace ws-created.");
+      expect(output).toContain(
+        "Subsequent tool calls operate with the worktree as the project root",
+      );
+      expect(client.session.get).toHaveBeenCalledWith({
+        path: { id: "session-1" },
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(3);
+
+      const createBody = JSON.parse(String(fetchImpl.mock.calls[1]?.[1]?.body));
+      expect(createBody).toMatchObject({
+        type: "adv-worktree",
+        branch: "change/mode-warp",
+        extra: { branch: "change/mode-warp" },
+      });
+      expect(createBody.extra.directory).toContain("change/mode-warp");
+
+      expect(JSON.parse(String(fetchImpl.mock.calls[2]?.[1]?.body))).toEqual({
+        id: "ws-created",
+        sessionID: "session-1",
+        copyChanges: false,
+      });
+    });
+
+    it("reports orphan workspace cleanup failure when warp fallback cannot delete it", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValueOnce(new Response("[]"))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ id: "ws-created" }), {
+            headers: { "content-type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(new Response("bad warp", { status: 500 }))
+        .mockResolvedValueOnce(new Response("delete failed", { status: 503 }));
+      vi.stubGlobal("fetch", fetchImpl);
+      const { create } = await createWorktreeCreateHarness();
+
+      const output = await create.execute({ branch: "change/warp-cleanup" }, {
+        sessionID: "session-1",
+      } as any);
+
+      expect(output).toContain(
+        "mode:warp failed after creating the git worktree",
+      );
+      expect(output).toContain("OpenCode workspace cleanup also failed");
+      expect(output).toContain("manual cleanup may be required");
+    });
+
+    it("worktree_create refuses to warp a session that is already in a workspace", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(new Response("[]"));
+      vi.stubGlobal("fetch", fetchImpl);
+      const { client, create } = await createWorktreeCreateHarness({
+        workspaceID: "ws-existing",
+      });
+
+      const output = await create.execute({ branch: "change/already-warped" }, {
+        sessionID: "session-1",
+      } as any);
+
+      expect(output).toContain(
+        "[ADV:BLOCKED] Cannot create worktree while session is already warped.",
+      );
+      expect(output).toContain("ws-existing");
+      expect(client.session.get).toHaveBeenCalledWith({
+        path: { id: "session-1" },
+      });
+      expect(fetchImpl).not.toHaveBeenCalled();
+      const list = execSync("git worktree list --porcelain", {
+        cwd: repoRoot,
+      }).toString();
+      expect(list).not.toContain("change/already-warped");
     });
   },
 );

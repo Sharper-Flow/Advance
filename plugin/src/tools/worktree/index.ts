@@ -77,6 +77,7 @@ import {
   initStateDb,
   listWorktrees,
   removeSession,
+  setPendingDelete,
   updateWorktreeRecord,
 } from "./state";
 import { openTerminal } from "./terminal";
@@ -94,6 +95,15 @@ import {
   getExternalRoot,
   getWorktreeBase,
 } from "../../utils/project-id";
+import {
+  createAdvWorkspace,
+  deleteAdvWorkspace,
+  findWorkspaceByDirectory,
+  warpFlagEnabled,
+  warpSession,
+  workspaceAndWarpAvailable,
+  type WarpDeps,
+} from "../../utils/workspace-warp";
 import { getService } from "../../temporal/service";
 import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
 import {
@@ -216,13 +226,37 @@ const branchNameSchema = z
   )
   .refine((name) => !name.endsWith(".lock"), "Cannot end with .lock");
 
+function validateBranchNameInput(
+  value: string,
+  label = "Branch name",
+): { ok: true } | { ok: false; message: string } {
+  const parsed = branchNameSchema.safeParse(value);
+  if (parsed.success) return { ok: true };
+  return {
+    ok: false,
+    message: `${label}: ${parsed.error.issues[0]?.message ?? "invalid branch name"}`,
+  };
+}
+
 /**
  * Worktree plugin configuration schema.
  * Config file: .opencode/worktree.jsonc
  */
-const worktreeConfigSchema = z.object({
-  /** When true, skip terminal spawn and session fork — agent works inline via workdir */
-  inline: z.boolean().default(true),
+export const worktreeModes = ["warp", "spawn", "terminal"] as const;
+
+export type WorktreeMode = (typeof worktreeModes)[number];
+
+const rawWorktreeConfigSchema = z.object({
+  mode: z
+    .enum(worktreeModes)
+    .optional()
+    .describe(
+      "warp: register worktree as OpenCode workspace and warp session into it (default, recommended). " +
+        "spawn: open a new terminal with a forked session (legacy non-inline behavior). " +
+        "terminal: stay in current session and use workdir= per tool (legacy inline behavior; auto-fallback when warp endpoints absent).",
+    ),
+  /** @deprecated use `mode` instead. true → "terminal", false → "spawn". */
+  inline: z.boolean().optional(),
   sync: z
     .object({
       /** Files to copy from main worktree (relative paths only) */
@@ -243,7 +277,50 @@ const worktreeConfigSchema = z.object({
     .default(() => ({ postCreate: [], preDelete: [] })),
 });
 
-type WorktreeConfig = z.infer<typeof worktreeConfigSchema>;
+type RawWorktreeConfig = z.infer<typeof rawWorktreeConfigSchema>;
+
+interface WorktreeConfig extends Omit<RawWorktreeConfig, "mode" | "inline"> {
+  mode: WorktreeMode;
+  /** @deprecated Legacy bridge until create/delete flows are fully mode-based. */
+  inline: boolean;
+}
+
+const hasOwn = (value: unknown, key: string): boolean =>
+  typeof value === "object" && value !== null && Object.hasOwn(value, key);
+
+const inlineForMode = (mode: WorktreeMode): boolean => mode !== "spawn";
+
+export function normalizeWorktreeConfig(
+  input: unknown,
+  log?: Pick<Logger, "warn">,
+): WorktreeConfig {
+  const parsed = rawWorktreeConfigSchema.parse(input);
+  const modeWasProvided = hasOwn(input, "mode");
+  const inlineWasProvided = hasOwn(input, "inline");
+
+  let mode: WorktreeMode;
+  if (parsed.mode) {
+    mode = parsed.mode;
+    if (inlineWasProvided) {
+      log?.warn(
+        '[worktree] Ignoring deprecated worktree config "inline" because "mode" is set.',
+      );
+    }
+  } else if (inlineWasProvided) {
+    mode = parsed.inline ? "terminal" : "spawn";
+    log?.warn(
+      '[worktree] Deprecated worktree config "inline" detected; use "mode": "terminal" for inline true or "mode": "spawn" for inline false.',
+    );
+  } else {
+    mode = "warp";
+  }
+
+  return {
+    ...parsed,
+    mode,
+    inline: modeWasProvided ? inlineForMode(mode) : (parsed.inline ?? true),
+  };
+}
 
 // =============================================================================
 // BRANCH INTEGRATION & UNCOMMITTED STATE HELPERS (T9)
@@ -541,7 +618,15 @@ async function forkWithContext(
 /** Database instance - initialized once per plugin lifecycle */
 let db: Database | null = null;
 
-/** Project root path - stored on first initialization */
+/**
+ * Project root path - stored on first initialization.
+ *
+ * In post-warp double-init scenarios, the second plugin's projectRoot value is
+ * ignored because the DB handle is cached against the first init's path. This
+ * is correct: external state is project-id-keyed (same root commit SHA), so
+ * both plugin instances target the same DB file. The cosmetic stale value is
+ * benign.
+ */
 let projectRoot: string | null = null;
 
 /** Flag to prevent duplicate cleanup handler registration */
@@ -759,7 +844,8 @@ export type AdvWorktreeCreateResult =
       branch: string;
       path: string;
       reason: string;
-    };
+    }
+  | { ok: false; error: "INVALID_BRANCH"; reason: string };
 
 export async function advWorktreeCreate(
   branch: string,
@@ -767,6 +853,41 @@ export async function advWorktreeCreate(
   deps: AdvWorktreeCreateDeps,
 ): Promise<AdvWorktreeCreateResult> {
   const repoRoot = deps.projectRoot;
+
+  const branchValidation = validateBranchNameInput(branch);
+  if (!branchValidation.ok) {
+    return {
+      ok: false,
+      error: "INVALID_BRANCH",
+      reason: branchValidation.message,
+    };
+  }
+  if (opts.base) {
+    const baseValidation = validateBranchNameInput(opts.base, "Base branch");
+    if (!baseValidation.ok) {
+      return {
+        ok: false,
+        error: "INVALID_BRANCH",
+        reason: baseValidation.message,
+      };
+    }
+  }
+
+  const inferredChangeId = inferChangeIdFromBranch(branch);
+  const ownerChangeIds = await findBranchOwnersAcrossChanges(
+    deps.database,
+    branch,
+    inferredChangeId,
+  );
+  if (ownerChangeIds.length > 0) {
+    return {
+      ok: false,
+      error: "BRANCH_IN_USE",
+      branch,
+      ownerChangeIds,
+      hint: "Branch is already registered by an active ADV change workflow",
+    };
+  }
 
   // Step 0: reuse an already-registered git worktree before any
   // project-workflow recovery, stale-basis checks, flock, or git worktree add.
@@ -793,22 +914,6 @@ export async function advWorktreeCreate(
     if (!pruneResult.ok) {
       return { ok: false, error: "GIT_FAILED", reason: pruneResult.error };
     }
-  }
-
-  const inferredChangeId = inferChangeIdFromBranch(branch);
-  const ownerChangeIds = await findBranchOwnersAcrossChanges(
-    deps.database,
-    branch,
-    inferredChangeId,
-  );
-  if (ownerChangeIds.length > 0) {
-    return {
-      ok: false,
-      error: "BRANCH_IN_USE",
-      branch,
-      ownerChangeIds,
-      hint: "Branch is already registered by an active ADV change workflow",
-    };
   }
 
   // Step 1: resolve base branch explicitly. NEVER fall through to HEAD.
@@ -879,7 +984,15 @@ export async function advWorktreeCreate(
   const projectStateDir = projectId ? getExternalRoot(projectId) : repoRoot;
   // Ensure the state directory exists before attempting to acquire lock.
   await mkdir(projectStateDir, { recursive: true });
-  const flockAcquireFn = deps.flock?.acquire ?? acquireGitWorktreeFlock;
+  const flockAcquireFn =
+    deps.flock?.acquire ??
+    (async (dir: string) => {
+      const acquired = await acquireGitWorktreeFlock(dir);
+      return {
+        ...acquired,
+        release: async () => releaseGitWorktreeFlock(dir),
+      };
+    });
   const lock = await flockAcquireFn(projectStateDir);
   if (!lock.owned) {
     return {
@@ -1041,7 +1154,7 @@ export async function advWorktreeCreate(
       reused: false,
     };
   } finally {
-    await releaseGitWorktreeFlock(projectStateDir);
+    await lock.release();
   }
 }
 
@@ -1184,6 +1297,8 @@ export interface AdvWorktreeDeleteDeps {
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
   registry?: { branch: string; changeId?: string; path: string }[];
+  warpDeps?: WarpDeps;
+  isWorktreeInUse?: (worktreePath: string) => boolean;
   mergedBranches?: (
     defaultBranch: string,
     repoRoot: string,
@@ -1191,8 +1306,22 @@ export interface AdvWorktreeDeleteDeps {
 }
 
 export type AdvWorktreeDeleteResult =
-  | { ok: true; branch: string; path: string; dryRun?: boolean }
+  | {
+      ok: true;
+      branch: string;
+      path: string;
+      dryRun?: boolean;
+      warning?: string;
+    }
+  | { ok: false; error: "INVALID_BRANCH"; reason: string }
   | { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
+  | {
+      ok: false;
+      error: "WORKTREE_IN_USE";
+      branch: string;
+      path: string;
+      hint: string;
+    }
   | { ok: false; error: "INTEGRATION_REQUIRED"; reason: string; hint: string }
   | { ok: false; error: "UNCOMMITTED_WORK"; files: string[]; hint: string }
   | { ok: false; error: "HOOK_FAILED"; details: unknown }
@@ -1204,6 +1333,35 @@ export type AdvWorktreeDeleteResult =
     }
   | { ok: false; error: "REMOVE_FAILED"; reason: string };
 
+async function cleanupOpenCodeWorkspaceForWorktree(
+  worktreePath: string,
+  branch: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<string | null> {
+  if (!deps.warpDeps) return null;
+
+  const found = await findWorkspaceByDirectory(
+    deps.warpDeps,
+    worktreePath,
+    branch,
+  );
+  if (!found) return null;
+
+  try {
+    await deleteAdvWorkspace(deps.warpDeps, found.workspaceID);
+    deps.log.debug(
+      `[worktree] Cleaned up OpenCode workspace ${found.workspaceID}`,
+    );
+  } catch (error) {
+    const warning = `Failed to delete OpenCode workspace ${found.workspaceID}: ${error}`;
+    deps.log.warn(
+      `[worktree] Failed to delete OpenCode workspace ${found.workspaceID} (continuing worktree delete): ${error}`,
+    );
+    return warning;
+  }
+  return null;
+}
+
 async function getWorktreeRegistryEntry(
   branch: string,
   deps: AdvWorktreeDeleteDeps,
@@ -1213,6 +1371,20 @@ async function getWorktreeRegistryEntry(
   }
   const registry = await listWorktrees(deps.database);
   return registry.find((r) => r.branch === branch);
+}
+
+async function validateResolvedDeleteWorktreePath(
+  branch: string,
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<string | null> {
+  const normalizedPath = path.resolve(worktreePath);
+  if (!(await pathExists(normalizedPath))) return normalizedPath;
+
+  const gitEntry = await findGitWorktreeByBranch(deps.projectRoot, branch);
+  if (!gitEntry) return null;
+
+  return path.resolve(gitEntry.path) === normalizedPath ? normalizedPath : null;
 }
 
 async function getMergedBranchesForDelete(
@@ -1328,6 +1500,15 @@ export async function advWorktreeDelete(
   opts: { force?: boolean; dryRun?: boolean } = {},
   deps: AdvWorktreeDeleteDeps,
 ): Promise<AdvWorktreeDeleteResult> {
+  const branchValidation = validateBranchNameInput(branch);
+  if (!branchValidation.ok) {
+    return {
+      ok: false,
+      error: "INVALID_BRANCH",
+      reason: branchValidation.message,
+    };
+  }
+
   // 1. Resolve registry entry and worktree path. Registry wins over path
   // derivation so missing-from-disk cleanup can operate on stale records.
   let registryEntry:
@@ -1365,6 +1546,16 @@ export async function advWorktreeDelete(
     );
     if (missingFromDisk) return missingFromDisk;
   }
+
+  const validatedWorktreePath = await validateResolvedDeleteWorktreePath(
+    branch,
+    worktreePath,
+    deps,
+  );
+  if (!validatedWorktreePath) {
+    return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
+  }
+  worktreePath = validatedWorktreePath;
 
   // 2. Branch integration check. Four cases:
   //
@@ -1468,6 +1659,23 @@ export async function advWorktreeDelete(
     return { ok: true as const, branch, path: worktreePath, dryRun: true };
   }
 
+  const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
+  if (worktreeInUseFn(worktreePath)) {
+    await setPendingDelete(
+      deps.database,
+      branch,
+      worktreePath,
+      "worktree is still in use by a running process",
+    );
+    return {
+      ok: false,
+      error: "WORKTREE_IN_USE",
+      branch,
+      path: worktreePath,
+      hint: "Worktree is still in use; queued a pending delete. Retry with adv_worktree_cleanup after the process exits.",
+    };
+  }
+
   // 4. Run preDelete hooks
   const hooks =
     deps.hooks ?? (await loadWorktreeConfig(deps.projectRoot, deps.log)).hooks;
@@ -1510,6 +1718,11 @@ export async function advWorktreeDelete(
       `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`,
     );
   }
+  const workspaceCleanupWarning = await cleanupOpenCodeWorkspaceForWorktree(
+    worktreePath,
+    branch,
+    deps,
+  );
   const removeResult = await gitWorktreeRemove(
     deps.projectRoot,
     worktreePath,
@@ -1549,7 +1762,12 @@ export async function advWorktreeDelete(
   );
 
   // 8. Return success
-  return { ok: true as const, branch, path: worktreePath };
+  return {
+    ok: true as const,
+    branch,
+    path: worktreePath,
+    ...(workspaceCleanupWarning ? { warning: workspaceCleanupWarning } : {}),
+  };
 }
 
 // =============================================================================
@@ -1666,7 +1884,7 @@ async function symlinkDirs(
  * Load worktree-specific configuration from .opencode/worktree.jsonc
  * Auto-creates config file with helpful defaults if it doesn't exist.
  */
-async function loadWorktreeConfig(
+export async function loadWorktreeConfig(
   directory: string,
   log: Logger,
 ): Promise<WorktreeConfig> {
@@ -1683,10 +1901,14 @@ async function loadWorktreeConfig(
   // Worktree plugin configuration
   // Documentation: https://github.com/kdcokenny/ocx
 
-  // Inline mode: agent works in the worktree via workdir instead of
-  // spawning a new terminal window with a separate OpenCode instance.
-  // Set to false to restore the old behavior (new tmux window / terminal tab).
-  // "inline": true,
+  // Worktree session mode:
+  // - "warp" (default): register the ADV worktree as an OpenCode workspace
+  //   and warp this session into it. Requires OPENCODE_EXPERIMENTAL_WORKSPACES=true.
+  // - "terminal": stay in this session and use workdir= per tool (legacy inline behavior).
+  // - "spawn": open a new terminal with a forked OpenCode session (legacy non-inline behavior).
+  // "mode": "warp",
+
+  // Deprecated: "inline": true maps to "mode": "terminal"; false maps to "mode": "spawn".
 
   "sync": {
     // Files to copy from main worktree to new worktrees
@@ -1716,7 +1938,7 @@ async function loadWorktreeConfig(
       await mkdir(path.join(directory, ".opencode"), { recursive: true });
       await writeFile(configPath, defaultConfig);
       log.info(`[worktree] Created default config: ${configPath}`);
-      return worktreeConfigSchema.parse({});
+      return normalizeWorktreeConfig({});
     }
 
     const content = await readFile(configPath, "utf8");
@@ -1724,13 +1946,71 @@ async function loadWorktreeConfig(
     const parsed = parseJsonc(content);
     if (parsed === undefined) {
       log.error(`[worktree] Invalid worktree.jsonc syntax`);
-      return worktreeConfigSchema.parse({});
+      return normalizeWorktreeConfig({});
     }
-    return worktreeConfigSchema.parse(parsed);
+    return normalizeWorktreeConfig(parsed, log);
   } catch (error) {
     log.warn(`[worktree] Failed to load config: ${error}`);
-    return worktreeConfigSchema.parse({});
+    return normalizeWorktreeConfig({});
   }
+}
+
+async function getCurrentSessionWorkspaceID(
+  client: OpencodeClient,
+  sessionID: string,
+): Promise<string | null> {
+  const currentSession = await client.session.get({ path: { id: sessionID } });
+  const workspaceID = (currentSession.data as { workspaceID?: unknown } | null)
+    ?.workspaceID;
+  return typeof workspaceID === "string" && workspaceID.length > 0
+    ? workspaceID
+    : null;
+}
+
+async function resolveEffectiveWorktreeMode(
+  requestedMode: WorktreeMode,
+  warpDeps: WarpDeps,
+  client: OpencodeClient,
+  sessionID: string,
+  log: Logger,
+): Promise<{ mode: WorktreeMode } | { mode: "blocked"; message: string }> {
+  if (requestedMode !== "warp") return { mode: requestedMode };
+
+  if (!warpFlagEnabled()) {
+    log.warn(
+      "[worktree] mode:warp unavailable because OpenCode workspace sync is not enabled. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true (or OPENCODE_EXPERIMENTAL=true) and restart OpenCode to enable workspace warp; falling back to mode:terminal.",
+    );
+    return { mode: "terminal" };
+  }
+
+  let currentWorkspaceID: string | null;
+  try {
+    currentWorkspaceID = await getCurrentSessionWorkspaceID(client, sessionID);
+  } catch (error) {
+    log.warn(
+      `[worktree] mode:warp unavailable because current session lookup failed (${error}); falling back to mode:terminal.`,
+    );
+    return { mode: "terminal" };
+  }
+  if (currentWorkspaceID) {
+    return {
+      mode: "blocked",
+      message: [
+        `[ADV:BLOCKED] Cannot create worktree while session is already warped.`,
+        `Session ${sessionID} is in workspace ${currentWorkspaceID}.`,
+        `Open a fresh OpenCode session from the trunk checkout to create a new worktree.`,
+      ].join("\n"),
+    };
+  }
+
+  if (!(await workspaceAndWarpAvailable(warpDeps))) {
+    log.warn(
+      "[worktree] mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.",
+    );
+    return { mode: "terminal" };
+  }
+
+  return { mode: "warp" };
 }
 
 // =============================================================================
@@ -1742,6 +2022,8 @@ export interface AdvWorktreeCleanupDeps {
   database: Database;
   log: Logger;
   dryRun?: boolean;
+  store?: Store;
+  warpDeps?: WarpDeps;
 }
 
 export async function advWorktreeCleanup(
@@ -1785,6 +2067,8 @@ export async function advWorktreeCleanup(
         database: deps.database,
         log: deps.log,
         worktreePath,
+        store: deps.store,
+        warpDeps: deps.warpDeps,
       },
     );
 
@@ -1808,7 +2092,7 @@ export async function advWorktreeCleanup(
 // =============================================================================
 
 export const WorktreePlugin: Plugin = async (ctx) => {
-  const { directory, client } = ctx;
+  const { directory, client, serverUrl } = ctx;
 
   const log = {
     debug: (msg: string) =>
@@ -1868,7 +2152,13 @@ export const WorktreePlugin: Plugin = async (ctx) => {
       const result = await advWorktreeDelete(
         branch,
         { force: options.forceAttempts },
-        { projectRoot: directory, database, log, worktreePath },
+        {
+          projectRoot: directory,
+          database,
+          log,
+          worktreePath,
+          warpDeps: { serverUrl },
+        },
       );
 
       if (result.ok) {
@@ -1917,6 +2207,20 @@ export const WorktreePlugin: Plugin = async (ctx) => {
             }
           }
 
+          const worktreeConfig = await loadWorktreeConfig(directory, log);
+          const warpDeps: WarpDeps = { serverUrl };
+          const modeResolution = await resolveEffectiveWorktreeMode(
+            worktreeConfig.mode,
+            warpDeps,
+            client,
+            toolCtx.sessionID,
+            log,
+          );
+          if (modeResolution.mode === "blocked") {
+            return modeResolution.message;
+          }
+          const effectiveMode = modeResolution.mode;
+
           // Create worktree using ADV-safe flow (T10)
           const createResult = await advWorktreeCreate(
             args.branch,
@@ -1937,6 +2241,8 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                 return `Failed to create worktree: ${createResult.reason}`;
               case "SETUP_FAILED":
                 return `Failed to create worktree: setup failed for ${createResult.branch} at ${createResult.path}. ${createResult.reason}`;
+              case "INVALID_BRANCH":
+                return `Failed to create worktree: invalid branch. ${createResult.reason}`;
               default: {
                 // Exhaustiveness check — TS errors here if a new variant
                 // is added to AdvWorktreeCreateResult without updating
@@ -1949,35 +2255,107 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
           const worktreePath = createResult.path;
 
-          // Read config for inline-mode session behavior. File sync and
-          // postCreate hooks already ran inside advWorktreeCreate.
-          const worktreeConfig = await loadWorktreeConfig(directory, log);
+          switch (effectiveMode) {
+            case "warp": {
+              let workspaceID: string | undefined;
+              let workspaceCleanupFailed: string | undefined;
+              try {
+                const created = await createAdvWorkspace(warpDeps, {
+                  directory: worktreePath,
+                  branch: args.branch,
+                });
+                workspaceID = created.workspaceID;
+                await warpSession(warpDeps, {
+                  workspaceID,
+                  sessionID: toolCtx.sessionID,
+                });
+              } catch (error) {
+                if (workspaceID) {
+                  try {
+                    await deleteAdvWorkspace(warpDeps, workspaceID);
+                  } catch (cleanupError) {
+                    workspaceCleanupFailed = String(cleanupError);
+                    log.warn(
+                      `[worktree] Warp failed AND orphan workspace cleanup failed for ${workspaceID}: ${cleanupError}`,
+                    );
+                  }
+                }
+                const cleanupMessage = workspaceCleanupFailed
+                  ? `OpenCode workspace cleanup also failed (${workspaceCleanupFailed}); manual cleanup may be required`
+                  : "cleaned up any created OpenCode workspace";
 
-          // Inline mode: skip session fork and terminal spawn
-          if (worktreeConfig.inline) {
-            log.info(
-              `[worktree] Inline mode — skipping terminal spawn for ${args.branch}`,
-            );
+                log.warn(
+                  `[worktree] mode:warp failed after creating the git worktree (${error}); ${cleanupMessage}; falling back to mode:terminal.`,
+                );
 
-            // Record session for tracking (used by delete flow).
-            // T13: addSession now async + sessionId/branch/path shape.
-            await addSession(
-              database,
-              {
-                sessionId: `inline:${args.branch}`,
-                branch: args.branch,
-                path: worktreePath,
-              },
-              undefined,
-              inferChangeIdFromBranch(args.branch),
-            );
+                await addSession(
+                  database,
+                  {
+                    sessionId: `inline:${args.branch}`,
+                    branch: args.branch,
+                    path: worktreePath,
+                  },
+                  undefined,
+                  inferChangeIdFromBranch(args.branch),
+                );
 
-            return [
-              `Worktree created at ${worktreePath}`,
-              `Branch: ${args.branch}`,
-              ``,
-              `IMPORTANT: Inline mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
-            ].join("\n");
+                return [
+                  `Worktree created at ${worktreePath}`,
+                  `Branch: ${args.branch}`,
+                  ``,
+                  `mode:warp failed after creating the git worktree; ${cleanupMessage}. Falling back to mode:terminal.`,
+                  `IMPORTANT: Terminal mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
+                ].join("\n");
+              }
+
+              await addSession(
+                database,
+                {
+                  sessionId: toolCtx.sessionID,
+                  branch: args.branch,
+                  path: worktreePath,
+                },
+                undefined,
+                inferChangeIdFromBranch(args.branch),
+              );
+
+              return [
+                `Worktree created at ${worktreePath}`,
+                `Branch: ${args.branch}`,
+                ``,
+                `Session warped to workspace ${workspaceID}.`,
+                `Subsequent tool calls operate with the worktree as the project root — no per-tool workdir override needed.`,
+              ].join("\n");
+            }
+            case "terminal": {
+              log.info(
+                `[worktree] Terminal mode — skipping terminal spawn for ${args.branch}`,
+              );
+
+              await addSession(
+                database,
+                {
+                  sessionId: `inline:${args.branch}`,
+                  branch: args.branch,
+                  path: worktreePath,
+                },
+                undefined,
+                inferChangeIdFromBranch(args.branch),
+              );
+
+              return [
+                `Worktree created at ${worktreePath}`,
+                `Branch: ${args.branch}`,
+                ``,
+                `IMPORTANT: Terminal mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
+              ].join("\n");
+            }
+            case "spawn":
+              break;
+            default: {
+              const _exhaustive: never = effectiveMode;
+              return `Failed to create worktree: unknown mode (${String(_exhaustive)})`;
+            }
           }
 
           // Fork session with context (replaces --session resume)
@@ -2058,43 +2436,49 @@ export const WorktreePlugin: Plugin = async (ctx) => {
         async execute(args, toolCtx) {
           const worktreeConfig = await loadWorktreeConfig(directory, log);
 
-          // Find the worktree session record. T13: getSession now async.
-          const session = worktreeConfig.inline
-            ? await (async () => {
-                // Inline mode: look up by "inline:<branch>" key
-                if (!args.branch) {
-                  return null;
-                }
-                return getSession(database, `inline:${args.branch}`);
-              })()
-            : await getSession(database, toolCtx?.sessionID ?? "");
-
           if (worktreeConfig.inline && !args.branch) {
             return `In inline mode, you must provide the branch name of the worktree to delete.`;
           }
 
-          if (!session) {
+          // The session registry is retired; branch-addressed deletes are the
+          // structural path for terminal/warp cleanup. Keep session lookup only
+          // as a legacy fallback for old standalone spawn records.
+          const session = args.branch
+            ? null
+            : await getSession(database, toolCtx?.sessionID ?? "");
+
+          if (!session && !args.branch) {
             return `No worktree found${args.branch ? ` for branch "${args.branch}"` : " associated with this session"}`;
           }
 
           const result = await advWorktreeDelete(
-            session.branch ?? args.branch ?? "",
+            session?.branch ?? args.branch ?? "",
             { force: args.force ?? false },
             {
               projectRoot: directory,
               database,
               log,
-              worktreePath: session.path,
+              worktreePath: session?.path,
+              warpDeps: { serverUrl },
             },
           );
 
           if (result.ok) {
-            return `Worktree removed on branch "${result.branch}".`;
+            return [
+              `Worktree removed on branch "${result.branch}".`,
+              result.warning ? `Warning: ${result.warning}` : undefined,
+            ]
+              .filter(Boolean)
+              .join("\n");
           }
 
           switch (result.error) {
             case "WORKTREE_NOT_FOUND":
               return `Worktree not found for branch "${result.branch}".`;
+            case "WORKTREE_IN_USE":
+              return `Worktree still in use at ${result.path}. ${result.hint}`;
+            case "INVALID_BRANCH":
+              return `Invalid branch: ${result.reason}`;
             case "INTEGRATION_REQUIRED":
               return `Integration required: ${result.reason}. ${result.hint}`;
             case "UNCOMMITTED_WORK":

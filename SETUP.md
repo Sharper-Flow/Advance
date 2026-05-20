@@ -37,7 +37,7 @@ new ADV worktrees.
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Git               | Version control, change tracking                                                                                                        |
 | Temporal CLI      | Local dev server for ADV's Temporal-backed runtime                                                                                      |
-| jq                | Required only for `sync-global.sh --fix` (config patching)                                                                              |
+| jq                | Required only for `deploy-local.sh --fix` (config patching)                                                                              |
 | GitHub CLI (`gh`) | Required for `/adv-triage` and any ADV command that reads/writes GitHub issues or Projects v2. See **GitHub CLI authentication** below. |
 
 ### Temporal-backed storage
@@ -262,7 +262,7 @@ Typical outcomes:
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
 `build`, `adv-researcher`, `adv-engineer`). The `adv-researcher` and `adv-engineer`
-agents are synced globally by `sync-global.sh` as bundled global specialists. The `adv-tron` agent remains
+agents are synced globally by `deploy-local.sh` as bundled global specialists. The `adv-tron` agent remains
 repo-local in `.opencode/agents/`. All ADV-shipped sub-agents use the `adv-<name>` naming convention. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
@@ -375,16 +375,16 @@ agents, and skills to the global config, and validates (or patches) `opencode.js
 
 ```bash
 # Check what needs updating (config only, no file changes)
-./scripts/sync-global.sh --check
+./scripts/deploy-local.sh --check
 
 # Sync assets + auto-patch opencode.json if ADV entries are missing
-./scripts/sync-global.sh --fix
+./scripts/deploy-local.sh --fix
 
 # Sync assets only, report config issues without patching
-./scripts/sync-global.sh
+./scripts/deploy-local.sh
 
 # Preview managed overlay/config changes without writing
-./scripts/sync-global.sh --dry-run --diff
+./scripts/deploy-local.sh --dry-run --diff
 ```
 
 The `--fix` flag will:
@@ -412,17 +412,17 @@ If you are developing ADV itself (not just consuming it), install the tracked gi
 
 Hooks installed:
 
-- `post-commit` — runs `sync-global.sh --fix` when the commit touched a mirrored path (idempotent, ~1s, never blocks).
+- `post-commit` — runs `deploy-local.sh --fix` when the commit touched a mirrored path (idempotent, ~1s, never blocks).
 - `pre-push` — safety-net sync before pushing, in case a commit bypassed the post-commit hook.
 
-Without these, a commit that updates a command contract will land in the repo but the global `~/.config/opencode/` keeps the old copy until `sync-global.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts.
+Without these, a commit that updates a command contract will land in the repo but the global `~/.config/opencode/` keeps the old copy until `deploy-local.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts.
 
 Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
 
 ### Step 2b: Manual Setup (Alternative)
 
 If you prefer manual setup, add the ADV plugin path to your `opencode.json`.
-Do **not** add `ADV_INSTRUCTIONS.md` to global `instructions[]`; `sync-global.sh`
+Do **not** add `ADV_INSTRUCTIONS.md` to global `instructions[]`; `deploy-local.sh`
 scopes that protocol to generated ADV provider prompts so non-ADV agents do not
 pay the prompt cost.
 
@@ -435,7 +435,7 @@ pay the prompt cost.
 
 Legacy migration: if your config already contains `/path/to/Advance/ADV_INSTRUCTIONS.md`
 or `~/.config/opencode/instructions/ADV_INSTRUCTIONS.md`, run
-`./scripts/sync-global.sh --fix`. The script removes only ADV instruction paths,
+`./scripts/deploy-local.sh --fix`. The script removes only ADV instruction paths,
 preserves unrelated global instructions, and regenerates ADV provider prompts with
 the protocol embedded. Manual setups without provider ADV variants intentionally do
 not receive the ADV operating protocol; the supported ADV-agent setup path is the
@@ -1020,7 +1020,7 @@ Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors. See `adv --help` f
 ADV consolidated `scout` into `plan` and `refine` into `build`. If your global `~/.config/opencode/agents/` still has `scout.md` or `refine.md`, run the sync script to clean them up:
 
 ```bash
-./scripts/sync-global.sh --fix
+./scripts/deploy-local.sh --fix
 ```
 
 If you customized your global `plan.md` or `build.md`, the sync script only patches the overlay block — it does not edit the `tools:` frontmatter. To restore the new capabilities manually, add these to your customized files:
@@ -1128,10 +1128,10 @@ Run the sync script to check and fix everything at once:
 
 ```bash
 # Check what's missing
-./scripts/sync-global.sh --check
+./scripts/deploy-local.sh --check
 
 # Fix everything (sync assets + patch config)
-./scripts/sync-global.sh --fix
+./scripts/deploy-local.sh --fix
 ```
 
 Or verify manually:
@@ -1168,6 +1168,8 @@ pnpm build
 | `OPEN_CHAD_CACHE_DIR`                  | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                   |
 | `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                             |
 | `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                              |
+| `OPENCODE_EXPERIMENTAL_WORKSPACES`     | unset                        | Set to `true` and restart OpenCode to enable native workspace warp for ADV worktrees; otherwise ADV downgrades to terminal mode       |
+| `OPENCODE_EXPERIMENTAL`                | unset                        | Broader OpenCode experimental opt-in that also enables workspace warp; prefer `OPENCODE_EXPERIMENTAL_WORKSPACES=true` when possible   |
 
 ---
 

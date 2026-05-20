@@ -103,8 +103,7 @@ export type ArtifactKind =
   | "proposal"
   | "problemStatement"
   | "agreement"
-  | "design"
-  | "executiveSummary";
+  | "design";
 
 export interface ArtifactMetadata {
   path: string;
@@ -177,7 +176,6 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     discovery?: ArtifactMetadata;
     design?: ArtifactMetadata;
     agreement?: ArtifactMetadata;
-    executiveSummary?: ArtifactMetadata;
   };
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;

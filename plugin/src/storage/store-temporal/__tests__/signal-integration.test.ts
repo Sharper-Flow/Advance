@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
+import type { WorkflowHandle } from "@temporalio/client";
 import { withTestWorkflowEnvironment } from "../../../temporal/__tests__/with-test-env";
 import {
   taskAddedSignal,
@@ -24,7 +25,10 @@ import {
   changeStateQuery,
 } from "../../../temporal/messages";
 import { createDefaultGates } from "../../../types";
-import type { ChangeWorkflowInput } from "../../../temporal/contracts";
+import type {
+  ChangeWorkflowInput,
+  ChangeWorkflowState,
+} from "../../../temporal/contracts";
 
 const workflowsPath = fileURLToPath(
   new URL("../../../temporal/workflows.ts", import.meta.url),
@@ -45,6 +49,20 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
       reentry_history: [],
     },
   };
+}
+
+async function waitForProposalStatus(
+  handle: WorkflowHandle<
+    typeof import("../../../temporal/workflows").changeWorkflow
+  >,
+  status: string,
+): Promise<ChangeWorkflowState> {
+  for (let i = 0; i < 20; i++) {
+    const state = await handle.query(changeStateQuery);
+    if (state.gates.proposal.status === status) return state;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return await handle.query(changeStateQuery);
 }
 
 describe("changeWorkflow signal mutations (R1.0)", () => {
@@ -69,8 +87,10 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             approvalEvidence: "test",
             completedBy: "tester",
             completedAt: new Date().toISOString(),
+            compatibilityReason:
+              "legacy signal integration fixture has no artifact store",
           });
-          const state = await handle.query(changeStateQuery);
+          const state = await waitForProposalStatus(handle, "done");
           expect(state.gates.proposal.status).toBe("done");
         });
       },
@@ -99,7 +119,10 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             approvalEvidence: "test",
             completedBy: "tester",
             completedAt: new Date().toISOString(),
+            compatibilityReason:
+              "legacy signal integration fixture has no artifact store",
           });
+          await waitForProposalStatus(handle, "done");
           // Then reopen it
           await handle.signal(gateReenteredSignal, {
             fromGateId: "proposal",
@@ -107,7 +130,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
             reenteredBy: "tester",
             reenteredAt: new Date().toISOString(),
           });
-          const state = await handle.query(changeStateQuery);
+          const state = await waitForProposalStatus(handle, "pending");
           expect(state.gates.proposal.status).toBe("pending");
         });
       },
@@ -406,40 +429,6 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
           });
           const state = await handle.query(changeStateQuery);
           expect(state.artifacts.proposal?.path).toBe("/tmp/proposal.md");
-        });
-      },
-    );
-  }, 30_000);
-
-  it("updateArtifactMetadataSignal handles executiveSummary kind end-to-end", async () => {
-    await withTestWorkflowEnvironment(
-      () => TestWorkflowEnvironment.createTimeSkipping(),
-      async (env) => {
-        const worker = await Worker.create({
-          connection: env.nativeConnection,
-          workflowsPath,
-          taskQueue: "sig-test-exec-summary",
-        });
-        await worker.runUntil(async () => {
-          const input = makeChangeInput("exec-summary-001");
-          const handle = await env.client.workflow.start("changeWorkflow", {
-            workflowId: `sig-exec-summary-${Date.now()}`,
-            taskQueue: "sig-test-exec-summary",
-            args: [input],
-          });
-          const { updateArtifactMetadataSignal } =
-            await import("../../../temporal/messages");
-          await handle.signal(updateArtifactMetadataSignal, {
-            kind: "executiveSummary",
-            metadata: {
-              path: "/tmp/executive-summary.md",
-              updatedAt: new Date().toISOString(),
-            },
-          });
-          const state = await handle.query(changeStateQuery);
-          expect(state.artifacts.executiveSummary?.path).toBe(
-            "/tmp/executive-summary.md",
-          );
         });
       },
     );

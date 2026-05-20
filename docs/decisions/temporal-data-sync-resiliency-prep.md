@@ -15,7 +15,7 @@
 
 ## Purpose & Scope
 
-This pack covers ADV's Temporal workflow integration, storage architecture (JSON+SQLite dual backend and Temporal-backed store adapter), JSON→SQLite sync subsystem, system resource optimization opportunities, and error handling/resiliency patterns. It deliberately does **not** cover: ADV's agent orchestration layer, command workflow semantics, spec validation, or the overlay/sync-global.sh tooling.
+This pack covers ADV's Temporal workflow integration, storage architecture (JSON+SQLite dual backend and Temporal-backed store adapter), JSON→SQLite sync subsystem, system resource optimization opportunities, and error handling/resiliency patterns. It deliberately does **not** cover: ADV's agent orchestration layer, command workflow semantics, spec validation, or the overlay/deploy-local.sh tooling.
 
 ## Current State
 

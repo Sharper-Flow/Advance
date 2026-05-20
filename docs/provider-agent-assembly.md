@@ -6,7 +6,7 @@ How ADV keeps one canonical orchestrator agent while preserving provider-specifi
 
 ADV exposes one runtime orchestrator agent: `adv`.
 
-`scripts/sync-global.sh --fix` assembles global `~/.config/opencode/agents/adv.md` from:
+`scripts/deploy-local.sh --fix` assembles global `~/.config/opencode/agents/adv.md` from:
 
 1. repo canonical `.opencode/agents/adv.md`
 2. repository `ADV_INSTRUCTIONS.md`
@@ -42,7 +42,7 @@ If a model is routed through a provider that does not expose model identity to t
 
 ## Sync Behavior
 
-`scripts/sync-global.sh --fix` now:
+`scripts/deploy-local.sh --fix` now:
 
 1. Copies commands, agents, overlays, and skills as before.
 2. Writes one complete global `adv.md` runtime agent.
@@ -68,7 +68,7 @@ Generated provider files are no longer canonical prompt sources.
 
 ## Manual One-Time Migration
 
-After updating and running `scripts/sync-global.sh --fix`, manually clean old provider-agent config if present:
+After updating and running `scripts/deploy-local.sh --fix`, manually clean old provider-agent config if present:
 
 1. Edit global `~/.config/opencode/opencode.json` or `opencode.jsonc`.
 2. Remove `agent.adv-claude`, `agent.adv-gpt`, `agent.adv-glm`, and `agent.adv-kimi` entries.
@@ -76,7 +76,7 @@ After updating and running `scripts/sync-global.sh --fix`, manually clean old pr
 4. Confirm stale files are gone from `~/.config/opencode/agents/adv-{provider}.md`.
 5. Restart OpenCode. Config and agent files are loaded at process start.
 
-`sync-global.sh` intentionally does not auto-migrate user-owned provider-agent config, because those keys may encode model-routing preferences that require human review.
+`deploy-local.sh` intentionally does not auto-migrate user-owned provider-agent config, because those keys may encode model-routing preferences that require human review.
 
 ## OMP Follow-Up
 
@@ -98,7 +98,7 @@ That follow-up needs separate schema, UX, fallback, and auditability decisions.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `adv-claude` / `adv-gpt` still appears selectable | Stale global agent file or config key remains | Remove `agent.adv-{provider}` config, run `scripts/sync-global.sh --fix`, restart OpenCode |
+| `adv-claude` / `adv-gpt` still appears selectable | Stale global agent file or config key remains | Remove `agent.adv-{provider}` config, run `scripts/deploy-local.sh --fix`, restart OpenCode |
 | Generic `adv` hidden | Stale `agent.adv.disable` from provider-variant mode | Remove `agent.adv.disable`, restart OpenCode |
 | No provider hint appears | Provider/model identity is unknown or unsupported | Expected safe fallback; add structured identity support in a follow-up if needed |
 | Runtime prompt has multiple system messages | Plugin bug | Ensure provider hints are appended through `output.system[0]` only |

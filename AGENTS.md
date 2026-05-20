@@ -27,7 +27,7 @@ plugin/              # TypeScript plugin (the only buildable package)
   agents/            # adv-researcher (bundled global), adv-engineer (bundled global), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/          # Managed overlay blocks synced into global shared agents
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
-scripts/             # sync-global.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
+scripts/             # deploy-local.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
 docs/                # Gate contracts, workflow diagram, checklists, spec docs
 ```
 
@@ -144,11 +144,11 @@ See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 ### Overlay sync model
 
-Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/sync-global.sh` injects into the global agent files without overwriting user customization.
+Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/deploy-local.sh` injects into the global agent files without overwriting user customization.
 
 ### Provider ADV runtime hints
 
-`scripts/sync-global.sh` now assembles one global ADV runtime agent:
+`scripts/deploy-local.sh` now assembles one global ADV runtime agent:
 
 1. **Copy canonical ADV body** — `.opencode/agents/adv.md` remains the source of truth.
 2. **Embed ADV protocol locally** — repository `ADV_INSTRUCTIONS.md` is appended into global `~/.config/opencode/agents/adv.md`, not global `instructions[]`.
@@ -180,12 +180,12 @@ Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schem
 
 ## Sync Script
 
-`scripts/sync-global.sh` is the primary maintenance tool:
+`scripts/deploy-local.sh` is the primary maintenance tool:
 
 ```bash
-./scripts/sync-global.sh --check      # Report what's out of date
-./scripts/sync-global.sh --fix        # Sync assets + patch opencode.json
-./scripts/sync-global.sh --dry-run --diff  # Preview changes
+./scripts/deploy-local.sh --check      # Report what's out of date
+./scripts/deploy-local.sh --fix        # Sync assets + patch opencode.json
+./scripts/deploy-local.sh --dry-run --diff  # Preview changes
 ```
 
 Requires `jq` for config patching.

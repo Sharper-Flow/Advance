@@ -7,7 +7,7 @@ phaseGoal: "Complete the flight-check: every gap closed, every dependency mapped
 ---
 # ADV Prep — Pre-Implementation Gap Analysis
 Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → add them via ADV tools. Uses 4-Step Gap Analysis and IEEE completeness criteria. Runs **inline** — no sub-agents.
-<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 -->
+<!-- rq-prep-out1 rq-prep-neg1 rq-prep-scope1 rq-prepArtifactExcerpt01 -->
 
 ## Command Boundary
 **Produces:** Complete task graph via `adv_task_add` (sole pre-impl task creator per rq-prep-out1), gap analysis (rq-prep-scope1), task sequencing with dependencies.
@@ -101,6 +101,15 @@ When `ChangeContract` exists, `/adv-prep` must synthesize task refs alongside ta
 - Every required `AC*` item needs at least one implementing or verifying task before planning gate completion.
 
 When creating tasks, include the structured `contract_refs` payload in task mutation path supported by current tool layer. Do not rely on prose-only labels as the source of truth.
+
+### Artifact Excerpts
+
+For artifact-backed gates, prep must preserve enough context for execution and review to diagnose workflow readiness failures without reading ADV state files directly:
+
+- Include a `problem-statement.md excerpt` or proposal summary when task scope depends on the confirmed problem.
+- Include `agreement.md` acceptance/constraint excerpts in task verification notes when they drive `contract_refs.verifies` or `contract_refs.respects`.
+- Include `design.md` decision excerpts for tasks implementing architecture-sensitive behavior.
+- Do not create tasks that rely on manually editing `acceptance.md`; acceptance proof is generated from typed contract review state.
 
 ### Delegation Hints
 When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal execution routing:

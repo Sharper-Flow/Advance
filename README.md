@@ -294,7 +294,7 @@ This design also enables model competition: run the same change on two models an
 ```bash
 git clone https://github.com/Sharper-Flow/Advance.git
 cd Advance
-./scripts/sync-global.sh --fix
+./scripts/deploy-local.sh --fix
 ```
 
 That syncs the plugin, commands, overlays, bundled agents, and skills into the local OpenCode setup.

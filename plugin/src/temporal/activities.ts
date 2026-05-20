@@ -19,6 +19,7 @@
 
 import { mkdir, readFile, stat, unlink } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
+import { createHash } from "crypto";
 
 import { listSpecDirs } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
@@ -43,14 +44,14 @@ export type ArtifactKind =
   | "problem-statement"
   | "agreement"
   | "design"
-  | "executive-summary";
+  | "acceptance";
 
 const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
   proposal: "proposal.md",
   "problem-statement": "problem-statement.md",
   agreement: "agreement.md",
   design: "design.md",
-  "executive-summary": "executive-summary.md",
+  acceptance: "acceptance.md",
 };
 
 export interface ReadArtifactInput {
@@ -80,6 +81,63 @@ export async function readArtifactActivity(
         code === "ENOENT"
           ? `Artifact not found: ${path}`
           : `Read failed (${code ?? "unknown"}): ${message}`,
+    };
+  }
+}
+
+export interface InspectArtifactInput {
+  changesDir: string;
+  changeId: string;
+  kind: ArtifactKind;
+}
+
+export type InspectArtifactResult =
+  | {
+      ok: true;
+      kind: ArtifactKind;
+      path: string;
+      contentHash: string;
+      nonWhitespaceChars: number;
+      checkedAt: string;
+    }
+  | {
+      ok: false;
+      kind: ArtifactKind;
+      path: string;
+      code: "missing" | "unreadable";
+      error: string;
+      checkedAt: string;
+    };
+
+export async function inspectArtifactActivity(
+  input: InspectArtifactInput,
+): Promise<InspectArtifactResult> {
+  const filename = ARTIFACT_FILENAME[input.kind];
+  const path = join(input.changesDir, input.changeId, filename);
+  const checkedAt = new Date().toISOString();
+  try {
+    const content = await readFile(path, "utf-8");
+    return {
+      ok: true,
+      kind: input.kind,
+      path,
+      contentHash: createHash("sha256").update(content).digest("hex"),
+      nonWhitespaceChars: content.replace(/\s/g, "").length,
+      checkedAt,
+    };
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      kind: input.kind,
+      path,
+      code: code === "ENOENT" ? "missing" : "unreadable",
+      error:
+        code === "ENOENT"
+          ? `Artifact not found: ${path}`
+          : `Inspect failed (${code ?? "unknown"}): ${message}`,
+      checkedAt,
     };
   }
 }
