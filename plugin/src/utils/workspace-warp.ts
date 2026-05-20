@@ -159,19 +159,30 @@ export async function deleteAdvWorkspace(
   );
 }
 
-const isWorkspaceListItem = (
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isAdvWorkspaceListItem = (
   value: unknown,
-): value is { id: string; directory: string | null } =>
-  typeof value === "object" &&
-  value !== null &&
+): value is {
+  id: string;
+  type: "adv-worktree";
+  directory: string | null;
+  extra: { directory: string; branch?: string };
+} =>
+  isRecord(value) &&
   "id" in value &&
   typeof value.id === "string" &&
+  value.type === "adv-worktree" &&
   "directory" in value &&
-  (typeof value.directory === "string" || value.directory === null);
+  (typeof value.directory === "string" || value.directory === null) &&
+  isRecord(value.extra) &&
+  typeof value.extra.directory === "string";
 
 export async function findWorkspaceByDirectory(
   deps: WarpDeps,
   directory: string,
+  branch?: string,
 ): Promise<WorkspaceHandle | null> {
   if (!warpFlagEnabled()) return null;
 
@@ -183,9 +194,13 @@ export async function findWorkspaceByDirectory(
     if (!Array.isArray(list)) return null;
 
     const match = list.find(
-      (item) => isWorkspaceListItem(item) && item.directory === directory,
+      (item) =>
+        isAdvWorkspaceListItem(item) &&
+        item.directory === directory &&
+        item.extra.directory === directory &&
+        (branch === undefined || item.extra.branch === branch),
     );
-    return isWorkspaceListItem(match) ? { workspaceID: match.id } : null;
+    return isAdvWorkspaceListItem(match) ? { workspaceID: match.id } : null;
   } catch {
     return null;
   }

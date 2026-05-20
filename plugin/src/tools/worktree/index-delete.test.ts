@@ -207,9 +207,19 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(
-        new Response(JSON.stringify([{ id: "ws-abc", directory: wtPath }]), {
-          headers: { "content-type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify([
+            {
+              id: "ws-abc",
+              type: "adv-worktree",
+              directory: wtPath,
+              extra: { directory: wtPath, branch },
+            },
+          ]),
+          {
+            headers: { "content-type": "application/json" },
+          },
+        ),
       )
       .mockResolvedValueOnce(new Response(""));
 
@@ -280,9 +290,19 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(
-        new Response(JSON.stringify([{ id: "ws-gone", directory: wtPath }]), {
-          headers: { "content-type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify([
+            {
+              id: "ws-gone",
+              type: "adv-worktree",
+              directory: wtPath,
+              extra: { directory: wtPath, branch },
+            },
+          ]),
+          {
+            headers: { "content-type": "application/json" },
+          },
+        ),
       )
       .mockResolvedValueOnce(new Response("missing", { status: 404 }));
     const deps = createMockDeps(repoRoot, wtPath);
@@ -307,9 +327,19 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(
-        new Response(JSON.stringify([{ id: "ws-error", directory: wtPath }]), {
-          headers: { "content-type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify([
+            {
+              id: "ws-error",
+              type: "adv-worktree",
+              directory: wtPath,
+              extra: { directory: wtPath, branch },
+            },
+          ]),
+          {
+            headers: { "content-type": "application/json" },
+          },
+        ),
       )
       .mockResolvedValueOnce(new Response("boom", { status: 503 }));
     const deps = createMockDeps(repoRoot, wtPath);

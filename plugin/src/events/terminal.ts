@@ -243,37 +243,34 @@ const cleanTitlePart = (value: string | undefined): string =>
   (value ?? "").trim();
 
 /**
- * Build tab title from raw project name, raw change ID, and optional prefix.
+ * Build tab title from raw project name and raw change ID.
  *
  * Deliberately avoids semantic normalization, shortname generation, acronym
  * generation, verb stripping, or AI/agent-driven naming. The terminal title is
- * a direct reflection of the project basename and active ADV change ID:
+ * a direct reflection of the initial project basename and active ADV change ID:
  *
  *   Project
  *   Project: change-id
- *   💀 Project: change-id
  */
 export const buildTabTitle = (
   _emoji: string,
   projectName: string,
   changeId: string | undefined,
-  prefix?: string,
+  _prefix?: string,
 ): string => {
   const projectLabel = cleanTitlePart(projectName);
   const changeLabel = cleanTitlePart(changeId);
-  const prefixLabel = cleanTitlePart(prefix);
-  const prefixStr = prefixLabel ? `${prefixLabel} ` : "";
 
   if (projectLabel && changeLabel) {
-    return `${prefixStr}${projectLabel}: ${changeLabel}`;
+    return `${projectLabel}: ${changeLabel}`;
   }
   if (projectLabel) {
-    return `${prefixStr}${projectLabel}`;
+    return projectLabel;
   }
   if (changeLabel) {
-    return `${prefixStr}${changeLabel}`;
+    return changeLabel;
   }
-  return prefixLabel;
+  return "";
 };
 
 // Test seam: injectable callback replaces real bell I/O in tests.
@@ -321,6 +318,7 @@ const ringBell = (): void => {
 // null = new session (bell should not ring)
 // StatusMarker = previous status for transition detection
 let lastAlertedStatus: StatusMarker | null = null;
+let lastTitle: string | null = null;
 
 // Bell-gate state: only ring when main agent finishes a response.
 // Armed by armPendingFinalAlert() after a qualifying message.updated event.
@@ -369,7 +367,10 @@ const cancelPendingBell = (): void => {
  * Title format:
  *   - Active change: "<project>: <change-id>"
  *   - No active change: "<project>"
- *   - BLOCKED: prepends "💀" prefix
+ *
+ * Title policy: identity-only. Do not encode status/progress or repeatedly
+ * rewrite the tab title during normal status churn. The initial simple
+ * `project: advChange` title is updated only when the identity string changes.
  *
  * Bell policy:
  *   - ATTN (permission pending): ring immediately, clear any pending final alert
@@ -386,11 +387,12 @@ export const updateTerminalStatus = (
   changeId?: string,
   _progress?: string,
 ): void => {
-  const emoji = getStatusEmoji(status);
-  const prefix = status === "BLOCKED" ? "💀" : undefined;
-  const title = buildTabTitle(emoji, projectName, changeId, prefix);
+  const title = buildTabTitle(getStatusEmoji(status), projectName, changeId);
 
-  setTitle(title);
+  if (title !== lastTitle) {
+    lastTitle = title;
+    setTitle(title);
+  }
 
   const previousStatus = lastAlertedStatus;
   lastAlertedStatus = status;
@@ -486,6 +488,7 @@ const getStatusEmoji = (status: StatusMarker): string => {
 export const cleanupTerminal = (): void => {
   cancelPendingBell();
   resetTitle();
+  lastTitle = null;
   lastAlertedStatus = null;
   _clearPendingFinalAlert();
   invalidateTtyCache();

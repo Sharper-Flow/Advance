@@ -59,6 +59,52 @@ describe("buildAdvWorktreeAdapter", () => {
     ).rejects.toThrow("adv-worktree adapter requires info.extra.directory");
   });
 
+  it("rejects missing or invalid branch metadata", async () => {
+    stubWorktreeRoot();
+    const adapter = buildAdvWorktreeAdapter();
+
+    await expect(
+      adapter.configure({
+        ...baseInfo,
+        extra: { directory: baseInfo.extra.directory },
+      }),
+    ).rejects.toThrow("adv-worktree adapter requires info.extra.branch");
+
+    await expect(
+      adapter.configure({
+        ...baseInfo,
+        extra: { ...baseInfo.extra, branch: "../bad" },
+      }),
+    ).rejects.toThrow("adv-worktree adapter branch is invalid");
+  });
+
+  it("rejects directories that do not match the workspace project and branch", async () => {
+    stubWorktreeRoot();
+    const adapter = buildAdvWorktreeAdapter();
+
+    await expect(
+      adapter.configure({
+        ...baseInfo,
+        extra: {
+          directory:
+            "/tmp/adv-workspace-adapter/opencode/worktree/proj-123/change/other",
+          branch: "change/fixWorktreeSessionRoot",
+        },
+      }),
+    ).rejects.toThrow(
+      "adv-worktree adapter directory does not match project/branch",
+    );
+  });
+
+  it("rejects missing project ownership", async () => {
+    stubWorktreeRoot();
+    const adapter = buildAdvWorktreeAdapter();
+
+    await expect(
+      adapter.configure({ ...baseInfo, projectID: "" }),
+    ).rejects.toThrow("adv-worktree adapter requires info.projectID");
+  });
+
   it("returns a local target rooted at the configured worktree directory", async () => {
     stubWorktreeRoot();
     const adapter = buildAdvWorktreeAdapter();
@@ -78,7 +124,7 @@ describe("buildAdvWorktreeAdapter", () => {
     await expect(
       adapter.configure({
         ...baseInfo,
-        extra: { directory: "/tmp/not-an-adv-worktree" },
+        extra: { directory: "/tmp/not-an-adv-worktree", branch: "change/test" },
       }),
     ).rejects.toThrow("outside allowed namespace");
 

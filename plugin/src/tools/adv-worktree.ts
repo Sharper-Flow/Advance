@@ -64,10 +64,15 @@ async function resolveCreateRuntimeMode(
   | { mode: "terminal" | "spawn"; warning?: string }
   | { mode: "blocked"; output: Record<string, unknown> }
 > {
-  if (!runtime?.serverUrl) return { mode: "legacy" };
-
   const config = await loadWorktreeConfig(projectRoot, log);
   if (config.mode !== "warp") return { mode: config.mode };
+
+  const warningMissingServer =
+    "mode:warp unavailable because the OpenCode tool context did not include serverUrl; falling back to mode:terminal.";
+  if (!runtime?.serverUrl) {
+    log.warn(`[worktree] ${warningMissingServer}`);
+    return { mode: "terminal", warning: warningMissingServer };
+  }
 
   const warningMissingSession =
     "mode:warp unavailable because the OpenCode tool context did not include a sessionID; falling back to mode:terminal.";
@@ -84,13 +89,6 @@ async function resolveCreateRuntimeMode(
   }
 
   const warpDeps: WarpDeps = { serverUrl: runtime.serverUrl };
-  const warningEndpoint =
-    "mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.";
-  if (!(await workspaceAndWarpAvailable(warpDeps))) {
-    log.warn(`[worktree] ${warningEndpoint}`);
-    return { mode: "terminal", warning: warningEndpoint };
-  }
-
   let currentWorkspaceID: string | null;
   try {
     currentWorkspaceID = await getSessionWorkspaceID(
@@ -115,8 +113,31 @@ async function resolveCreateRuntimeMode(
     };
   }
 
+  const warningEndpoint =
+    "mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.";
+  if (!(await workspaceAndWarpAvailable(warpDeps))) {
+    log.warn(`[worktree] ${warningEndpoint}`);
+    return { mode: "terminal", warning: warningEndpoint };
+  }
+
   return { mode: "warp", warpDeps };
 }
+
+const terminalModePayload = <T extends { path?: string }>(
+  result: T,
+  warning?: string,
+): T & {
+  mode: "terminal";
+  workdir: string | undefined;
+  warning?: string;
+  message: string;
+} => ({
+  ...result,
+  mode: "terminal",
+  workdir: result.path,
+  ...(warning ? { warning } : {}),
+  message: `IMPORTANT: Terminal mode is active. You MUST use workdir="${result.path}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
+});
 
 async function initWorktreeDb(
   projectRoot: string,
@@ -162,13 +183,7 @@ export const advWorktreeTools = {
       if (!result.ok || mode.mode === "legacy") return formatToolOutput(result);
 
       if (mode.mode === "terminal") {
-        return formatToolOutput({
-          ...result,
-          mode: "terminal",
-          workdir: result.path,
-          warning: mode.warning,
-          message: `IMPORTANT: Terminal mode is active. You MUST use workdir="${result.path}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
-        });
+        return formatToolOutput(terminalModePayload(result, mode.warning));
       }
 
       if (mode.mode === "spawn") {
@@ -204,7 +219,12 @@ export const advWorktreeTools = {
             );
           }
         }
-        throw error;
+        return formatToolOutput(
+          terminalModePayload(
+            result,
+            `mode:warp failed after creating the git worktree (${error}); cleaned up the OpenCode workspace and falling back to mode:terminal.`,
+          ),
+        );
       }
 
       return formatToolOutput({
@@ -253,7 +273,7 @@ export const advWorktreeTools = {
       const result = await advWorktreeResume(
         { changeId: args.changeId ?? "", branch: args.branch },
         { base: args.base, force: args.force },
-        { projectRoot, database, log },
+        { projectRoot, database, log, store },
       );
       return formatToolOutput(result);
     },

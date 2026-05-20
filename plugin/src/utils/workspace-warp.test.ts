@@ -295,17 +295,65 @@ describe("workspace-warp", () => {
       vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
       const fetchImpl = vi.fn().mockResolvedValue(
         jsonResponse([
-          { id: "ws-other", directory: "/tmp/other" },
-          { id: "ws-match", directory: "/tmp/wt" },
+          {
+            id: "ws-other",
+            type: "adv-worktree",
+            directory: "/tmp/other",
+            extra: { directory: "/tmp/other", branch: "change/other" },
+          },
+          {
+            id: "ws-match",
+            type: "adv-worktree",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/wt", branch: "change/test" },
+          },
         ]),
       );
 
       await expect(
-        findWorkspaceByDirectory({ serverUrl, fetchImpl }, "/tmp/wt"),
+        findWorkspaceByDirectory(
+          { serverUrl, fetchImpl },
+          "/tmp/wt",
+          "change/test",
+        ),
       ).resolves.toEqual({ workspaceID: "ws-match" });
       expect(String(getCall(fetchImpl)[0])).toBe(
         "http://127.0.0.1:4096/experimental/workspace",
       );
+    });
+
+    it("ignores non-ADV or metadata-mismatched workspace rows", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse([
+          {
+            id: "ws-non-adv",
+            type: "git",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/wt", branch: "change/test" },
+          },
+          {
+            id: "ws-wrong-extra",
+            type: "adv-worktree",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/other", branch: "change/test" },
+          },
+          {
+            id: "ws-wrong-branch",
+            type: "adv-worktree",
+            directory: "/tmp/wt",
+            extra: { directory: "/tmp/wt", branch: "change/other" },
+          },
+        ]),
+      );
+
+      await expect(
+        findWorkspaceByDirectory(
+          { serverUrl, fetchImpl },
+          "/tmp/wt",
+          "change/test",
+        ),
+      ).resolves.toBeNull();
     });
 
     it("returns null when no workspace directory matches", async () => {

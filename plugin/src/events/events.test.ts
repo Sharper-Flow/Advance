@@ -108,10 +108,10 @@ describe("Status State Management", () => {
       expect(getStatus().taskProgress).toBe("3/10");
     });
 
-    it("updates projectName on second init (so terminal display reflects current session)", () => {
+    it("preserves projectName on second init (keeps initial simple tab identity)", () => {
       initializeStatus("trunk-basename");
       initializeStatus("worktree-basename");
-      expect(getStatus().projectName).toBe("worktree-basename");
+      expect(getStatus().projectName).toBe("trunk-basename");
     });
 
     it("updates lastUpdated on every init call", () => {
@@ -378,14 +378,14 @@ describe("buildTabTitle", () => {
     expect(title).not.toMatch(/\[\d+\/\d+\]/);
   });
 
-  it("prefixes 💀 for BLOCKED status", () => {
+  it("ignores BLOCKED/status prefix for the simple identity title", () => {
     expect(buildTabTitle("🟥", "Jester", "changeX", "💀")).toBe(
-      "💀 Jester: changeX",
+      "Jester: changeX",
     );
   });
 
-  it("shows BLOCKED with 💀 prefix when no active change", () => {
-    expect(buildTabTitle("🟥", "Jester", undefined, "💀")).toBe("💀 Jester");
+  it("shows project only when BLOCKED/status prefix is provided without active change", () => {
+    expect(buildTabTitle("🟥", "Jester", undefined, "💀")).toBe("Jester");
   });
 
   it("ignores status emoji in the tab title", () => {

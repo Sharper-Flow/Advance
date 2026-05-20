@@ -192,7 +192,7 @@ describe("terminal title status contract", () => {
     );
   });
 
-  test("BLOCKED without active change prefixes skull", async () => {
+  test("BLOCKED without active change keeps simple project title", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
@@ -202,7 +202,7 @@ describe("terminal title status contract", () => {
 
     expect(stdoutSpy).toHaveBeenCalled();
     expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;💀 advance\x07",
+      "\x1b]0;advance\x07",
     );
   });
 });

@@ -1312,11 +1312,16 @@ export type AdvWorktreeDeleteResult =
 
 async function cleanupOpenCodeWorkspaceForWorktree(
   worktreePath: string,
+  branch: string,
   deps: AdvWorktreeDeleteDeps,
 ): Promise<void> {
   if (!deps.warpDeps) return;
 
-  const found = await findWorkspaceByDirectory(deps.warpDeps, worktreePath);
+  const found = await findWorkspaceByDirectory(
+    deps.warpDeps,
+    worktreePath,
+    branch,
+  );
   if (!found) return;
 
   try {
@@ -1646,7 +1651,7 @@ export async function advWorktreeDelete(
       `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`,
     );
   }
-  await cleanupOpenCodeWorkspaceForWorktree(worktreePath, deps);
+  await cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps);
   const removeResult = await gitWorktreeRemove(
     deps.projectRoot,
     worktreePath,
@@ -1902,10 +1907,15 @@ async function resolveEffectiveWorktreeMode(
     return { mode: "terminal" };
   }
 
-  const currentWorkspaceID = await getCurrentSessionWorkspaceID(
-    client,
-    sessionID,
-  );
+  let currentWorkspaceID: string | null;
+  try {
+    currentWorkspaceID = await getCurrentSessionWorkspaceID(client, sessionID);
+  } catch (error) {
+    log.warn(
+      `[worktree] mode:warp unavailable because current session lookup failed (${error}); falling back to mode:terminal.`,
+    );
+    return { mode: "terminal" };
+  }
   if (currentWorkspaceID) {
     return {
       mode: "blocked",
@@ -2192,7 +2202,29 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                     );
                   }
                 }
-                throw error;
+
+                log.warn(
+                  `[worktree] mode:warp failed after creating the git worktree (${error}); falling back to mode:terminal.`,
+                );
+
+                await addSession(
+                  database,
+                  {
+                    sessionId: `inline:${args.branch}`,
+                    branch: args.branch,
+                    path: worktreePath,
+                  },
+                  undefined,
+                  inferChangeIdFromBranch(args.branch),
+                );
+
+                return [
+                  `Worktree created at ${worktreePath}`,
+                  `Branch: ${args.branch}`,
+                  ``,
+                  `mode:warp failed after creating the git worktree; cleaned up any created OpenCode workspace and falling back to mode:terminal.`,
+                  `IMPORTANT: Terminal mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
+                ].join("\n");
               }
 
               await addSession(
