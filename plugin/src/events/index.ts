@@ -5,12 +5,7 @@
  */
 
 // Terminal utilities
-export {
-  getProjectName,
-  buildTabTitle,
-  armPendingFinalAlert,
-  _clearPendingFinalAlert,
-} from "./terminal";
+export { getProjectName, buildTabTitle } from "./terminal";
 
 // Status management
 export {

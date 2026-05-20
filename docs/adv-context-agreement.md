@@ -1,6 +1,6 @@
 # ADV Context Agreement
 
-Closes the gap between the agent's internal state and what the user can see. Two formatting patterns make agent state visible and verifiable.
+Closes the gap between the agent's internal state and what the user can see. The `chat-output-display` spec is canonical; this doc summarizes the user-visible surfaces and trigger split.
 
 ## Problem
 
@@ -8,12 +8,14 @@ The agent holds rich structured state (gates, tasks, workdir, current task) that
 
 ## Solution
 
-Two formatted outputs, each with distinct triggers:
+Four visible surfaces, each with distinct triggers:
 
 | Pattern | Purpose | Trigger |
 |---------|---------|---------|
-| Context Snapshot | Compact state summary | ADV tool responses (task/gate transitions, status) |
+| Context Snapshot | Full-box phase/change state summary | Change creation, gate completion, gate re-entry, primary `adv_status`, session resume |
+| Context Ticker | Compact task-state summary | Transient task tools (`adv_task_update`, `adv_task_ready`, `adv_task_add`, `adv_task_cancel`) |
 | Cross-Repo Switch | Workdir change indicator | Agent switches `workdir` to a different repo |
+| Status/title notification policy | Non-audible terminal title/status behavior | Terminal status/title update paths |
 
 ## Context Snapshot
 
@@ -71,23 +73,38 @@ Gate IDs are rendered directly (no abbreviation map is currently defined):
 
 ### Emission Triggers
 
-The snapshot is included automatically when ADV tools expose current change state. Per the Context Freshness Policy in `ADV_INSTRUCTIONS.md`, agents load full change context once with `adv_change_show`, then refresh per-task context via `adv_task_show` — so the snapshot is emitted at phase boundaries and task transitions.
+The full-box snapshot is included at phase/change boundaries. Per the Context Freshness Policy in `ADV_INSTRUCTIONS.md`, agents load full change context once with `adv_change_show`, then refresh per-task context via task tools. Transient task tools emit the compact ticker instead of the full-box snapshot.
 
-| Trigger | Mechanism |
-|---------|-----------|
-| Task started | `adv_task_update` → `in_progress` |
-| Task completed | `adv_task_update` → `done` |
-| Task cancelled | `adv_task_cancel` → batch cancellation |
-| Task created | `adv_task_add` → successful creation |
-| Task ready for work | `adv_task_ready` |
-| Change created | `adv_change_create` response |
-| Gate transitions | `adv_gate_complete` response |
-| Gate re-entry | `adv_change_reenter` response |
-| Project overview | Recent entries in `adv_status` |
+| Trigger | Surface | Mechanism |
+|---------|---------|-----------|
+| Change created | Context Snapshot | `adv_change_create` response |
+| Gate transitions | Context Snapshot | `adv_gate_complete` response |
+| Gate re-entry | Context Snapshot | `adv_change_reenter` response |
+| Project overview | Context Snapshot for primary change; Context Ticker for non-primary changes | `adv_status` recent entries |
+| Session resume | Context Snapshot | Active-change resume context |
+| Task started | Context Ticker | `adv_task_update` → `in_progress` |
+| Task completed | Context Ticker | `adv_task_update` → `done` |
+| Task cancelled | Context Ticker | `adv_task_cancel` → batch cancellation |
+| Task created | Context Ticker | `adv_task_add` → successful creation |
+| Task ready for work | Context Ticker | `adv_task_ready` |
 
 > **Note:** `adv_change_show` does not emit a snapshot — it returns structured JSON for direct LLM consumption. `adv_status` emits a full-box snapshot for the primary change only; non-primary changes receive a compact ticker.
 
-> **rq-ctxsnap2.3–2.6 compliance:** Task-level triggers (`adv_task_update` → `in_progress`, `adv_task_update` → `done`, `adv_task_ready`, `adv_task_cancel`, `adv_task_add`) now emit the snapshot directly rather than deferring to the next `adv_change_show` call. Gate re-entry (`adv_change_reenter`) emits the snapshot showing the reset gate state.
+> **rq-ctxsnap2 / rq-ctxticker2 compliance:** Gate/change triggers emit the full-box snapshot directly. Task-level triggers (`adv_task_update` → `in_progress`, `adv_task_update` → `done`, `adv_task_ready`, `adv_task_cancel`, `adv_task_add`) emit the compact ticker directly rather than deferring to the next `adv_change_show` call.
+
+## Context Ticker
+
+A compact single-line `_contextSnapshot` used for transient task-state tools. It summarizes the current change ID, gate arrow, and task progress without flooding scrollback.
+
+Example:
+
+```text
+║ removeTerminalBells · execution ✓→acceptance · 4/4 ║
+```
+
+## Status/Title Notification Policy
+
+ADV owns deterministic status markers and terminal title updates only. It does not emit BEL (`\x07`) or replacement terminal notification protocols for status/title paths; completion/attention notifications are host/tool-owned.
 
 ### Graceful Degradation
 
@@ -126,7 +143,7 @@ Emit when the agent switches `workdir` to a different repository for a cross-rep
 | `plugin/src/utils/context-snapshot.ts` | Types: `ContextSnapshotInput`, `CrossRepoSwitchInput` |
 | `plugin/src/tools/status.ts` | Adds full-box `_contextSnapshot` to primary change; compact ticker to non-primary changes |
 | `plugin/src/tools/gate.ts` | Emits updated `_contextSnapshot` in `adv_gate_complete` responses |
-| `plugin/src/tools/task.ts` | Emits `_contextSnapshot` on `adv_task_update` (→ `in_progress` / → `done`), `adv_task_ready`, `adv_task_cancel`, and `adv_task_add` |
+| `plugin/src/tools/task.ts` | Emits compact ticker `_contextSnapshot` on `adv_task_update` (→ `in_progress` / → `done`), `adv_task_ready`, `adv_task_cancel`, and `adv_task_add` |
 | `plugin/src/tools/change.ts` | Emits `_contextSnapshot` on `adv_change_create` and `adv_change_reenter` (via `buildReentryResult`) |
 
 ## Spec
@@ -141,7 +158,11 @@ Requirements are defined in canonical JSON at `.adv/specs/chat-output-display/sp
 | `rq-ctxticker2` | Ticker emission triggers (transient task tools — update, ready, add, cancel) |
 | `rq-idleMarker01` | IDLE / ATTN status marker split |
 | `rq-idleMarker02` | `STATUS_MARKERS.IDLE` constant + ⬜ emoji |
-| `rq-idleMarker03` | IDLE bell policy (WORK/TOOLING→IDLE rings; IDLE↔IDLE / BLOCKED→IDLE / lateral IDLE↔ATTN do not) |
+| `rq-idleMarker03` | IDLE host-owned notifications; ADV status transitions do not emit BEL or replacement notification protocols |
+| `rq-titleBell01` | Terminal status/title paths do not emit BEL; OSC titles use ST terminators and control-byte-normalized payloads |
 | `rq-ctxswitch` | Cross-repo switch indicator format (≤3 content lines) |
 | `rq-ctxformat` | Box-drawing format, max 10 lines, ≤80 cols, deterministic |
 | `rq-ctxfallback` | Graceful degradation for missing data |
+| `rq-toolTitle01` | Deterministic ADV tool display titles with parseable structured output preserved |
+| `rq-toolTitle02` | Tool display titles are presentation-only and never correctness authority |
+| `rq-toolTitle03` | Tool display titles redact sensitive values and bound long snippets |

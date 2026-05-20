@@ -8,6 +8,9 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, readFileSync, rmSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 // Mock child_process BEFORE importing the terminal module so the
 // module picks up the mocked exports.
@@ -74,7 +77,7 @@ describe("tmux rename-window safety", () => {
           c[0] === "tmux" && Array.isArray(c[1]) && c[1][0] === "rename-window",
       );
     expect(renameCall).toBeDefined();
-    expect(renameCall![1]).toEqual(["rename-window", "boring-title"]);
+    expect(renameCall![1]).toEqual(["rename-window", "--", "boring-title"]);
     expect(renameCall![2]).toMatchObject({
       stdio: "ignore",
       timeout: 1000,
@@ -88,7 +91,7 @@ describe("tmux rename-window safety", () => {
     term._setTitle(risky);
     expect(execFileSync).toHaveBeenCalled();
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("title with dollar sign is passed raw", async () => {
@@ -97,7 +100,7 @@ describe("tmux rename-window safety", () => {
     const risky = "Price $100 feature";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("title with backslash is passed raw", async () => {
@@ -106,16 +109,64 @@ describe("tmux rename-window safety", () => {
     const risky = "Fix C:\\Users\\path";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
-  test("title with newline is passed raw", async () => {
+  test("title with newline is sanitized before rename-window", async () => {
     const { execFileSync } = await import("child_process");
     const term = await import("./terminal");
     const risky = "Feature\nImplementation";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe("Feature Implementation");
+  });
+
+  test("title with BEL and ESC is sanitized before rename-window", async () => {
+    const { execFileSync } = await import("child_process");
+    const term = await import("./terminal");
+    term._setTitle("Feature\x07\x1b]2;pwn\x1b\\Implementation");
+    const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
+    expect(args[2]).toBe("Feature ]2;pwn \\Implementation");
+  });
+
+  test("title beginning with hyphen is passed after end-of-options delimiter", async () => {
+    const { execFileSync } = await import("child_process");
+    const term = await import("./terminal");
+    term._setTitle("-t risky title");
+    const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
+    expect(args).toEqual(["rename-window", "--", "-t risky title"]);
+  });
+
+  test("title with BEL and ESC is sanitized before debug logging", async () => {
+    const originalDebug = process.env.ADV_DEBUG;
+    const originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
+    const tempDir = mkdtempSync(join(tmpdir(), "adv-terminal-log-"));
+
+    try {
+      process.env.ADV_DEBUG = "1";
+      process.env.OPEN_CHAD_CACHE_DIR = tempDir;
+      vi.resetModules();
+
+      const term = await import("./terminal");
+      term._setTitle("Feature\x07\x1b]2;pwn\x1b\\Implementation");
+
+      const debugLog = readFileSync(join(tempDir, "adv-debug.log"), "utf8");
+      expect(debugLog).not.toContain("\x07");
+      expect(debugLog).not.toContain("\x1b");
+      expect(debugLog).toContain("Feature ]2;pwn");
+    } finally {
+      if (originalDebug === undefined) {
+        delete process.env.ADV_DEBUG;
+      } else {
+        process.env.ADV_DEBUG = originalDebug;
+      }
+      if (originalCacheDir === undefined) {
+        delete process.env.OPEN_CHAD_CACHE_DIR;
+      } else {
+        process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+      }
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("title with double quotes is passed raw", async () => {
@@ -124,7 +175,7 @@ describe("tmux rename-window safety", () => {
     const risky = `"quoted" title`;
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[2]).toBe(risky);
   });
 
   test("execFileSync failure is caught and does not propagate", async () => {
@@ -140,6 +191,16 @@ describe("tmux rename-window safety", () => {
 describe("terminal title status contract", () => {
   const originalTmux = process.env.TMUX;
   const originalStdoutIsTTY = process.stdout.isTTY;
+
+  const expectNonAudibleTitleSequence = (
+    value: unknown,
+    expectedTitle: string,
+  ): void => {
+    const sequence = String(value);
+    expect(sequence).toContain(`\x1b]0;${expectedTitle}\x1b\\`);
+    expect(sequence).not.toContain(`\x1b]0;${expectedTitle}\x07`);
+    expect(sequence).not.toContain("\x07");
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -173,9 +234,7 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("ATTN", "advance");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;advance\x07",
-    );
+    expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
   });
 
   test("WORK with active change writes raw project + raw change title", async () => {
@@ -187,8 +246,9 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("WORK", "advance", "addFeatureX");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;advance: addFeatureX\x07",
+    expectNonAudibleTitleSequence(
+      stdoutSpy.mock.calls.at(-1)?.[0],
+      "advance: addFeatureX",
     );
   });
 
@@ -201,8 +261,61 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("BLOCKED", "advance");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;advance\x07",
+    expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
+  });
+
+  test("title payload BEL is sanitized before OSC output", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "adv\x07ance", "addFeatureX");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    expectNonAudibleTitleSequence(
+      stdoutSpy.mock.calls.at(-1)?.[0],
+      "adv ance: addFeatureX",
+    );
+  });
+
+  test("title payload ESC is sanitized before OSC output", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "adv\x1b]2;pwn\x1b\\ance");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    const sequence = String(stdoutSpy.mock.calls.at(-1)?.[0]);
+    expect(sequence).toContain("\x1b]0;adv ]2;pwn \\ance\x1b\\");
+    expect(sequence.split("\x1b").length - 1).toBe(2);
+  });
+
+  test("failed title emission does not suppress retry for same title", async () => {
+    const term = await import("./terminal");
+
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: false,
+      configurable: true,
+    });
+    term.updateTerminalStatus("WORK", "advance", "removeTerminalBells");
+
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: true,
+      configurable: true,
+    });
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+
+    term.updateTerminalStatus("WORK", "advance", "removeTerminalBells");
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expectNonAudibleTitleSequence(
+      stdoutSpy.mock.calls[0]?.[0],
+      "advance: removeTerminalBells",
     );
   });
 });

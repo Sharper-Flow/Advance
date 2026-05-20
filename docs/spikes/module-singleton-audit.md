@@ -16,7 +16,7 @@ Implementation status: task `tk-19b6a92616ad` resolved the actionable items belo
 
 | File:line | Singleton | Double-init risk | Classification | Action |
 |---|---|---|---|---|
-| `events/terminal.ts:107-329` | `cachedPaneTty`, `cachedClientTty`, `ttyCacheTimestamp`, `_onBell`, `lastAlertedStatus`, `pendingFinalAlert`, `lastArmedMessageId`, `lastRungMessageId`, `bellDebounceTimer` | TTY caching is process-global; both plugin instances inherit. Bell-state singletons may double-fire alerts if both instances see the same `session.idle` event | SAFE-ish: TTYs are immutable per process; bell state may double-arm but `lastRungMessageId` dedup at the ring site prevents duplicate rings | No action needed; document as known double-emit risk for non-terminal events |
+| `events/terminal.ts:107-329` | `cachedPaneTty`, `cachedClientTty`, `ttyCacheTimestamp`; historical bell state (`_onBell`, `lastAlertedStatus`, `pendingFinalAlert`, `lastArmedMessageId`, `lastRungMessageId`, `bellDebounceTimer`) removed by `removeTerminalBells` | TTY caching is process-global; both plugin instances inherit. The prior bell-state double-fire risk no longer applies because ADV-owned bell state/emission was removed. | SAFE: TTY cache is immutable enough per process; no bell singleton remains to double-arm or double-fire. | No action needed. |
 | `events/status.ts:23` `let state: StatusState` | Status singleton; reset on `initializeStatus` | RESOLVED | Task 7 (`tk-19b6a92616ad`) made `initializeStatus` idempotent for duplicate plugin init | — |
 | `events/status.ts:142` `const retryTrackers = new Map` | Retry counter map keyed by task id | SAFE — Map shared across plugin instances, task IDs are unique | No action | — |
 | `plugin-init.ts:366-370` Worker tracking Sets + `currentWorkerRole`, `exhaustedWorkerDirs` | Tracks in-process Temporal workers | NEEDS-AUDIT — second plugin init would re-call `startTemporalWorker` and potentially register a SECOND worker into the Set | YELLOW: existing `if (exhaustedWorkerDirs.has(projectStateDir)) return` short-circuits second-init for same project-id. **Verify by reading `startTemporalWorker` path before plugin-init code change lands** | Add explicit verification step to task 7 (tk-19b6a92616ad) |
@@ -51,7 +51,7 @@ Only #1 is a real leak.
 | `registerShutdownHandlers` double-registration | RED (pre-existing, exacerbated by warp) | Task 7 (`tk-19b6a92616ad`) — add guard at registration site |
 | Worker/health-monitor idempotency verification | YELLOW (likely-safe, needs read) | Task 7 (`tk-19b6a92616ad`) — verification step |
 | `projectRoot` cosmetic stale-cache | YELLOW (no behavioral impact) | Task 7 (`tk-19b6a92616ad`) — JSDoc note only |
-| Bell state double-arm on non-terminal events | YELLOW (low impact) | Document as known limitation; no fix |
+| Bell state double-arm on non-terminal events | RESOLVED | Bell state/emission removed by `removeTerminalBells`; no ADV-owned bell singleton remains |
 
 ### Recommended addition to task 7 (plugin init wiring)
 

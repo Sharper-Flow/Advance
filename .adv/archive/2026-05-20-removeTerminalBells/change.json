@@ -1,0 +1,233 @@
+{
+  "id": "removeTerminalBells",
+  "title": "Remove terminal bells",
+  "status": "archived",
+  "created_at": "2026-05-20T18:08:34.632Z",
+  "tasks": [
+    {
+      "id": "tk-5022e07b9232",
+      "title": "Replay parent no-BEL terminal title behavior with RED/GREEN tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T18:59:31.075Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements AC4; verifies AC4; respects AC1 C1 C4 DONT1 DONT2 DONT5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:30:31.272Z",
+      "verification": "RED: `pnpm test -- src/events/terminal.test.ts` failed with BEL-terminated title output and unsanitized control-byte payloads. GREEN: `pnpm exec vitest run src/events/terminal.test.ts` passed after adding control-byte title sanitization, ST OSC title termination, and sanitized `tmux rename-window` title arguments.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts"
+      ],
+      "touched_files": [
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts"
+      ],
+      "checkpointSha": "98d650d626a302350a3cc6b0ee2476dd56d6cf37",
+      "completedAt": "2026-05-20T19:33:22.598Z",
+      "completed_at": "2026-05-20T19:33:22.598Z"
+    },
+    {
+      "id": "tk-3f569b4d5998",
+      "title": "Remove ADV-owned bell runtime state, exports, and arming call sites",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T18:59:51.448Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5022e07b9232"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements AC1 AC2 AC3 AC6; verifies AC1 AC2 AC3 AC6; respects C2 C3 C4 DONT1 DONT3 DONT4"
+      },
+      "verification": "RED: `pnpm exec vitest run src/events/events.test.ts` failed on new no-BEL transition assertions because status transitions emitted BEL. GREEN: `pnpm exec vitest run src/events/events.test.ts` and `pnpm exec vitest run src/events/terminal.test.ts` passed after removing `ringBell`, `_setBellCallback`, final-alert/debounce state, message.updated bell arming, and bell-only tests. Source search found no remaining runtime `ringBell`, `_setBellCallback`, `armPendingFinalAlert`, or `BELL_DEBOUNCE_MS`; `\\x07` remains only in negative test assertions/fixtures.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/events/events.test.ts",
+        "plugin/src/events/index.ts",
+        "plugin/src/events/terminal.ts",
+        "plugin/src/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/events/events.test.ts",
+        "plugin/src/events/index.ts",
+        "plugin/src/events/terminal.ts",
+        "plugin/src/index.ts"
+      ],
+      "checkpointSha": "2536e17fb2bbfb06eec032d86bf258ece49f4706",
+      "completedAt": "2026-05-20T19:36:50.344Z",
+      "completed_at": "2026-05-20T19:36:50.344Z"
+    },
+    {
+      "id": "tk-f7d4419b867d",
+      "title": "Rewrite chat-output-display specs/docs for host-owned notifications and no ADV BEL",
+      "type": "code",
+      "section": "Spec and docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T19:00:06.673Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3f569b4d5998"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements AC5; verifies AC5; respects AC1 AC4 AC6 C2 C3 C5 DONT2 DONT3"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:37:03.082Z",
+      "verification": "Updated chat-output-display spec/docs to encode host-owned notifications and no ADV-owned BEL behavior. Added rq-titleBell01 for status/title no-BEL + ST terminator policy, rewrote rq-idleMarker03 away from bell state-machine semantics, updated markdown mirrors/context agreement, and added drift assertions. Verification: RED then GREEN `pnpm exec vitest run src/handoff-footer-drift.test.ts`. Checkpoint commit 95bafea159455f320163ae20ff12332da9b01460.",
+      "summary": "Rewrote chat-output-display spec/docs for no ADV BEL policy: bumped spec/mirror to v1.5.0, changed rq-idleMarker03 to host-owned notifications with no ADV-emitted BEL or replacement notification protocol, added rq-titleBell01 requiring title/status paths to avoid BEL, use ST (`ESC \\\\`) OSC title terminators, and sanitize control bytes. Updated docs/specs/chat-output-display.md and docs/adv-context-agreement.md mirrors. Added handoff-footer drift tests that fail on stale spec version, missing rq-titleBell01/no-BEL wording, or missing markdown mirror requirement IDs.",
+      "implementation_summary": "Rewrote chat-output-display spec/docs for no ADV BEL policy: bumped spec/mirror to v1.5.0, changed rq-idleMarker03 to host-owned notifications with no ADV-emitted BEL or replacement notification protocol, added rq-titleBell01 requiring title/status paths to avoid BEL, use ST (`ESC \\\\`) OSC title terminators, and sanitize control bytes. Updated docs/specs/chat-output-display.md and docs/adv-context-agreement.md mirrors. Added handoff-footer drift tests that fail on stale spec version, missing rq-titleBell01/no-BEL wording, or missing markdown mirror requirement IDs.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:41:07.741Z",
+      "completed_at": "2026-05-20T19:41:07.741Z"
+    },
+    {
+      "id": "tk-f911d28a4d06",
+      "title": "Run final verification and BEL-removal audit",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-20T19:00:18.862Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f7d4419b867d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "verifies AC1 AC2 AC3 AC4 AC5 AC6 AC7; respects C1 C2 C3 C4 C5 DONT1 DONT2 DONT3 DONT4 DONT5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:41:27.229Z",
+      "verification": "Harden production-readiness remediation: added tmux `rename-window -- <title>` end-of-options delimiter with leading-hyphen regression test (validated locally against tmux 3.6 behavior) and made setTitle return success so lastTitle is only advanced after successful title emission. Added RED/GREEN retry test for failed title emission. Verified terminal suite, focused regression suites, `pnpm run check`, `pnpm test`, `pnpm run build`, runtime no-BEL audit, and raw BEL byte audit passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts"
+      ],
+      "touched_files": [
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts"
+      ],
+      "checkpointSha": "fc212c8d5cd306ca847be8a38443d8e2009e06a4",
+      "completedAt": "2026-05-20T20:18:55.292Z",
+      "completed_at": "2026-05-20T20:18:55.292Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-E5v4ui",
+      "type": "pattern",
+      "content": "For spec/docs changes, add a drift assertion that the markdown mirror lists every JSON requirement ID. This catches stale human docs when spec.json gains requirements such as rq-titleBell01 or tool-title requirements.",
+      "source_task": "tk-f7d4419b867d",
+      "recorded_at": "2026-05-20T19:41:12.602Z"
+    },
+    {
+      "id": "ws-aGkgxk",
+      "type": "gotcha",
+      "content": "Full test suites in ADV worktrees can expose stale tests that still expect source-checkout plugin paths even though deploy-local.sh now registers the stable runtime plugin path under `$HOME/.local/share/Advance/plugin`. Treat this as contract drift: align tests to runtime plugin path and keep source paths only for asset copy/build inputs.",
+      "source_task": "tk-f911d28a4d06",
+      "recorded_at": "2026-05-20T19:46:46.105Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:47:22.405Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: `continue`. Problem statement, scope, success criteria, affected code, constraints, and discovery agenda are captured."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:51:25.201Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved discovery agreement via inline Tier A reply: `approve`. Discovery findings and agreement.md captured objectives, AC, constraints, avoidances, parent-branch baseline requirement, and host/tool notification direction."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:59:05.877Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed inline. Validator verdict: CAUTION, with clarifications applied: `rq-titleBell01` must be created in this trunk-based branch and message.updated/mainSessionId removal must be audited for bell-only usage. No unresolved conflict, no user-value tradeoff, no contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T19:30:16.891Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via inline Tier A reply: `approve`. Task graph has 4 tasks with TDD intent, dependencies, and verification coverage for AC1–AC7."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T19:47:07.808Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned execution tasks completed with checkpoint commits. Final verification passed: focused terminal/events/drift suites, `pnpm run check`, `pnpm test`, `pnpm run build`, runtime BEL/notification pattern audit, and raw BEL byte audit."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T20:03:21.212Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via inline Tier A reply: `accept`. Review verdict APPROVED. All blocker/issue findings fixed; accepted suggestions remediated or tracked as non-blocking follow-up ag-eD_gUHiR. Verification green: focused suites, `pnpm run check`, `pnpm test`, `pnpm run build`, runtime no-BEL/no-OSC-notification audit, raw BEL byte audit."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T21:05:13.500Z",
+      "completed_by": "agent",
+      "approval_evidence": "User signed off final archive/release via Tier B reply: `sign off`. Harden/release checks passed: focused suites, `pnpm run check`, `pnpm test`, `pnpm run build`, runtime no-BEL/no-OSC-notification audit, raw BEL byte audit, clean git tree, and successful merge dry-run with trunk."
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "fixTerminalTitleBell",
+    "linked_at": "2026-05-20T18:08:34.749Z"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-20T18:38:28.093Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T18:46:44.524Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-20T18:38:28.093Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T18:46:44.524Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-20T18:59:05.861Z"
+    }
+  ]
+}
