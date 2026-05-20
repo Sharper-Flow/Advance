@@ -266,14 +266,12 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
-| `librarian`      | Need docs, API refs, best practices                                  | Sourced findings with examples        |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
+| `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
-| `mechanic`       | Tool/MCP/infra/ADV diagnostics                                       | Diagnosis and fix (or recommendation for caller) |
-| `adv-researcher` | Need architecture validation (ADV-managed bundled global specialist) | Assessment with recommendations       |
-| `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping                      | Structure + risk report               |
-| `prioritizer`    | Multi-approach tradeoff analysis needing criteria questions          | Draft criteria questions for the user |
+| `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |
 
 | Constraint | Value |
 |---|---|
@@ -300,7 +298,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Empty/incomplete return | Retry once with narrower prompt |
 | Still failing | Inline-fallback or switch agent type |
 | 3 failures same task | `[ADV:BLOCKED]` → document attempts → user `question` |
-| MCP/tool failure | Spawn `mechanic` with error + context |
+| MCP/tool failure | Inline diagnose; surface to user via `question` when context-bound |
 
 ## Output Contract
 
