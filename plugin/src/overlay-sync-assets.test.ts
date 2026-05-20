@@ -399,7 +399,7 @@ describe("overlay sync script support", () => {
     }
   });
 
-  test("refuses to strip JSONC comments during --fix", () => {
+  test("skips JSONC patching during --fix without stripping comments", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-jsonc-protect-"));
 
     try {
@@ -421,8 +421,11 @@ describe("overlay sync script support", () => {
         encoding: "utf8",
       });
 
-      // Should fail rather than silently strip comments.
-      expect(result.status).not.toBe(0);
+      // Should warn and skip config mutation rather than silently strip comments.
+      expect(result.status).toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain(
+        "Config is JSONC — skipping auto-patch",
+      );
       const content = readFileSync(jsoncPath, "utf8");
       expect(content).toContain("// This is a comment");
     } finally {

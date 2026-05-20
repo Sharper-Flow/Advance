@@ -103,5 +103,3 @@ export function escapeAppleScript(str: string): string {
     .replace(/\n/g, " ") // Newlines -> spaces
     .replace(/\r/g, " "); // Carriage returns -> spaces
 }
-
-
