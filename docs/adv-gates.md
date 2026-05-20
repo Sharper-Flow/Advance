@@ -81,6 +81,8 @@ Owner: `/adv-review` | **Pauses for:** user acceptance of delivered work
 
 Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question), presents the acceptance criteria checklist, and completes the acceptance gate after user confirmation. The acceptance gate is artifact-backed by a generated `acceptance.md` projection derived from `ChangeContract` items and `contract.reviewMatrix`; manually edited markdown is not authoritative acceptance proof.
 
+`/adv-review` Phase 7 also persists `executive-summary.md` — a communication-only narrative artifact composed from the acceptance summary + investment metrics. Unlike `acceptance.md` (gate-enforcement projection), `executive-summary.md` is a field-style artifact for release notes, changelogs, and the archive sign-off Change Report. It is NOT tracked in workflow state and NOT verified by gate-readiness; it is plain markdown written via `adv_change_update executiveSummary:` and read at archive sign-off via `adv_change_show include.executiveSummary`.
+
 ### Release Gate
 
 Owner: `/adv-harden` + `/adv-archive` | **Pauses for:** archive sign-off only

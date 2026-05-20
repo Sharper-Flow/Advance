@@ -122,4 +122,37 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     // No auto-fix instruction
     expect(content).toMatch(/do NOT.*auto-fix|auto-resume|orchestrate/i);
   });
+
+  test("adv-review.md Phase 7 persists executive summary before acceptance gate", () => {
+    const content = readCommand("adv-review.md");
+    // Persist Executive Summary section exists
+    expect(content).toMatch(/###\s*Persist Executive Summary/);
+    // Calls adv_change_update with executiveSummary field
+    expect(content).toMatch(/adv_change_update.*executiveSummary/s);
+    // Persist section appears BEFORE Ask for Acceptance
+    const persistIdx = content.search(/###\s*Persist Executive Summary/);
+    const askIdx = content.search(/###\s*Ask for Acceptance/);
+    expect(persistIdx).toBeGreaterThanOrEqual(0);
+    expect(askIdx).toBeGreaterThan(persistIdx);
+  });
+
+  test("adv-archive.md Phase 1 loads executive summary via include flag", () => {
+    const content = readCommand("adv-archive.md");
+    expect(content).toMatch(
+      /adv_change_show[\s\S]*include:[\s\S]*executiveSummary:\s*true/,
+    );
+  });
+
+  test("adv.md Sign-Off Boundary instructs reading executive summary, not recomposing", () => {
+    const advAgent = readFileSync(
+      join(REPO_ROOT, ".opencode/agents/adv.md"),
+      "utf8",
+    );
+    // Executive Summary section exists in Change Report template
+    expect(advAgent).toMatch(/###\s*Executive Summary/);
+    // Sources from _executiveSummary (include flag projection)
+    expect(advAgent).toMatch(/_executiveSummary/);
+    // Does NOT instruct to recompose from change.tasks (regression guard)
+    expect(advAgent).not.toMatch(/compose from change\.tasks/i);
+  });
 });

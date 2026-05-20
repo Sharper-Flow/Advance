@@ -262,6 +262,70 @@ describe("change tools — signal-driven lifecycle", () => {
         window: { includeCurrent: true, readyLimit: 3, omitDone: true },
       });
     });
+
+    test("returns _executiveSummary content when include.executiveSummary is set and file exists", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-exec-summary-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      const execSummaryContent =
+        "# Executive Summary\n\n## Outcome\nApproved cleanly.\n";
+      await writeFile(
+        pathJoin(changeDir, "executive-summary.md"),
+        execSummaryContent,
+        "utf-8",
+      );
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { executiveSummary: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._executiveSummary).toBe(execSummaryContent);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("omits _executiveSummary when include.executiveSummary is set but file is missing", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-exec-summary-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      // Intentionally do NOT create executive-summary.md
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { executiveSummary: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._executiveSummary).toBeUndefined();
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("adv_change_close", () => {

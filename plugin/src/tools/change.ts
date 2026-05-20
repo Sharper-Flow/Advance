@@ -1228,7 +1228,7 @@ export const changeTools = {
       "context snapshot at top-level (matches mutation-tool convention); " +
       "include.readyTasks returns the unblocked ready queue (top-N " +
       "by priority then created_at; default 10, max 50). " +
-      "include.proposal / include.problemStatement / include.agreement / include.design " +
+      "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary " +
       "return the raw markdown content for each artifact (GH #21). " +
       "Defaults are unchanged when include is omitted.",
     args: {
@@ -1911,7 +1911,7 @@ export const changeTools = {
 
   adv_change_update: {
     description:
-      "Update proposal.md and/or problem-statement.md for an existing change. Does NOT create a new change or modify change.json metadata (status, tasks, deltas). Use this instead of calling adv_change_create again when refining a proposal. Only provided fields are written — omitted fields are left unchanged.",
+      "Update narrative artifacts (proposal.md, problem-statement.md, agreement.md, design.md, executive-summary.md) for an existing change. Does NOT create a new change or modify change.json metadata (status, tasks, deltas). Use this instead of calling adv_change_create again when refining a proposal or persisting the post-acceptance executive summary. Only provided fields are written — omitted fields are left unchanged.",
     args: {
       changeId: z
         .string()

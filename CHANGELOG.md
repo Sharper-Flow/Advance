@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Persist Executive Summary as Communication-Only Narrative Artifact
+
+`executive-summary.md` is a new optional narrative artifact on every change, written at acceptance time by `/adv-review` Phase 7 and restated in the pre-archive Change Report by the Sign-Off Boundary. It complements (does NOT replace) trunk's `acceptance.md`: `acceptance.md` is the gate-enforcement projection verified by `inspectArtifactActivity`; `executive-summary.md` is a field-style artifact for release notes, changelogs, and user-facing communication. Not tracked in workflow state, not gate-coupled.
+
+**Tool surface (additive, backward-compatible):**
+- `adv_change_create` accepts new optional `executiveSummary` content field
+- `adv_change_update` accepts new optional `executiveSummary` content field (joins `proposal`/`problemStatement`/`agreement`/`design` in the at-least-one-of guard)
+- `adv_change_show` accepts new optional `include.executiveSummary` flag → returns `_executiveSummary` markdown
+
+**Storage (additive):**
+- `createChangeScaffold` and `updateChangeArtifacts` in `storage/json.ts` accept a 5th optional `executiveSummaryContent` param; same threading through `store-types`, `store-disk`, and `store-temporal/changes.ts` (file write only — no workflow-state signal mapping, by design)
+
+**Guidance:**
+- `/adv-review` Phase 7 adds a `### Persist Executive Summary` step instructing the orchestrator to compose using investment metrics + acceptance summary, then persist via `adv_change_update executiveSummary: ...` before completing the acceptance gate
+- Sign-Off Boundary template in `.opencode/agents/adv.md` adds an `### Executive Summary` section sourced from `_executiveSummary` (no recomposition fallback)
+- `/adv-archive` Phase 1 reads via `adv_change_show include: { executiveSummary: true }`
+
+**Operational note — plugin rebuild required:** This change extends MCP tool schemas (`adv_change_create`/`update`/`show`). OpenCode caches `plugin/dist/index.js` at session startup; the new fields will not be recognized in a running session that started before this build. Run `pnpm run build` then restart OpenCode/plugin host before invoking the new field in live tools. Source-level changes are validated by the existing 2532-test suite immediately.
+
+**What stays the same:**
+- `ARCHIVE_SUMMARY.md` generation (programmatic, unchanged)
+- Archive bundle copy logic (automatic — picks up `executive-summary.md` via existing readdir-all-files copy)
+- `acceptance.md` gate-enforcement (trunk's pattern, untouched)
+
 ### Fixed — 2026-05-09 ATC bug drain (19 bugs)
 
 ADV ATC autonomous pipeline drained the bug backlog, archiving 19 changes in a single session. All fixes verified via TDD with red→green tests and `pnpm run check`.

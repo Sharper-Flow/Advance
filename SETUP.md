@@ -1251,7 +1251,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)    |
 | `adv_change_show`          | Get full change details including tasks and deltas                      |
 | `adv_change_create`        | Create a new change proposal                                            |
-| `adv_change_update`        | Update proposal/problem-statement/agreement/design for existing change  |
+| `adv_change_update`        | Update narrative artifacts (proposal/problem-statement/agreement/design/executive-summary) for an existing change |
 | `adv_change_validate`      | Validate change against specs and check for conflicts                   |
 | `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)               |
 | `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter) |

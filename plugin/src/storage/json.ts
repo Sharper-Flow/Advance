@@ -640,51 +640,58 @@ export async function createChangeScaffold(
     proposalContent ?? defaultProposalContent,
   );
 
-  // Write problem-statement.md artifact when provided
-  let problemStatementPath: string | undefined;
-  if (problemStatementContent) {
-    problemStatementPath = join(changeDir, "problem-statement.md");
-    await atomicWriteFile(problemStatementPath, problemStatementContent);
-  }
+  // Optional narrative artifacts — table-driven so adding a new artifact
+  // is a single descriptor entry rather than four hand-coded if-blocks.
+  // Mirror of the artifact array in updateChangeArtifacts() — keep in sync.
+  const optionalArtifacts = [
+    {
+      key: "problemStatementPath",
+      content: problemStatementContent,
+      filename: "problem-statement.md",
+    },
+    {
+      key: "agreementPath",
+      content: agreementContent,
+      filename: "agreement.md",
+    },
+    { key: "designPath", content: designContent, filename: "design.md" },
+    {
+      key: "executiveSummaryPath",
+      content: executiveSummaryContent,
+      filename: "executive-summary.md",
+    },
+  ] as const;
 
-  // Write agreement.md artifact when provided
-  let agreementPath: string | undefined;
-  if (agreementContent) {
-    agreementPath = join(changeDir, "agreement.md");
-    await atomicWriteFile(agreementPath, agreementContent);
-  }
+  const optionalPaths: {
+    problemStatementPath?: string;
+    agreementPath?: string;
+    designPath?: string;
+    executiveSummaryPath?: string;
+  } = {};
 
-  // Write design.md artifact when provided
-  let designPath: string | undefined;
-  if (designContent) {
-    designPath = join(changeDir, "design.md");
-    await atomicWriteFile(designPath, designContent);
-  }
-
-  // Write executive-summary.md artifact when provided
-  let executiveSummaryPath: string | undefined;
-  if (executiveSummaryContent) {
-    executiveSummaryPath = join(changeDir, "executive-summary.md");
-    await atomicWriteFile(executiveSummaryPath, executiveSummaryContent);
+  for (const { key, content, filename } of optionalArtifacts) {
+    if (!content) continue;
+    const filePath = join(changeDir, filename);
+    await atomicWriteFile(filePath, content);
+    optionalPaths[key] = filePath;
   }
 
   return {
     changePath,
     proposalPath,
-    problemStatementPath,
-    agreementPath,
-    designPath,
-    executiveSummaryPath,
+    ...optionalPaths,
   };
 }
 
 /**
- * Update proposal.md and/or problem-statement.md for an existing change.
+ * Update any narrative artifact file (proposal.md, problem-statement.md,
+ * agreement.md, design.md, executive-summary.md) for an existing change.
  * Does NOT modify change.json — artifact-only update.
  *
- * Both content params are optional — only provided files are written.
- * Returns file paths for written files on success, or an error message
- * if the change directory does not exist or a write fails.
+ * Content params are optional — only provided files are written; omitted
+ * files are left unchanged. Returns file paths for written files on
+ * success, or an error message if the change directory does not exist or
+ * a write fails.
  */
 export async function updateChangeArtifacts(
   changesDir: string,
@@ -713,6 +720,9 @@ export async function updateChangeArtifacts(
     };
   }
 
+  // Table-driven artifact writes — each entry maps a content param to its
+  // filename and the result-shape key. Mirror of createChangeScaffold's
+  // optionalArtifacts table (plus a proposal entry); keep in sync.
   const artifacts = [
     { key: "proposalPath", content: proposalContent, filename: "proposal.md" },
     {

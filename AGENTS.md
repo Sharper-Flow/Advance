@@ -135,7 +135,7 @@ ADV-managed worktrees live under `$XDG_DATA_HOME/opencode/worktree/{project-id}/
 
 Invoke ADV tools with explicit required args — never with empty parameter sets.
 
-- `adv_change_update` — pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`. Zero-args invocations hit a 10s safety-net timeout (surfaced as `errorClass: ToolExecutionTimeout`).
+- `adv_change_update` — pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`, `executiveSummary`. Zero-args invocations hit a 10s safety-net timeout (surfaced as `errorClass: ToolExecutionTimeout`).
 - `adv_task_add` — before passing `blockedBy`, call `adv_task_list changeId: <id>` to fetch current task IDs. Invalid IDs are rejected; the error response lists the valid IDs.
 - `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, no task is cancelled.
 - Read each tool's field `describe()` text before constructing calls — it documents relational constraints (source-of-truth tool, at-least-one-of patterns, valid enum values).
