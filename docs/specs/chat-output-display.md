@@ -323,7 +323,7 @@ ADV status transitions MUST NOT emit BEL (U+0007 / `\x07`) or any replacement te
 
 **ID:** `rq-titleBell01` | **Priority:** **[MUST]**
 
-Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title sequences MUST terminate with ST (`ESC \\`) rather than BEL, and title payloads MUST remove C0/C1 control bytes before emission. ADV MUST NOT replace removed BEL usage with OSC 9, OSC 777, or another ADV-owned terminal notification protocol.
+Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title sequences MUST terminate with ST (`ESC \\`) rather than BEL, and title payloads MUST normalize C0/C1 control bytes to display-safe spacing before emission. ADV MUST NOT replace removed BEL usage with OSC 9, OSC 777, or another ADV-owned terminal notification protocol.
 
 **Tags:** `chat-output-display`, `terminal-title`, `notification`
 
@@ -340,7 +340,7 @@ Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title seque
 - The sequence terminates with ST (`ESC \\`)
 - The sequence contains no BEL byte
 
-**Title payload control bytes are sanitized** (`rq-titleBell01.2`)
+**Title payload control bytes are normalized** (`rq-titleBell01.2`)
 
 **Given:**
 - A status or worktree label contains control bytes
@@ -348,7 +348,7 @@ Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title seque
 **When:** ADV builds the terminal title payload
 
 **Then:**
-- C0/C1 control bytes are removed before emission
+- C0/C1 control bytes are normalized to display-safe spacing before emission
 - The emitted title path remains deterministic and non-audible
 
 ---
