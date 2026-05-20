@@ -1,0 +1,365 @@
+{
+  "id": "addAcpTitlesAdvTools",
+  "title": "Add ACP titles to adv tools",
+  "status": "archived",
+  "created_at": "2026-05-19T18:40:32.809Z",
+  "tasks": [
+    {
+      "id": "tk-74aea94aef55",
+      "title": "Add ADV tool title formatter with redaction tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T04:49:59.699Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": {
+          "implements": [
+            "AC1",
+            "AC4",
+            "AC5"
+          ],
+          "verifies": [
+            "AC1",
+            "AC4",
+            "AC5"
+          ],
+          "respects": [
+            "C1",
+            "C8",
+            "DONT4"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T04:53:52.311Z",
+      "verification": "Added pure ADV tool title formatter with tests for representative titles, sensitive-value redaction, long-value truncation, weak-key fallbacks, and namespaced display metadata. Verification passed: pnpm test -- src/utils/tool-title.test.ts.",
+      "summary": "Created plugin/src/utils/tool-title.ts with deterministic table-driven title generation, title kind classification, safe display metadata, sensitive-key redaction, and truncation. Added plugin/src/utils/tool-title.test.ts covering representative ADV tools, redacted displayArgs metadata, bounded long command titles, generic weak-key titles, and display-only metadata shape.",
+      "implementation_summary": "Created plugin/src/utils/tool-title.ts with deterministic table-driven title generation, title kind classification, safe display metadata, sensitive-key redaction, and truncation. Added plugin/src/utils/tool-title.test.ts covering representative ADV tools, redacted displayArgs metadata, bounded long command titles, generic weak-key titles, and display-only metadata shape.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T04:59:45.050Z",
+      "completed_at": "2026-05-20T04:59:45.050Z"
+    },
+    {
+      "id": "tk-49ec60bbacf4",
+      "title": "Wrap registered ADV tool results with SDK title metadata",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T04:50:17.499Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-74aea94aef55"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": {
+          "implements": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC5"
+          ],
+          "verifies": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC5"
+          ],
+          "respects": [
+            "C1",
+            "C2",
+            "C5",
+            "C6",
+            "DONT1",
+            "DONT3"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:00:17.601Z",
+      "verification": "Registry wrapper now emits ToolResult titles/metadata and sets running metadata when supported. Verification passed: pnpm test -- src/tool-registry.test.ts.",
+      "summary": "Updated plugin/src/tool-registry.ts to import SDK ToolResult/ToolContext types, compute display metadata from named ADV tool executions, best-effort call context.metadata, and wrap safeExecute/preflight/error string outputs as { title, output, metadata }. Degraded stubs now use namedExecute so they are titled. Updated opencode SDK mock to support ToolResult and metadata calls. Added registry tests for title coverage, ToolResult object output, parseable output, and running metadata.",
+      "implementation_summary": "Updated plugin/src/tool-registry.ts to import SDK ToolResult/ToolContext types, compute display metadata from named ADV tool executions, best-effort call context.metadata, and wrap safeExecute/preflight/error string outputs as { title, output, metadata }. Degraded stubs now use namedExecute so they are titled. Updated opencode SDK mock to support ToolResult and metadata calls. Added registry tests for title coverage, ToolResult object output, parseable output, and running metadata.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T05:03:34.115Z",
+      "completed_at": "2026-05-20T05:03:34.115Z"
+    },
+    {
+      "id": "tk-e61a50092153",
+      "title": "Normalize object-shaped tool outputs for ADV hooks",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T04:50:30.294Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-49ec60bbacf4"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": {
+          "implements": [
+            "AC3",
+            "AC6"
+          ],
+          "verifies": [
+            "AC3",
+            "AC6"
+          ],
+          "respects": [
+            "C6"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:03:54.324Z",
+      "verification": "ADV hook output parser now supports ToolResult-shaped objects. Verification passed: pnpm test -- src/integration.test.ts.",
+      "summary": "Updated plugin-output parseToolOutput to detect object-shaped ToolResult values with an output string and parse that nested output before falling back to direct object parsing. Added integration tests for adv_change_create and adv_task_update after-hooks receiving { title, output, metadata } ToolResult objects, proving active change tracking and completed-task wisdom prompting still work.",
+      "implementation_summary": "Updated plugin-output parseToolOutput to detect object-shaped ToolResult values with an output string and parse that nested output before falling back to direct object parsing. Added integration tests for adv_change_create and adv_task_update after-hooks receiving { title, output, metadata } ToolResult objects, proving active change tracking and completed-task wisdom prompting still work.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T05:05:55.758Z",
+      "completed_at": "2026-05-20T05:05:55.758Z"
+    },
+    {
+      "id": "tk-4d1d8dd1fdea",
+      "title": "Add chat-output-display spec requirements for tool titles",
+      "type": "code",
+      "section": "Spec",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-20T04:50:45.684Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": {
+          "implements": [
+            "AC2",
+            "AC4",
+            "AC5"
+          ],
+          "verifies": [
+            "AC2",
+            "AC4",
+            "AC5"
+          ],
+          "respects": [
+            "C1",
+            "C3",
+            "C4",
+            "DONT1"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:06:11.633Z",
+      "verification": "Added chat-output-display spec requirements for ADV tool display titles. Verification passed: spec JSON parses successfully.",
+      "summary": "Updated .adv/specs/chat-output-display/spec.json to version 1.4.0 with rq-toolTitle01, rq-toolTitle02, and rq-toolTitle03 covering deterministic SDK display titles, display-only metadata authority boundaries, and redaction/truncation requirements. Verified JSON syntax with node JSON.parse.",
+      "implementation_summary": "Updated .adv/specs/chat-output-display/spec.json to version 1.4.0 with rq-toolTitle01, rq-toolTitle02, and rq-toolTitle03 covering deterministic SDK display titles, display-only metadata authority boundaries, and redaction/truncation requirements. Verified JSON syntax with node JSON.parse.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T05:07:29.756Z",
+      "completed_at": "2026-05-20T05:07:29.756Z"
+    },
+    {
+      "id": "tk-f0393cf49698",
+      "title": "Run focused and full verification for ADV tool titles",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-20T04:50:59.365Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-49ec60bbacf4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e61a50092153"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4d1d8dd1fdea"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred",
+        "contract_refs": {
+          "verifies": [
+            "AC1",
+            "AC2",
+            "AC3",
+            "AC4",
+            "AC5",
+            "AC6"
+          ],
+          "respects": [
+            "C1",
+            "C2",
+            "C3",
+            "C4",
+            "C5",
+            "C6",
+            "C7",
+            "C8"
+          ]
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:07:44.410Z",
+      "verification": "Harden remediation verification passed: focused tests, pnpm run check, pnpm test, pnpm run build, targeted harden re-verification, and adv_change_validate strict (NO_DELTAS warning only).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/chat-output-display/spec.json",
+        "SETUP.md",
+        "plugin/src/handoff-footer-drift.test.ts",
+        "plugin/src/integration.test.ts",
+        "plugin/src/tool-registry.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/chat-output-display/spec.json",
+        "SETUP.md",
+        "plugin/src/handoff-footer-drift.test.ts",
+        "plugin/src/integration.test.ts",
+        "plugin/src/tool-registry.test.ts"
+      ],
+      "checkpointSha": "70995fef23f2450705e08b40202130ae0863f1d0",
+      "completedAt": "2026-05-20T05:43:45.667Z",
+      "completed_at": "2026-05-20T05:43:45.667Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-XR9vGI",
+      "type": "pattern",
+      "content": "For display metadata that must prove redaction, omission alone can be hard to test. Safer pattern: include a bounded sanitized preview only when sensitive keys are present, with sensitive values replaced by `[redacted]`; keep normal metadata minimal for non-sensitive calls.",
+      "source_task": "tk-74aea94aef55",
+      "recorded_at": "2026-05-20T04:59:56.120Z"
+    },
+    {
+      "id": "ws-30-fTj",
+      "type": "pattern",
+      "content": "Central ADV tool wrapping works best at `registerTool`: compute display metadata from `namedExecute.__advToolName`, call `context.metadata` best-effort, then wrap the already-budgeted safeExecute string as `{ title, output, metadata }`. This preserves tool implementation return contracts while enabling SDK display titles.",
+      "source_task": "tk-49ec60bbacf4",
+      "recorded_at": "2026-05-20T05:03:42.831Z"
+    },
+    {
+      "id": "ws-v3TAls",
+      "type": "gotcha",
+      "content": "When OpenCode ToolResult objects reach hooks, the parser must unwrap and parse `output` before treating the wrapper as the payload. Otherwise extractors looking for domain fields (`changeId`, `task`) silently miss them because they see `{ title, output, metadata }` instead.",
+      "source_task": "tk-e61a50092153",
+      "recorded_at": "2026-05-20T05:06:03.396Z"
+    },
+    {
+      "id": "ws-fQS9hs",
+      "type": "convention",
+      "content": "For display-surface specs, keep tool-title requirements host-agnostic: require SDK-surface metadata when available, preserve JSON output strings, and explicitly state title metadata is not authority for permissions/gates/state.",
+      "source_task": "tk-4d1d8dd1fdea",
+      "recorded_at": "2026-05-20T05:07:37.767Z"
+    },
+    {
+      "id": "ws-ztmAke",
+      "type": "gotcha",
+      "content": "Spec version bumps can trigger hidden asset/drift tests even when running seemingly focused tests. When adding requirements, update drift fixtures and add external citations for each requirement ID in plugin/docs source before expecting `pnpm run check` or focused tests to pass.",
+      "source_task": "tk-f0393cf49698",
+      "recorded_at": "2026-05-20T05:12:21.421Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:30:52.559Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved plugin-only framing by replying `continue`. Proposal updated with scope, success criteria, constraints, and discovery agenda."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:44:44.184Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed. Agreement persisted after user approved AC with `ok`. Open questions resolved: terse labels, all ADV tools including aliases, redaction/truncation default. Draft chat-output-display deltas captured in proposal."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:49:37.673Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Validator verdict VALIDATED. No user-value tradeoff, unresolved conflict, or contract-compromise risk identified; proceeding to planning inline per design workflow."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:52:05.232Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision and task graph by replying `approve`. Proceeding to execution inline."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:12:40.181Z",
+      "completed_by": "agent",
+      "approval_evidence": "All five execution tasks completed. Verification passed: focused tests, pnpm run check, pnpm test, pnpm run build. Worktree clean after task checkpoints. adv_change_validate strict passed with NO_DELTAS warning only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:31:04.449Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work by replying `accept` after acceptance summary. Review verdict APPROVED; all review findings fixed and re-verified; verification passed: pnpm run check, focused tests, pnpm test, pnpm run build, adv_change_validate strict (NO_DELTAS warning only)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:45:27.141Z",
+      "completed_by": "agent",
+      "approval_evidence": "User signed off archive by replying `sign off` to Tier B inline prompt after harden READY report. Proceeding to archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-20T04:28:28.414Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T04:30:44.883Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-20T04:30:44.883Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T04:42:30.722Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-20T04:30:44.883Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T04:42:30.722Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-20T04:42:30.722Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T04:44:39.273Z"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-XR9vGI",
+      "type": "pattern",
+      "content": "For display metadata that must prove redaction, omission alone can be hard to test. Safer pattern: include a bounded sanitized preview only when sensitive keys are present, with sensitive values replaced by `[redacted]`; keep normal metadata minimal for non-sensitive calls.",
+      "source_task": "tk-74aea94aef55",
+      "recorded_at": "2026-05-20T04:59:56.120Z"
+    },
+    {
+      "id": "ws-30-fTj",
+      "type": "pattern",
+      "content": "Central ADV tool wrapping works best at `registerTool`: compute display metadata from `namedExecute.__advToolName`, call `context.metadata` best-effort, then wrap the already-budgeted safeExecute string as `{ title, output, metadata }`. This preserves tool implementation return contracts while enabling SDK display titles.",
+      "source_task": "tk-49ec60bbacf4",
+      "recorded_at": "2026-05-20T05:03:42.831Z"
+    },
+    {
+      "id": "ws-v3TAls",
+      "type": "gotcha",
+      "content": "When OpenCode ToolResult objects reach hooks, the parser must unwrap and parse `output` before treating the wrapper as the payload. Otherwise extractors looking for domain fields (`changeId`, `task`) silently miss them because they see `{ title, output, metadata }` instead.",
+      "source_task": "tk-e61a50092153",
+      "recorded_at": "2026-05-20T05:06:03.396Z"
+    },
+    {
+      "id": "ws-fQS9hs",
+      "type": "convention",
+      "content": "For display-surface specs, keep tool-title requirements host-agnostic: require SDK-surface metadata when available, preserve JSON output strings, and explicitly state title metadata is not authority for permissions/gates/state.",
+      "source_task": "tk-4d1d8dd1fdea",
+      "recorded_at": "2026-05-20T05:07:37.767Z"
+    },
+    {
+      "id": "ws-ztmAke",
+      "type": "gotcha",
+      "content": "Spec version bumps can trigger hidden asset/drift tests even when running seemingly focused tests. When adding requirements, update drift fixtures and add external citations for each requirement ID in plugin/docs source before expecting `pnpm run check` or focused tests to pass.",
+      "source_task": "tk-f0393cf49698",
+      "recorded_at": "2026-05-20T05:12:21.421Z"
+    }
+  ],
+  "count": 5
+}
