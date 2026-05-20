@@ -276,13 +276,13 @@ are external shared agents supplied by your broader OpenCode install. If any
 are missing, commands fall back to inline execution or generic `explore`
 invocation, which is slower and less specialized.
 
-| Agent          | Used by                                                                       | What it does                                                    |
-| -------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `explore`      | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, finding usages                             |
-| `librarian`    | `/adv-discover`, `/adv-design`, `/adv-task`, `/adv-review`                    | Documentation and API lookup (Context7, Exa, searchcode)         |
-| `mechanic`     | `/adv-tron` (optional), `plan` sub-agent spawns                               | System/infra diagnostics                                        |
-| `general`      | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step implementation                                       |
-| `adv-engineer` | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Produces structured ENGINEER_REPORT payload for ADV ingestion   |
+| Agent            | Used by                                                                                | What it does                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor`          | Codebase navigation, scoped read-only scans                                                   |
+| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`            | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
+| `general`        | `/adv-review` (cross-cutting), overlay-managed                                         | Multi-step verification                                                                       |
+| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes                  | Structured ENGINEER_REPORT payload for ADV ingestion                                          |
+| `adv-reviewer`   | `/adv-prep` pre-flight (optional), `/adv-review`, `/adv-harden`                        | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -314,7 +314,7 @@ If you want to run ADV with the smallest possible footprint:
 1. OpenCode CLI
 2. Node.js 20+, pnpm 10+
 3. ADV plugin built (`plugin/dist/index.js` present)
-4. `~/.config/opencode/agents/` contains `explore` and `librarian` at minimum
+4. `~/.config/opencode/agents/` contains `explore` at minimum (plus `adv-researcher`, `adv-engineer`, `adv-reviewer` after `scripts/deploy-local.sh --fix`)
 5. No external MCP servers required — agents fall back to built-in tools
 
 ADV itself will function. Research and review commands will be noticeably
