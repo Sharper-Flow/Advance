@@ -158,6 +158,7 @@ export {
   ProductLinkSchema,
   type ProductLink,
   FeatureFlagsSchema,
+  withStabilityFeatureDefaults,
   type FeatureFlags,
   ProjectConfigSchema,
   type ProjectConfig,

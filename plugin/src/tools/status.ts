@@ -42,6 +42,7 @@ import {
   type FeatureFlags,
   type ChangeRecency,
   type ProjectStatus,
+  withStabilityFeatureDefaults,
 } from "../types";
 import { getCommandsByGate } from "../manifest";
 import {
@@ -213,22 +214,6 @@ async function fetchStatusSnapshotHealth(
   return snapshotHealthProbeCache.fetch(
     projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
   );
-}
-
-function withStabilityFeatureDefaults(
-  features: Record<string, unknown> | undefined,
-): Record<string, unknown> {
-  return {
-    ...(features ?? {}),
-    worker_singleton_enforce:
-      typeof features?.worker_singleton_enforce === "boolean"
-        ? features.worker_singleton_enforce
-        : true,
-    worktree_guard_enforce:
-      typeof features?.worktree_guard_enforce === "boolean"
-        ? features.worktree_guard_enforce
-        : false,
-  };
 }
 
 /** Exported for test isolation only */

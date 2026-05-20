@@ -137,6 +137,12 @@ export const FeatureFlagsSchema = z
      */
     wisdom_accumulation: z.boolean().default(true),
     /**
+     * Whether machine worktree isolation is enforced.
+     * Default: false during rollout. When true, ADV main-checkout task/gate
+     * execution mutations and the trunk write firewall are enforced.
+     */
+    worktree_guard_enforce: z.boolean().default(false),
+    /**
      * Clarify enforcement mode.
      * - "off" (default): Clarify checks skipped entirely; no findings emitted
      * - "advisory": Ambiguity findings surfaced as warnings in tool output; no blocking
@@ -156,6 +162,22 @@ export const FeatureFlagsSchema = z
   .passthrough(); // Allow future flags without breaking existing configs
 
 export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
+
+export function withStabilityFeatureDefaults(
+  features: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  return {
+    ...(features ?? {}),
+    worker_singleton_enforce:
+      typeof features?.worker_singleton_enforce === "boolean"
+        ? features.worker_singleton_enforce
+        : true,
+    worktree_guard_enforce:
+      typeof features?.worktree_guard_enforce === "boolean"
+        ? features.worktree_guard_enforce
+        : false,
+  };
+}
 
 // =============================================================================
 // Product Linking
