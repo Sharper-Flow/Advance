@@ -197,7 +197,10 @@ Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. Spawn `adv-engineer` sub-agent for each fix; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`. For non-trivial fixes: research first (Context7/librarian/adv-researcher) → then implement.
+1. **Fix all blockers/issues** — no partial fix mode. Choose the right fix worker:
+   - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect a fenced `REVIEWER_REPORT` JSON payload per `.opencode/agents/adv-reviewer.md`.
+   - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`.
+   - For non-trivial fixes: research first (Context7 / `adv-researcher`) → then implement.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 
 ### Drift Detection Rule (CRITICAL)
@@ -218,7 +221,7 @@ This is the single declarative drift detection rule. It applies to every finding
 | Fix Type | Research Required? |
 |----------|-------------------|
 | Typos, naming, comments, dead code removal, lint fixes | No (trivial) |
-| Control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches | Yes — spawn librarian/independent validator first |
+| Control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches | Yes — spawn `adv-researcher` (independent validator) first |
 
 If research reveals finding was incorrect → downgrade to `nit:` or reject with evidence.
 
@@ -376,5 +379,6 @@ What was reviewed and user-accepted.
 | Load change | `adv_change_show` |
 | List tasks | `adv_task_list` |
 | Spawn analysis | Task tool (explore) |
-| Spawn research | Task tool (librarian / adv-researcher) |
+| Spawn research | Task tool (adv-researcher) |
+| Spawn review remediation | Task tool (adv-reviewer or adv-engineer) |
 | Spawn fixes | Task tool (adv-engineer) |
