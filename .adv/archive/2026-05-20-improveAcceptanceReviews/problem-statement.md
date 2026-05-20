@@ -1,0 +1,1 @@
+Acceptance review output can be hard to scan when verdict, delivered work, and remediation details are presented as flat bullets. Dense remediation lists need a concise executive summary and clearer ordered/nested structure.

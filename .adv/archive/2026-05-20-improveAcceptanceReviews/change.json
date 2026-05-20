@@ -1,0 +1,119 @@
+{
+  "id": "improveAcceptanceReviews",
+  "title": "Improve acceptance reviews",
+  "status": "archived",
+  "created_at": "2026-05-20T17:31:56.597Z",
+  "tasks": [
+    {
+      "id": "tk-08151a71e15c",
+      "title": "Update Phase 4 Display Summary in adv-review.md with executive summary report shape",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T17:45:08.518Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:45:28.635Z",
+      "verification": "Replaced Phase 4 one-liner with concrete report shape: Executive Summary (outcome-only), Verdict, and Findings Overview with severity breakdown, per-dimension status, and ordered/nested remediation summary template.",
+      "summary": "Replaced Phase 4 one-liner with concrete report shape: Executive Summary (outcome-only), Verdict, and Findings Overview with severity breakdown, per-dimension status, and ordered/nested remediation summary template.",
+      "implementation_summary": "Replaced Phase 4 one-liner with concrete report shape: Executive Summary (outcome-only), Verdict, and Findings Overview with severity breakdown, per-dimension status, and ordered/nested remediation summary template.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:45:53.382Z",
+      "completed_at": "2026-05-20T17:45:53.382Z"
+    },
+    {
+      "id": "tk-07262f8db890",
+      "title": "Update Phase 6 Final Report in adv-review.md with structured ordered/nested list guidance",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T17:45:12.405Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:45:53.832Z",
+      "verification": "Replaced Phase 6 Report one-liner with structured guidance: numbered list (verdict, per-dimension summaries, grouped findings by severity with nested details, positive notes, ordered fixes with verification status). Findings grouped by severity tier and ordered by file path within each tier.",
+      "summary": "Replaced Phase 6 Report one-liner with structured guidance: numbered list (verdict, per-dimension summaries, grouped findings by severity with nested details, positive notes, ordered fixes with verification status). Findings grouped by severity tier and ordered by file path within each tier.",
+      "implementation_summary": "Replaced Phase 6 Report one-liner with structured guidance: numbered list (verdict, per-dimension summaries, grouped findings by severity with nested details, positive notes, ordered fixes with verification status). Findings grouped by severity tier and ordered by file path within each tier.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:46:18.500Z",
+      "completed_at": "2026-05-20T17:46:18.500Z"
+    },
+    {
+      "id": "tk-262676895964",
+      "title": "Run all affected tests to verify changes don't break existing assertions",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T17:45:15.421Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T17:46:18.544Z",
+      "verification": "All 6 affected test files pass: adv-skill-backed-commands-assets, handoff-footer-drift, checkpoint-surface-drift, human-checkpoints-assets, adv-autonomy-quality-assets, commands-spine-assets. 200 suites passed, 0 failures.",
+      "summary": "All 6 affected test files pass: adv-skill-backed-commands-assets, handoff-footer-drift, checkpoint-surface-drift, human-checkpoints-assets, adv-autonomy-quality-assets, commands-spine-assets. 200 suites passed, 0 failures.",
+      "implementation_summary": "All 6 affected test files pass: adv-skill-backed-commands-assets, handoff-footer-drift, checkpoint-surface-drift, human-checkpoints-assets, adv-autonomy-quality-assets, commands-spine-assets. 200 suites passed, 0 failures.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T17:47:04.886Z",
+      "completed_at": "2026-05-20T17:47:04.886Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:32:04.758Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track contract confirmed by user; proposal/problem/agreement/design artifacts synthesized."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:44:52.491Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery validated design assumptions: Phase 4 is a one-liner needing executive summary shape, Phase 6 lacks ordered/nested list guidance, 6 adjacent test files constrain changes, token budget is advisory-only."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:44:57.152Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design pre-synthesized during fast-track. Discovery confirmed all assumptions."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:45:22.738Z",
+      "completed_by": "agent",
+      "approval_evidence": "3 tasks: Phase 4 executive summary, Phase 6 structured lists, verification run. All inline, no delegation needed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:47:10.259Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks completed: Phase 4 executive summary added, Phase 6 structured list guidance added, all 6 test suites pass."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:48:53.202Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted via inline approval (reply: \"accept\"). Delivered work satisfies all 4 acceptance criteria; all adjacent test suites pass."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:51:12.776Z",
+      "completed_by": "agent",
+      "approval_evidence": "Harden checks pass: typecheck ✓, lint ✓, format:check ✓, full test suite (200/2334) ✓. Diff scope: 1 file, +51/-2 lines, only the intended target. No slop/debug/dead-code introduced."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
