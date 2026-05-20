@@ -410,4 +410,38 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
       },
     );
   }, 30_000);
+
+  it("updateArtifactMetadataSignal handles executiveSummary kind end-to-end", async () => {
+    await withTestWorkflowEnvironment(
+      () => TestWorkflowEnvironment.createTimeSkipping(),
+      async (env) => {
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowsPath,
+          taskQueue: "sig-test-exec-summary",
+        });
+        await worker.runUntil(async () => {
+          const input = makeChangeInput("exec-summary-001");
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `sig-exec-summary-${Date.now()}`,
+            taskQueue: "sig-test-exec-summary",
+            args: [input],
+          });
+          const { updateArtifactMetadataSignal } =
+            await import("../../../temporal/messages");
+          await handle.signal(updateArtifactMetadataSignal, {
+            kind: "executiveSummary",
+            metadata: {
+              path: "/tmp/executive-summary.md",
+              updatedAt: new Date().toISOString(),
+            },
+          });
+          const state = await handle.query(changeStateQuery);
+          expect(state.artifacts.executiveSummary?.path).toBe(
+            "/tmp/executive-summary.md",
+          );
+        });
+      },
+    );
+  }, 30_000);
 });

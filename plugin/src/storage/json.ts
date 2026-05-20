@@ -573,12 +573,14 @@ export async function createChangeScaffold(
   problemStatementContent?: string,
   agreementContent?: string,
   designContent?: string,
+  executiveSummaryContent?: string,
 ): Promise<{
   changePath: string;
   proposalPath: string;
   problemStatementPath?: string;
   agreementPath?: string;
   designPath?: string;
+  executiveSummaryPath?: string;
 }> {
   const changeDir = join(changesDir, changeId);
   const changePath = join(changeDir, "change.json");
@@ -659,12 +661,20 @@ export async function createChangeScaffold(
     await atomicWriteFile(designPath, designContent);
   }
 
+  // Write executive-summary.md artifact when provided
+  let executiveSummaryPath: string | undefined;
+  if (executiveSummaryContent) {
+    executiveSummaryPath = join(changeDir, "executive-summary.md");
+    await atomicWriteFile(executiveSummaryPath, executiveSummaryContent);
+  }
+
   return {
     changePath,
     proposalPath,
     problemStatementPath,
     agreementPath,
     designPath,
+    executiveSummaryPath,
   };
 }
 
@@ -683,11 +693,13 @@ export async function updateChangeArtifacts(
   problemStatementContent?: string,
   agreementContent?: string,
   designContent?: string,
+  executiveSummaryContent?: string,
 ): Promise<{
   proposalPath?: string;
   problemStatementPath?: string;
   agreementPath?: string;
   designPath?: string;
+  executiveSummaryPath?: string;
   error?: string;
 }> {
   const changeDir = join(changesDir, changeId);
@@ -714,6 +726,11 @@ export async function updateChangeArtifacts(
       filename: "agreement.md",
     },
     { key: "designPath", content: designContent, filename: "design.md" },
+    {
+      key: "executiveSummaryPath",
+      content: executiveSummaryContent,
+      filename: "executive-summary.md",
+    },
   ] as const;
 
   const result: {
@@ -721,6 +738,7 @@ export async function updateChangeArtifacts(
     problemStatementPath?: string;
     agreementPath?: string;
     designPath?: string;
+    executiveSummaryPath?: string;
     error?: string;
   } = {};
 

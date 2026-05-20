@@ -59,6 +59,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       problemStatementContent,
       agreementContent,
       designContent,
+      executiveSummaryContent,
     ) => {
       const result = await legacy.changes.create(
         summary,
@@ -67,6 +68,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         problemStatementContent,
         agreementContent,
         designContent,
+        executiveSummaryContent,
       );
       const created = await legacy.changes.get(result.changeId);
       if (!created.success || !created.data) {
@@ -469,6 +471,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       problemStatementContent,
       agreementContent,
       designContent,
+      executiveSummaryContent,
     ) => {
       const result = await legacy.changes.updateArtifacts(
         changeId,
@@ -476,6 +479,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         problemStatementContent,
         agreementContent,
         designContent,
+        executiveSummaryContent,
       );
       if (!result.success) {
         return result;
@@ -483,7 +487,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       const updates: Array<
         [
-          "proposal" | "problemStatement" | "agreement" | "design",
+          (
+            | "proposal"
+            | "problemStatement"
+            | "agreement"
+            | "design"
+            | "executiveSummary"
+          ),
           string | undefined,
         ]
       > = [
@@ -491,6 +501,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         ["problemStatement", result.problemStatementPath],
         ["agreement", result.agreementPath],
         ["design", result.designPath],
+        ["executiveSummary", result.executiveSummaryPath],
       ];
       for (const [kind, path] of updates) {
         if (!path) continue;

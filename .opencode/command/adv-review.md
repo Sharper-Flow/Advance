@@ -345,6 +345,38 @@ Using `agreement.md`, produce:
 
 Keep the summary concise and user-facing.
 
+### Persist Executive Summary
+
+After composing the acceptance summary and before asking for acceptance, persist the executive summary as a durable artifact:
+
+1. `adv_investment_report changeId: {id}` → gather programmatic metrics (task counts, elapsed time, retry density, per-gate durations).
+2. Compose the executive summary from acceptance summary content + investment metrics, following this shape:
+   ```
+   # Executive Summary
+
+   ## Outcome
+   {1–2 sentence narrative verdict.}
+
+   ## Verdict
+   {APPROVED | CHANGES_REQUESTED | BLOCKED}
+
+   ## What Was Built
+   1. {ordered list from change.tasks, using implementation_summary}
+
+   ## What Was Verified
+   - Verdict: {verdict} with {N} findings ({severity breakdown})
+   - Tests: {pass/fail summary}
+   - Investment: {N tasks / M retries / T min / tier}
+   - Contract matrix: {required rows passed/respected, if contract exists}
+
+   ## Remaining Concerns
+   {open items or "None".}
+   ```
+3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
+4. Verify the artifact was written: `adv_change_show changeId: {id} include: { executiveSummary: true }` → confirm `_executiveSummary` is present.
+
+After the user accepts, the executive summary artifact is already persisted — no additional write needed at the acceptance gate completion step.
+
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
 

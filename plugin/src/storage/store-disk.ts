@@ -331,6 +331,7 @@ export async function createDiskStore(
         problemStatementContent,
         agreementContent,
         designContent,
+        executiveSummaryContent,
       ) => {
         const baseId = generateChangeId(summary);
         const existing = await listChangeDirs(paths.changes);
@@ -357,6 +358,7 @@ export async function createDiskStore(
           problemStatementContent,
           agreementContent,
           designContent,
+          executiveSummaryContent,
         );
 
         const change: Change = {
@@ -377,6 +379,7 @@ export async function createDiskStore(
           problemStatementPath: scaffold.problemStatementPath,
           agreementPath: scaffold.agreementPath,
           designPath: scaffold.designPath,
+          executiveSummaryPath: scaffold.executiveSummaryPath,
           duplicateWarning,
         };
       },
@@ -391,6 +394,7 @@ export async function createDiskStore(
         problemStatementContent,
         agreementContent,
         designContent,
+        executiveSummaryContent,
       ) => {
         const { id, candidates } = await resolveChangeId(
           paths.changes,
@@ -413,6 +417,7 @@ export async function createDiskStore(
           problemStatementContent,
           agreementContent,
           designContent,
+          executiveSummaryContent,
         );
         if (result.error) {
           return { success: false, error: result.error };
@@ -423,6 +428,7 @@ export async function createDiskStore(
           problemStatementPath: result.problemStatementPath,
           agreementPath: result.agreementPath,
           designPath: result.designPath,
+          executiveSummaryPath: result.executiveSummaryPath,
         };
       },
 

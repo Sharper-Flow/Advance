@@ -237,6 +237,8 @@ After acceptance completes, ADV must stop before archive and present:
 ### Gates
 [✓/○ proposal] [✓/○ discovery] [✓/○ design] [✓/○ planning]
 [✓/○ execution] [✓/○ acceptance] [○ release]
+### Executive Summary
+{Read via adv_change_show include: { executiveSummary: true }; source from _executiveSummary. The artifact is persisted by /adv-review Phase 7 at acceptance time. If missing at sign-off, stop and surface the gap — do not recompose.}
 ### What Was Built
 {proposal + implementation summary}
 ### What Was Verified

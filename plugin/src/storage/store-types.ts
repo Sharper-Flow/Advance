@@ -90,12 +90,14 @@ export interface Store {
       problemStatementContent?: string,
       agreementContent?: string,
       designContent?: string,
+      executiveSummaryContent?: string,
     ) => Promise<{
       changeId: string;
       path: string;
       problemStatementPath?: string;
       agreementPath?: string;
       designPath?: string;
+      executiveSummaryPath?: string;
       duplicateWarning?: string;
     }>;
     save: (change: Change) => Promise<void>;
@@ -105,12 +107,14 @@ export interface Store {
       problemStatementContent?: string,
       agreementContent?: string,
       designContent?: string,
+      executiveSummaryContent?: string,
     ) => Promise<{
       success: boolean;
       proposalPath?: string;
       problemStatementPath?: string;
       agreementPath?: string;
       designPath?: string;
+      executiveSummaryPath?: string;
       error?: string;
     }>;
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;

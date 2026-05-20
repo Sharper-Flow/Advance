@@ -1006,6 +1006,38 @@ describe("createChangeScaffold with agreement and design", () => {
     expect(await fileExists(agreementPath)).toBe(false);
     expect(await fileExists(designPath)).toBe(false);
   });
+
+  test("writes executive-summary.md when executiveSummaryContent is provided", async () => {
+    const result = await createChangeScaffold(
+      changesDir,
+      "testExecSummary",
+      "Test Exec Summary",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "# Executive Summary\n\n## Outcome\nThe change landed well.",
+    );
+    expect(result.executiveSummaryPath).toContain("executive-summary.md");
+    const content = await readFile(result.executiveSummaryPath!, "utf-8");
+    expect(content).toContain("Executive Summary");
+    expect(content).toContain("The change landed well");
+  });
+
+  test("does not write executive-summary.md when content is omitted", async () => {
+    const result = await createChangeScaffold(
+      changesDir,
+      "testNoExecSummary",
+      "No Exec Summary",
+    );
+    expect(result.executiveSummaryPath).toBeUndefined();
+    const execSummaryPath = join(
+      changesDir,
+      "testNoExecSummary",
+      "executive-summary.md",
+    );
+    expect(await fileExists(execSummaryPath)).toBe(false);
+  });
 });
 
 describe("updateChangeArtifacts with agreement and design", () => {
@@ -1052,6 +1084,59 @@ describe("updateChangeArtifacts with agreement and design", () => {
     );
     expect(result.agreementPath).toContain("agreement.md");
     expect(result.designPath).toBeUndefined();
+  });
+
+  test("writes executive-summary.md via 5th param", async () => {
+    await createChangeScaffold(
+      changesDir,
+      "execSummaryTest",
+      "Exec Summary Test",
+    );
+
+    const result = await updateChangeArtifacts(
+      changesDir,
+      "execSummaryTest",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "# Executive Summary\n\n## Outcome\nApproved with 0 findings.",
+    );
+
+    expect(result.executiveSummaryPath).toContain("executive-summary.md");
+    const content = await readFile(result.executiveSummaryPath!, "utf-8");
+    expect(content).toContain("Executive Summary");
+    expect(content).toContain("Approved with 0 findings");
+  });
+
+  test("updates executive-summary.md alongside other artifacts", async () => {
+    await createChangeScaffold(changesDir, "mixedUpdate", "Mixed Update");
+
+    const result = await updateChangeArtifacts(
+      changesDir,
+      "mixedUpdate",
+      "# Updated Proposal",
+      undefined,
+      "# Updated Agreement",
+      undefined,
+      "# Updated Executive Summary",
+    );
+
+    expect(result.proposalPath).toContain("proposal.md");
+    expect(result.agreementPath).toContain("agreement.md");
+    expect(result.executiveSummaryPath).toContain("executive-summary.md");
+
+    const proposalContent = await readFile(result.proposalPath!, "utf-8");
+    expect(proposalContent).toBe("# Updated Proposal");
+
+    const agreementContent = await readFile(result.agreementPath!, "utf-8");
+    expect(agreementContent).toBe("# Updated Agreement");
+
+    const execSummaryContent = await readFile(
+      result.executiveSummaryPath!,
+      "utf-8",
+    );
+    expect(execSummaryContent).toBe("# Updated Executive Summary");
   });
 });
 

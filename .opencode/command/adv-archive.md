@@ -29,7 +29,7 @@ If empty → `adv_change_list` → auto-select the only plausible change; ask vi
 
 ## Phase 1: Pre-Archive Checks
 
-1. `adv_change_show` → verify status "active"
+1. `adv_change_show changeId: {id} include: { executiveSummary: true }` → verify status "active", load executive summary for sign-off report
 2. `adv_task_list` → all tasks must be "done". If incomplete → ARCHIVE BLOCKED banner → stop
 3. `adv_change_validate strict: true` → if fails → show errors/warnings → stop and review the validation output before retrying
 4. `adv_status` → check for `[doctor]` entries: JSON/SQLite inconsistency or broken refs → block; pending WAL → warn only (advisory — benign when transient, escalate only if it persists after rerunning `/adv-status` or restarting OpenCode)

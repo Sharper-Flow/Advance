@@ -399,6 +399,7 @@ async function createCrossProjectFollowUp({
   problemStatement,
   agreement,
   design,
+  executiveSummary,
   target_path,
   source_project,
   source_change_id,
@@ -410,6 +411,7 @@ async function createCrossProjectFollowUp({
   problemStatement?: string;
   agreement?: string;
   design?: string;
+  executiveSummary?: string;
   target_path: string;
   source_project?: string;
   source_change_id?: string;
@@ -486,6 +488,7 @@ async function createCrossProjectFollowUp({
       problemStatement,
       agreement,
       design,
+      executiveSummary,
     );
     const changeResult = await targetStore.changes.get(result.changeId);
     if (changeResult.success && changeResult.data) {
@@ -1294,6 +1297,12 @@ export const changeTools = {
             .describe(
               "When true, attaches raw design.md content as `_design`.",
             ),
+          executiveSummary: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw executive-summary.md content as `_executiveSummary`.",
+            ),
         })
         .optional()
         .describe(
@@ -1321,6 +1330,7 @@ export const changeTools = {
           problemStatement?: boolean;
           agreement?: boolean;
           design?: boolean;
+          executiveSummary?: boolean;
         };
       },
       store: Store,
@@ -1511,6 +1521,17 @@ export const changeTools = {
                 // File may not exist
               }
             }
+            if (include.executiveSummary) {
+              try {
+                const text = await readFile(
+                  join(changeDir, "executive-summary.md"),
+                  "utf-8",
+                );
+                output._executiveSummary = text;
+              } catch {
+                // File may not exist
+              }
+            }
           }
 
           return formatToolOutput(output);
@@ -1555,6 +1576,12 @@ export const changeTools = {
         .optional()
         .describe(
           "Optional design.md content (architecture, LBP decisions, implementation strategy)",
+        ),
+      executiveSummary: z
+        .string()
+        .optional()
+        .describe(
+          "Optional executive-summary.md content (post-acceptance outcome narrative)",
         ),
       target_path: z
         .string()
@@ -1623,6 +1650,7 @@ export const changeTools = {
         problemStatement,
         agreement,
         design,
+        executiveSummary,
         target_path,
         source_project,
         source_change_id,
@@ -1638,6 +1666,7 @@ export const changeTools = {
         problemStatement?: string;
         agreement?: string;
         design?: string;
+        executiveSummary?: string;
         target_path?: string;
         source_project?: string;
         source_change_id?: string;
@@ -1729,6 +1758,7 @@ export const changeTools = {
           problemStatement,
           agreement,
           design,
+          executiveSummary,
           target_path,
           source_project,
           source_change_id,
@@ -1767,6 +1797,7 @@ export const changeTools = {
         problemStatement,
         agreement,
         design,
+        executiveSummary,
       );
 
       const output: Record<string, unknown> = { ...result };
@@ -1891,25 +1922,31 @@ export const changeTools = {
         .string()
         .optional()
         .describe(
-          "New proposal.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
+          "New proposal.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, `design`, or `executiveSummary` MUST be provided.",
         ),
       problemStatement: z
         .string()
         .optional()
         .describe(
-          "New problem-statement.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
+          "New problem-statement.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, `design`, or `executiveSummary` MUST be provided.",
         ),
       agreement: z
         .string()
         .optional()
         .describe(
-          "New agreement.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
+          "New agreement.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, `design`, or `executiveSummary` MUST be provided.",
         ),
       design: z
         .string()
         .optional()
         .describe(
-          "New design.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, or `design` MUST be provided.",
+          "New design.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, `design`, or `executiveSummary` MUST be provided.",
+        ),
+      executiveSummary: z
+        .string()
+        .optional()
+        .describe(
+          "New executive-summary.md content (overwrites existing). Omit to leave unchanged. At least one of `proposal`, `problemStatement`, `agreement`, `design`, or `executiveSummary` MUST be provided.",
         ),
       target_path: z
         .string()
@@ -1937,6 +1974,7 @@ export const changeTools = {
         problemStatement,
         agreement,
         design,
+        executiveSummary,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -1946,6 +1984,7 @@ export const changeTools = {
         problemStatement?: string;
         agreement?: string;
         design?: string;
+        executiveSummary?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -1963,12 +2002,13 @@ export const changeTools = {
           proposal === undefined &&
           problemStatement === undefined &&
           agreement === undefined &&
-          design === undefined
+          design === undefined &&
+          executiveSummary === undefined
         ) {
           return formatToolOutput({
             error:
-              "At least one of 'proposal', 'problemStatement', 'agreement', or 'design' must be provided.",
-            hint: "Pass one or more of: proposal, problemStatement, agreement, design. See the tool description for which file each field writes.",
+              "At least one of 'proposal', 'problemStatement', 'agreement', 'design', or 'executiveSummary' must be provided.",
+            hint: "Pass one or more of: proposal, problemStatement, agreement, design, executiveSummary. See the tool description for which file each field writes.",
           });
         }
 
@@ -1989,6 +2029,7 @@ export const changeTools = {
           problemStatement,
           agreement,
           design,
+          executiveSummary,
         );
 
         if (!result.success) {
@@ -2001,6 +2042,7 @@ export const changeTools = {
           problemStatementPath: result.problemStatementPath,
           agreementPath: result.agreementPath,
           designPath: result.designPath,
+          executiveSummaryPath: result.executiveSummaryPath,
           ...(projectContext ? { _projectContext: projectContext } : {}),
         });
       };
