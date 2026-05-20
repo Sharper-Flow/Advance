@@ -189,7 +189,40 @@ When APPROVED with unresolved `suggestion:` or `question:` findings, note in the
 
 ---
 ## Phase 4: Display Summary
-Emit CODE REVIEW banner: per-dimension status, severity breakdown, verdict.
+Emit a CODE REVIEW report with the following shape:
+
+### Executive Summary
+One concise paragraph: overall verdict, total findings by severity, fixes applied (if remediation ran), and remaining concerns. No process mechanics — summarize outcome only.
+
+### Verdict
+State the verdict explicitly (APPROVED / CHANGES_REQUESTED / BLOCKED) on its own line.
+
+### Findings Overview
+1. **Severity breakdown**: counts per label (blockers, issues, suggestions, nits, praise).
+2. **Per-dimension status**: one line per dimension with pass/flag status.
+3. **Remediation summary** (if remediation ran): ordered list of fixes applied with verification status. Nest sub-details (file, what changed) under each fix.
+
+Example shape:
+```
+### Executive Summary
+{Verdict} with {N} findings ({B} blockers, {I} issues, {S} suggestions, {N} nits). {M} fixes applied during remediation. {Remaining concerns or "None"}.
+
+### Verdict
+{VERDICT}
+
+### Findings Overview
+1. Severity: {B} blocker(s), {I} issue(s), {S} suggestion(s), {N} nit(s), {P} praise
+2. Dimensions:
+   - Requirement Traceability: ✓ pass / ⚠ flagged ({n} issues)
+   - Logic & Edge Cases: ✓ pass / ⚠ flagged ({n} issues)
+   - Security: ✓ pass / ⚠ flagged ({n} issues)
+   - Architecture & Quality: ✓ pass / ⚠ flagged ({n} issues)
+   - Cross-Repo: ✓ pass / ⚠ flagged ({n} issues)
+3. Remediation (if applicable):
+   1. [{finding-id}] {what was fixed} — {verification status}
+      - File: {file}:{line}
+      - Detail: {change description}
+```
 
 ---
 ## Phase 5: Remediation (if issues found)
@@ -239,7 +272,23 @@ After remediation fixes are applied, re-verify affected dimensions before recomp
 ## Phase 6: Final Report
 <!-- rq-touchedScope01 -->
 ### Report
-Emit final CODE REVIEW banner: verdict, per-dimension summaries, numbered review comments (label, file:line, what, why, fix), positive notes, fixes applied with verification status.
+Emit a structured final report using ordered and nested lists:
+
+1. **Verdict** — state APPROVED / CHANGES_REQUESTED / BLOCKED on its own line.
+2. **Per-dimension summaries** — numbered list, one entry per dimension:
+   1. Design: {pass/flag summary}
+   2. Functionality: {pass/flag summary}
+   3. ... (all 12 dimensions)
+3. **Numbered review comments** — grouped by severity (blockers → issues → suggestions → nits), each with:
+   - Label, file:line, what, why, fix
+   - Nest sub-details (e.g., root cause analysis, affected callers) as indented sub-items under each finding
+4. **Positive notes** — `praise:` findings listed concisely.
+5. **Fixes applied** (if remediation ran) — ordered list with verification status:
+   1. [{finding-id}] {what was fixed} — {verification status}
+      - File: {file}:{line}
+      - Change: {description of fix}
+
+Group findings by severity tier. Within each tier, order by file path for scanability. Use nested sub-lists for multi-file findings or findings with multiple remediation steps.
 
 ### Contract Review Matrix
 
