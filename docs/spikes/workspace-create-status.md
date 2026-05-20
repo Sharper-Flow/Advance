@@ -124,7 +124,9 @@ This is actionable — users who want the warp behavior know exactly which env v
 
 ## Effect on task 4 (HTTP shim)
 
-Task 4 (`tk-45ca436b3d21`) must add `warpFlagEnabled()` to the shim and integrate it into `workspaceAndWarpAvailable`. The unit tests in task 4 must cover:
+Implementation status: task `tk-45ca436b3d21` added `warpFlagEnabled()` and integrated it into `workspaceAndWarpAvailable`; `workspace-warp.test.ts` covers flag-off short-circuit, flag-on success, endpoint failure, and fetch failure.
+
+Task 4 (`tk-45ca436b3d21`) added `warpFlagEnabled()` to the shim and integrated it into `workspaceAndWarpAvailable`. The unit tests in task 4 cover:
 
 - Flag off (env unset) → `workspaceAndWarpAvailable` returns false WITHOUT making any HTTP call
 - Flag on + endpoint 200 → returns true
@@ -135,7 +137,9 @@ Test setup uses `vi.stubEnv` (vitest) to manipulate `process.env.OPENCODE_EXPERI
 
 ## Effect on task 6 (worktree switch)
 
-Task 6's downgrade log line should mention the env var so the user can act:
+Implementation status: task `tk-f27fac1ba79c` added the actionable downgrade warning in worktree create mode resolution.
+
+Task 6's downgrade log line mentions the env var so the user can act:
 
 ```ts
 if (requestedMode === "warp" && !available) {
@@ -160,6 +164,8 @@ Task 12 should be split into two sub-scenarios:
 2. **Default (flag off)**: `opencode` — exercises the downgrade path. AC-5 should pass; AC-1/AC-2 do NOT apply because warp is not active.
 
 Both sub-scenarios MUST be tested before acceptance gate.
+
+Implementation status: task 12 completed both live smoke scenarios after build; results are recorded in `docs/spikes/warp-live-validation.md` (flag-enabled warp and default flag-off downgrade).
 
 ## Residual risks
 

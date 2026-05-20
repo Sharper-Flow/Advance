@@ -117,6 +117,21 @@ describe("buildAdvWorktreeAdapter", () => {
     });
   });
 
+  it("rejects target rows whose configured directory does not match ADV metadata", async () => {
+    stubWorktreeRoot();
+    const adapter = buildAdvWorktreeAdapter();
+
+    await expect(
+      adapter.target({
+        ...baseInfo,
+        directory:
+          "/tmp/adv-workspace-adapter/opencode/worktree/proj-123/change/other",
+      }),
+    ).rejects.toThrow(
+      "adv-worktree adapter target does not match project/branch",
+    );
+  });
+
   it("rejects directories outside the ADV worktree namespace", async () => {
     stubWorktreeRoot();
     const adapter = buildAdvWorktreeAdapter();

@@ -585,6 +585,21 @@ describe.skipIf(!isLinux)(
       expect(list).not.toContain("feature/test");
     });
 
+    it("releases the acquired flock through the returned release callback", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      const release = vi.fn(async () => undefined);
+      deps.flock = {
+        acquire: async () => ({ owned: true, release }),
+      };
+
+      const result = await advWorktreeCreate("feature/release-lock", {}, deps);
+
+      expect(result.ok).toBe(true);
+      expect(release).toHaveBeenCalledOnce();
+    });
+
     it("BRANCH_IN_USE — blocks when Temporal visibility shows another active change owns the branch", async () => {
       workflowList.mockImplementationOnce(() =>
         (async function* () {
@@ -673,6 +688,32 @@ describe.skipIf(!isLinux)(
         sessionID: "session-1",
         copyChanges: false,
       });
+    });
+
+    it("reports orphan workspace cleanup failure when warp fallback cannot delete it", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi
+        .fn()
+        .mockResolvedValueOnce(new Response("[]"))
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify({ id: "ws-created" }), {
+            headers: { "content-type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(new Response("bad warp", { status: 500 }))
+        .mockResolvedValueOnce(new Response("delete failed", { status: 503 }));
+      vi.stubGlobal("fetch", fetchImpl);
+      const { create } = await createWorktreeCreateHarness();
+
+      const output = await create.execute({ branch: "change/warp-cleanup" }, {
+        sessionID: "session-1",
+      } as any);
+
+      expect(output).toContain(
+        "mode:warp failed after creating the git worktree",
+      );
+      expect(output).toContain("OpenCode workspace cleanup also failed");
+      expect(output).toContain("manual cleanup may be required");
     });
 
     it("worktree_create refuses to warp a session that is already in a workspace", async () => {

@@ -1,0 +1,47 @@
+{
+  "entries": [
+    {
+      "id": "ws-LrLEMp",
+      "type": "pattern",
+      "content": "For OpenCode workspace adapters, mirror the SDK contract directly: `WorkspaceInfo.directory` can start as `null`, so custom adapters should structurally validate `info.extra` at `configure()` and only route `target()` from populated `info.directory`. Keep ADV git worktree create/delete ownership separate with adapter lifecycle methods as no-ops.",
+      "source_task": "tk-b432ddf62069",
+      "recorded_at": "2026-05-20T06:29:37.469Z"
+    },
+    {
+      "id": "ws-3crGib",
+      "type": "gotcha",
+      "content": "OpenCode workspace HTTP endpoints being mounted is not enough to prove workspace warp is usable. `workspaceAndWarpAvailable()` must first check the exact opt-in env vars (`OPENCODE_EXPERIMENTAL=true` or `OPENCODE_EXPERIMENTAL_WORKSPACES=true`) and short-circuit without HTTP when absent, otherwise create can hang and fail later with an unhelpful 400.",
+      "source_task": "tk-45ca436b3d21",
+      "recorded_at": "2026-05-20T06:34:19.772Z"
+    },
+    {
+      "id": "ws-MzKY35",
+      "type": "pattern",
+      "content": "For config migrations that must land before flow rewrites, introduce the new structural field (`mode`) and a temporary derived legacy bridge (`inline`) so existing branches keep stable behavior until downstream tasks switch call sites. This keeps intermediate commits coherent while preserving the locked target semantics.",
+      "source_task": "tk-85f28925982e",
+      "recorded_at": "2026-05-20T06:39:30.901Z"
+    },
+    {
+      "id": "ws-UvPKP5",
+      "type": "success",
+      "content": "Audit redirection avoided persisting `workspaceID` into a retired no-op session registry. Lookup-by-directory via OpenCode's workspace list keeps cleanup state derived from the actual OpenCode workspace table and avoids adding new ADV persistence for delete-time cleanup.",
+      "source_task": "tk-fdfc9937bb57",
+      "recorded_at": "2026-05-20T06:43:16.050Z"
+    },
+    {
+      "id": "ws-8d06OD",
+      "type": "pattern",
+      "content": "For OpenCode plugin double-init surfaces, register process-level handlers behind a module-level guard and make duplicate registrations return no-op disposers. Let the real disposer clear the guard so fresh sessions can register after `session.deleted`, while concurrent duplicate plugin instances do not double-fire shutdown hooks.",
+      "source_task": "tk-19b6a92616ad",
+      "recorded_at": "2026-05-20T06:49:11.834Z"
+    },
+    {
+      "id": "ws-L9lwPb",
+      "type": "gotcha",
+      "content": "`worktree_create` should resolve warp availability and re-warp guard before creating the git worktree. That prevents an already-warped session from creating a stray worktree and lets default `mode:\"warp\"` downgrade to terminal immediately when env flags are off, without touching OpenCode workspace HTTP.",
+      "source_task": "tk-f27fac1ba79c",
+      "recorded_at": "2026-05-20T06:57:31.887Z"
+    }
+  ],
+  "count": 6
+}

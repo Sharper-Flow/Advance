@@ -34,8 +34,11 @@ Use `adv_worktree_create` (or the `worktree_create` alias) when:
 
 ## Behavior
 
-- Default flow is inline: create worktree, then continue in the same agent session
-- After creation, use the returned worktree path as `workdir` for subsequent tool calls
+- Default flow is `mode: "warp"`: create/reuse the git worktree, register an OpenCode `adv-worktree` workspace, then warp the current session so subsequent tools run from the worktree root
+- Warp requires launching OpenCode with `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or `OPENCODE_EXPERIMENTAL=true`) and restarting; if unavailable, ADV downgrades to `mode: "terminal"` with an actionable warning
+- In terminal fallback mode, use the returned worktree path as `workdir` for all subsequent tool calls
+- `mode: "spawn"` returns the worktree path for follow-up launch handling; do not assume a terminal was opened unless the calling workflow explicitly does so
+- Already-warped sessions cannot create another worktree; open a fresh OpenCode session from the trunk checkout
 - On delete, the change branch must be archived AND merged AND clean (3-condition gate); pre-delete and post-delete hooks run with safety bounds (timeout, env sanitization, exit-code surfaced)
 - Multiple worktrees per project are first-class — coordinate-by-design via Temporal `worktree_registry`
 

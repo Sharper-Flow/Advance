@@ -77,6 +77,7 @@ import {
   initStateDb,
   listWorktrees,
   removeSession,
+  setPendingDelete,
   updateWorktreeRecord,
 } from "./state";
 import { openTerminal } from "./terminal";
@@ -983,7 +984,15 @@ export async function advWorktreeCreate(
   const projectStateDir = projectId ? getExternalRoot(projectId) : repoRoot;
   // Ensure the state directory exists before attempting to acquire lock.
   await mkdir(projectStateDir, { recursive: true });
-  const flockAcquireFn = deps.flock?.acquire ?? acquireGitWorktreeFlock;
+  const flockAcquireFn =
+    deps.flock?.acquire ??
+    (async (dir: string) => {
+      const acquired = await acquireGitWorktreeFlock(dir);
+      return {
+        ...acquired,
+        release: async () => releaseGitWorktreeFlock(dir),
+      };
+    });
   const lock = await flockAcquireFn(projectStateDir);
   if (!lock.owned) {
     return {
@@ -1145,7 +1154,7 @@ export async function advWorktreeCreate(
       reused: false,
     };
   } finally {
-    await releaseGitWorktreeFlock(projectStateDir);
+    await lock.release();
   }
 }
 
@@ -1289,6 +1298,7 @@ export interface AdvWorktreeDeleteDeps {
   integrationCheck?: typeof verifyBranchIntegration;
   registry?: { branch: string; changeId?: string; path: string }[];
   warpDeps?: WarpDeps;
+  isWorktreeInUse?: (worktreePath: string) => boolean;
   mergedBranches?: (
     defaultBranch: string,
     repoRoot: string,
@@ -1296,9 +1306,22 @@ export interface AdvWorktreeDeleteDeps {
 }
 
 export type AdvWorktreeDeleteResult =
-  | { ok: true; branch: string; path: string; dryRun?: boolean }
+  | {
+      ok: true;
+      branch: string;
+      path: string;
+      dryRun?: boolean;
+      warning?: string;
+    }
   | { ok: false; error: "INVALID_BRANCH"; reason: string }
   | { ok: false; error: "WORKTREE_NOT_FOUND"; branch: string }
+  | {
+      ok: false;
+      error: "WORKTREE_IN_USE";
+      branch: string;
+      path: string;
+      hint: string;
+    }
   | { ok: false; error: "INTEGRATION_REQUIRED"; reason: string; hint: string }
   | { ok: false; error: "UNCOMMITTED_WORK"; files: string[]; hint: string }
   | { ok: false; error: "HOOK_FAILED"; details: unknown }
@@ -1314,15 +1337,15 @@ async function cleanupOpenCodeWorkspaceForWorktree(
   worktreePath: string,
   branch: string,
   deps: AdvWorktreeDeleteDeps,
-): Promise<void> {
-  if (!deps.warpDeps) return;
+): Promise<string | null> {
+  if (!deps.warpDeps) return null;
 
   const found = await findWorkspaceByDirectory(
     deps.warpDeps,
     worktreePath,
     branch,
   );
-  if (!found) return;
+  if (!found) return null;
 
   try {
     await deleteAdvWorkspace(deps.warpDeps, found.workspaceID);
@@ -1330,10 +1353,13 @@ async function cleanupOpenCodeWorkspaceForWorktree(
       `[worktree] Cleaned up OpenCode workspace ${found.workspaceID}`,
     );
   } catch (error) {
+    const warning = `Failed to delete OpenCode workspace ${found.workspaceID}: ${error}`;
     deps.log.warn(
       `[worktree] Failed to delete OpenCode workspace ${found.workspaceID} (continuing worktree delete): ${error}`,
     );
+    return warning;
   }
+  return null;
 }
 
 async function getWorktreeRegistryEntry(
@@ -1345,6 +1371,20 @@ async function getWorktreeRegistryEntry(
   }
   const registry = await listWorktrees(deps.database);
   return registry.find((r) => r.branch === branch);
+}
+
+async function validateResolvedDeleteWorktreePath(
+  branch: string,
+  worktreePath: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<string | null> {
+  const normalizedPath = path.resolve(worktreePath);
+  if (!(await pathExists(normalizedPath))) return normalizedPath;
+
+  const gitEntry = await findGitWorktreeByBranch(deps.projectRoot, branch);
+  if (!gitEntry) return null;
+
+  return path.resolve(gitEntry.path) === normalizedPath ? normalizedPath : null;
 }
 
 async function getMergedBranchesForDelete(
@@ -1507,6 +1547,16 @@ export async function advWorktreeDelete(
     if (missingFromDisk) return missingFromDisk;
   }
 
+  const validatedWorktreePath = await validateResolvedDeleteWorktreePath(
+    branch,
+    worktreePath,
+    deps,
+  );
+  if (!validatedWorktreePath) {
+    return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
+  }
+  worktreePath = validatedWorktreePath;
+
   // 2. Branch integration check. Four cases:
   //
   //    (a) ADV-owned branch (registry + changeId): archived+merged+clean
@@ -1609,6 +1659,23 @@ export async function advWorktreeDelete(
     return { ok: true as const, branch, path: worktreePath, dryRun: true };
   }
 
+  const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
+  if (worktreeInUseFn(worktreePath)) {
+    await setPendingDelete(
+      deps.database,
+      branch,
+      worktreePath,
+      "worktree is still in use by a running process",
+    );
+    return {
+      ok: false,
+      error: "WORKTREE_IN_USE",
+      branch,
+      path: worktreePath,
+      hint: "Worktree is still in use; queued a pending delete. Retry with adv_worktree_cleanup after the process exits.",
+    };
+  }
+
   // 4. Run preDelete hooks
   const hooks =
     deps.hooks ?? (await loadWorktreeConfig(deps.projectRoot, deps.log)).hooks;
@@ -1651,7 +1718,11 @@ export async function advWorktreeDelete(
       `force-removing ${branch} at ${worktreePath} (uncommitted=${!preHookStatus.clean})`,
     );
   }
-  await cleanupOpenCodeWorkspaceForWorktree(worktreePath, branch, deps);
+  const workspaceCleanupWarning = await cleanupOpenCodeWorkspaceForWorktree(
+    worktreePath,
+    branch,
+    deps,
+  );
   const removeResult = await gitWorktreeRemove(
     deps.projectRoot,
     worktreePath,
@@ -1691,7 +1762,12 @@ export async function advWorktreeDelete(
   );
 
   // 8. Return success
-  return { ok: true as const, branch, path: worktreePath };
+  return {
+    ok: true as const,
+    branch,
+    path: worktreePath,
+    ...(workspaceCleanupWarning ? { warning: workspaceCleanupWarning } : {}),
+  };
 }
 
 // =============================================================================
@@ -2182,6 +2258,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           switch (effectiveMode) {
             case "warp": {
               let workspaceID: string | undefined;
+              let workspaceCleanupFailed: string | undefined;
               try {
                 const created = await createAdvWorkspace(warpDeps, {
                   directory: worktreePath,
@@ -2197,14 +2274,18 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                   try {
                     await deleteAdvWorkspace(warpDeps, workspaceID);
                   } catch (cleanupError) {
+                    workspaceCleanupFailed = String(cleanupError);
                     log.warn(
                       `[worktree] Warp failed AND orphan workspace cleanup failed for ${workspaceID}: ${cleanupError}`,
                     );
                   }
                 }
+                const cleanupMessage = workspaceCleanupFailed
+                  ? `OpenCode workspace cleanup also failed (${workspaceCleanupFailed}); manual cleanup may be required`
+                  : "cleaned up any created OpenCode workspace";
 
                 log.warn(
-                  `[worktree] mode:warp failed after creating the git worktree (${error}); falling back to mode:terminal.`,
+                  `[worktree] mode:warp failed after creating the git worktree (${error}); ${cleanupMessage}; falling back to mode:terminal.`,
                 );
 
                 await addSession(
@@ -2222,7 +2303,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
                   `Worktree created at ${worktreePath}`,
                   `Branch: ${args.branch}`,
                   ``,
-                  `mode:warp failed after creating the git worktree; cleaned up any created OpenCode workspace and falling back to mode:terminal.`,
+                  `mode:warp failed after creating the git worktree; ${cleanupMessage}. Falling back to mode:terminal.`,
                   `IMPORTANT: Terminal mode is active. You MUST use workdir="${worktreePath}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
                 ].join("\n");
               }
@@ -2383,12 +2464,19 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           );
 
           if (result.ok) {
-            return `Worktree removed on branch "${result.branch}".`;
+            return [
+              `Worktree removed on branch "${result.branch}".`,
+              result.warning ? `Warning: ${result.warning}` : undefined,
+            ]
+              .filter(Boolean)
+              .join("\n");
           }
 
           switch (result.error) {
             case "WORKTREE_NOT_FOUND":
               return `Worktree not found for branch "${result.branch}".`;
+            case "WORKTREE_IN_USE":
+              return `Worktree still in use at ${result.path}. ${result.hint}`;
             case "INVALID_BRANCH":
               return `Invalid branch: ${result.reason}`;
             case "INTEGRATION_REQUIRED":

@@ -322,6 +322,28 @@ describe("workspace-warp", () => {
       );
     });
 
+    it("matches ADV workspace rows by extra.directory when top-level directory is not populated", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(
+        jsonResponse([
+          {
+            id: "ws-match",
+            type: "adv-worktree",
+            directory: null,
+            extra: { directory: "/tmp/wt", branch: "change/test" },
+          },
+        ]),
+      );
+
+      await expect(
+        findWorkspaceByDirectory(
+          { serverUrl, fetchImpl },
+          "/tmp/wt",
+          "change/test",
+        ),
+      ).resolves.toEqual({ workspaceID: "ws-match" });
+    });
+
     it("ignores non-ADV or metadata-mismatched workspace rows", async () => {
       vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
       const fetchImpl = vi.fn().mockResolvedValue(

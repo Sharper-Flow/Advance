@@ -10,16 +10,18 @@ Combines two research strands surfaced by the spike (`tk-ad9ebd8b983f`):
 
 ## Part A: Module-scope singletons audit
 
+Implementation status: task `tk-19b6a92616ad` resolved the actionable items below. `events/status.ts` now has idempotent initialization, and `plugin-init.ts` guards duplicate shutdown-handler registration with a no-op duplicate disposer.
+
 ### Findings by file
 
 | File:line | Singleton | Double-init risk | Classification | Action |
 |---|---|---|---|---|
 | `events/terminal.ts:107-329` | `cachedPaneTty`, `cachedClientTty`, `ttyCacheTimestamp`, `_onBell`, `lastAlertedStatus`, `pendingFinalAlert`, `lastArmedMessageId`, `lastRungMessageId`, `bellDebounceTimer` | TTY caching is process-global; both plugin instances inherit. Bell-state singletons may double-fire alerts if both instances see the same `session.idle` event | SAFE-ish: TTYs are immutable per process; bell state may double-arm but `lastRungMessageId` dedup at the ring site prevents duplicate rings | No action needed; document as known double-emit risk for non-terminal events |
-| `events/status.ts:23` `let state: StatusState` | Status singleton; reset on `initializeStatus` | NEEDS-FIX | Already in scope as task 2 (tk-f96182eff2ad) | — |
+| `events/status.ts:23` `let state: StatusState` | Status singleton; reset on `initializeStatus` | RESOLVED | Task 7 (`tk-19b6a92616ad`) made `initializeStatus` idempotent for duplicate plugin init | — |
 | `events/status.ts:142` `const retryTrackers = new Map` | Retry counter map keyed by task id | SAFE — Map shared across plugin instances, task IDs are unique | No action | — |
 | `plugin-init.ts:366-370` Worker tracking Sets + `currentWorkerRole`, `exhaustedWorkerDirs` | Tracks in-process Temporal workers | NEEDS-AUDIT — second plugin init would re-call `startTemporalWorker` and potentially register a SECOND worker into the Set | YELLOW: existing `if (exhaustedWorkerDirs.has(projectStateDir)) return` short-circuits second-init for same project-id. **Verify by reading `startTemporalWorker` path before plugin-init code change lands** | Add explicit verification step to task 7 (tk-19b6a92616ad) |
 | `plugin-init.ts:541` `let activeHealthMonitor: HealthMonitor \| null` | Process-global health monitor | NEEDS-FIX — second `startWorkerHealthMonitor()` call would orphan the first | YELLOW: function should be idempotent already. Read `startWorkerHealthMonitor`'s body to confirm | Fold check into task 7 verification |
-| `plugin-init.ts:667-742` `registerShutdownHandlers` | Registers `process.on("exit"|"SIGINT"|"SIGTERM")` UNCONDITIONALLY on every call. `removeProcessListeners` returned but never called from `index.ts:747` | **RED — process-handler leak.** Two plugin instances → two handlers on each signal → `shutdownWithFlush` runs twice → `process.exit(0)` called twice → second store.close() throws "already closed" (swallowed) but is real noise | Existing leak even today on plugin reload; warp doesn't introduce it, but exacerbates it. **Add task to graph or fold into task 7** | See "Recommended additions" below |
+| `plugin-init.ts:667-742` `registerShutdownHandlers` | Registers process handlers for shutdown flush | RESOLVED | Task 7 (`tk-19b6a92616ad`) added a module-level registration guard and duplicate no-op disposer | See "Recommended additions" below |
 | `tools/worktree/index.ts:542` `let db: Database \| null` | Worktree state DB handle | SAFE — first-init wins; `getDb()` returns cached handle. project-id-keyed external state means both plugin instances point at the same DB file | No action | — |
 | `tools/worktree/index.ts:545` `let projectRoot: string \| null` | Set on first `initDb` call, never reset | NEEDS-FIX — second plugin instance's `initDb(worktreePath, log)` would set `projectRoot = worktreePath`, but cached `db` is already open against trunk path. Subsequent state ops use cached `db` so worktree path is silently ignored | YELLOW: state DB is project-id-keyed (same SHA for both), so cached `db` IS correct for both instances. The semantic confusion is cosmetic. Add a JSDoc note | Document in task 7 verification, no code change |
 | `tools/worktree/index.ts:548` `let cleanupRegistered` | Guard against double `registerCleanupHandlers` | SAFE — boolean guard works correctly across plugin instances | No action | — |
@@ -53,7 +55,7 @@ Only #1 is a real leak.
 
 ### Recommended addition to task 7 (plugin init wiring)
 
-Add a guard against duplicate `registerShutdownHandlers` registration:
+Resolved implementation added a guard against duplicate `registerShutdownHandlers` registration:
 
 ```ts
 // In plugin-init.ts

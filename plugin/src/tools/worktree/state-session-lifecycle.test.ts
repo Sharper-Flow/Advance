@@ -6,6 +6,9 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Note: do NOT mock ./state here — the test needs the real implementation.
 // Mocking it with importOriginal causes module-resolution ordering issues
@@ -43,6 +46,10 @@ import {
   buildWorktreeBranchVisibilityQuery,
   findBranchOwnersAcrossChanges,
   listWorktreesAcrossChanges,
+  setPendingDelete,
+  getPendingDeletes,
+  incrementPendingDeleteAttempts,
+  clearPendingDelete,
   type WorktreeStateAccess,
 } from "./state";
 import { synthesizeTestProjectId } from "../../utils/project-id";
@@ -162,6 +169,47 @@ describe("cross-change worktree visibility helpers (T22)", () => {
         status: "active",
       }),
     ]);
+  });
+});
+
+describe("pending delete lifecycle", () => {
+  it("persists pending deletes under the external project state root", async () => {
+    const originalXdg = process.env.XDG_DATA_HOME;
+    const xdg = mkdtempSync(join(tmpdir(), "adv-pending-delete-"));
+    process.env.XDG_DATA_HOME = xdg;
+
+    try {
+      const worktreePath = `${xdg}/opencode/worktree/test-id/change/pending-cleanup`;
+      await setPendingDelete(
+        access,
+        "change/pending-cleanup",
+        worktreePath,
+        "worktree still in use",
+        "2026-05-20T00:00:00.000Z",
+      );
+
+      await expect(getPendingDeletes(access)).resolves.toEqual([
+        {
+          branch: "change/pending-cleanup",
+          path: worktreePath,
+          reason: "worktree still in use",
+          recordedAt: "2026-05-20T00:00:00.000Z",
+          attempts: 0,
+        },
+      ]);
+
+      await incrementPendingDeleteAttempts(access, "change/pending-cleanup");
+      await expect(getPendingDeletes(access)).resolves.toEqual([
+        expect.objectContaining({ attempts: 1 }),
+      ]);
+
+      await clearPendingDelete(access, "change/pending-cleanup");
+      await expect(getPendingDeletes(access)).resolves.toEqual([]);
+    } finally {
+      if (originalXdg === undefined) delete process.env.XDG_DATA_HOME;
+      else process.env.XDG_DATA_HOME = originalXdg;
+      rmSync(xdg, { recursive: true, force: true });
+    }
   });
 });
 

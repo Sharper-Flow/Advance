@@ -928,11 +928,11 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 
 ### Worktree Protocol
 
-`adv_worktree_create` defaults to `mode: "warp"`: create/reuse git worktree → register OpenCode `adv-worktree` workspace → warp current session so later tools run from the worktree root. Enable by launching OpenCode with `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or broader `OPENCODE_EXPERIMENTAL=true`) and restarting; ADV does not mutate `process.env`. If the flag or `/experimental/workspace` surface is unavailable, ADV downgrades to `mode: "terminal"` with an actionable warning.
+`adv_worktree_create` defaults to `mode: "warp"`: create/reuse git worktree → register OpenCode `adv-worktree` workspace → warp current session so later tools run from the worktree root. Enable by launching OpenCode with `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or broader `OPENCODE_EXPERIMENTAL=true`) and restarting; ADV does not mutate `process.env`. If the flag or `/experimental/workspace` surface is unavailable, ADV downgrades to `mode: "terminal"` with an actionable warning. If the current session is already warped, `adv_worktree_create` blocks with `SESSION_ALREADY_WARPED`; open a fresh OpenCode session from the trunk checkout to create another worktree.
 
 Advanced side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering so cross-workspace sessions of the same project are included by default instead of filtered by directory. ADV does not rely on this. No graduation timeline is published; env-var opt-in is the current mechanism.
 
-Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` opens a forked OpenCode session in a new terminal. Delete via `adv_worktree_delete branch:<branch>` only after merge; warp-mode delete also removes the matching OpenCode workspace row before git worktree removal.
+Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` returns the worktree path for follow-up launch handling. Delete via `adv_worktree_delete branch:<branch>` only after merge; warp-mode delete attempts to remove the matching OpenCode workspace row before git worktree removal, warning and continuing if workspace cleanup fails.
 
 ### Worktree Cleanup
 

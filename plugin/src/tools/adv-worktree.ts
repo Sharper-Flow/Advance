@@ -199,6 +199,7 @@ export const advWorktreeTools = {
       if (mode.mode !== "warp") return formatToolOutput(result);
       const warpDeps = mode.warpDeps;
       let workspaceID: string | undefined;
+      let workspaceCleanupFailed: string | undefined;
       try {
         const created = await createAdvWorkspace(warpDeps, {
           directory: result.path,
@@ -214,15 +215,19 @@ export const advWorktreeTools = {
           try {
             await deleteAdvWorkspace(warpDeps, workspaceID);
           } catch (cleanupError) {
+            workspaceCleanupFailed = String(cleanupError);
             log.warn(
               `[worktree] Warp failed AND orphan workspace cleanup failed for ${workspaceID}: ${cleanupError}`,
             );
           }
         }
+        const cleanupMessage = workspaceCleanupFailed
+          ? `OpenCode workspace cleanup also failed (${workspaceCleanupFailed}); manual cleanup may be required`
+          : "cleaned up the OpenCode workspace";
         return formatToolOutput(
           terminalModePayload(
             result,
-            `mode:warp failed after creating the git worktree (${error}); cleaned up the OpenCode workspace and falling back to mode:terminal.`,
+            `mode:warp failed after creating the git worktree (${error}); ${cleanupMessage}. Falling back to mode:terminal.`,
           ),
         );
       }

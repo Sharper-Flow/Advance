@@ -96,9 +96,16 @@ export function buildAdvWorktreeAdapter(): WorkspaceAdapter {
       if (typeof info.directory !== "string" || info.directory.length === 0) {
         throw new Error("adv-worktree adapter target requires info.directory");
       }
+      const expectedDirectory = getAdvWorktreeDirectory(info);
+      const targetDirectory = validateAdvWorktreeDirectory(info.directory);
+      if (targetDirectory !== expectedDirectory) {
+        throw new Error(
+          `adv-worktree adapter target does not match project/branch: expected ${expectedDirectory}`,
+        );
+      }
       return {
         type: "local",
-        directory: validateAdvWorktreeDirectory(info.directory),
+        directory: targetDirectory,
       };
     },
   };

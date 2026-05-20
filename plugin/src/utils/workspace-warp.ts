@@ -196,8 +196,8 @@ export async function findWorkspaceByDirectory(
     const match = list.find(
       (item) =>
         isAdvWorkspaceListItem(item) &&
-        item.directory === directory &&
         item.extra.directory === directory &&
+        (item.directory === null || item.directory === directory) &&
         (branch === undefined || item.extra.branch === branch),
     );
     return isAdvWorkspaceListItem(match) ? { workspaceID: match.id } : null;

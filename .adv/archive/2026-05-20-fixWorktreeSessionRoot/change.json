@@ -1,0 +1,534 @@
+{
+  "id": "fixWorktreeSessionRoot",
+  "title": "Fix worktree session root",
+  "status": "archived",
+  "created_at": "2026-05-20T04:46:21.578Z",
+  "tasks": [
+    {
+      "id": "tk-ad9ebd8b983f",
+      "title": "Spike: verify Workspace.create connected-status semantics for target.type:\"local\"",
+      "type": "code",
+      "section": "Discovery",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T05:46:44.504Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:53:33.990Z",
+      "verification": "YELLOW spike outcome — design correction needed in task tk-45ca436b3d21 (workspace-warp shim) before that task starts. Will update the task spec next.",
+      "summary": "Spike completed. VERDICT: YELLOW. Verified that Workspace.create for target.type:\"local\" reaches \"connected\" synchronously when experimentalWorkspaces flag is on (fs.existsSafe check at workspace.ts:495-498), but the flag is OFF by default (env vars OPENCODE_EXPERIMENTAL=unset, OPENCODE_EXPERIMENTAL_WORKSPACES=unset). Without the flag, startSync returns immediately at workspace.ts:479 without emitting status events, causing waitEvent to time out after 5s and Workspace.create to return HTTP 400. Design's detection probe (GET /experimental/workspace → 2xx) is INSUFFICIENT — endpoint is mounted regardless of flag.\n\nCORRECTION REQUIRED: Add warpFlagEnabled() env-var check in workspace-warp.ts shim (task tk-45ca436b3d21). Both env check AND endpoint probe must pass for warp to be considered available. Downgrade log line should mention the env var so users can act. Task 12 live validation must cover both flag-on and flag-off paths.\n\nFull analysis with source citations in docs/spikes/workspace-create-status.md (committed as 4a88b60).",
+      "implementation_summary": "Spike completed. VERDICT: YELLOW. Verified that Workspace.create for target.type:\"local\" reaches \"connected\" synchronously when experimentalWorkspaces flag is on (fs.existsSafe check at workspace.ts:495-498), but the flag is OFF by default (env vars OPENCODE_EXPERIMENTAL=unset, OPENCODE_EXPERIMENTAL_WORKSPACES=unset). Without the flag, startSync returns immediately at workspace.ts:479 without emitting status events, causing waitEvent to time out after 5s and Workspace.create to return HTTP 400. Design's detection probe (GET /experimental/workspace → 2xx) is INSUFFICIENT — endpoint is mounted regardless of flag.\n\nCORRECTION REQUIRED: Add warpFlagEnabled() env-var check in workspace-warp.ts shim (task tk-45ca436b3d21). Both env check AND endpoint probe must pass for warp to be considered available. Downgrade log line should mention the env var so users can act. Task 12 live validation must cover both flag-on and flag-off paths.\n\nFull analysis with source citations in docs/spikes/workspace-create-status.md (committed as 4a88b60).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T05:56:41.350Z",
+      "completed_at": "2026-05-20T05:56:41.350Z"
+    },
+    {
+      "id": "tk-063286a8d596",
+      "title": "Audit: module-scope singletons in plugin/src for double-init resilience",
+      "type": "code",
+      "section": "Discovery",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T05:46:56.517Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:53:35.039Z",
+      "notes": "SCOPE EXTENDED (from spike outcome tk-ad9ebd8b983f): in addition to the module-singleton audit, also research two questions about the experimentalWorkspaces flag:\n\n### Question 1: side effects of OPENCODE_EXPERIMENTAL_WORKSPACES=true\nRead each gated block in OpenCode v1.15.5 source (/tmp/opencode-v1.15.5/packages/opencode/src/):\n- session/session.ts:557 (around bus.publish(Event.Updated))\n- session/session.ts:578 (listByProject filter)\n- session/session.ts:910 (list query branch)\n- sync/index.ts:317 (sync behavior)\n- control-plane/workspace.ts:479 (startSync gate — already known)\nFor each: what behavior changes when flag flips false → true?\n\nAny user-visible behavior changes → fold into documentation task tk-9ccdcf485558 notes.\n\n### Question 2: graduation timeline\nQuick check of OpenCode releases for \"workspace\" or \"experimental\" mentions:\n- `gh release list --repo sst/opencode --limit 10`\n- Skim recent release notes\n\nIf graduation imminent (next 1-2 releases), add a \"transitional opt-in\" note to docs task.\nIf no graduation signal, document that the opt-in is the current state of the world.\n\nTime-box question-research to ~15 min; if inconclusive, document the inconclusiveness and proceed.\n\n### Original audit scope (unchanged)\n[per original task body — module-scope singleton audit]",
+      "updatedAt": "2026-05-20T06:01:25.830Z",
+      "verification": "Audit complete. Two consequential findings:\n\n**1. RED (action required): `registerShutdownHandlers` in plugin-init.ts unconditionally registers process.on() listeners. With warp causing a second plugin instance, this becomes a double-fire bug.** Fix: add `shutdownHandlersRegistered` guard. Folded into task tk-19b6a92616ad.\n\n**2. PLANNING-LEVEL (premise of task tk-fdfc9937bb57 was wrong): `addSession`/`getSession`/`removeSession` in worktree/state.ts are ALL NO-OPS** (\"Session registry retired with projectWorkflow\"). The SessionRecord schema is dead code. Original design plan to store workspaceID on the session record would accomplish nothing.\n\nREDIRECTION (folded into task notes): use `findWorkspaceByDirectory(worktreePath)` at delete-time instead of storing workspaceID. Cleanest option — no new persistence, leverages OpenCode's existing GET /experimental/workspace endpoint. Task tk-fdfc9937bb57 is now reduced to implementing this helper (~30 lines), and tasks tk-f27fac1ba79c + tk-5b5a278eb07e have updated implementation guidance.\n\n**3. YELLOW findings, no fix needed**: STSL singleton is properly idempotent; metrics/peer-sessions/fs counters are intentionally process-global; bell-state singletons have existing dedup; tools/worktree/index.ts:545 projectRoot stale-cache is cosmetic (state DB is project-id-keyed so both plugin instances target the same DB).\n\n**Flag side-effect research**: OPENCODE_EXPERIMENTAL_WORKSPACES=true has 5 gated call sites. None affect ADV functionally; only B.2/B.3 (Session.list semantic) is worth documenting for advanced users. No graduation timeline published; opt-in is current/ongoing.\n\nAll findings in docs/spikes/module-singleton-audit.md (committed 21fd54e). Updates propagated to 5 downstream tasks' notes. Ready to proceed with task tk-180a72cea67c (trunk-write firewall fix).",
+      "summary": "Audit complete. Two consequential findings:\n\n**1. RED (action required): `registerShutdownHandlers` in plugin-init.ts unconditionally registers process.on() listeners. With warp causing a second plugin instance, this becomes a double-fire bug.** Fix: add `shutdownHandlersRegistered` guard. Folded into task tk-19b6a92616ad.\n\n**2. PLANNING-LEVEL (premise of task tk-fdfc9937bb57 was wrong): `addSession`/`getSession`/`removeSession` in worktree/state.ts are ALL NO-OPS** (\"Session registry retired with projectWorkflow\"). The SessionRecord schema is dead code. Original design plan to store workspaceID on the session record would accomplish nothing.\n\nREDIRECTION (folded into task notes): use `findWorkspaceByDirectory(worktreePath)` at delete-time instead of storing workspaceID. Cleanest option — no new persistence, leverages OpenCode's existing GET /experimental/workspace endpoint. Task tk-fdfc9937bb57 is now reduced to implementing this helper (~30 lines), and tasks tk-f27fac1ba79c + tk-5b5a278eb07e have updated implementation guidance.\n\n**3. YELLOW findings, no fix needed**: STSL singleton is properly idempotent; metrics/peer-sessions/fs counters are intentionally process-global; bell-state singletons have existing dedup; tools/worktree/index.ts:545 projectRoot stale-cache is cosmetic (state DB is project-id-keyed so both plugin instances target the same DB).\n\n**Flag side-effect research**: OPENCODE_EXPERIMENTAL_WORKSPACES=true has 5 gated call sites. None affect ADV functionally; only B.2/B.3 (Session.list semantic) is worth documenting for advanced users. No graduation timeline published; opt-in is current/ongoing.\n\nAll findings in docs/spikes/module-singleton-audit.md (committed 21fd54e). Updates propagated to 5 downstream tasks' notes. Ready to proceed with task tk-180a72cea67c (trunk-write firewall fix).",
+      "implementation_summary": "Audit complete. Two consequential findings:\n\n**1. RED (action required): `registerShutdownHandlers` in plugin-init.ts unconditionally registers process.on() listeners. With warp causing a second plugin instance, this becomes a double-fire bug.** Fix: add `shutdownHandlersRegistered` guard. Folded into task tk-19b6a92616ad.\n\n**2. PLANNING-LEVEL (premise of task tk-fdfc9937bb57 was wrong): `addSession`/`getSession`/`removeSession` in worktree/state.ts are ALL NO-OPS** (\"Session registry retired with projectWorkflow\"). The SessionRecord schema is dead code. Original design plan to store workspaceID on the session record would accomplish nothing.\n\nREDIRECTION (folded into task notes): use `findWorkspaceByDirectory(worktreePath)` at delete-time instead of storing workspaceID. Cleanest option — no new persistence, leverages OpenCode's existing GET /experimental/workspace endpoint. Task tk-fdfc9937bb57 is now reduced to implementing this helper (~30 lines), and tasks tk-f27fac1ba79c + tk-5b5a278eb07e have updated implementation guidance.\n\n**3. YELLOW findings, no fix needed**: STSL singleton is properly idempotent; metrics/peer-sessions/fs counters are intentionally process-global; bell-state singletons have existing dedup; tools/worktree/index.ts:545 projectRoot stale-cache is cosmetic (state DB is project-id-keyed so both plugin instances target the same DB).\n\n**Flag side-effect research**: OPENCODE_EXPERIMENTAL_WORKSPACES=true has 5 gated call sites. None affect ADV functionally; only B.2/B.3 (Session.list semantic) is worth documenting for advanced users. No graduation timeline published; opt-in is current/ongoing.\n\nAll findings in docs/spikes/module-singleton-audit.md (committed 21fd54e). Updates propagated to 5 downstream tasks' notes. Ready to proceed with task tk-180a72cea67c (trunk-write firewall fix).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:07:13.806Z",
+      "completed_at": "2026-05-20T06:07:13.806Z"
+    },
+    {
+      "id": "tk-180a72cea67c",
+      "title": "Fix trunk-write firewall: derive projectRoot from git, not session directory",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T05:47:14.092Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T05:53:35.705Z",
+      "notes": "Reverted to pending — serializing with spike. Firewall fix is independent of spike outcome but holding to honor single-active-task discipline.",
+      "updatedAt": "2026-05-20T05:53:45.556Z",
+      "verification": "Task evolved mid-execution. Original spec called for one-line fix at index.ts to derive projectRoot from gitSession.mainCheckoutPath. Discovery: that fix had already landed in prior change `gateTrunkFirewall` (commit ac9880b). BUT writing the regression test surfaced a paired bug: `firewallConfigRoot` at index.ts:323 was still deriving from `gitSession.currentCheckoutPath` (the worktree, post-warp), rendering the original fix ineffective in production — the firewall was bypassed entirely because project.json doesn't exist in worktrees.\n\nPer user-approved Option B (scope expansion), fixed both:\n1. `firewallConfigRoot = gitSession.mainCheckoutPath ?? gitSession.currentCheckoutPath ?? effectiveDir` (index.ts:323) — reads project config from trunk\n2. Annotated the pre-existing `projectRoot = gitSession.mainCheckoutPath ?? directory` fix at index.ts:580 with rationale + cross-reference to this task\n\nAdded regression test in integration.test.ts: post-warp scenario where plugin is initialized with `directory: worktreePath`. Asserts:\n- Writes to tempDir (trunk) → BLOCKED with \"Trunk write firewall\" error\n- Writes to worktreePath → ALLOWED\n\nBoth before-and-after firewall behavior is now project-stable: same trunk classification regardless of session directory.\n\nVerification:\n- New test passes\n- All \"Trunk Write Firewall\" integration tests pass (no regressions)\n- All trunk-write-firewall unit tests pass\n- `pnpm run typecheck` clean\n\nCommitted b596db9. 2 files touched: plugin/src/index.ts, plugin/src/integration.test.ts.",
+      "summary": "Task evolved mid-execution. Original spec called for one-line fix at index.ts to derive projectRoot from gitSession.mainCheckoutPath. Discovery: that fix had already landed in prior change `gateTrunkFirewall` (commit ac9880b). BUT writing the regression test surfaced a paired bug: `firewallConfigRoot` at index.ts:323 was still deriving from `gitSession.currentCheckoutPath` (the worktree, post-warp), rendering the original fix ineffective in production — the firewall was bypassed entirely because project.json doesn't exist in worktrees.\n\nPer user-approved Option B (scope expansion), fixed both:\n1. `firewallConfigRoot = gitSession.mainCheckoutPath ?? gitSession.currentCheckoutPath ?? effectiveDir` (index.ts:323) — reads project config from trunk\n2. Annotated the pre-existing `projectRoot = gitSession.mainCheckoutPath ?? directory` fix at index.ts:580 with rationale + cross-reference to this task\n\nAdded regression test in integration.test.ts: post-warp scenario where plugin is initialized with `directory: worktreePath`. Asserts:\n- Writes to tempDir (trunk) → BLOCKED with \"Trunk write firewall\" error\n- Writes to worktreePath → ALLOWED\n\nBoth before-and-after firewall behavior is now project-stable: same trunk classification regardless of session directory.\n\nVerification:\n- New test passes\n- All \"Trunk Write Firewall\" integration tests pass (no regressions)\n- All trunk-write-firewall unit tests pass\n- `pnpm run typecheck` clean\n\nCommitted b596db9. 2 files touched: plugin/src/index.ts, plugin/src/integration.test.ts.",
+      "implementation_summary": "Task evolved mid-execution. Original spec called for one-line fix at index.ts to derive projectRoot from gitSession.mainCheckoutPath. Discovery: that fix had already landed in prior change `gateTrunkFirewall` (commit ac9880b). BUT writing the regression test surfaced a paired bug: `firewallConfigRoot` at index.ts:323 was still deriving from `gitSession.currentCheckoutPath` (the worktree, post-warp), rendering the original fix ineffective in production — the firewall was bypassed entirely because project.json doesn't exist in worktrees.\n\nPer user-approved Option B (scope expansion), fixed both:\n1. `firewallConfigRoot = gitSession.mainCheckoutPath ?? gitSession.currentCheckoutPath ?? effectiveDir` (index.ts:323) — reads project config from trunk\n2. Annotated the pre-existing `projectRoot = gitSession.mainCheckoutPath ?? directory` fix at index.ts:580 with rationale + cross-reference to this task\n\nAdded regression test in integration.test.ts: post-warp scenario where plugin is initialized with `directory: worktreePath`. Asserts:\n- Writes to tempDir (trunk) → BLOCKED with \"Trunk write firewall\" error\n- Writes to worktreePath → ALLOWED\n\nBoth before-and-after firewall behavior is now project-stable: same trunk classification regardless of session directory.\n\nVerification:\n- New test passes\n- All \"Trunk Write Firewall\" integration tests pass (no regressions)\n- All trunk-write-firewall unit tests pass\n- `pnpm run typecheck` clean\n\nCommitted b596db9. 2 files touched: plugin/src/index.ts, plugin/src/integration.test.ts.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:18:04.093Z",
+      "completed_at": "2026-05-20T06:18:04.093Z"
+    },
+    {
+      "id": "tk-f96182eff2ad",
+      "title": "Make initializeStatus idempotent (preserve activeChangeId on same project)",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-20T05:47:34.303Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-063286a8d596"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:18:19.864Z",
+      "verification": "Made initializeStatus idempotent so post-warp double plugin instantiation preserves activeChangeId/currentStatus/taskProgress instead of destructively resetting.\n\nImplementation:\n- Added module-scope `let initialized = false` sentinel in events/status.ts\n- initializeStatus first call: full reset, flips sentinel to true\n- initializeStatus subsequent calls: updates projectName + lastUpdated only (so terminal display reflects current session basename), preserves in-flight state\n- Added exported `resetStatusForTest()` for test isolation (resets sentinel + state)\n- JSDoc cross-refs to audit doc and task ID\n\nTests:\n- 7 new tests in events.test.ts initializeStatus describe block:\n  1. Preserve activeChangeId on second init with same projectName\n  2. Preserve activeChangeId across trunk → worktree basename transition (critical: simulates the warp scenario)\n  3. Preserve currentStatus\n  4. Preserve taskProgress  \n  5. Update projectName on second init\n  6. Update lastUpdated on every call\n  7. resetStatusForTest restores destructive behavior\n- Updated all 3 beforeEach hooks in integration.test.ts to call resetStatusForTest (test isolation across vitest workers)\n\nVerification:\n- All status/events tests green\n- All integration tests green (no regression in Active Change Title Update, Trunk Write Firewall, Wisdom Lifecycle suites)\n- `pnpm run typecheck` clean\n\nCommitted 4cb8d0a. 3 files touched.",
+      "summary": "Made initializeStatus idempotent so post-warp double plugin instantiation preserves activeChangeId/currentStatus/taskProgress instead of destructively resetting.\n\nImplementation:\n- Added module-scope `let initialized = false` sentinel in events/status.ts\n- initializeStatus first call: full reset, flips sentinel to true\n- initializeStatus subsequent calls: updates projectName + lastUpdated only (so terminal display reflects current session basename), preserves in-flight state\n- Added exported `resetStatusForTest()` for test isolation (resets sentinel + state)\n- JSDoc cross-refs to audit doc and task ID\n\nTests:\n- 7 new tests in events.test.ts initializeStatus describe block:\n  1. Preserve activeChangeId on second init with same projectName\n  2. Preserve activeChangeId across trunk → worktree basename transition (critical: simulates the warp scenario)\n  3. Preserve currentStatus\n  4. Preserve taskProgress  \n  5. Update projectName on second init\n  6. Update lastUpdated on every call\n  7. resetStatusForTest restores destructive behavior\n- Updated all 3 beforeEach hooks in integration.test.ts to call resetStatusForTest (test isolation across vitest workers)\n\nVerification:\n- All status/events tests green\n- All integration tests green (no regression in Active Change Title Update, Trunk Write Firewall, Wisdom Lifecycle suites)\n- `pnpm run typecheck` clean\n\nCommitted 4cb8d0a. 3 files touched.",
+      "implementation_summary": "Made initializeStatus idempotent so post-warp double plugin instantiation preserves activeChangeId/currentStatus/taskProgress instead of destructively resetting.\n\nImplementation:\n- Added module-scope `let initialized = false` sentinel in events/status.ts\n- initializeStatus first call: full reset, flips sentinel to true\n- initializeStatus subsequent calls: updates projectName + lastUpdated only (so terminal display reflects current session basename), preserves in-flight state\n- Added exported `resetStatusForTest()` for test isolation (resets sentinel + state)\n- JSDoc cross-refs to audit doc and task ID\n\nTests:\n- 7 new tests in events.test.ts initializeStatus describe block:\n  1. Preserve activeChangeId on second init with same projectName\n  2. Preserve activeChangeId across trunk → worktree basename transition (critical: simulates the warp scenario)\n  3. Preserve currentStatus\n  4. Preserve taskProgress  \n  5. Update projectName on second init\n  6. Update lastUpdated on every call\n  7. resetStatusForTest restores destructive behavior\n- Updated all 3 beforeEach hooks in integration.test.ts to call resetStatusForTest (test isolation across vitest workers)\n\nVerification:\n- All status/events tests green\n- All integration tests green (no regression in Active Change Title Update, Trunk Write Firewall, Wisdom Lifecycle suites)\n- `pnpm run typecheck` clean\n\nCommitted 4cb8d0a. 3 files touched.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:21:58.652Z",
+      "completed_at": "2026-05-20T06:21:58.652Z"
+    },
+    {
+      "id": "tk-b432ddf62069",
+      "title": "Create buildAdvWorktreeAdapter() — custom OpenCode workspace adapter",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-20T05:47:59.901Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ad9ebd8b983f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:24:03.882Z",
+      "verification": "Implemented and checkpointed in commit 191736d6241a317cc538544dd95179c98558b46b. Verification: targeted red/green test, typecheck, targeted eslint all pass.",
+      "summary": "Added `plugin/src/utils/workspace-adapter.ts` with `buildAdvWorktreeAdapter()`. The adapter identifies as `adv-worktree`, copies the OpenCode workspace directory from `info.extra.directory` during `configure()`, no-ops `create()`/`remove()` because ADV owns git worktree lifecycle, and resolves local targets from configured `info.directory`. Added `plugin/src/utils/workspace-adapter.test.ts` covering adapter identity, directory configuration, structural rejection of missing/non-string directory input, target routing, pre-configure target rejection, and no-op lifecycle methods.",
+      "implementation_summary": "Added `plugin/src/utils/workspace-adapter.ts` with `buildAdvWorktreeAdapter()`. The adapter identifies as `adv-worktree`, copies the OpenCode workspace directory from `info.extra.directory` during `configure()`, no-ops `create()`/`remove()` because ADV owns git worktree lifecycle, and resolves local targets from configured `info.directory`. Added `plugin/src/utils/workspace-adapter.test.ts` covering adapter identity, directory configuration, structural rejection of missing/non-string directory input, target routing, pre-configure target rejection, and no-op lifecycle methods.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:29:29.081Z",
+      "completed_at": "2026-05-20T06:29:29.081Z"
+    },
+    {
+      "id": "tk-45ca436b3d21",
+      "title": "Create workspace-warp HTTP shim — raw HTTP for workspace create/warp/delete",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-20T05:48:28.928Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ad9ebd8b983f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "notes": "SPIKE OUTCOME (tk-ad9ebd8b983f) — DESIGN CORRECTION REQUIRED before this task starts:\n\nThe original `workspaceAndWarpAvailable` design (probe GET /experimental/workspace → 2xx) is INSUFFICIENT. OpenCode's workspace HTTP endpoints are unconditionally mounted, but the internal sync machinery is gated on the `experimentalWorkspaces` runtime flag. Without the flag:\n- POST /experimental/workspace hangs 5s then returns HTTP 400 with empty body\n- Bad UX, no actionable error\n\nPer user decision (option A): keep behavior as opt-in via env var; do NOT auto-mutate process.env from the plugin.\n\nADDITIONAL EXPORT REQUIRED in workspace-warp.ts:\n\n```ts\nexport function warpFlagEnabled(): boolean {\n  return process.env.OPENCODE_EXPERIMENTAL === \"true\"\n      || process.env.OPENCODE_EXPERIMENTAL_WORKSPACES === \"true\";\n}\n```\n\nCORRECTED workspaceAndWarpAvailable:\n\n```ts\nexport async function workspaceAndWarpAvailable(deps: WarpDeps): Promise<boolean> {\n  if (!warpFlagEnabled()) return false; // short-circuit: no HTTP call when flag off\n  try {\n    const url = new URL(\"/experimental/workspace\", deps.serverUrl);\n    const res = await (deps.fetchImpl ?? fetch)(url);\n    return res.ok;\n  } catch {\n    return false;\n  }\n}\n```\n\nADDITIONAL UNIT TESTS REQUIRED (extend the 13-test list in the task body):\n14. `warpFlagEnabled()` returns true when `process.env.OPENCODE_EXPERIMENTAL === \"true\"`\n15. `warpFlagEnabled()` returns true when `process.env.OPENCODE_EXPERIMENTAL_WORKSPACES === \"true\"`\n16. `warpFlagEnabled()` returns true when BOTH set\n17. `warpFlagEnabled()` returns false when neither set\n18. `warpFlagEnabled()` returns false when set to anything other than \"true\" (e.g. \"1\", \"yes\", \"TRUE\")\n19. `workspaceAndWarpAvailable` short-circuits to false WITHOUT calling fetch when flag is off (assert fetchImpl never called)\n20. `workspaceAndWarpAvailable` calls fetch and returns true when flag on + endpoint 200\n21. `workspaceAndWarpAvailable` calls fetch and returns false when flag on + endpoint 404\n22. `workspaceAndWarpAvailable` calls fetch and returns false when flag on + fetch throws\n\nUse vi.stubEnv / vi.unstubAllEnvs in setup/teardown to manipulate process.env per test case.\n\nCITATION: docs/spikes/workspace-create-status.md (committed 4a88b60)\nSOURCE: /tmp/opencode-v1.15.5/packages/opencode/src/effect/runtime-flags.ts:11-12,49",
+      "updatedAt": "2026-05-20T05:59:57.638Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:30:03.229Z",
+      "verification": "Implemented and checkpointed in commit 8c1a4891bfb95d46ff09d20f1064d33e3f16fa23. Verification: red/green shim tests, combined adapter+shim tests, typecheck, eslint, and prettier check all pass.",
+      "summary": "Added `plugin/src/utils/workspace-warp.ts` with raw HTTP helpers: `warpFlagEnabled()`, `workspaceAndWarpAvailable()`, `createAdvWorkspace()`, `warpSession()`, and `deleteAdvWorkspace()`. The availability probe short-circuits without HTTP unless `OPENCODE_EXPERIMENTAL=true` or `OPENCODE_EXPERIMENTAL_WORKSPACES=true`. Workspace create uses `type:\"adv-worktree\"` with directory carried through `extra.directory`; create response validates a string `id`. Warp posts `WarpPayload` with `id` (not `workspaceID`), `sessionID`, and hardcoded `copyChanges:false`. Delete treats 404 as already clean and rejects other non-2xx responses. Added `plugin/src/utils/workspace-warp.test.ts` covering env flag semantics, endpoint probing behavior, create/warp/delete request bodies and failure paths.",
+      "implementation_summary": "Added `plugin/src/utils/workspace-warp.ts` with raw HTTP helpers: `warpFlagEnabled()`, `workspaceAndWarpAvailable()`, `createAdvWorkspace()`, `warpSession()`, and `deleteAdvWorkspace()`. The availability probe short-circuits without HTTP unless `OPENCODE_EXPERIMENTAL=true` or `OPENCODE_EXPERIMENTAL_WORKSPACES=true`. Workspace create uses `type:\"adv-worktree\"` with directory carried through `extra.directory`; create response validates a string `id`. Warp posts `WarpPayload` with `id` (not `workspaceID`), `sessionID`, and hardcoded `copyChanges:false`. Delete treats 404 as already clean and rejects other non-2xx responses. Added `plugin/src/utils/workspace-warp.test.ts` covering env flag semantics, endpoint probing behavior, create/warp/delete request bodies and failure paths.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:34:14.634Z",
+      "completed_at": "2026-05-20T06:34:14.634Z"
+    },
+    {
+      "id": "tk-85f28925982e",
+      "title": "Schema migration: worktreeConfigSchema.inline → mode enum with coercion",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-20T05:49:04.472Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b432ddf62069"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-45ca436b3d21"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:36:09.462Z",
+      "verification": "Implemented and checkpointed in commit ee53ead1b329413f6a4f060ddc740cca87305fad. Verification: red/green config test, related create/delete worktree tests, typecheck, eslint, and prettier check all pass.",
+      "summary": "Migrated worktree config parsing toward `mode` enum (`warp` | `spawn` | `terminal`) while preserving legacy behavior until the create/delete flow switch is rewritten. Added `normalizeWorktreeConfig()` and `worktreeModes` exports. Defaults now resolve to `mode:\"warp\"`; legacy `inline:true` maps to `mode:\"terminal\"`; legacy `inline:false` maps to `mode:\"spawn\"`; explicit `mode` wins over deprecated `inline` with a warning. A temporary deprecated `inline` bridge remains derived from mode so existing create/delete branches keep working until the later flow rewrite task. Updated auto-generated `.opencode/worktree.jsonc` comments to document mode and deprecated inline mapping. Added `plugin/src/tools/worktree/config.test.ts` covering defaults, legacy coercion, mode precedence, sync/hook preservation, and structural rejection of unknown modes.",
+      "implementation_summary": "Migrated worktree config parsing toward `mode` enum (`warp` | `spawn` | `terminal`) while preserving legacy behavior until the create/delete flow switch is rewritten. Added `normalizeWorktreeConfig()` and `worktreeModes` exports. Defaults now resolve to `mode:\"warp\"`; legacy `inline:true` maps to `mode:\"terminal\"`; legacy `inline:false` maps to `mode:\"spawn\"`; explicit `mode` wins over deprecated `inline` with a warning. A temporary deprecated `inline` bridge remains derived from mode so existing create/delete branches keep working until the later flow rewrite task. Updated auto-generated `.opencode/worktree.jsonc` comments to document mode and deprecated inline mapping. Added `plugin/src/tools/worktree/config.test.ts` covering defaults, legacy coercion, mode precedence, sync/hook preservation, and structural rejection of unknown modes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:39:25.392Z",
+      "completed_at": "2026-05-20T06:39:25.392Z"
+    },
+    {
+      "id": "tk-fdfc9937bb57",
+      "title": "Extend worktree session record schema with optional workspaceID",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-20T05:49:22.572Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-45ca436b3d21"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "notes": "AUDIT OUTCOME (tk-063286a8d596) — PLANNING-LEVEL FINDING: this task's premise is wrong.\n\nThe audit revealed that `addSession`/`getSession`/`removeSession` in `tools/worktree/state.ts:168-189` are ALL NO-OPS — comment says \"Session registry retired with projectWorkflow\". The session-record schema this task targets is dead code; adding `workspaceID` to it accomplishes nothing functional.\n\nConfirmed by reading:\n- `state.ts:157-162` — initStateDb just returns `{ projectDir, projectId }`\n- `state.ts:168-175` — addSession is a no-op\n- `state.ts:185-189` — getSession is a no-op\n\nCurrent `worktree_delete` flow (`tools/adv-worktree.ts:144`) takes branch directly and calls `advWorktreeDelete(branch, opts, {projectRoot, database, log, store})`. The session-lookup path in `WorktreePlugin.execute` at `worktree/index.ts:2060` is dead branch.\n\nREDIRECTION: workspaceID must be tracked SOMEWHERE so task 6b can clean up the OpenCode workspace on delete. Three options:\n- **A**: look up workspaceID at delete time via `GET /experimental/workspace` and match by `directory === worktreePath`. No new persistence. Cleanest.\n- **B**: add a small ADV-side branch→workspaceID map persisted with the change record. Re-uses existing change persistence.\n- **C**: store on the change.json itself as a new field.\n\nRECOMMENDATION: **Option A.** No new persistence, no schema change, leverages existing OpenCode endpoint. The DELETE endpoint accepts the workspace id which we look up by directory match.\n\nREVISED TASK SCOPE (this task = mostly no-op):\n- DO NOT add workspaceID to SessionRecord (the schema is dead code)\n- Instead, add a new helper to `workspace-warp.ts` (task 4 scope, can be added there or here):\n\n```ts\nexport async function findWorkspaceByDirectory(\n  deps: WarpDeps,\n  directory: string,\n): Promise<{ workspaceID: string } | null> {\n  if (!warpFlagEnabled()) return null;\n  try {\n    const url = new URL(\"/experimental/workspace\", deps.serverUrl);\n    const res = await (deps.fetchImpl ?? fetch)(url);\n    if (!res.ok) return null;\n    const list = (await res.json()) as Array<{ id: string; directory: string | null }>;\n    const match = list.find((w) => w.directory === directory);\n    return match ? { workspaceID: match.id } : null;\n  } catch {\n    return null;\n  }\n}\n```\n\nThen task 6b uses `findWorkspaceByDirectory(deps, session.path)` instead of reading a stored workspaceID.\n\nThis task becomes: implement `findWorkspaceByDirectory` + tests, then mark done. No SessionRecord schema change.\n\nCITATION: docs/spikes/module-singleton-audit.md (audit findings)\nALSO REQUIRES: design.md §5 Files-affected table update (remove SessionRecord schema row) and §3.5/3.5b corrections (workspaceID is NOT stored on session record).",
+      "updatedAt": "2026-05-20T06:06:28.723Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:39:55.347Z",
+      "verification": "Implemented revised scope and checkpointed in commit 3930ffab332ed6db90e135f7c9ed3b6768af3de7. Verification: red/green workspace-warp tests, typecheck, eslint, and prettier check all pass.",
+      "summary": "Completed the audit-redirection for this task: did not modify dead SessionRecord persistence. Added `findWorkspaceByDirectory()` to `plugin/src/utils/workspace-warp.ts`, which short-circuits when warp env flags are off, queries `GET /experimental/workspace` when enabled, structurally validates list items, matches by exact `directory`, and returns `{workspaceID}` or `null` for no match/non-2xx/fetch errors/malformed responses. Extended `workspace-warp.test.ts` to cover short-circuit, matching lookup, no match, and safe-null failure cases.",
+      "implementation_summary": "Completed the audit-redirection for this task: did not modify dead SessionRecord persistence. Added `findWorkspaceByDirectory()` to `plugin/src/utils/workspace-warp.ts`, which short-circuits when warp env flags are off, queries `GET /experimental/workspace` when enabled, structurally validates list items, matches by exact `directory`, and returns `{workspaceID}` or `null` for no match/non-2xx/fetch errors/malformed responses. Extended `workspace-warp.test.ts` to cover short-circuit, matching lookup, no match, and safe-null failure cases.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:43:09.235Z",
+      "completed_at": "2026-05-20T06:43:09.235Z"
+    },
+    {
+      "id": "tk-19b6a92616ad",
+      "title": "Wire plugin init: destructure serverUrl + experimental_workspace, register adapter",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-20T05:49:50.312Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b432ddf62069"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-45ca436b3d21"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-180a72cea67c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "notes": "AUDIT OUTCOME (tk-063286a8d596) — additional implementation requirements:\n\n### 1. Add shutdownHandlersRegistered guard\n\n`plugin-init.ts:732-734` registers `process.on(\"exit\"/\"SIGINT\"/\"SIGTERM\")` unconditionally on every plugin instantiation. `removeProcessListeners` returned but never called from `index.ts:747`. With warp causing a second plugin instance, this becomes a real handler-double-fire bug.\n\nAdd to plugin-init.ts (top of registerShutdownHandlers):\n\n```ts\nlet shutdownHandlersRegistered = false;\n\nexport function registerShutdownHandlers(store: Store | null): ShutdownHandlers {\n  if (shutdownHandlersRegistered) {\n    debugLog(\"registerShutdownHandlers: already registered, returning no-op handlers\");\n    return {\n      handleExit: () => {},\n      shutdownWithFlush: () => {},\n      removeProcessListeners: () => {},\n    };\n  }\n  shutdownHandlersRegistered = true;\n  // ... existing body unchanged ...\n}\n```\n\nAdd unit test in plugin-init.test.ts: calling `registerShutdownHandlers` twice does NOT add duplicate process listeners (assert `process.listenerCount(\"SIGINT\")` doesn't grow).\n\n### 2. Verification steps (read-only confirmations, no code changes)\n\nBefore marking task done, verify:\n- `startWorkerHealthMonitor` is internally idempotent (likely checks `activeHealthMonitor` and skips re-start)\n- `startTemporalWorker` is idempotent for same projectStateDir (existing `exhaustedWorkerDirs.has` short-circuit)\n- `setInterval` in `worker-heartbeat.ts:85` is correctly cleaned up via the existing `workerLockHeartbeats` Set\n\nIf any are NOT idempotent, surface to user — likely needs same `*Registered = false` guard pattern.\n\n### 3. JSDoc note on tools/worktree/index.ts:545\n\nAdd a comment near `let projectRoot: string | null = null;` explaining: \"Project root is set on first init. In post-warp double-init scenarios, the second plugin's projectRoot value is ignored because the DB handle is cached against the first init's path. This is correct because external state is project-id-keyed (same root commit SHA), so both plugin instances target the same DB file. The cosmetic stale value is benign.\"\n\nCITATION: docs/spikes/module-singleton-audit.md (will be committed with this audit)",
+      "updatedAt": "2026-05-20T06:06:06.375Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:44:27.654Z",
+      "verification": "Implemented and checkpointed in commit 4c4c76cdb2700e7454b2917a0e89dee05fa14218. Verification: red/green integration+shutdown tests, typecheck, eslint, and prettier check all pass. Read-only confirmations completed for health monitor, worker singleton, and heartbeat cleanup.",
+      "summary": "Wired plugin init to register the custom `adv-worktree` OpenCode workspace adapter when `experimental_workspace.register` is available. Added shutdown handler idempotency: repeated plugin initialization now returns no-op shutdown handlers instead of registering duplicate process listeners, and the real disposer clears the guard. Added regression coverage in `plugin-init.worker-singleton.test.ts` for duplicate listener prevention and in `integration.test.ts` for adapter registration. Added the requested post-warp double-init comment near worktree module `projectRoot`, documenting why the cached root is benign. Verified related singleton paths: `startWorkerHealthMonitor` returns the existing active monitor, worker singleton resolution is lock/plan guarded, and worker heartbeat timers are tracked in `workerLockHeartbeats` and drained during shutdown.",
+      "implementation_summary": "Wired plugin init to register the custom `adv-worktree` OpenCode workspace adapter when `experimental_workspace.register` is available. Added shutdown handler idempotency: repeated plugin initialization now returns no-op shutdown handlers instead of registering duplicate process listeners, and the real disposer clears the guard. Added regression coverage in `plugin-init.worker-singleton.test.ts` for duplicate listener prevention and in `integration.test.ts` for adapter registration. Added the requested post-warp double-init comment near worktree module `projectRoot`, documenting why the cached root is benign. Verified related singleton paths: `startWorkerHealthMonitor` returns the existing active monitor, worker singleton resolution is lock/plan guarded, and worker heartbeat timers are tracked in `workerLockHeartbeats` and drained during shutdown.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:49:02.872Z",
+      "completed_at": "2026-05-20T06:49:02.872Z"
+    },
+    {
+      "id": "tk-f27fac1ba79c",
+      "title": "Rewrite worktree_create switch: warp/spawn/terminal with re-warp guard + rollback",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-20T05:50:21.487Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-85f28925982e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-fdfc9937bb57"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "notes": "AUDIT OUTCOME (tk-063286a8d596) — SessionRecord workspaceID storage is dead code path. Updated guidance:\n\nOriginal design §3.5 sketch wrote `workspaceID` into `addSession(database, {..., workspaceID})` — this is a NO-OP because addSession is retired.\n\nREVISED: do NOT pass workspaceID to addSession. Just call addSession with the existing shape (sessionId, branch, path) — the call is a no-op anyway but kept for future-proofing.\n\nTrack workspaceID via lookup-on-delete (task 7 / tk-fdfc9937bb57 will provide `findWorkspaceByDirectory(deps, worktreePath)`). The warp arm's success message can still mention the workspaceID for user feedback:\n\n```ts\nreturn [\n  `Worktree created at ${worktreePath}`,\n  `Branch: ${args.branch}`,\n  ``,\n  `Session warped to workspace ${workspaceID}.`,\n  `Subsequent tool calls operate with the worktree as the project root — no per-tool workdir override needed.`,\n].join(\"\\n\");\n```\n\nThe workspaceID is discoverable from OpenCode itself at delete time; we don't need to persist it.\n\n(Spike findings from tk-ad9ebd8b983f re: downgrade log line still apply — must mention OPENCODE_EXPERIMENTAL_WORKSPACES env var.)",
+      "updatedAt": "2026-05-20T06:06:37.495Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T06:49:35.936Z",
+      "verification": "Implemented and checkpointed in commit 9700b0d72175c46a5a1f83c25c217faf76a3130c. Verification: red/green worktree create tests, related config/warp tests, typecheck, eslint, and prettier check all pass.",
+      "summary": "Rewrote `worktree_create` to resolve the new `mode` enum before creating a git worktree. `mode:\"warp\"` now first checks the exact OpenCode workspace env flags and downgrades to `terminal` with an actionable `OPENCODE_EXPERIMENTAL_WORKSPACES` warning when disabled; when enabled it blocks re-warp from an already-workspaced session before creating anything; then it verifies workspace endpoint availability, creates the ADV OpenCode workspace, warps the current session with `copyChanges:false`, rolls back the workspace row on warp failure, records the real session id via the existing no-op-compatible `addSession`, and returns a warp success message. `mode:\"terminal\"` keeps the legacy inline/workdir guidance; `mode:\"spawn\"` keeps the existing fork+terminal path. Added `WorktreePlugin` tests covering default warp downgrade, successful warp request bodies, and already-warped blocking with no git worktree creation.",
+      "implementation_summary": "Rewrote `worktree_create` to resolve the new `mode` enum before creating a git worktree. `mode:\"warp\"` now first checks the exact OpenCode workspace env flags and downgrades to `terminal` with an actionable `OPENCODE_EXPERIMENTAL_WORKSPACES` warning when disabled; when enabled it blocks re-warp from an already-workspaced session before creating anything; then it verifies workspace endpoint availability, creates the ADV OpenCode workspace, warps the current session with `copyChanges:false`, rolls back the workspace row on warp failure, records the real session id via the existing no-op-compatible `addSession`, and returns a warp success message. `mode:\"terminal\"` keeps the legacy inline/workdir guidance; `mode:\"spawn\"` keeps the existing fork+terminal path. Added `WorktreePlugin` tests covering default warp downgrade, successful warp request bodies, and already-warped blocking with no git worktree creation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T06:57:23.679Z",
+      "completed_at": "2026-05-20T06:57:23.679Z"
+    },
+    {
+      "id": "tk-5b5a278eb07e",
+      "title": "Extend worktree_delete: cascade DELETE of OpenCode workspace for mode:warp records",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-20T05:50:40.947Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f27fac1ba79c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "notes": "AUDIT OUTCOME (tk-063286a8d596) — delete-side flow uses lookup-by-directory, NOT stored workspaceID.\n\nUpdated implementation:\n\n```ts\n// In worktree_delete tool's execute(), after getting worktree path from `args.branch`\n// (the actual worktree path comes from advWorktreeDelete's `worktreePath` resolution\n// — verify the order):\n\nconst warpDeps: WarpDeps = { serverUrl: ctx.serverUrl };\nconst found = await findWorkspaceByDirectory(warpDeps, worktreePath);\nif (found) {\n  try {\n    await deleteAdvWorkspace(warpDeps, found.workspaceID);\n    log.debug(`[worktree] Cleaned up OpenCode workspace ${found.workspaceID}`);\n  } catch (e) {\n    log.warn(\n      `[worktree] Failed to delete OpenCode workspace ${found.workspaceID} (continuing worktree delete): ${e}`,\n    );\n  }\n}\n\nconst result = await advWorktreeDelete(/* unchanged */);\n```\n\nORDER STILL MATTERS: workspace delete BEFORE worktree directory delete. If workspace cleanup fails, worktree still on disk (recoverable). Reverse order leaves OpenCode pointing at deleted directory.\n\nUPDATED TEST CASES:\n1. **Delete with matching workspace**: `findWorkspaceByDirectory` returns `{workspaceID: \"ws-abc\"}`. Assert `deleteAdvWorkspace(\"ws-abc\")` called BEFORE `advWorktreeDelete`\n2. **Delete with no matching workspace** (legacy terminal/spawn mode, OR warp flag was off when worktree created): `findWorkspaceByDirectory` returns null. Assert `deleteAdvWorkspace` NOT called\n3. **Delete with warp flag disabled at delete-time**: `warpFlagEnabled()` returns false in `findWorkspaceByDirectory`. Assert no HTTP call made; worktree delete proceeds\n4. **Delete workspace 404**: shim swallows 404. Assert worktree delete still proceeds; no warning\n5. **Delete workspace error**: shim throws non-404. Assert warning logged; worktree delete STILL proceeds (best-effort)",
+      "updatedAt": "2026-05-20T06:06:47.440Z",
+      "verification": "Implemented and checkpointed in commit 5fde036879ba73a65febe6a373d8fa11ad77bdaf. Verification: red/green delete tests, related adv-worktree/tool-registry tests, typecheck, eslint, and prettier check all pass.",
+      "summary": "Extended worktree deletion to clean up matching OpenCode workspace rows before removing the git worktree. Added optional `warpDeps` to `AdvWorktreeDeleteDeps`; when present, deletion calls `findWorkspaceByDirectory(worktreePath)` and then `deleteAdvWorkspace(workspaceID)` before `git worktree remove`. No match and flag-off cases proceed without HTTP/delete. DELETE 404 is treated as already clean by the shim. Non-404 workspace cleanup errors are logged as warnings and git worktree deletion still proceeds. Wired production `adv_worktree_delete`/`worktree_delete` through `createToolMap(..., serverUrl)` so registered tools can pass `serverUrl` to the lower delete flow. Added tests for matching cleanup, no match, flag-off, 404, and non-404 warning/continue cases.",
+      "implementation_summary": "Extended worktree deletion to clean up matching OpenCode workspace rows before removing the git worktree. Added optional `warpDeps` to `AdvWorktreeDeleteDeps`; when present, deletion calls `findWorkspaceByDirectory(worktreePath)` and then `deleteAdvWorkspace(workspaceID)` before `git worktree remove`. No match and flag-off cases proceed without HTTP/delete. DELETE 404 is treated as already clean by the shim. Non-404 workspace cleanup errors are logged as warnings and git worktree deletion still proceeds. Wired production `adv_worktree_delete`/`worktree_delete` through `createToolMap(..., serverUrl)` so registered tools can pass `serverUrl` to the lower delete flow. Added tests for matching cleanup, no match, flag-off, 404, and non-404 warning/continue cases.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T07:05:45.205Z",
+      "completed_at": "2026-05-20T07:05:45.205Z"
+    },
+    {
+      "id": "tk-9ccdcf485558",
+      "title": "Update ADV_INSTRUCTIONS.md Worktree Protocol section",
+      "type": "code",
+      "section": "Execution",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-05-20T05:50:58.942Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f27fac1ba79c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "notes": "AUDIT OUTCOME (tk-063286a8d596) — supplemental documentation:\n\nIn addition to the env-var opt-in note already specified, add a brief advanced-user note about Session.list semantic changes when the flag is enabled:\n\n```\n**Advanced: side effects of OPENCODE_EXPERIMENTAL_WORKSPACES=true**\n\nSetting this flag also changes OpenCode's session-list filtering: cross-workspace\nsessions of the same project are included by default instead of being filtered\nby directory. ADV does not currently rely on this behavior, but advanced users\nwho programmatically call `client.session.list` should know.\n\nNo graduation timeline is published for this feature; opt-in via env var is the\ncurrent, ongoing mechanism.\n```\n\nPlace this AFTER the \"Enabling mode: warp\" subsection but inside the Worktree\nProtocol section.\n\nCITATION: docs/spikes/module-singleton-audit.md Part B",
+      "updatedAt": "2026-05-20T06:06:11.157Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T07:06:26.971Z",
+      "verification": "Documentation-only task implemented and checkpointed in commit f8ebc1cc15760ff1e30a51cc3e118532edea92a4. Verification: adv-instructions asset test and Prettier check pass.",
+      "summary": "Updated `ADV_INSTRUCTIONS.md` Worktree Protocol section to document `mode:\"warp\"` as the default, the required opt-in launch environment (`OPENCODE_EXPERIMENTAL_WORKSPACES=true`, with broader `OPENCODE_EXPERIMENTAL=true` alternative), restart requirement, no plugin-side `process.env` mutation, graceful downgrade to terminal mode, fallback `terminal`/`spawn` behavior, warp-mode workspace cleanup on delete, and the advanced `client.session.list` filtering side effect of enabling OpenCode experimental workspaces. Kept wording compressed to satisfy the ratcheting line-ceiling asset test.",
+      "implementation_summary": "Updated `ADV_INSTRUCTIONS.md` Worktree Protocol section to document `mode:\"warp\"` as the default, the required opt-in launch environment (`OPENCODE_EXPERIMENTAL_WORKSPACES=true`, with broader `OPENCODE_EXPERIMENTAL=true` alternative), restart requirement, no plugin-side `process.env` mutation, graceful downgrade to terminal mode, fallback `terminal`/`spawn` behavior, warp-mode workspace cleanup on delete, and the advanced `client.session.list` filtering side effect of enabling OpenCode experimental workspaces. Kept wording compressed to satisfy the ratcheting line-ceiling asset test.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T07:08:27.810Z",
+      "completed_at": "2026-05-20T07:08:27.810Z"
+    },
+    {
+      "id": "tk-1e7970c76b7b",
+      "title": "Full quality gate: pnpm run check + pnpm test green",
+      "type": "code",
+      "section": "Acceptance",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-05-20T05:51:09.165Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f27fac1ba79c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T07:09:05.100Z",
+      "verification": "Full quality gate passed and checkpoint recorded. No files changed by this verification task.",
+      "summary": "Ran the required quality commands from the isolated worktree plugin directory. `pnpm run check` passed. Initial `pnpm test` hit an `ENOTEMPTY` temp-directory cleanup failure in `src/temporal/worker-heartbeat.test.ts`; the specific failing test file passed on isolated rerun, and the complete `pnpm test` suite passed on rerun. `pnpm run build` passed for plugin and Temporal worker outputs. Final git status was clean.",
+      "implementation_summary": "Ran the required quality commands from the isolated worktree plugin directory. `pnpm run check` passed. Initial `pnpm test` hit an `ENOTEMPTY` temp-directory cleanup failure in `src/temporal/worker-heartbeat.test.ts`; the specific failing test file passed on isolated rerun, and the complete `pnpm test` suite passed on rerun. `pnpm run build` passed for plugin and Temporal worker outputs. Final git status was clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T07:11:51.813Z",
+      "completed_at": "2026-05-20T07:11:51.813Z"
+    },
+    {
+      "id": "tk-9d8f0afbce34",
+      "title": "Live-session validation: rebuild, restart OpenCode, smoke-test warp behavior",
+      "type": "code",
+      "section": "Acceptance",
+      "status": "done",
+      "priority": 13,
+      "created_at": "2026-05-20T05:51:27.513Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f27fac1ba79c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "notes": "SPIKE OUTCOME (tk-ad9ebd8b983f) — live validation must cover BOTH flag-on and flag-off paths.\n\nREVISED PROCEDURE:\n\n### Scenario 1: flag enabled (warp path)\n1. From `plugin/`: `pnpm run build`\n2. Exit OpenCode session\n3. Open fresh OpenCode session with `OPENCODE_EXPERIMENTAL_WORKSPACES=true opencode` from trunk\n4. Verify ADV loaded: `adv_status`\n5. Create smoke-test change: `adv_change_create summary: \"smokeTestWarp\"`\n6. `adv_worktree_create branch: change/smokeTestWarp`\n7. Assertions:\n   - `client.session.get(currentSessionID).data.workspaceID` is populated\n   - Reported workspace's `target.directory` equals the worktree path\n   - File reads/edits report worktree-relative paths\n   - Trunk write BLOCKED, worktree write ALLOWED, /tmp/test.txt write ALLOWED\n   - NO 5-second hang on worktree-create\n8. Cleanup: `adv_worktree_delete branch: change/smokeTestWarp` (cascade DELETE of OpenCode workspace verified)\n9. `adv_change_close changeId: smokeTestWarp reason: not_planned`\n\n### Scenario 2: flag disabled (downgrade path) — DEFAULT USER EXPERIENCE\n1. Exit OpenCode session (or re-launch without the env var)\n2. Open fresh OpenCode session with plain `opencode` from trunk (no env var)\n3. Verify `adv_status` works\n4. Create smoke-test change: `adv_change_create summary: \"smokeTestDowngrade\"`\n5. `adv_worktree_create branch: change/smokeTestDowngrade`\n6. Assertions:\n   - Exactly ONE log line emitted: contains \"OPENCODE_EXPERIMENTAL_WORKSPACES\" string\n   - Worktree creation completes WITHOUT a 5-second hang (no warp attempt)\n   - Returned message contains the legacy `workdir=` instruction string\n   - `client.session.get(currentSessionID).data.workspaceID` is null/undefined (no warp)\n7. Cleanup as scenario 1 (no workspace to cascade-delete)\n\n### Evidence document\nWrite findings to `docs/spikes/warp-live-validation.md` with:\n- OpenCode version\n- Build hash\n- BOTH scenarios' command transcripts (relevant lines)\n- AC mapping for each scenario\n- Any deviations\n\nBoth scenarios must PASS before this task is marked done.",
+      "updatedAt": "2026-05-20T06:00:29.186Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T07:12:13.022Z",
+      "verification": "Acceptance review remediation applied. Fixed: terminal fallback on missing serverUrl and post-create warp failures; session lookup fallback; already-warped guard ordering; resume store propagation; ADV workspace project/branch validation; workspace lookup/delete filtering to adv-worktree metadata; tab title clarified to initial identity-only `project: advChange` with no status/progress dynamic retitles. Verified `pnpm run check`, `pnpm test`, and `pnpm run build` pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/events/events.test.ts",
+        "plugin/src/events/status.ts",
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/utils/workspace-adapter.test.ts",
+        "plugin/src/utils/workspace-adapter.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/utils/workspace-warp.ts"
+      ],
+      "touched_files": [
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/events/events.test.ts",
+        "plugin/src/events/status.ts",
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/utils/workspace-adapter.test.ts",
+        "plugin/src/utils/workspace-adapter.ts",
+        "plugin/src/utils/workspace-warp.test.ts",
+        "plugin/src/utils/workspace-warp.ts"
+      ],
+      "checkpointSha": "620e5f3ff0d90f8cbff8e85b6b2ff2bd302baabb",
+      "completedAt": "2026-05-20T15:55:24.692Z",
+      "completed_at": "2026-05-20T15:55:24.692Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-LrLEMp",
+      "type": "pattern",
+      "content": "For OpenCode workspace adapters, mirror the SDK contract directly: `WorkspaceInfo.directory` can start as `null`, so custom adapters should structurally validate `info.extra` at `configure()` and only route `target()` from populated `info.directory`. Keep ADV git worktree create/delete ownership separate with adapter lifecycle methods as no-ops.",
+      "source_task": "tk-b432ddf62069",
+      "recorded_at": "2026-05-20T06:29:37.469Z"
+    },
+    {
+      "id": "ws-3crGib",
+      "type": "gotcha",
+      "content": "OpenCode workspace HTTP endpoints being mounted is not enough to prove workspace warp is usable. `workspaceAndWarpAvailable()` must first check the exact opt-in env vars (`OPENCODE_EXPERIMENTAL=true` or `OPENCODE_EXPERIMENTAL_WORKSPACES=true`) and short-circuit without HTTP when absent, otherwise create can hang and fail later with an unhelpful 400.",
+      "source_task": "tk-45ca436b3d21",
+      "recorded_at": "2026-05-20T06:34:19.772Z"
+    },
+    {
+      "id": "ws-MzKY35",
+      "type": "pattern",
+      "content": "For config migrations that must land before flow rewrites, introduce the new structural field (`mode`) and a temporary derived legacy bridge (`inline`) so existing branches keep stable behavior until downstream tasks switch call sites. This keeps intermediate commits coherent while preserving the locked target semantics.",
+      "source_task": "tk-85f28925982e",
+      "recorded_at": "2026-05-20T06:39:30.901Z"
+    },
+    {
+      "id": "ws-UvPKP5",
+      "type": "success",
+      "content": "Audit redirection avoided persisting `workspaceID` into a retired no-op session registry. Lookup-by-directory via OpenCode's workspace list keeps cleanup state derived from the actual OpenCode workspace table and avoids adding new ADV persistence for delete-time cleanup.",
+      "source_task": "tk-fdfc9937bb57",
+      "recorded_at": "2026-05-20T06:43:16.050Z"
+    },
+    {
+      "id": "ws-8d06OD",
+      "type": "pattern",
+      "content": "For OpenCode plugin double-init surfaces, register process-level handlers behind a module-level guard and make duplicate registrations return no-op disposers. Let the real disposer clear the guard so fresh sessions can register after `session.deleted`, while concurrent duplicate plugin instances do not double-fire shutdown hooks.",
+      "source_task": "tk-19b6a92616ad",
+      "recorded_at": "2026-05-20T06:49:11.834Z"
+    },
+    {
+      "id": "ws-L9lwPb",
+      "type": "gotcha",
+      "content": "`worktree_create` should resolve warp availability and re-warp guard before creating the git worktree. That prevents an already-warped session from creating a stray worktree and lets default `mode:\"warp\"` downgrade to terminal immediately when env flags are off, without touching OpenCode workspace HTTP.",
+      "source_task": "tk-f27fac1ba79c",
+      "recorded_at": "2026-05-20T06:57:31.887Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T04:55:42.408Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal. Scope added, success criteria tightened (1,2,5 verifiable), CLARIFY_ASSUMPTION_HEAVY dismissed as false positive (no auth model introduced). Validation clean."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:02:23.351Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings written into design.md (will be refined further at design gate). Key evidence: OpenCode has native /experimental/worktree CRUD + /experimental/workspace/warp endpoint with sessionWarp mechanism that can re-root a session. Session.update does NOT accept directory (verified in server UpdatePayload). Recommended direction: Option A (native worktree + sessionWarp). Eight open questions documented for design gate."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:41:32.469Z",
+      "completed_by": "user",
+      "approval_evidence": "User selected \"recommended\" for all §6 decisions: custom adapter, graceful downgrade, mode:warp default, firewall fix bundled, idempotent initializeStatus. Independent validator (adv-researcher) returned NEEDS_REVISION on HTTP wire bugs (WarpPayload.id not .workspaceID, CreatePayload directory flows via extra not directly, adapter configure must write directory). All 8 validator findings folded into the design. One residual verification (startSync semantics for type:local targets) deferred to execution gate as task 0a pre-execution spike. Design now has 13 acceptance criteria, 12-task graph with explicit ordering, and 13-row risk register."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T05:53:10.442Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved 14-task prep contract. 3 ready tasks unblocked: spike on startSync semantics, audit on module-scope singletons, firewall projectRoot fix. Critical path is mostly serial after prequels. Validator-caught HTTP wire bugs (id field, CreatePayload.extra plumbing) baked into task specs. Beginning autonomous execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T14:24:25.322Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 14 planned tasks are done. Final checkpoint 5a8f472f2cf254b406d3b3a605760347ffeaab82. Verification passed: pnpm run check, pnpm test, pnpm run build, plus live OpenCode flag-enabled warp and flag-disabled fallback smoke tests documented in docs/spikes/warp-live-validation.md."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:25:20.927Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted delivered work after acceptance review. Review verdict APPROVED after remediation; verification passed: pnpm run check, pnpm test (2410 passed, 2 skipped), pnpm run build, targeted post-remediation tests (86 passed)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:03:46.649Z",
+      "completed_by": "user",
+      "approval_evidence": "User signed off via Tier B inline approval. Harden remediation applied: pending-delete persistence + lock, worktree in-use queueing, workspace cleanup warnings, env-var docs, dist rebuilt, spike docs status-noted. Verification: pnpm run check ✅; pnpm test ✅ 2414 passed; pnpm run build ✅."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-20T17:02:22.443Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-20T17:02:22.443Z"
+    }
+  ]
+}

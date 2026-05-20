@@ -73,6 +73,7 @@ import {
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
 import { worktreeDeletedSignal } from "../../temporal/messages";
+import { getPendingDeletes } from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -175,6 +176,20 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).toContain(branch);
   });
 
+  it("rejects a supplied worktree path that does not belong to the branch", async () => {
+    const branch = "feature/test";
+    addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, repoRoot);
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({
+      ok: false,
+      error: "WORKTREE_NOT_FOUND",
+      branch,
+    });
+  });
+
   it("UNCOMMITTED_WORK — blocks delete without force when uncommitted files exist", async () => {
     const branch = "feature/uncommitted";
     const wtPath = addWorktree(repoRoot, branch);
@@ -195,6 +210,34 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(result.files.length).toBeGreaterThan(0);
 
     // Worktree should still exist
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).toContain(branch);
+  });
+
+  it("queues a pending delete when the worktree is still in use", async () => {
+    const branch = "feature/in-use";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.isWorktreeInUse = () => true;
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({
+      ok: false,
+      error: "WORKTREE_IN_USE",
+      branch,
+      path: wtPath,
+      hint: expect.stringContaining("queued a pending delete"),
+    });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch,
+        path: expect.stringContaining(branch),
+        reason: "worktree is still in use by a running process",
+        attempts: 0,
+      }),
+    ]);
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).toContain(branch);
@@ -351,6 +394,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     await expect(advWorktreeDelete(branch, {}, deps)).resolves.toMatchObject({
       ok: true,
       branch,
+      warning: expect.stringContaining(
+        "Failed to delete OpenCode workspace ws-error",
+      ),
     });
     expect(deps.log.warn).toHaveBeenCalledWith(
       expect.stringContaining("Failed to delete OpenCode workspace ws-error"),
