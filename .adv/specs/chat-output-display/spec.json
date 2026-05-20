@@ -3,8 +3,8 @@
   "name": "chat-output-display",
   "title": "Chat Output Display",
   "purpose": "Unified formatting for the chat-output surface — context snapshots (full box), context tickers (compact 1-line for transient transitions), cross-repo switch indicators, and status markers. Consolidates the previous `context-display` and `task-status-report` rules under one capability so all surfaces share a glyph vocabulary and emission policy. Closes the context-agreement gap between agent state and user visibility.",
-  "version": "1.3.0",
-  "updated_at": "2026-04-28T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-05-20T00:00:00.000Z",
   "supersedes": ["context-display"],
   "requirements": [
     {
@@ -433,6 +433,94 @@
           "then": [
             "Task counts show 0 for all statuses",
             "No error is thrown"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolTitle01",
+      "title": "ADV Tool Display Titles",
+      "body": "ADV plugin tools SHOULD provide deterministic, concise display titles through the OpenCode plugin SDK title surfaces when those surfaces are available. The title is presentation metadata only; the tool's machine-readable response MUST remain available as the JSON `output` string when a structured ToolResult is returned.",
+      "priority": "should",
+      "tags": ["chat-output-display", "tool-title", "sdk-metadata"],
+      "scenarios": [
+        {
+          "id": "rq-toolTitle01.1",
+          "title": "Registered ADV tool returns display title and parseable output",
+          "given": [
+            "An ADV tool is registered through the plugin registry"
+          ],
+          "when": "The tool executes successfully",
+          "then": [
+            "The result includes a concise display title when returned through a structured ToolResult",
+            "The result output field remains a JSON-parseable string",
+            "The public tool name and argument schema are unchanged"
+          ]
+        },
+        {
+          "id": "rq-toolTitle01.2",
+          "title": "Title generation is deterministic",
+          "given": [
+            "The same ADV tool name and same display-safe arguments"
+          ],
+          "when": "A display title is generated twice",
+          "then": [
+            "Both generated titles are identical",
+            "No ADV state, workflow query, or tool output parsing is required to compute the title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolTitle02",
+      "title": "Tool Titles Are Display-Only Metadata",
+      "body": "Tool display titles MUST NOT be used as authority for correctness, security, permissions, persistence, workflow state, gate completion, or spec compliance. Those decisions MUST continue to use structural tool names, typed arguments, schemas, state machines, validators, persisted state, and tests.",
+      "priority": "must",
+      "tags": ["chat-output-display", "tool-title", "structural-correctness"],
+      "scenarios": [
+        {
+          "id": "rq-toolTitle02.1",
+          "title": "Permission and workflow logic ignore titles",
+          "given": [
+            "An ADV tool result includes a display title"
+          ],
+          "when": "Permission, workflow, gate, or persistence logic evaluates the tool call",
+          "then": [
+            "The logic uses the structural tool name, arguments, schemas, and persisted workflow state",
+            "Changing or omitting the display title does not change authorization, gate, or persistence behavior"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolTitle03",
+      "title": "Tool Title Redaction and Bounds",
+      "body": "Tool display titles and display metadata MUST redact sensitive argument values and bound long or opaque values before exposing them. Sensitive keys include password, token, secret, apiKey, credential, and privateKey variants. Long display snippets MUST be truncated rather than wrapped or emitted in full.",
+      "priority": "must",
+      "tags": ["chat-output-display", "tool-title", "privacy", "format"],
+      "scenarios": [
+        {
+          "id": "rq-toolTitle03.1",
+          "title": "Sensitive values are redacted",
+          "given": [
+            "Tool arguments include token-like, secret-like, credential-like, or password-like keys"
+          ],
+          "when": "A display title or display metadata is generated",
+          "then": [
+            "Sensitive values are omitted or replaced with a redaction marker",
+            "The raw sensitive value does not appear in the title or display metadata"
+          ]
+        },
+        {
+          "id": "rq-toolTitle03.2",
+          "title": "Long values are bounded",
+          "given": [
+            "Tool arguments include a long command, path, query, or identifier"
+          ],
+          "when": "A display title is generated",
+          "then": [
+            "The display title remains bounded to a concise single-line label",
+            "Long snippets are truncated with an ellipsis rather than emitted in full"
           ]
         }
       ]
