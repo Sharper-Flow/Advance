@@ -14,6 +14,7 @@ import {
   setTaskProgress,
   getStatus,
   resetStatus,
+  resetStatusForTest,
   trackRetry,
   clearRetry,
   getDoomLoopInfo,
@@ -57,7 +58,8 @@ describe("Status Markers", () => {
 
 describe("Status State Management", () => {
   beforeEach(() => {
-    resetStatus();
+    // Full reset (clears idempotency sentinel) so each test gets a fresh init.
+    resetStatusForTest();
   });
 
   describe("initializeStatus", () => {
@@ -66,6 +68,70 @@ describe("Status State Management", () => {
       const status = getStatus();
       expect(status.projectName).toBe("test-project");
       expect(status.currentStatus).toBe("IDLE");
+    });
+
+    // Idempotency tests for change `fixWorktreeSessionRoot` task tk-f96182eff2ad.
+    //
+    // Required because OpenCode's InstanceState cache is keyed by directory.
+    // In post-warp scenarios, ADV's plugin is instantiated twice (once for
+    // trunk, once for the worktree). The second instantiation calls
+    // initializeStatus(projectName) again — must preserve in-flight state.
+
+    it("preserves activeChangeId on second init with same projectName", () => {
+      initializeStatus("test-project");
+      setActiveChange("change-X");
+      initializeStatus("test-project");
+      expect(getStatus().activeChangeId).toBe("change-X");
+    });
+
+    it("preserves activeChangeId on second init with DIFFERENT projectName (e.g. trunk → worktree)", () => {
+      initializeStatus("trunk-basename");
+      setActiveChange("change-X");
+      // Simulate warp: same project (same root commit SHA) but different
+      // basename due to worktree path.
+      initializeStatus("worktree-basename");
+      expect(getStatus().activeChangeId).toBe("change-X");
+    });
+
+    it("preserves currentStatus on second init", () => {
+      initializeStatus("test-project");
+      setStatus("WORK");
+      initializeStatus("test-project");
+      expect(getStatus().currentStatus).toBe("WORK");
+    });
+
+    it("preserves taskProgress on second init", () => {
+      initializeStatus("test-project");
+      setTaskProgress(3, 10);
+      initializeStatus("test-project");
+      expect(getStatus().taskProgress).toBe("3/10");
+    });
+
+    it("updates projectName on second init (so terminal display reflects current session)", () => {
+      initializeStatus("trunk-basename");
+      initializeStatus("worktree-basename");
+      expect(getStatus().projectName).toBe("worktree-basename");
+    });
+
+    it("updates lastUpdated on every init call", () => {
+      initializeStatus("test-project");
+      const before = getStatus().lastUpdated;
+
+      vi.useFakeTimers();
+      vi.advanceTimersByTime(50);
+      initializeStatus("test-project");
+      vi.useRealTimers();
+
+      expect(getStatus().lastUpdated).toBeGreaterThan(before);
+    });
+
+    it("resetStatusForTest restores destructive-init behavior", () => {
+      initializeStatus("test-project");
+      setActiveChange("change-X");
+      resetStatusForTest();
+      initializeStatus("test-project");
+      // After resetStatusForTest, init reverts to destructive reset
+      expect(getStatus().activeChangeId).toBeNull();
     });
   });
 

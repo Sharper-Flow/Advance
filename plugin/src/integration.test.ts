@@ -4,7 +4,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest";
 import { AdvancePlugin } from "./index";
-import { getStatus } from "./events/status";
+import { getStatus, resetStatusForTest } from "./events/status";
 import {
   createTempDir,
   cleanupTempDir,
@@ -16,6 +16,9 @@ describe("Wisdom Lifecycle Integration", () => {
   let hooks: any;
 
   beforeEach(async () => {
+    // Reset status idempotency sentinel so each test gets a fresh init.
+    // See `fixWorktreeSessionRoot` task tk-f96182eff2ad.
+    resetStatusForTest();
     tempDir = await createTempDir();
     await createTestProject(tempDir);
   });
@@ -111,6 +114,7 @@ describe("Active Change Title Update on adv_change_create", () => {
   let hooks: any;
 
   beforeEach(async () => {
+    resetStatusForTest();
     tempDir = await createTempDir();
     await createTestProject(tempDir);
   });
@@ -342,6 +346,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
   let hooks: any;
 
   beforeEach(async () => {
+    resetStatusForTest();
     tempDir = await createTempDir();
     await createTestProject(tempDir);
   });
