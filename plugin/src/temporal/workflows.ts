@@ -2,6 +2,10 @@ import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
+  ARTIFACT_BACKED_GATES,
+  evaluateGateReadiness,
+} from "./gate-readiness";
+import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES,
   CHANGE_WORKFLOW_QUERY_NAMES,
@@ -72,9 +76,31 @@ interface ChangeProjectionActivities {
     | { ok: true; changeId: string; projects: unknown[] }
     | { ok: false; error: string; phase: string }
   >;
+  inspectArtifactActivity(input: {
+    changesDir: string;
+    changeId: string;
+    kind: "proposal" | "agreement" | "design" | "acceptance";
+  }): Promise<
+    | {
+        ok: true;
+        kind: "proposal" | "agreement" | "design" | "acceptance";
+        path: string;
+        contentHash: string;
+        nonWhitespaceChars: number;
+        checkedAt: string;
+      }
+    | {
+        ok: false;
+        kind: "proposal" | "agreement" | "design" | "acceptance";
+        path: string;
+        code: "missing" | "unreadable";
+        error: string;
+        checkedAt: string;
+      }
+  >;
 }
 
-const { archiveChangeActivity, writeChangeProjection } =
+const { archiveChangeActivity, inspectArtifactActivity, writeChangeProjection } =
   wf.proxyActivities<ChangeProjectionActivities>({
     startToCloseTimeout: "10 seconds",
     retry: { maximumAttempts: 3 },
@@ -289,7 +315,22 @@ function safeUpdateHandler<Args extends unknown[], R>(
 ): (...args: Args) => any {
   return (...args: Args) => {
     try {
-      return handler(...args);
+      const result = handler(...args);
+      if (
+        result &&
+        typeof result === "object" &&
+        "then" in result &&
+        typeof result.then === "function"
+      ) {
+        return result.catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err);
+          throw wf.ApplicationFailure.nonRetryable(
+            message,
+            `${updateName}_DOMAIN_ERROR`,
+          );
+        });
+      }
+      return result;
     } catch (err) {
       // Re-throw as ApplicationFailure (non-retryable) so callers observe a
       // clean domain failure. ApplicationFailure does NOT
@@ -399,6 +440,8 @@ export async function changeWorkflow(
   });
   state.projectId = input.projectId;
   state.initializedAt = input.initializedAt;
+  state.projectionChangesDir = input.projectionChangesDir;
+  state.archiveProjects = input.archiveProjects;
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
@@ -602,6 +645,79 @@ export async function changeWorkflow(
       if (options?.projectAfter) scheduleChangeProjection(signalName);
     });
 
+  const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
+
+  const blockerText = (
+    blockers: Array<{ code: string; message: string }>,
+  ): string => blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
+
+  const markGateStuckForBlockers = (
+    payload: import("../types").GateCompletedSignalPayload,
+    blockers: Array<{ code: string; message: string }>,
+  ): void => {
+    applyGateStuckToState(state, {
+      gateId: payload.gateId,
+      reason: blockerText(blockers),
+      triggeredAt: payload.completedAt,
+    });
+  };
+
+  const completeGateWithReadiness = async (
+    payload: import("../types").GateCompletedSignalPayload,
+  ): Promise<void> => {
+    const readiness = evaluateGateReadiness(state, payload.gateId, {
+      compatibilityReason: payload.compatibilityReason,
+    });
+    if (!readiness.ready) {
+      markGateStuckForBlockers(payload, readiness.blockers);
+      return;
+    }
+
+    let artifactEvidence = readiness.evidence;
+    const artifactKind = ARTIFACT_BACKED_GATES[payload.gateId];
+    if (artifactKind && state.projectionChangesDir && !artifactEvidence) {
+      const artifact = await inspectArtifactActivity({
+        changesDir: state.projectionChangesDir,
+        changeId: state.changeId,
+        kind: artifactKind,
+      });
+      if (!artifact.ok) {
+        markGateStuckForBlockers(payload, [
+          {
+            code: artifact.code === "missing" ? "ARTIFACT_MISSING" : "ARTIFACT_UNREADABLE",
+            message: artifact.error,
+          },
+        ]);
+        return;
+      }
+      if (
+        artifact.nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
+      ) {
+        markGateStuckForBlockers(payload, [
+          {
+            code: "ARTIFACT_UNDERSIZED",
+            message: `${artifact.kind} artifact has ${artifact.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+          },
+        ]);
+        return;
+      }
+      artifactEvidence = {
+        kind: artifact.kind,
+        path: artifact.path,
+        content_hash: artifact.contentHash,
+        non_whitespace_chars: artifact.nonWhitespaceChars,
+        checked_at: artifact.checkedAt,
+      };
+    }
+
+    applyGateCompletedToState(state, {
+      ...payload,
+      artifactEvidence,
+    });
+  };
+
+  let gateCompletionChain: Promise<void> = Promise.resolve();
+
   wf.setHandler(
     proposalUpdatedSignal,
     signalMutation("proposalUpdated", (payload) =>
@@ -716,11 +832,15 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     gateCompletedSignal,
-    signalMutation(
-      "gateCompleted",
-      (payload) => applyGateCompletedToState(state, payload),
-      { projectAfter: true },
-    ),
+    safeUpdateHandler("gateCompleted", async (payload) => {
+      const previous = gateCompletionChain.catch(() => undefined);
+      gateCompletionChain = previous.then(() =>
+        completeGateWithReadiness(payload),
+      );
+      await gateCompletionChain;
+      upsertSignalSearchAttributes("gateCompleted");
+      scheduleChangeProjection("gateCompleted");
+    }),
   );
   wf.setHandler(
     gateReenteredSignal,

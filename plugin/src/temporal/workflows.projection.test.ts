@@ -73,6 +73,8 @@ describe("changeWorkflow disk projection", () => {
               gateId: "proposal",
               completedBy: "tester",
               completedAt: "2026-05-05T00:00:01.000Z",
+              compatibilityReason:
+                "projection fixture validates projection, not artifact inspection",
             });
 
             await expect

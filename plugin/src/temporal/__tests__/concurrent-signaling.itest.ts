@@ -152,6 +152,8 @@ function buildAgentRemainingSignals(
         approvalEvidence: `${prefix} approved`,
         completedBy: prefix,
         completedAt: `2026-05-05T00:03:${String(i).padStart(2, "0")}.000Z`,
+        compatibilityReason:
+          "concurrent signaling fixture has no artifact store",
       }),
     );
   }

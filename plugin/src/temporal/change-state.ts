@@ -108,6 +108,7 @@ export function createChangeWorkflowState(input: {
 }
 
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
+  if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
 }
 
@@ -361,6 +362,7 @@ export function applyGateCompletedToState(
     completed_at: payload.completedAt,
     completed_by: payload.completedBy,
     approval_evidence: payload.approvalEvidence,
+    artifact_evidence: payload.artifactEvidence,
   };
   setLastSignalAt(state, payload.completedAt);
   return state;

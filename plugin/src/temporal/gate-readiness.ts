@@ -125,6 +125,10 @@ export function evaluateGateReadiness(
   const artifactKind = ARTIFACT_BACKED_GATES[gateId];
   let evidence: GateArtifactEvidence | undefined;
 
+  if (artifactKind && options.compatibilityReason) {
+    evidence = compatibilityEvidence(artifactKind, options.compatibilityReason);
+  }
+
   if (artifactKind && !state.projectionChangesDir) {
     if (options.compatibilityReason) {
       evidence = compatibilityEvidence(artifactKind, options.compatibilityReason);
