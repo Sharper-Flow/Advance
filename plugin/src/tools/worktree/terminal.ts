@@ -11,11 +11,10 @@
  */
 
 import * as fs from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import { z } from "zod";
 import type { OpencodeClient } from "../../utils/opencode-types";
-import { escapeAppleScript, escapeBash, escapeBatch } from "../../utils/shell";
+import { escapeAppleScript, escapeBash } from "../../utils/shell";
 import { getTempDir } from "../../utils/temp";
 import { isInsideTmux } from "../../utils/terminal-detect";
 import { Mutex } from "../../utils/mutex";
@@ -87,22 +86,12 @@ trap 'rm -f "$0"' EXIT INT TERM
 ${script}`;
 }
 
-/**
- * Wrap a batch script with self-cleanup.
- * Uses goto trick to delete itself after execution.
- */
-function wrapBatchWithSelfCleanup(script: string): string {
-  return `@echo off
-${script}
-(goto) 2>nul & del "%~f0"`;
-}
-
 // =============================================================================
 // TYPES
 // =============================================================================
 
 /** Terminal type for the current platform */
-export type TerminalType = "tmux" | "macos" | "windows" | "linux-desktop";
+export type TerminalType = "tmux" | "macos" | "linux-desktop";
 
 /** Result of a terminal operation */
 export interface TerminalResult {
@@ -119,12 +108,6 @@ const STABILIZATION_DELAY_MS = 150;
 // =============================================================================
 // ENVIRONMENT DETECTION SCHEMAS
 // =============================================================================
-
-/** Validates WSL environment detection */
-const wslEnvSchema = z.object({
-  WSL_DISTRO_NAME: z.string().optional(),
-  WSLENV: z.string().optional(),
-});
 
 /** Validates Linux terminal environment detection */
 const linuxTerminalEnvSchema = z.object({
@@ -173,26 +156,12 @@ type MacTerminal =
 // =============================================================================
 
 /**
- * Check if running inside WSL (Windows Subsystem for Linux).
- * Checks environment variables and os.release() for Microsoft string.
- */
-function isInsideWSL(): boolean {
-  const parsed = wslEnvSchema.safeParse(process.env);
-  if (parsed.success && (parsed.data.WSL_DISTRO_NAME || parsed.data.WSLENV)) {
-    return true;
-  }
-
-  // Fallback: check os.release() for Microsoft string
-  try {
-    return os.release().toLowerCase().includes("microsoft");
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Detect the best terminal type for the current platform.
- * Priority: tmux > WSL > platform-specific
+ * Priority: tmux > platform-specific
+ *
+ * Note: Windows / WSL native terminal spawning is intentionally not supported.
+ * tmux remains the primary path on all platforms; non-tmux Linux (including
+ * WSL) falls through to linux-desktop detection.
  *
  * @returns The detected terminal type
  */
@@ -202,17 +171,10 @@ export function detectTerminalType(): TerminalType {
     return "tmux";
   }
 
-  // WSL check (Linux inside Windows) - before platform detection
-  if (process.platform === "linux" && isInsideWSL()) {
-    return "windows"; // Use Windows Terminal via interop
-  }
-
   // Platform-specific
   switch (process.platform) {
     case "darwin":
       return "macos";
-    case "win32":
-      return "windows";
     case "linux":
       return "linux-desktop";
     default:
@@ -895,177 +857,6 @@ export async function openLinuxTerminal(
 }
 
 // =============================================================================
-// WINDOWS TERMINAL
-// =============================================================================
-
-/**
- * Open terminal on Windows (Windows Terminal or cmd).
- * Tries Windows Terminal (wt.exe) first, falls back to cmd.exe.
- *
- * NOTE: All Windows terminal spawns are detached, so we write the script directly
- * instead of using withTempScript. The script self-deletes via goto trick.
- *
- * @param cwd - Working directory for the terminal
- * @param command - Optional command to execute
- * @returns Success status and optional error message
- */
-export async function openWindowsTerminal(
-  cwd: string,
-  command?: string,
-): Promise<TerminalResult> {
-  // Guard: validate cwd
-  if (!cwd) {
-    return { success: false, error: "Working directory is required" };
-  }
-
-  const escapedCwd = escapeBatch(cwd);
-  const escapedCommand = command ? escapeBatch(command) : "";
-  const scriptContent = wrapBatchWithSelfCleanup(
-    command
-      ? `cd /d "${escapedCwd}"\r\n${escapedCommand}\r\ncmd /k`
-      : `cd /d "${escapedCwd}"\r\ncmd /k`,
-  );
-
-  // Write script directly - it self-deletes via goto trick
-  // DO NOT use withTempScript - all Windows spawns are detached
-  const scriptPath = path.join(
-    getTempDir(),
-    `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.bat`,
-  );
-  await Bun.write(scriptPath, scriptContent);
-  await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
-
-  try {
-    // Check for Windows Terminal
-    const wtCheck = Bun.spawnSync(["where", "wt"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-
-    if (wtCheck.exitCode === 0) {
-      try {
-        const proc = Bun.spawn(["wt.exe", "-d", cwd, "cmd", "/k", scriptPath], {
-          detached: true,
-          stdio: ["ignore", "ignore", "ignore"],
-        });
-        proc.unref();
-        return { success: true };
-      } catch {
-        // Fall through to cmd.exe
-      }
-    }
-
-    // Fallback: cmd.exe
-    try {
-      const proc = Bun.spawn(["cmd", "/c", "start", "", scriptPath], {
-        detached: true,
-        stdio: ["ignore", "ignore", "ignore"],
-      });
-      proc.unref();
-      return { success: true };
-    } catch (error) {
-      // Failed to spawn - clean up orphaned script
-      try {
-        await fs.rm(scriptPath);
-      } catch {
-        // Best-effort cleanup
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: `Failed to spawn terminal: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
-
-// =============================================================================
-// WSL TERMINAL
-// =============================================================================
-
-/**
- * Open terminal in WSL via Windows Terminal interop.
- * Falls back to bash in current terminal if wt.exe not available.
- *
- * NOTE: All WSL terminal spawns are detached, so we write the script directly
- * instead of using withTempScript. The script self-deletes via trap.
- */
-export async function openWSLTerminal(
-  cwd: string,
-  command?: string,
-): Promise<TerminalResult> {
-  // Guard: validate cwd
-  if (!cwd) {
-    return { success: false, error: "Working directory is required" };
-  }
-
-  const escapedCwd = escapeBash(cwd);
-  const escapedCommand = command ? escapeBash(command) : "";
-  const scriptContent = wrapWithSelfCleanup(
-    command
-      ? `cd "${escapedCwd}" && ${escapedCommand}\nexec bash`
-      : `cd "${escapedCwd}"\nexec bash`,
-  );
-
-  // Write script directly - it self-deletes via trap
-  // DO NOT use withTempScript - all WSL spawns are detached
-  const scriptPath = path.join(
-    getTempDir(),
-    `worktree-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`,
-  );
-  await Bun.write(scriptPath, scriptContent);
-  await fs.chmod(scriptPath, 0o700); // owner-only rwx; per-user temp script
-
-  try {
-    // Try wt.exe first (Windows Terminal via PATH interop)
-    const wtResult = Bun.spawnSync(["which", "wt.exe"]);
-    if (wtResult.exitCode === 0) {
-      try {
-        const proc = Bun.spawn(["wt.exe", "-d", cwd, "bash", scriptPath], {
-          detached: true,
-          stdio: ["ignore", "ignore", "ignore"],
-        });
-        proc.unref();
-        return { success: true };
-      } catch {
-        // Fall through to bash
-      }
-    }
-
-    // Fallback: open in current terminal (new bash process)
-    try {
-      const proc = Bun.spawn(["bash", scriptPath], {
-        cwd,
-        detached: true,
-        stdio: ["ignore", "ignore", "ignore"],
-      });
-      proc.unref();
-      return { success: true };
-    } catch (error) {
-      // Failed to spawn - clean up orphaned script
-      try {
-        await fs.rm(scriptPath);
-      } catch {
-        // Best-effort cleanup
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: `Failed to spawn terminal: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
-
-// =============================================================================
 // UNIFIED TERMINAL OPENING
 // =============================================================================
 
@@ -1095,13 +886,6 @@ export async function openTerminal(
 
     case "macos":
       return openMacOSTerminal(cwd, command);
-
-    case "windows":
-      // Check if we're in WSL
-      if (process.platform === "linux" && isInsideWSL()) {
-        return openWSLTerminal(cwd, command);
-      }
-      return openWindowsTerminal(cwd, command);
 
     case "linux-desktop":
       return openLinuxTerminal(cwd, command);

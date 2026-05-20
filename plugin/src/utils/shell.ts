@@ -1,7 +1,7 @@
 /**
  * Shell escaping utilities for cross-platform terminal commands.
  *
- * Provides safe escaping functions for Bash, Windows Batch, and AppleScript.
+ * Provides safe escaping functions for Bash and AppleScript.
  * All functions validate input for forbidden characters before escaping.
  *
  * @module kdco-primitives/shell
@@ -104,35 +104,4 @@ export function escapeAppleScript(str: string): string {
     .replace(/\r/g, " "); // Carriage returns -> spaces
 }
 
-/**
- * Escape a string for safe use in Windows batch files.
- *
- * Handles batch metacharacters:
- * - Percent (%), caret (^), ampersand (&)
- * - Less than (<), greater than (>), pipe (|)
- *
- * @param str - String to escape
- * @returns Escaped string safe for batch file context
- * @throws {Error} if string contains null bytes
- *
- * @example
- * ```ts
- * const path = 'C:\\Users\\name\\project & files'
- * const cmd = `cd /d "${escapeBatch(path)}"`
- * // Result: cd /d "C:\Users\name\project ^& files"
- *
- * const var = '100%'
- * const cmd = `echo ${escapeBatch(var)}`
- * // Result: echo 100%%
- * ```
- */
-export function escapeBatch(str: string): string {
-  assertShellSafe(str, "Batch argument");
-  return str
-    .replace(/%/g, "%%") // Percent (double to escape)
-    .replace(/\^/g, "^^") // Caret (escape character itself)
-    .replace(/&/g, "^&") // Ampersand
-    .replace(/</g, "^<") // Less than
-    .replace(/>/g, "^>") // Greater than
-    .replace(/\|/g, "^|"); // Pipe
-}
+

@@ -26,8 +26,6 @@ describe("detectTerminalType", () => {
   afterEach(() => {
     vi.clearAllMocks();
     terminalDetectMock.isInsideTmux.mockReturnValue(false);
-    delete process.env.WSL_DISTRO_NAME;
-    delete process.env.WSLENV;
     restorePlatform();
   });
 
@@ -39,14 +37,6 @@ describe("detectTerminalType", () => {
     expect(detectTerminalType()).toBe("tmux");
   });
 
-  it("detects WSL as windows terminal on Linux", async () => {
-    setPlatform("linux");
-    process.env.WSL_DISTRO_NAME = "Ubuntu";
-    const { detectTerminalType } = await import("./terminal");
-
-    expect(detectTerminalType()).toBe("windows");
-  });
-
   it("maps darwin to macOS terminal", async () => {
     setPlatform("darwin");
     const { detectTerminalType } = await import("./terminal");
@@ -54,11 +44,11 @@ describe("detectTerminalType", () => {
     expect(detectTerminalType()).toBe("macos");
   });
 
-  it("maps win32 to windows terminal", async () => {
-    setPlatform("win32");
+  it("maps linux to linux-desktop terminal", async () => {
+    setPlatform("linux");
     const { detectTerminalType } = await import("./terminal");
 
-    expect(detectTerminalType()).toBe("windows");
+    expect(detectTerminalType()).toBe("linux-desktop");
   });
 
   it("defaults unknown platforms to linux-desktop", async () => {
