@@ -176,7 +176,7 @@ describe("overlay sync script support", () => {
     }
   });
 
-  test("sync run from a worktree canonicalizes plugin/instruction paths back to the main repo root", () => {
+  test("sync run from a worktree keeps config on runtime plugin path", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-worktree-home-"));
     const tempWorktreeRoot = mkdtempSync(join(tmpdir(), "adv-worktree-root-"));
     const tempWorktree = join(tempWorktreeRoot, "repo-worktree");
@@ -226,7 +226,10 @@ describe("overlay sync script support", () => {
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
 
-      expect(patched.plugin).toContain(join(canonicalRoot, "plugin"));
+      expect(patched.plugin).toContain(
+        join(tempHome, ".local/share/Advance/plugin"),
+      );
+      expect(patched.plugin).not.toContain(join(canonicalRoot, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
       expect(patched.instructions ?? []).not.toContain(
