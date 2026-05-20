@@ -220,9 +220,21 @@ const branchNameSchema = z
  * Worktree plugin configuration schema.
  * Config file: .opencode/worktree.jsonc
  */
-const worktreeConfigSchema = z.object({
-  /** When true, skip terminal spawn and session fork — agent works inline via workdir */
-  inline: z.boolean().default(true),
+export const worktreeModes = ["warp", "spawn", "terminal"] as const;
+
+export type WorktreeMode = (typeof worktreeModes)[number];
+
+const rawWorktreeConfigSchema = z.object({
+  mode: z
+    .enum(worktreeModes)
+    .optional()
+    .describe(
+      "warp: register worktree as OpenCode workspace and warp session into it (default, recommended). " +
+        "spawn: open a new terminal with a forked session (legacy non-inline behavior). " +
+        "terminal: stay in current session and use workdir= per tool (legacy inline behavior; auto-fallback when warp endpoints absent).",
+    ),
+  /** @deprecated use `mode` instead. true → "terminal", false → "spawn". */
+  inline: z.boolean().optional(),
   sync: z
     .object({
       /** Files to copy from main worktree (relative paths only) */
@@ -243,7 +255,50 @@ const worktreeConfigSchema = z.object({
     .default(() => ({ postCreate: [], preDelete: [] })),
 });
 
-type WorktreeConfig = z.infer<typeof worktreeConfigSchema>;
+type RawWorktreeConfig = z.infer<typeof rawWorktreeConfigSchema>;
+
+interface WorktreeConfig extends Omit<RawWorktreeConfig, "mode" | "inline"> {
+  mode: WorktreeMode;
+  /** @deprecated Legacy bridge until create/delete flows are fully mode-based. */
+  inline: boolean;
+}
+
+const hasOwn = (value: unknown, key: string): boolean =>
+  typeof value === "object" && value !== null && Object.hasOwn(value, key);
+
+const inlineForMode = (mode: WorktreeMode): boolean => mode !== "spawn";
+
+export function normalizeWorktreeConfig(
+  input: unknown,
+  log?: Pick<Logger, "warn">,
+): WorktreeConfig {
+  const parsed = rawWorktreeConfigSchema.parse(input);
+  const modeWasProvided = hasOwn(input, "mode");
+  const inlineWasProvided = hasOwn(input, "inline");
+
+  let mode: WorktreeMode;
+  if (parsed.mode) {
+    mode = parsed.mode;
+    if (inlineWasProvided) {
+      log?.warn(
+        '[worktree] Ignoring deprecated worktree config "inline" because "mode" is set.',
+      );
+    }
+  } else if (inlineWasProvided) {
+    mode = parsed.inline ? "terminal" : "spawn";
+    log?.warn(
+      '[worktree] Deprecated worktree config "inline" detected; use "mode": "terminal" for inline true or "mode": "spawn" for inline false.',
+    );
+  } else {
+    mode = "warp";
+  }
+
+  return {
+    ...parsed,
+    mode,
+    inline: modeWasProvided ? inlineForMode(mode) : (parsed.inline ?? true),
+  };
+}
 
 // =============================================================================
 // BRANCH INTEGRATION & UNCOMMITTED STATE HELPERS (T9)
@@ -1683,10 +1738,14 @@ async function loadWorktreeConfig(
   // Worktree plugin configuration
   // Documentation: https://github.com/kdcokenny/ocx
 
-  // Inline mode: agent works in the worktree via workdir instead of
-  // spawning a new terminal window with a separate OpenCode instance.
-  // Set to false to restore the old behavior (new tmux window / terminal tab).
-  // "inline": true,
+  // Worktree session mode:
+  // - "warp" (default): register the ADV worktree as an OpenCode workspace
+  //   and warp this session into it. Requires OPENCODE_EXPERIMENTAL_WORKSPACES=true.
+  // - "terminal": stay in this session and use workdir= per tool (legacy inline behavior).
+  // - "spawn": open a new terminal with a forked OpenCode session (legacy non-inline behavior).
+  // "mode": "warp",
+
+  // Deprecated: "inline": true maps to "mode": "terminal"; false maps to "mode": "spawn".
 
   "sync": {
     // Files to copy from main worktree to new worktrees
@@ -1716,7 +1775,7 @@ async function loadWorktreeConfig(
       await mkdir(path.join(directory, ".opencode"), { recursive: true });
       await writeFile(configPath, defaultConfig);
       log.info(`[worktree] Created default config: ${configPath}`);
-      return worktreeConfigSchema.parse({});
+      return normalizeWorktreeConfig({});
     }
 
     const content = await readFile(configPath, "utf8");
@@ -1724,12 +1783,12 @@ async function loadWorktreeConfig(
     const parsed = parseJsonc(content);
     if (parsed === undefined) {
       log.error(`[worktree] Invalid worktree.jsonc syntax`);
-      return worktreeConfigSchema.parse({});
+      return normalizeWorktreeConfig({});
     }
-    return worktreeConfigSchema.parse(parsed);
+    return normalizeWorktreeConfig(parsed, log);
   } catch (error) {
     log.warn(`[worktree] Failed to load config: ${error}`);
-    return worktreeConfigSchema.parse({});
+    return normalizeWorktreeConfig({});
   }
 }
 
