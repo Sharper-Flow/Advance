@@ -357,7 +357,7 @@ Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title seque
 
 **ID:** `rq-ctxswitch` | **Priority:** **[MUST]**
 
-When the agent switches workdir to a different repository during a change, a formatted indicator MUST be emitted showing the from/to paths and the task that triggered the switch. The indicator MUST be ≤3 content lines (excluding box borders) so it stays compact when emitted alongside other context surfaces.
+When the agent switches workdir to a different repository during a change, a formatted indicator MUST be emitted showing the from/to paths and the task that triggered the switch. The indicator MUST be ≤3 content lines (excluding box borders) so it stays compact when emitted alongside other context surfaces. This prevents the user from losing track of which repository context the agent is operating in without flooding scrollback.
 
 **Tags:** `chat-output-display`, `cross-repo`
 
