@@ -156,6 +156,14 @@ function isToolContext(value: unknown): value is ToolContext {
   );
 }
 
+function getToolContextSessionID(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const sessionID = (value as { sessionID?: unknown }).sessionID;
+  return typeof sessionID === "string" && sessionID.length > 0
+    ? sessionID
+    : undefined;
+}
+
 function namedExecute<TArgs>(
   name: string,
   execute: ToolExecute<TArgs>,
@@ -586,10 +594,23 @@ export function createToolMap(
     ),
 
     // Worktree Tools
-    adv_worktree_create: bindTool(
-      advWorktreeTools.adv_worktree_create,
-      "adv_worktree_create",
-      store,
+    adv_worktree_create: registerTool(
+      advWorktreeTools.adv_worktree_create.description,
+      advWorktreeTools.adv_worktree_create.args,
+      namedExecute(
+        "adv_worktree_create",
+        safeExecute(
+          async (args, context) =>
+            advWorktreeTools.adv_worktree_create.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_create.execute
+              >[0],
+              store,
+              { serverUrl, sessionID: getToolContextSessionID(context) },
+            ),
+          "adv_worktree_create",
+        ),
+      ),
     ),
     adv_worktree_resume: bindTool(
       advWorktreeTools.adv_worktree_resume,
@@ -635,12 +656,13 @@ export function createToolMap(
       namedExecute(
         "worktree_create",
         safeExecute(
-          async (args) =>
+          async (args, context) =>
             advWorktreeTools.adv_worktree_create.execute(
               args as Parameters<
                 typeof advWorktreeTools.adv_worktree_create.execute
               >[0],
               store,
+              { serverUrl, sessionID: getToolContextSessionID(context) },
             ),
           "worktree_create",
         ),

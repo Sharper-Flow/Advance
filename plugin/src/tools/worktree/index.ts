@@ -1761,7 +1761,7 @@ async function symlinkDirs(
  * Load worktree-specific configuration from .opencode/worktree.jsonc
  * Auto-creates config file with helpful defaults if it doesn't exist.
  */
-async function loadWorktreeConfig(
+export async function loadWorktreeConfig(
   directory: string,
   log: Logger,
 ): Promise<WorktreeConfig> {

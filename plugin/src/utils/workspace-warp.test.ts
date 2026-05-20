@@ -4,6 +4,7 @@ import {
   createAdvWorkspace,
   deleteAdvWorkspace,
   findWorkspaceByDirectory,
+  getSessionWorkspaceID,
   warpFlagEnabled,
   warpSession,
   workspaceAndWarpAvailable,
@@ -195,6 +196,42 @@ describe("workspace-warp", () => {
         { workspaceID: "ws-abc", sessionID: "ses-123" },
       ),
     ).rejects.toThrow("warpSession failed: 500 bad warp");
+  });
+
+  it("reads the current session workspace id", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ id: "ses-123", workspaceID: "ws-abc" }),
+      );
+
+    await expect(
+      getSessionWorkspaceID({ serverUrl, fetchImpl }, "ses-123"),
+    ).resolves.toBe("ws-abc");
+
+    expect(String(getCall(fetchImpl)[0])).toBe(
+      "http://127.0.0.1:4096/session/ses-123",
+    );
+  });
+
+  it("returns null when the current session has no workspace id", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ id: "ses-123" }));
+
+    await expect(
+      getSessionWorkspaceID({ serverUrl, fetchImpl }, "ses-123"),
+    ).resolves.toBeNull();
+  });
+
+  it("rejects session workspace lookup failures", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(textResponse("missing", { status: 404 }));
+
+    await expect(
+      getSessionWorkspaceID({ serverUrl, fetchImpl }, "ses-123"),
+    ).rejects.toThrow("getSessionWorkspaceID failed: 404 missing");
   });
 
   it("deletes an ADV workspace by id", async () => {

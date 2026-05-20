@@ -109,6 +109,33 @@ export async function warpSession(
   }
 }
 
+export async function getSessionWorkspaceID(
+  deps: WarpDeps,
+  sessionID: string,
+): Promise<string | null> {
+  const response = await fetchWith(deps)(
+    new URL(`/session/${encodeURIComponent(sessionID)}`, deps.serverUrl),
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `getSessionWorkspaceID failed: ${response.status} ${await responseText(
+        response,
+      )}`,
+    );
+  }
+
+  const session: unknown = await response.json();
+  const workspaceID =
+    typeof session === "object" &&
+    session !== null &&
+    "workspaceID" in session &&
+    typeof session.workspaceID === "string"
+      ? session.workspaceID
+      : null;
+  return workspaceID && workspaceID.length > 0 ? workspaceID : null;
+}
+
 export async function deleteAdvWorkspace(
   deps: WarpDeps,
   workspaceID: string,
