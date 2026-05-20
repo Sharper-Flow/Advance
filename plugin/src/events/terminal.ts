@@ -284,94 +284,7 @@ export const buildTabTitle = (
   return "";
 };
 
-// Test seam: injectable callback replaces real bell I/O in tests.
-// Avoids fragile fs/stdout spying across tmux/non-tmux environments.
-let _onBell: (() => void) | null = null;
-
-/** Replace the real bell with a test callback. Pass null to restore. */
-export const _setBellCallback = (cb: (() => void) | null): void => {
-  _onBell = cb;
-};
-
-/**
- * Ring the terminal bell (audio alert).
- * Used to notify user when attention is needed (EARTH, MIC states).
- */
-const ringBell = (): void => {
-  log("ringBell");
-
-  if (_onBell) {
-    _onBell();
-    return;
-  }
-
-  const bellSequence = "\x07"; // BEL character
-
-  if (isTmux()) {
-    const clientTty = getClientTty();
-    if (clientTty) {
-      writeToTty(clientTty, bellSequence);
-    }
-    const paneTty = getPaneTty();
-    if (paneTty) {
-      writeToTty(paneTty, bellSequence);
-    }
-  } else {
-    try {
-      process.stdout.write(bellSequence);
-    } catch {
-      // ignore
-    }
-  }
-};
-
-// Track last status to avoid repeated alerts
-// null = new session (bell should not ring)
-// StatusMarker = previous status for transition detection
-let lastAlertedStatus: StatusMarker | null = null;
 let lastTitle: string | null = null;
-
-// Bell-gate state: only ring when main agent finishes a response.
-// Armed by armPendingFinalAlert() after a qualifying message.updated event.
-let pendingFinalAlert = false;
-let lastArmedMessageId: string | null = null;
-let lastRungMessageId: string | null = null;
-
-/**
- * Arm the pending final alert for a completed main-agent message.
- * Called from index.ts message.updated handler when the main agent
- * finishes a response (not a tool turn).
- * Dedup: no-op if messageId matches lastArmedMessageId.
- */
-export const armPendingFinalAlert = (messageId: string): void => {
-  if (messageId === lastArmedMessageId) return;
-  lastArmedMessageId = messageId;
-  pendingFinalAlert = true;
-};
-
-/**
- * Test seam: reset bell-gate state. Also called from cleanupTerminal().
- */
-export const _clearPendingFinalAlert = (): void => {
-  pendingFinalAlert = false;
-  lastArmedMessageId = null;
-  lastRungMessageId = null;
-};
-
-// Bell debounce — absorb transient EARTH states during sub-agent teardown.
-// MIC always rings immediately; EARTH waits BELL_DEBOUNCE_MS to confirm idle.
-const BELL_DEBOUNCE_MS = 2000;
-let bellDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-/**
- * Cancel any pending debounced bell.
- */
-const cancelPendingBell = (): void => {
-  if (bellDebounceTimer !== null) {
-    clearTimeout(bellDebounceTimer);
-    bellDebounceTimer = null;
-  }
-};
 
 /**
  * Update terminal based on status.
@@ -383,14 +296,10 @@ const cancelPendingBell = (): void => {
  * rewrite the tab title during normal status churn. The initial simple
  * `project: advChange` title is updated only when the identity string changes.
  *
- * Bell policy:
- *   - ATTN (permission pending): ring immediately, clear any pending final alert
- *   - ATTN (armed idle): debounce ring (main agent finished)
- *   - BLOCKED → ATTN: debounce ring (user needs to see recovery)
- *   - ATTN without armed flag: no bell (sub-agent teardown, transient idle)
- *   - All other transitions: cancel any pending bell
- *   - New session (null→anything): never ring
- *   - ATTN→ATTN: not active work, no bell
+ * Notification policy: ADV core does not emit audible terminal bells for
+ * status transitions. Attention/completion notifications are handled by the
+ * host/tool integration layer (for example Warp/OpenCode notifications) or by
+ * user terminal settings outside this module.
  */
 export const updateTerminalStatus = (
   status: StatusMarker,
@@ -404,73 +313,6 @@ export const updateTerminalStatus = (
     lastTitle = title;
     setTitle(title);
   }
-
-  const previousStatus = lastAlertedStatus;
-  lastAlertedStatus = status;
-
-  // Permission-ATTN vs idle-IDLE bell policy (#86):
-  //
-  // ATTN = permission pending (user must approve). Always rings immediately.
-  // IDLE = agent finished. Uses armed/debounce state machine.
-  //
-  //   - WORK/TOOLING → ATTN: ring immediately (permission pending)
-  //   - WORK/TOOLING → IDLE: ring (immediate or debounced via armed gate)
-  //   - ATTN → IDLE / IDLE → ATTN: ring (permission-ATTN always rings)
-  //   - IDLE → IDLE: no ring (no transition)
-  //   - ATTN → ATTN: ring immediately (new permission while pending)
-  //   - BLOCKED → ATTN: debounce-ring (recovery prompt)
-  //   - BLOCKED → IDLE: NO ring (recovery without user action)
-
-  // ATTN (permission pending): always ring immediately.
-  if (status === "ATTN" && previousStatus !== null) {
-    cancelPendingBell();
-    pendingFinalAlert = false;
-    ringBell();
-    return;
-  }
-
-  // IDLE transitions from active work (armed idle or agent-finished).
-  if (
-    status === "IDLE" &&
-    previousStatus !== null &&
-    previousStatus !== "ATTN" &&
-    previousStatus !== "IDLE"
-  ) {
-    // BLOCKED → IDLE: silent (recovery completed without user action).
-    if (previousStatus === "BLOCKED") {
-      cancelPendingBell();
-      return;
-    }
-
-    // Armed gate: debounce-ring only if main agent completed a qualifying response.
-    if (pendingFinalAlert) {
-      // Dedup: skip if this message was already rung.
-      if (lastArmedMessageId === lastRungMessageId) {
-        pendingFinalAlert = false;
-        return;
-      }
-      cancelPendingBell();
-      const messageId = lastArmedMessageId;
-      bellDebounceTimer = setTimeout(() => {
-        bellDebounceTimer = null;
-        if (lastAlertedStatus === "IDLE") {
-          lastRungMessageId = messageId;
-          pendingFinalAlert = false;
-          ringBell();
-        }
-      }, BELL_DEBOUNCE_MS);
-      return;
-    }
-
-    // Non-armed IDLE: ring immediately (agent finished without sub-agent).
-    cancelPendingBell();
-    pendingFinalAlert = false;
-    ringBell();
-    return;
-  }
-
-  // All other transitions: cancel any pending bell
-  cancelPendingBell();
 };
 
 /**
@@ -497,10 +339,7 @@ const getStatusEmoji = (status: StatusMarker): string => {
  * Full cleanup - reset title and all module-level state.
  */
 export const cleanupTerminal = (): void => {
-  cancelPendingBell();
   resetTitle();
   lastTitle = null;
-  lastAlertedStatus = null;
-  _clearPendingFinalAlert();
   invalidateTtyCache();
 };

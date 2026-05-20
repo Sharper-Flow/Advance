@@ -8,8 +8,6 @@
 export {
   getProjectName,
   buildTabTitle,
-  armPendingFinalAlert,
-  _clearPendingFinalAlert,
 } from "./terminal";
 
 // Status management
