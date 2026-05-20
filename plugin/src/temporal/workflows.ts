@@ -1,5 +1,6 @@
 import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
+import type { GateReadinessBlocker } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
@@ -660,20 +661,36 @@ export async function changeWorkflow(
 
   const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
 
-  const blockerText = (
-    blockers: Array<{ code: string; message: string }>,
-  ): string => blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
+  const blockerText = (blockers: GateReadinessBlocker[]): string =>
+    blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
 
   const markGateStuckForBlockers = (
     payload: import("../types").GateCompletedSignalPayload,
-    blockers: Array<{ code: string; message: string }>,
+    blockers: GateReadinessBlocker[],
   ): void => {
     applyGateStuckToState(state, {
       gateId: payload.gateId,
       reason: blockerText(blockers),
+      readinessBlockers: blockers,
       triggeredAt: payload.completedAt,
     });
   };
+
+  const gateArtifactBlocker = (
+    payload: import("../types").GateCompletedSignalPayload,
+    input: {
+      code: string;
+      artifactKind: GateReadinessBlocker["artifactKind"];
+      message: string;
+      remediation: string;
+    },
+  ): GateReadinessBlocker => ({
+    code: input.code,
+    gateId: payload.gateId,
+    artifactKind: input.artifactKind,
+    message: input.message,
+    remediation: input.remediation,
+  });
 
   const completeGateWithReadiness = async (
     payload: import("../types").GateCompletedSignalPayload,
@@ -698,10 +715,13 @@ export async function changeWorkflow(
         });
         if (!writeResult.ok) {
           markGateStuckForBlockers(payload, [
-            {
+            gateArtifactBlocker(payload, {
               code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+              artifactKind,
               message: writeResult.error,
-            },
+              remediation:
+                "Fix acceptance projection generation before retrying gate completion.",
+            }),
           ]);
           return;
         }
@@ -713,13 +733,16 @@ export async function changeWorkflow(
       });
       if (!artifact.ok) {
         markGateStuckForBlockers(payload, [
-          {
+          gateArtifactBlocker(payload, {
             code:
               artifact.code === "missing"
                 ? "ARTIFACT_MISSING"
                 : "ARTIFACT_UNREADABLE",
+            artifactKind,
             message: artifact.error,
-          },
+            remediation:
+              "Create or repair the required gate artifact before retrying gate completion.",
+          }),
         ]);
         return;
       }
@@ -727,10 +750,13 @@ export async function changeWorkflow(
         artifact.nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
       ) {
         markGateStuckForBlockers(payload, [
-          {
+          gateArtifactBlocker(payload, {
             code: "ARTIFACT_UNDERSIZED",
+            artifactKind,
             message: `${artifact.kind} artifact has ${artifact.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
-          },
+            remediation:
+              "Populate the required artifact with substantive gate evidence before retrying gate completion.",
+          }),
         ]);
         return;
       }

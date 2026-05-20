@@ -7,7 +7,11 @@
 
 import { z } from "zod";
 import { ConformanceVerdictSchema } from "./conformance";
-import { GateArtifactEvidenceSchema, GateIdSchema } from "./gates";
+import {
+  GateArtifactEvidenceSchema,
+  GateIdSchema,
+  GateReadinessBlockerSchema,
+} from "./gates";
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
@@ -168,6 +172,7 @@ export type GateAwaitingApprovalSignalPayload = z.infer<
 export const GateStuckSignalPayloadSchema = z.object({
   gateId: GateIdSchema,
   reason: z.string().min(1),
+  readinessBlockers: z.array(GateReadinessBlockerSchema).optional(),
   triggeredAt: IsoTimestampSchema,
 });
 export type GateStuckSignalPayload = z.infer<

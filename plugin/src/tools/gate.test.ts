@@ -130,7 +130,7 @@ describe("gate tools — signal-driven lifecycle", () => {
   describe("adv_gate_complete", () => {
     test("fires gateCompletedSignal after sequence validation passes", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({
+      mocks.querySignal.mockResolvedValueOnce({
         proposal: { status: "done" },
         discovery: { status: "done" },
         design: { status: "done" },
@@ -138,7 +138,8 @@ describe("gate tools — signal-driven lifecycle", () => {
         execution: { status: "pending" },
         acceptance: { status: "pending" },
         release: { status: "pending" },
-      });
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
 
       const result = await gateTools.adv_gate_complete.execute(
         {
@@ -178,7 +179,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           release: { status: "pending" },
         } as import("../types").Gates,
       });
-      mocks.querySignal.mockResolvedValue({
+      mocks.querySignal.mockResolvedValueOnce({
         proposal: { status: "done" },
         discovery: { status: "done" },
         design: { status: "pending" },
@@ -186,7 +187,8 @@ describe("gate tools — signal-driven lifecycle", () => {
         execution: { status: "pending" },
         acceptance: { status: "pending" },
         release: { status: "pending" },
-      });
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
 
       const result = await gateTools.adv_gate_complete.execute(
         {
@@ -328,7 +330,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           release: { status: "pending" },
         } as import("../types").Gates,
       });
-      mocks.querySignal.mockResolvedValue({
+      mocks.querySignal.mockResolvedValueOnce({
         proposal: { status: "done" },
         discovery: { status: "done" },
         design: { status: "done" },
@@ -336,7 +338,8 @@ describe("gate tools — signal-driven lifecycle", () => {
         execution: { status: "done" },
         acceptance: { status: "done" },
         release: { status: "pending" },
-      });
+      } as import("../types").Gates);
+      mocks.querySignal.mockResolvedValueOnce({ status: "done" });
 
       const result = await gateTools.adv_gate_complete.execute(
         {
@@ -359,6 +362,49 @@ describe("gate tools — signal-driven lifecycle", () => {
       const call = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(call[1]).toBe(store); // store argument
       expect(call[2]).toBe("test-change"); // changeId argument
+    });
+
+    test("surfaces workflow readiness blockers after completion signal", async () => {
+      const gates = {
+        proposal: { status: "pending" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
+        status: "stuck",
+        stuck_reason: "ARTIFACT_MISSING: proposal artifact is missing",
+        readiness_blockers: [
+          {
+            code: "ARTIFACT_MISSING",
+            gateId: "proposal",
+            artifactKind: "proposal",
+            message: "proposal artifact is missing",
+            remediation: "Create proposal.md before retrying.",
+          },
+        ],
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "proposal",
+          completedBy: "agent",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("workflow readiness blocked");
+      expect(parsed.workflowGateStatus).toBe("stuck");
+      expect(parsed.readinessBlockers).toEqual([
+        expect.objectContaining({ code: "ARTIFACT_MISSING" }),
+      ]);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     });
 
     test("execution gate checks for incomplete tasks", async () => {

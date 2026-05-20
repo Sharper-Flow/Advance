@@ -145,6 +145,8 @@ export const GateCompletionSchema = z.object({
   approval_evidence: z.string().optional(),
   /** Human-readable reason when gate is stuck */
   stuck_reason: z.string().optional(),
+  /** Machine-readable blockers recorded when workflow readiness rejects completion */
+  readiness_blockers: z.array(GateReadinessBlockerSchema).optional(),
   /** ISO8601 timestamp when current non-pending state began */
   started_at: z.string().optional(),
   /** Who triggered or owns the current gate state */

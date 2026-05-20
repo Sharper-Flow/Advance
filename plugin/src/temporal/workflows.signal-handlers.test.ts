@@ -506,6 +506,9 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.proposal.stuck_reason).toContain(
             "ARTIFACT_MISSING",
           );
+          expect(state.gates.proposal.readiness_blockers).toContainEqual(
+            expect.objectContaining({ code: "ARTIFACT_MISSING" }),
+          );
         },
       );
     } finally {
