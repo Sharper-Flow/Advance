@@ -109,13 +109,21 @@ describe("tmux rename-window safety", () => {
     expect(args[1]).toBe(risky);
   });
 
-  test("title with newline is passed raw", async () => {
+  test("title with newline is sanitized before rename-window", async () => {
     const { execFileSync } = await import("child_process");
     const term = await import("./terminal");
     const risky = "Feature\nImplementation";
     term._setTitle(risky);
     const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
-    expect(args[1]).toBe(risky);
+    expect(args[1]).toBe("Feature Implementation");
+  });
+
+  test("title with BEL and ESC is sanitized before rename-window", async () => {
+    const { execFileSync } = await import("child_process");
+    const term = await import("./terminal");
+    term._setTitle("Feature\x07\x1b]2;pwn\x1b\\Implementation");
+    const args = vi.mocked(execFileSync).mock.calls[0][1] as string[];
+    expect(args[1]).toBe("Feature ]2;pwn \\Implementation");
   });
 
   test("title with double quotes is passed raw", async () => {
@@ -140,6 +148,16 @@ describe("tmux rename-window safety", () => {
 describe("terminal title status contract", () => {
   const originalTmux = process.env.TMUX;
   const originalStdoutIsTTY = process.stdout.isTTY;
+
+  const expectNonAudibleTitleSequence = (
+    value: unknown,
+    expectedTitle: string,
+  ): void => {
+    const sequence = String(value);
+    expect(sequence).toContain(`\x1b]0;${expectedTitle}\x1b\\`);
+    expect(sequence).not.toContain(`\x1b]0;${expectedTitle}\x07`);
+    expect(sequence).not.toContain("\x07");
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -173,9 +191,7 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("ATTN", "advance");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;advance\x07",
-    );
+    expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
   });
 
   test("WORK with active change writes raw project + raw change title", async () => {
@@ -187,8 +203,9 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("WORK", "advance", "addFeatureX");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;advance: addFeatureX\x07",
+    expectNonAudibleTitleSequence(
+      stdoutSpy.mock.calls.at(-1)?.[0],
+      "advance: addFeatureX",
     );
   });
 
@@ -201,8 +218,35 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("BLOCKED", "advance");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expect(String(stdoutSpy.mock.calls.at(-1)?.[0])).toContain(
-      "\x1b]0;advance\x07",
+    expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
+  });
+
+  test("title payload BEL is sanitized before OSC output", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "adv\x07ance", "addFeatureX");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    expectNonAudibleTitleSequence(
+      stdoutSpy.mock.calls.at(-1)?.[0],
+      "adv ance: addFeatureX",
     );
+  });
+
+  test("title payload ESC is sanitized before OSC output", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "adv\x1b]2;pwn\x1b\\ance");
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    const sequence = String(stdoutSpy.mock.calls.at(-1)?.[0]);
+    expect(sequence).toContain("\x1b]0;adv ]2;pwn \\ance\x1b\\");
+    expect(sequence.split("\x1b").length - 1).toBe(2);
   });
 });

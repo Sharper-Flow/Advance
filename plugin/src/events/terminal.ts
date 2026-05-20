@@ -154,12 +154,23 @@ const writeToTty = (tty: string, sequence: string): boolean => {
   }
 };
 
+const sanitizeOscTitlePayload = (title: string): string =>
+  title
+    .split("")
+    .map((char) => {
+      const code = char.charCodeAt(0);
+      return code <= 0x1f || (code >= 0x7f && code <= 0x9f) ? " " : char;
+    })
+    .join("")
+    .replace(/ {2,}/g, " ");
+
 /**
  * Set terminal title via OSC sequence.
  */
 const setTitle = (title: string): void => {
   log(`setTitle: "${title}"`);
-  const sequence = `\x1b]0;${title}\x07`;
+  const sanitizedTitle = sanitizeOscTitlePayload(title);
+  const sequence = `\x1b]0;${sanitizedTitle}\x1b\\`;
 
   if (isTmux()) {
     const clientTty = getClientTty();
@@ -176,7 +187,7 @@ const setTitle = (title: string): void => {
     // title bypasses shell parsing entirely. No escaping needed for
     // backtick, `$`, backslash, newline, or quotes.
     try {
-      execFileSync("tmux", ["rename-window", title], {
+      execFileSync("tmux", ["rename-window", sanitizedTitle], {
         stdio: "ignore",
         timeout: 1000,
       });
