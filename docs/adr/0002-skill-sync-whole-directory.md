@@ -6,7 +6,7 @@
 
 ## Decision
 
-`scripts/sync-global.sh` syncs entire skill directories (`cp -R`) to `~/.config/opencode/skills/{name}/`, preserving SKILL.md plus all sibling reference docs and subdirectories. Previously it copied SKILL.md only.
+`scripts/deploy-local.sh` syncs entire skill directories (`cp -R`) to `~/.config/opencode/skills/{name}/`, preserving SKILL.md plus all sibling reference docs and subdirectories. Previously it copied SKILL.md only.
 
 ## Context
 
@@ -53,6 +53,6 @@ All 3 criteria met → ADR warranted.
 
 ## References
 
-- `scripts/sync-global.sh` lines 1318-1345 (post-change)
+- `scripts/deploy-local.sh` lines 1318-1345 (post-change)
 - Decision context: `agreement.md` Objective 1; `design.md` Decision 2
 - Spec compliance: `rq-proseReduction03` (inventory update), `rq-skillProseCompression01` (already at compression target — this change is orthogonal content-split)

@@ -779,7 +779,7 @@ Only `mode: subagent` agents spawn via Task. `adv`, `plan`, `build` are primary 
 | `mechanic`       | MCP/config/ADV diagnostics                            |
 | `adv-tron`       | Recon + hotspots                                      |
 
-`adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/sync-global.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
+`adv-tron` repo-local. `adv-researcher` / `adv-engineer` bundled global via `scripts/deploy-local.sh`. Pattern: `librarian` + `adv-researcher` in parallel → synthesize.
 
 ## Skill Discovery Protocol
 
@@ -826,7 +826,7 @@ Enabled in `/adv-discover` and `/adv-research`. Conservative — only triggers f
 
 ### Naming Convention
 
-`agent-{domain-slug}` (lowercased, hyphenated). **× MUST NOT use `adv-` prefix** — `scripts/sync-global.sh` removes stale `adv-*` skills from global dir.
+`agent-{domain-slug}` (lowercased, hyphenated). **× MUST NOT use `adv-` prefix** — `scripts/deploy-local.sh` removes stale `adv-*` skills from global dir.
 
 ### Assembly Template
 
@@ -945,4 +945,4 @@ Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir`
 
 ### Provider ADV runtime hints
 
-<!-- rq-scopedAdvInstructions01 --> `scripts/sync-global.sh` assembles one global `adv` runtime agent from `.opencode/agents/adv.md` plus this repository-scoped `ADV_INSTRUCTIONS.md`. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.
+<!-- rq-scopedAdvInstructions01 --> `scripts/deploy-local.sh` assembles one global `adv` runtime agent from `.opencode/agents/adv.md` plus this repository-scoped `ADV_INSTRUCTIONS.md`. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.

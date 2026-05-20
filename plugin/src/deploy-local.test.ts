@@ -178,9 +178,7 @@ describe("deploy-local.sh", () => {
       expect(content).toContain(
         'LOCAL_DEPLOY_ROOT="${ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}"',
       );
-      expect(content).toContain(
-        'ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"',
-      );
+      expect(content).toContain('ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"');
       expect(content).toContain(
         'ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"',
       );

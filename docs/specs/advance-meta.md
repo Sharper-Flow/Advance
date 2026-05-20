@@ -271,13 +271,13 @@ ADV instruction surfaces (ADV_INSTRUCTIONS.md, docs/command-voice-standard.md, .
 
 **ID:** `rq-providerAdvSkinny01` | **Priority:** **[MUST]**
 
-ADV must expose one canonical runtime agent while preserving provider-specific guidance through runtime system-block hint injection. `sync-global.sh` must not require generated `adv-{provider}.md` runtime agents or concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.
+ADV must expose one canonical runtime agent while preserving provider-specific guidance through runtime system-block hint injection. `deploy-local.sh` must not require generated `adv-{provider}.md` runtime agents or concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.
 
 **Single ADV runtime agent is complete without generated provider variants** (`rq-providerAdvSkinny01.1`)
 
 **Given:**
 
-- `scripts/sync-global.sh --fix` runs with canonical ADV and provider hint assets present
+- `scripts/deploy-local.sh --fix` runs with canonical ADV and provider hint assets present
 
 **When:** ADV runtime assets are synced
 
@@ -287,7 +287,7 @@ ADV must expose one canonical runtime agent while preserving provider-specific g
 - Global `adv.md` contains the canonical ADV body and `ADV_INSTRUCTIONS.md` protocol content
 - Global `adv-{provider}.md` files are not generated as required runtime artifacts
 - Concatenated provider prompt files are not generated as required runtime artifacts at `agent-parts/advance/adv-{provider}.md`
-- `agent.adv-{provider}.prompt` refs are not written by `sync-global.sh`
+- `agent.adv-{provider}.prompt` refs are not written by `deploy-local.sh`
 - Generic `adv` visibility is not disabled because of retired provider variants
 
 **Stale generated provider artifacts are removed or reported** (`rq-providerAdvSkinny01.1a`)
@@ -296,7 +296,7 @@ ADV must expose one canonical runtime agent while preserving provider-specific g
 
 - A stale generated `adv-{provider}.md` file or concatenated provider prompt file exists from the retired provider-variant architecture
 
-**When:** `scripts/sync-global.sh --fix` runs
+**When:** `scripts/deploy-local.sh --fix` runs
 
 **Then:**
 

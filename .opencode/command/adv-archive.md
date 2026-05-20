@@ -8,13 +8,13 @@ phaseGoal: "Promote change from contract to law: apply spec deltas, capture wisd
 
 # ADV Archive — Finalize Completed Change
 
-Archive change → apply deltas to specs → canonical ship/finalize path via mandatory Phase 9 Git Finalization (commit, merge+push, verify, cleanup).
+Archive change → apply deltas to specs → canonical ship/finalize path via mandatory Phase 9 Git Finalization (commit, merge+push, local deploy when available, verify, cleanup). Archive is not complete after `adv_change_archive`; it is complete only after Phase 9 verifies the change branch is reachable from the default branch and the default branch push/deploy status is reported.
 
 ## Exits
 
 | Exit        | Condition                                      |
 | ----------- | ---------------------------------------------- |
-| ✅ Complete | All gates passed, specs updated, git finalized |
+| ✅ Complete | All gates passed, specs updated, release committed, merged to default branch, pushed or explicitly reported local-only, local deploy run when available, verified |
 | 🎤 Blocked  | Incomplete gates/tasks or merge conflicts      |
 | 🔁 Dry Run  | Preview only, no changes                       |
 
@@ -165,7 +165,7 @@ For each affected capability: `adv_spec action: "show"` → verify new requireme
 
 Use archive terminal variant of the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Archive terminal variant`). The terminal verb branches by push state:
 
-- **Shipped.** — push succeeded AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
+- **Shipped.** — push succeeded AND `deploy_action` ∈ {`ran`, `not available`, `not needed`} AND `sync_action` ∈ {`auto via hook`, `manual fix`, `not needed`}
 - **Merged locally.** — no remote configured OR push skipped OR push failed (with explicit reason)
 
 ```
@@ -183,6 +183,7 @@ What shipped (or merged locally), what spec deltas applied.
 - Archive location: {path}
 - Git merge: {default-branch} ({merge-mode: ff-only | reconcile | pr})
 - Push: {SHA range pushed | skipped: <reason>}
+- Local deploy: {ran | not available | not needed | failed: <reason>}
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
 - Cleanup: worktree + temp artifacts
@@ -206,6 +207,8 @@ After archive summary is displayed, invoke reflection (non-blocking):
 <!-- rq-releaseFinalization01 -->
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks user — ADV does not "fix" main's state on user's behalf.
+
+> **Completion bar:** Do not say "archived", "shipped", or "done" after only `adv_gate_complete release`, `adv_change_archive`, or the archive bundle commit. The archive workflow owns finalization through default-branch merge, local deploy (when `scripts/deploy-local.sh` exists), push or explicit local-only report, reachability verification, reflection, and clean working tree status. If any finalization step is skipped, failed, or unverified, the terminal report MUST say `Merged locally.` or `Blocked`, not `Shipped.`
 
 ### Step 1: Stage and Commit (in the worktree, on change branch)
 
@@ -313,6 +316,19 @@ User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add +
 
 ### Step 5: Publish Safety (merge+push finalization for the default branch)
 
+Before pushing, run the Local Deploy Gate below. A project-local deploy script is part of release finalization for ADV itself, not an optional post-release nudge.
+
+#### Step 5.0: Local Deploy Gate
+
+If `$MAIN/scripts/deploy-local.sh` exists and is executable:
+
+1. Run `git -C "$MAIN" status --porcelain` and require it to be empty before deploy.
+2. Run `"$MAIN/scripts/deploy-local.sh" --fix` from `$MAIN`; capture output verbatim.
+3. If deploy fails → STOP. Do not push. Report `Local deploy: failed: <reason>` and leave the worktree intact.
+4. If deploy succeeds → record `deploy_action: ran` for Phase 8.
+
+If the script is absent → record `deploy_action: not available`. If the project explicitly documents that no local deploy is needed → record `deploy_action: not needed` with the source of that evidence.
+
 After local merge succeeds, archive finalization attempts a safe remote push of the default branch from `$MAIN` when `origin` exists:
 
 - `git -C "$MAIN" fetch origin` (if fetch fails or auth is unclear → stop and ask user before proceeding)
@@ -329,7 +345,7 @@ If no remote is configured OR push is skipped OR push fails: record the push fai
 
 ### Step 5.5: Pre-Push Hook Detection
 
-Before pushing (Step 5), detect what project automates on pre-push so the agent doesn't redundantly run sync, and so Phase 8 can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs.
+Before pushing (Step 5), detect what project automates on pre-push so the agent can report what fired. Inspect the **main checkout** (`$MAIN`), since that is where the push runs. Do not rely on hooks as the only local deploy path when `scripts/deploy-local.sh` is present; Step 5.0 already ran it explicitly.
 
 Detection (in order; stop at first match):
 
@@ -340,10 +356,10 @@ Detection (in order; stop at first match):
 5. `$MAIN/lefthook.yml` (or `lefthook.yaml`) exists with `pre-push:` section → `hook_strategy: lefthook`
 6. None of the above → `hook_strategy: none`
 
-Asset-sync gap check:
+Asset deploy gap check:
 
-- `hook_strategy == "none"` AND change touched any path in synced asset list (`.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`) AND `$MAIN/scripts/sync-global.sh` exists AND is executable → run `scripts/sync-global.sh --fix` explicitly from `$MAIN` before push, capture output → `sync_action: manual fix`
-- `hook_strategy != "none"` → `sync_action: auto via hook` (rely on hook; capture push output verbatim in Step 5 to observe what fired)
+- `hook_strategy == "none"` AND change touched any path in deployed asset list (`.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`, `plugin/src/`, `scripts/deploy-local.sh`) AND `$MAIN/scripts/deploy-local.sh` exists AND is executable → Step 5.0 MUST already have run; record `sync_action: manual fix`
+- `hook_strategy != "none"` → `sync_action: auto via hook` (capture push output verbatim in Step 5 to observe what fired, but do not skip Step 5.0)
 - No asset paths touched AND no hook → `sync_action: not needed`
 
 Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lines `Pre-push hooks:` and `Asset sync:`).
@@ -396,7 +412,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 ### Completion
 
-Emit GIT FINALIZATION COMPLETE: commit SHA, merge target (`$MAIN` default-branch HEAD), verification status, worktree cleanup status, artifacts removed.
+Emit GIT FINALIZATION COMPLETE only after Step 6 verification passes: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, worktree cleanup status, artifacts removed, and final `git -C "$MAIN" status --short --branch` output. If push or deploy did not succeed, use a non-shipped terminal verb and state the exact remaining command.
 
 ### Step 9: Post-Deploy Nudge
 
@@ -406,7 +422,7 @@ After Phase 9 completes and archive summary is displayed (Phase 8), if project h
 → Deploy to production when ready
 ```
 
-Deployment is outside ADV's gate lifecycle — ADV stops at push. Post-release deploy is a separate, user-initiated step.
+Production deployment is outside ADV's gate lifecycle — ADV stops at verified default-branch push plus local developer-environment deploy when `scripts/deploy-local.sh` exists. Production deploy remains a separate, user-initiated step.
 
 ---
 

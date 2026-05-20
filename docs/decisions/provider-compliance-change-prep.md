@@ -57,7 +57,7 @@ These were read directly only after explicit user permission because ADV normall
 - Global agents: `~/.config/opencode/agents/*`
 - ADV overlays: `.opencode/overlays/*`
 - Plugin code and tests under `plugin/src/**`
-- Sync tooling: `scripts/sync-global.sh`
+- Sync tooling: `scripts/deploy-local.sh`
 - Existing model-comparison scripts: `scripts/model-blind-test.ts`, `scripts/model-blind-test.sh`
 
 ### Targeted verification executed
@@ -216,7 +216,7 @@ This means the original success criterion “show measurable improvement in inst
 
 ### 10. Repo sync tooling does not own general global instructions
 
-`scripts/sync-global.sh` manages:
+`scripts/deploy-local.sh` manages:
 
 - ADV plugin registration
 - ADV instruction registration (`ADV_INSTRUCTIONS.md`)
@@ -229,9 +229,9 @@ It does **not** manage arbitrary files under `~/.config/opencode/instructions/` 
 
 Relevant lines:
 
-- `scripts/sync-global.sh:85-87`
-- `scripts/sync-global.sh:302-307`
-- `scripts/sync-global.sh:402-421`
+- `scripts/deploy-local.sh:85-87`
+- `scripts/deploy-local.sh:302-307`
+- `scripts/deploy-local.sh:402-421`
 
 This matters for proposal ownership:
 
@@ -494,7 +494,7 @@ Cons:
 #### Option 2 — Repo-managed instruction assets + sync support
 
 - move canonical instruction sources into repo-managed assets
-- expand `scripts/sync-global.sh` or related tooling to manage them
+- expand `scripts/deploy-local.sh` or related tooling to manage them
 
 Pros:
 

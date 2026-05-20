@@ -17,7 +17,7 @@ All skills vendored from `mattpocock/skills` are renamed with the `adv-` prefix 
 
 ## Context
 
-The change adopts 4 Pocock skills (and 2 reference docs). `scripts/sync-global.sh` has a hard-coded glob `for skill_dir in "$REPO_SKILLS"/adv-*/` (line 1323) that selects skills for sync to `~/.config/opencode/skills/`. Non-prefixed skills are silently skipped.
+The change adopts 4 Pocock skills (and 2 reference docs). `scripts/deploy-local.sh` has a hard-coded glob `for skill_dir in "$REPO_SKILLS"/adv-*/` (line 1323) that selects skills for sync to `~/.config/opencode/skills/`. Non-prefixed skills are silently skipped.
 
 Additionally, `rq-sc02` reserves the `adv-` prefix for sync-managed (repo-bundled) skills and the `agent-` prefix for auto-created skills (per ADV Skill Creation Protocol). Vendored skills are sync-managed — they ship via the bundled-skills pipeline, not via runtime agent creation.
 
@@ -59,6 +59,6 @@ All 3 criteria met → ADR warranted.
 ## References
 
 - LICENSE-THIRD-PARTY.md (attribution + source mapping table)
-- `scripts/sync-global.sh:1323` (sync glob)
+- `scripts/deploy-local.sh:1323` (sync glob)
 - `rq-sc02` (sync-managed vs auto-created skill prefix convention)
 - ADR-002 (complementary decision on whole-directory sync)

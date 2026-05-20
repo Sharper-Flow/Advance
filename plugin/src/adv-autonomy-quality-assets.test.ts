@@ -200,10 +200,26 @@ describe("Archive and spec assets", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     expect(content).toMatch(/canonical ship\/finalize path/i);
     expect(content).toMatch(/merge\+push/i);
+    expect(content).toMatch(/Completion bar/i);
+    expect(content).toMatch(/Do not say "archived", "shipped", or "done"/i);
     expect(content).toMatch(
       /git -C "\$MAIN" merge --ff-only change\/\{change-id\}[\s\S]*git -C "\$MAIN" push origin \{default-branch\}/,
     );
     expect(content).toMatch(/push failure[\s\S]*Merged locally\./i);
+  });
+
+  test("adv-archive.md requires local deploy before shipped finalization", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    expect(content).toMatch(/Step 5\.0: Local Deploy Gate/);
+    expect(content).toMatch(/scripts\/deploy-local\.sh/);
+    expect(content).toMatch(/deploy-local\.sh" --fix/);
+    expect(content).toMatch(/If deploy fails → STOP\. Do not push/i);
+    expect(content).toMatch(
+      /Local deploy: \{ran \| not available \| not needed \| failed: <reason>\}/,
+    );
+    expect(content).toMatch(
+      /GIT FINALIZATION COMPLETE[\s\S]*local deploy status/i,
+    );
   });
 
   test("advance-workflow spec encodes archive push-after-merge semantics", () => {

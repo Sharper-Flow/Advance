@@ -8,8 +8,8 @@
 #
 # Single source of truth for "what's installed on this machine from this repo".
 # Run via pre-push hook so deployed copy never drifts from dev repo HEAD.
-# Renamed from sync-global.sh (2026-05-19) to reflect that it also deploys
-# binaries, not just syncs OpenCode config assets.
+# Replaced the legacy config-sync script (2026-05-19) to reflect that it also
+# deploys binaries, not just OpenCode config assets.
 #
 # Usage:
 #   ./scripts/deploy-local.sh           # Deploy assets + check config (report only)
@@ -888,7 +888,7 @@ done
 # ---------------------------------------------------------------------------
 # 4b. Remove stale global ADV_INSTRUCTIONS.md copy if it exists.
 #     The canonical copy lives at $REPO_ROOT/ADV_INSTRUCTIONS.md and is
-#     registered in opencode.json by sync-global --fix. A duplicate in
+#     registered in opencode.json by deploy-local --fix. A duplicate in
 #     ~/.config/opencode/instructions/ wastes ~7K tokens per prompt.
 # ---------------------------------------------------------------------------
 STALE_GLOBAL_INSTR="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"

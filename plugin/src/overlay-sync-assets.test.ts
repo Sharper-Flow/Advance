@@ -176,7 +176,7 @@ describe("overlay sync script support", () => {
     }
   });
 
-  test("sync run from a worktree canonicalizes plugin/instruction paths back to the main repo root", () => {
+  test("deploy run from a worktree uses stable runtime plugin and canonical instruction paths", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-worktree-home-"));
     const tempWorktreeRoot = mkdtempSync(join(tmpdir(), "adv-worktree-root-"));
     const tempWorktree = join(tempWorktreeRoot, "repo-worktree");
@@ -216,17 +216,24 @@ describe("overlay sync script support", () => {
         encoding: "utf8",
       });
       expect(fixResult.status).toBe(0);
-      const syncOutput = `${fixResult.stdout}${fixResult.stderr}`;
-      const canonicalRootMatch = syncOutput.match(
+      const deployOutput = `${fixResult.stdout}${fixResult.stderr}`;
+      const canonicalRootMatch = deployOutput.match(
         /ADV deploy-local \(fix\):\s+(.*?)\s+->/,
       );
       const canonicalRoot = canonicalRootMatch?.[1] ?? REPO_ROOT;
+      const runtimePluginMatch = deployOutput.match(
+        /runtime plugin:\s+.*?\s+->\s+(.*)/,
+      );
+      const runtimePlugin =
+        runtimePluginMatch?.[1]?.trim() ??
+        join(tempHome, ".local/share/Advance/plugin");
 
       const patched = JSON.parse(
         readFileSync(join(configDir, "opencode.json"), "utf8"),
       );
 
-      expect(patched.plugin).toContain(join(canonicalRoot, "plugin"));
+      expect(patched.plugin).toContain(runtimePlugin);
+      expect(patched.plugin).not.toContain(join(canonicalRoot, "plugin"));
       expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
 
       expect(patched.instructions ?? []).not.toContain(

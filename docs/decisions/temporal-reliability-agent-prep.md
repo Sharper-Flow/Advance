@@ -24,7 +24,7 @@ ADV is now Temporal-only at runtime: every change/task/gate/wisdom mutation flow
 - Storage layer decomposition (covered in 2026-04-23 pack)
 - ADV agent orchestration semantics, gate state machine
 - Spec validator, command workflow files
-- Sync-global / overlay tooling
+- Deploy-local / overlay tooling
 
 ## Current State
 

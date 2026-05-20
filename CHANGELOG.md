@@ -68,8 +68,8 @@ ADV ATC autonomous pipeline drained the bug backlog, archiving 19 changes in a s
 
 **One-time user steps after upgrade:**
 - Remove `P28` (cost-governance rule) from your `~/.config/opencode/instructions/rules.yaml` if present (rule referenced retired Phase 1.5 surface)
-- After running `scripts/sync-global.sh --fix`, the `cost-governance.md` entry is automatically removed from your `~/.config/opencode/opencode.json` `instructions[]` array
-- Manually remove `~/.config/opencode/instructions/cost-governance.md` and `~/.config/opencode/skills/adv-cost-governance-methodology/` if `sync-global.sh` does not propagate deletions
+- After running `scripts/deploy-local.sh --fix`, the `cost-governance.md` entry is automatically removed from your `~/.config/opencode/opencode.json` `instructions[]` array
+- Manually remove `~/.config/opencode/instructions/cost-governance.md` and `~/.config/opencode/skills/adv-cost-governance-methodology/` if `deploy-local.sh` does not propagate deletions
 
 **Rationale:** Investment governance v1 produced zero observed surfacing across 14 archived changes. Functional intents (user-value tradeoff identification + surfacing) are absorbed by `rq-autonomy01.3` (design approval conditional on tradeoffs) + `rq-autonomy01.6` (contract-compromise design pause) + `/adv-design` Key Decisions section. Empirical 5-archive verification during /adv-discover confirmed coverage.
 
@@ -231,7 +231,7 @@ Ambiguity taxonomy (11 categories: B/F/S/M/D/X/Q/I/E/C/T) hardened across docs, 
 
 - Provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) generated from canonical `adv.md`
 - Provider hint injection after `ADV_SYNC:END adv` marker
-- `sync-global.sh` `check_tool_drift` runs for all variants
+- `deploy-local.sh` `check_tool_drift` runs for all variants
 - Legacy `adv.md` hidden via `agent.adv.disable: true` when variants enabled
 - Cleaned provider sync leftovers and hidden provider hint fragments
 
@@ -407,7 +407,7 @@ New `advance` spec requirement codifies how ADV-managed agents must gather evide
   3. blocked diligence must stop and surface the blockage instead of presenting an unverified direction
   4. guidance surfaces and drift tests must encode the rule
 - **Agents** — `.opencode/agents/adv.md` (Pre-change investigation row + Context-Optimal Execution) and `.opencode/agents/plan.md` (Investigation Mode + Workflow research) rewritten with due-diligence-first, source-appropriate evidence guidance.
-- **Overlays** — `.opencode/overlays/adv.overlay.md` and `.opencode/overlays/plan.overlay.md` synced-overlay blocks carry the same rule so provider-specific ADV variants pick it up via `scripts/sync-global.sh --fix`.
+- **Overlays** — `.opencode/overlays/adv.overlay.md` and `.opencode/overlays/plan.overlay.md` synced-overlay blocks carry the same rule so provider-specific ADV variants pick it up via `scripts/deploy-local.sh --fix`.
 - **Drift tests** — `plugin/src/adv-command-routing-assets.test.ts` adds `LEGACY_CARVEOUT_FRAGMENTS` and `HIDDEN_CARVEOUT_PATTERNS` guards that fail if the prior carve-out-first wording or hidden context exemptions return.
 
 ### Changed
@@ -436,13 +436,13 @@ Terminal status markers redesigned from 7 metaphor emojis to 3-color square syst
 
 Introduces provider-specific ADV variants (`adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi`) generated from the canonical `adv.md`, with runtime visibility controlled by OpenCode's native `agent.<name>.disable` field.
 
-- **`scripts/sync-global.sh`**: New `generate_provider_variants()` function copies canonical `adv.md`, patches frontmatter `name: adv-{provider}`, and injects a small behavioral hint block from `.opencode/agents/parts/providers/{provider}.md` after the `ADV_SYNC:END adv` marker.
+- **`scripts/deploy-local.sh`**: New `generate_provider_variants()` function copies canonical `adv.md`, patches frontmatter `name: adv-{provider}`, and injects a small behavioral hint block from `.opencode/agents/parts/providers/{provider}.md` after the `ADV_SYNC:END adv` marker.
 - **Provider hint files**: `.opencode/agents/parts/providers/{claude,gpt,glm,kimi}.md` — each ≤20 lines, behavioral-only, no vendor API terms.
 - **Drift check extension**: `check_tool_drift()` now accepts an agent file parameter; `check_provider_variant_drifts()` loops over all four variants. Tool allowlist mismatches are reported per-variant.
 - **Legacy `adv.md` gating**: Canonical `adv.md` is only removed from global agents when `opencode.json` contains `agent.adv-*` keys (`provider_adv_configured_in_json`). Prevents breaking existing setups before users opt into provider-ADV mode.
 - **Stale agent exclusion**: Generated variants are skipped by the stale-agent removal loop so they are not deleted on the next sync.
 - **`project.json`**: Refreshed repo defaults to use a `features` block for local ADV policy (`tdd_enforcement`, `worktree_auto_create`, `gate_enforcement`, `wisdom_accumulation`, `clarify_enforcement`, and tuned `slop_scan` thresholds).
-- **Asset tests**: 10 new assertions across `sync-global.test.ts`, `overlay-sync-assets.test.ts`, and `adv-command-routing-assets.test.ts` verify generation, hint injection, frontmatter patching, and legacy gating.
+- **Asset tests**: 10 new assertions across `deploy-local.test.ts`, `overlay-sync-assets.test.ts`, and `adv-command-routing-assets.test.ts` verify generation, hint injection, frontmatter patching, and legacy gating.
 
 ### Changed
 
@@ -526,7 +526,7 @@ task graph, `/adv-apply` Phase 1.5 surfaces them in a single batched
 - **`adv_investment_report` tool** (`plugin/src/tools/investment.ts`) — read-only, stateless report returning task counts, elapsed time, retry metrics, doom-loop state, per-gate durations, and threshold tier (`auto` / `escalate` / `hardstop`). Called by `/adv-prep`, `/adv-apply`, `/adv-discover`, `/adv-review`, `/adv-archive`.
 - **Schema extension** — `ChangeSchema` gains two optional fields: `judgment_calls[]` (populated by `/adv-prep` Phase J) and `batch_surfaced_at` (audit stamp recorded by `/adv-apply` Phase 1.5). New types: `JudgmentCallSchema`, `JudgmentCallCategorySchema`, `InvestmentReportSchema`, `ThresholdTierSchema`. Zero changes to `TaskSchema`.
 - **Methodology skill** — `skills/adv-cost-governance-methodology/SKILL.md` is the single source of truth for identification and surfacing protocols, 3 in-scope categories (`non_functional_tradeoff`, `extensibility`, `scope_boundary`), out-of-scope list (`defaults`, `naming`, `error_semantics`), composition rules, hard-stop advisory semantics, and `rq-autonomy01` escape-clause citation.
-- **Policy layer** — `.opencode/instructions/cost-governance.md` ships YAML-frontmatter thresholds (conservative defaults: auto ≤3/0/15min, escalate ≥8/2/60min, hardstop ≥15/5/180min) + scope + category enum. Tunable without code changes. Synced via `scripts/sync-global.sh --fix` (new instruction block added alongside `ADV_INSTRUCTIONS.md`).
+- **Policy layer** — `.opencode/instructions/cost-governance.md` ships YAML-frontmatter thresholds (conservative defaults: auto ≤3/0/15min, escalate ≥8/2/60min, hardstop ≥15/5/180min) + scope + category enum. Tunable without code changes. Synced via `scripts/deploy-local.sh --fix` (new instruction block added alongside `ADV_INSTRUCTIONS.md`).
 - **Rule** — `P28: cost-governance` at priority 9 (parity with `P05`, `P24`, `P27`). User-managed in `~/.config/opencode/instructions/rules.yaml`; installation documented in `SETUP.md`.
 - **Command integration** — `/adv-prep` Phase J (identify judgment calls), `/adv-apply` Phase 1.5 (batch surfacing preamble), `/adv-discover`, `/adv-review`, `/adv-archive` display a one-line investment summary.
 - **ADV_INSTRUCTIONS.md** — new Investment Check-In subsection under "Autonomy & Quality Ownership" with explicit `rq-autonomy01` escape-clause citation: judgment calls are "unresolved user-value tradeoffs" under the existing contract, NOT a new enumerated human checkpoint. The 8 enumerated checkpoints remain the only enumerated pause points.
@@ -564,16 +564,16 @@ Tool count: 40 → 42 (`adv_investment_report` + `adv_change_reenter` — the la
 
 #### Standardized Agent Sync Taxonomy
 
-- **`adv-researcher` promoted from repo-local to bundled global specialist**: Reclassified from repo-scoped to ADV-managed bundled global agent synced via `sync-global.sh` direct copy. `tron` remains the only repo-local specialist.
+- **`adv-researcher` promoted from repo-local to bundled global specialist**: Reclassified from repo-scoped to ADV-managed bundled global agent synced via `deploy-local.sh` direct copy. `tron` remains the only repo-local specialist.
 - **Spec law reframed to capability-based validator contract**: `rq-designval01/02/03` in `advance` spec now express the design-validation guarantee as an independent, read-only, externally informed validator capability rather than hard-coding the `adv-researcher` name. The agent is mentioned as the current implementation, not permanent identity.
-- **`sync-global.sh`**: Removed `adv-researcher.md` from `REPO_LOCAL_ONLY` list (now `"tron.md"` only). Stale-removal logic no longer cleans `adv-researcher` from global.
+- **`deploy-local.sh`**: Removed `adv-researcher.md` from `REPO_LOCAL_ONLY` list (now `"tron.md"` only). Stale-removal logic no longer cleans `adv-researcher` from global.
 - **ADV_INSTRUCTIONS.md**: Agent tiers table split into "ADV Specialist (bundled global)" for `adv-researcher` and "Repo-Local Specialist" for `tron`.
 - **Command contracts** (`adv-design.md`, `adv-review.md`, `adv-task.md`): References to `adv-researcher` now frame it as "the independent validator agent" or "(independent validator)" rather than bare name.
 - **Project docs** (`README.md`, `SETUP.md`, `AGENTS.md`): Updated agent taxonomy descriptions to reflect `adv-researcher` as ADV-managed bundled global.
 - **`skills/adv-tron/SKILL.md`**: Agent comparison table now describes `adv-researcher` as "Independent design validator".
 - **`.opencode/agents/adv.md`**: Orchestrator gate table and sub-agent selection table updated with bundled global classification.
 - **`docs/adv-autonomy-compliance-matrix.md`**: Updated validator reference to capability-based framing.
-- **Asset tests**: 3 new assertions lock the taxonomy — `sync-global.test.ts` verifies `REPO_LOCAL_ONLY` excludes `adv-researcher`; `adv-autonomy-quality-assets.test.ts` verifies capability-based framing in `adv-design.md`; `adv-command-routing-assets.test.ts` verifies tier table classification in `ADV_INSTRUCTIONS.md`.
+- **Asset tests**: 3 new assertions lock the taxonomy — `deploy-local.test.ts` verifies `REPO_LOCAL_ONLY` excludes `adv-researcher`; `adv-autonomy-quality-assets.test.ts` verifies capability-based framing in `adv-design.md`; `adv-command-routing-assets.test.ts` verifies tier table classification in `ADV_INSTRUCTIONS.md`.
 
 ### Added
 
@@ -609,7 +609,7 @@ Tool count: 40 → 42 (`adv_investment_report` + `adv_change_reenter` — the la
 - **7-gate model**: ADV uses the correct gate names (proposal, discovery, design, planning, execution, acceptance, release) instead of the legacy 6-gate names.
 - **Temperature 0.2**: Lowered from Orca's 0.3 for more precise orchestration and inline work.
 - **Full Orca removal**: All Orca references removed from the Advance repo (docs, tests, scripts, overlays, instructions). The user's global `orca.md` is unaffected — Advance simply stops managing it.
-- **Updated overlay and sync infrastructure**: `adv.overlay.md` replaces `orca.overlay.md`; `sync-global.sh` syncs `adv.md` instead of applying an Orca overlay.
+- **Updated overlay and sync infrastructure**: `adv.overlay.md` replaces `orca.overlay.md`; `deploy-local.sh` syncs `adv.md` instead of applying an Orca overlay.
 
 ### Added
 
@@ -719,7 +719,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
   - `skills/adv-harden-methodology/SKILL.md`
   - `skills/adv-slop-detection/SKILL.md`
 - Updated `/adv-review`, `/adv-harden`, and `/adv-slop-scan` to load backing skills with inline fallback
-- Added asset tests covering bundled skills, command skill-loading, fallback text, and sync-global compatibility
+- Added asset tests covering bundled skills, command skill-loading, fallback text, and deploy-local compatibility
 - Updated `README.md` to describe the command + skill architecture and kept `SETUP.md` aligned with the new bundled skills
 
 ### Fixed
@@ -769,7 +769,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Skill provides criteria question templates, decision map format, and research protocol — loaded only when needed via `skill("prioritizer")`
 - Updated `orca.md`, `criteria-prioritizer.md`, `ADV_INSTRUCTIONS.md`, `README.md`, and `SETUP.md` to reference the skill instead of the sub-agent
 
-#### `sync-global.sh` — JSONC Config Support
+#### `deploy-local.sh` — JSONC Config Support
 
 - Config file resolution now matches OpenCode's own priority: `opencode.jsonc` > `opencode.json` > `config.json`
 - Added `jsonc_to_json` helper that strips `//` and `/* */` comments before passing to `jq`
@@ -779,7 +779,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 
 ### Fixed
 
-#### `sync-global.sh` — Repo-Local Agent Leak
+#### `deploy-local.sh` — Repo-Local Agent Leak
 
 - Fixed sync script unconditionally copying repo-local agents (`adv-researcher.md`, `tron.md`) to global config, undoing agent tiering
 - Added `REPO_LOCAL_ONLY` skip list to prevent repo-scoped agents from leaking into global
@@ -847,16 +847,16 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 - Anti-fabrication rule: the agent is explicitly instructed not to invent decisions or constraints that were not discussed
 - Updated spec `rq-advprop02` from 3 to 5 scenarios covering extraction, grounding, drift detection, persistence, and abort
 
-#### `scripts/sync-global.sh` — Config Validation and Patching
+#### `scripts/deploy-local.sh` — Config Validation and Patching
 
-- `sync-global.sh` now validates `~/.config/opencode/opencode.json` for required ADV entries (plugin path, instruction path)
+- `deploy-local.sh` now validates `~/.config/opencode/opencode.json` for required ADV entries (plugin path, instruction path)
 - Added `--check` flag: report config issues without changing any files
 - Added `--fix` flag: sync assets + auto-patch `opencode.json` to add missing ADV entries
 - Default mode (no flags): sync assets + report config issues
 - Config patching uses `jq` for safe JSON manipulation, backs up before patching, and is idempotent
 - Handles tilde-expanded paths (`~/...`) and absolute paths when checking for existing entries
 - Creates minimal `opencode.json` with ADV entries when the file does not exist
-- Added 25 regression tests in `plugin/src/sync-global.test.ts`
+- Added 25 regression tests in `plugin/src/deploy-local.test.ts`
 
 ### Added
 
@@ -864,7 +864,7 @@ Implemented all 13 identified context leak surfaces where ADV drops important co
 
 - Added `/adv-tron [target]` as a read-only reconnaissance command for broad repo scans and target-scoped investigation
 - Added hidden `tron` sub-agent definition at `.opencode/agents/tron.md` for local codebase mapping, hotspot detection, and risk surfacing
-- Added bundled skill `skills/adv-tron/SKILL.md` and extended `scripts/sync-global.sh` to sync ADV agents and skills into `~/.config/opencode/`
+- Added bundled skill `skills/adv-tron/SKILL.md` and extended `scripts/deploy-local.sh` to sync ADV agents and skills into `~/.config/opencode/`
 - Added focused regression coverage in `plugin/src/adv-tron-assets.test.ts` for command, agent, skill, and sync wiring
 
 #### `/adv-harden` — Merge Compatibility Check

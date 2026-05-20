@@ -1,6 +1,6 @@
 # Provider-ADV Smoke Checklist
 
-Run after `scripts/sync-global.sh --fix` and after any manual provider-agent config cleanup.
+Run after `scripts/deploy-local.sh --fix` and after any manual provider-agent config cleanup.
 
 ## Single ADV Runtime Agent
 
@@ -17,7 +17,7 @@ Run after `scripts/sync-global.sh --fix` and after any manual provider-agent con
 - [ ] `~/.config/opencode/agents/adv-glm.md` is absent
 - [ ] `~/.config/opencode/agents/adv-kimi.md` is absent
 - [ ] `opencode.json` does not contain `agent.adv-{provider}.prompt` keys written by ADV sync
-- [ ] `sync-global.sh --fix` removes stale generated provider files instead of recreating them
+- [ ] `deploy-local.sh --fix` removes stale generated provider files instead of recreating them
 
 ## Runtime Provider Hints
 
@@ -51,6 +51,6 @@ Run after `scripts/sync-global.sh --fix` and after any manual provider-agent con
 
 ## Drift Checks
 
-- [ ] `sync-global.sh --check` validates tool allowlist for canonical `adv.md`
-- [ ] `sync-global.sh --check` does not validate retired provider variant allowlists
-- [ ] `bash -n scripts/sync-global.sh` passes
+- [ ] `deploy-local.sh --check` validates tool allowlist for canonical `adv.md`
+- [ ] `deploy-local.sh --check` does not validate retired provider variant allowlists
+- [ ] `bash -n scripts/deploy-local.sh` passes
