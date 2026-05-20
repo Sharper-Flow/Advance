@@ -1,0 +1,399 @@
+{
+  "id": "removePhantomSubAgent",
+  "title": "Remove phantom sub-agent references and add adv-reviewer",
+  "status": "archived",
+  "created_at": "2026-05-20T15:23:27.044Z",
+  "tasks": [
+    {
+      "id": "tk-49cff0e7dfa1",
+      "title": "Write phantom-subagent-roster.test.ts (RED)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-20T18:44:17.189Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T18:59:45.808Z",
+      "verification": "RED-as-expected. Test file created at plugin/src/phantom-subagent-roster.test.ts. 7/9 active surfaces flagged with phantom routing findings; 2 surfaces (likely ADV_INSTRUCTIONS.md and adv-prep.md) already clean. Test infrastructure validated: targeted regex patterns catch agent-table-row, subagent_type-arg, spawn-prose, delegate-prose, numbered-bold-agent, slash-routing variants. C* tasks (tk-18a85aacbca2 through tk-51335ae2777e) will progressively turn each surface green.",
+      "summary": "Created plugin/src/phantom-subagent-roster.test.ts following plugin/src/scope-discovery-assets.test.ts pattern. PHANTOMS=[librarian, mechanic, prioritizer]. Six pattern families per phantom (agent-table-row, subagent_type-arg, spawn-prose, delegate-prose, numbered-bold-agent, slash-routing) scan 9 ACTIVE_SURFACES. Skill(\"prioritizer\") inline calls are not flagged (regex requires backtick-bounded standalone, not inside skill() call). Findings reporter shows file:line with phantom name and pattern kind. Verified RED.",
+      "implementation_summary": "Created plugin/src/phantom-subagent-roster.test.ts following plugin/src/scope-discovery-assets.test.ts pattern. PHANTOMS=[librarian, mechanic, prioritizer]. Six pattern families per phantom (agent-table-row, subagent_type-arg, spawn-prose, delegate-prose, numbered-bold-agent, slash-routing) scan 9 ACTIVE_SURFACES. Skill(\"prioritizer\") inline calls are not flagged (regex requires backtick-bounded standalone, not inside skill() call). Findings reporter shows file:line with phantom name and pattern kind. Verified RED.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:02:43.339Z",
+      "completed_at": "2026-05-20T19:02:43.339Z"
+    },
+    {
+      "id": "tk-a4474546c194",
+      "title": "Write deploy-local-exclusion.test.ts",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-20T18:44:24.371Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:02:51.815Z",
+      "verification": "GREEN-from-start. 6/6 tests pass: REPO_LOCAL_ONLY contains adv-tron.md (sanity), excludes adv-reviewer/adv-engineer/adv-researcher; SHARED_OVERLAY_ONLY contains build/general/plan, excludes adv-reviewer. Test uses bash-variable regex extractor for stable list parsing.",
+      "summary": "Created plugin/src/deploy-local-exclusion.test.ts. extractList() regex pulls the literal value of REPO_LOCAL_ONLY=\"...\" and SHARED_OVERLAY_ONLY=\"...\" assignments from deploy-local.sh. Six tests: script readable, REPO_LOCAL_ONLY membership (adv-tron in, adv-reviewer/engineer/researcher out), SHARED_OVERLAY_ONLY membership (build/general/plan in, adv-reviewer out). Test executes in ~146ms.",
+      "implementation_summary": "Created plugin/src/deploy-local-exclusion.test.ts. extractList() regex pulls the literal value of REPO_LOCAL_ONLY=\"...\" and SHARED_OVERLAY_ONLY=\"...\" assignments from deploy-local.sh. Six tests: script readable, REPO_LOCAL_ONLY membership (adv-tron in, adv-reviewer/engineer/researcher out), SHARED_OVERLAY_ONLY membership (build/general/plan in, adv-reviewer out). Test executes in ~146ms.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:03:54.323Z",
+      "completed_at": "2026-05-20T19:03:54.323Z"
+    },
+    {
+      "id": "tk-629de272feeb",
+      "title": "Create adv-reviewer agent + asset test (inline TDD)",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-20T18:44:53.496Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:04:05.886Z",
+      "verification": "Inline TDD complete. RED: 73 failures (file missing). GREEN: 73/73 pass after creating agent + minor wording fixes (3 iterations to add END_REVIEWER_REPORT sentinel, \"no nested delegation\" phrase, \"no ADV orchestration mutations\" phrase). Agent body is 412 lines covering all sections from design Decision 1/3/3a.",
+      "summary": "Created plugin/src/adv-reviewer-asset.test.ts (73 assertions across 5 describe blocks: existence/frontmatter/tool-allowlist-required/tool-allowlist-blocked/body-anchors + 4 inline tests). Created .opencode/agents/adv-reviewer.md mirroring adv-engineer.md tool boundary with deltas per design Decision 1: repo writes + ADV reads/evidence/wisdom; task=false; all change/task/gate/agenda/worktree mutators=false. Body sections: role intro + hard prohibitions, MCP tool name contract, phase-aware operating modes (prep/review/harden), scope lock, working directory lock, iteration loop, prune-first heuristic, related issue scanning (P25), scope drift detection (stop_and_report contract per Decision 3a, citing docs/scope-discovery-protocol.md), local code exploration priority, editing tool priority, ADV state access policy, exit protocol, REVIEWER_REPORT payload schema (with REVIEWER_REPORT:/END_REVIEWER_REPORT sentinels) + rules + two examples (prep READY, review CONFLICT).",
+      "implementation_summary": "Created plugin/src/adv-reviewer-asset.test.ts (73 assertions across 5 describe blocks: existence/frontmatter/tool-allowlist-required/tool-allowlist-blocked/body-anchors + 4 inline tests). Created .opencode/agents/adv-reviewer.md mirroring adv-engineer.md tool boundary with deltas per design Decision 1: repo writes + ADV reads/evidence/wisdom; task=false; all change/task/gate/agenda/worktree mutators=false. Body sections: role intro + hard prohibitions, MCP tool name contract, phase-aware operating modes (prep/review/harden), scope lock, working directory lock, iteration loop, prune-first heuristic, related issue scanning (P25), scope drift detection (stop_and_report contract per Decision 3a, citing docs/scope-discovery-protocol.md), local code exploration priority, editing tool priority, ADV state access policy, exit protocol, REVIEWER_REPORT payload schema (with REVIEWER_REPORT:/END_REVIEWER_REPORT sentinels) + rules + two examples (prep READY, review CONFLICT).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:08:02.604Z",
+      "completed_at": "2026-05-20T19:08:02.604Z"
+    },
+    {
+      "id": "tk-18a85aacbca2",
+      "title": "Update .opencode/agents/adv.md — Sub-Agent Policy + Failure Handling tables",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-20T18:45:07.168Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:08:34.034Z",
+      "verification": "adv.md cleanup complete. Sub-Agent Policy table now lists: explore, adv-engineer, adv-reviewer (NEW), adv-researcher (expanded role: docs/API/examples + architecture validation), general, adv-tron. Failure Handling MCP/tool failure routes inline now. Skill alternatives line (skill(\"prioritizer\"), skill(\"adv-user-intuit\")) preserved unchanged.",
+      "summary": "Two targeted edits to .opencode/agents/adv.md: (1) Sub-Agent Policy table — removed librarian/mechanic/prioritizer rows; added adv-reviewer row between adv-engineer and adv-researcher; expanded adv-researcher's \"Spawn When\" to cover docs/API/examples + architecture; tagged adv-tron as repo-local; (2) Failure Handling table — MCP/tool failure action changed from \"Spawn `mechanic` with error + context\" to \"Inline diagnose; surface to user via `question` when context-bound\". phantom-subagent-roster.test.ts confirms adv.md surface green.",
+      "implementation_summary": "Two targeted edits to .opencode/agents/adv.md: (1) Sub-Agent Policy table — removed librarian/mechanic/prioritizer rows; added adv-reviewer row between adv-engineer and adv-researcher; expanded adv-researcher's \"Spawn When\" to cover docs/API/examples + architecture; tagged adv-tron as repo-local; (2) Failure Handling table — MCP/tool failure action changed from \"Spawn `mechanic` with error + context\" to \"Inline diagnose; surface to user via `question` when context-bound\". phantom-subagent-roster.test.ts confirms adv.md surface green.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:09:13.300Z",
+      "completed_at": "2026-05-20T19:09:13.300Z"
+    },
+    {
+      "id": "tk-68105476e8b5",
+      "title": "Update .opencode/agents/plan.md — subagent + Web Research tables",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-20T18:45:13.951Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:09:37.143Z",
+      "verification": "plan.md cleanup complete. All librarian references replaced with adv-researcher. No mechanic or prioritizer references existed in plan.md.",
+      "summary": "Five targeted edits to .opencode/agents/plan.md: (1) Web Research Tools table Web search + Find library docs rows; (2) Playwright Restriction final clause; (3) \"When to use subagents\" table — 3 rows for Find documentation/Find examples/Research a library; (4) Investigation Mode due-diligence paragraph (line 107); (5) Semantics note (line 114); (6) Planning workflow due-diligence paragraph (line 127). All \"librarian\" → \"adv-researcher\" with column-width preservation.",
+      "implementation_summary": "Five targeted edits to .opencode/agents/plan.md: (1) Web Research Tools table Web search + Find library docs rows; (2) Playwright Restriction final clause; (3) \"When to use subagents\" table — 3 rows for Find documentation/Find examples/Research a library; (4) Investigation Mode due-diligence paragraph (line 107); (5) Semantics note (line 114); (6) Planning workflow due-diligence paragraph (line 127). All \"librarian\" → \"adv-researcher\" with column-width preservation.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:10:53.493Z",
+      "completed_at": "2026-05-20T19:10:53.493Z"
+    },
+    {
+      "id": "tk-f65e886f4e5d",
+      "title": "Update .opencode/command/adv-research.md — librarian flow → adv-researcher",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-20T18:45:22.976Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:11:53.934Z",
+      "verification": "adv-research.md cleanup complete + P23 campsite scope fix to adv-task.md. The campsite scope was needed because adv-task.md was in the design's ACTIVE_SURFACES list but missed during task synthesis at prep. Per P23 (adjacent, clear, safe, focused) and per agreement DONT3 (structural test enforcement), the fix was applied here rather than re-entering planning gate for one missed task. Surface tests confirm both .opencode/command/adv-research.md and .opencode/command/adv-task.md green.",
+      "summary": "Two files edited. (1) .opencode/command/adv-research.md: collapsed two-agent (librarian+adv-researcher) orchestrator into single adv-researcher flow; removed Librarian Prompt block (lines 148-171); updated No-Nested-Delegation rules to single agent; updated Orchestrator Pattern prose; removed \"Librarian fails\" row from Fallback Handling table. (2) .opencode/command/adv-task.md (P23 campsite): Spawn Research Sub-Agents table — all 3 Target Type rows route to adv-researcher; updated section heading \"Sub-Agents\" → \"Sub-Agent\" (singular); Key Tools Research row uses adv-researcher only. Both surfaces green per phantom-subagent-roster.test.ts.",
+      "implementation_summary": "Two files edited. (1) .opencode/command/adv-research.md: collapsed two-agent (librarian+adv-researcher) orchestrator into single adv-researcher flow; removed Librarian Prompt block (lines 148-171); updated No-Nested-Delegation rules to single agent; updated Orchestrator Pattern prose; removed \"Librarian fails\" row from Fallback Handling table. (2) .opencode/command/adv-task.md (P23 campsite): Spawn Research Sub-Agents table — all 3 Target Type rows route to adv-researcher; updated section heading \"Sub-Agents\" → \"Sub-Agent\" (singular); Key Tools Research row uses adv-researcher only. Both surfaces green per phantom-subagent-roster.test.ts.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:12:43.217Z",
+      "completed_at": "2026-05-20T19:12:43.217Z"
+    },
+    {
+      "id": "tk-1efd8d6f3063",
+      "title": "Update .opencode/command/adv-review.md — route fixes to adv-reviewer where appropriate",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-20T18:45:36.330Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:12:53.702Z",
+      "verification": "adv-review.md cleanup complete. Phase 5 remediation distinguishes scoped review fixes (adv-reviewer with REVIEWER_REPORT) from primary implementation fixes (adv-engineer with ENGINEER_REPORT). Independent validator references updated to adv-researcher.",
+      "summary": "Three edits to .opencode/command/adv-review.md: (1) Phase 5 step 1 — split fix delegation into two routes: adv-reviewer for scoped (single file / local subsystem / no architectural risk), adv-engineer for primary implementation (multi-file / architectural / risky); research route uses adv-researcher; (2) Fix Validation Protocol table — \"spawn librarian/independent validator\" → \"spawn adv-researcher (independent validator)\"; (3) Key Tools table — Spawn research row uses adv-researcher only; added new \"Spawn review remediation\" row routing to adv-reviewer or adv-engineer.",
+      "implementation_summary": "Three edits to .opencode/command/adv-review.md: (1) Phase 5 step 1 — split fix delegation into two routes: adv-reviewer for scoped (single file / local subsystem / no architectural risk), adv-engineer for primary implementation (multi-file / architectural / risky); research route uses adv-researcher; (2) Fix Validation Protocol table — \"spawn librarian/independent validator\" → \"spawn adv-researcher (independent validator)\"; (3) Key Tools table — Spawn research row uses adv-researcher only; added new \"Spawn review remediation\" row routing to adv-reviewer or adv-engineer.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:13:22.857Z",
+      "completed_at": "2026-05-20T19:13:22.857Z"
+    },
+    {
+      "id": "tk-b09e8ecbe164",
+      "title": "Update .opencode/command/adv-harden.md — remediation routing note",
+      "type": "code",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-20T18:45:43.813Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:13:31.750Z",
+      "verification": "adv-harden.md remediation routing note added in Phase 3 after Anti-pattern block. New \"Sub-Agent Routing for Fixes\" table distinguishes adv-reviewer (scoped review-style fixes) from adv-engineer (primary/multi-file). Phase 1 6-scanner spawns to explore unchanged (those are scoped read-only scans, not remediation).",
+      "summary": "One edit to .opencode/command/adv-harden.md Phase 3: inserted \"Sub-Agent Routing for Fixes\" table + brief preamble between \"Anti-pattern\" block and \"If fixing → CONTRACT ACTIVE banner\" line. Two-row routing table (scoped review-style → adv-reviewer; multi-file/architectural → adv-engineer) plus note that both honor drift detection and stop_and_report. Test confirms surface still clean (no phantom routing in adv-harden.md before or after edit).",
+      "implementation_summary": "One edit to .opencode/command/adv-harden.md Phase 3: inserted \"Sub-Agent Routing for Fixes\" table + brief preamble between \"Anti-pattern\" block and \"If fixing → CONTRACT ACTIVE banner\" line. Two-row routing table (scoped review-style → adv-reviewer; multi-file/architectural → adv-engineer) plus note that both honor drift detection and stop_and_report. Test confirms surface still clean (no phantom routing in adv-harden.md before or after edit).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:14:04.214Z",
+      "completed_at": "2026-05-20T19:14:04.214Z"
+    },
+    {
+      "id": "tk-bd92de500a73",
+      "title": "Update .opencode/command/adv-prep.md — optional adv-reviewer pre-flight advisory",
+      "type": "code",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-20T18:45:53.812Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:14:13.644Z",
+      "verification": "adv-prep.md advisory added per design Decision 5. Explicit MAY (not MUST), explicit retention of sole task-creator authority, explicit CONFLICT/scope_drift handling routing to scope-discovery-protocol.md. No phantom routing was present in adv-prep.md before or after.",
+      "summary": "Inserted new \"Optional: adv-reviewer Pre-Flight (advisory)\" subsection in .opencode/command/adv-prep.md Phase 1 after Doctor-Lite line and before Phase 2 separator. Three paragraphs: (1) when to spawn (large cross-cutting / codebase impact / cross-spec scans), reviewer returns REVIEWER_REPORT, prep ingests as findings; (2) explicit prep authority retention citing rq-prep-out1 — adv_task_add, task sequencing, contract refs, adv_gate_complete remain prep's; reviewer surfaces findings only, no orchestration mutations; CONFLICT/scope_drift → scope-discovery-protocol.md; (3) optional, not default.",
+      "implementation_summary": "Inserted new \"Optional: adv-reviewer Pre-Flight (advisory)\" subsection in .opencode/command/adv-prep.md Phase 1 after Doctor-Lite line and before Phase 2 separator. Three paragraphs: (1) when to spawn (large cross-cutting / codebase impact / cross-spec scans), reviewer returns REVIEWER_REPORT, prep ingests as findings; (2) explicit prep authority retention citing rq-prep-out1 — adv_task_add, task sequencing, contract refs, adv_gate_complete remain prep's; reviewer surfaces findings only, no orchestration mutations; CONFLICT/scope_drift → scope-discovery-protocol.md; (3) optional, not default.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:14:40.323Z",
+      "completed_at": "2026-05-20T19:14:40.323Z"
+    },
+    {
+      "id": "tk-4eaaf8fd5df1",
+      "title": "Update ADV_INSTRUCTIONS.md — sub-agent classification + remove phantom references",
+      "type": "code",
+      "status": "done",
+      "priority": 9,
+      "created_at": "2026-05-20T18:46:05.845Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:14:50.591Z",
+      "verification": "ADV_INSTRUCTIONS.md cleanup complete. Three edits: (1) Tradeoff Prioritizer Protocol — clarified prioritizer is a skill/inline protocol, not spawnable; (2) Sub-Agent Orchestration table — removed librarian; split review/harden row from audit/slop-scan/refactor; added adv-reviewer and adv-engineer routes; (3) Agent Tiers + Agent Roster tables — removed librarian/mechanic/prioritizer from Common subagents; added adv-reviewer to ADV specialists; added new Skill/inline tier; rewrote Agent Roster to enumerate adv-researcher/adv-engineer/adv-reviewer with clear roles; updated sync mechanism reference from sync-global.sh to deploy-local.sh.",
+      "summary": "Three targeted edits to ADV_INSTRUCTIONS.md: (1) lines ~298-306 Tradeoff Prioritizer Protocol — kept skill/inline distinction explicit, no spawn; (2) lines ~700-705 Sub-Agent Orchestration table — research/task row uses adv-researcher only; split review/harden row from audit/slop-scan to add adv-reviewer and adv-engineer routing; (3) lines ~761-782 Agent Tiers + Agent Roster — Common subagents reduced to explore+general; ADV specialists expanded to add adv-reviewer; added Skill/inline tier; rewrote Agent Roster with clear per-agent roles; sync mechanism reference corrected from sync-global.sh to deploy-local.sh (the actual current script). Test confirms surface green; 9 of 10 active surfaces now pass.",
+      "implementation_summary": "Three targeted edits to ADV_INSTRUCTIONS.md: (1) lines ~298-306 Tradeoff Prioritizer Protocol — kept skill/inline distinction explicit, no spawn; (2) lines ~700-705 Sub-Agent Orchestration table — research/task row uses adv-researcher only; split review/harden row from audit/slop-scan to add adv-reviewer and adv-engineer routing; (3) lines ~761-782 Agent Tiers + Agent Roster — Common subagents reduced to explore+general; ADV specialists expanded to add adv-reviewer; added Skill/inline tier; rewrote Agent Roster with clear per-agent roles; sync mechanism reference corrected from sync-global.sh to deploy-local.sh (the actual current script). Test confirms surface green; 9 of 10 active surfaces now pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:16:24.884Z",
+      "completed_at": "2026-05-20T19:16:24.884Z"
+    },
+    {
+      "id": "tk-51335ae2777e",
+      "title": "Update SETUP.md — agent table rewrite",
+      "type": "code",
+      "status": "done",
+      "priority": 10,
+      "created_at": "2026-05-20T18:46:14.460Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:16:43.917Z",
+      "verification": "SETUP.md agent table rewrite complete. Smoke test prerequisite reference updated. Line 1231 (skill(\"prioritizer\") inline note) preserved unchanged — that's legitimate skill guidance, not phantom routing. Line 1213 (/adv-review <id>) preserved — that's command listing, not agent routing.",
+      "summary": "Two edits to SETUP.md: (1) lines 279-286 Agent table — replaced 5-row roster (explore, librarian, mechanic, general, adv-engineer) with 5-row corrected roster (explore, adv-researcher with expanded scope including architecture validation, general, adv-engineer, adv-reviewer NEW). Column widths recalculated for readability. (2) line 317 smoke test prerequisite — \"contains explore and librarian at minimum\" → \"contains explore at minimum (plus adv-researcher, adv-engineer, adv-reviewer after deploy-local.sh --fix)\". All 10 phantom-subagent-roster tests now pass.",
+      "implementation_summary": "Two edits to SETUP.md: (1) lines 279-286 Agent table — replaced 5-row roster (explore, librarian, mechanic, general, adv-engineer) with 5-row corrected roster (explore, adv-researcher with expanded scope including architecture validation, general, adv-engineer, adv-reviewer NEW). Column widths recalculated for readability. (2) line 317 smoke test prerequisite — \"contains explore and librarian at minimum\" → \"contains explore at minimum (plus adv-researcher, adv-engineer, adv-reviewer after deploy-local.sh --fix)\". All 10 phantom-subagent-roster tests now pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:17:18.604Z",
+      "completed_at": "2026-05-20T19:17:18.604Z"
+    },
+    {
+      "id": "tk-80877e424fe3",
+      "title": "Run full test suite + pnpm run check (final GREEN)",
+      "type": "code",
+      "status": "done",
+      "priority": 11,
+      "created_at": "2026-05-20T18:46:28.692Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-49cff0e7dfa1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a4474546c194"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-629de272feeb"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-18a85aacbca2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-68105476e8b5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f65e886f4e5d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1efd8d6f3063"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b09e8ecbe164"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bd92de500a73"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4eaaf8fd5df1"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-51335ae2777e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:17:28.936Z",
+      "verification": "Full suite GREEN. 2 minor regressions caught + fixed during verification (adv-slop-scan-assets expectations preserved; eslint no-useless-escape resolved). 3 new test files formatted via prettier. No regressions in existing 2300+ tests.",
+      "summary": "Verification run: pnpm test → 2423 passed, 2 skipped (204 test files), 19.14s. pnpm run check → clean (typecheck + test-isolation + lockfile-policy + lint + format:check). Two fixes applied: (1) ADV_INSTRUCTIONS.md line 704 reverted explore from backticked to plain to preserve adv-slop-scan-assets.test.ts regex expectation; (2) plugin/src/deploy-local-exclusion.test.ts regex pattern — replaced \\\" with \" inside template literal to resolve no-useless-escape lint errors. pnpm run format applied prettier to three new files (adv-reviewer-asset.test.ts, deploy-local-exclusion.test.ts, phantom-subagent-roster.test.ts) with no other changes.",
+      "implementation_summary": "Verification run: pnpm test → 2423 passed, 2 skipped (204 test files), 19.14s. pnpm run check → clean (typecheck + test-isolation + lockfile-policy + lint + format:check). Two fixes applied: (1) ADV_INSTRUCTIONS.md line 704 reverted explore from backticked to plain to preserve adv-slop-scan-assets.test.ts regex expectation; (2) plugin/src/deploy-local-exclusion.test.ts regex pattern — replaced \\\" with \" inside template literal to resolve no-useless-escape lint errors. pnpm run format applied prettier to three new files (adv-reviewer-asset.test.ts, deploy-local-exclusion.test.ts, phantom-subagent-roster.test.ts) with no other changes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:20:08.242Z",
+      "completed_at": "2026-05-20T19:20:08.242Z"
+    },
+    {
+      "id": "tk-541eb17d8ce1",
+      "title": "Run deploy-local.sh + document OpenCode restart",
+      "type": "code",
+      "status": "done",
+      "priority": 12,
+      "created_at": "2026-05-20T18:46:42.411Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-80877e424fe3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-20T19:20:28.927Z",
+      "verification": "Deploy verified end-to-end. scripts/deploy-local.sh --fix copied 5 agents (adv-atc, adv-engineer, adv-researcher, adv-reviewer, adv) to global. adv-tron.md correctly stayed repo-local. Global agents count 6→7 confirms adv-reviewer.md is the new addition. Restart requirement recorded as convention wisdom for archive/release ingestion. Pre-existing user-config plugin-path warning is unrelated to this change.",
+      "summary": "Three steps: (1) ./scripts/deploy-local.sh --dry-run --diff confirmed adv-reviewer.md in copy list, adv-tron.md skipped (repo-local), overlay agents preserved; (2) ./scripts/deploy-local.sh --fix executed real deploy — Agents in global: 6→7, adv-reviewer.md present at ~/.config/opencode/agents/adv-reviewer.md (19437 bytes, 409 lines); (3) adv_wisdom_add type=convention recorded the OpenCode restart requirement for /adv-archive Phase ingestion into CHANGELOG/release notes. Pre-existing config validation warning about plugin path is user-local config drift unrelated to this change.",
+      "implementation_summary": "Three steps: (1) ./scripts/deploy-local.sh --dry-run --diff confirmed adv-reviewer.md in copy list, adv-tron.md skipped (repo-local), overlay agents preserved; (2) ./scripts/deploy-local.sh --fix executed real deploy — Agents in global: 6→7, adv-reviewer.md present at ~/.config/opencode/agents/adv-reviewer.md (19437 bytes, 409 lines); (3) adv_wisdom_add type=convention recorded the OpenCode restart requirement for /adv-archive Phase ingestion into CHANGELOG/release notes. Pre-existing config validation warning about plugin path is user-local config drift unrelated to this change.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-20T19:21:08.556Z",
+      "completed_at": "2026-05-20T19:21:08.556Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-LXSg0_",
+      "type": "convention",
+      "content": "OpenCode restart required after agent asset deploy. Adding or modifying `.opencode/agents/*.md` files takes effect only after `scripts/deploy-local.sh --fix` copies them to `~/.config/opencode/agents/` AND OpenCode session(s) are restarted. Agent loading is config-time only; running sessions continue using cached agent list until restart. CHANGELOG and release notes for changes that ship new bundled-global agents MUST include explicit \"Restart OpenCode\" instruction. Verified for removePhantomSubAgent: `adv-reviewer.md` deployed to global (7 agents total, +1) but unusable in running sessions until restart.",
+      "source_task": "tk-541eb17d8ce1",
+      "recorded_at": "2026-05-20T19:20:59.969Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T15:37:51.034Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: \"approve\". Proposal includes problem statement, success criteria, scope, constraints, and discovery agenda."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-20T17:53:34.866Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. All 8 protocol steps passed. Agreement with typed contract (11 AC, 5 C, 4 DONT, 3 OOS, 11 SC) persisted. No CRITICAL/HIGH ambiguity findings. All clarification findings resolved. AC approved by user at Phase 4.5.1."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:10:32.014Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Architecture: phantom-routing cleanup + adv-reviewer introduction. Validator verdict: CAUTION → both clarifications addressed inline (Decision 1a: rationale for separate agent; Decision 3a: scope-discovery escalation contract). No structural design changes required. No user-value tradeoffs; no contract-compromise risk. Auto-continuing to /adv-prep."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:59:00.147Z",
+      "completed_by": "agent",
+      "approval_evidence": "Planning complete. 13 tasks synthesized from design: 3 asset tests + 1 new agent (inline TDD) + 8 doc/asset edits + 2 verification/deploy tasks. Strict validation passed with only NO_DELTAS warning (accepted: asset-test enforcement substitutes for spec.json deltas per design Decision 4). User approved via inline Tier A reply: \"approve\". Auto-continuing to /adv-apply."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-20T19:21:22.033Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 13 tasks done. 3 new asset tests (phantom-roster, adv-reviewer, deploy-exclusion) pass. New adv-reviewer.md agent created, deployed via scripts/deploy-local.sh --fix (global agents 6→7). 8 doc surfaces cleaned of phantom routing + 1 P23 campsite scope (adv-task.md). Full plugin test suite green (2423 passed, 2 skipped). pnpm run check clean (typecheck + lint + format). OpenCode restart requirement recorded as convention wisdom for archive ingestion."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-20T19:30:30.494Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via inline Tier A reply: \"accept\". All 11 AC verified: AC1 (phantom routing eliminated, 9 surfaces clean), AC2 (research → adv-researcher), AC3 (prioritizer skill-only), AC4 (adv-reviewer with correct tool boundary), AC5 (REVIEWER_REPORT schema), AC6 (scope_drift/stop_and_report contract), AC7 (prep/review/harden routing), AC8 (asset tests catch drift), AC9 (deploy/sync coverage), AC10 (tests + deploy-local.sh --fix clean), AC11 (restart requirement recorded as wisdom). Full suite green (2423 passed). Proceeding to /adv-harden inline."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-20T19:32:33.727Z",
+      "completed_by": "agent",
+      "approval_evidence": "Harden complete. 6-dimension review: (1) Test coverage — 3 new asset tests, 89 assertions, 2423 total green; (2) AI-slop — no TODO/FIXME/HACK markers, no debug logs, no stubs in 4 new files; (3) Doc hygiene — 9 markdown surfaces preserve formatting/voice/column widths; (4) Cleanup — no leftover artifacts; (5) Production readiness — adv-reviewer tool boundary enforced by asset test, scope drift contract documented + example, mirrors proven adv-engineer pattern; (6) Deployment readiness — scripts/deploy-local.sh --fix verified, global agents 6→7, restart requirement recorded as convention wisdom. Diffstat: 13 files / +1016 / -100 — matches design's affected components list exactly."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-20T15:50:29.363Z",
+      "resolved": true,
+      "resolved_at": "2026-05-20T17:03:39.964Z"
+    }
+  ]
+}

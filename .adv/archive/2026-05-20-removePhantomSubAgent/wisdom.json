@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-LXSg0_",
+      "type": "convention",
+      "content": "OpenCode restart required after agent asset deploy. Adding or modifying `.opencode/agents/*.md` files takes effect only after `scripts/deploy-local.sh --fix` copies them to `~/.config/opencode/agents/` AND OpenCode session(s) are restarted. Agent loading is config-time only; running sessions continue using cached agent list until restart. CHANGELOG and release notes for changes that ship new bundled-global agents MUST include explicit \"Restart OpenCode\" instruction. Verified for removePhantomSubAgent: `adv-reviewer.md` deployed to global (7 agents total, +1) but unusable in running sessions until restart.",
+      "source_task": "tk-541eb17d8ce1",
+      "recorded_at": "2026-05-20T19:20:59.969Z"
+    }
+  ],
+  "count": 1
+}
