@@ -1306,14 +1306,30 @@
     {
       "id": "rq-twf01",
       "title": "Trunk Write Firewall",
-      "body": "The plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. The firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
+      "body": "When feature_flags.worktree_guard_enforce is true, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When feature_flags.worktree_guard_enforce is omitted or false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout. In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
       "priority": "must",
       "tags": ["git", "worktree", "firewall", "trunk", "safety"],
       "scenarios": [
         {
           "id": "rq-twf01.1",
-          "title": "Trunk file write blocked on default branch",
+          "title": "Flag-off trunk file writes allowed on default branch",
           "given": [
+            "feature_flags.worktree_guard_enforce is omitted or false",
+            "A tool call targets a path inside the trunk checkout",
+            "HEAD is on the default branch",
+            "No git recovery state is active"
+          ],
+          "when": "A write, edit, morph_edit, or known destructive bash write pattern is intercepted",
+          "then": [
+            "The tool execution is allowed by the trunk write firewall",
+            "No trunk write firewall blocking error is thrown"
+          ]
+        },
+        {
+          "id": "rq-twf01.1a",
+          "title": "Strict trunk file write blocked on default branch",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
             "A tool call targets a path inside the trunk checkout",
             "HEAD is on the default branch",
             "No git recovery state is active"
@@ -1327,8 +1343,11 @@
         },
         {
           "id": "rq-twf01.2",
-          "title": "Worktree file write allowed",
-          "given": ["A tool call targets a path inside an active ADV worktree"],
+          "title": "Strict worktree file write allowed",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
+            "A tool call targets a path inside an active ADV worktree"
+          ],
           "when": "A write, edit, morph_edit, or known destructive bash write pattern is intercepted",
           "then": [
             "The tool execution is allowed",
@@ -1337,8 +1356,9 @@
         },
         {
           "id": "rq-twf01.3",
-          "title": "Git recovery states allow trunk edits",
+          "title": "Strict git recovery states allow trunk edits",
           "given": [
+            "feature_flags.worktree_guard_enforce is true",
             "The trunk checkout is on the default branch",
             "A merge, rebase, cherry-pick, or revert recovery state is active"
           ],
@@ -1350,8 +1370,9 @@
         },
         {
           "id": "rq-twf01.4",
-          "title": "Known destructive bash writes blocked on trunk",
+          "title": "Strict known destructive bash writes blocked on trunk",
           "given": [
+            "feature_flags.worktree_guard_enforce is true",
             "A bash command writes to a trunk-checkout path on the default branch via redirect, tee, sed -i, cp, mv, or rm",
             "No git recovery state is active"
           ],
