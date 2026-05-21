@@ -1,3 +1,21 @@
+## 2026-05-21 (v0.9.2)
+
+### Fixed
+
+- enforce guard in project config
+- use target cwd for guarded mutations
+- wire auto-managed resume deps
+- route mode:warp session lookup through SDK client
+### Changed
+
+- capture scan prep notes (chore)
+
+### Change Highlights
+
+- **05-21-addDelegationDefaults2**: Executive Summary
+- **05-21-fixWarpSessionLookup**: Executive Summary
+- **05-21-rebuildPluginDistDeploy**: Executive Summary — rebuildPluginDistDeploy
+
 ## 2026-05-21 (v0.9.1)
 
 ### Fixed
