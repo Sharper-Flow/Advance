@@ -106,6 +106,67 @@ describe("gate readiness", () => {
     );
   });
 
+  it("blocks discovery completion when agreement exists but contract is missing", () => {
+    const gates = createDefaultGates();
+    gates.proposal.status = "done";
+
+    const result = evaluateGateReadiness(
+      makeState({
+        gates,
+        projectionChangesDir: "/tmp/changes",
+        documents: { agreement: "# Agreement\n\n## Acceptance Criteria\n- AC1: Works" },
+      }),
+      "discovery",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "DISCOVERY_CONTRACT_MISSING",
+        gateId: "discovery",
+        artifactKind: "agreement",
+      }),
+    );
+  });
+
+  it("allows discovery completion before agreement exists", () => {
+    const gates = createDefaultGates();
+    gates.proposal.status = "done";
+
+    const result = evaluateGateReadiness(
+      makeState({ gates, projectionChangesDir: "/tmp/changes" }),
+      "discovery",
+    );
+
+    expect(result.ready).toBe(true);
+  });
+
+  it("allows discovery completion when agreement and contract exist", () => {
+    const gates = createDefaultGates();
+    gates.proposal.status = "done";
+
+    const result = evaluateGateReadiness(
+      makeState({
+        gates,
+        projectionChangesDir: "/tmp/changes",
+        documents: { agreement: "# Agreement" },
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-05-20T00:00:00.000Z",
+          },
+          items: [],
+          amendments: [],
+        },
+      }),
+      "discovery",
+    );
+
+    expect(result.ready).toBe(true);
+  });
+
   it("reports missing acceptance review matrix rows", () => {
     const gates = createDefaultGates();
     gates.proposal.status = "done";

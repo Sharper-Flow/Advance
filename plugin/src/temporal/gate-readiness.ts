@@ -86,6 +86,30 @@ function artifactStoreBlocker(
   });
 }
 
+function agreementExists(state: ChangeWorkflowState): boolean {
+  if (state.documents?.agreement?.trim()) return true;
+  return Boolean(state.artifacts.agreement ?? state.artifacts.discovery);
+}
+
+function discoveryContractBlockers(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "discovery") return [];
+  if (!agreementExists(state) || state.contract) return [];
+  return [
+    makeBlocker({
+      code: "DISCOVERY_CONTRACT_MISSING",
+      gateId,
+      artifactKind: "agreement",
+      message:
+        "Discovery requires typed contract proof once agreement is approved.",
+      remediation:
+        "Run adv_contract_mint for this change before completing discovery.",
+    }),
+  ];
+}
+
 function acceptanceContractBlockers(
   state: ChangeWorkflowState,
   gateId: GateId,
@@ -202,6 +226,10 @@ export function evaluateGateReadiness(
     } else {
       blockers.push(artifactStoreBlocker(gateId, artifactKind));
     }
+  }
+
+  if (gateId === "discovery") {
+    blockers.push(...discoveryContractBlockers(state, gateId));
   }
 
   if (artifactKind === "acceptance") {
