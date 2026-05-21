@@ -74,6 +74,23 @@ describe("buildContractFromAgreement", () => {
     expect(contract.items.map((item) => item.id)).toEqual(["AC1", "AC2", "C1"]);
   });
 
+  test("does not promote unrecognized visible labels to contract ids", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- REQ1: Uses a non-contract label and should receive an AC fallback id.
+- AC3: Uses a recognized contract label.
+- Another unlabeled acceptance criterion.
+`,
+      approvedAt,
+    });
+
+    expect(contract.items.map((item) => [item.id, item.kind])).toEqual([
+      ["AC1", "acceptance_criterion"],
+      ["AC3", "acceptance_criterion"],
+      ["AC4", "acceptance_criterion"],
+    ]);
+  });
+
   test("rejects agreements with no contract items", () => {
     expect(() =>
       buildContractFromAgreement({

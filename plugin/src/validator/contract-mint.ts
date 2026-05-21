@@ -149,12 +149,16 @@ export function buildContractFromAgreement(
 
     const parsed = parseObligationLine(line);
     if (!parsed) continue;
-    const mapping = parsed.label
-      ? (mappingForLabel(parsed.label) ?? currentMapping)
-      : currentMapping;
+    const labelMapping = parsed.label
+      ? mappingForLabel(parsed.label)
+      : undefined;
+    const mapping = labelMapping ?? currentMapping;
     if (!mapping) continue;
-    const id = parsed.label ?? nextFallbackId(fallbackCounts, mapping);
-    if (parsed.label) {
+    const id =
+      labelMapping && parsed.label
+        ? parsed.label
+        : nextFallbackId(fallbackCounts, mapping);
+    if (labelMapping && parsed.label) {
       const numeric = Number.parseInt(parsed.label.replace(/^[A-Z]+/, ""), 10);
       if (Number.isFinite(numeric)) {
         fallbackCounts.set(

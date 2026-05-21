@@ -318,7 +318,11 @@ export const contractTools = {
         .describe("ISO timestamp for the review matrix. Defaults to now."),
       rows: z
         .array(reviewMatrixRowSchema)
+        .optional()
         .describe("Rows keyed to existing ChangeContract item IDs."),
+      reviewMatrix: ContractReviewMatrixSchema.optional().describe(
+        "Complete review matrix object. Use this instead of rows when the caller already has reviewedAt + rows.",
+      ),
       dryRun: z
         .boolean()
         .optional()
@@ -330,7 +334,8 @@ export const contractTools = {
       args: {
         changeId: string;
         reviewedAt?: string;
-        rows: z.infer<typeof reviewMatrixRowSchema>[];
+        rows?: z.infer<typeof reviewMatrixRowSchema>[];
+        reviewMatrix?: ContractReviewMatrix;
         dryRun?: boolean;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
@@ -352,10 +357,28 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          const reviewMatrix = ContractReviewMatrixSchema.parse({
-            reviewedAt: args.reviewedAt ?? new Date().toISOString(),
-            rows: args.rows,
-          });
+          if (args.rows && args.reviewMatrix) {
+            return formatToolOutput({
+              error:
+                "Provide either rows or reviewMatrix, not both, for contract review matrix persistence",
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          if (!args.rows && !args.reviewMatrix) {
+            return formatToolOutput({
+              error:
+                "adv_contract_review_matrix_set requires either rows or reviewMatrix",
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          const reviewMatrix = ContractReviewMatrixSchema.parse(
+            args.reviewMatrix ?? {
+              reviewedAt: args.reviewedAt ?? new Date().toISOString(),
+              rows: args.rows,
+            },
+          );
           const rowError = ensureRowsReferenceContract(change, reviewMatrix);
           if (rowError) {
             return formatToolOutput({

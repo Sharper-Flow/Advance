@@ -494,7 +494,7 @@ Contract rules:
   - `DONT1..n` — rejected approaches / explicit avoidances.
   - `OOS1..n` — out-of-scope boundaries.
 - Set `sourceArtifact: "agreement"` for initial items.
-- Choose evidence policy by item kind: `AC*` usually `test`; `C*` `test`/`static_check`/`review`; `DONT*` and `OOS*` `static_check`/`review`/`design_proof` unless an executable test is meaningful.
+- The mint tool assigns deterministic evidence policies by item kind: `SC*` → `review`, `AC*` → `test`, `C*` → `static_check`, `DONT*` → `review`, `OOS*` → `not_applicable`.
 - For poisoned-history recovery only, use `adv_contract_mint recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`; this repairs the disk projection only and does not heal the poisoned workflow.
 
 Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or projected `acceptanceCriteria` would drift from the approved `AC*` items.

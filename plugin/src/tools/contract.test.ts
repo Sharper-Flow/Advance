@@ -200,6 +200,66 @@ describe("contractTools", () => {
     );
   });
 
+  test("adv_contract_review_matrix_set accepts a complete reviewMatrix", async () => {
+    const store = createStore(
+      baseChange({
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: { artifact: "agreement", approvedAt },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Contract minting fires a production signal.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          amendments: [],
+        },
+      }),
+      "/tmp/unused",
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          reviewMatrix: {
+            reviewedAt: "2026-05-21T06:00:00.000Z",
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "pass",
+                evidencePolicy: "test",
+                evidence: "passing test",
+              },
+            ],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.rowCount).toBe(1);
+    expect(fireSignalAndRefresh).toHaveBeenCalledWith(
+      expect.anything(),
+      store,
+      "contractRecovery",
+      contractReviewMatrixSetSignal,
+      expect.objectContaining({
+        reviewMatrix: expect.objectContaining({
+          reviewedAt: "2026-05-21T06:00:00.000Z",
+        }),
+      }),
+    );
+  });
+
   test("adv_contract_review_matrix_set rejects unknown contract ids", async () => {
     const store = createStore(
       baseChange({
