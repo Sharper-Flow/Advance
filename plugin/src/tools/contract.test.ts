@@ -232,4 +232,77 @@ describe("contractTools", () => {
     expect(output.error).toContain("unknown contract item");
     expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
+
+  test("poisoned-history mint recovery writes disk projection with warning", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const change = baseChange({
+      _source: "disk",
+      _recovery: { mode: "temporal_query_fallback", reason: "poisoned_history" },
+    } as Partial<Change>);
+    const store = createStore(change, changesDir);
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "operator confirmed poisoned history",
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(output.reconciliationWarning).toContain("not healed");
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contract: expect.objectContaining({ items: expect.any(Array) }),
+        acceptanceCriteria: ["Contract minting fires a production signal."],
+      }),
+    );
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("poisoned-history recovery requires explicit recoveryEvidence", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const change = baseChange({
+      _source: "disk",
+      _recovery: { mode: "temporal_query_fallback", reason: "poisoned_history" },
+    } as Partial<Change>);
+    const store = createStore(change, changesDir);
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        { changeId: "contractRecovery", recoveryMode: "poisoned_history" },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("recoveryEvidence");
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("missing-workflow errors do not authorize poisoned-history recovery", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(baseChange(), changesDir);
+    fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("Workflow execution not found"),
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "operator confirmed recovery",
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("Workflow execution not found");
+    expect(output._recoveryMutation).toBeUndefined();
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
 });

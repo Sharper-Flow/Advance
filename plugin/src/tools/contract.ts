@@ -19,6 +19,7 @@ import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { buildContractFromAgreement } from "../validator/contract-mint";
+import { isPoisonedHistoryError } from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   formatTargetProjectContext,
@@ -93,13 +94,70 @@ async function healthySignalHandle(store: Store, changeId: string) {
   return getChangeHandle(bundle.client, projectId, changeId);
 }
 
-function rejectRecoveryForNow(input: {
+const RECOVERY_RECONCILIATION_WARNING =
+  "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";
+
+type RecoveryMarkedChange = Change & {
+  _recovery?: { reason?: string };
+};
+
+function hasPoisonedHistoryMarker(change: Change): boolean {
+  return (
+    (change as RecoveryMarkedChange)._recovery?.reason === "poisoned_history"
+  );
+}
+
+function recoveryEvidenceError(input: {
   recoveryMode?: "normal" | "poisoned_history";
+  recoveryEvidence?: string;
 }): string | undefined {
-  if (input.recoveryMode === "poisoned_history") {
-    return "poisoned_history recovery mode is implemented by a follow-up task in this change; healthy signal path is available now";
+  if (
+    input.recoveryMode === "poisoned_history" &&
+    !input.recoveryEvidence?.trim()
+  ) {
+    return "poisoned_history recovery requires non-empty recoveryEvidence";
   }
   return undefined;
+}
+
+async function bestEffortRefresh(store: Store, changeId: string): Promise<void> {
+  try {
+    await store.changes.refresh(changeId);
+  } catch {
+    // Recovery writes are disk-projection repairs. A poisoned workflow may
+    // still make refresh fail; the disk save above is the important effect.
+  }
+}
+
+async function saveRecoveredContract(input: {
+  store: Store;
+  change: Change;
+  contract: Change["contract"];
+}): Promise<void> {
+  const updated = {
+    ...input.change,
+    contract: input.contract,
+    acceptanceCriteria: input.contract?.items
+      .filter((item) => item.kind === "acceptance_criterion")
+      .map((item) => item.text),
+  } as Change;
+  await input.store.changes.save(updated);
+  await bestEffortRefresh(input.store, input.change.id);
+}
+
+async function saveRecoveredReviewMatrix(input: {
+  store: Store;
+  change: Change;
+  reviewMatrix: ContractReviewMatrix;
+}): Promise<void> {
+  const updated = {
+    ...input.change,
+    contract: input.change.contract
+      ? { ...input.change.contract, reviewMatrix: input.reviewMatrix }
+      : undefined,
+  } as Change;
+  await input.store.changes.save(updated);
+  await bestEffortRefresh(input.store, input.change.id);
 }
 
 const reviewMatrixRowSchema = z.object({
@@ -154,9 +212,9 @@ export const contractTools = {
       store: Store,
     ) =>
       withContractStore(store, args, async (activeStore, projectContext) => {
-        const recoveryError = rejectRecoveryForNow(args);
-        if (recoveryError) return formatToolOutput({ error: recoveryError });
         try {
+          const recoveryError = recoveryEvidenceError(args);
+          if (recoveryError) return formatToolOutput({ error: recoveryError });
           const change = await loadChange(activeStore, args.changeId);
           const agreement = await readAgreement(activeStore, args.changeId);
           const contract = buildContractFromAgreement({
@@ -173,14 +231,56 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          const handle = await healthySignalHandle(activeStore, args.changeId);
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            args.changeId,
-            contractSetSignal,
-            { contract, updatedAt: new Date().toISOString() },
-          );
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            hasPoisonedHistoryMarker(change)
+          ) {
+            await saveRecoveredContract({
+              store: activeStore,
+              change,
+              contract,
+            });
+            return formatToolOutput({
+              success: true,
+              changeId: args.changeId,
+              itemCount: contract.items.length,
+              contractIds: contract.items.map((item) => item.id),
+              _recoveryMutation: true,
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          try {
+            const handle = await healthySignalHandle(activeStore, args.changeId);
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              args.changeId,
+              contractSetSignal,
+              { contract, updatedAt: new Date().toISOString() },
+            );
+          } catch (signalError) {
+            if (
+              args.recoveryMode === "poisoned_history" &&
+              isPoisonedHistoryError(signalError)
+            ) {
+              await saveRecoveredContract({
+                store: activeStore,
+                change,
+                contract,
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                itemCount: contract.items.length,
+                contractIds: contract.items.map((item) => item.id),
+                _recoveryMutation: true,
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            throw signalError;
+          }
           return formatToolOutput({
             success: true,
             changeId: args.changeId,
@@ -232,9 +332,9 @@ export const contractTools = {
       store: Store,
     ) =>
       withContractStore(store, args, async (activeStore, projectContext) => {
-        const recoveryError = rejectRecoveryForNow(args);
-        if (recoveryError) return formatToolOutput({ error: recoveryError });
         try {
+          const recoveryError = recoveryEvidenceError(args);
+          if (recoveryError) return formatToolOutput({ error: recoveryError });
           const change = await loadChange(activeStore, args.changeId);
           if (!change.contract) {
             return formatToolOutput({
@@ -264,14 +364,60 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          const handle = await healthySignalHandle(activeStore, args.changeId);
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            args.changeId,
-            contractReviewMatrixSetSignal,
-            { reviewMatrix, updatedAt: new Date().toISOString() },
-          );
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            hasPoisonedHistoryMarker(change)
+          ) {
+            await saveRecoveredReviewMatrix({
+              store: activeStore,
+              change,
+              reviewMatrix,
+            });
+            return formatToolOutput({
+              success: true,
+              changeId: args.changeId,
+              rowCount: reviewMatrix.rows.length,
+              failingRows: reviewMatrix.rows.filter((row) =>
+                ["fail", "violated", "unknown"].includes(row.status),
+              ).length,
+              _recoveryMutation: true,
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          try {
+            const handle = await healthySignalHandle(activeStore, args.changeId);
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              args.changeId,
+              contractReviewMatrixSetSignal,
+              { reviewMatrix, updatedAt: new Date().toISOString() },
+            );
+          } catch (signalError) {
+            if (
+              args.recoveryMode === "poisoned_history" &&
+              isPoisonedHistoryError(signalError)
+            ) {
+              await saveRecoveredReviewMatrix({
+                store: activeStore,
+                change,
+                reviewMatrix,
+              });
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                rowCount: reviewMatrix.rows.length,
+                failingRows: reviewMatrix.rows.filter((row) =>
+                  ["fail", "violated", "unknown"].includes(row.status),
+                ).length,
+                _recoveryMutation: true,
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            throw signalError;
+          }
           return formatToolOutput({
             success: true,
             changeId: args.changeId,

@@ -4,8 +4,8 @@ import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 import {
   classifyTemporalError,
-  collectErrorText,
 } from "../../temporal/retry-wrapper";
+import { recoveryReasonFromError } from "../../temporal/recovery-classification";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
@@ -59,14 +59,6 @@ function withProjectionRecovery(
     _source: source,
     _recovery: { mode: "temporal_query_fallback", reason },
   };
-}
-
-function recoveryReasonFromError(error: unknown): ProjectionRecoveryReason {
-  return /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(
-    collectErrorText(error),
-  )
-    ? "poisoned_history"
-    : "missing_workflow";
 }
 
 export function createTemporalStoreBackend(
