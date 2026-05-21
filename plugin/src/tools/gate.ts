@@ -60,6 +60,7 @@ import {
   resolveMainCheckout,
   verifyChangeBranchReachable,
   verifyChangeBranchPushed,
+  verifyDefaultBranchPushed,
 } from "./archive-helpers/git-finalize";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 
@@ -144,6 +145,20 @@ function releaseRequiresPrHandoffResponse(input: {
     requirement: "rq-releaseFinalization01",
     changeId: input.changeId,
     remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (push change branch + PR workflow handoff), then retry release gate completion.`,
+  });
+}
+
+function releaseRequiresDefaultBranchPushResponse(input: {
+  changeId: string;
+  defaultBranch: string;
+  reason: string;
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_DEFAULT_BRANCH_PUSH: ${input.reason}`,
+    code: "RELEASE_REQUIRES_DEFAULT_BRANCH_PUSH",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (merge + push ${input.defaultBranch} + verify), then retry release gate completion.`,
   });
 }
 
@@ -752,6 +767,18 @@ export const gateTools = {
                 changeId,
                 defaultBranch,
                 unmergedCommits: reachability.unmergedCommits,
+              });
+            }
+            const pushCheck = verifyDefaultBranchPushed(
+              mainCheckout,
+              defaultBranch,
+            );
+            if (!pushCheck.pushed) {
+              return releaseRequiresDefaultBranchPushResponse({
+                changeId,
+                defaultBranch,
+                reason:
+                  pushCheck.reason ?? `${defaultBranch} not pushed to origin`,
               });
             }
           } else if (archiveMode === "pr") {

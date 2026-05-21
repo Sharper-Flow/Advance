@@ -222,11 +222,11 @@ the human-facing explanation of that runtime contract.
 
 ### Step 1: Stage and Commit (in the worktree, on change branch)
 
-Stage `.adv/specs/`, `docs/specs/`, `.adv/archive/`, `.opencode/`, `plugin/src/`, `ADV_INSTRUCTIONS.md`, `README.md`, and any touched docs in `docs/`. Do NOT stage generated build artifacts. Commit on the **change branch in the worktree**: `chore: archive {change-id}`. If commit fails → stop.
+The runtime helper stages `.adv/` archive/spec artifacts and commits them on the **change branch in the worktree** with `Archive {change-id}: apply spec deltas and bundle`. Human orchestration may stage additional docs before archive, but runtime finalization only owns the `.adv/` archive/spec bundle. If commit fails → stop.
 
 ### Step 2: Detect Default Branch
 
-`git rev-parse --verify main` || `trunk` || `git symbolic-ref refs/remotes/origin/HEAD` || `git config --get init.defaultBranch`. If UNKNOWN or remote HEAD looks stale → ask user.
+`git symbolic-ref refs/remotes/origin/HEAD` || `git config --get init.defaultBranch` || local `main` || local `trunk`. If UNKNOWN or remote HEAD looks stale → ask user.
 
 ### Step 3: Resolve Main Checkout Path (`$MAIN`)
 
@@ -236,7 +236,7 @@ MAIN="$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")"
 
 This resolves to the absolute path of the main checkout root from any workdir (worktree or main). Used for every subsequent default-branch operation through Step 7. If running from the main checkout itself, `$MAIN` equals current working directory and `git -C "$MAIN" ...` is a no-op prefix — same commands work in both modes.
 
-### Step 3.5: Overlap + Merge-Order Scan
+### Step 3.5: Advisory Overlap + Merge-Order Scan
 
 1. **Active change overlap** — `adv_change_list` → if other active changes touch same files or same local subsystem → mark `overlap-risk`
 2. **Merge-order queue** — call `computeMergeOrder($MAIN)` from `plugin/src/validator/merge-order.ts` to get topologically sorted queue of archived-but-unmerged changes.
@@ -264,11 +264,11 @@ Before any merge attempt, verify the main checkout is in a state ADV can safely 
 
 #### Step 4.5: Choose Integration Path
 
-Allowed outcomes:
+Runtime helper outcomes:
 
 - **LOCAL_FINISH / fast path** — branch is already on current default-branch basis → `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **LOCAL_FINISH / reconcile path** — no `overlap-risk`, no `pr-risk`, but trunk moved → rebase the change branch in the worktree (Step 4 handles conflicts if they arise), then `git -C "$MAIN" merge --ff-only change/{change-id}`
-- **PR workflow path** — `overlap-risk`, `pr-risk`, `queue-blocked`, failed lightweight verification, or non-fast-forward publish risk → push change branch from the worktree + `gh pr create` (or queue entry when project policy uses one)
+- **Blocked / reconcile externally** — if `--ff-only` cannot merge, runtime blocks and asks the operator to rebase the change branch before retrying; Step 4 handles conflicts via the classification + resolution flow below.
+- **PR workflow path / handoff** — explicit `archive_mode: "pr"` pushes `change/{change-id}` for PR workflow handoff; PR creation itself remains project/user policy unless a future helper implements it.
 
 ### Step 4 — Conflict-recovery flow (post-J3 expansion)
 
@@ -326,7 +326,7 @@ User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add +
 
 ### Step 5: Publish Safety (merge+push finalization for the default branch)
 
-Before pushing, run the Local Deploy Gate below. A project-local deploy script is part of release finalization for ADV itself, not an optional post-release nudge.
+Before pushing, projects may run the Local Deploy Gate below when required by their release policy. The runtime helper currently enforces merge/push evidence; deploy execution remains human/agent orchestration unless project tooling adds a runtime hook.
 
 #### Step 5.0: Local Deploy Gate
 

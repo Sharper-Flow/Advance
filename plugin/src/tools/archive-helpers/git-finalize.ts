@@ -1,10 +1,11 @@
 import { spawnSync } from "child_process";
+import { realpathSync } from "fs";
 import { dirname } from "path";
 
 export type ArchiveMode = "direct" | "pr";
 
 export interface GitFinalizeOutcome {
-  status: "shipped" | "merged_locally" | "blocked" | "pr_pushed";
+  status: "shipped" | "blocked" | "pr_pushed";
   mainCheckout: string;
   defaultBranch: string;
   mergeCommitSha?: string;
@@ -22,8 +23,10 @@ export interface RunGitResult {
 
 export interface GitFinalizeDeps {
   runGit?: (cwd: string, args: string[]) => RunGitResult;
-  commandExists?: (command: string) => boolean;
+  requireCleanWorktree?: boolean;
 }
+
+const DEFAULT_GIT_TIMEOUT_MS = 30000;
 
 const CREDENTIAL_PATTERNS = [
   /https?:\/\/[^:]+:[^@]+@/gi,
@@ -46,11 +49,24 @@ export function redactGitOutput(output: string): string {
 }
 
 function defaultRunGit(cwd: string, args: string[]): RunGitResult {
-  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+  const result = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    timeout: DEFAULT_GIT_TIMEOUT_MS,
+    env: {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: "0",
+      GIT_ASKPASS: "",
+      SSH_ASKPASS: "",
+    },
+  });
+  const timedOut = result.error?.message.includes("ETIMEDOUT") ?? false;
   return {
-    status: result.status,
+    status: timedOut ? 124 : result.status,
     stdout: redactGitOutput(result.stdout ?? ""),
-    stderr: redactGitOutput(result.stderr ?? ""),
+    stderr: timedOut
+      ? `git ${args.join(" ")} timed out after ${DEFAULT_GIT_TIMEOUT_MS}ms`
+      : redactGitOutput(result.stderr ?? ""),
   };
 }
 
@@ -73,11 +89,6 @@ function splitLines(value: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-}
-
-function commandExists(command: string): boolean {
-  const result = spawnSync("which", [command], { encoding: "utf8" });
-  return result.status === 0;
 }
 
 export function resolveMainCheckout(
@@ -328,12 +339,31 @@ export function verifyChangeBranchPushed(
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ): { pushed: boolean; reason?: string } {
-  const lsRemote = (deps.runGit ?? defaultRunGit)(mainCheckout, [
+  const runGit = deps.runGit ?? defaultRunGit;
+  const local = runGit(mainCheckout, [
+    "rev-parse",
+    `refs/heads/change/${changeId}`,
+  ]);
+  if (local.status !== 0 || !local.stdout.trim()) {
+    return {
+      pushed: false,
+      reason: (
+        local.stderr ||
+        local.stdout ||
+        `change/${changeId} not found locally`
+      ).trim(),
+    };
+  }
+
+  const lsRemote = runGit(mainCheckout, [
     "ls-remote",
     "origin",
     `refs/heads/change/${changeId}`,
   ]);
-  if (lsRemote.status === 0 && lsRemote.stdout.trim()) {
+  if (
+    lsRemote.status === 0 &&
+    lsRemote.stdout.trim().split(/\s+/)[0] === local.stdout.trim()
+  ) {
     return { pushed: true };
   }
   return {
@@ -346,17 +376,55 @@ export function verifyChangeBranchPushed(
   };
 }
 
+export function verifyDefaultBranchPushed(
+  mainCheckout: string,
+  defaultBranch: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): { pushed: boolean; reason?: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  const localHead = runGit(mainCheckout, ["rev-parse", "HEAD"]);
+  if (localHead.status !== 0 || !localHead.stdout.trim()) {
+    return {
+      pushed: false,
+      reason: (
+        localHead.stderr ||
+        localHead.stdout ||
+        "unable to resolve local HEAD"
+      ).trim(),
+    };
+  }
+  const remoteHead = runGit(mainCheckout, [
+    "ls-remote",
+    "origin",
+    `refs/heads/${defaultBranch}`,
+  ]);
+  if (remoteHead.status !== 0 || !remoteHead.stdout.trim()) {
+    return {
+      pushed: false,
+      reason: (
+        remoteHead.stderr ||
+        remoteHead.stdout ||
+        `origin/${defaultBranch} not found`
+      ).trim(),
+    };
+  }
+  const remoteSha = remoteHead.stdout.trim().split(/\s+/)[0];
+  const localSha = localHead.stdout.trim();
+  return remoteSha === localSha
+    ? { pushed: true }
+    : {
+        pushed: false,
+        reason: `origin/${defaultBranch} is at ${remoteSha}, local ${defaultBranch} is at ${localSha}`,
+      };
+}
+
 export function detectArchiveMode(
   config: Record<string, unknown> | undefined,
-  deps: Pick<GitFinalizeDeps, "commandExists"> = {},
 ): { archiveMode: ArchiveMode; autoPush: boolean } {
   const archiveMode = (config?.archive_mode ?? "direct") as unknown;
   if (archiveMode !== "direct" && archiveMode !== "pr") {
     throw new Error(`Invalid archive_mode: ${String(archiveMode)}`);
-  }
-
-  if (archiveMode === "pr" && !(deps.commandExists ?? commandExists)("gh")) {
-    throw new Error("gh CLI is required when archive_mode is 'pr'");
   }
 
   return {
@@ -404,7 +472,79 @@ export function validateChangeWorktree(
     };
   }
 
+  const topLevel = runGit(workdir, ["rev-parse", "--show-toplevel"]);
+  if (topLevel.status !== 0 || !topLevel.stdout.trim()) {
+    return {
+      valid: false,
+      mainCheckout,
+      currentBranch,
+      error: `Unable to resolve worktree root for ${workdir}`,
+    };
+  }
+
+  try {
+    if (realpathSync(workdir) !== realpathSync(topLevel.stdout.trim())) {
+      return {
+        valid: false,
+        mainCheckout,
+        currentBranch,
+        error: `Worktree path ${workdir} is not the repository root ${topLevel.stdout.trim()}`,
+      };
+    }
+  } catch (error) {
+    return {
+      valid: false,
+      mainCheckout,
+      currentBranch,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (deps.requireCleanWorktree) {
+    const dirty = splitLines(runGit(workdir, ["status", "--porcelain"]).stdout);
+    if (dirty.length > 0) {
+      return {
+        valid: false,
+        mainCheckout,
+        currentBranch,
+        error: `Worktree has uncommitted changes before archive writes: ${dirty.join(", ")}`,
+      };
+    }
+  }
+
   return { valid: true, mainCheckout, currentBranch };
+}
+
+function verifyRemoteNotAhead(
+  mainCheckout: string,
+  defaultBranch: string,
+  deps: GitFinalizeDeps = {},
+): { ok: true } | { ok: false; reason: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  if (fetch.status !== 0) return { ok: true };
+
+  const divergence = runGit(mainCheckout, [
+    "rev-list",
+    "--left-right",
+    "--count",
+    `${defaultBranch}...origin/${defaultBranch}`,
+  ]);
+  if (divergence.status !== 0 || !divergence.stdout.trim()) {
+    return { ok: true };
+  }
+
+  const [_localAhead, remoteAhead] = divergence.stdout
+    .trim()
+    .split(/\s+/)
+    .map((value) => Number.parseInt(value, 10));
+  if (remoteAhead > 0) {
+    return {
+      ok: false,
+      reason: `origin/${defaultBranch} has ${remoteAhead} commit(s) not present locally`,
+    };
+  }
+  return { ok: true };
 }
 
 export function commitArchiveArtifacts(
@@ -570,6 +710,25 @@ export async function finalizeRelease(
     ctx.changeId,
     deps,
   );
+
+  const remotePreflight = verifyRemoteNotAhead(
+    mainCheckout,
+    defaultBranch,
+    deps,
+  );
+  if (!remotePreflight.ok) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "DEFAULT_BRANCH_REMOTE_DIVERGED",
+        remediation: `${remotePreflight.reason}. Update ${defaultBranch} before archive finalization; no local default-branch mutation was performed (rq-releaseFinalization01).`,
+      },
+    };
+  }
+
   let mergeCommitSha: string | undefined;
   if (!beforeMergeReachability.reachable) {
     const merge = mergeToTrunk(mainCheckout, defaultBranch, ctx.changeId, deps);
@@ -608,11 +767,19 @@ export async function finalizeRelease(
   }
 
   return {
-    status: "merged_locally",
+    status: "blocked",
     mainCheckout,
     defaultBranch,
     mergeCommitSha,
     pushStatus: push.status,
     pushFailureReason: push.reason,
+    blocked: {
+      reason:
+        push.status === "failed"
+          ? "DEFAULT_BRANCH_PUSH_FAILED"
+          : "DEFAULT_BRANCH_PUSH_SKIPPED",
+      remediation: `Default branch ${defaultBranch} must be pushed before archive finalization can complete (rq-releaseFinalization01).`,
+      details: [push.reason],
+    },
   };
 }

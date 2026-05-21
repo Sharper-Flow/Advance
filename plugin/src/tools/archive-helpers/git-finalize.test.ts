@@ -20,7 +20,9 @@ import {
   pushToOrigin,
   pushChangeBranch,
   resolveMainCheckout,
+  verifyChangeBranchPushed,
   verifyChangeBranchReachable,
+  verifyDefaultBranchPushed,
   verifyMainInvariants,
   redactGitOutput,
   validateChangeWorktree,
@@ -285,7 +287,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("detectArchiveMode defaults direct and validates PR mode gh availability", () => {
+  it("detectArchiveMode defaults direct and accepts PR branch-handoff mode", () => {
     expect(detectArchiveMode({})).toEqual({
       archiveMode: "direct",
       autoPush: true,
@@ -297,9 +299,10 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    expect(() =>
-      detectArchiveMode({ archive_mode: "pr" }, { commandExists: () => false }),
-    ).toThrow(/gh CLI is required/);
+    expect(detectArchiveMode({ archive_mode: "pr" })).toEqual({
+      archiveMode: "pr",
+      autoPush: true,
+    });
   });
 
   it("finalizeRelease blocks dirty trunk before merge and reports rq-releaseFinalization01 remediation", async () => {
@@ -340,16 +343,47 @@ describe("git-finalize helpers", () => {
       "bundle\n",
     );
 
-    const result = await finalizeRelease({
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "direct",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          if (args[0] === "push" && args.includes("trunk")) {
+            return { status: 0, stdout: "pushed", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+      },
+    );
+
+    expect(result.status).toBe("shipped");
+    expect(result.mergeCommitSha).toBeDefined();
+    expect(git(main, ["show", "HEAD:.adv/archive/bundle.txt"])).toBe("bundle");
+  });
+
+  it("finalizeRelease blocks when default-branch push is skipped or fails", async () => {
+    const main = join(tempRoot, "main");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const skipped = await finalizeRelease({
       changeId: "example",
       workdir: worktree,
       archiveMode: "direct",
       autoPush: false,
     });
 
-    // Should merge because branch is already reachable (no commits ahead of trunk)
-    expect(result.status).toBe("merged_locally");
-    expect(result.mergeCommitSha).toBeDefined();
+    expect(skipped.status).toBe("blocked");
+    expect(skipped.blocked?.reason).toBe("DEFAULT_BRANCH_PUSH_SKIPPED");
   });
 
   it("finalizeRelease in PR mode pushes branch and returns pr_pushed", async () => {
@@ -385,6 +419,60 @@ describe("git-finalize helpers", () => {
     expect(result.prBranch).toBe("change/example");
     expect(result.pushStatus).toBe("pushed");
     expect(pushCalls.some((c) => c.args.includes("change/example"))).toBe(true);
+  });
+
+  it("finalizeRelease in PR mode blocks when branch push is skipped", async () => {
+    const main = join(tempRoot, "main");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "pr",
+      autoPush: false,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.blocked?.reason).toBe("PR_BRANCH_PUSH_SKIPPED");
+  });
+
+  it("verifyDefaultBranchPushed compares local HEAD with origin branch", () => {
+    expect(
+      verifyDefaultBranchPushed("/repo", "trunk", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse")
+            return { status: 0, stdout: "abc\n", stderr: "" };
+          if (args[0] === "ls-remote") {
+            return { status: 0, stdout: "abc\trefs/heads/trunk\n", stderr: "" };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      }),
+    ).toEqual({ pushed: true });
+  });
+
+  it("verifyChangeBranchPushed rejects stale remote branch refs", () => {
+    expect(
+      verifyChangeBranchPushed("/repo", "example", {
+        runGit: (_cwd, args) => {
+          if (args[0] === "rev-parse") {
+            return { status: 0, stdout: "local-sha\n", stderr: "" };
+          }
+          if (args[0] === "ls-remote") {
+            return {
+              status: 0,
+              stdout: "stale-sha\trefs/heads/change/example\n",
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      }).pushed,
+    ).toBe(false);
   });
 
   it("validateChangeWorktree rejects wrong branch or unrelated repo", () => {

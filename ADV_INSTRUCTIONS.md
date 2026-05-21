@@ -921,11 +921,11 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 
 Advanced side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering so cross-workspace sessions of the same project are included by default instead of filtered by directory. ADV does not rely on this. No graduation timeline is published; env-var opt-in is the current mechanism.
 
-Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` returns the worktree path for follow-up launch handling. Delete via `adv_worktree_delete branch:<branch>` only after merge; warp-mode delete attempts to remove the matching OpenCode workspace row before git worktree removal, warning and continuing if workspace cleanup fails.
+Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` returns the worktree path for follow-up launch handling. Delete via `adv_worktree_delete` with `branch:<branch>` only after merge; warp-mode delete attempts to remove the matching OpenCode workspace row before git worktree removal, warning and continuing if workspace cleanup fails.
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → temp cleanup. The release gate is structurally enforced: `adv_gate_complete gateId: "release"` rejects direct-mode completion unless `change/{change-id}` is reachable from the default branch (`rq-releaseFinalization01.5`). PR-based projects must opt out explicitly with `archive_mode: "pr"` and complete the PR handoff instead (`rq-releaseFinalization01.6`). × Never delete worktree with unmerged commits. If tools unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 handles structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → `--ff-only` merge + push, or explicit PR-mode branch-push handoff. The release gate is structurally enforced: `adv_gate_complete gateId: "release"` rejects direct-mode completion unless `change/{change-id}` is reachable from and pushed with the default branch (`rq-releaseFinalization01.5`). PR-based projects must opt out explicitly with `archive_mode: "pr"` and complete the PR branch-push handoff instead (`rq-releaseFinalization01.6`). × Never delete worktree with unmerged commits. If tools unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 

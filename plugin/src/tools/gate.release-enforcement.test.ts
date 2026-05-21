@@ -30,6 +30,10 @@ const mocks = vi.hoisted(() => {
       pushed: false,
       reason: "change/example not found on origin",
     })),
+    verifyDefaultBranchPushed: vi.fn(() => ({
+      pushed: false,
+      reason: "origin/trunk behind local trunk",
+    })),
   };
 });
 
@@ -56,6 +60,7 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     detectDefaultBranch: mocks.detectDefaultBranch,
     verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
+    verifyDefaultBranchPushed: mocks.verifyDefaultBranchPushed,
   };
 });
 
@@ -142,10 +147,29 @@ describe("release gate trunk-merge enforcement", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("allows release completion when the change branch is reachable (direct mode)", async () => {
+  test("rejects release completion when direct-mode merge is local-only", async () => {
     mocks.verifyChangeBranchReachable.mockReturnValueOnce({
       reachable: true,
       unmergedCommits: [],
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      createMockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain("RELEASE_REQUIRES_DEFAULT_BRANCH_PUSH");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("allows release completion when the change branch is reachable and pushed (direct mode)", async () => {
+    mocks.verifyChangeBranchReachable.mockReturnValueOnce({
+      reachable: true,
+      unmergedCommits: [],
+    });
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
+      pushed: true,
     });
 
     const result = await gateTools.adv_gate_complete.execute(

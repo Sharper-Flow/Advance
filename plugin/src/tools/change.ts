@@ -2566,7 +2566,7 @@ export const changeTools = {
         .enum(["run", "skip"])
         .optional()
         .describe(
-          "Phase 9 git finalization mode. Defaults to run. The /adv-archive slash-command may pass 'skip' if it owns the richer human-facing Phase 9 workflow, but release gate completion must happen only after reachability/push evidence exists.",
+          "Phase 9 git finalization mode. Defaults to run. 'skip' is a compatibility/manual-recovery escape hatch; release gate completion must happen only after reachability/push evidence exists.",
         ),
     },
     execute: async (
@@ -2683,6 +2683,7 @@ export const changeTools = {
         const worktreeValidation = validateChangeWorktree(
           worktreePath,
           changeId,
+          { requireCleanWorktree: true },
         );
         if (
           !worktreeValidation.valid ||
@@ -2842,14 +2843,17 @@ export const changeTools = {
       }
 
       // Issue closure — after archive state is durable (or previewed in dryRun)
-      const issueClosure = await closeLinkedIssue({
-        change,
-        store,
-        noCloseIssue,
-        dryRun,
-        existingBundlePath: existingBundlePath ?? undefined,
-        worktreePath,
-      });
+      const issueClosure =
+        finalization?.status === "pr_pushed"
+          ? { issue_closed: [], close_eligible: false }
+          : await closeLinkedIssue({
+              change,
+              store,
+              noCloseIssue,
+              dryRun,
+              existingBundlePath: existingBundlePath ?? undefined,
+              worktreePath,
+            });
 
       return formatToolOutput({
         success: archiveResult.success,

@@ -139,7 +139,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     vi.clearAllMocks();
   });
 
-  test("runs finalization before archiving and returns the outcome", async () => {
+  test("runs finalization before retiring the change and returns the outcome", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
@@ -156,6 +156,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.validateChangeWorktree).toHaveBeenCalledWith(
       "/tmp/worktree",
       "example",
+      { requireCleanWorktree: true },
     );
     expect(mocks.finalizeRelease).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -204,6 +205,28 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.error).toContain("Archive finalization blocked");
     expect(parsed.requirement).toBe("rq-releaseFinalization01");
     expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
+  test("rejects invalid worktree before archive writes", async () => {
+    mocks.validateChangeWorktree.mockReturnValueOnce({
+      valid: false,
+      mainCheckout: "/tmp/main",
+      error: "wrong branch",
+    });
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
   });
 
   test("returns pr_pushed outcome in PR mode", async () => {
@@ -231,5 +254,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
       status: "pr_pushed",
       prBranch: "change/example",
     });
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 });
