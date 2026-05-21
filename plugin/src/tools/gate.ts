@@ -49,6 +49,10 @@ import {
   type WorktreeIsolationDeps,
   type WorktreeIsolationResult,
 } from "./worktree-isolation-guard";
+import {
+  ensureWorktreeForMutation,
+  type EnsureWorktreeForMutationDeps,
+} from "./worktree-auto-manage";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
@@ -106,30 +110,49 @@ function gateCompletionNotConfirmedResponse(input: {
   });
 }
 
-function readBooleanFeatureFlag(
-  features: unknown,
-  key: string,
-  defaultValue: boolean,
-): boolean {
-  if (!features || typeof features !== "object") return defaultValue;
-  const value = (features as Record<string, unknown>)[key];
-  return typeof value === "boolean" ? value : defaultValue;
-}
-
-export function evaluateGateWorktreeIsolation(input: {
+/**
+ * Gate-completion worktree-isolation guard (rq-autoManageAdvWorktrees AC5).
+ *
+ * Per-change marker + global flag activation matrix lives in
+ * `evaluateWorktreeGuardActivation`. The proposal gate is exempt regardless
+ * of activation (C5 + DONT2): a change must be creatable from main before
+ * any worktree can exist for it.
+ *
+ * When `change` is provided AND `change.worktree_auto_managed === true`,
+ * this delegates to `ensureWorktreeForMutation` which attempts to
+ * auto-create the worktree before BLOCKing. When `change` is omitted (e.g.,
+ * in legacy crosscut tests), the function preserves the pre-Block-B
+ * behavior: block_only when the global flag is true, ALLOW when off.
+ *
+ * The function is async because the auto-manage path awaits
+ * `advWorktreeResume`. Block-only and off paths remain effectively sync
+ * (no I/O); the caller just awaits for uniformity.
+ */
+export async function evaluateGateWorktreeIsolation(input: {
   gateId: GateId;
   features: unknown;
   cwd: string;
+  /** Optional Change for per-change-marker conditioning (AC5). */
+  change?: Change;
+  /** Optional auto-create runtime deps; required for the auto_manage path. */
+  autoManageDeps?: EnsureWorktreeForMutationDeps;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
-}): WorktreeIsolationResult {
+}): Promise<WorktreeIsolationResult> {
   if (input.gateId === "proposal") return { decision: "ALLOW" };
-  if (
-    !readBooleanFeatureFlag(input.features, "worktree_guard_enforce", false)
-  ) {
-    return { decision: "ALLOW" };
-  }
-  return checkWorktreeIsolation(input.cwd, {
-    getSessionContext: input.getSessionContext,
+
+  // Delegate to the unified helper. It handles the activation matrix,
+  // session-context detection, existing-worktree lookup, auto-create,
+  // and AC6 structured failures. When `change` is undefined, the helper
+  // routes through block_only / off based on the global flag.
+  return ensureWorktreeForMutation({
+    change: input.change,
+    cwd: input.cwd,
+    features: input.features,
+    deps: {
+      ...input.autoManageDeps,
+      getSessionContext:
+        input.autoManageDeps?.getSessionContext ?? input.getSessionContext,
+    },
   });
 }
 
@@ -606,18 +629,26 @@ export const gateTools = {
           });
         }
 
-        const isolation = evaluateGateWorktreeIsolation({
+        const isolation = await evaluateGateWorktreeIsolation({
           gateId,
           features: activeStore.config?.features,
           cwd: process.cwd(),
+          change,
+          // Block D wires the auto-create runtime here (target_path /
+          // scope_repos routing); for now the helper falls back to the
+          // structural defensive failure on missing resumeRuntime, which
+          // surfaces a clear AC6 error rather than a vague NPE.
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
             error: isolation.reason,
             errorClass: isolation.errorClass,
+            code: isolation.code,
             changeId,
             gateId,
             mainCheckoutPath: isolation.mainCheckoutPath,
+            expectedWorktreePath: isolation.expectedWorktreePath,
+            underlying_error: isolation.underlying_error,
             remediation: isolation.remediation,
           });
         }

@@ -134,7 +134,15 @@ export interface EnsureWorktreeForMutationDeps {
 }
 
 export interface EnsureWorktreeForMutationInput {
-  change: Change;
+  /**
+   * Loaded change for per-change-marker conditioning (AC5). Optional so
+   * legacy guard call sites without per-change context can still route
+   * through the unified helper for the block_only / off paths. When
+   * omitted, activation cannot land on `auto_manage` (the marker is
+   * never true on a missing change), so the auto-create branch is
+   * unreachable without a changeId.
+   */
+  change?: Change;
   cwd: string;
   /**
    * Role hint for the projection signal:
@@ -163,6 +171,17 @@ export async function ensureWorktreeForMutation(
 
   if (activation.mode === "off") {
     return { decision: "ALLOW" };
+  }
+
+  // Defensive: auto_manage requires a change to resume against. If a caller
+  // mismatches activation with input (shouldn't happen — activation reads
+  // the marker off the change), fall back to block_only behavior.
+  if (activation.mode === "auto_manage" && !change) {
+    // unreachable in practice; left as a structural guard
+    return checkWorktreeIsolation(cwd, {
+      getSessionContext: deps?.getSessionContext,
+      onWarning: deps?.onWarning,
+    });
   }
 
   // Defer git-context resolution until we know we might BLOCK. The session
@@ -201,11 +220,15 @@ export async function ensureWorktreeForMutation(
   // call advWorktreeResume to materialize one. Either way, the agent
   // gets BLOCKED with `expectedWorktreePath` so it MUST re-run with
   // workdir set — never silently proceed from main (KD-1a).
+  //
+  // change is guaranteed defined here: activation === "auto_manage" implies
+  // change.worktree_auto_managed === true, so change cannot be undefined.
+  const changeId = change!.id;
   const existing = await Promise.resolve(
-    deps?.lookupExistingPath?.(change.id),
+    deps?.lookupExistingPath?.(changeId),
   );
   if (existing) {
-    await fireAttachment(deps, change.id, role, repoId, existing);
+    await fireAttachment(deps, changeId, role, repoId, existing);
     return blockWithExpectedPath({
       mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
       expectedWorktreePath: existing,
@@ -229,7 +252,7 @@ export async function ensureWorktreeForMutation(
   let result: AdvWorktreeResumeResult;
   try {
     result = await resumeImpl(
-      { changeId: change.id },
+      { changeId },
       {},
       deps.resumeRuntime,
     );
@@ -243,7 +266,7 @@ export async function ensureWorktreeForMutation(
   }
 
   if (result.ok) {
-    await fireAttachment(deps, change.id, role, repoId, result.path);
+    await fireAttachment(deps, changeId, role, repoId, result.path);
     return blockWithExpectedPath({
       mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
       expectedWorktreePath: result.path,

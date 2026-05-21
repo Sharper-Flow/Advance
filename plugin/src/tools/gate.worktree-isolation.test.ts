@@ -1,18 +1,51 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { evaluateGateWorktreeIsolation } from "./gate";
+import type { Change } from "../types";
 
-describe("evaluateGateWorktreeIsolation", () => {
-  test("blocks non-proposal gates from main checkout when flag is enabled", () => {
-    const result = evaluateGateWorktreeIsolation({
+const mainCtx = () => ({
+  isWorktree: false,
+  isMainCheckout: true,
+  mainCheckoutPath: "/repo/main",
+});
+
+const worktreeCtx = () => ({
+  isWorktree: true,
+  isMainCheckout: false,
+  mainCheckoutPath: "/repo/main",
+});
+
+function legacyChange(): Change {
+  return {
+    id: "legacy",
+    title: "Legacy",
+    status: "active",
+    created_at: "2026-05-21T00:00:00.000Z",
+    tasks: [],
+    deltas: {},
+    worktree_auto_managed: false,
+  } as Change;
+}
+
+function autoManagedChange(): Change {
+  return {
+    id: "autoManaged",
+    title: "Auto-managed",
+    status: "active",
+    created_at: "2026-05-21T00:00:00.000Z",
+    tasks: [],
+    deltas: {},
+    worktree_auto_managed: true,
+  } as Change;
+}
+
+describe("evaluateGateWorktreeIsolation (block_only mode preserved)", () => {
+  test("blocks non-proposal gates from main checkout when flag is enabled", async () => {
+    const result = await evaluateGateWorktreeIsolation({
       gateId: "discovery",
       features: { worktree_guard_enforce: true },
       cwd: "/repo/main",
-      getSessionContext: () => ({
-        isWorktree: false,
-        isMainCheckout: true,
-        mainCheckoutPath: "/repo/main",
-      }),
+      getSessionContext: mainCtx,
     });
 
     expect(result).toMatchObject({
@@ -20,35 +53,121 @@ describe("evaluateGateWorktreeIsolation", () => {
       errorClass: "WorktreeIsolationViolation",
       mainCheckoutPath: "/repo/main",
     });
+    // block_only path: no auto-create-specific fields
+    expect(result.code).toBeUndefined();
+    expect(result.expectedWorktreePath).toBeUndefined();
   });
 
-  test("keeps proposal gate exempt", () => {
-    expect(
+  test("keeps proposal gate exempt regardless of activation", async () => {
+    await expect(
       evaluateGateWorktreeIsolation({
         gateId: "proposal",
         features: { worktree_guard_enforce: true },
         cwd: "/repo/main",
-        getSessionContext: () => ({
-          isWorktree: false,
-          isMainCheckout: true,
-          mainCheckoutPath: "/repo/main",
-        }),
+        getSessionContext: mainCtx,
       }),
-    ).toEqual({ decision: "ALLOW" });
+    ).resolves.toEqual({ decision: "ALLOW" });
+
+    await expect(
+      evaluateGateWorktreeIsolation({
+        gateId: "proposal",
+        features: { worktree_guard_enforce: true },
+        cwd: "/repo/main",
+        change: autoManagedChange(),
+        getSessionContext: mainCtx,
+      }),
+    ).resolves.toEqual({ decision: "ALLOW" });
   });
 
-  test("allows when flag is disabled", () => {
-    expect(
+  test("allows when flag is explicitly disabled (legacy permissive)", async () => {
+    await expect(
       evaluateGateWorktreeIsolation({
         gateId: "execution",
         features: { worktree_guard_enforce: false },
         cwd: "/repo/main",
-        getSessionContext: () => ({
-          isWorktree: false,
-          isMainCheckout: true,
-          mainCheckoutPath: "/repo/main",
-        }),
+        getSessionContext: mainCtx,
       }),
-    ).toEqual({ decision: "ALLOW" });
+    ).resolves.toEqual({ decision: "ALLOW" });
+  });
+});
+
+describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
+  test("auto-manages BLOCK with expectedWorktreePath when no worktree yet", async () => {
+    const resume = vi.fn().mockResolvedValue({
+      ok: true,
+      branch: "change/autoManaged",
+      path: "/repo/wt/autoManaged",
+      baseRef: "trunk",
+      headSha: "abc",
+      reused: false,
+      materialized: true,
+    });
+    const result = await evaluateGateWorktreeIsolation({
+      gateId: "design",
+      features: undefined,
+      cwd: "/repo/main",
+      change: autoManagedChange(),
+      getSessionContext: mainCtx,
+      autoManageDeps: {
+        resume,
+        resumeRuntime: {
+          projectRoot: "/repo/main",
+          database: {},
+          log: {
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+          },
+        } as never,
+      },
+    });
+    expect(result).toMatchObject({
+      decision: "BLOCK",
+      errorClass: "WorktreeIsolationViolation",
+      mainCheckoutPath: "/repo/main",
+      expectedWorktreePath: "/repo/wt/autoManaged",
+    });
+    expect(resume).toHaveBeenCalledOnce();
+  });
+
+  test("auto-managed change allows when cwd is already a worktree", async () => {
+    const result = await evaluateGateWorktreeIsolation({
+      gateId: "execution",
+      features: undefined,
+      cwd: "/repo/wt/autoManaged",
+      change: autoManagedChange(),
+      getSessionContext: worktreeCtx,
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+
+  test("legacy change preserves block_only behavior under post-flip default", async () => {
+    // Flag omitted → defaults to true post-E1 → block_only for legacy
+    const result = await evaluateGateWorktreeIsolation({
+      gateId: "execution",
+      features: undefined,
+      cwd: "/repo/main",
+      change: legacyChange(),
+      getSessionContext: mainCtx,
+    });
+    expect(result).toMatchObject({
+      decision: "BLOCK",
+      errorClass: "WorktreeIsolationViolation",
+    });
+    // block_only path: no auto-create attempted, no AC6 fields
+    expect(result.code).toBeUndefined();
+    expect(result.expectedWorktreePath).toBeUndefined();
+  });
+
+  test("legacy change with explicit flag false stays permissive (escape hatch)", async () => {
+    const result = await evaluateGateWorktreeIsolation({
+      gateId: "execution",
+      features: { worktree_guard_enforce: false },
+      cwd: "/repo/main",
+      change: legacyChange(),
+      getSessionContext: mainCtx,
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
   });
 });
