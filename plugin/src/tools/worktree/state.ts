@@ -82,6 +82,11 @@ export interface PendingDelete {
   attempts: number;
 }
 
+export interface PendingDeleteSummary {
+  total: number;
+  classes: Record<string, number>;
+}
+
 /** Back-compat token for callers that previously passed a Database. */
 export interface WorktreeStateAccess {
   projectDir: string;
@@ -313,6 +318,34 @@ export async function getPendingDeletes(
   access: WorktreeStateAccess,
 ): Promise<PendingDelete[]> {
   return readPendingDeletes(access);
+}
+
+export function classifyPendingDelete(
+  entry: Pick<PendingDelete, "reason">,
+): string {
+  const reason = entry.reason.toLowerCase();
+  if (reason.includes("in use")) return "worktree_in_use";
+  if (reason.includes("terminal cleanup discovered")) {
+    return "terminal_cleanup_discovered";
+  }
+  if (reason.includes("uncommitted") || reason.includes("dirty")) {
+    return "dirty_worktree";
+  }
+  if (reason.includes("merged") || reason.includes("unmerged")) {
+    return "branch_not_merged";
+  }
+  return "other";
+}
+
+export function summarizePendingDeletes(
+  pendingDeletes: PendingDelete[],
+): PendingDeleteSummary {
+  const classes: Record<string, number> = {};
+  for (const entry of pendingDeletes) {
+    const klass = classifyPendingDelete(entry);
+    classes[klass] = (classes[klass] ?? 0) + 1;
+  }
+  return { total: pendingDeletes.length, classes };
 }
 
 export async function incrementPendingDeleteAttempts(

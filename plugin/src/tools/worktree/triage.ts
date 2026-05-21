@@ -31,6 +31,7 @@ import {
   initStateDb,
   listWorktrees,
   getChangeSummaries,
+  getPendingDeletes,
   type WorktreeStateAccess,
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
@@ -47,7 +48,8 @@ export type OrphanClass =
   | "missing_from_disk"
   | "registry_missing_change_id"
   | "archived_not_cleaned"
-  | "dirty_uncommitted_work";
+  | "dirty_uncommitted_work"
+  | "terminal_cleanup_retained";
 
 export interface OrphanRecord {
   class: OrphanClass;
@@ -254,6 +256,19 @@ export async function triageWorktrees(
       recommendedFix:
         `Inspect first: \`cd ${dw.path} && git status\`. ` +
         `Commit, stash, or review before deletion.`,
+    });
+  }
+
+  const pendingDeletes = await getPendingDeletes(access).catch(() => []);
+  for (const pendingDelete of pendingDeletes) {
+    orphans.push({
+      class: "terminal_cleanup_retained",
+      branch: pendingDelete.branch,
+      path: pendingDelete.path,
+      reason:
+        `Terminal cleanup retained ${pendingDelete.branch}: ${pendingDelete.reason}. ` +
+        `Attempts: ${pendingDelete.attempts}.`,
+      recommendedFix: `Resolve the blocker, then run adv_worktree_cleanup for ${pendingDelete.branch}.`,
     });
   }
 
