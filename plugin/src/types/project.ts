@@ -222,6 +222,16 @@ export const ProjectConfigSchema = z
     related_repos: z.array(RelatedRepoSchema).optional(),
     /** Optional product-link topology metadata. Reuses related_repos as repo registry. */
     product: ProductLinkSchema.optional(),
+    /**
+     * Archive finalization mode.
+     * - "direct" (default): /adv-archive finalizes by merging the change branch
+     *   into the default branch and optionally pushing it.
+     * - "pr": local default-branch merge is skipped; archive finalization must
+     *   push the change branch and guide the operator through PR workflow.
+     */
+    archive_mode: z.enum(["direct", "pr"]).default("direct"),
+    /** Whether archive finalization attempts `git push origin {default}`. */
+    auto_push: z.boolean().default(true),
     /** Per-project feature flag overrides. All flags default to current ADV behavior. */
     features: FeatureFlagsSchema.default(() => FeatureFlagsSchema.parse({})),
   })

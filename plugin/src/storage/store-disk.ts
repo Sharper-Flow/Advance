@@ -126,6 +126,8 @@ export async function createDiskStore(
           docs_dir: "docs/specs",
           db_dir: ".adv/db",
           project_file: "project.md",
+          archive_mode: "direct",
+          auto_push: true,
           features: {
             tdd_enforcement: "strict",
             worktree_auto_create: true,

@@ -722,6 +722,11 @@ cat > project.json << 'EOF'
 }
 EOF
 
+# Optional archive finalization overrides (defaults shown):
+# "archive_mode": "direct" merges completed changes into the default branch.
+# Use "pr" only for repositories that require PR-based shipping.
+# "auto_push": true attempts `git push origin {default-branch}` after merge.
+
 # Create directory structure
 mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
 
@@ -750,6 +755,11 @@ cat > project.json << 'EOF'
   "docs_dir": "docs/specs"
 }
 EOF
+
+# Optional archive finalization overrides (defaults shown):
+# "archive_mode": "direct" merges completed changes into the default branch.
+# Use "pr" only for repositories that require PR-based shipping.
+# "auto_push": true attempts `git push origin {default-branch}` after merge.
 
 # Create required directories
 mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
