@@ -3,21 +3,14 @@ import { dirname } from "path";
 
 export type ArchiveMode = "direct" | "pr";
 
-export interface GitFinalizeContext {
-  changeId: string;
-  workdir: string;
-  archiveMode: ArchiveMode;
-  autoPush: boolean;
-  skipPush?: boolean;
-}
-
 export interface GitFinalizeOutcome {
-  status: "shipped" | "merged_locally" | "blocked";
+  status: "shipped" | "merged_locally" | "blocked" | "pr_pushed";
   mainCheckout: string;
   defaultBranch: string;
   mergeCommitSha?: string;
   pushStatus: "pushed" | "skipped" | "failed" | "not_attempted";
   pushFailureReason?: string;
+  prBranch?: string;
   blocked?: { reason: string; remediation: string; details?: string[] };
 }
 
@@ -32,12 +25,32 @@ export interface GitFinalizeDeps {
   commandExists?: (command: string) => boolean;
 }
 
+const CREDENTIAL_PATTERNS = [
+  /https?:\/\/[^:]+:[^@]+@/gi,
+  /token\s*[=:]\s*\S+/gi,
+  /password\s*[=:]\s*\S+/gi,
+  /api[_-]?key\s*[=:]\s*\S+/gi,
+  /gh[pousr]_[A-Za-z0-9_]+/g,
+  /Bearer\s+\S+/gi,
+];
+
+export function redactGitOutput(output: string): string {
+  let result = output;
+  for (const pattern of CREDENTIAL_PATTERNS) {
+    result = result.replace(
+      pattern,
+      (match) => match.slice(0, Math.min(4, match.length)) + "***REDACTED***",
+    );
+  }
+  return result;
+}
+
 function defaultRunGit(cwd: string, args: string[]): RunGitResult {
   const result = spawnSync("git", args, { cwd, encoding: "utf8" });
   return {
     status: result.status,
-    stdout: result.stdout ?? "",
-    stderr: result.stderr ?? "",
+    stdout: redactGitOutput(result.stdout ?? ""),
+    stderr: redactGitOutput(result.stderr ?? ""),
   };
 }
 
@@ -84,30 +97,24 @@ export function detectDefaultBranch(
   deps: GitFinalizeDeps = {},
 ): { branch: string; source: string } {
   const runGit = deps.runGit ?? defaultRunGit;
-  for (const branch of ["main", "trunk"]) {
-    const result = runGit(mainCheckout, [
-      "rev-parse",
-      "--verify",
-      `refs/heads/${branch}`,
-    ]);
-    if (result.status === 0) return { branch, source: `local-${branch}` };
-  }
 
+  // Prefer origin/HEAD first (avoids stale local main winning in trunk repos)
   const originHead = runGit(mainCheckout, [
     "symbolic-ref",
     "--short",
     "refs/remotes/origin/HEAD",
   ]);
-  if (
-    originHead.status === 0 &&
-    originHead.stdout.trim().startsWith("origin/")
-  ) {
-    return {
-      branch: originHead.stdout.trim().replace(/^origin\//, ""),
-      source: "origin-head",
-    };
+  if (originHead.status === 0 && originHead.stdout.trim()) {
+    const branch = originHead.stdout.trim().replace(/^origin\//, "");
+    if (branch) {
+      return {
+        branch,
+        source: "origin-head",
+      };
+    }
   }
 
+  // Then init.defaultBranch config
   const configured = runGit(mainCheckout, [
     "config",
     "--get",
@@ -117,8 +124,18 @@ export function detectDefaultBranch(
     return { branch: configured.stdout.trim(), source: "init-defaultBranch" };
   }
 
+  // Then local branches
+  for (const branch of ["main", "trunk"]) {
+    const result = runGit(mainCheckout, [
+      "rev-parse",
+      "--verify",
+      `refs/heads/${branch}`,
+    ]);
+    if (result.status === 0) return { branch, source: `local-${branch}` };
+  }
+
   throw new Error(
-    "Unable to resolve default branch (tried main, trunk, origin/HEAD, init.defaultBranch)",
+    "Unable to resolve default branch (tried origin/HEAD, init.defaultBranch, main, trunk)",
   );
 }
 
@@ -274,6 +291,61 @@ export function pushToOrigin(
   };
 }
 
+export function pushChangeBranch(
+  workdir: string,
+  changeId: string,
+  options: {
+    autoPush: boolean;
+    skipPush?: boolean;
+    runGit?: GitFinalizeDeps["runGit"];
+  },
+):
+  | { status: "pushed"; output: string }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; reason: string } {
+  if (options.skipPush)
+    return { status: "skipped", reason: "--no-push requested" };
+  if (!options.autoPush)
+    return { status: "skipped", reason: "auto_push disabled" };
+
+  const branch = `change/${changeId}`;
+  const push = (options.runGit ?? defaultRunGit)(workdir, [
+    "push",
+    "origin",
+    branch,
+  ]);
+  if (push.status === 0) {
+    return { status: "pushed", output: push.stdout || push.stderr };
+  }
+  return {
+    status: "failed",
+    reason: (push.stderr || push.stdout || "push failed").trim(),
+  };
+}
+
+export function verifyChangeBranchPushed(
+  mainCheckout: string,
+  changeId: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): { pushed: boolean; reason?: string } {
+  const lsRemote = (deps.runGit ?? defaultRunGit)(mainCheckout, [
+    "ls-remote",
+    "origin",
+    `refs/heads/change/${changeId}`,
+  ]);
+  if (lsRemote.status === 0 && lsRemote.stdout.trim()) {
+    return { pushed: true };
+  }
+  return {
+    pushed: false,
+    reason: (
+      lsRemote.stderr ||
+      lsRemote.stdout ||
+      `change/${changeId} not found on origin`
+    ).trim(),
+  };
+}
+
 export function detectArchiveMode(
   config: Record<string, unknown> | undefined,
   deps: Pick<GitFinalizeDeps, "commandExists"> = {},
@@ -293,20 +365,187 @@ export function detectArchiveMode(
   };
 }
 
+export interface ValidateWorktreeResult {
+  valid: boolean;
+  mainCheckout: string;
+  currentBranch?: string;
+  error?: string;
+}
+
+export function validateChangeWorktree(
+  workdir: string,
+  changeId: string,
+  deps: GitFinalizeDeps = {},
+): ValidateWorktreeResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  // 1. Must share git-common-dir with the project root
+  let mainCheckout: string;
+  try {
+    mainCheckout = resolveMainCheckout(workdir, deps);
+  } catch {
+    return {
+      valid: false,
+      mainCheckout: "",
+      error: `Worktree ${workdir} is not inside a git repository`,
+    };
+  }
+
+  // 2. Must be on change/{changeId} branch
+  const branchResult = runGit(workdir, ["branch", "--show-current"]);
+  const currentBranch = branchResult.stdout.trim();
+  const expectedBranch = `change/${changeId}`;
+  if (currentBranch !== expectedBranch) {
+    return {
+      valid: false,
+      mainCheckout,
+      currentBranch,
+      error: `Worktree is on ${currentBranch || "(detached)"}, expected ${expectedBranch}`,
+    };
+  }
+
+  return { valid: true, mainCheckout, currentBranch };
+}
+
+export function commitArchiveArtifacts(
+  workdir: string,
+  changeId: string,
+  deps: GitFinalizeDeps = {},
+): { committed: boolean; commitSha?: string; error?: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  // Check if there are any changes to commit
+  const status = runGit(workdir, ["status", "--porcelain", ".adv/"]);
+  if (status.status !== 0) {
+    return {
+      committed: false,
+      error: `git status failed: ${status.stderr}`,
+    };
+  }
+  const changes = splitLines(status.stdout);
+  if (changes.length === 0) {
+    return { committed: false };
+  }
+
+  // Stage and commit
+  const add = runGit(workdir, ["add", ".adv/"]);
+  if (add.status !== 0) {
+    return {
+      committed: false,
+      error: `git add failed: ${add.stderr}`,
+    };
+  }
+
+  const commit = runGit(workdir, [
+    "commit",
+    "-m",
+    `Archive ${changeId}: apply spec deltas and bundle`,
+  ]);
+  if (commit.status !== 0) {
+    return {
+      committed: false,
+      error: `git commit failed: ${commit.stderr}`,
+    };
+  }
+
+  const sha = runGitOrThrow(workdir, ["rev-parse", "HEAD"], deps);
+  return { committed: true, commitSha: sha };
+}
+
+export interface GitFinalizeContext {
+  changeId: string;
+  workdir: string;
+  expectedMainCheckout?: string;
+  archiveMode: ArchiveMode;
+  autoPush: boolean;
+  skipPush?: boolean;
+}
+
 export async function finalizeRelease(
   ctx: GitFinalizeContext,
   deps: GitFinalizeDeps = {},
 ): Promise<GitFinalizeOutcome> {
-  const mainCheckout = resolveMainCheckout(ctx.workdir, deps);
+  // Validate worktree before any mutation
+  const worktreeValidation = validateChangeWorktree(
+    ctx.workdir,
+    ctx.changeId,
+    deps,
+  );
+  if (!worktreeValidation.valid) {
+    return {
+      status: "blocked",
+      mainCheckout: worktreeValidation.mainCheckout,
+      defaultBranch: "",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "INVALID_WORKTREE",
+        remediation: `${worktreeValidation.error}. rq-releaseFinalization01 requires a validated change worktree on branch change/${ctx.changeId}.`,
+      },
+    };
+  }
+
+  const mainCheckout = worktreeValidation.mainCheckout;
+  if (ctx.expectedMainCheckout && mainCheckout !== ctx.expectedMainCheckout) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch: "",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "WORKTREE_PROJECT_MISMATCH",
+        remediation: `Worktree ${ctx.workdir} belongs to ${mainCheckout}, expected ${ctx.expectedMainCheckout}. rq-releaseFinalization01 requires finalization inside this ADV project.`,
+      },
+    };
+  }
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps);
 
-  if (ctx.archiveMode === "pr") {
+  // Commit in-repo archive artifacts before merge
+  const commitResult = commitArchiveArtifacts(ctx.workdir, ctx.changeId, deps);
+  if (commitResult.error) {
     return {
-      status: "merged_locally",
+      status: "blocked",
       mainCheckout,
       defaultBranch,
-      pushStatus: "skipped",
-      pushFailureReason: "archive_mode=pr skips local default-branch merge",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "ARCHIVE_COMMIT_FAILED",
+        remediation: `${commitResult.error}. rq-releaseFinalization01 requires archive artifacts to be committed before merge.`,
+      },
+    };
+  }
+
+  if (ctx.archiveMode === "pr") {
+    const branchPush = pushChangeBranch(ctx.workdir, ctx.changeId, {
+      autoPush: ctx.autoPush,
+      skipPush: ctx.skipPush,
+      runGit: deps.runGit,
+    });
+
+    if (branchPush.status === "pushed") {
+      return {
+        status: "pr_pushed",
+        mainCheckout,
+        defaultBranch,
+        prBranch: `change/${ctx.changeId}`,
+        pushStatus: "pushed",
+      };
+    }
+
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      prBranch: `change/${ctx.changeId}`,
+      pushStatus: branchPush.status,
+      pushFailureReason: branchPush.reason,
+      blocked: {
+        reason:
+          branchPush.status === "failed"
+            ? "PR_BRANCH_PUSH_FAILED"
+            : "PR_BRANCH_PUSH_SKIPPED",
+        remediation: `Change branch change/${ctx.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
+        details: [branchPush.reason],
+      },
     };
   }
 

@@ -970,7 +970,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.incompleteGates).toBeUndefined();
     });
 
-    test("blocks archive when live gate status is incomplete", async () => {
+    test("allows archive when only release gate is pending (finalization completes it)", async () => {
       const liveIncompleteGates: NonNullable<Change["gates"]> = {
         ...allDoneGates,
         release: { status: "pending" },
@@ -984,11 +984,29 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       const parsed = JSON.parse(result);
 
+      expect(parsed.error ?? "").not.toContain("incomplete gates");
+      expect(parsed.incompleteGates).toBeUndefined();
+    });
+
+    test("blocks archive when non-release gates are incomplete", async () => {
+      const liveIncompleteGates: NonNullable<Change["gates"]> = {
+        ...allDoneGates,
+        acceptance: { status: "pending" },
+      };
+      const store = createMockStore({ gates: allDoneGates });
+      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
       expect(parsed.error).toContain("incomplete gates");
-      expect(parsed.incompleteGates).toEqual(["release"]);
+      expect(parsed.incompleteGates).toEqual(["acceptance"]);
       expect(parsed.gateStateSource).toBe("live");
       expect(parsed.storeIncompleteGates).toEqual([]);
-      expect(parsed.liveIncompleteGates).toEqual(["release"]);
+      expect(parsed.liveIncompleteGates).toEqual(["acceptance"]);
     });
   });
 

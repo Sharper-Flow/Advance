@@ -23,6 +23,8 @@ import {
   createDefaultGates,
   getIncompleteGates,
   allGatesSatisfied,
+  isGateSatisfied,
+  GATE_ORDER,
   GateIdSchema,
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
@@ -165,6 +167,7 @@ import {
 import {
   detectArchiveMode,
   finalizeRelease,
+  validateChangeWorktree,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 
@@ -853,10 +856,19 @@ async function resolveArchiveGateState(
 function getArchiveGatePreflightError(
   changeId: string,
   gateState: ArchiveGateState,
+  allowReleasePending: boolean,
   divergenceHint?: string | null,
 ): string | null {
   const gates = gateState.effectiveGates;
-  if (!allGatesSatisfied(gates)) {
+  // rq-releaseFinalization01: archive may run with release gate pending.
+  // Finalization creates the reachability/push evidence required to complete
+  // the release gate, which is then done after archive succeeds.
+  const incompleteGates = allowReleasePending
+    ? GATE_ORDER.filter(
+        (gateId) => gateId !== "release" && !isGateSatisfied(gates[gateId]),
+      )
+    : getIncompleteGates(gates);
+  if (incompleteGates.length > 0) {
     const fallbackHint = `Run /adv-gate-status ${changeId} to see gate details`;
     const hint = [
       fallbackHint,
@@ -871,7 +883,7 @@ function getArchiveGatePreflightError(
     return formatToolOutput({
       error:
         "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
-      incompleteGates: getIncompleteGates(gates),
+      incompleteGates,
       gateStateSource: gateState.source,
       storeIncompleteGates: getIncompleteGates(gateState.storeGates),
       ...(gateState.liveGates
@@ -2554,7 +2566,7 @@ export const changeTools = {
         .enum(["run", "skip"])
         .optional()
         .describe(
-          "Phase 9 git finalization mode. Defaults to run for direct tool invocations. The /adv-archive slash-command path passes 'skip' because it owns the richer human-facing Phase 9 workflow.",
+          "Phase 9 git finalization mode. Defaults to run. The /adv-archive slash-command may pass 'skip' if it owns the richer human-facing Phase 9 workflow, but release gate completion must happen only after reachability/push evidence exists.",
         ),
     },
     execute: async (
@@ -2597,6 +2609,7 @@ export const changeTools = {
       const gatePreflightError = getArchiveGatePreflightError(
         changeId,
         gateState,
+        phase9 !== "skip",
         divergenceHint,
       );
       if (gatePreflightError) {
@@ -2654,6 +2667,39 @@ export const changeTools = {
 
       const specs = await loadSpecsMap(store);
 
+      if (!dryRun) {
+        if (!worktreePath && phase9 !== "skip") {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archive finalization requires worktreePath so archive artifacts are written to the change worktree before merge.",
+            requirement: "rq-releaseFinalization01",
+            changeId,
+          });
+        }
+      }
+
+      if (!dryRun && worktreePath) {
+        const worktreeValidation = validateChangeWorktree(
+          worktreePath,
+          changeId,
+        );
+        if (
+          !worktreeValidation.valid ||
+          worktreeValidation.mainCheckout !== store.paths.root
+        ) {
+          return formatToolOutput({
+            success: false,
+            error: "Archive finalization requires a trusted change worktree.",
+            requirement: "rq-releaseFinalization01",
+            changeId,
+            remediation:
+              worktreeValidation.error ??
+              `Worktree belongs to ${worktreeValidation.mainCheckout}, expected ${store.paths.root}.`,
+          });
+        }
+      }
+
       // Run the archive operation
       // Include in-repo archive path: resolves within the repo at .adv/archive/.
       // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
@@ -2709,6 +2755,37 @@ export const changeTools = {
           dryRun,
           productId: store.productContext?.productId,
         });
+      }
+
+      // Phase 9 finalization BEFORE retiring the active change.
+      // If finalization fails, the change stays active so it can be retried.
+      let finalization: GitFinalizeOutcome | undefined;
+      if (!dryRun && archiveResult.success && phase9 !== "skip") {
+        const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
+        finalization = await finalizeRelease({
+          changeId,
+          workdir: worktreePath ?? store.paths.root,
+          expectedMainCheckout: store.paths.root,
+          archiveMode,
+          autoPush,
+        });
+
+        if (finalization.status === "blocked") {
+          return formatToolOutput({
+            success: false,
+            error: `Archive finalization blocked: ${finalization.blocked?.reason}`,
+            requirement: "rq-releaseFinalization01",
+            remediation: finalization.blocked?.remediation,
+            details: finalization.blocked?.details,
+            changeId,
+            archivePath: archiveResult.archivePath,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+          });
+        }
       }
 
       // Update change status in store (unless dry run)
@@ -2773,17 +2850,6 @@ export const changeTools = {
         existingBundlePath: existingBundlePath ?? undefined,
         worktreePath,
       });
-
-      let finalization: GitFinalizeOutcome | undefined;
-      if (!dryRun && archiveResult.success && phase9 !== "skip") {
-        const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
-        finalization = await finalizeRelease({
-          changeId,
-          workdir: worktreePath ?? store.paths.root,
-          archiveMode,
-          autoPush,
-        });
-      }
 
       return formatToolOutput({
         success: archiveResult.success,

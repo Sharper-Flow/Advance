@@ -99,7 +99,7 @@ or `cancel` / `stop` / `abort` to halt.
 
 **Anchor phrase:** `Reply `sign off``
 
-**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then call `adv_gate_complete gateId: 'release'` and proceed through Phase 6 in same turn. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
+**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then run Phase 6 (`adv_change_archive`) and Phase 9 (git finalization) in same turn. Only after Phase 9 verifies the change branch is reachable from the default branch (direct mode) or the change branch has been pushed to origin (PR mode), call `adv_gate_complete gateId: 'release'`. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
 
 **× Do NOT** use the `question` tool for archive sign-off. The inline pattern is canonical per `rq-inlineApproval01.3` (Tier B whitelist-only).
 
@@ -149,7 +149,7 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 ## Phase 6: Execute Archive
 
-`adv_change_archive changeId: <target>` — applies deltas, updates SQLite, generates docs, moves to archive. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
+`adv_change_archive changeId: <target> worktreePath: <worktree-root> phase9: "run"` — applies deltas, writes the archive bundle into the change worktree, commits the bundle/spec artifacts on `change/{id}`, finalizes git release evidence, then retires the change. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
 
 When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
 
@@ -212,9 +212,9 @@ Runtime enforcement lives in `plugin/src/tools/archive-helpers/git-finalize.ts`
 and the `adv_gate_complete release` precondition. This markdown remains the
 human-facing orchestration recipe; the helper module is the shared runtime
 contract used by direct tool paths. When this slash-command path calls
-`adv_change_archive`, it passes `phase9: "skip"` because the command owns the
-richer Phase 9 UX below. Direct `adv_change_archive` calls default to
-`phase9: "run"`.
+`adv_change_archive`, it passes `phase9: "run"` with `worktreePath` so the
+shared helper owns the structural git finalization. The markdown below remains
+the human-facing explanation of that runtime contract.
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks user — ADV does not "fix" main's state on user's behalf.
 
@@ -466,4 +466,4 @@ Delta application error → ARCHIVE FAILED banner with delta ID, target, error. 
 
 | Purpose | Tool                                |
 | ------- | ----------------------------------- |
-| Archive | `adv_change_archive changeId: <id> phase9: "skip"` |
+| Archive | `adv_change_archive changeId: <id> worktreePath: <worktree-root> phase9: "run"` |

@@ -59,6 +59,7 @@ import {
   detectDefaultBranch,
   resolveMainCheckout,
   verifyChangeBranchReachable,
+  verifyChangeBranchPushed,
 } from "./archive-helpers/git-finalize";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 
@@ -130,6 +131,19 @@ function releaseRequiresTrunkMergeResponse(input: {
     defaultBranch: input.defaultBranch,
     unmergedCommits: input.unmergedCommits,
     remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (merge + push + verify), then retry release gate completion.`,
+  });
+}
+
+function releaseRequiresPrHandoffResponse(input: {
+  changeId: string;
+  reason: string;
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_PR_HANDOFF: ${input.reason}`,
+    code: "RELEASE_REQUIRES_PR_HANDOFF",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (push change branch + PR workflow handoff), then retry release gate completion.`,
   });
 }
 
@@ -724,9 +738,10 @@ export const gateTools = {
 
         if (gateId === "release") {
           const { archiveMode } = detectArchiveMode(activeStore.config ?? {});
+          const mainCheckout = resolveMainCheckout(activeStore.paths.root);
+          const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+
           if (archiveMode === "direct") {
-            const mainCheckout = resolveMainCheckout(activeStore.paths.root);
-            const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
             const reachability = verifyChangeBranchReachable(
               mainCheckout,
               defaultBranch,
@@ -737,6 +752,15 @@ export const gateTools = {
                 changeId,
                 defaultBranch,
                 unmergedCommits: reachability.unmergedCommits,
+              });
+            }
+          } else if (archiveMode === "pr") {
+            const pushCheck = verifyChangeBranchPushed(mainCheckout, changeId);
+            if (!pushCheck.pushed) {
+              return releaseRequiresPrHandoffResponse({
+                changeId,
+                reason:
+                  pushCheck.reason ?? "change branch not pushed to origin",
               });
             }
           }

@@ -18,9 +18,13 @@ import {
   mergeChangeBranch,
   mergeToTrunk,
   pushToOrigin,
+  pushChangeBranch,
   resolveMainCheckout,
   verifyChangeBranchReachable,
   verifyMainInvariants,
+  redactGitOutput,
+  validateChangeWorktree,
+  commitArchiveArtifacts,
 } from "./git-finalize";
 
 function git(cwd: string, args: string[]): string {
@@ -37,7 +41,7 @@ function git(cwd: string, args: string[]): string {
 }
 
 async function initRepo(root: string, defaultBranch = "trunk"): Promise<void> {
-  git(root, ["init", "-b", defaultBranch]);
+  git(root, ["init", "-q", "-b", defaultBranch]);
   git(root, ["config", "user.email", "adv-test@example.invalid"]);
   git(root, ["config", "user.name", "ADV Test"]);
   await writeFile(join(root, "README.md"), "initial\n");
@@ -66,10 +70,48 @@ describe("git-finalize helpers", () => {
     expect(resolveMainCheckout(worktree)).toBe(main);
   });
 
-  it("detectDefaultBranch prefers main, then trunk, then origin/HEAD, then init.defaultBranch", async () => {
+  it("detectDefaultBranch prefers origin/HEAD, then init.defaultBranch, then local main/trunk", async () => {
+    // origin-head wins when present
+    const originRepo = join(tempRoot, "origin-head");
+    await mkdir(originRepo);
+    await initRepo(originRepo, "trunk");
+    // simulate origin/HEAD pointing at trunk via symbolic-ref
+    git(originRepo, [
+      "symbolic-ref",
+      "refs/remotes/origin/HEAD",
+      "refs/heads/trunk",
+    ]);
+    expect(detectDefaultBranch(originRepo)).toEqual({
+      branch: "trunk",
+      source: "origin-head",
+    });
+
+    // init.defaultBranch wins when origin/HEAD missing
+    const configRepo = join(tempRoot, "config-head");
+    await mkdir(configRepo);
+    await initRepo(configRepo, "develop");
+    git(configRepo, ["config", "init.defaultBranch", "develop"]);
+    // Remove the symbolic ref so origin/HEAD is not found
+    try {
+      git(configRepo, ["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+    } catch {
+      /* ignore if doesn't exist */
+    }
+    expect(detectDefaultBranch(configRepo)).toEqual({
+      branch: "develop",
+      source: "init-defaultBranch",
+    });
+
+    // local main wins last when origin/HEAD and init.defaultBranch missing
     const mainRepo = join(tempRoot, "main-preferred");
     await mkdir(mainRepo);
     await initRepo(mainRepo, "main");
+    // Remove origin/HEAD symbolic ref if it exists
+    try {
+      git(mainRepo, ["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+    } catch {
+      /* ignore if not present */
+    }
     expect(detectDefaultBranch(mainRepo)).toEqual({
       branch: "main",
       source: "local-main",
@@ -78,6 +120,11 @@ describe("git-finalize helpers", () => {
     const trunkRepo = join(tempRoot, "trunk-preferred");
     await mkdir(trunkRepo);
     await initRepo(trunkRepo, "trunk");
+    try {
+      git(trunkRepo, ["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+    } catch {
+      /* ignore if not present */
+    }
     expect(detectDefaultBranch(trunkRepo)).toEqual({
       branch: "trunk",
       source: "local-trunk",
@@ -202,6 +249,42 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("pushChangeBranch pushes change branch to origin", () => {
+    const pushed = pushChangeBranch("/repo", "example", {
+      autoPush: true,
+      runGit: () => ({
+        status: 0,
+        stdout: "remote: create PR...",
+        stderr: "",
+      }),
+    });
+    expect(pushed).toMatchObject({
+      status: "pushed",
+      output: "remote: create PR...",
+    });
+
+    const skipped = pushChangeBranch("/repo", "example", {
+      autoPush: false,
+    });
+    expect(skipped).toMatchObject({
+      status: "skipped",
+      reason: "auto_push disabled",
+    });
+
+    const failed = pushChangeBranch("/repo", "example", {
+      autoPush: true,
+      runGit: () => ({
+        status: 1,
+        stdout: "",
+        stderr: "rejected",
+      }),
+    });
+    expect(failed).toMatchObject({
+      status: "failed",
+      reason: "rejected",
+    });
+  });
+
   it("detectArchiveMode defaults direct and validates PR mode gh availability", () => {
     expect(detectArchiveMode({})).toEqual({
       archiveMode: "direct",
@@ -220,14 +303,16 @@ describe("git-finalize helpers", () => {
   });
 
   it("finalizeRelease blocks dirty trunk before merge and reports rq-releaseFinalization01 remediation", async () => {
-    const repo = join(tempRoot, "repo");
-    await mkdir(repo);
-    await initRepo(repo);
-    await writeFile(join(repo, "dirty.txt"), "dirty\n");
+    const main = join(tempRoot, "main");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(main);
+    await initRepo(main);
+    await writeFile(join(main, "dirty.txt"), "dirty\n");
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
     const result = await finalizeRelease({
       changeId: "example",
-      workdir: repo,
+      workdir: worktree,
       archiveMode: "direct",
       autoPush: false,
     });
@@ -242,4 +327,134 @@ describe("git-finalize helpers", () => {
       },
     });
   });
+
+  it("finalizeRelease commits archive artifacts before merge", async () => {
+    const main = join(tempRoot, "main");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await mkdir(join(worktree, ".adv", "archive"), { recursive: true });
+    await writeFile(
+      join(worktree, ".adv", "archive", "bundle.txt"),
+      "bundle\n",
+    );
+
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "direct",
+      autoPush: false,
+    });
+
+    // Should merge because branch is already reachable (no commits ahead of trunk)
+    expect(result.status).toBe("merged_locally");
+    expect(result.mergeCommitSha).toBeDefined();
+  });
+
+  it("finalizeRelease in PR mode pushes branch and returns pr_pushed", async () => {
+    const main = join(tempRoot, "main");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(main);
+    await initRepo(main);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const pushCalls: { cwd: string; args: string[] }[] = [];
+    const result = await finalizeRelease(
+      {
+        changeId: "example",
+        workdir: worktree,
+        archiveMode: "pr",
+        autoPush: true,
+      },
+      {
+        runGit: (cwd, args) => {
+          pushCalls.push({ cwd, args });
+          if (args[0] === "push" && args.includes("change/example")) {
+            return { status: 0, stdout: "remote: create PR...", stderr: "" };
+          }
+          return defaultRunGit(cwd, args);
+        },
+      },
+    );
+
+    expect(result.status).toBe("pr_pushed");
+    expect(result.prBranch).toBe("change/example");
+    expect(result.pushStatus).toBe("pushed");
+    expect(pushCalls.some((c) => c.args.includes("change/example"))).toBe(true);
+  });
+
+  it("validateChangeWorktree rejects wrong branch or unrelated repo", () => {
+    const wrongBranch = validateChangeWorktree("/repo", "example", {
+      runGit: (_cwd, args) => {
+        if (args[0] === "rev-parse" && args.includes("--git-common-dir")) {
+          return { status: 0, stdout: "/repo/.git\n", stderr: "" };
+        }
+        if (args[0] === "branch" && args.includes("--show-current")) {
+          return { status: 0, stdout: "wrong-branch\n", stderr: "" };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(wrongBranch.valid).toBe(false);
+    expect(wrongBranch.error).toContain("wrong-branch");
+
+    const detached = validateChangeWorktree("/repo", "example", {
+      runGit: (_cwd, args) => {
+        if (args[0] === "rev-parse" && args.includes("--git-common-dir")) {
+          return { status: 0, stdout: "/repo/.git\n", stderr: "" };
+        }
+        if (args[0] === "branch" && args.includes("--show-current")) {
+          return { status: 0, stdout: "\n", stderr: "" };
+        }
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(detached.valid).toBe(false);
+    expect(detached.error).toContain("detached");
+  });
+
+  it("commitArchiveArtifacts stages and commits .adv/ changes", async () => {
+    const repo = join(tempRoot, "repo");
+    await mkdir(repo);
+    await initRepo(repo);
+    git(repo, ["checkout", "-b", "change/example"]);
+
+    // No changes → no commit
+    const none = commitArchiveArtifacts(repo, "example");
+    expect(none.committed).toBe(false);
+
+    // Add archive artifact
+    await mkdir(join(repo, ".adv", "archive"), { recursive: true });
+    await writeFile(join(repo, ".adv", "archive", "bundle.txt"), "bundle\n");
+    const committed = commitArchiveArtifacts(repo, "example");
+    expect(committed.committed).toBe(true);
+    expect(committed.commitSha).toBeDefined();
+  });
+
+  it("redactGitOutput masks credentials and tokens", () => {
+    expect(redactGitOutput("remote: https://user:pass@github.com")).toContain(
+      "***REDACTED***",
+    );
+    expect(redactGitOutput("error: token=abc123secret")).toContain(
+      "***REDACTED***",
+    );
+    expect(redactGitOutput("ghp_abcdef1234567890")).toContain("***REDACTED***");
+    expect(redactGitOutput("Authorization: Bearer eyJhb")).toContain(
+      "***REDACTED***",
+    );
+    expect(redactGitOutput("normal output")).toBe("normal output");
+  });
 });
+
+function defaultRunGit(cwd: string, args: string[]) {
+  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+  return {
+    status: result.status,
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+  };
+}
