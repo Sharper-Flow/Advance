@@ -138,9 +138,18 @@ async function fireWorktreeSignal(
   if (!changeId) return { ok: true };
   try {
     const bundle = getService();
-    if (!bundle) return { ok: true };
+    if (!bundle) {
+      const warning =
+        "Worktree notification skipped: Temporal service unavailable";
+      appendDebugLog("worktree", warning);
+      return { ok: false, warning };
+    }
     const projectId = await getProjectIdRaw(projectDir);
-    if (!projectId) return { ok: true };
+    if (!projectId) {
+      const warning = `Worktree notification skipped: project ID unavailable for ${projectDir}`;
+      appendDebugLog("worktree", warning);
+      return { ok: false, warning };
+    }
     const handle = getChangeHandle(bundle.client, projectId, changeId);
     if (store) {
       // rq-cacheRefresh01: invalidate the cache after firing the signal
@@ -2083,16 +2092,33 @@ export async function advWorktreeCleanup(
   for (const pendingDelete of pendingDeletes) {
     const { path: worktreePath, branch } = pendingDelete;
 
+    if (deps.dryRun) {
+      retained++;
+      continue;
+    }
+
+    if (!(await pathExists(worktreePath))) {
+      deps.log.warn(
+        `[worktree] Clearing pending delete for ${branch} during worktree_cleanup — worktree path already missing: ${worktreePath}`,
+      );
+      await clearPendingDelete(deps.database, branch);
+      removed++;
+      continue;
+    }
+
+    if (pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS) {
+      deps.log.warn(
+        `[worktree] Skipping pending delete for ${branch} during worktree_cleanup — max attempts reached (${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS}). Fix the underlying issue before retrying.`,
+      );
+      retained++;
+      continue;
+    }
+
     if (isWorktreeInUse(worktreePath)) {
       deps.log.warn(
         `[worktree] Skipping worktree removal during worktree_cleanup — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
       );
       await incrementPendingDeleteAttempts(deps.database, branch);
-      retained++;
-      continue;
-    }
-
-    if (deps.dryRun) {
       retained++;
       continue;
     }

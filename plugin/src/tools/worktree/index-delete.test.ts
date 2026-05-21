@@ -14,7 +14,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
 
 const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
 
@@ -74,7 +74,11 @@ import {
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
 import { worktreeDeletedSignal } from "../../temporal/messages";
-import { getPendingDeletes, setPendingDelete } from "./state";
+import {
+  getPendingDeletes,
+  incrementPendingDeleteAttempts,
+  setPendingDelete,
+} from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -91,7 +95,9 @@ function createGitRepo(): string {
 
 function addWorktree(repoRoot: string, branch: string): string {
   const wtDir = join(repoRoot, "worktrees", branch);
-  execSync(`git worktree add -b ${branch} ${wtDir}`, { cwd: repoRoot });
+  execFileSync("git", ["worktree", "add", "-b", branch, wtDir], {
+    cwd: repoRoot,
+  });
   return wtDir;
 }
 
@@ -855,9 +861,14 @@ describe("advWorktreeCleanup", () => {
     const projectId = `cleanup-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const database = { projectDir: projectRoot, projectId };
 
+    const firstPath = join(projectRoot, "first");
+    const secondPath = join(projectRoot, "second");
+    mkdirSync(firstPath, { recursive: true });
+    mkdirSync(secondPath, { recursive: true });
+
     // Queue two pending deletes with unique projectId to avoid leakage
-    await setPendingDelete(database, "change/first", "/fake/first", "test");
-    await setPendingDelete(database, "change/second", "/fake/second", "test");
+    await setPendingDelete(database, "change/first", firstPath, "test");
+    await setPendingDelete(database, "change/second", secondPath, "test");
 
     const log = {
       debug: vi.fn(),
@@ -904,6 +915,85 @@ describe("advWorktreeCleanup", () => {
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("timed out"));
 
     rmSync(projectRoot, { recursive: true, force: true });
+  });
+
+  it("skips pending deletes that reached the retry cap", async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-cap-"));
+    const projectId = `cleanup-cap-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const database = { projectDir: projectRoot, projectId };
+
+    try {
+      await setPendingDelete(database, "change/capped", projectRoot, "test");
+      for (let i = 0; i < 5; i++) {
+        await incrementPendingDeleteAttempts(database, "change/capped");
+      }
+
+      const log = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+      const deleteWorktree = vi.fn(async () => ({
+        ok: true as const,
+        branch: "change/capped",
+        path: "/fake/capped",
+      }));
+
+      const result = await advWorktreeCleanup("test cleanup", {
+        projectRoot,
+        database,
+        log,
+        deleteWorktree,
+        cleanupItemTimeoutMs: 1,
+      });
+
+      expect(result).toEqual({ removed: 0, retained: 1 });
+      expect(deleteWorktree).not.toHaveBeenCalled();
+      expect(log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("max attempts reached"),
+      );
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("clears pending deletes whose worktree path is already gone", async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-gone-"));
+    const projectId = `cleanup-gone-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const database = { projectDir: projectRoot, projectId };
+
+    try {
+      await setPendingDelete(database, "change/gone", "/fake/gone", "test");
+
+      const log = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+      const deleteWorktree = vi.fn(async () => ({
+        ok: true as const,
+        branch: "change/gone",
+        path: "/fake/gone",
+      }));
+
+      const result = await advWorktreeCleanup("test cleanup", {
+        projectRoot,
+        database,
+        log,
+        deleteWorktree,
+      });
+
+      expect(result).toEqual({ removed: 1, retained: 0 });
+      expect(deleteWorktree).not.toHaveBeenCalled();
+      await expect(getPendingDeletes(database)).resolves.toEqual([]);
+      expect(log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("already missing"),
+      );
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
   });
 });
 
