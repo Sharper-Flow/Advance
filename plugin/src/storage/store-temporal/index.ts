@@ -451,6 +451,12 @@ export function createTemporalStoreBackend(
           wisdom: change.wisdom ?? [],
           gates: change.gates ?? createDefaultGates(),
           reentry_history: change.reentry_history ?? [],
+          artifacts: change.artifacts as ChangeWorkflowState["artifacts"],
+          lastSignalAt: change.lastSignalAt,
+          acceptanceCriteria: change.acceptanceCriteria,
+          contract: change.contract,
+          documents: change.documents,
+          origin: change.origin,
         },
       });
     } catch (err) {

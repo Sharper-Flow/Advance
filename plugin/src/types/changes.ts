@@ -487,6 +487,21 @@ export const ChangeSchema = z
     github_issues: z.array(z.string().url()).optional(),
     /** Structural traceability spine for approved change obligations. */
     contract: ChangeContractSchema.optional(),
+    /** Legacy acceptance criteria projection derived from contract items. */
+    acceptanceCriteria: z.array(z.string()).optional(),
+    /** Workflow document cache used to re-seed contract proof after recovery. */
+    documents: z
+      .object({
+        proposal: z.string().optional(),
+        problemStatement: z.string().optional(),
+        agreement: z.string().optional(),
+        design: z.string().optional(),
+      })
+      .optional(),
+    /** Artifact metadata projection used during workflow re-seed. */
+    artifacts: z.record(z.string(), z.unknown()).optional(),
+    /** Last signal timestamp preserved for workflow re-seed. */
+    lastSignalAt: z.string().optional(),
     /** Structured closure metadata for retired changes */
     closure: ChangeClosureSchema.optional(),
     /** Persisted clarify finding snapshots for resolution tracking */

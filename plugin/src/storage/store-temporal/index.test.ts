@@ -61,6 +61,69 @@ function activeChange(id: string): Change {
   };
 }
 
+function contractProof(): NonNullable<Change["contract"]> {
+  return {
+    version: 1,
+    rigor: "standard",
+    source: {
+      artifact: "agreement",
+      approvedAt: "2026-05-21T00:00:00.000Z",
+    },
+    items: [
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Contract proof is preserved.",
+        sourceArtifact: "agreement",
+        verificationRequired: true,
+        evidencePolicy: "test",
+        status: "approved",
+      },
+    ],
+    reviewMatrix: {
+      reviewedAt: "2026-05-21T01:00:00.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "pass",
+          evidencePolicy: "test",
+          evidence: "passing test",
+        },
+      ],
+    },
+    amendments: [],
+  };
+}
+
+async function createPoisonedPostReseedFailureStore(root: string) {
+  const legacy = await createDiskStore(root);
+  let startArgs: unknown[] | undefined;
+  const handle = {
+    query: async () => {
+      throw poisonedHistoryError();
+    },
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async (...args: unknown[]) => {
+          startArgs = args;
+          return handle;
+        },
+      },
+    },
+  };
+
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, startArgs: () => startArgs };
+}
+
 async function createPoisonedStore(root: string) {
   const legacy = await createDiskStore(root);
   const handle = {
@@ -248,6 +311,40 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const gates = await store.gates.get("activePoisonedReseedFailGates");
 
     expect(gates).toEqual(change.gates);
+  });
+
+  it("seeds contract proof fields when recovering a poisoned non-terminal change", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const change = {
+      ...activeChange("activePoisonedContractSeed"),
+      contract: contractProof(),
+      acceptanceCriteria: ["Contract proof is preserved."],
+      documents: { agreement: "# Agreement" },
+    } as Change;
+    await legacy.changes.save(change);
+
+    const { store, startArgs } =
+      await createPoisonedPostReseedFailureStore(tempDir);
+    await store.changes.get("activePoisonedContractSeed");
+    const startOptions = startArgs()?.find(
+      (arg): arg is { args: unknown[] } =>
+        Boolean(arg) && typeof arg === "object" && "args" in arg,
+    );
+
+    expect(startOptions).toEqual(
+      expect.objectContaining({
+        args: [
+          expect.objectContaining({
+            seedState: expect.objectContaining({
+              contract: change.contract,
+              acceptanceCriteria: ["Contract proof is preserved."],
+              documents: { agreement: "# Agreement" },
+            }),
+          }),
+        ],
+      }),
+    );
   });
 
   it("does NOT mask missing-workflow errors when re-seed itself fails", async () => {

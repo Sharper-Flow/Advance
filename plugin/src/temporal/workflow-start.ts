@@ -30,21 +30,7 @@ function isAlreadyStartedError(error: unknown): boolean {
 
 export async function ensureChangeWorkflowStarted(
   client: { workflow: WorkflowClientLike },
-  input: ChangeWorkflowInput & {
-    seedState?: Partial<
-      Pick<
-        ChangeWorkflowState,
-        | "status"
-        | "tasks"
-        | "deltas"
-        | "wisdom"
-        | "gates"
-        | "reentry_history"
-        | "artifacts"
-        | "origin"
-      >
-    >;
-  },
+  input: ChangeWorkflowInput,
 ): Promise<WorkflowHandleLike> {
   const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
   const taskQueue = buildProjectTaskQueue(input.projectId);
@@ -103,6 +89,11 @@ export async function reImportChangeState(
       gates: input.change.gates,
       reentry_history: input.change.reentry_history,
       origin: input.change.origin,
+      artifacts: input.change.artifacts as ChangeWorkflowState["artifacts"],
+      lastSignalAt: input.change.lastSignalAt,
+      acceptanceCriteria: input.change.acceptanceCriteria,
+      contract: input.change.contract,
+      documents: input.change.documents,
     },
   });
 }

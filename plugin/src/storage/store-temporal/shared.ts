@@ -63,6 +63,11 @@ export function mapTemporalChangeStateToChange(
     reentry_history: state.reentry_history,
     fast_follow_of: state.fast_follow_of,
     origin: state.origin,
+    contract: state.contract,
+    acceptanceCriteria: state.acceptanceCriteria,
+    documents: state.documents,
+    artifacts: state.artifacts,
+    lastSignalAt: state.lastSignalAt,
     adv_project_id: state.projectId,
   };
 }
