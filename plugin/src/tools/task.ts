@@ -25,6 +25,7 @@ import {
 } from "../utils/tool-formatters";
 import {
   formatTargetProjectContext,
+  resolveTargetAwareMutationCwd,
   targetPathSchema,
   type TargetProjectOutputContext,
   withOptionalTargetPathStore,
@@ -516,7 +517,10 @@ export const taskTools = {
         // worktree materialization uses the target project's worktree state.
         const isolation = await evaluateTaskUpdateWorktreeIsolation({
           features: activeStore.config?.features,
-          cwd: process.cwd(),
+          cwd: resolveTargetAwareMutationCwd({
+            store: activeStore,
+            target_path: args.target_path,
+          }),
           status: args.status,
           change: changeForGuard,
           role: args.target_path ? "target" : "current",
@@ -730,7 +734,10 @@ export const taskTools = {
         // rq-autoManageAdvWorktrees AC4 D1 — target_path → role:"target".
         const isolation = await evaluateTaskAddWorktreeIsolation({
           features: activeStore.config?.features,
-          cwd: process.cwd(),
+          cwd: resolveTargetAwareMutationCwd({
+            store: activeStore,
+            target_path: args.target_path,
+          }),
           change: changeForGuard,
           role: args.target_path ? "target" : "current",
           autoManageDeps:
