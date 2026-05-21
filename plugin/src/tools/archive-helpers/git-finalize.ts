@@ -1,6 +1,6 @@
-import { spawnSync } from "child_process";
 import { realpathSync } from "fs";
 import { dirname } from "path";
+import { spawnSyncGit } from "../../utils/git-binary";
 
 export type ArchiveMode = "direct" | "pr";
 
@@ -49,24 +49,29 @@ export function redactGitOutput(output: string): string {
 }
 
 function defaultRunGit(cwd: string, args: string[]): RunGitResult {
-  const result = spawnSync("git", args, {
+  const result = spawnSyncGit(args, {
     cwd,
     encoding: "utf8",
     timeout: DEFAULT_GIT_TIMEOUT_MS,
     env: {
       ...process.env,
-      GIT_TERMINAL_PROMPT: "0",
-      GIT_ASKPASS: "",
+      // git-binary helper already sets GIT_TERMINAL_PROMPT=0 and scrubs
+      // GIT_ASKPASS; we additionally null out SSH_ASKPASS here for parity
+      // with the previous implementation.
       SSH_ASKPASS: "",
     },
   });
   const timedOut = result.error?.message.includes("ETIMEDOUT") ?? false;
+  const stdout =
+    typeof result.stdout === "string" ? result.stdout : String(result.stdout);
+  const stderr =
+    typeof result.stderr === "string" ? result.stderr : String(result.stderr);
   return {
     status: timedOut ? 124 : result.status,
-    stdout: redactGitOutput(result.stdout ?? ""),
+    stdout: redactGitOutput(stdout ?? ""),
     stderr: timedOut
       ? `git ${args.join(" ")} timed out after ${DEFAULT_GIT_TIMEOUT_MS}ms`
-      : redactGitOutput(result.stderr ?? ""),
+      : redactGitOutput(stderr ?? ""),
   };
 }
 

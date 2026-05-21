@@ -33,7 +33,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import * as path from "node:path";
-import { execFile } from "child_process";
+import { execFileGitCb } from "../../utils/git-binary";
 import { type Plugin, tool } from "@opencode-ai/plugin";
 import type { Event } from "@opencode-ai/sdk";
 import type { OpencodeClient } from "../../utils/opencode-types";
@@ -360,8 +360,7 @@ export async function detectUncommittedState(
   worktreePath: string,
 ): Promise<{ clean: boolean; files: string[] }> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
+    execFileGitCb(
       ["status", "--porcelain"],
       { cwd: worktreePath },
       (error, stdout) => {
@@ -384,7 +383,7 @@ async function gitWorktreeRemove(
   return new Promise((resolve) => {
     const args = ["worktree", "remove", worktreePath];
     if (force) args.push("--force");
-    execFile("git", args, { cwd: repoRoot }, (error, _stdout, stderr) => {
+    execFileGitCb(args, { cwd: repoRoot }, (error, _stdout, stderr) => {
       if (error) {
         resolve(Result.err(stderr.trim() || error.message));
       } else {
@@ -749,13 +748,11 @@ async function git(
   cwd: string,
 ): Promise<Result<string, string>> {
   return new Promise((resolve) => {
-    execFile(
-      "git",
+    execFileGitCb(
       args,
       {
         cwd,
         timeout: 30000,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
       },
       (error, stdout, stderr) => {
         if (error) {

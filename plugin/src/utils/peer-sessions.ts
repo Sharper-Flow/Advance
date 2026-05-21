@@ -22,12 +22,9 @@
  */
 
 import { readdir, readlink } from "fs/promises";
-import { execFile } from "child_process";
-import { promisify } from "util";
 
+import { execFileGitAsync } from "./git-binary";
 import { getProjectId } from "./project-id";
-
-const execFileAsync = promisify(execFile);
 
 // =============================================================================
 // Public types
@@ -58,8 +55,7 @@ export interface PeerInfo {
 
 async function getGitCommonDir(cwd: string): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync(
-      "git",
+    const { stdout } = await execFileGitAsync(
       ["rev-parse", "--path-format=absolute", "--git-common-dir"],
       { cwd },
     );

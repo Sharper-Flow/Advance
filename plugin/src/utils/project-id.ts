@@ -23,7 +23,7 @@
  *   See `rq-testFixtureProjectId01` in `.adv/specs/advance-meta`.
  */
 
-import { execFile } from "child_process";
+import { execFileGitCb } from "./git-binary";
 import { isAbsolute, join, relative, resolve } from "path";
 import { homedir } from "os";
 import { createHash } from "crypto";
@@ -229,17 +229,12 @@ export function assertPathInsideDirectory(
 
 function execGit(args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
-      args,
-      { cwd, timeout: 5000, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } },
-      (error, stdout) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(stdout);
-        }
-      },
-    );
+    execFileGitCb(args, { cwd, timeout: 5000 }, (error, stdout) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stdout);
+      }
+    });
   });
 }
