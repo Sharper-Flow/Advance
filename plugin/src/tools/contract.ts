@@ -1,0 +1,293 @@
+import { readFile } from "fs/promises";
+import { join } from "path";
+import { z } from "zod";
+import type { Store } from "../storage/store";
+import {
+  ContractEvidencePolicySchema,
+  ContractEvidenceStatusSchema,
+  ContractItemKindSchema,
+  ContractReviewMatrixSchema,
+  ContractRigorSchema,
+  type Change,
+  type ContractReviewMatrix,
+} from "../types";
+import {
+  contractReviewMatrixSetSignal,
+  contractSetSignal,
+} from "../temporal/messages";
+import { getService } from "../temporal/service";
+import { getProjectId } from "../utils/project-id";
+import { formatToolOutput } from "../utils/tool-output";
+import { buildContractFromAgreement } from "../validator/contract-mint";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import {
+  formatTargetProjectContext,
+  withTargetPathStore,
+} from "./target-project";
+
+const targetArgs = {
+  target_path: z.string().optional(),
+  target_confirmed: z.literal(true).optional(),
+  confirmationEvidence: z.string().optional(),
+};
+
+const recoveryArgs = {
+  recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
+  recoveryEvidence: z.string().optional(),
+};
+
+async function withContractStore<T>(
+  store: Store,
+  input: {
+    target_path?: string;
+    target_confirmed?: true;
+    confirmationEvidence?: string;
+  },
+  fn: (activeStore: Store, projectContext?: ReturnType<typeof formatTargetProjectContext>) => Promise<T>,
+): Promise<T> {
+  if (!input.target_path) return fn(store);
+  return withTargetPathStore(
+    {
+      currentProjectPath: store.paths.root,
+      target_path: input.target_path,
+      target_confirmed: input.target_confirmed,
+      confirmationEvidence: input.confirmationEvidence,
+      stateRequirement: "temporal-required",
+    },
+    async ({ context, store: targetStore }) =>
+      fn(targetStore, formatTargetProjectContext(context)),
+  );
+}
+
+async function loadChange(store: Store, changeId: string): Promise<Change> {
+  const result = await store.changes.get(changeId);
+  if (!result.success) throw new Error(result.error);
+  if (!result.data) throw new Error(`Change not found: ${changeId}`);
+  return result.data;
+}
+
+async function readAgreement(store: Store, changeId: string): Promise<string> {
+  const text = await readFile(
+    join(store.paths.changes, changeId, "agreement.md"),
+    "utf-8",
+  );
+  if (!text.trim()) throw new Error(`Agreement artifact is empty: ${changeId}`);
+  return text;
+}
+
+function discoveryApprovedAt(change: Change): string {
+  const approvedAt = change.gates?.discovery?.completed_at;
+  if (!approvedAt) {
+    throw new Error(
+      "Contract minting requires completed discovery gate timestamp for ContractSource.approvedAt",
+    );
+  }
+  return approvedAt;
+}
+
+async function healthySignalHandle(store: Store, changeId: string) {
+  const bundle = getService();
+  if (!bundle) throw new Error("Temporal service not available");
+  const projectId = await getProjectId(store.paths.root);
+  if (!projectId) throw new Error("Could not resolve project ID");
+  return getChangeHandle(bundle.client, projectId, changeId);
+}
+
+function rejectRecoveryForNow(input: {
+  recoveryMode?: "normal" | "poisoned_history";
+}): string | undefined {
+  if (input.recoveryMode === "poisoned_history") {
+    return "poisoned_history recovery mode is implemented by a follow-up task in this change; healthy signal path is available now";
+  }
+  return undefined;
+}
+
+const reviewMatrixRowSchema = z.object({
+  contractId: z.string(),
+  kind: ContractItemKindSchema,
+  status: ContractEvidenceStatusSchema,
+  evidencePolicy: ContractEvidencePolicySchema,
+  evidence: z.string().min(1),
+  notes: z.string().optional(),
+});
+
+function ensureRowsReferenceContract(
+  change: Change,
+  matrix: ContractReviewMatrix,
+): string | undefined {
+  const contractIds = new Set(change.contract?.items.map((item) => item.id));
+  for (const row of matrix.rows) {
+    if (!contractIds.has(row.contractId)) {
+      return `Review matrix references unknown contract item: ${row.contractId}`;
+    }
+  }
+  return undefined;
+}
+
+export const contractTools = {
+  adv_contract_mint: {
+    description:
+      "Mint a typed ChangeContract from the approved agreement artifact and persist it through the contractSetSignal path. Recovery mode is explicit/audited and reserved for poisoned-history repair.",
+    args: {
+      changeId: z.string().describe("Change ID to mint a contract for"),
+      rigor: ContractRigorSchema.optional().describe(
+        "Contract rigor to use. Defaults to standard.",
+      ),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview the parsed contract without writing or signaling."),
+      ...recoveryArgs,
+      ...targetArgs,
+    },
+    execute: async (
+      args: {
+        changeId: string;
+        rigor?: "minimal" | "standard" | "strict";
+        dryRun?: boolean;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      store: Store,
+    ) =>
+      withContractStore(store, args, async (activeStore, projectContext) => {
+        const recoveryError = rejectRecoveryForNow(args);
+        if (recoveryError) return formatToolOutput({ error: recoveryError });
+        try {
+          const change = await loadChange(activeStore, args.changeId);
+          const agreement = await readAgreement(activeStore, args.changeId);
+          const contract = buildContractFromAgreement({
+            agreement,
+            approvedAt: discoveryApprovedAt(change),
+            rigor: args.rigor,
+          });
+          if (args.dryRun) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              itemCount: contract.items.length,
+              contract,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          const handle = await healthySignalHandle(activeStore, args.changeId);
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            args.changeId,
+            contractSetSignal,
+            { contract, updatedAt: new Date().toISOString() },
+          );
+          return formatToolOutput({
+            success: true,
+            changeId: args.changeId,
+            itemCount: contract.items.length,
+            contractIds: contract.items.map((item) => item.id),
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        } catch (error) {
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+            changeId: args.changeId,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
+      }),
+  },
+
+  adv_contract_review_matrix_set: {
+    description:
+      "Persist a typed contract.reviewMatrix through the contractReviewMatrixSetSignal path. Missing/failing rows still block acceptance.",
+    args: {
+      changeId: z.string().describe("Change ID to review"),
+      reviewedAt: z
+        .string()
+        .optional()
+        .describe("ISO timestamp for the review matrix. Defaults to now."),
+      rows: z
+        .array(reviewMatrixRowSchema)
+        .describe("Rows keyed to existing ChangeContract item IDs."),
+      dryRun: z
+        .boolean()
+        .optional()
+        .describe("Preview the review matrix without writing or signaling."),
+      ...recoveryArgs,
+      ...targetArgs,
+    },
+    execute: async (
+      args: {
+        changeId: string;
+        reviewedAt?: string;
+        rows: z.infer<typeof reviewMatrixRowSchema>[];
+        dryRun?: boolean;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      store: Store,
+    ) =>
+      withContractStore(store, args, async (activeStore, projectContext) => {
+        const recoveryError = rejectRecoveryForNow(args);
+        if (recoveryError) return formatToolOutput({ error: recoveryError });
+        try {
+          const change = await loadChange(activeStore, args.changeId);
+          if (!change.contract) {
+            return formatToolOutput({
+              error: "Cannot set contract review matrix: no contract is set",
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          const reviewMatrix = ContractReviewMatrixSchema.parse({
+            reviewedAt: args.reviewedAt ?? new Date().toISOString(),
+            rows: args.rows,
+          });
+          const rowError = ensureRowsReferenceContract(change, reviewMatrix);
+          if (rowError) {
+            return formatToolOutput({
+              error: rowError,
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          if (args.dryRun) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              rowCount: reviewMatrix.rows.length,
+              reviewMatrix,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          const handle = await healthySignalHandle(activeStore, args.changeId);
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            args.changeId,
+            contractReviewMatrixSetSignal,
+            { reviewMatrix, updatedAt: new Date().toISOString() },
+          );
+          return formatToolOutput({
+            success: true,
+            changeId: args.changeId,
+            rowCount: reviewMatrix.rows.length,
+            failingRows: reviewMatrix.rows.filter((row) =>
+              ["fail", "violated", "unknown"].includes(row.status),
+            ).length,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        } catch (error) {
+          return formatToolOutput({
+            error: error instanceof Error ? error.message : String(error),
+            changeId: args.changeId,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
+      }),
+  },
+};
