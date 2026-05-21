@@ -156,9 +156,9 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     const deps = createMockDeps(repoRoot, wtPath);
     deps.integrationCheck = async () => ({
       ok: false,
-      reason: "change_not_archived",
-      detail: "Change is not archived",
-      hint: "Archive the change first",
+      reason: "change_not_terminal",
+      detail: "Change is not in terminal state",
+      hint: "Archive or close the change first",
     });
 
     const result = await advWorktreeDelete(branch, {}, deps);
@@ -166,8 +166,8 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(result).toEqual({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "change_not_archived",
-      hint: "Branch must be archived, merged, and clean",
+      reason: "change_not_terminal",
+      hint: "Branch must be archived or closed, merged, and clean",
     });
 
     // Worktree should still exist
@@ -627,6 +627,29 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).not.toContain(branch);
   });
 
+  it("#55 follow-up deletes missing-registry CLOSED merged clean change branch without force", async () => {
+    // Closed is a terminal status produced by adv_change_close
+    // (cancelled, superseded, not_planned). Drift-recovery must accept it
+    // alongside archived so worktrees for cancelled changes can be reclaimed
+    // even when their registry entry has drifted.
+    const branch = "change/closed-clean";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    deps.integrationCheck = async () => {
+      throw new Error("registry-drift recovery must skip registry integration");
+    };
+    attachChangeStatus(deps, "closed");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
   it("#55 follow-up blocks missing-registry change branch when store is unavailable", async () => {
     const branch = "change/no-store";
     const wtPath = addWorktree(repoRoot, branch);
@@ -646,7 +669,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).toContain(branch);
   });
 
-  it("#55 follow-up blocks missing-registry change branch when change is not archived", async () => {
+  it("#55 follow-up blocks missing-registry change branch when change is not in terminal state", async () => {
     const branch = "change/not-archived";
     const wtPath = addWorktree(repoRoot, branch);
     const deps = createMockDeps(repoRoot, wtPath);
@@ -659,7 +682,7 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(result).toMatchObject({
       ok: false,
       error: "INTEGRATION_REQUIRED",
-      reason: "change_not_archived",
+      reason: "change_not_terminal",
     });
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),

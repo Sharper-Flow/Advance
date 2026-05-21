@@ -2,11 +2,16 @@
  * Branch Integration Gate (T29)
  *
  * 3-condition check before deleting an ADV-managed worktree branch:
- *   1. Archived  — corresponding ADV change has status: "archived"
- *   2. Merged    — branch appears in `git branch --merged <defaultBranch>`
- *   3. Clean     — worktree path has empty `git status --porcelain`
+ *   1. Terminal — corresponding ADV change has status: "archived" or "closed"
+ *   2. Merged   — branch appears in `git branch --merged <defaultBranch>`
+ *   3. Clean    — worktree path has empty `git status --porcelain`
  *
  * All three must pass. No `opts.force` bypass — this is an integrity contract.
+ *
+ * "Terminal" widens the historical archived-only check so that changes ended
+ * via /adv-cancel (status="closed" with cancelled/superseded/not_planned
+ * reasons) also free their worktree. Merged-into-default and clean-tree
+ * requirements stay intact: closed ≠ unmerged-OK.
  */
 
 import { execFile } from "node:child_process";
@@ -28,7 +33,7 @@ export type BranchIntegrationResult =
       ok: false;
       reason:
         | "branch_not_in_registry"
-        | "change_not_archived"
+        | "change_not_terminal"
         | "branch_not_merged"
         | "worktree_dirty"
         | "default_branch_unresolvable"
@@ -126,11 +131,11 @@ export async function verifyBranchIntegration(
     }
   }
 
-  if (changeStatus !== "archived") {
+  if (changeStatus !== "archived" && changeStatus !== "closed") {
     return fail(
-      "change_not_archived",
-      `Change "${changeId}" has status "${changeStatus ?? "undefined"}" (expected "archived").`,
-      "Archive the change via /adv-archive before deleting its worktree.",
+      "change_not_terminal",
+      `Change "${changeId}" has status "${changeStatus ?? "undefined"}" (expected "archived" or "closed").`,
+      "Archive or close the change via /adv-archive or /adv-cancel before deleting its worktree.",
     );
   }
 

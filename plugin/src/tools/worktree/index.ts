@@ -1457,11 +1457,13 @@ async function verifyMissingRegistryChangeBranchIntegration(
 
   try {
     const loaded = await deps.store.changes.get(changeId);
-    if (!loaded.success || !loaded.data || loaded.data.status !== "archived") {
+    const status =
+      loaded.success && loaded.data ? loaded.data.status : undefined;
+    if (status !== "archived" && status !== "closed") {
       return {
         ok: false,
-        reason: "change_not_archived",
-        hint: `Archive change ${changeId} before deleting its worktree.`,
+        reason: "change_not_terminal",
+        hint: `Archive or close change ${changeId} before deleting its worktree.`,
       };
     }
   } catch (err) {
@@ -1559,15 +1561,15 @@ export async function advWorktreeDelete(
 
   // 2. Branch integration check. Four cases:
   //
-  //    (a) ADV-owned branch (registry + changeId): archived+merged+clean
+  //    (a) ADV-owned branch (registry + changeId): terminal+merged+clean
   //    (b) Non-ADV registered branch (registry, no changeId): merged-only
-  //    (c) change/* branch not in registry: archived from store + merged-only
+  //    (c) change/* branch not in registry: terminal from store + merged-only
   //    (d) Branch not in registry, opts.force=true: merged-only (rq-forceUnregisteredDelete01)
   //    (e) Branch not in registry, no force: branch_not_in_registry (existing safety)
   //
   // The (c) recovery is intentionally before (d): change/* branches must
-  // prove archived state through the durable ADV store and must not fall back
-  // to weaker force-only non-ADV semantics.
+  // prove terminal state (archived or closed) through the durable ADV store
+  // and must not fall back to weaker force-only non-ADV semantics.
   //
   // The (d) bypass is intentionally narrow: it requires the branch to be
   // merged into the default branch. Force does NOT skip merged-to-default;
@@ -1601,7 +1603,7 @@ export async function advWorktreeDelete(
     }
     appendDebugLog(
       "worktree-delete",
-      `deleting missing-registry change branch ${branch} (archived+merged verified)`,
+      `deleting missing-registry change branch ${branch} (terminal+merged verified)`,
     );
   } else if (!registryEntry && opts.force) {
     // rq-forceUnregisteredDelete01: branches outside the registry can be
@@ -1629,7 +1631,7 @@ export async function advWorktreeDelete(
         ok: false,
         error: "INTEGRATION_REQUIRED",
         reason: integration.reason,
-        hint: "Branch must be archived, merged, and clean",
+        hint: "Branch must be archived or closed, merged, and clean",
       };
     }
   }
