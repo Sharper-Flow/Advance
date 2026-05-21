@@ -1,3 +1,9 @@
+## 2026-05-21 (v0.9.5)
+
+### Fixed
+
+- tolerate default review matrix args
+
 ## 2026-05-21 (v0.9.4)
 
 ### Fixed
