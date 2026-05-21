@@ -1,0 +1,383 @@
+/**
+ * Worktree Auto-Manage Helper (rq-autoManageAdvWorktrees Block B)
+ *
+ * Two pure-ish functions plus a single async entry point shared by all
+ * mutation guards (gate.ts, task.ts). Centralizes the activation matrix
+ * and the auto-create-then-BLOCK contract so per-tool guards stay thin.
+ *
+ * - `evaluateWorktreeGuardActivation(change, features)` classifies the
+ *   guard mode based on the per-change marker and the global flag.
+ * - `ensureWorktreeForMutation(input)` is the async helper that
+ *   (a) short-circuits ALLOW when off / not-in-main / non-auto-managed,
+ *   (b) BLOCKs with `expectedWorktreePath` when a worktree already
+ *       exists for the change branch on main checkout,
+ *   (c) calls `advWorktreeResume` and BLOCKs with the new path on
+ *       success, OR BLOCKs with a structured AC6 error on failure.
+ *
+ * Design references:
+ *   - design.md KD-1 (two-layer guard), KD-4 (insertion point), KD-5
+ *     (cross-project projection), KD-6 (signals).
+ *   - agreement.md AC1 (auto-create on first mutation), AC5 (per-change
+ *     conditioning), AC6 (structured failure).
+ *   - rq-worktreeRegistry01 (registry remains canonical).
+ *   - DONT1 (no silent retry), DONT2 (proposal-gate exemption).
+ */
+
+import type { Change } from "../types";
+import { resolveGitSessionContext } from "../utils/git-session";
+import type { GitSessionContext } from "../utils/git-session";
+import {
+  checkWorktreeIsolation,
+  WORKTREE_ISOLATION_REMEDIATION,
+  type WorktreeIsolationDeps,
+  type WorktreeIsolationErrorClass,
+  type WorktreeIsolationErrorCode,
+  type WorktreeIsolationResult,
+} from "./worktree-isolation-guard";
+import {
+  advWorktreeResume,
+  type AdvWorktreeCreateDeps,
+  type AdvWorktreeResumeResult,
+} from "./worktree";
+
+// ---------------------------------------------------------------------------
+// Activation evaluation
+// ---------------------------------------------------------------------------
+
+export type WorktreeGuardMode = "off" | "block_only" | "auto_manage";
+
+/**
+ * Single source of truth for the per-change-marker + global-flag matrix
+ * documented in design.md § KD-4. Replaces inline
+ * `readBooleanFeatureFlag(features, "worktree_guard_enforce", false)`
+ * short-circuits at every guard call site.
+ *
+ * Matrix:
+ *   marker=true                                  → "auto_manage" (new changes)
+ *   marker=false AND flag=true                   → "block_only" (legacy + project-enforced)
+ *   marker=false AND flag=false                  → "off"        (legacy + project-permissive)
+ *   marker=undefined AND flag=true               → "block_only" (lazy-migration-pending project-enforced)
+ *   marker=undefined AND flag=false              → "off"        (lazy-migration-pending project-permissive)
+ *
+ * Per AC3 the marker takes precedence: an auto-managed change activates
+ * the auto_manage path regardless of the global flag. A non-auto-managed
+ * change defers to the global flag, preserving legacy behavior exactly.
+ */
+export function evaluateWorktreeGuardActivation(
+  change: Change | undefined,
+  features: unknown,
+): { mode: WorktreeGuardMode } {
+  if (change?.worktree_auto_managed === true) {
+    return { mode: "auto_manage" };
+  }
+  const flag = readBooleanFeatureFlag(features, "worktree_guard_enforce", true);
+  if (flag) return { mode: "block_only" };
+  return { mode: "off" };
+}
+
+function readBooleanFeatureFlag(
+  features: unknown,
+  key: string,
+  defaultValue: boolean,
+): boolean {
+  if (!features || typeof features !== "object") return defaultValue;
+  const value = (features as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : defaultValue;
+}
+
+// ---------------------------------------------------------------------------
+// Auto-create + structured BLOCK helper
+// ---------------------------------------------------------------------------
+
+export interface EnsureWorktreeForMutationDeps {
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+  /**
+   * Test seam: override `advWorktreeResume` so unit tests can simulate
+   * each failure variant from `AdvWorktreeResumeResult` without spinning
+   * up real git worktrees. Production callers omit and the real resume
+   * tool is used.
+   */
+  resume?: (
+    target: { changeId: string; branch?: string },
+    opts: { base?: string; force?: boolean },
+    runtime: AdvWorktreeCreateDeps,
+  ) => Promise<AdvWorktreeResumeResult>;
+  /**
+   * Test seam for the AdvWorktreeCreateDeps bundle. Production callers
+   * supply the real { projectRoot, database, log, store } via the tool
+   * layer; tests inject a minimal mock.
+   */
+  resumeRuntime?: AdvWorktreeCreateDeps;
+  /**
+   * Optional projection callback fired after auto-create succeeds. The
+   * production wiring (Block D) routes through `worktreeAttachedSignal`
+   * to project the path onto the change record; tests can capture it to
+   * assert the projection contract without firing real signals.
+   */
+  onAttached?: (info: {
+    changeId: string;
+    role: "current" | "target" | "scope";
+    repoId?: string;
+    path: string;
+  }) => void | Promise<void>;
+  /**
+   * Optional registry lookup for the "worktree already exists for this
+   * change on main" branch. When omitted, we fall through to
+   * `advWorktreeResume`, which internally reuses existing materialized
+   * records via `getWorktreeRecord` — so the lookup is purely an
+   * optimization to avoid the resume call when we already know the path.
+   */
+  lookupExistingPath?: (
+    changeId: string,
+  ) => Promise<string | undefined> | string | undefined;
+  onWarning?: (message: string) => void;
+}
+
+export interface EnsureWorktreeForMutationInput {
+  change: Change;
+  cwd: string;
+  /**
+   * Role hint for the projection signal:
+   *   "current" — operating in the originating project's repo (default).
+   *   "target"  — operating in a `target_path` cross-project mutation.
+   *   "scope"   — operating in a product-linked `scope_repos[*]` repo;
+   *               `repoId` MUST be set when role="scope".
+   * Block C call sites in gate.ts/task.ts pass "current" today; Block
+   * D1/D2 extend the call sites to forward "target"/"scope" with
+   * `repoId`.
+   */
+  role?: "current" | "target" | "scope";
+  repoId?: string;
+  features?: unknown;
+  deps?: EnsureWorktreeForMutationDeps;
+}
+
+const AUTO_MANAGE_REMEDIATION = (workdir: string) =>
+  `ADV auto-managed change requires worktree isolation. Re-run with workdir="${workdir}".`;
+
+export async function ensureWorktreeForMutation(
+  input: EnsureWorktreeForMutationInput,
+): Promise<WorktreeIsolationResult> {
+  const { change, cwd, role = "current", repoId, features, deps } = input;
+  const activation = evaluateWorktreeGuardActivation(change, features);
+
+  if (activation.mode === "off") {
+    return { decision: "ALLOW" };
+  }
+
+  // Defer git-context resolution until we know we might BLOCK. The session
+  // context guard mirrors the legacy `checkWorktreeIsolation` posture: on
+  // git-detect failure we ALLOW + warn so non-git workdirs (e.g., tests
+  // running in tmpdirs) don't get spurious BLOCKs.
+  const getSessionContext =
+    deps?.getSessionContext ??
+    ((path: string) => resolveGitSessionContext(path, undefined));
+
+  let ctx: GitSessionContext;
+  try {
+    ctx = getSessionContext(cwd);
+  } catch (err) {
+    deps?.onWarning?.(
+      `worktree-auto-manage: git context detection failed for ${cwd}; allowing (${err instanceof Error ? err.message : String(err)})`,
+    );
+    return { decision: "ALLOW" };
+  }
+
+  if (!ctx.isMainCheckout) {
+    return { decision: "ALLOW" };
+  }
+
+  // block_only mode: emit the legacy WorktreeIsolationViolation surface.
+  // checkWorktreeIsolation re-derives the session context internally, but
+  // we already have it — pass it through to avoid the double-call.
+  if (activation.mode === "block_only") {
+    return checkWorktreeIsolation(cwd, {
+      getSessionContext: () => ctx,
+      onWarning: deps?.onWarning,
+    });
+  }
+
+  // auto_manage mode: try to surface an existing worktree path, else
+  // call advWorktreeResume to materialize one. Either way, the agent
+  // gets BLOCKED with `expectedWorktreePath` so it MUST re-run with
+  // workdir set — never silently proceed from main (KD-1a).
+  const existing = await Promise.resolve(
+    deps?.lookupExistingPath?.(change.id),
+  );
+  if (existing) {
+    await fireAttachment(deps, change.id, role, repoId, existing);
+    return blockWithExpectedPath({
+      mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
+      expectedWorktreePath: existing,
+      errorClass: "WorktreeIsolationViolation",
+    });
+  }
+
+  const resumeImpl = deps?.resume ?? advWorktreeResume;
+  if (!deps?.resumeRuntime) {
+    // Production callers must supply the runtime bundle. Defensive guard:
+    // if a call site forgets, surface a structured failure so the agent
+    // sees a clear error instead of a vague NPE downstream.
+    return autoCreateFailure({
+      mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
+      code: "GIT_FAILED",
+      reason:
+        "worktree-auto-manage: deps.resumeRuntime missing — caller did not wire the worktree create deps bundle",
+    });
+  }
+
+  let result: AdvWorktreeResumeResult;
+  try {
+    result = await resumeImpl(
+      { changeId: change.id },
+      {},
+      deps.resumeRuntime,
+    );
+  } catch (err) {
+    return autoCreateFailure({
+      mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
+      code: "GIT_FAILED",
+      reason: `advWorktreeResume threw: ${err instanceof Error ? err.message : String(err)}`,
+      underlying_error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  if (result.ok) {
+    await fireAttachment(deps, change.id, role, repoId, result.path);
+    return blockWithExpectedPath({
+      mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
+      expectedWorktreePath: result.path,
+      errorClass: "WorktreeIsolationViolation",
+    });
+  }
+
+  // Map advWorktreeResume failure variants to AC6 errorClass + code.
+  return mapResumeFailure(result, ctx.mainCheckoutPath ?? cwd);
+}
+
+async function fireAttachment(
+  deps: EnsureWorktreeForMutationDeps | undefined,
+  changeId: string,
+  role: "current" | "target" | "scope",
+  repoId: string | undefined,
+  path: string,
+): Promise<void> {
+  if (!deps?.onAttached) return;
+  try {
+    await deps.onAttached({ changeId, role, repoId, path });
+  } catch (err) {
+    deps.onWarning?.(
+      `worktree-auto-manage: onAttached hook threw for ${changeId} ${role}${repoId ? `:${repoId}` : ""}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+function blockWithExpectedPath(input: {
+  mainCheckoutPath: string;
+  expectedWorktreePath: string;
+  errorClass: WorktreeIsolationErrorClass;
+}): WorktreeIsolationResult {
+  return {
+    decision: "BLOCK",
+    errorClass: input.errorClass,
+    mainCheckoutPath: input.mainCheckoutPath,
+    expectedWorktreePath: input.expectedWorktreePath,
+    reason: `Worktree isolation: auto-managed change requires worktree mutation, not main checkout (${input.mainCheckoutPath}).`,
+    remediation: AUTO_MANAGE_REMEDIATION(input.expectedWorktreePath),
+  };
+}
+
+function autoCreateFailure(input: {
+  mainCheckoutPath: string;
+  code: WorktreeIsolationErrorCode;
+  reason: string;
+  underlying_error?: string;
+  errorClass?: WorktreeIsolationErrorClass;
+}): WorktreeIsolationResult {
+  return {
+    decision: "BLOCK",
+    errorClass: input.errorClass ?? "WorktreeAutoCreateFailure",
+    code: input.code,
+    mainCheckoutPath: input.mainCheckoutPath,
+    reason: input.reason,
+    underlying_error: input.underlying_error,
+    remediation: WORKTREE_ISOLATION_REMEDIATION,
+  };
+}
+
+/**
+ * Translate `AdvWorktreeResumeResult` failure variants into structured
+ * AC6 errorClass + code. Stable — agents branch on these.
+ *
+ * The classifier is intentionally explicit (no fallthrough catch-all)
+ * so a new variant added to `AdvWorktreeResumeResult` causes a TS error
+ * here and forces the maintainer to choose a code.
+ */
+function mapResumeFailure(
+  result: Extract<AdvWorktreeResumeResult, { ok: false }>,
+  mainCheckoutPath: string,
+): WorktreeIsolationResult {
+  switch (result.error) {
+    case "TARGET_REQUIRED":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        code: "RESUME_INVALID_TARGET",
+        reason: `advWorktreeResume could not resolve a branch from the input target. ${result.hint}`,
+      });
+    case "SETUP_FAILED":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        errorClass: "WorktreeSetupFailed",
+        code: "SETUP_HOOK_FAILED",
+        reason: `Worktree setup did not complete for ${result.branch}: ${result.reason}`,
+        underlying_error: result.reason,
+      });
+    case "BRANCH_IN_USE":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        errorClass: "WorktreeBranchCollision",
+        code: "BRANCH_IN_USE_BY_OTHER_CHANGE",
+        reason: `Branch ${result.branch} is already owned by other ADV change workflow(s): ${result.ownerChangeIds.join(", ")}. ${result.hint}`,
+      });
+    case "BRANCH_LOCKED":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        code: "BRANCH_LOCKED",
+        reason: result.hint,
+      });
+    case "DEFAULT_BRANCH_UNRESOLVABLE":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        code: "DEFAULT_BRANCH_UNRESOLVABLE",
+        reason: result.hint,
+      });
+    case "STALE_BASE":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        code: "STALE_BASE",
+        reason: `${result.reason}. Suggested: ${result.suggestion}`,
+      });
+    case "GIT_FAILED": {
+      const lower = result.reason.toLowerCase();
+      const code: WorktreeIsolationErrorCode =
+        lower.includes("no space") || lower.includes("disk full")
+          ? "DISK_FULL"
+          : lower.includes("permission denied") ||
+              lower.includes("operation not permitted")
+            ? "PERMISSION_DENIED"
+            : "GIT_FAILED";
+      return autoCreateFailure({
+        mainCheckoutPath,
+        code,
+        reason: result.reason,
+        underlying_error: result.reason,
+      });
+    }
+    case "INVALID_BRANCH":
+      return autoCreateFailure({
+        mainCheckoutPath,
+        code: "INVALID_BRANCH",
+        reason: result.reason,
+      });
+  }
+}
