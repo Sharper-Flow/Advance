@@ -147,4 +147,82 @@ describe("createChangeOps", () => {
       }),
     );
   });
+
+  /**
+   * rq-autoManageAdvWorktrees AC3 — stamping on create.
+   *
+   * New changes get worktree_auto_managed: true at creation, propagated
+   * through three surfaces: workflow seedState, the disk-projection save
+   * (changeWithOwner), and the Memo overlay. All three sites must move
+   * together so reads see the marker regardless of which path serves them.
+   */
+  test("stamps worktree_auto_managed:true at change creation (AC3)", async () => {
+    ensureChangeWorkflowStarted.mockResolvedValue(undefined);
+
+    const createdChange = {
+      id: "newAutoManagedChange",
+      title: "New auto-managed change",
+      status: "draft",
+      created_at: "2026-05-21T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: {},
+      reentry_history: [],
+    };
+
+    const saveMock = vi.fn().mockResolvedValue(undefined);
+    const updateOverlayMock = vi.fn();
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        create: vi.fn().mockResolvedValue({ changeId: createdChange.id }),
+        get: vi.fn().mockResolvedValue({ success: true, data: createdChange }),
+        save: saveMock,
+      },
+    };
+    const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-am",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: updateOverlayMock,
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.create("New auto-managed change", "test", "", "", "", "");
+
+    // 1. Workflow seedState carries the marker so the workflow starts with it set.
+    expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
+      workflowClient,
+      expect.objectContaining({
+        seedState: expect.objectContaining({ worktree_auto_managed: true }),
+      }),
+    );
+
+    // 2. Disk projection save includes the marker (changeWithOwner).
+    expect(saveMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "newAutoManagedChange",
+        adv_project_id: "pid-am",
+        worktree_auto_managed: true,
+      }),
+    );
+
+    // 3. Memo overlay carries the marker for lightweight summary reads.
+    expect(updateOverlayMock).toHaveBeenCalledWith(
+      "newAutoManagedChange",
+      expect.objectContaining({ worktree_auto_managed: true }),
+    );
+  });
 });

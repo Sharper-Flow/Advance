@@ -45,6 +45,8 @@ import type {
   TaskRemovedSignalPayload,
   TaskUpdatedSignalPayload,
   WisdomAddedSignalPayload,
+  WorktreeAttachedSignalPayload,
+  WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
 } from "../types";
@@ -187,6 +189,12 @@ export const worktreeCreatedSignal = wf.defineSignal<
 export const worktreeDeletedSignal = wf.defineSignal<
   [WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+export const worktreeAutoManagedSignal = wf.defineSignal<
+  [WorktreeAutoManagedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAutoManaged);
+export const worktreeAttachedSignal = wf.defineSignal<
+  [WorktreeAttachedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
 export const conformanceLockedSignal = wf.defineSignal<
   [ConformanceLockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);

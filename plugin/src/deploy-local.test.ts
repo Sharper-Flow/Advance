@@ -678,7 +678,7 @@ describe("deploy-local.sh", () => {
         advConfig?.scenarios
           ?.find((s) => s.id === "rq-advcfg01.2")
           ?.then.join("\n"),
-      ).toContain("worktree_guard_enforce defaults false");
+      ).toContain("worktree_guard_enforce defaults true");
       expect(probeCache).toBeDefined();
       expect(probeCache?.body).toContain("_freshness");
       expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(

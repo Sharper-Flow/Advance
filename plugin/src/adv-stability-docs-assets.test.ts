@@ -26,7 +26,11 @@ describe("ADV stability hardening docs", () => {
     ]) {
       expect(instructions).toContain(marker);
     }
-    expectPhrase(instructions, "trunk write firewall enforcement is opt-in");
+    expectPhrase(
+      instructions,
+      "trunk write firewall enforcement is default-on",
+    );
+    // Pre-flip behavior is preserved as the legacy-escape-hatch explanation.
     expectPhrase(
       instructions,
       "omitted or false allows default-checkout file writes",
@@ -38,7 +42,7 @@ describe("ADV stability hardening docs", () => {
 
     for (const marker of [
       "worker_singleton_enforce default true",
-      "worktree_guard_enforce default false",
+      "worktree_guard_enforce default true",
       "ADV_FORCE_IN_PROCESS_WORKER=1",
       "worker_role",
       "host",
@@ -67,8 +71,12 @@ describe("ADV stability hardening docs", () => {
     const worktreeGuide = readRepoFile("docs/worktree-guide.md");
     const temporalRecovery = readRepoFile("docs/temporal-recovery.md");
 
-    expect(worktreeGuide).toContain("worktree_guard_enforce default false");
-    expectPhrase(worktreeGuide, "trunk write firewall enforcement is opt-in");
+    expect(worktreeGuide).toContain("worktree_guard_enforce default true");
+    expectPhrase(
+      worktreeGuide,
+      "trunk write firewall enforcement is on by default",
+    );
+    // Pre-flip behavior text preserved for context.
     expectPhrase(
       worktreeGuide,
       "omitted or false allows default-checkout file writes",

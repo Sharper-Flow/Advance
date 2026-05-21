@@ -102,6 +102,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
             origin: created.data.origin,
+            // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
+            // by default. Seed the workflow state with the marker so the
+            // first read sees it; lazy migration (A4) covers legacy changes
+            // that pre-date this field.
+            worktree_auto_managed: true,
           },
         });
       } catch (err) {
@@ -124,6 +129,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const changeWithOwner: Change = {
         ...created.data,
         adv_project_id: input.projectId,
+        // rq-autoManageAdvWorktrees AC3 — stamp the disk projection so the
+        // first read sees the marker even before the workflow signal-
+        // handler projection writes it back. Sticky on the workflow side
+        // via applyWorktreeAutoManagedToState.
+        worktree_auto_managed: true,
       };
       try {
         await legacy.changes.save(changeWithOwner);
@@ -148,6 +158,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         fast_follow_of: created.data.fast_follow_of,
         origin: created.data.origin,
         adv_project_id: input.projectId,
+        // rq-autoManageAdvWorktrees AC3 — surface the marker on the Memo
+        // overlay so lightweight summary reads observe it without a
+        // workflow query round-trip.
+        worktree_auto_managed: true,
       });
       return result;
     },

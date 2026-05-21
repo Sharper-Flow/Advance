@@ -138,10 +138,13 @@ export const FeatureFlagsSchema = z
     wisdom_accumulation: z.boolean().default(true),
     /**
      * Whether machine worktree isolation is enforced.
-     * Default: false during rollout. When true, ADV main-checkout task/gate
-     * execution mutations and the trunk write firewall are enforced.
+     * Default: true (post-rollout, rq-autoManageAdvWorktrees AC2).
+     * When omitted or true, ADV main-checkout task/gate execution mutations
+     * and the trunk write firewall are enforced. Explicit `false` preserves
+     * legacy permissive behavior for projects that want to keep editing in
+     * the main checkout.
      */
-    worktree_guard_enforce: z.boolean().default(false),
+    worktree_guard_enforce: z.boolean().default(true),
     /**
      * Clarify enforcement mode.
      * - "off" (default): Clarify checks skipped entirely; no findings emitted
@@ -175,7 +178,7 @@ export function withStabilityFeatureDefaults(
     worktree_guard_enforce:
       typeof features?.worktree_guard_enforce === "boolean"
         ? features.worktree_guard_enforce
-        : false,
+        : true,
   };
 }
 

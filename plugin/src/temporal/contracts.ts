@@ -65,6 +65,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",
+  worktreeAutoManaged: "adv.change.worktreeAutoManaged",
+  worktreeAttached: "adv.change.worktreeAttached",
   conformanceLocked: "adv.change.conformanceLocked",
   conformanceVerdict: "adv.change.conformanceVerdict",
   conformanceOverridden: "adv.change.conformanceOverridden",
@@ -155,6 +157,9 @@ export interface ChangeWorkflowInput {
       | "conformance"
       | "archiveRequest"
       | "origin"
+      | "worktree_auto_managed"
+      | "target_worktree_path"
+      | "scope_worktrees"
     >
   >;
 }
@@ -243,6 +248,31 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * search attribute (rq-backlogCoord01).
    */
   origin?: ChangeOrigin;
+
+  /**
+   * Per-change worktree-auto-managed marker (rq-autoManageAdvWorktrees AC3).
+   * Mirrors `ChangeSchema.worktree_auto_managed` on disk. Set by
+   * `worktreeAutoManagedSignal`; sticky once a boolean is written.
+   */
+  worktree_auto_managed?: boolean;
+
+  /**
+   * Cross-project worktree path projection (rq-autoManageAdvWorktrees AC4).
+   * Mirrors `ChangeSchema.target_worktree_path` on disk. Set by
+   * `worktreeAttachedSignal({ role: "target" })`; null after archive
+   * cleanup. Registry remains canonical per `rq-worktreeRegistry01`.
+   */
+  target_worktree_path?: string | null;
+
+  /**
+   * Per-`scope_repos[*]` worktree path projection
+   * (rq-autoManageAdvWorktrees AC4). Mirrors `ChangeSchema.scope_worktrees`
+   * on disk. Keyed by `repo_id`. Set by
+   * `worktreeAttachedSignal({ role: "scope", repoId, path })`. Iteration
+   * order matches `Object.keys` insertion order, which archive Phase 9
+   * cleanup relies on for deterministic per-repo deletion.
+   */
+  scope_worktrees?: Record<string, string>;
 }
 
 /**

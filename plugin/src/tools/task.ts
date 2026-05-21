@@ -54,6 +54,11 @@ import {
   type WorktreeIsolationDeps,
   type WorktreeIsolationResult,
 } from "./worktree-isolation-guard";
+import {
+  ensureWorktreeForMutation,
+  type EnsureWorktreeForMutationDeps,
+} from "./worktree-auto-manage";
+import type { Change } from "../types";
 
 // =============================================================================
 // Helpers
@@ -63,28 +68,66 @@ function makeTaskId(): string {
   return `tk-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
 }
 
-function readBooleanFeatureFlag(
-  features: unknown,
-  key: string,
-  defaultValue: boolean,
-): boolean {
-  if (!features || typeof features !== "object") return defaultValue;
-  const value = (features as Record<string, unknown>)[key];
-  return typeof value === "boolean" ? value : defaultValue;
-}
-
+/**
+ * Task-add worktree-isolation guard (rq-autoManageAdvWorktrees AC5).
+ *
+ * Synchronous when `change` is omitted (legacy callers) — preserves the
+ * pre-Block-B contract. Async overload accepts `change` for per-change-
+ * marker conditioning and routes through `ensureWorktreeForMutation`
+ * (Block B helper). Both signatures share the WorktreeIsolationResult
+ * return shape.
+ */
 export function evaluateTaskAddWorktreeIsolation(input: {
   features: unknown;
   cwd: string;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
-}): WorktreeIsolationResult {
-  if (
-    !readBooleanFeatureFlag(input.features, "worktree_guard_enforce", false)
-  ) {
-    return { decision: "ALLOW" };
+}): WorktreeIsolationResult;
+export function evaluateTaskAddWorktreeIsolation(input: {
+  features: unknown;
+  cwd: string;
+  change: Change | undefined;
+  /** rq-autoManageAdvWorktrees AC4 D1 — target_path → "target", scope_repos → "scope". */
+  role?: "current" | "target" | "scope";
+  /** Required when role === "scope" (D2). */
+  repoId?: string;
+  autoManageDeps?: EnsureWorktreeForMutationDeps;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): Promise<WorktreeIsolationResult>;
+export function evaluateTaskAddWorktreeIsolation(input: {
+  features: unknown;
+  cwd: string;
+  change?: Change;
+  role?: "current" | "target" | "scope";
+  repoId?: string;
+  autoManageDeps?: EnsureWorktreeForMutationDeps;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): WorktreeIsolationResult | Promise<WorktreeIsolationResult> {
+  // Sync path: caller omitted both `change` and `autoManageDeps` —
+  // preserve the legacy synchronous contract for crosscut tests that
+  // assert sync behavior. This branch can never land on auto_manage
+  // because the activation helper reads the marker off `change`.
+  if (input.change === undefined && input.autoManageDeps === undefined) {
+    const flag = readBooleanFeatureFlagLocal(
+      input.features,
+      "worktree_guard_enforce",
+      true,
+    );
+    if (!flag) return { decision: "ALLOW" };
+    return checkWorktreeIsolation(input.cwd, {
+      getSessionContext: input.getSessionContext,
+    });
   }
-  return checkWorktreeIsolation(input.cwd, {
-    getSessionContext: input.getSessionContext,
+  return ensureWorktreeForMutation({
+    change: input.change,
+    cwd: input.cwd,
+    role: input.role,
+    repoId: input.repoId,
+    features: input.features,
+    deps: {
+      ...input.autoManageDeps,
+      getSessionContext:
+        input.autoManageDeps?.getSessionContext ?? input.getSessionContext,
+    },
   });
 }
 
@@ -101,23 +144,78 @@ const WORKTREE_GUARDED_TASK_UPDATE_STATUSES = new Set<TaskUpdateStatus>([
   "cancelled",
 ]);
 
+/**
+ * Task-update worktree-isolation guard (rq-autoManageAdvWorktrees AC5).
+ *
+ * Mirrors `evaluateTaskAddWorktreeIsolation` overload pattern with the
+ * additional non-mutating-status short-circuit. Non-guarded statuses
+ * (e.g., `pending`, `blocked`) ALLOW even in auto-manage mode because
+ * they don't represent execution-side mutations.
+ */
 export function evaluateTaskUpdateWorktreeIsolation(input: {
   features: unknown;
   cwd: string;
   status: TaskUpdateStatus;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
-}): WorktreeIsolationResult {
-  if (
-    !readBooleanFeatureFlag(input.features, "worktree_guard_enforce", false)
-  ) {
-    return { decision: "ALLOW" };
-  }
+}): WorktreeIsolationResult;
+export function evaluateTaskUpdateWorktreeIsolation(input: {
+  features: unknown;
+  cwd: string;
+  status: TaskUpdateStatus;
+  change: Change | undefined;
+  /** rq-autoManageAdvWorktrees AC4 D1 — target_path → "target", scope_repos → "scope". */
+  role?: "current" | "target" | "scope";
+  /** Required when role === "scope" (D2). */
+  repoId?: string;
+  autoManageDeps?: EnsureWorktreeForMutationDeps;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): Promise<WorktreeIsolationResult>;
+export function evaluateTaskUpdateWorktreeIsolation(input: {
+  features: unknown;
+  cwd: string;
+  status: TaskUpdateStatus;
+  change?: Change;
+  role?: "current" | "target" | "scope";
+  repoId?: string;
+  autoManageDeps?: EnsureWorktreeForMutationDeps;
+  getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
+}): WorktreeIsolationResult | Promise<WorktreeIsolationResult> {
   if (!WORKTREE_GUARDED_TASK_UPDATE_STATUSES.has(input.status)) {
     return { decision: "ALLOW" };
   }
-  return checkWorktreeIsolation(input.cwd, {
-    getSessionContext: input.getSessionContext,
+  if (input.change === undefined && input.autoManageDeps === undefined) {
+    const flag = readBooleanFeatureFlagLocal(
+      input.features,
+      "worktree_guard_enforce",
+      true,
+    );
+    if (!flag) return { decision: "ALLOW" };
+    return checkWorktreeIsolation(input.cwd, {
+      getSessionContext: input.getSessionContext,
+    });
+  }
+  return ensureWorktreeForMutation({
+    change: input.change,
+    cwd: input.cwd,
+    role: input.role,
+    repoId: input.repoId,
+    features: input.features,
+    deps: {
+      ...input.autoManageDeps,
+      getSessionContext:
+        input.autoManageDeps?.getSessionContext ?? input.getSessionContext,
+    },
   });
+}
+
+function readBooleanFeatureFlagLocal(
+  features: unknown,
+  key: string,
+  defaultValue: boolean,
+): boolean {
+  if (!features || typeof features !== "object") return defaultValue;
+  const value = (features as Record<string, unknown>)[key];
+  return typeof value === "boolean" ? value : defaultValue;
 }
 
 async function resolveChangeId(
@@ -400,18 +498,42 @@ export const taskTools = {
           return formatToolOutput({ error: `Task not found: ${args.taskId}` });
         }
 
-        const isolation = evaluateTaskUpdateWorktreeIsolation({
+        // Load change for per-change-marker conditioning (AC5). Best-
+        // effort: if the lookup fails we fall through to the legacy
+        // block_only / off behavior by passing undefined.
+        let changeForGuard: Change | undefined;
+        try {
+          const changeResult = await activeStore.changes.get(changeId);
+          if (changeResult.success && changeResult.data) {
+            changeForGuard = changeResult.data;
+          }
+        } catch {
+          // Pass undefined → guard runs in legacy mode based on global flag.
+        }
+        // rq-autoManageAdvWorktrees AC4 D1 — target_path mutations route
+        // through the target store; pass role="target" so the
+        // worktreeAttachedSignal projection fires against the originating
+        // change record. Production resumeRuntime wiring is a follow-up
+        // (the auto-create branch surfaces an AC6 defensive error today
+        // pointing the agent at the manual resume path); the role hint is
+        // in place for end-to-end fire when the runtime is wired.
+        const isolation = await evaluateTaskUpdateWorktreeIsolation({
           features: activeStore.config?.features,
           cwd: process.cwd(),
           status: args.status,
+          change: changeForGuard,
+          role: args.target_path ? "target" : "current",
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
             error: isolation.reason,
             errorClass: isolation.errorClass,
+            code: isolation.code,
             changeId,
             taskId: args.taskId,
             mainCheckoutPath: isolation.mainCheckoutPath,
+            expectedWorktreePath: isolation.expectedWorktreePath,
+            underlying_error: isolation.underlying_error,
             remediation: isolation.remediation,
           });
         }
@@ -595,16 +717,31 @@ export const taskTools = {
       ) => {
         const { changeId, content, metadata, blockedBy, section } = args;
 
-        const isolation = evaluateTaskAddWorktreeIsolation({
+        let changeForGuard: Change | undefined;
+        try {
+          const changeResult = await activeStore.changes.get(changeId);
+          if (changeResult.success && changeResult.data) {
+            changeForGuard = changeResult.data;
+          }
+        } catch {
+          // Pass undefined → guard runs in legacy mode based on global flag.
+        }
+        // rq-autoManageAdvWorktrees AC4 D1 — target_path → role:"target".
+        const isolation = await evaluateTaskAddWorktreeIsolation({
           features: activeStore.config?.features,
           cwd: process.cwd(),
+          change: changeForGuard,
+          role: args.target_path ? "target" : "current",
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
             error: isolation.reason,
             errorClass: isolation.errorClass,
+            code: isolation.code,
             changeId,
             mainCheckoutPath: isolation.mainCheckoutPath,
+            expectedWorktreePath: isolation.expectedWorktreePath,
+            underlying_error: isolation.underlying_error,
             remediation: isolation.remediation,
           });
         }
