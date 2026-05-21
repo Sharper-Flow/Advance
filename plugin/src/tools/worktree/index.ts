@@ -81,6 +81,7 @@ import {
   updateWorktreeRecord,
 } from "./state";
 import { openTerminal } from "./terminal";
+import { scanGitWorkspaceFacts } from "./census";
 import { runHooksWithSafety, HookFailedError } from "./hooks";
 import { appendDebugLog } from "../../utils/debug-log";
 import { execGit, getDefaultBranch } from "../../utils/git";
@@ -2016,6 +2017,10 @@ export interface AdvWorktreeCleanupDeps {
   dryRun?: boolean;
   store?: Store;
   warpDeps?: WarpDeps;
+  /** Automatic triggers use false; manual cleanup defaults to true. */
+  forceAttempts?: boolean;
+  /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
+  discover?: boolean;
 }
 
 export interface DrainPendingDeletesOptions {
@@ -2029,6 +2034,55 @@ export interface PendingDeleteDrainResult {
   removed: number;
   retained: number;
   dryRun?: boolean;
+}
+
+async function discoverTerminalCleanupCandidates(
+  trigger: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<number> {
+  if (!deps.store) return 0;
+
+  let defaultBranch: string;
+  try {
+    defaultBranch = await getDefaultBranch(deps.projectRoot);
+  } catch (error) {
+    deps.log.warn(
+      `[worktree] Skipping terminal cleanup discovery during ${trigger} — default branch unresolved: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return 0;
+  }
+
+  const facts = await scanGitWorkspaceFacts(deps.projectRoot, defaultBranch);
+  let discovered = 0;
+
+  for (const worktree of facts.worktrees) {
+    const branch = worktree.branch;
+    const changeId = inferChangeIdFromBranch(branch);
+    if (!changeId) continue;
+
+    let status: string | undefined;
+    try {
+      const loaded = await deps.store.changes.get(changeId);
+      status = loaded.success && loaded.data ? loaded.data.status : undefined;
+    } catch (error) {
+      deps.log.warn(
+        `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      continue;
+    }
+
+    if (status !== "archived" && status !== "closed") continue;
+
+    await setPendingDelete(
+      deps.database,
+      branch,
+      worktree.path,
+      `terminal cleanup discovered during ${trigger}`,
+    );
+    discovered++;
+  }
+
+  return discovered;
 }
 
 export async function drainPendingDeletes(
@@ -2105,17 +2159,22 @@ export async function advWorktreeCleanup(
   _reason: string,
   deps: AdvWorktreeCleanupDeps,
 ): Promise<PendingDeleteDrainResult> {
-  return drainPendingDeletes(
-    "worktree_cleanup",
-    {
-      projectRoot: deps.projectRoot,
-      database: deps.database,
-      log: deps.log,
-      store: deps.store,
-      warpDeps: deps.warpDeps,
-    },
-    { dryRun: deps.dryRun, forceAttempts: true },
-  );
+  const deleteDeps: AdvWorktreeDeleteDeps = {
+    projectRoot: deps.projectRoot,
+    database: deps.database,
+    log: deps.log,
+    store: deps.store,
+    warpDeps: deps.warpDeps,
+  };
+
+  if (!deps.dryRun && deps.discover !== false) {
+    await discoverTerminalCleanupCandidates("worktree_cleanup", deleteDeps);
+  }
+
+  return drainPendingDeletes("worktree_cleanup", deleteDeps, {
+    dryRun: deps.dryRun,
+    forceAttempts: deps.forceAttempts ?? true,
+  });
 }
 
 // =============================================================================

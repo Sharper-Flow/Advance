@@ -71,6 +71,8 @@ import {
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
 import { scanSnapshotHealth } from "./snapshot-scan";
+import { advWorktreeCleanup } from "./worktree";
+import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -1195,6 +1197,23 @@ export const statusTools = {
           }
 
           // Worktree census
+          try {
+            await advWorktreeCleanup("status", {
+              projectRoot: activeStore.paths.root,
+              database: await initWorktreeStateDb(activeStore.paths.root),
+              log: {
+                debug: () => undefined,
+                info: () => undefined,
+                warn: () => undefined,
+                error: () => undefined,
+              },
+              store: activeStore,
+              forceAttempts: false,
+            });
+          } catch {
+            // Status cleanup discovery is best-effort; status itself must remain available.
+          }
+
           const worktreeCensusProbe =
             await statusWorktreeCensusProbeCache.fetch(activeStore.paths.root);
           const worktreeCensus = worktreeCensusProbe.value;

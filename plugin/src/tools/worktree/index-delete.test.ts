@@ -65,6 +65,7 @@ vi.mock("./hooks", async (importOriginal) => {
 });
 
 import {
+  advWorktreeCleanup,
   advWorktreeDelete,
   drainPendingDeletes,
   reapEmptyWorktreeParents,
@@ -934,6 +935,26 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
 
     const result = await drainPendingDeletes("worktree_cleanup", deps, {
       forceAttempts: true,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 0 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
+  it("manual cleanup discovers terminal change worktrees before draining", async () => {
+    const branch = "change/discovered-archived";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createDrainDeps(wtPath);
+    attachChangeStatus(deps, "archived");
+
+    const result = await advWorktreeCleanup("manual discovery", {
+      projectRoot: repoRoot,
+      database: deps.database,
+      log: deps.log,
+      store: deps.store,
     });
 
     expect(result).toEqual({ removed: 1, retained: 0 });
