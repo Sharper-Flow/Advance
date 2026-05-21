@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "id": "ws-R3RNON",
+      "type": "gotcha",
+      "content": "Related upstream defect surfaced during this change: adv_change_close errors with \"workflow execution already completed\" when the change workflow has already terminated, instead of treating the terminated workflow as a successful close and writing the closed state. Out of scope for fixWorktreeTerminalStatusGate (which only widens the worktree-delete integration gate). Follow-up candidate: make adv_change_close idempotent — if the workflow is already terminated/completed, write the closed change.json projection and return success rather than surfacing the Temporal error. Without this fix, the new closed-accept path in the worktree-delete gate cannot be exercised end-to-end against a change that was closed after its workflow already completed.",
+      "recorded_at": "2026-05-21T03:36:48.533Z"
+    },
+    {
+      "id": "ws-dI_fYL",
+      "type": "gotcha",
+      "content": "Pre-existing test failures on baseline 8808dd0 (unrelated to this change, verified via git stash + rerun): (1) index-delete.test.ts:326 \"does not call workspace HTTP when the warp flag is disabled at delete time\" — fetchImpl called once unexpectedly; (2) index-create.test.ts:632 timeout in \"worktree_create defaults to warp but downgrades to terminal when workspace flag is off\"; (3) workspace-warp.test.ts:291 similar HTTP-called-unexpectedly. All three center on the warp-workspace HTTP integration. Follow-up candidate: separate change to fix workspace flag suppression in worktree create/delete paths.",
+      "recorded_at": "2026-05-21T03:40:03.637Z"
+    }
+  ],
+  "count": 2
+}
