@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { createDefaultGates, type Change } from "../types";
 import type { Store } from "../storage/store-types";
-import { contractSetSignal, contractReviewMatrixSetSignal } from "../temporal/messages";
+import {
+  contractSetSignal,
+  contractReviewMatrixSetSignal,
+} from "../temporal/messages";
 
 const fireSignalAndRefresh = vi.hoisted(() => vi.fn());
 const workflowHandle = vi.hoisted(() => ({ signal: vi.fn(), query: vi.fn() }));
@@ -237,7 +240,10 @@ describe("contractTools", () => {
     const changesDir = await writeAgreement("contractRecovery");
     const change = baseChange({
       _source: "disk",
-      _recovery: { mode: "temporal_query_fallback", reason: "poisoned_history" },
+      _recovery: {
+        mode: "temporal_query_fallback",
+        reason: "poisoned_history",
+      },
     } as Partial<Change>);
     const store = createStore(change, changesDir);
 
@@ -268,7 +274,10 @@ describe("contractTools", () => {
     const changesDir = await writeAgreement("contractRecovery");
     const change = baseChange({
       _source: "disk",
-      _recovery: { mode: "temporal_query_fallback", reason: "poisoned_history" },
+      _recovery: {
+        mode: "temporal_query_fallback",
+        reason: "poisoned_history",
+      },
     } as Partial<Change>);
     const store = createStore(change, changesDir);
 

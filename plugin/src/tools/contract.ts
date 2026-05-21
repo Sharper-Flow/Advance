@@ -44,7 +44,10 @@ async function withContractStore<T>(
     target_confirmed?: true;
     confirmationEvidence?: string;
   },
-  fn: (activeStore: Store, projectContext?: ReturnType<typeof formatTargetProjectContext>) => Promise<T>,
+  fn: (
+    activeStore: Store,
+    projectContext?: ReturnType<typeof formatTargetProjectContext>,
+  ) => Promise<T>,
 ): Promise<T> {
   if (!input.target_path) return fn(store);
   return withTargetPathStore(
@@ -120,7 +123,10 @@ function recoveryEvidenceError(input: {
   return undefined;
 }
 
-async function bestEffortRefresh(store: Store, changeId: string): Promise<void> {
+async function bestEffortRefresh(
+  store: Store,
+  changeId: string,
+): Promise<void> {
   try {
     await store.changes.refresh(changeId);
   } catch {
@@ -251,7 +257,10 @@ export const contractTools = {
             });
           }
           try {
-            const handle = await healthySignalHandle(activeStore, args.changeId);
+            const handle = await healthySignalHandle(
+              activeStore,
+              args.changeId,
+            );
             await fireSignalAndRefresh(
               handle,
               activeStore,
@@ -386,7 +395,10 @@ export const contractTools = {
             });
           }
           try {
-            const handle = await healthySignalHandle(activeStore, args.changeId);
+            const handle = await healthySignalHandle(
+              activeStore,
+              args.changeId,
+            );
             await fireSignalAndRefresh(
               handle,
               activeStore,

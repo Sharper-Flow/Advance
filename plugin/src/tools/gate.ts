@@ -737,7 +737,9 @@ export const gateTools = {
             notes,
             compatibilityReason,
             boundaryWarning,
-            extraPayload: projectContext ? { _projectContext: projectContext } : {},
+            extraPayload: projectContext
+              ? { _projectContext: projectContext }
+              : {},
           });
         }
 

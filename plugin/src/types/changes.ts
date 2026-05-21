@@ -500,8 +500,6 @@ export const ChangeSchema = z
       .optional(),
     /** Artifact metadata projection used during workflow re-seed. */
     artifacts: z.record(z.string(), z.unknown()).optional(),
-    /** Last signal timestamp preserved for workflow re-seed. */
-    lastSignalAt: z.string().optional(),
     /** Structured closure metadata for retired changes */
     closure: ChangeClosureSchema.optional(),
     /** Persisted clarify finding snapshots for resolution tracking */

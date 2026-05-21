@@ -306,7 +306,7 @@ Rules:
 - `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
-- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, then complete acceptance with `adv_gate_complete compatibilityReason: "..."` when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
+- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, then complete the gate with `compatibilityReason: "..."` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 

@@ -2,9 +2,7 @@ import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import {
-  classifyTemporalError,
-} from "../../temporal/retry-wrapper";
+import { classifyTemporalError } from "../../temporal/retry-wrapper";
 import { recoveryReasonFromError } from "../../temporal/recovery-classification";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";

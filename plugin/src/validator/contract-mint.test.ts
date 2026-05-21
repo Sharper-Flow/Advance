@@ -71,11 +71,7 @@ describe("buildContractFromAgreement", () => {
       approvedAt,
     });
 
-    expect(contract.items.map((item) => item.id)).toEqual([
-      "AC1",
-      "AC2",
-      "C1",
-    ]);
+    expect(contract.items.map((item) => item.id)).toEqual(["AC1", "AC2", "C1"]);
   });
 
   test("rejects agreements with no contract items", () => {

@@ -87,6 +87,10 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Update change issues${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
+  adv_contract_mint: (args) =>
+    write(`Mint contract${suffix(args, "changeId")}`),
+  adv_contract_review_matrix_set: (args) =>
+    write(`Set contract review${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),

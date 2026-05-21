@@ -10,5 +10,7 @@ export function isPoisonedHistoryError(error: unknown): boolean {
 export function recoveryReasonFromError(
   error: unknown,
 ): "poisoned_history" | "missing_workflow" {
-  return isPoisonedHistoryError(error) ? "poisoned_history" : "missing_workflow";
+  return isPoisonedHistoryError(error)
+    ? "poisoned_history"
+    : "missing_workflow";
 }
