@@ -372,9 +372,29 @@ Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lin
 
 If push was performed (Step 5 succeeded): `git -C "$MAIN" fetch origin {default-branch}` then compare `git -C "$MAIN" rev-parse origin/{default-branch}` with `git -C "$MAIN" rev-parse {default-branch}` → MUST be equal. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
 
-### Step 7: Cleanup Worktree
+### Step 7: Cleanup Worktree(s)
 
-Only if running in a worktree AND merge verified in Step 6: `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`. If `worktree_delete` is unavailable → emit an info banner naming the manual fallback: `git -C "$MAIN" worktree remove <worktree-path>` followed by `git -C "$MAIN" branch -D change/{change-id}`.
+Auto-managed changes (`change.worktree_auto_managed: true`) may own multiple worktrees — current-repo + `target_worktree_path` + `scope_worktrees[*]`. The cleanup helper `collectWorktreeCleanupTargets(change)` (plugin/src/tools/worktree/cleanup-targets.ts) returns the deterministic iteration order:
+
+1. Current-repo worktree (branch `change/{change-id}`).
+2. `target_worktree_path` if set (cross-project mutations).
+3. `scope_worktrees[*]` in `Object.keys` insertion order (product-linked changes).
+
+For each target, only proceed if merge was verified in Step 6:
+- `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`
+- For target / scope entries, scope the deletion to the target's repo root via `workdir` if the deletion tool supports it; otherwise emit the manual fallback: `git -C "<target-repo-root>" worktree remove <path>` followed by `git -C "<target-repo-root>" branch -D change/{change-id}`.
+
+Idempotency: re-running cleanup on an already-cleaned change is a no-op — entries already deleted by a prior archive attempt are skipped by `adv_worktree_delete`'s record check.
+
+Partial-failure tolerance: a per-target deletion that fails MUST NOT abort iteration of subsequent targets. Record per-entry outcomes and surface failures in Phase 8's archive report under `worktree_cleanup_failures`.
+
+After successful cleanup of each target, the archive flow clears the corresponding field on the change record via `worktreeAttachedSignal({ role, path: null, ...})`:
+- target → `target_worktree_path: null`
+- scope → `scope_worktrees[repoId]` deleted (signal with `repoId` + `path: null`)
+
+If `worktree_delete` is unavailable globally → emit an info banner naming the manual fallback once.
+
+**Legacy single-worktree changes** (`change.worktree_auto_managed !== true`) follow the pre-AC4 behavior: only the current-repo worktree is deleted if running in one AND merge verified.
 
 ### Step 8: Temp Artifacts
 
