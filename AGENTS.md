@@ -144,14 +144,14 @@ See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 ### Overlay sync model
 
-Shared global agents (`adv`, `general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/deploy-local.sh` injects into the global agent files without overwriting user customization.
+Shared global agents (`general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/deploy-local.sh` injects into the global agent files without overwriting user customization. The `adv` runtime agent is repo-owned and full-file synced from `.opencode/agents/adv.md`.
 
 ### Provider ADV runtime hints
 
 `scripts/deploy-local.sh` now assembles one global ADV runtime agent:
 
 1. **Copy canonical ADV body** — `.opencode/agents/adv.md` remains the source of truth.
-2. **Embed ADV protocol locally** — repository `ADV_INSTRUCTIONS.md` is appended into global `~/.config/opencode/agents/adv.md`, not global `instructions[]`.
+2. **Preserve ADV protocol by coverage** — repository `ADV_INSTRUCTIONS.md` remains the full reference, but is not appended wholesale into global `~/.config/opencode/agents/adv.md`; runtime coverage is tracked in `docs/adv-runtime-protocol-coverage.md`, specs, tests, and command contracts.
 3. **Retire provider variants** — stale global `adv-{provider}.md` files and concatenated provider prompt files are removed instead of regenerated.
 4. **Runtime hints** — `plugin/src/utils/system-block.ts` injects one provider hint into `output.system[0]` when structured provider/model identity is known.
 5. **Drift checks** — `check_tool_drift` validates the canonical ADV agent allowlist only.
@@ -188,7 +188,7 @@ Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schem
 ./scripts/deploy-local.sh --dry-run --diff  # Preview changes
 ```
 
-Requires `jq` for config patching.
+Requires `jq` for config patching and `rsync` for runtime plugin deployment.
 
 ## Key References
 

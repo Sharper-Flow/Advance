@@ -946,4 +946,4 @@ Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir`
 
 ### Provider ADV runtime hints
 
-<!-- rq-scopedAdvInstructions01 --> `scripts/deploy-local.sh` assembles one global `adv` runtime agent from `.opencode/agents/adv.md` plus this repository-scoped `ADV_INSTRUCTIONS.md`. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.
+<!-- rq-scopedAdvInstructions01 --> `scripts/deploy-local.sh` writes one global `adv` runtime agent from the lean canonical `.opencode/agents/adv.md`. This `ADV_INSTRUCTIONS.md` file remains the full repo/dev reference and is not appended wholesale into runtime `adv.md`; runtime protocol coverage is tracked by `docs/adv-runtime-protocol-coverage.md`, specs, tests, and command contracts. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.

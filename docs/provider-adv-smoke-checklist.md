@@ -6,7 +6,8 @@ Run after `scripts/deploy-local.sh --fix` and after any manual provider-agent co
 
 - [ ] `~/.config/opencode/agents/adv.md` exists
 - [ ] global `adv.md` contains canonical `## ADV Overlay`
-- [ ] global `adv.md` contains ADV protocol markers such as `### TDD Protocol (RSTC)`
+- [ ] global `adv.md` contains lean runtime protocol markers such as `## Slash Command Boundary` and `### Worktree Isolation Routing`
+- [ ] global `adv.md` does **not** contain full-reference-only markers such as `### TDD Protocol (RSTC)`
 - [ ] global `adv.md` does **not** contain `<!-- PROVIDER_HINT:` markers
 - [ ] `ADV_INSTRUCTIONS.md` is absent from global `opencode.json instructions[]`
 
@@ -42,9 +43,11 @@ Run after `scripts/deploy-local.sh --fix` and after any manual provider-agent co
 
 ## Metrics
 
-- [ ] Provider eval reports `canonical_adv_prompt`
-- [ ] Provider eval reports `adv_protocol_instructions`
+- [ ] Provider eval reports `lean_adv_runtime_prompt`
+- [ ] Provider eval reports `adv_reference_protocol`
 - [ ] Provider eval reports `provider_hint`
+- [ ] Provider eval reports `adv_dynamic_system_block_estimate`
+- [ ] Provider eval reports `caveman_voice_contract_allowance`
 - [ ] Provider eval reports `selected_agent_runtime_prompt`
 - [ ] Provider eval reports `avoided_provider_variant_duplication` when stale retired files are measurable
 - [ ] Provider eval does not require generated `adv-{provider}.md` files as canonical prompt sources

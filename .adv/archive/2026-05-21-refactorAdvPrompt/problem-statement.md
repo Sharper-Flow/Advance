@@ -1,0 +1,1 @@
+ADV's single runtime agent is currently reliable but oversized because it embeds both canonical ADV agent protocol and the full ADV_INSTRUCTIONS.md; the change should remove duplicate prompt load while preserving all runtime-critical protocol through retained text, structural enforcement, or explicit coverage mapping.
