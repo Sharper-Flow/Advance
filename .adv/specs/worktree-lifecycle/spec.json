@@ -4,7 +4,7 @@
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
   "version": "1.2.0",
-  "updated_at": "2026-05-12T00:00:00.000Z",
+  "updated_at": "2026-05-21T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -236,9 +236,7 @@
         {
           "id": "rq-worktreeBoundedCleanup01.2",
           "title": "Per-item sequential cleanup with bounded retries",
-          "given": [
-            "Multiple worktrees are eligible for cleanup"
-          ],
+          "given": ["Multiple worktrees are eligible for cleanup"],
           "when": "adv_worktree_cleanup processes the queue",
           "then": [
             "Worktrees are processed sequentially, one at a time",
