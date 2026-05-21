@@ -395,6 +395,36 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - If the push succeeds, the archive reports `Shipped.`
 - If the push fails or is skipped, the archive reports `Merged locally.` with an explicit reason
 
+**Release gate structurally enforces trunk merge** (`rq-releaseFinalization01.5`)
+
+**Given:**
+
+- A change has completed all gates before release
+- The change branch is not reachable from the default branch
+
+**When:** Any caller invokes `adv_gate_complete` with `gateId: "release"`
+
+**Then:**
+
+- The gate rejects completion with code `RELEASE_REQUIRES_TRUNK_MERGE`
+- The response cites `rq-releaseFinalization01`
+- The response points to `/adv-archive {change-id}` to complete Phase 9
+
+**PR archive mode opts out of local default-branch merge** (`rq-releaseFinalization01.6`)
+
+**Given:**
+
+- Project configuration declares `archive_mode: "pr"`
+- The GitHub CLI is available for PR workflow handoff
+
+**When:** Archive finalization runs for the change
+
+**Then:**
+
+- Local default-branch merge is skipped
+- The change branch must be pushed or otherwise made available for PR workflow
+- The archive reports the PR-mode handoff instead of claiming a local default-branch merge
+
 ---
 
 ### Product-Linked ADV State

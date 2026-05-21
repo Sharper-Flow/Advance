@@ -205,6 +205,16 @@ After archive summary is displayed, invoke reflection (non-blocking):
 
 ## Phase 9: Git Finalization (Mandatory)
 <!-- rq-releaseFinalization01 -->
+<!-- rq-releaseFinalization01.5 -->
+<!-- rq-releaseFinalization01.6 -->
+
+Runtime enforcement lives in `plugin/src/tools/archive-helpers/git-finalize.ts`
+and the `adv_gate_complete release` precondition. This markdown remains the
+human-facing orchestration recipe; the helper module is the shared runtime
+contract used by direct tool paths. When this slash-command path calls
+`adv_change_archive`, it passes `phase9: "skip"` because the command owns the
+richer Phase 9 UX below. Direct `adv_change_archive` calls default to
+`phase9: "run"`.
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks user — ADV does not "fix" main's state on user's behalf.
 
@@ -456,4 +466,4 @@ Delta application error → ARCHIVE FAILED banner with delta ID, target, error. 
 
 | Purpose | Tool                                |
 | ------- | ----------------------------------- |
-| Archive | `adv_change_archive changeId: <id>` |
+| Archive | `adv_change_archive changeId: <id> phase9: "skip"` |

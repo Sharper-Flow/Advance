@@ -925,7 +925,7 @@ Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir`
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → temp cleanup. × Never delete worktree with unmerged commits. If tools unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 handles: stage → commit → detect default branch → refresh basis → `--ff-only` / reconcile / PR path → verify → `adv_worktree_delete` → temp cleanup. The release gate is structurally enforced: `adv_gate_complete gateId: "release"` rejects direct-mode completion unless `change/{change-id}` is reachable from the default branch (`rq-releaseFinalization01.5`). PR-based projects must opt out explicitly with `archive_mode: "pr"` and complete the PR handoff instead (`rq-releaseFinalization01.6`). × Never delete worktree with unmerged commits. If tools unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 

@@ -20,9 +20,11 @@
 
 ### Fixed
 
+- enforce release-gate trunk merge structurally (rq-releaseFinalization01.5)
 - widen integration gate to terminal-set {archived, closed}
 ### Changed
 
+- add archive_mode PR opt-out and auto_push archive finalization config
 - archive fixWorktreeTerminalStatusGate (chore)
 
 ### Change Highlights

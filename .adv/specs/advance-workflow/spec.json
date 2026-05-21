@@ -415,6 +415,34 @@
             "If the push succeeds, the archive reports `Shipped.`",
             "If the push fails or is skipped, the archive reports `Merged locally.` with an explicit reason"
           ]
+        },
+        {
+          "id": "rq-releaseFinalization01.5",
+          "title": "Release gate structurally enforces trunk merge",
+          "given": [
+            "A change has completed all gates before release",
+            "The change branch is not reachable from the default branch"
+          ],
+          "when": "Any caller invokes `adv_gate_complete` with `gateId: \"release\"`",
+          "then": [
+            "The gate rejects completion with code `RELEASE_REQUIRES_TRUNK_MERGE`",
+            "The response cites `rq-releaseFinalization01`",
+            "The response points to `/adv-archive {change-id}` to complete Phase 9"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.6",
+          "title": "PR archive mode opts out of local default-branch merge",
+          "given": [
+            "Project configuration declares `archive_mode: \"pr\"`",
+            "The GitHub CLI is available for PR workflow handoff"
+          ],
+          "when": "Archive finalization runs for the change",
+          "then": [
+            "Local default-branch merge is skipped",
+            "The change branch must be pushed or otherwise made available for PR workflow",
+            "The archive reports the PR-mode handoff instead of claiming a local default-branch merge"
+          ]
         }
       ],
       "meta": {
