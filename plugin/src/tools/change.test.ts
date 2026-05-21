@@ -393,8 +393,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "problem-statement.md": "# Problem\n\nThe problem.",
         "agreement.md": "# Agreement\n\nThe agreement.",
         "design.md": "# Design\n\nThe design.",
-        "executive-summary.md":
-          "# Executive Summary\n\nThe executive summary.",
+        "executive-summary.md": "# Executive Summary\n\nThe executive summary.",
       };
       for (const [filename, content] of Object.entries(artifacts)) {
         await writeFile(pathJoin(bundleDir, filename), content, "utf-8");
@@ -453,11 +452,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const activeContent = "# Active Design\n\nCurrent version.";
       const archivedContent = "# Archived Design\n\nOld version.";
-      await writeFile(
-        pathJoin(changeDir, "design.md"),
-        activeContent,
-        "utf-8",
-      );
+      await writeFile(pathJoin(changeDir, "design.md"), activeContent, "utf-8");
       await writeFile(
         pathJoin(bundleDir, "design.md"),
         archivedContent,

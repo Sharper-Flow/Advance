@@ -233,7 +233,13 @@ describe("ambiguity taxonomy spec assets", () => {
 
     expect(spec.version).toBe("1.2.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
-      expect.arrayContaining(["rq-disc-tax1", "rq-disc-tax2", "rq-disc-tax3", "rq-discOpportunityScout01", "rq-discOpportunityScout02"]),
+      expect.arrayContaining([
+        "rq-disc-tax1",
+        "rq-disc-tax2",
+        "rq-disc-tax3",
+        "rq-discOpportunityScout01",
+        "rq-discOpportunityScout02",
+      ]),
     );
   });
 

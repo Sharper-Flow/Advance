@@ -358,29 +358,19 @@ describe("Opportunity scout phase and schema anchors", () => {
   });
 
   test("adv-discover spec contains scout requirements", () => {
-    const specPath = join(
-      REPO_ROOT,
-      ".adv/specs/adv-discover/spec.json",
-    );
+    const specPath = join(REPO_ROOT, ".adv/specs/adv-discover/spec.json");
     const content = readAsset(specPath);
     const spec = JSON.parse(content);
-    const ids = spec.requirements.map(
-      (r: { id: string }) => r.id,
-    );
+    const ids = spec.requirements.map((r: { id: string }) => r.id);
     expect(ids).toContain("rq-discOpportunityScout01");
     expect(ids).toContain("rq-discOpportunityScout02");
   });
 
   test("advance-workflow spec contains design scout requirement", () => {
-    const specPath = join(
-      REPO_ROOT,
-      ".adv/specs/advance-workflow/spec.json",
-    );
+    const specPath = join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json");
     const content = readAsset(specPath);
     const spec = JSON.parse(content);
-    const ids = spec.requirements.map(
-      (r: { id: string }) => r.id,
-    );
+    const ids = spec.requirements.map((r: { id: string }) => r.id);
     expect(ids).toContain("rq-designOpportunityScout01");
   });
 });
