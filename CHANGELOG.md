@@ -1,3 +1,14 @@
+## 2026-05-21 (v0.9.3)
+
+### Fixed
+
+- resolve trunk rebase conflict
+
+### Change Highlights
+
+- **05-21-addTerminalCleanupReaper**: Executive Summary
+- **05-21-makeArchiveMergeTrunk**: Executive Summary
+
 ## 2026-05-21 (v0.9.2)
 
 ### Fixed
