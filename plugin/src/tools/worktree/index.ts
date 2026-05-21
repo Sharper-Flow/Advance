@@ -2048,6 +2048,9 @@ async function resolveEffectiveWorktreeMode(
 // ADV WORKTREE CLEANUP (extracted for tool-registry wiring, T24)
 // =============================================================================
 
+/** Default timeout for each pending-delete item during cleanup (ms). */
+const DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 30_000;
+
 export interface AdvWorktreeCleanupDeps {
   projectRoot: string;
   database: Database;
@@ -2055,6 +2058,10 @@ export interface AdvWorktreeCleanupDeps {
   dryRun?: boolean;
   store?: Store;
   warpDeps?: WarpDeps;
+  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  cleanupItemTimeoutMs?: number;
+  /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
+  deleteWorktree?: typeof advWorktreeDelete;
 }
 
 export async function advWorktreeCleanup(
@@ -2090,28 +2097,48 @@ export async function advWorktreeCleanup(
       continue;
     }
 
-    const result = await advWorktreeDelete(
-      branch,
-      { force: true },
-      {
-        projectRoot: deps.projectRoot,
-        database: deps.database,
-        log: deps.log,
-        worktreePath,
-        store: deps.store,
-        warpDeps: deps.warpDeps,
-      },
-    );
+    const deleteFn = deps.deleteWorktree ?? advWorktreeDelete;
+    const timeoutMs =
+      deps.cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS;
 
-    if (result.ok) {
-      await clearPendingDelete(deps.database, branch);
-      removed++;
-    } else {
-      deps.log.warn(
-        `[worktree] Failed pending delete for ${branch}: ${result.error}`,
+    try {
+      const result = await withTimeout(
+        deleteFn(
+          branch,
+          { force: true },
+          {
+            projectRoot: deps.projectRoot,
+            database: deps.database,
+            log: deps.log,
+            worktreePath,
+            store: deps.store,
+            warpDeps: deps.warpDeps,
+          },
+        ),
+        timeoutMs,
+        `Pending delete for ${branch} timed out`,
       );
-      await incrementPendingDeleteAttempts(deps.database, branch);
-      retained++;
+
+      if (result.ok) {
+        await clearPendingDelete(deps.database, branch);
+        removed++;
+      } else {
+        deps.log.warn(
+          `[worktree] Failed pending delete for ${branch}: ${result.error}`,
+        );
+        await incrementPendingDeleteAttempts(deps.database, branch);
+        retained++;
+      }
+    } catch (err) {
+      if (err instanceof TimeoutError) {
+        deps.log.warn(
+          `[worktree] Pending delete for ${branch} timed out after ${timeoutMs}ms — retaining for retry`,
+        );
+        await incrementPendingDeleteAttempts(deps.database, branch);
+        retained++;
+      } else {
+        throw err;
+      }
     }
   }
 

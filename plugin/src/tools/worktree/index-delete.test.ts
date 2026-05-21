@@ -66,6 +66,7 @@ vi.mock("./hooks", async (importOriginal) => {
 
 import {
   advWorktreeDelete,
+  advWorktreeCleanup,
   reapEmptyWorktreeParents,
   type AdvWorktreeDeleteDeps,
 } from "./index";
@@ -73,7 +74,7 @@ import {
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
 import { worktreeDeletedSignal } from "../../temporal/messages";
-import { getPendingDeletes } from "./state";
+import { getPendingDeletes, setPendingDelete } from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -845,6 +846,64 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       error: "INTEGRATION_REQUIRED",
       reason: "branch_not_in_registry",
     });
+  });
+});
+
+describe("advWorktreeCleanup", () => {
+  it("retains timed-out items with incremented attempts and continues to next item", async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-"));
+    const projectId = `cleanup-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const database = { projectDir: projectRoot, projectId };
+
+    // Queue two pending deletes with unique projectId to avoid leakage
+    await setPendingDelete(database, "change/first", "/fake/first", "test");
+    await setPendingDelete(database, "change/second", "/fake/second", "test");
+
+    const log = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+
+    // First delete never resolves (triggers timeout), second succeeds
+    let callCount = 0;
+    const deleteWorktree = vi.fn(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return new Promise(() => {
+          /* intentionally never resolves */
+        });
+      }
+      return { ok: true, branch: "change/second", path: "/fake/second" };
+    });
+
+    const result = await advWorktreeCleanup("test cleanup", {
+      projectRoot,
+      database,
+      log,
+      deleteWorktree,
+      cleanupItemTimeoutMs: 1,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 1 });
+    expect(deleteWorktree).toHaveBeenCalledTimes(2);
+
+    // First item retained with incremented attempts
+    const pending = await getPendingDeletes(database);
+    expect(pending).toHaveLength(1);
+    expect(pending[0]).toMatchObject({
+      branch: "change/first",
+      attempts: 1,
+    });
+
+    // Warning logged for timeout
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("change/first"),
+    );
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("timed out"));
+
+    rmSync(projectRoot, { recursive: true, force: true });
   });
 });
 
