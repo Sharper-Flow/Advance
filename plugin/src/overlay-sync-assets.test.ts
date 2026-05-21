@@ -14,9 +14,9 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 
-// deploy-local.sh copies provider-specific agent assets and can exceed the
-// default 5s Vitest timeout on loaded machines.
-vi.setConfig({ testTimeout: 20_000 });
+// deploy-local.sh can rebuild plugin/dist before syncing runtime assets. The
+// first integration-style spawn in a fresh checkout may pay that build cost.
+vi.setConfig({ testTimeout: 120_000 });
 
 describe("overlay sync script support", () => {
   const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
@@ -242,6 +242,11 @@ describe("overlay sync script support", () => {
       // The temp worktree is created from HEAD, but this test needs to execute
       // the *current* working-tree version of deploy-local.sh under test.
       writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
+      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "index.js"),
+        "// test dist is fresh\n",
+      );
 
       const worktreeScript = join(tempWorktree, "scripts", "deploy-local.sh");
       const fixResult = spawnSync("bash", [worktreeScript, "--fix"], {

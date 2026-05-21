@@ -143,6 +143,7 @@ LOCAL_DEPLOY_ROOT="${ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}"
 ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"
 ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"
 ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"
+ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
 echo "==> ADV deploy-local ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
@@ -155,27 +156,37 @@ if [ "$SHOW_DIFF" = true ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Pre-flight: plugin build check
-#
-# OpenCode loads the plugin from $ADV_PLUGIN_PATH, which expects built output
-# at plugin/dist/index.js. plugin/dist/ is gitignored, so a fresh clone will
-# not have it until the user runs `pnpm install && pnpm build` in plugin/.
-# Warn loudly but do not abort — sync can still copy assets even if the
-# plugin itself isn't built yet.
-# ---------------------------------------------------------------------------
-ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
-if [ ! -f "$ADV_PLUGIN_DIST" ]; then
-	echo ""
-	echo "    ⚠  Plugin not built: $ADV_PLUGIN_DIST is missing"
-	echo "       OpenCode will fail to load the ADV plugin without it."
-	echo "       Run:  (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm build)"
-	echo ""
-fi
-
-# ---------------------------------------------------------------------------
 # Config check/fix functions
 # ---------------------------------------------------------------------------
 config_issues=0
+
+ensure_plugin_dist_fresh() {
+	local rebuild_reason=""
+
+	if [ ! -f "$ADV_PLUGIN_DIST" ]; then
+		rebuild_reason="plugin dist is missing"
+	elif [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$ADV_PLUGIN_DIST" -print -quit)" ]; then
+		rebuild_reason="plugin source is newer than dist"
+	fi
+
+	if [ -z "$rebuild_reason" ]; then
+		echo "    plugin dist is fresh"
+		return 0
+	fi
+
+	if [ "$DRY_RUN" = true ]; then
+		echo "    would rebuild plugin dist: $rebuild_reason"
+		echo "    dry-run build: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build)"
+		return 0
+	fi
+
+	echo "    rebuilding plugin dist: $rebuild_reason"
+	if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build); then
+		echo "    ✗ refusing to deploy stale dist: pnpm run build failed"
+		echo "      Run manually: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm run build)"
+		exit 1
+	fi
+}
 
 check_jq() {
 	if ! command -v jq &>/dev/null; then
@@ -818,6 +829,7 @@ if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then
 	echo "    ✗  Source plugin missing: $ADV_SOURCE_PLUGIN_PATH"
 	exit 1
 fi
+ensure_plugin_dist_fresh
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
 else
