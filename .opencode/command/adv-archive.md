@@ -381,7 +381,7 @@ Auto-managed changes (`change.worktree_auto_managed: true`) may own multiple wor
 3. `scope_worktrees[*]` in `Object.keys` insertion order (product-linked changes).
 
 For each target, only proceed if merge was verified in Step 6:
-- `worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`
+- `adv_worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`
 - For target / scope entries, scope the deletion to the target's repo root via `workdir` if the deletion tool supports it; otherwise emit the manual fallback: `git -C "<target-repo-root>" worktree remove <path>` followed by `git -C "<target-repo-root>" branch -D change/{change-id}`.
 
 Idempotency: re-running cleanup on an already-cleaned change is a no-op — entries already deleted by a prior archive attempt are skipped by `adv_worktree_delete`'s record check.
@@ -392,7 +392,7 @@ After successful cleanup of each target, the archive flow clears the correspondi
 - target → `target_worktree_path: null`
 - scope → `scope_worktrees[repoId]` deleted (signal with `repoId` + `path: null`)
 
-If `worktree_delete` is unavailable globally → emit an info banner naming the manual fallback once.
+If `adv_worktree_delete` is unavailable globally → emit an info banner naming the manual fallback once.
 
 **Legacy single-worktree changes** (`change.worktree_auto_managed !== true`) follow the pre-AC4 behavior: only the current-repo worktree is deleted if running in one AND merge verified.
 

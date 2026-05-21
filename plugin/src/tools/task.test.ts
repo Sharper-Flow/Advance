@@ -38,6 +38,11 @@ const mocks = vi.hoisted(() => {
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     fetchChangeContextTicker: vi.fn(async () => null),
+    resolveGitSessionContext: vi.fn(() => ({
+      isWorktree: true,
+      isMainCheckout: false,
+      mainCheckoutPath: "/repo/main",
+    })),
     withTargetPathStore: vi.fn(async (_input, fn) =>
       fn({
         context: {
@@ -73,6 +78,10 @@ vi.mock("./target-project", async () => {
     withTargetPathStore: mocks.withTargetPathStore,
     withOptionalTargetPathStore: mocks.withOptionalTargetPathStore,
     formatTargetProjectContext: mocks.formatTargetProjectContext,
+    resolveTargetAwareMutationCwd: vi.fn(
+      ({ store, target_path }: { store: Store; target_path?: string }) =>
+        target_path ? store.paths.root : process.cwd(),
+    ),
     appendTargetProjectContextOutput: vi.fn((output: string) => output),
   };
 });
@@ -100,6 +109,10 @@ vi.mock("./_adapters", () => ({
 
 vi.mock("../storage/context-snapshot-fetch", () => ({
   fetchChangeContextTicker: mocks.fetchChangeContextTicker,
+}));
+
+vi.mock("../utils/git-session", () => ({
+  resolveGitSessionContext: mocks.resolveGitSessionContext,
 }));
 
 function createMockStore(
@@ -185,6 +198,11 @@ function createMockStore(
 describe("task tools — signal/query adapters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.resolveGitSessionContext.mockImplementation(() => ({
+      isWorktree: true,
+      isMainCheckout: false,
+      mainCheckoutPath: "/repo/main",
+    }));
     mocks.targetStore.gates.get.mockResolvedValue({
       proposal: { status: "done" },
       discovery: { status: "done" },
@@ -494,6 +512,12 @@ describe("task tools — signal/query adapters", () => {
     test("routes target_path task creation through the target store", async () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue([]);
+      vi.spyOn(process, "cwd").mockReturnValue("/repo/main");
+      mocks.resolveGitSessionContext.mockImplementation((cwd: string) => ({
+        isWorktree: cwd === "/tmp/target",
+        isMainCheckout: cwd === "/repo/main",
+        mainCheckoutPath: "/repo/main",
+      }));
 
       const result = await taskTools.adv_task_add.execute(
         {
@@ -520,6 +544,10 @@ describe("task tools — signal/query adapters", () => {
         expect.any(Function),
       );
       expect(mocks.targetStore.gates.get).toHaveBeenCalledWith("target-change");
+      expect(mocks.resolveGitSessionContext).toHaveBeenCalledWith(
+        "/tmp/target",
+        undefined,
+      );
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
         expect.anything(),
         mocks.targetStore,

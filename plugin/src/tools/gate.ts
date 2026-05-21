@@ -28,6 +28,7 @@ import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 import {
   formatTargetProjectContext,
+  resolveTargetAwareMutationCwd,
   type TargetProjectOutputContext,
   withOptionalTargetPathStore,
   withTargetPathStore,
@@ -632,7 +633,10 @@ export const gateTools = {
         const isolation = await evaluateGateWorktreeIsolation({
           gateId,
           features: activeStore.config?.features,
-          cwd: process.cwd(),
+          cwd: resolveTargetAwareMutationCwd({
+            store: activeStore,
+            target_path,
+          }),
           change,
           autoManageDeps:
             change.worktree_auto_managed === true

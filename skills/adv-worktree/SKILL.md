@@ -18,7 +18,7 @@ This skill applies in single-session AND multi-session modes. **Concurrent workt
 
 ## When to Create a Worktree
 
-Use `adv_worktree_create` (or the `worktree_create` alias) when:
+Use `adv_worktree_create` when:
 - **Risky refactors** — large structural changes that might break the codebase
 - **Parallel experiments** — trying two different approaches to the same problem
 - **Feature branches** — the user asks you to start a new feature in isolation

@@ -46,8 +46,9 @@ describe("adv-engineer assets", () => {
       "adv_task_cancel: false",
       "adv_task_checkpoint: false",
       "adv_change_validate: false",
-      "worktree_create: false",
-      "worktree_delete: false",
+      "adv_worktree_create: false",
+      "adv_worktree_delete: false",
+      "adv_worktree_cleanup: false",
     ];
     for (const tool of blocked) {
       expect(frontmatter, `missing blocked tool: ${tool}`).toContain(tool);

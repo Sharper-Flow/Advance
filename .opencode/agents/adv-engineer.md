@@ -75,8 +75,9 @@ tools:
   adv_agenda_prioritize: false
   adv_investment_report: false
   adv_temporal_worker_restart: false
-  worktree_create: false
-  worktree_delete: false
+  adv_worktree_create: false
+  adv_worktree_delete: false
+  adv_worktree_cleanup: false
   task: false
 ---
 
