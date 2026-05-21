@@ -1,0 +1,1 @@
+Confirmed problem: deploy-local.sh could ship stale plugin/dist when source is newer than dist or dist is missing, because the prior pre-flight check only warned and did not rebuild or abort before runtime rsync.
