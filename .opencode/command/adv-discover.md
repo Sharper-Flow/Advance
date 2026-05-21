@@ -499,6 +499,8 @@ Contract rules:
 
 Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or projected `acceptanceCriteria` would drift from the approved `AC*` items.
 
+If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`, do not continue to design. Run `adv_contract_mint`, resolve any parser/schema failures in the approved agreement, then retry discovery gate completion.
+
 ---
 ## Phase 5: Complete Gate
 

@@ -383,6 +383,17 @@ After composing the acceptance summary and before asking for acceptance, persist
 
 After the user accepts, the executive summary artifact is already persisted — no additional write needed at the acceptance gate completion step.
 
+### Pre-Acceptance Contract Preflight
+
+Before emitting the acceptance summary or **Inline Approval prompt**, load the change with `adv_change_show` and verify:
+
+- `change.contract` exists.
+- `contract.reviewMatrix` exists when required contract items exist.
+- Required rows do not have `fail`, `violated`, `unknown`, or missing evidence.
+- The current session can call any required new MCP tool. If this change added or registered the needed tool in source during the same OpenCode session and the live tool registry does not expose it yet, stop and instruct the user to open a fresh OpenCode session after build/plugin reload. Do not present acceptance as complete and do not ask for acceptance until the proof path is available.
+
+If preflight fails, surface the blocker and remediation. Do not continue to the acceptance checkpoint.
+
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
 
