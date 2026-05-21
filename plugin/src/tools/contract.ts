@@ -191,6 +191,21 @@ function ensureRowsReferenceContract(
   return undefined;
 }
 
+function hasSuppliedRows(
+  rows?: z.infer<typeof reviewMatrixRowSchema>[],
+): rows is z.infer<typeof reviewMatrixRowSchema>[] {
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+function hasSuppliedReviewMatrix(
+  reviewMatrix?: ContractReviewMatrix,
+): reviewMatrix is ContractReviewMatrix {
+  return (
+    Boolean(reviewMatrix?.reviewedAt?.trim()) ||
+    Boolean(reviewMatrix?.rows?.length)
+  );
+}
+
 export const contractTools = {
   adv_contract_mint: {
     description:
@@ -351,7 +366,9 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          if (args.rows && args.reviewMatrix) {
+          const hasRows = hasSuppliedRows(args.rows);
+          const hasReviewMatrix = hasSuppliedReviewMatrix(args.reviewMatrix);
+          if (hasRows && hasReviewMatrix) {
             return formatToolOutput({
               error:
                 "Provide either rows or reviewMatrix, not both, for contract review matrix persistence",
@@ -359,7 +376,7 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          if (!args.rows && !args.reviewMatrix) {
+          if (!hasRows && !hasReviewMatrix) {
             return formatToolOutput({
               error:
                 "adv_contract_review_matrix_set requires either rows or reviewMatrix",
@@ -368,10 +385,12 @@ export const contractTools = {
             });
           }
           const reviewMatrix = ContractReviewMatrixSchema.parse(
-            args.reviewMatrix ?? {
-              reviewedAt: args.reviewedAt ?? new Date().toISOString(),
-              rows: args.rows,
-            },
+            hasReviewMatrix
+              ? args.reviewMatrix
+              : {
+                  reviewedAt: args.reviewedAt ?? new Date().toISOString(),
+                  rows: args.rows,
+                },
           );
           const rowError = ensureRowsReferenceContract(change, reviewMatrix);
           if (rowError) {
