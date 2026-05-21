@@ -102,13 +102,34 @@ resolve_canonical_repo_root() {
 	printf '%s\n' "$candidate"
 }
 
+git_common_dir() {
+	local repo="$1" common_dir
+	common_dir="$(git -C "$repo" rev-parse --git-common-dir 2>/dev/null)" || return 1
+	case "$common_dir" in
+	/*) ;;
+	*) common_dir="$repo/$common_dir" ;;
+	esac
+	(cd "$common_dir" && pwd -P)
+}
+
+same_git_common_dir() {
+	local left="$1" right="$2" left_common right_common
+	left_common="$(git_common_dir "$left")" || return 1
+	right_common="$(git_common_dir "$right")" || return 1
+	[ "$left_common" = "$right_common" ]
+}
+
 REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
 # Asset sources must come from the script's actual checkout/worktree, not the
 # canonical primary worktree. Otherwise worktree-local edits (or restored files)
 # are invisible during sync/test runs.
 ASSET_ROOT="$SCRIPT_REPO_ROOT"
 if [ -f "$INVOKE_CWD/.opencode/agents/adv.md" ]; then
-	ASSET_ROOT="$INVOKE_CWD"
+	if same_git_common_dir "$SCRIPT_REPO_ROOT" "$INVOKE_CWD"; then
+		ASSET_ROOT="$INVOKE_CWD"
+	else
+		echo "    ⚠  Ignoring asset root from unrelated cwd: $INVOKE_CWD"
+	fi
 fi
 REPO_COMMANDS="$ASSET_ROOT/.opencode/command"
 REPO_AGENTS="$ASSET_ROOT/.opencode/agents"
@@ -160,16 +181,29 @@ fi
 # ---------------------------------------------------------------------------
 config_issues=0
 
+plugin_dist_stale_reason() {
+	if [ ! -f "$ADV_PLUGIN_DIST" ]; then
+		printf '%s\n' "plugin dist is missing"
+		return 0
+	fi
+
+	if [ ! -d "$ADV_SOURCE_PLUGIN_PATH/src" ]; then
+		printf '%s\n' "plugin source directory is missing"
+		return 0
+	fi
+
+	if [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$ADV_PLUGIN_DIST" -print -quit)" ]; then
+		printf '%s\n' "plugin source is newer than dist"
+		return 0
+	fi
+
+	return 1
+}
+
 ensure_plugin_dist_fresh() {
 	local rebuild_reason=""
 
-	if [ ! -f "$ADV_PLUGIN_DIST" ]; then
-		rebuild_reason="plugin dist is missing"
-	elif [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$ADV_PLUGIN_DIST" -print -quit)" ]; then
-		rebuild_reason="plugin source is newer than dist"
-	fi
-
-	if [ -z "$rebuild_reason" ]; then
+	if ! rebuild_reason="$(plugin_dist_stale_reason)"; then
 		echo "    plugin dist is fresh"
 		return 0
 	fi
@@ -183,6 +217,12 @@ ensure_plugin_dist_fresh() {
 	echo "    rebuilding plugin dist: $rebuild_reason"
 	if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build); then
 		echo "    ✗ refusing to deploy stale dist: pnpm run build failed"
+		echo "      Run manually: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm run build)"
+		exit 1
+	fi
+
+	if rebuild_reason="$(plugin_dist_stale_reason)"; then
+		echo "    ✗ refusing to deploy stale dist after build: $rebuild_reason"
 		echo "      Run manually: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm run build)"
 		exit 1
 	fi

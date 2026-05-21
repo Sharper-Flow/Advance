@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   rmSync,
+  utimesSync,
   writeFileSync,
   existsSync,
 } from "fs";
@@ -33,7 +34,9 @@ describe("overlay sync script support", () => {
   });
 
   test("contains a deploy-time plugin dist freshness guard", () => {
+    expect(content).toContain("plugin_dist_stale_reason()");
     expect(content).toContain("ensure_plugin_dist_fresh()");
+    expect(content).toContain("same_git_common_dir()");
     expect(content).toContain(
       'ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"',
     );
@@ -44,6 +47,7 @@ describe("overlay sync script support", () => {
       '(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)',
     );
     expect(content).toContain("refusing to deploy stale dist");
+    expect(content).toContain("refusing to deploy stale dist after build");
   });
 
   test("plugin dist freshness guard preserves check-only mode", () => {
@@ -72,6 +76,149 @@ describe("overlay sync script support", () => {
   test("plugin dist freshness guard replaces warn-only deploy behavior", () => {
     expect(content).not.toContain("Warn loudly but do not abort");
     expect(content).not.toContain("sync can still copy assets even if the");
+  });
+
+  test("plugin dist freshness guard exercises build, dry-run, and failure paths", () => {
+    const tempHome = mkdtempSync(join(tmpdir(), "adv-dist-guard-home-"));
+    const tempWorktreeRoot = mkdtempSync(join(tmpdir(), "adv-dist-guard-wt-"));
+    const tempWorktree = join(tempWorktreeRoot, "repo-worktree");
+    const fakeBin = join(tempHome, "bin");
+    const pnpmLog = join(tempHome, "pnpm.log");
+    const rsyncLog = join(tempHome, "rsync.log");
+
+    const makeStale = () => {
+      const distPath = join(tempWorktree, "plugin", "dist", "index.js");
+      const srcPath = join(tempWorktree, "plugin", "src", "index.ts");
+      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
+      writeFileSync(distPath, "// stale dist\n");
+      utimesSync(
+        distPath,
+        new Date("2020-01-01T00:00:00Z"),
+        new Date("2020-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        srcPath,
+        new Date("2020-01-02T00:00:00Z"),
+        new Date("2020-01-02T00:00:00Z"),
+      );
+    };
+
+    const runDeploy = (extraEnv: Record<string, string> = {}) =>
+      spawnSync(
+        "bash",
+        [join(tempWorktree, "scripts", "deploy-local.sh"), "--fix"],
+        {
+          cwd: tempWorktree,
+          env: {
+            ...process.env,
+            ...extraEnv,
+            HOME: tempHome,
+            CI: "true",
+            PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+          },
+          encoding: "utf8",
+        },
+      );
+
+    try {
+      const configDir = join(tempHome, ".config/opencode");
+      mkdirSync(configDir, { recursive: true });
+      mkdirSync(fakeBin, { recursive: true });
+      writeFileSync(
+        join(configDir, "opencode.json"),
+        JSON.stringify({ plugin: [], instructions: [] }),
+      );
+      writeFileSync(
+        join(fakeBin, "pnpm"),
+        `#!/usr/bin/env bash
+printf '%s %s\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
+if [ "\${FAKE_PNPM_FAIL:-}" = "1" ]; then
+  exit 42
+fi
+mkdir -p "$PWD/dist"
+printf '// fake build\n' > "$PWD/dist/index.js"
+touch "$PWD/dist/index.js"
+`,
+        { mode: 0o755 },
+      );
+      writeFileSync(
+        join(fakeBin, "rsync"),
+        `#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_RSYNC_LOG"
+exit 0
+`,
+        { mode: 0o755 },
+      );
+
+      const addResult = spawnSync(
+        "git",
+        ["worktree", "add", "--detach", tempWorktree],
+        {
+          cwd: REPO_ROOT,
+          env: { ...process.env, CI: "true" },
+          encoding: "utf8",
+        },
+      );
+      expect(addResult.status).toBe(0);
+      writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
+
+      makeStale();
+      const dryRunResult = spawnSync(
+        "bash",
+        [
+          join(tempWorktree, "scripts", "deploy-local.sh"),
+          "--fix",
+          "--dry-run",
+        ],
+        {
+          cwd: tempWorktree,
+          env: {
+            ...process.env,
+            HOME: tempHome,
+            CI: "true",
+            PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
+            FAKE_PNPM_LOG: pnpmLog,
+            FAKE_RSYNC_LOG: rsyncLog,
+          },
+          encoding: "utf8",
+        },
+      );
+      expect(dryRunResult.status).toBe(0);
+      expect(`${dryRunResult.stdout}${dryRunResult.stderr}`).toContain(
+        "would rebuild plugin dist",
+      );
+      expect(existsSync(pnpmLog)).toBe(false);
+
+      makeStale();
+      const failureResult = runDeploy({
+        FAKE_PNPM_LOG: pnpmLog,
+        FAKE_RSYNC_LOG: rsyncLog,
+        FAKE_PNPM_FAIL: "1",
+      });
+      expect(failureResult.status).not.toBe(0);
+      expect(`${failureResult.stdout}${failureResult.stderr}`).toContain(
+        "refusing to deploy stale dist",
+      );
+      expect(existsSync(rsyncLog)).toBe(false);
+
+      rmSync(pnpmLog, { force: true });
+      makeStale();
+      const successResult = runDeploy({
+        FAKE_PNPM_LOG: pnpmLog,
+        FAKE_RSYNC_LOG: rsyncLog,
+      });
+      expect(successResult.status).toBe(0);
+      expect(readFileSync(pnpmLog, "utf8")).toContain("run build");
+      expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
+    } finally {
+      spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
+        cwd: REPO_ROOT,
+        env: { ...process.env, CI: "true" },
+        encoding: "utf8",
+      });
+      rmSync(tempWorktreeRoot, { recursive: true, force: true });
+      rmSync(tempHome, { recursive: true, force: true });
+    }
   });
 
   test("detects duplicate overlay markers and skips unsafe writes", () => {
