@@ -262,3 +262,177 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     );
   });
 });
+
+/**
+ * rq-autoManageAdvWorktrees AC3 — lazy migration of legacy changes
+ * on first read. When a change.json predating this field is loaded,
+ * `getTemporalChange` fires `worktreeAutoManagedSignal` once with
+ * `value: false, source: "migrate"`. The signal handler is sticky so
+ * concurrent migrations from peer sessions are idempotent. Failure
+ * to fire (e.g., Temporal unreachable) MUST NOT block the read.
+ */
+describe("createTemporalStoreBackend worktree_auto_managed lazy migration", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  function legacyChangeWithoutMarker(id: string): Change {
+    return {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id,
+      title: `Legacy ${id}`,
+      status: "active",
+      created_at: "2026-05-21T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      gates: createDefaultGates(),
+      reentry_history: [],
+      wisdom: [],
+    };
+  }
+
+  async function createMigrationCaptureStore(
+    root: string,
+    options: {
+      markerInWorkflowState?: boolean;
+      signalShouldFail?: boolean;
+    } = {},
+  ) {
+    const legacy = await createDiskStore(root);
+    const signalCalls: Array<{
+      signal: { name?: string };
+      args: unknown;
+    }> = [];
+    let lastHandleId: string | undefined;
+    const makeHandle = (changeId: string) => ({
+      query: async () => ({
+        id: changeId,
+        changeId,
+        title: `Legacy ${changeId}`,
+        status: "active",
+        createdAt: "2026-05-21T00:00:00.000Z",
+        initializedAt: "2026-05-21T00:00:00.000Z",
+        projectId: "project-1",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: createDefaultGates(),
+        reentry_history: [],
+        artifacts: {},
+        documents: {},
+        reflections: [],
+        worktrees: {},
+        conformance: { lockedSpecs: [], overrides: [] },
+        ...(typeof options.markerInWorkflowState === "boolean"
+          ? { worktree_auto_managed: options.markerInWorkflowState }
+          : {}),
+      }),
+      signal: async (signal: { name?: string }, args: unknown) => {
+        if (options.signalShouldFail) {
+          throw new Error("Temporal signal failed: connection refused");
+        }
+        signalCalls.push({ signal, args });
+      },
+    });
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: (workflowId: string) => {
+            // Extract change-id suffix from the constructed workflow id
+            const suffix =
+              workflowId.split("/").pop() ?? workflowId.split(":").pop() ?? "";
+            lastHandleId = suffix || workflowId;
+            return makeHandle(lastHandleId);
+          },
+          start: async () => makeHandle(lastHandleId ?? "unknown"),
+        },
+      },
+    };
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+    return { store, signalCalls: () => signalCalls };
+  }
+
+  it("fires worktreeAutoManagedSignal best-effort when state lacks marker", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("legacyChangeA"));
+
+    const { store, signalCalls } = await createMigrationCaptureStore(tempDir);
+    const result = await store.changes.get("legacyChangeA");
+
+    // Read succeeds even though the marker is missing.
+    expect(result.success).toBe(true);
+
+    // Wait several event-loop ticks for the void async fire (which awaits
+    // getGuardedChangeHandle's legacy-disk-read then handle.signal) to
+    // enqueue + complete. setImmediate × 50 + sleep allows the disk read.
+    for (let i = 0; i < 50; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const calls = signalCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].args).toMatchObject({
+      value: false,
+      source: "migrate",
+    });
+    expect(typeof (calls[0].args as { recordedAt?: string }).recordedAt).toBe(
+      "string",
+    );
+  });
+
+  it("does NOT fire migration when workflow state already has marker set", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("alreadyMigratedB"));
+
+    const { store, signalCalls } = await createMigrationCaptureStore(tempDir, {
+      markerInWorkflowState: true,
+    });
+    await store.changes.get("alreadyMigratedB");
+    for (let i = 0; i < 5; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    expect(signalCalls()).toHaveLength(0);
+  });
+
+  it("does NOT fire migration when workflow state has marker explicitly false (legacy already-migrated)", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("alreadyMigratedC"));
+
+    const { store, signalCalls } = await createMigrationCaptureStore(tempDir, {
+      markerInWorkflowState: false,
+    });
+    await store.changes.get("alreadyMigratedC");
+    for (let i = 0; i < 5; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    expect(signalCalls()).toHaveLength(0);
+  });
+
+  it("read succeeds when migration signal fire fails (best-effort, non-blocking)", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("signalFailureD"));
+
+    const { store } = await createMigrationCaptureStore(tempDir, {
+      signalShouldFail: true,
+    });
+    const result = await store.changes.get("signalFailureD");
+
+    // Failure to fire migration MUST NOT block the read.
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("signalFailureD");
+  });
+});
