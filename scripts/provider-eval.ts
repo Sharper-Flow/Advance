@@ -21,7 +21,8 @@ import {
   readFileSync,
   statSync,
 } from "node:fs";
-import { join, basename } from "node:path";
+import { join, basename, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -109,9 +110,11 @@ interface PromptSizeMetric {
 }
 
 interface PromptSizeMetrics {
-  canonical_adv_prompt: PromptSizeMetric;
-  adv_protocol_instructions: PromptSizeMetric;
+  lean_adv_runtime_prompt: PromptSizeMetric;
+  adv_reference_protocol: PromptSizeMetric;
   provider_hint: PromptSizeMetric | null;
+  adv_dynamic_system_block_estimate: PromptSizeMetric;
+  caveman_voice_contract_allowance: PromptSizeMetric;
   selected_agent_runtime_prompt: PromptSizeMetric;
   avoided_provider_variant_duplication: PromptSizeMetric | null;
 }
@@ -127,8 +130,9 @@ const CONFIG = {
   retry: { attempts: 3, delays: [5000, 10000, 20000] },
 };
 
-const REPO_ROOT = join(import.meta.dir, "..");
-const SCRIPTS_DIR = import.meta.dir;
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(SCRIPT_DIR, "..");
+const SCRIPTS_DIR = SCRIPT_DIR;
 const PROMPTS_DIR = join(SCRIPTS_DIR, "provider-eval-prompts");
 const RESULTS_DIR = join(SCRIPTS_DIR, "provider-eval-results");
 
@@ -171,6 +175,15 @@ const FILLER_PATTERNS = [
   /\bGreat question!?\s*/i,
 ];
 
+const ADV_DYNAMIC_SYSTEM_BLOCK_ESTIMATE = [
+  "[ADV:PROVIDER_HINT:{provider}] runtime provider hint when structured identity is known",
+  "[ADV] Active change: {change-id}",
+  "[ADV:WORKTREE_SESSION] Active worktree and change context",
+].join("\n");
+
+const CAVEMAN_VOICE_CONTRACT_ALLOWANCE =
+  "Caveman voice contract allowance: terse concrete prose appended to output.system[0] when caveman is active.";
+
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
@@ -207,11 +220,22 @@ Results stored in scripts/provider-eval-results/<run-id>/`);
     process.exit(0);
   }
 
-  if (values.temperature) {
-    CONFIG.temperature = parseFloat(values.temperature);
+  if (values.temperature !== undefined) {
+    CONFIG.temperature = parseFiniteNumberOption(
+      "temperature",
+      values.temperature,
+      { min: 0 },
+    );
   }
-  if (values["max-tokens"]) {
-    CONFIG.max_tokens = parseInt(values["max-tokens"], 10);
+  if (values["max-tokens"] !== undefined) {
+    CONFIG.max_tokens = parseFiniteNumberOption(
+      "max-tokens",
+      values["max-tokens"],
+      {
+        min: 1,
+        integer: true,
+      },
+    );
   }
 
   if (values.all) {
@@ -236,28 +260,48 @@ Results stored in scripts/provider-eval-results/<run-id>/`);
   return { providers: [providerName] };
 }
 
+function parseFiniteNumberOption(
+  name: string,
+  value: string,
+  options: { min?: number; integer?: boolean } = {},
+): number {
+  const parsed = Number(value);
+  const invalid =
+    !Number.isFinite(parsed) ||
+    (options.integer === true && !Number.isInteger(parsed)) ||
+    (options.min !== undefined && parsed < options.min);
+
+  if (invalid) {
+    console.error(
+      `Error: --${name} must be a finite${options.integer ? " integer" : " number"}${options.min !== undefined ? ` >= ${options.min}` : ""}.`,
+    );
+    process.exit(1);
+  }
+
+  return parsed;
+}
+
 // ---------------------------------------------------------------------------
 // Prompt Composition (single ADV runtime agent + optional runtime provider hint)
 // ---------------------------------------------------------------------------
 
 /**
- * Strip YAML frontmatter (--- delimited) from adv.md content.
+ * Strip YAML frontmatter from adv.md content. The closing marker must be on its
+ * own line so prompt text containing "---" is not accidentally removed.
  */
-function stripFrontmatter(content: string): string {
+export function stripFrontmatter(content: string): string {
   const trimmed = content.trimStart();
-  if (!trimmed.startsWith("---")) return content;
-  const end = trimmed.indexOf("---", 3);
-  if (end === -1) return content;
-  return trimmed.slice(end + 3).trimStart();
+  const match = trimmed.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
+  if (!match) return content;
+  return trimmed.slice(match[0].length).trimStart();
 }
 
-function composeSystemPrompt(
+export function composeSystemPrompt(
   canonicalContent: string,
-  instructionsContent: string,
   hintContent: string | null,
 ): string {
   const stripped = stripFrontmatter(canonicalContent);
-  const base = `${stripped}\n\n${instructionsContent.trim()}`;
+  const base = stripped.trim();
 
   if (!hintContent) return base; // baseline: single ADV runtime prompt, no provider hint
 
@@ -281,9 +325,9 @@ function formatSize(metric: PromptSizeMetric): string {
   return `${metric.lines} lines / ${metric.bytes} bytes`;
 }
 
-function collectPromptSizeMetrics(input: {
-  canonicalPrompt: string;
-  advInstructions: string;
+export function collectPromptSizeMetrics(input: {
+  leanRuntimePrompt: string;
+  advReferenceProtocol: string;
   providerHint: string | null;
   runtimePrompt: string;
   retiredGeneratedProviderPath: string;
@@ -300,9 +344,19 @@ function collectPromptSizeMetrics(input: {
     : null;
 
   return {
-    canonical_adv_prompt: sizeOfContent(stripFrontmatter(input.canonicalPrompt)),
-    adv_protocol_instructions: sizeOfContent(input.advInstructions.trim()),
-    provider_hint: input.providerHint ? sizeOfContent(input.providerHint) : null,
+    lean_adv_runtime_prompt: sizeOfContent(
+      stripFrontmatter(input.leanRuntimePrompt),
+    ),
+    adv_reference_protocol: sizeOfContent(input.advReferenceProtocol.trim()),
+    provider_hint: input.providerHint
+      ? sizeOfContent(input.providerHint)
+      : null,
+    adv_dynamic_system_block_estimate: sizeOfContent(
+      ADV_DYNAMIC_SYSTEM_BLOCK_ESTIMATE,
+    ),
+    caveman_voice_contract_allowance: sizeOfContent(
+      CAVEMAN_VOICE_CONTRACT_ALLOWANCE,
+    ),
     selected_agent_runtime_prompt: sizeOfContent(input.runtimePrompt),
     avoided_provider_variant_duplication,
   };
@@ -604,10 +658,9 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(`Provider Evaluation: ${config.name} (${config.model_id})`);
   console.log(`${"=".repeat(70)}\n`);
 
-  // Load canonical ADV prompt from repo source, falling back to synced prompt parts.
-  // Generated provider agent files include frontmatter; canonical source stays
-  // the repo/local prompt parts so metrics can separate body size from agent
-  // wrapper size.
+  // Load the lean canonical ADV runtime prompt from repo source. The only
+  // fallback is the legacy synced prompt-part path for old local installs;
+  // retired generated provider agents are measured, never used as canonical.
   const globalHome =
     process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
   const canonical = loadCanonicalAdvPrompt(globalHome);
@@ -627,19 +680,11 @@ async function runEvaluation(providerName: string): Promise<void> {
   }
 
   // Compose system prompts
-  const baselinePrompt = composeSystemPrompt(
-    canonicalContent,
-    instructionsContent,
-    null,
-  );
-  const hintPrompt = composeSystemPrompt(
-    canonicalContent,
-    instructionsContent,
-    hintContent,
-  );
+  const baselinePrompt = composeSystemPrompt(canonicalContent, null);
+  const hintPrompt = composeSystemPrompt(canonicalContent, hintContent);
   const promptMetrics = collectPromptSizeMetrics({
-    canonicalPrompt: canonicalContent,
-    advInstructions: instructionsContent,
+    leanRuntimePrompt: canonicalContent,
+    advReferenceProtocol: instructionsContent,
     providerHint: hintContent,
     runtimePrompt: hintPrompt,
     retiredGeneratedProviderPath: join(
@@ -653,16 +698,22 @@ async function runEvaluation(providerName: string): Promise<void> {
   console.log(`System prompt B (with hint): ${hintPrompt.length} chars`);
   console.log(`Delta: +${hintPrompt.length - baselinePrompt.length} chars`);
   console.log(
-    `Canonical ADV prompt: ${formatSize(promptMetrics.canonical_adv_prompt)}`,
+    `Lean ADV runtime prompt: ${formatSize(promptMetrics.lean_adv_runtime_prompt)}`,
   );
   console.log(
-    `ADV protocol instructions: ${formatSize(promptMetrics.adv_protocol_instructions)}`,
+    `ADV reference protocol: ${formatSize(promptMetrics.adv_reference_protocol)}`,
   );
   if (promptMetrics.provider_hint) {
     console.log(`Provider hint: ${formatSize(promptMetrics.provider_hint)}`);
   } else {
     console.log("Provider hint: unavailable");
   }
+  console.log(
+    `ADV dynamic system block estimate: ${formatSize(promptMetrics.adv_dynamic_system_block_estimate)}`,
+  );
+  console.log(
+    `Caveman voice contract allowance: ${formatSize(promptMetrics.caveman_voice_contract_allowance)}`,
+  );
   if (promptMetrics.avoided_provider_variant_duplication) {
     console.log(
       `Avoided retired provider variant file: ${formatSize(promptMetrics.avoided_provider_variant_duplication)}`,
@@ -737,6 +788,13 @@ async function runEvaluation(providerName: string): Promise<void> {
         console.log(`    ${variant}: SKIPPED (${err})`);
       }
     }
+  }
+
+  if (scores.length === 0) {
+    console.error(
+      "No successful provider evaluation scores produced. Check OPENROUTER_API_KEY and provider/API availability.",
+    );
+    process.exit(1);
   }
 
   // Compute scorecard
@@ -961,6 +1019,13 @@ function formatComparison(
 async function main() {
   const { providers } = parseCLI();
 
+  if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    console.error(
+      "Error: OPENROUTER_API_KEY is required for provider evaluation.",
+    );
+    process.exit(1);
+  }
+
   console.log("Provider Evaluation Harness");
   console.log(
     `Temperature: ${CONFIG.temperature} | Max tokens: ${CONFIG.max_tokens}`,
@@ -976,7 +1041,9 @@ async function main() {
   console.log("Done.");
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
+}

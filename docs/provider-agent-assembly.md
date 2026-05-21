@@ -6,22 +6,21 @@ How ADV keeps one canonical orchestrator agent while preserving provider-specifi
 
 ADV exposes one runtime orchestrator agent: `adv`.
 
-`scripts/deploy-local.sh --fix` assembles global `~/.config/opencode/agents/adv.md` from:
+`scripts/deploy-local.sh --fix` writes global `~/.config/opencode/agents/adv.md` from the repo lean canonical runtime prompt at `.opencode/agents/adv.md`.
 
-1. repo canonical `.opencode/agents/adv.md`
-2. repository `ADV_INSTRUCTIONS.md`
+`ADV_INSTRUCTIONS.md` remains the full developer/reference protocol. It is not appended wholesale into the runtime agent; removed or compressed runtime protocol is tracked through `docs/adv-runtime-protocol-coverage.md`, specs, tests, and command contracts.
 
 Provider-specific guidance is no longer stored in generated `adv-claude`, `adv-gpt`, `adv-glm`, or `adv-kimi` agent files. The plugin injects provider hints at runtime through the existing single-system-block path in `plugin/src/utils/system-block.ts`.
 
 ```text
-global adv.md = canonical ADV body + ADV_INSTRUCTIONS.md
+global adv.md = lean canonical runtime prompt
 runtime system block = optional [ADV:PROVIDER_HINT:{provider}] section
 ```
 
 ## Design Principles
 
 1. **One selectable ADV agent** — users run `adv`; provider identity comes from model/provider context, not agent names.
-2. **Scoped ADV protocol** — `ADV_INSTRUCTIONS.md` is embedded only into the ADV runtime agent, not global `opencode.json instructions[]`.
+2. **Scoped ADV protocol** — ADV runtime protocol is preserved in lean `adv.md` or covered by specs/tests/command contracts; `ADV_INSTRUCTIONS.md` is not global `opencode.json instructions[]` and is not appended wholesale into runtime `adv.md`.
 3. **Runtime provider hints** — known structured provider/model identities may emit one provider hint in `output.system[0]`.
 4. **No generated provider agents** — `adv-{provider}.md` files are retired and not compatibility aliases.
 5. **No heuristic provider guessing** — unknown or missing provider/model identity emits no provider hint.
@@ -58,9 +57,11 @@ If a model is routed through a provider that does not expose model identity to t
 
 | Metric | Meaning |
 | --- | --- |
-| `canonical_adv_prompt` | Canonical ADV agent body without frontmatter |
-| `adv_protocol_instructions` | `ADV_INSTRUCTIONS.md` body embedded into `adv.md` |
+| `lean_adv_runtime_prompt` | Lean canonical ADV runtime prompt without frontmatter |
+| `adv_reference_protocol` | Full `ADV_INSTRUCTIONS.md` reference protocol size, not embedded into runtime `adv.md` |
 | `provider_hint` | Provider hint payload when available |
+| `adv_dynamic_system_block_estimate` | Estimated ADV runtime banner/provider/status additions appended to `output.system[0]` |
+| `caveman_voice_contract_allowance` | Reporting allowance for caveman voice contract when that plugin is active |
 | `selected_agent_runtime_prompt` | Single ADV runtime prompt plus one runtime hint |
 | `avoided_provider_variant_duplication` | Retired generated provider file size if a stale file is still present |
 
