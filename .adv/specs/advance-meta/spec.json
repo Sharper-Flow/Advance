@@ -76,7 +76,7 @@
             "Output includes feature_flags values",
             "Defaults are applied when flags are omitted",
             "worker_singleton_enforce defaults true when omitted",
-            "worktree_guard_enforce defaults false when omitted"
+            "worktree_guard_enforce defaults true when omitted"
           ]
         }
       ],
@@ -1306,15 +1306,15 @@
     {
       "id": "rq-twf01",
       "title": "Trunk Write Firewall",
-      "body": "When features.worktree_guard_enforce is true, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is omitted or false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout. In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
+      "body": "When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
       "priority": "must",
       "tags": ["git", "worktree", "firewall", "trunk", "safety"],
       "scenarios": [
         {
           "id": "rq-twf01.1",
-          "title": "Flag-off trunk file writes allowed on default branch",
+          "title": "Explicit-false trunk file writes allowed on default branch",
           "given": [
-            "features.worktree_guard_enforce is omitted or false",
+            "features.worktree_guard_enforce is explicitly false",
             "A tool call targets a path inside the trunk checkout",
             "HEAD is on the default branch",
             "No git recovery state is active"
@@ -1329,7 +1329,7 @@
           "id": "rq-twf01.1a",
           "title": "Strict trunk file write blocked on default branch",
           "given": [
-            "features.worktree_guard_enforce is true",
+            "features.worktree_guard_enforce is true (default) or explicitly set true",
             "A tool call targets a path inside the trunk checkout",
             "HEAD is on the default branch",
             "No git recovery state is active"

@@ -9,7 +9,9 @@ function readRepoFile(path: string): string {
 }
 
 describe("trunk write firewall spec assets", () => {
-  test("rq-twf01 requires worktree_guard_enforce opt-in semantics", () => {
+  // rq-autoManageAdvWorktrees AC2 — post-flip semantics: default true,
+  // explicit false is the legacy escape hatch.
+  test("rq-twf01 requires worktree_guard_enforce default-on semantics", () => {
     const spec = JSON.parse(
       readRepoFile(".adv/specs/advance-meta/spec.json"),
     ) as {
@@ -28,19 +30,22 @@ describe("trunk write firewall spec assets", () => {
     const requirement = spec.requirements.find((req) => req.id === "rq-twf01");
 
     expect(requirement?.body).toContain("features.worktree_guard_enforce");
-    expect(requirement?.body).toContain("omitted or false");
-    expect(requirement?.body).toContain("true");
+    expect(requirement?.body).toContain("explicitly false");
+    expect(requirement?.body).toContain("true (default) or omitted");
 
     const scenarios = requirement?.scenarios ?? [];
     expect(scenarios.some((scenario) => scenario.id === "rq-twf01.1")).toBe(
       true,
     );
+    // The pre-flip "Flag-off ... omitted or false" scenario has been renamed
+    // to "Explicit-false ... is explicitly false" because the default is
+    // now true.
     expect(
       scenarios.some(
         (scenario) =>
-          scenario.title.toLowerCase().includes("flag-off") &&
+          scenario.title.toLowerCase().includes("explicit-false") &&
           [...(scenario.given ?? []), ...(scenario.then ?? [])].some((line) =>
-            line.includes("omitted or false"),
+            line.includes("explicitly false"),
           ),
       ),
     ).toBe(true);

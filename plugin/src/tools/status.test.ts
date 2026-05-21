@@ -585,7 +585,8 @@ Vague in-flight work.
       expect(health.worker_role).toMatch(/^(host|client|degraded)$/);
       expect(health.feature_flags).toMatchObject({
         worker_singleton_enforce: true,
-        worktree_guard_enforce: false,
+        // rq-autoManageAdvWorktrees AC2 — default flipped to true.
+        worktree_guard_enforce: true,
       });
     });
 
