@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createAdvWorkspace,
@@ -8,9 +8,12 @@ import {
   warpFlagEnabled,
   warpSession,
   workspaceAndWarpAvailable,
+  type WarpDeps,
 } from "./workspace-warp.js";
+import type { OpencodeClient } from "./opencode-types.js";
 
 const serverUrl = new URL("http://127.0.0.1:4096");
+const directory = "/tmp/wt";
 
 const jsonResponse = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body), {
@@ -28,7 +31,35 @@ const getCall = (fetchImpl: ReturnType<typeof vi.fn>, index = 0) => {
   return call;
 };
 
+/**
+ * Build a minimal SDK client mock with a configurable session.get.
+ * Cast through unknown because the ambient SDK type is intentionally loose;
+ * the real v1 SDK returns a richer result-tuple shape that we test against
+ * directly rather than through the type system.
+ */
+const createMockSdkClient = (
+  sessionGet: (args: { path: { id: string } }) => Promise<unknown>,
+): OpencodeClient =>
+  ({
+    session: { get: sessionGet },
+  }) as unknown as OpencodeClient;
+
+const baseDeps = (overrides: Partial<WarpDeps> = {}): WarpDeps => ({
+  serverUrl,
+  directory,
+  ...overrides,
+});
+
 describe("workspace-warp", () => {
+  // Explicitly clear experimental env vars before each test so the shell
+  // environment (which may have OPENCODE_EXPERIMENTAL_WORKSPACES=true set
+  // during ADV development) doesn't leak into tests that assert the
+  // off-by-default warpFlagEnabled() behavior. P25 touched-scope fix.
+  beforeEach(() => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL", "");
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "");
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -70,7 +101,7 @@ describe("workspace-warp", () => {
       const fetchImpl = vi.fn();
 
       await expect(
-        workspaceAndWarpAvailable({ serverUrl, fetchImpl }),
+        workspaceAndWarpAvailable(baseDeps({ fetchImpl })),
       ).resolves.toBe(false);
       expect(fetchImpl).not.toHaveBeenCalled();
     });
@@ -80,7 +111,7 @@ describe("workspace-warp", () => {
       const fetchImpl = vi.fn().mockResolvedValue(textResponse("[]"));
 
       await expect(
-        workspaceAndWarpAvailable({ serverUrl, fetchImpl }),
+        workspaceAndWarpAvailable(baseDeps({ fetchImpl })),
       ).resolves.toBe(true);
       expect(String(getCall(fetchImpl)[0])).toBe(
         "http://127.0.0.1:4096/experimental/workspace",
@@ -94,7 +125,7 @@ describe("workspace-warp", () => {
         .mockResolvedValue(textResponse("nope", { status: 404 }));
 
       await expect(
-        workspaceAndWarpAvailable({ serverUrl, fetchImpl }),
+        workspaceAndWarpAvailable(baseDeps({ fetchImpl })),
       ).resolves.toBe(false);
       expect(fetchImpl).toHaveBeenCalledOnce();
     });
@@ -104,7 +135,7 @@ describe("workspace-warp", () => {
       const fetchImpl = vi.fn().mockRejectedValue(new Error("network down"));
 
       await expect(
-        workspaceAndWarpAvailable({ serverUrl, fetchImpl }),
+        workspaceAndWarpAvailable(baseDeps({ fetchImpl })),
       ).resolves.toBe(false);
       expect(fetchImpl).toHaveBeenCalledOnce();
     });
@@ -114,10 +145,10 @@ describe("workspace-warp", () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: "ws-abc" }));
 
     await expect(
-      createAdvWorkspace(
-        { serverUrl, fetchImpl },
-        { directory: "/tmp/wt", branch: "change/test" },
-      ),
+      createAdvWorkspace(baseDeps({ fetchImpl }), {
+        directory: "/tmp/wt",
+        branch: "change/test",
+      }),
     ).resolves.toEqual({ workspaceID: "ws-abc" });
 
     const [url, init] = getCall(fetchImpl);
@@ -139,10 +170,10 @@ describe("workspace-warp", () => {
       .mockResolvedValue(textResponse("bad payload", { status: 400 }));
 
     await expect(
-      createAdvWorkspace(
-        { serverUrl, fetchImpl },
-        { directory: "/tmp/wt", branch: "change/test" },
-      ),
+      createAdvWorkspace(baseDeps({ fetchImpl }), {
+        directory: "/tmp/wt",
+        branch: "change/test",
+      }),
     ).rejects.toThrow("createAdvWorkspace failed: 400 bad payload");
   });
 
@@ -152,10 +183,10 @@ describe("workspace-warp", () => {
       .mockResolvedValue(textResponse("x".repeat(1200), { status: 500 }));
 
     await expect(
-      createAdvWorkspace(
-        { serverUrl, fetchImpl },
-        { directory: "/tmp/wt", branch: "change/test" },
-      ),
+      createAdvWorkspace(baseDeps({ fetchImpl }), {
+        directory: "/tmp/wt",
+        branch: "change/test",
+      }),
     ).rejects.toThrow(/x{1000}…\[truncated\]/);
   });
 
@@ -165,10 +196,10 @@ describe("workspace-warp", () => {
       .mockResolvedValue(jsonResponse({ workspaceID: "wrong" }));
 
     await expect(
-      createAdvWorkspace(
-        { serverUrl, fetchImpl },
-        { directory: "/tmp/wt", branch: "change/test" },
-      ),
+      createAdvWorkspace(baseDeps({ fetchImpl }), {
+        directory: "/tmp/wt",
+        branch: "change/test",
+      }),
     ).rejects.toThrow("createAdvWorkspace failed: missing workspace id");
   });
 
@@ -176,10 +207,10 @@ describe("workspace-warp", () => {
     const fetchImpl = vi.fn().mockResolvedValue(textResponse(""));
 
     await expect(
-      warpSession(
-        { serverUrl, fetchImpl },
-        { workspaceID: "ws-abc", sessionID: "ses-123" },
-      ),
+      warpSession(baseDeps({ fetchImpl }), {
+        workspaceID: "ws-abc",
+        sessionID: "ses-123",
+      }),
     ).resolves.toBeUndefined();
 
     const [url, init] = getCall(fetchImpl);
@@ -204,54 +235,137 @@ describe("workspace-warp", () => {
       .mockResolvedValue(textResponse("bad warp", { status: 500 }));
 
     await expect(
-      warpSession(
-        { serverUrl, fetchImpl },
-        { workspaceID: "ws-abc", sessionID: "ses-123" },
-      ),
+      warpSession(baseDeps({ fetchImpl }), {
+        workspaceID: "ws-abc",
+        sessionID: "ses-123",
+      }),
     ).rejects.toThrow("warpSession failed: 500 bad warp");
   });
 
-  it("reads the current session workspace id", async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({ id: "ses-123", workspaceID: "ws-abc" }),
+  describe("getSessionWorkspaceID (SDK-routed, structured result tuple)", () => {
+    it("returns { ok: true, workspaceID } when SDK call succeeds with a workspaceID", async () => {
+      const sessionGet = vi.fn().mockResolvedValue({
+        data: { id: "ses-123", workspaceID: "ws-abc" },
+        error: undefined,
+        response: { status: 200 },
+      });
+      const client = createMockSdkClient(sessionGet);
+
+      await expect(
+        getSessionWorkspaceID(baseDeps({ client }), "ses-123"),
+      ).resolves.toEqual({ ok: true, workspaceID: "ws-abc" });
+
+      expect(sessionGet).toHaveBeenCalledWith({ path: { id: "ses-123" } });
+    });
+
+    it("returns { ok: true, workspaceID: null } when SDK call succeeds without a workspaceID", async () => {
+      const sessionGet = vi.fn().mockResolvedValue({
+        data: { id: "ses-123" },
+        error: undefined,
+        response: { status: 200 },
+      });
+      const client = createMockSdkClient(sessionGet);
+
+      await expect(
+        getSessionWorkspaceID(baseDeps({ client }), "ses-123"),
+      ).resolves.toEqual({ ok: true, workspaceID: null });
+    });
+
+    it("returns { ok: true, workspaceID: null } when workspaceID is an empty string", async () => {
+      const sessionGet = vi.fn().mockResolvedValue({
+        data: { id: "ses-123", workspaceID: "" },
+        error: undefined,
+        response: { status: 200 },
+      });
+      const client = createMockSdkClient(sessionGet);
+
+      await expect(
+        getSessionWorkspaceID(baseDeps({ client }), "ses-123"),
+      ).resolves.toEqual({ ok: true, workspaceID: null });
+    });
+
+    it("returns { ok: false, status, detail } when SDK returns an error tuple (e.g. 404)", async () => {
+      const sessionGet = vi.fn().mockResolvedValue({
+        data: undefined,
+        error: { message: "session not found" },
+        response: { status: 404 },
+      });
+      const client = createMockSdkClient(sessionGet);
+
+      const result = await getSessionWorkspaceID(
+        baseDeps({ client }),
+        "ses-missing",
       );
 
-    await expect(
-      getSessionWorkspaceID({ serverUrl, fetchImpl }, "ses-123"),
-    ).resolves.toBe("ws-abc");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(404);
+        expect(result.detail).toContain("session not found");
+      }
+    });
 
-    expect(String(getCall(fetchImpl)[0])).toBe(
-      "http://127.0.0.1:4096/session/ses-123",
-    );
-  });
+    it("returns { ok: false, detail } when SDK throws (e.g. network error)", async () => {
+      const sessionGet = vi
+        .fn()
+        .mockRejectedValue(new Error("ECONNREFUSED 127.0.0.1:4096"));
+      const client = createMockSdkClient(sessionGet);
 
-  it("returns null when the current session has no workspace id", async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(jsonResponse({ id: "ses-123" }));
+      const result = await getSessionWorkspaceID(
+        baseDeps({ client }),
+        "ses-123",
+      );
 
-    await expect(
-      getSessionWorkspaceID({ serverUrl, fetchImpl }, "ses-123"),
-    ).resolves.toBeNull();
-  });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBeUndefined();
+        expect(result.detail).toContain("ECONNREFUSED");
+      }
+    });
 
-  it("rejects session workspace lookup failures", async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValue(textResponse("missing", { status: 404 }));
+    it("returns { ok: false, detail: 'missing client' } when deps.client is undefined", async () => {
+      const result = await getSessionWorkspaceID(
+        baseDeps({ client: undefined }),
+        "ses-123",
+      );
 
-    await expect(
-      getSessionWorkspaceID({ serverUrl, fetchImpl }, "ses-123"),
-    ).rejects.toThrow("getSessionWorkspaceID failed: 404 missing");
+      expect(result).toEqual({ ok: false, detail: "missing client" });
+    });
+
+    it("uses the v1 SDK path-parameter shape { path: { id } }", async () => {
+      const sessionGet = vi.fn().mockResolvedValue({
+        data: { id: "ses-xyz" },
+        error: undefined,
+        response: { status: 200 },
+      });
+      const client = createMockSdkClient(sessionGet);
+
+      await getSessionWorkspaceID(baseDeps({ client }), "ses-xyz");
+
+      expect(sessionGet).toHaveBeenCalledTimes(1);
+      const [args] = sessionGet.mock.calls[0] as [{ path: { id: string } }];
+      expect(args).toEqual({ path: { id: "ses-xyz" } });
+    });
+
+    it("does not perform raw fetch when an SDK client is provided", async () => {
+      const fetchImpl = vi.fn();
+      const sessionGet = vi.fn().mockResolvedValue({
+        data: { id: "ses-123", workspaceID: "ws-abc" },
+        error: undefined,
+        response: { status: 200 },
+      });
+      const client = createMockSdkClient(sessionGet);
+
+      await getSessionWorkspaceID(baseDeps({ client, fetchImpl }), "ses-123");
+
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
   });
 
   it("deletes an ADV workspace by id", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(textResponse(""));
 
     await expect(
-      deleteAdvWorkspace({ serverUrl, fetchImpl }, "ws-abc"),
+      deleteAdvWorkspace(baseDeps({ fetchImpl }), "ws-abc"),
     ).resolves.toBeUndefined();
 
     const [url, init] = getCall(fetchImpl);
@@ -267,7 +381,7 @@ describe("workspace-warp", () => {
       .mockResolvedValue(textResponse("missing", { status: 404 }));
 
     await expect(
-      deleteAdvWorkspace({ serverUrl, fetchImpl }, "ws-abc"),
+      deleteAdvWorkspace(baseDeps({ fetchImpl }), "ws-abc"),
     ).resolves.toBeUndefined();
   });
 
@@ -277,7 +391,7 @@ describe("workspace-warp", () => {
       .mockResolvedValue(textResponse("boom", { status: 503 }));
 
     await expect(
-      deleteAdvWorkspace({ serverUrl, fetchImpl }, "ws-abc"),
+      deleteAdvWorkspace(baseDeps({ fetchImpl }), "ws-abc"),
     ).rejects.toThrow("deleteAdvWorkspace failed: 503 boom");
   });
 
@@ -286,7 +400,7 @@ describe("workspace-warp", () => {
       const fetchImpl = vi.fn();
 
       await expect(
-        findWorkspaceByDirectory({ serverUrl, fetchImpl }, "/tmp/wt"),
+        findWorkspaceByDirectory(baseDeps({ fetchImpl }), "/tmp/wt"),
       ).resolves.toBeNull();
       expect(fetchImpl).not.toHaveBeenCalled();
     });
@@ -312,7 +426,7 @@ describe("workspace-warp", () => {
 
       await expect(
         findWorkspaceByDirectory(
-          { serverUrl, fetchImpl },
+          baseDeps({ fetchImpl }),
           "/tmp/wt",
           "change/test",
         ),
@@ -337,7 +451,7 @@ describe("workspace-warp", () => {
 
       await expect(
         findWorkspaceByDirectory(
-          { serverUrl, fetchImpl },
+          baseDeps({ fetchImpl }),
           "/tmp/wt",
           "change/test",
         ),
@@ -371,7 +485,7 @@ describe("workspace-warp", () => {
 
       await expect(
         findWorkspaceByDirectory(
-          { serverUrl, fetchImpl },
+          baseDeps({ fetchImpl }),
           "/tmp/wt",
           "change/test",
         ),
@@ -387,7 +501,7 @@ describe("workspace-warp", () => {
         );
 
       await expect(
-        findWorkspaceByDirectory({ serverUrl, fetchImpl }, "/tmp/wt"),
+        findWorkspaceByDirectory(baseDeps({ fetchImpl }), "/tmp/wt"),
       ).resolves.toBeNull();
     });
 
@@ -396,37 +510,132 @@ describe("workspace-warp", () => {
 
       await expect(
         findWorkspaceByDirectory(
-          {
-            serverUrl,
+          baseDeps({
             fetchImpl: vi
               .fn()
               .mockResolvedValue(textResponse("no", { status: 500 })),
-          },
+          }),
           "/tmp/wt",
         ),
       ).resolves.toBeNull();
 
       await expect(
         findWorkspaceByDirectory(
-          {
-            serverUrl,
+          baseDeps({
             fetchImpl: vi.fn().mockRejectedValue(new Error("network")),
-          },
+          }),
           "/tmp/wt",
         ),
       ).resolves.toBeNull();
 
       await expect(
         findWorkspaceByDirectory(
-          {
-            serverUrl,
+          baseDeps({
             fetchImpl: vi
               .fn()
               .mockResolvedValue(jsonResponse({ id: "not-list" })),
-          },
+          }),
           "/tmp/wt",
         ),
       ).resolves.toBeNull();
+    });
+  });
+
+  describe("x-opencode-directory header attachment (rq-warpModeContract05)", () => {
+    const expectedHeader = encodeURIComponent("/tmp/wt");
+
+    it("attaches x-opencode-directory on createAdvWorkspace POST", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: "ws-x" }));
+
+      await createAdvWorkspace(baseDeps({ fetchImpl }), {
+        directory: "/tmp/wt",
+        branch: "change/test",
+      });
+
+      const [, init] = getCall(fetchImpl);
+      expect(
+        (init?.headers as Record<string, string>)["x-opencode-directory"],
+      ).toBe(expectedHeader);
+    });
+
+    it("attaches x-opencode-directory on warpSession POST", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(textResponse(""));
+
+      await warpSession(baseDeps({ fetchImpl }), {
+        workspaceID: "ws-x",
+        sessionID: "ses-1",
+      });
+
+      const [, init] = getCall(fetchImpl);
+      expect(
+        (init?.headers as Record<string, string>)["x-opencode-directory"],
+      ).toBe(expectedHeader);
+    });
+
+    it("attaches x-opencode-directory on deleteAdvWorkspace DELETE", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(textResponse(""));
+
+      await deleteAdvWorkspace(baseDeps({ fetchImpl }), "ws-x");
+
+      const [, init] = getCall(fetchImpl);
+      expect(
+        (init?.headers as Record<string, string>)["x-opencode-directory"],
+      ).toBe(expectedHeader);
+    });
+
+    it("attaches x-opencode-directory on workspaceAndWarpAvailable GET", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(textResponse("[]"));
+
+      await workspaceAndWarpAvailable(baseDeps({ fetchImpl }));
+
+      const [, init] = getCall(fetchImpl);
+      expect(
+        (init?.headers as Record<string, string>)["x-opencode-directory"],
+      ).toBe(expectedHeader);
+    });
+
+    it("attaches x-opencode-directory on findWorkspaceByDirectory GET", async () => {
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "true");
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse([]));
+
+      await findWorkspaceByDirectory(baseDeps({ fetchImpl }), "/tmp/wt");
+
+      const [, init] = getCall(fetchImpl);
+      expect(
+        (init?.headers as Record<string, string>)["x-opencode-directory"],
+      ).toBe(expectedHeader);
+    });
+
+    it("encodes directory paths with special characters per encodeURIComponent", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: "ws-x" }));
+
+      await createAdvWorkspace(
+        baseDeps({
+          fetchImpl,
+          directory: "/home/jon/My Code/repo",
+        }),
+        { directory: "/home/jon/My Code/repo", branch: "change/test" },
+      );
+
+      const [, init] = getCall(fetchImpl);
+      expect(
+        (init?.headers as Record<string, string>)["x-opencode-directory"],
+      ).toBe("%2Fhome%2Fjon%2FMy%20Code%2Frepo");
+    });
+
+    it("preserves content-type header on POST endpoints", async () => {
+      const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ id: "ws-x" }));
+
+      await createAdvWorkspace(baseDeps({ fetchImpl }), {
+        directory: "/tmp/wt",
+        branch: "change/test",
+      });
+
+      const [, init] = getCall(fetchImpl);
+      const headers = init?.headers as Record<string, string>;
+      expect(headers["content-type"]).toBe("application/json");
+      expect(headers["x-opencode-directory"]).toBe(expectedHeader);
     });
   });
 });

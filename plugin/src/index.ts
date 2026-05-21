@@ -305,7 +305,8 @@ function buildFactoryFailureHooks(
 }
 
 const advancePluginImpl: Plugin = async (input) => {
-  const { directory, worktree, project, experimental_workspace } = input;
+  const { directory, worktree, project, experimental_workspace, client } =
+    input;
   experimental_workspace?.register?.("adv-worktree", buildAdvWorktreeAdapter());
 
   const gitSession = resolveGitSessionContext(directory, worktree);
@@ -724,7 +725,13 @@ const advancePluginImpl: Plugin = async (input) => {
     // MCP Tools — degraded map on init failure so agents see ADV_PLUGIN_INIT_FAILED
     tool:
       store && !initError
-        ? createToolMap(store, directory, store.paths.agenda, input.serverUrl)
+        ? createToolMap(
+            store,
+            directory,
+            store.paths.agenda,
+            input.serverUrl,
+            client,
+          )
         : createDegradedToolMap(
             initError ?? new Error("Plugin store unavailable"),
             effectiveDir,

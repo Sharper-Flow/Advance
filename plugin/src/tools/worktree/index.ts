@@ -99,6 +99,7 @@ import {
   createAdvWorkspace,
   deleteAdvWorkspace,
   findWorkspaceByDirectory,
+  getSessionWorkspaceID,
   warpFlagEnabled,
   warpSession,
   workspaceAndWarpAvailable,
@@ -1955,22 +1956,10 @@ export async function loadWorktreeConfig(
   }
 }
 
-async function getCurrentSessionWorkspaceID(
-  client: OpencodeClient,
-  sessionID: string,
-): Promise<string | null> {
-  const currentSession = await client.session.get({ path: { id: sessionID } });
-  const workspaceID = (currentSession.data as { workspaceID?: unknown } | null)
-    ?.workspaceID;
-  return typeof workspaceID === "string" && workspaceID.length > 0
-    ? workspaceID
-    : null;
-}
-
 async function resolveEffectiveWorktreeMode(
   requestedMode: WorktreeMode,
   warpDeps: WarpDeps,
-  client: OpencodeClient,
+  _client: OpencodeClient,
   sessionID: string,
   log: Logger,
 ): Promise<{ mode: WorktreeMode } | { mode: "blocked"; message: string }> {
@@ -1983,21 +1972,22 @@ async function resolveEffectiveWorktreeMode(
     return { mode: "terminal" };
   }
 
-  let currentWorkspaceID: string | null;
-  try {
-    currentWorkspaceID = await getCurrentSessionWorkspaceID(client, sessionID);
-  } catch (error) {
+  // T5 (fixWarpSessionLookup) — consolidated session lookup. The shared utility
+  // routes through the SDK client packed into warpDeps; the `_client` param is
+  // retained for back-compat with the legacy WorktreePlugin entry signature.
+  const lookup = await getSessionWorkspaceID(warpDeps, sessionID);
+  if (!lookup.ok) {
     log.warn(
-      `[worktree] mode:warp unavailable because current session lookup failed (${error}); falling back to mode:terminal.`,
+      `[worktree] mode:warp unavailable because current session lookup failed (${lookup.detail}); falling back to mode:terminal.`,
     );
     return { mode: "terminal" };
   }
-  if (currentWorkspaceID) {
+  if (lookup.workspaceID) {
     return {
       mode: "blocked",
       message: [
         `[ADV:BLOCKED] Cannot create worktree while session is already warped.`,
-        `Session ${sessionID} is in workspace ${currentWorkspaceID}.`,
+        `Session ${sessionID} is in workspace ${lookup.workspaceID}.`,
         `Open a fresh OpenCode session from the trunk checkout to create a new worktree.`,
       ].join("\n"),
     };
@@ -2157,7 +2147,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           database,
           log,
           worktreePath,
-          warpDeps: { serverUrl },
+          warpDeps: { serverUrl, directory, client },
         },
       );
 
@@ -2208,7 +2198,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
           }
 
           const worktreeConfig = await loadWorktreeConfig(directory, log);
-          const warpDeps: WarpDeps = { serverUrl };
+          const warpDeps: WarpDeps = { serverUrl, directory, client };
           const modeResolution = await resolveEffectiveWorktreeMode(
             worktreeConfig.mode,
             warpDeps,
@@ -2459,7 +2449,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               database,
               log,
               worktreePath: session?.path,
-              warpDeps: { serverUrl },
+              warpDeps: { serverUrl, directory, client },
             },
           );
 

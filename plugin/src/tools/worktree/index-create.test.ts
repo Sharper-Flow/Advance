@@ -130,6 +130,11 @@ describe.skipIf(!isLinux)(
     let cleanupPaths: string[];
 
     beforeEach(() => {
+      // Clear shell-leaked experimental env vars so flag-off tests assert
+      // the off-by-default warpFlagEnabled() behavior. P25 touched-scope
+      // fix as part of fixWarpSessionLookup (T1).
+      vi.stubEnv("OPENCODE_EXPERIMENTAL", "");
+      vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "");
       repoRoot = createGitRepo();
       cleanupPaths = [];
       vi.clearAllMocks();

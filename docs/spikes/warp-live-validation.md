@@ -124,3 +124,46 @@ Result: PASS. The terminal-mode path did not call `/experimental/workspace`; the
 
 - Smoke branches used `feature/*` instead of `change/*` to avoid creating throwaway ADV change workflows.
 - File create/edit display and LSP/formatter behavior were not directly mutated in the smoke run; validation relied on the OpenCode workspace routing invariant plus existing adapter tests.
+
+## Revised methodology — fresh standalone session (no `--attach --dir`)
+
+The original 2026-05-20 methodology used `opencode run --attach --dir <repo>` for both happy-path and downgrade scenarios. The `--dir` flag pins a consistent directory header into the request context, which masks the bug fixed by change `fixWarpSessionLookup`: raw fetch to `GET /session/:id` without `x-opencode-directory` causes OpenCode's `Instance.project.id` resolution to drift away from the session's storage namespace, returning 404 and silently downgrading to `mode:terminal`.
+
+### Required additional scenario
+
+1. Start OpenCode WITHOUT `--attach --dir`:
+
+   ```bash
+   OPENCODE_EXPERIMENTAL_WORKSPACES=true opencode
+   ```
+
+2. From the fresh session, invoke:
+
+   ```
+   adv_worktree_create branch: "test/warp-fresh-session"
+   ```
+
+3. **Expected outcome (post-fix):** tool output contains `"mode":"warp"` and a `workspaceID`. No `downgrade_reason` field. No `warning` mentioning lookup failure.
+
+4. **If output shows `"mode":"terminal"` with `"downgrade_reason":{"kind":"lookup_failed"}`:** the fix has regressed. Inspect OpenCode server logs for the actual 404 path, then check:
+   - `input.client` is threaded correctly through `tool-registry.ts` to the `adv_worktree_create` runtime (rq-warpModeContract06).
+   - `getSessionWorkspaceID` in `plugin/src/utils/workspace-warp.ts` is calling `client.session.get`, not raw `fetch(...)` (rq-warpModeContract04).
+   - The v1 SDK client was constructed with the correct `directory` (so its default `x-opencode-directory` header is attached automatically).
+
+5. **Additional check:** confirm the existing `--attach --dir` scenario continues to work (no regression):
+
+   ```bash
+   OPENCODE_EXPERIMENTAL_WORKSPACES=true opencode run --attach --dir <repo>
+   ```
+
+   Expected: same `"mode":"warp"` with `workspaceID`. The `--dir` scenario should also continue to pass — the fix makes lookup robust across both forms.
+
+### Why this scenario matters
+
+OpenCode resolves `Instance.project.id` from `x-opencode-directory` (or `?directory=` query param). When the header is absent (or present but encoded for a different directory than the session's storage namespace), `GET /session/:id` resolves against the wrong project namespace and returns 404. The `--attach --dir` flag inadvertently pinned a consistent directory header into the OpenCode CLI's outgoing requests, masking the missing-header bug in the raw-fetch path used by the warp pre-check.
+
+### Reference
+
+- ADV change `fixWarpSessionLookup` (archive: TBD — back-filled at archive time)
+- Spec law `worktree-warp-mode` requirements `rq-warpModeContract04` (SDK-routed session lookup) and `rq-warpModeContract05` (`x-opencode-directory` header on workspace endpoints)
+- Upstream OpenCode issues describing the same failure shape: opencode#8538, opencode#7149, opencode#14595, opencode#3551

@@ -22,6 +22,7 @@ import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
 import { formatToolArgPreflightError } from "./utils/tool-arg-preflight";
 import { formatAdvToolTitle } from "./utils/tool-title";
 import type { Store } from "./storage/store-types";
+import type { OpencodeClient } from "./utils/opencode-types";
 
 import { specTools } from "./tools/spec";
 import { roadmapTools } from "./tools/roadmap";
@@ -241,6 +242,7 @@ export function createToolMap(
   directory: string,
   agendaPath: string | undefined,
   serverUrl?: URL,
+  client?: OpencodeClient,
 ) {
   return {
     // Spec Tools
@@ -606,7 +608,11 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_create.execute
               >[0],
               store,
-              { serverUrl, sessionID: getToolContextSessionID(context) },
+              {
+                serverUrl,
+                sessionID: getToolContextSessionID(context),
+                client,
+              },
             ),
           "adv_worktree_create",
         ),
@@ -629,7 +635,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_delete.execute
               >[0],
               store,
-              { serverUrl },
+              { serverUrl, client },
             ),
           "adv_worktree_delete",
         ),
@@ -647,7 +653,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_cleanup.execute
               >[0],
               store,
-              { serverUrl },
+              { serverUrl, client },
             ),
           "adv_worktree_cleanup",
         ),
@@ -675,7 +681,11 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_create.execute
               >[0],
               store,
-              { serverUrl, sessionID: getToolContextSessionID(context) },
+              {
+                serverUrl,
+                sessionID: getToolContextSessionID(context),
+                client,
+              },
             ),
           "worktree_create",
         ),
@@ -693,7 +703,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_delete.execute
               >[0],
               store,
-              { serverUrl },
+              { serverUrl, client },
             ),
           "worktree_delete",
         ),
@@ -711,7 +721,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_cleanup.execute
               >[0],
               store,
-              { serverUrl },
+              { serverUrl, client },
             ),
           "worktree_cleanup",
         ),

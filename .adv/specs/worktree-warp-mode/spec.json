@@ -1,0 +1,169 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "worktree-warp-mode",
+  "title": "Worktree Warp Mode — Session Lookup, Header Contract, and Structured Downgrade",
+  "purpose": "Capability: Defines when adv_worktree_create selects mode:warp, the already-warped block contract, the structured downgrade_reason discriminated union emitted on every warp→terminal fallback, the SDK-routed session lookup requirement, and the x-opencode-directory header contract on raw-fetch workspace endpoints.",
+  "version": "1.0.0",
+  "updated_at": "2026-05-21T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "rq-warpModeContract01",
+      "title": "Warp Mode Selection",
+      "body": "adv_worktree_create selects mode:warp only when ALL of the following are true: (a) worktree config declares mode:warp; (b) the OPENCODE_EXPERIMENTAL_WORKSPACES or OPENCODE_EXPERIMENTAL env var is exactly 'true'; (c) runtime context includes serverUrl, sessionID, and an SDK client; (d) session lookup via client.session.get succeeds with no existing workspaceID; (e) GET /experimental/workspace is reachable. If any condition fails, the tool MUST downgrade to mode:terminal (or return SESSION_ALREADY_WARPED if condition (d) reveals an existing workspaceID).",
+      "priority": "must",
+      "tags": ["worktree", "warp", "selection"],
+      "scenarios": [
+        {
+          "id": "rq-warpModeContract01.1",
+          "title": "All preconditions met → mode:warp",
+          "given": [
+            "Config mode:warp, env flag enabled, serverUrl+sessionID+client present",
+            "Session lookup returns { ok: true, workspaceID: null }",
+            "GET /experimental/workspace returns 2xx"
+          ],
+          "when": "adv_worktree_create executes",
+          "then": ["Tool output contains mode:\"warp\" and a workspaceID"]
+        },
+        {
+          "id": "rq-warpModeContract01.2",
+          "title": "Missing runtime context → downgrade",
+          "given": ["Any of serverUrl/sessionID/client is undefined"],
+          "when": "adv_worktree_create executes",
+          "then": [
+            "Tool output contains mode:\"terminal\"",
+            "Tool output contains a downgrade_reason matching the missing field"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-warpModeContract02",
+      "title": "Already-Warped Block Contract",
+      "body": "When session lookup returns { ok: true, workspaceID: <non-null> }, adv_worktree_create MUST return error:\"SESSION_ALREADY_WARPED\" with the sessionID, workspaceID, and a hint to open a fresh OpenCode session. The tool MUST NOT downgrade to mode:terminal and MUST NOT emit a downgrade_reason. This is a block, not a fallback.",
+      "priority": "must",
+      "tags": ["worktree", "warp", "block"],
+      "scenarios": [
+        {
+          "id": "rq-warpModeContract02.1",
+          "title": "Workspace-id present → block, not downgrade",
+          "given": ["Session lookup returns { ok: true, workspaceID: \"ws-existing\" }"],
+          "when": "adv_worktree_create executes",
+          "then": [
+            "Tool output contains error:\"SESSION_ALREADY_WARPED\"",
+            "Tool output contains workspaceID:\"ws-existing\"",
+            "Tool output does NOT contain downgrade_reason",
+            "Tool output does NOT contain mode:\"terminal\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-warpModeContract03",
+      "title": "Downgrade Reason Discriminated Union",
+      "body": "On every mode:warp → mode:terminal downgrade path, adv_worktree_create MUST include a structured downgrade_reason field in tool output with one of the following discriminated-union variants: { kind: \"missing_server\" } | { kind: \"missing_session\" } | { kind: \"missing_client\" } | { kind: \"flag_disabled\" } | { kind: \"lookup_failed\", status?: number, detail?: string } | { kind: \"endpoint_unreachable\" } | { kind: \"warp_failed\", detail: string, cleanupFailed?: boolean }. The legacy warning:string field MUST also be present for back-compat human readability. The downgrade_reason field is the structural channel agents branch on.",
+      "priority": "must",
+      "tags": ["worktree", "warp", "diagnostics", "downgrade"],
+      "scenarios": [
+        {
+          "id": "rq-warpModeContract03.1",
+          "title": "Every fallback path emits downgrade_reason",
+          "given": ["Any precondition for mode:warp fails"],
+          "when": "adv_worktree_create executes",
+          "then": [
+            "Tool output contains downgrade_reason field",
+            "downgrade_reason.kind matches the specific failure category",
+            "Tool output also contains warning string"
+          ]
+        },
+        {
+          "id": "rq-warpModeContract03.2",
+          "title": "Post-create warp failure includes detail and optional cleanupFailed",
+          "given": [
+            "Workspace was created but warpSession threw",
+            "Orphan workspace cleanup succeeded"
+          ],
+          "when": "adv_worktree_create handles the failure",
+          "then": [
+            "downgrade_reason.kind == \"warp_failed\"",
+            "downgrade_reason.detail contains the warp error message",
+            "downgrade_reason.cleanupFailed is absent or false"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-warpModeContract04",
+      "title": "SDK-Routed Session Lookup",
+      "body": "Session lookup MUST route through the v1 SDK client's typed method: client.session.get({ path: { id: sessionID } }). Raw fetch to /session/:id is disallowed in plugin/src/utils/workspace-warp.ts and plugin/src/tools/worktree/index.ts because it bypasses the SDK's request interceptor which attaches x-opencode-directory automatically. The lookup function returns a structured SessionLookupResult tuple { ok: true, workspaceID: string | null } | { ok: false, status?: number, detail: string } and never throws.",
+      "priority": "must",
+      "tags": ["worktree", "warp", "sdk", "session-lookup"],
+      "scenarios": [
+        {
+          "id": "rq-warpModeContract04.1",
+          "title": "Grep gate enforces SDK routing",
+          "given": ["The codebase as committed"],
+          "when": "rg -n \"fetch.*session/\" plugin/src/utils/workspace-warp.ts plugin/src/tools/worktree/index.ts is run",
+          "then": ["Zero matches returned"]
+        },
+        {
+          "id": "rq-warpModeContract04.2",
+          "title": "Lookup never throws",
+          "given": ["The SDK client.session.get rejects with a network error"],
+          "when": "getSessionWorkspaceID is called",
+          "then": [
+            "Returns { ok: false, detail: <error string> }",
+            "Does not throw"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-warpModeContract05",
+      "title": "x-opencode-directory Header on Workspace Endpoints",
+      "body": "All raw-fetch calls to /experimental/workspace/* in plugin/src/utils/workspace-warp.ts MUST attach the x-opencode-directory header with value encodeURIComponent(deps.directory). This applies to: workspaceAndWarpAvailable (GET), createAdvWorkspace (POST), warpSession (POST), deleteAdvWorkspace (DELETE), findWorkspaceByDirectory (GET). The header drives OpenCode's Instance.project.id resolution so session storage is namespaced correctly.",
+      "priority": "must",
+      "tags": ["worktree", "warp", "headers", "http"],
+      "scenarios": [
+        {
+          "id": "rq-warpModeContract05.1",
+          "title": "Header attached on every workspace endpoint",
+          "given": ["Any of the 5 workspace-warp.ts functions is called"],
+          "when": "The raw fetch request is built",
+          "then": [
+            "The request headers include x-opencode-directory: <encoded directory>",
+            "The encoding matches encodeURIComponent(deps.directory)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-warpModeContract06",
+      "title": "Client Threading From Plugin Input",
+      "body": "The v1 SDK client from PluginInput.client MUST be threaded through advancePluginImpl → createToolMap → AdvWorktreeCreateRuntime to enable rq-warpModeContract04. createToolMap accepts an optional client parameter; adv_worktree_create / adv_worktree_delete / adv_worktree_cleanup and their backward-compat aliases (worktree_create / worktree_delete / worktree_cleanup) all forward the client into their runtime options. If client is absent at runtime, adv_worktree_create emits downgrade_reason { kind: \"missing_client\" } and falls back to mode:terminal — it does not crash.",
+      "priority": "must",
+      "tags": ["worktree", "warp", "wiring", "plugin-init"],
+      "scenarios": [
+        {
+          "id": "rq-warpModeContract06.1",
+          "title": "Client present → forwarded to runtime",
+          "given": ["PluginInput.client is constructed by OpenCode"],
+          "when": "adv_worktree_create is registered and invoked",
+          "then": [
+            "The execute call receives runtime with client matching PluginInput.client",
+            "WarpDeps construction includes client"
+          ]
+        },
+        {
+          "id": "rq-warpModeContract06.2",
+          "title": "Client absent → missing_client downgrade",
+          "given": ["Runtime context does not include a client"],
+          "when": "adv_worktree_create executes with config mode:warp",
+          "then": [
+            "Tool output contains downgrade_reason.kind == \"missing_client\"",
+            "Tool output contains mode:\"terminal\""
+          ]
+        }
+      ]
+    }
+  ]
+}

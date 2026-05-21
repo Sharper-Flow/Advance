@@ -138,6 +138,11 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
   let repoRoot: string;
 
   beforeEach(() => {
+    // Clear shell-leaked experimental env vars so flag-off tests assert
+    // the off-by-default warpFlagEnabled() behavior. P25 touched-scope
+    // fix as part of fixWarpSessionLookup (T1).
+    vi.stubEnv("OPENCODE_EXPERIMENTAL", "");
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "");
     repoRoot = createGitRepo();
     vi.clearAllMocks();
     vi.mocked(runHooksWithSafety).mockReset();
