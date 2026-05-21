@@ -1,3 +1,10 @@
+## 2026-05-21 (v0.9.4)
+
+### Fixed
+
+- harden git spawn env and wire fsck repair action
+- route target-path isolation through target root
+
 ## 2026-05-21 (v0.9.3)
 
 ### Fixed
