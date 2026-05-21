@@ -19,7 +19,7 @@ describe("adv_change_archive Phase 9 integration contract", () => {
 
   test("exposes a phase9 skip option for slash-command-owned finalization", () => {
     expect(SOURCE).toContain("phase9");
-    expect(SOURCE).toContain('z.enum(["run", "skip"])');
+    expect(SOURCE).toMatch(/\.enum\(\[\s*"run",\s*"skip"\s*\]\)/);
     expect(SOURCE).toContain("slash-command path");
   });
 

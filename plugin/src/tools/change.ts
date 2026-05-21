@@ -162,6 +162,11 @@ import {
   gateReenteredSignal,
   getGateStatusQuery,
 } from "../temporal/messages";
+import {
+  detectArchiveMode,
+  finalizeRelease,
+  type GitFinalizeOutcome,
+} from "./archive-helpers/git-finalize";
 
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -2545,6 +2550,12 @@ export const changeTools = {
         .describe(
           "Backward-compatible explicit affirmative (no-op, closure is default-on)",
         ),
+      phase9: z
+        .enum(["run", "skip"])
+        .optional()
+        .describe(
+          "Phase 9 git finalization mode. Defaults to run for direct tool invocations. The /adv-archive slash-command path passes 'skip' because it owns the richer human-facing Phase 9 workflow.",
+        ),
     },
     execute: async (
       {
@@ -2553,12 +2564,14 @@ export const changeTools = {
         worktreePath,
         noCloseIssue,
         closeIssue: _closeIssue,
+        phase9 = "run",
       }: {
         changeId: string;
         dryRun?: boolean;
         worktreePath?: string;
         noCloseIssue?: boolean;
         closeIssue?: boolean;
+        phase9?: "run" | "skip";
       },
       store: Store,
     ) => {
@@ -2761,6 +2774,17 @@ export const changeTools = {
         worktreePath,
       });
 
+      let finalization: GitFinalizeOutcome | undefined;
+      if (!dryRun && archiveResult.success && phase9 !== "skip") {
+        const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
+        finalization = await finalizeRelease({
+          changeId,
+          workdir: worktreePath ?? store.paths.root,
+          archiveMode,
+          autoPush,
+        });
+      }
+
       return formatToolOutput({
         success: archiveResult.success,
         specsUpdated: archiveResult.specsUpdated.map((s) => ({
@@ -2784,6 +2808,7 @@ export const changeTools = {
         ...(issueClosure.issue_closure_error
           ? { issue_closure_error: issueClosure.issue_closure_error }
           : {}),
+        ...(finalization ? { finalization } : {}),
         ...(validationResult.warnings.length > 0
           ? {
               validationWarnings: validationResult.warnings.map((w) => ({
