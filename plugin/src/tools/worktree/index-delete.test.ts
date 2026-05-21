@@ -13,7 +13,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { basename, join } from "path";
 import { execSync } from "child_process";
 
 const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
@@ -66,6 +66,7 @@ vi.mock("./hooks", async (importOriginal) => {
 
 import {
   advWorktreeDelete,
+  drainPendingDeletes,
   reapEmptyWorktreeParents,
   type AdvWorktreeDeleteDeps,
 } from "./index";
@@ -73,7 +74,12 @@ import {
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
 import { worktreeDeletedSignal } from "../../temporal/messages";
-import { getPendingDeletes } from "./state";
+import {
+  clearPendingDelete,
+  getPendingDeletes,
+  incrementPendingDeleteAttempts,
+  setPendingDelete,
+} from "./state";
 
 const isLinux = process.platform === "linux";
 
@@ -100,7 +106,10 @@ function createMockDeps(
 ): AdvWorktreeDeleteDeps {
   return {
     projectRoot,
-    database: { projectDir: projectRoot, projectId: "test-id" },
+    database: {
+      projectDir: projectRoot,
+      projectId: `test-${basename(projectRoot)}`,
+    },
     log: {
       debug: vi.fn(),
       info: vi.fn(),
@@ -812,6 +821,118 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
       error: "INTEGRATION_REQUIRED",
       reason: "branch_not_in_registry",
     });
+  });
+});
+
+describe.skipIf(!isLinux)("shared pending-delete drain", () => {
+  let repoRoot: string;
+  let projectId: string;
+
+  function createDrainDeps(worktreePath: string): AdvWorktreeDeleteDeps {
+    return {
+      ...createMockDeps(repoRoot, worktreePath),
+      database: { projectDir: repoRoot, projectId },
+    };
+  }
+
+  beforeEach(() => {
+    vi.stubEnv("OPENCODE_EXPERIMENTAL", "");
+    vi.stubEnv("OPENCODE_EXPERIMENTAL_WORKSPACES", "");
+    repoRoot = createGitRepo();
+    projectId = `drain-${Date.now()}-${Math.random()}`;
+    vi.clearAllMocks();
+    vi.mocked(runHooksWithSafety).mockReset();
+  });
+
+  afterEach(async () => {
+    await Promise.allSettled([
+      clearPendingDelete({ projectDir: repoRoot, projectId }, "change/capped"),
+      clearPendingDelete({ projectDir: repoRoot, projectId }, "change/dry-run"),
+      clearPendingDelete(
+        { projectDir: repoRoot, projectId },
+        "change/archived-clean",
+      ),
+    ]);
+    rmSync(repoRoot, { recursive: true, force: true });
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("respects the automatic attempt cap unless the trigger forces attempts", async () => {
+    const branch = "change/capped";
+    const pendingPath = join(repoRoot, "worktrees", "change", "capped");
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(
+      deps.database,
+      branch,
+      pendingPath,
+      "retry cap test",
+    );
+    for (let i = 0; i < 5; i++) {
+      await incrementPendingDeleteAttempts(deps.database, branch);
+    }
+
+    const capped = await drainPendingDeletes("session.deleted", deps);
+
+    expect(capped).toEqual({ removed: 0, retained: 1 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({ branch, attempts: 5 }),
+    ]);
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("max attempts reached"),
+    );
+
+    const forced = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+    });
+
+    expect(forced).toEqual({ removed: 0, retained: 1 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({ branch, attempts: 6 }),
+    ]);
+  });
+
+  it("does not mutate pending-delete attempts during dry-run preview", async () => {
+    const branch = "change/dry-run";
+    const pendingPath = join(repoRoot, "worktrees", "change", "dry-run");
+    const deps = createDrainDeps(pendingPath);
+    deps.isWorktreeInUse = () => true;
+    await setPendingDelete(deps.database, branch, pendingPath, "dry run test");
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      dryRun: true,
+      forceAttempts: true,
+    });
+
+    expect(result).toEqual({ removed: 0, retained: 1, dryRun: true });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({ branch, attempts: 0 }),
+    ]);
+  });
+
+  it("passes the durable store into registry-drift change branch cleanup", async () => {
+    const branch = "change/archived-clean";
+    const wtPath = addWorktree(repoRoot, branch);
+    const deps = createDrainDeps(wtPath);
+    deps.registry = [];
+    deps.mergedBranches = async () => [`+ ${branch}`];
+    attachChangeStatus(deps, "archived");
+    await setPendingDelete(
+      deps.database,
+      branch,
+      wtPath,
+      "registry drift test",
+    );
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 0 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
   });
 });
 

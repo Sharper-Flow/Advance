@@ -2018,49 +2018,71 @@ export interface AdvWorktreeCleanupDeps {
   warpDeps?: WarpDeps;
 }
 
-export async function advWorktreeCleanup(
-  _reason: string,
-  deps: AdvWorktreeCleanupDeps,
-): Promise<{ removed: number; retained: number; dryRun?: boolean }> {
+export interface DrainPendingDeletesOptions {
+  /** Manual remediation triggers may ignore the automatic retry cap. */
+  forceAttempts?: boolean;
+  /** Preview pending-delete handling without mutating attempts or deleting. */
+  dryRun?: boolean;
+}
+
+export interface PendingDeleteDrainResult {
+  removed: number;
+  retained: number;
+  dryRun?: boolean;
+}
+
+export async function drainPendingDeletes(
+  trigger: string,
+  deps: AdvWorktreeDeleteDeps,
+  options: DrainPendingDeletesOptions = {},
+): Promise<PendingDeleteDrainResult> {
   const pendingDeletes = await getPendingDeletes(deps.database);
   if (pendingDeletes.length === 0) {
     return {
       removed: 0,
       retained: 0,
-      ...(deps.dryRun ? { dryRun: true } : {}),
+      ...(options.dryRun ? { dryRun: true } : {}),
     };
   }
 
   let removed = 0;
   let retained = 0;
+  const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
 
   for (const pendingDelete of pendingDeletes) {
     const { path: worktreePath, branch } = pendingDelete;
 
-    if (isWorktreeInUse(worktreePath)) {
+    if (
+      !options.forceAttempts &&
+      pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS
+    ) {
       deps.log.warn(
-        `[worktree] Skipping worktree removal during worktree_cleanup — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
+        `[worktree] Skipping pending delete for ${branch} during ${trigger} — max attempts reached (${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS}). Run worktree_cleanup after fixing the underlying issue.`,
+      );
+      retained++;
+      continue;
+    }
+
+    if (options.dryRun) {
+      retained++;
+      continue;
+    }
+
+    if (worktreeInUseFn(worktreePath)) {
+      deps.log.warn(
+        `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
       );
       await incrementPendingDeleteAttempts(deps.database, branch);
       retained++;
       continue;
     }
 
-    if (deps.dryRun) {
-      retained++;
-      continue;
-    }
-
     const result = await advWorktreeDelete(
       branch,
-      { force: true },
+      { force: options.forceAttempts },
       {
-        projectRoot: deps.projectRoot,
-        database: deps.database,
-        log: deps.log,
+        ...deps,
         worktreePath,
-        store: deps.store,
-        warpDeps: deps.warpDeps,
       },
     );
 
@@ -2076,7 +2098,24 @@ export async function advWorktreeCleanup(
     }
   }
 
-  return { removed, retained, ...(deps.dryRun ? { dryRun: true } : {}) };
+  return { removed, retained, ...(options.dryRun ? { dryRun: true } : {}) };
+}
+
+export async function advWorktreeCleanup(
+  _reason: string,
+  deps: AdvWorktreeCleanupDeps,
+): Promise<PendingDeleteDrainResult> {
+  return drainPendingDeletes(
+    "worktree_cleanup",
+    {
+      projectRoot: deps.projectRoot,
+      database: deps.database,
+      log: deps.log,
+      store: deps.store,
+      warpDeps: deps.warpDeps,
+    },
+    { dryRun: deps.dryRun, forceAttempts: true },
+  );
 }
 
 // =============================================================================
@@ -2112,60 +2151,16 @@ export const WorktreePlugin: Plugin = async (ctx) => {
     trigger: string,
     options: { forceAttempts?: boolean } = {},
   ): Promise<{ removed: number; retained: number }> {
-    const pendingDeletes = await getPendingDeletes(database);
-    if (pendingDeletes.length === 0) return { removed: 0, retained: 0 };
-
-    let removed = 0;
-    let retained = 0;
-
-    for (const pendingDelete of pendingDeletes) {
-      const { path: worktreePath, branch } = pendingDelete;
-
-      if (
-        !options.forceAttempts &&
-        pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS
-      ) {
-        log.warn(
-          `[worktree] Skipping pending delete for ${branch} during ${trigger} — max attempts reached (${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS}). Run worktree_cleanup after fixing the underlying issue.`,
-        );
-        retained++;
-        continue;
-      }
-
-      if (isWorktreeInUse(worktreePath)) {
-        log.warn(
-          `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
-        );
-        await incrementPendingDeleteAttempts(database, branch);
-        retained++;
-        continue;
-      }
-
-      const result = await advWorktreeDelete(
-        branch,
-        { force: options.forceAttempts },
-        {
-          projectRoot: directory,
-          database,
-          log,
-          worktreePath,
-          warpDeps: { serverUrl, directory, client },
-        },
-      );
-
-      if (result.ok) {
-        await clearPendingDelete(database, branch);
-        removed++;
-      } else {
-        log.warn(
-          `[worktree] Failed pending delete for ${branch}: ${result.error}`,
-        );
-        await incrementPendingDeleteAttempts(database, branch);
-        retained++;
-      }
-    }
-
-    return { removed, retained };
+    return drainPendingDeletes(
+      trigger,
+      {
+        projectRoot: directory,
+        database,
+        log,
+        warpDeps: { serverUrl, directory, client },
+      },
+      options,
+    );
   }
 
   return {
