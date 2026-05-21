@@ -958,6 +958,143 @@ describe("advWorktreeCleanup", () => {
     }
   });
 
+  it("does not consume retry attempts while the worktree is still in use", async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-in-use-"));
+    const projectId = `cleanup-in-use-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const database = { projectDir: projectRoot, projectId };
+    const worktreePath = join(projectRoot, "in-use");
+    mkdirSync(worktreePath, { recursive: true });
+
+    try {
+      await setPendingDelete(database, "change/in-use", worktreePath, "test");
+
+      const log = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+      const deleteWorktree = vi.fn(async () => ({
+        ok: true as const,
+        branch: "change/in-use",
+        path: worktreePath,
+      }));
+
+      const result = await advWorktreeCleanup("test cleanup", {
+        projectRoot,
+        database,
+        log,
+        deleteWorktree,
+        isWorktreeInUse: () => true,
+      });
+
+      expect(result).toEqual({ removed: 0, retained: 1 });
+      expect(deleteWorktree).not.toHaveBeenCalled();
+      const pending = await getPendingDeletes(database);
+      expect(pending).toHaveLength(1);
+      expect(pending[0]).toMatchObject({
+        branch: "change/in-use",
+        attempts: 0,
+      });
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("allows manual cleanup to bypass the retry cap", async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-force-"));
+    const projectId = `cleanup-force-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const database = { projectDir: projectRoot, projectId };
+    const worktreePath = join(projectRoot, "force");
+    mkdirSync(worktreePath, { recursive: true });
+
+    try {
+      await setPendingDelete(database, "change/force", worktreePath, "test");
+      for (let i = 0; i < 5; i++) {
+        await incrementPendingDeleteAttempts(database, "change/force");
+      }
+
+      const log = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+      const deleteWorktree = vi.fn(async () => ({
+        ok: true as const,
+        branch: "change/force",
+        path: worktreePath,
+      }));
+
+      const result = await advWorktreeCleanup("manual cleanup", {
+        projectRoot,
+        database,
+        log,
+        deleteWorktree,
+        forceAttempts: true,
+      });
+
+      expect(result).toEqual({ removed: 1, retained: 0 });
+      expect(deleteWorktree).toHaveBeenCalledTimes(1);
+      await expect(getPendingDeletes(database)).resolves.toEqual([]);
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("clears a timed-out pending delete when the late delete succeeds", async () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-late-"));
+    const projectId = `cleanup-late-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const database = { projectDir: projectRoot, projectId };
+    const worktreePath = join(projectRoot, "late");
+    mkdirSync(worktreePath, { recursive: true });
+
+    try {
+      await setPendingDelete(database, "change/late", worktreePath, "test");
+
+      const log = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      };
+      const deleteWorktree = vi.fn(
+        () =>
+          new Promise<{ ok: true; branch: string; path: string }>((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  branch: "change/late",
+                  path: worktreePath,
+                }),
+              10,
+            );
+          }),
+      );
+
+      const result = await advWorktreeCleanup("test cleanup", {
+        projectRoot,
+        database,
+        log,
+        deleteWorktree,
+        cleanupItemTimeoutMs: 1,
+      });
+
+      expect(result).toEqual({ removed: 0, retained: 1 });
+      expect(await getPendingDeletes(database)).toHaveLength(1);
+
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      await expect(getPendingDeletes(database)).resolves.toEqual([]);
+      expect(log.warn).toHaveBeenCalledWith(
+        expect.stringContaining("resolved after timeout"),
+      );
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
   it("clears pending deletes whose worktree path is already gone", async () => {
     const projectRoot = mkdtempSync(join(tmpdir(), "adv-wt-cleanup-gone-"));
     const projectId = `cleanup-gone-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
