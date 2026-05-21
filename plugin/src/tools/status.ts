@@ -913,6 +913,11 @@ export function applyStatusView(
       projection.worker_diagnostics = full.worker_diagnostics;
       projection.worker_role = full.worker_role;
       projection.feature_flags = full.feature_flags;
+      // rq-autoManageAdvWorktrees AC2 — surface resolved-flag source +
+      // auto-managed change census in health view so operators can audit
+      // the worktree_guard_enforce posture and migration progress.
+      projection.feature_flag_sources = full.feature_flag_sources;
+      projection.auto_managed_changes = full.auto_managed_changes;
       projection.search_attributes = full.search_attributes;
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.diagnostics = full.diagnostics;
@@ -1097,6 +1102,7 @@ export const statusTools = {
           );
           let featureFlags: Record<string, unknown> =
             withStabilityFeatureDefaults(undefined);
+          let rawFeatures: Record<string, unknown> | undefined;
 
           // Warn when external state is unavailable — worktree sharing and
           // state isolation won't function.  This happens when the plugin
@@ -1119,9 +1125,42 @@ export const statusTools = {
             status.recommendations.unshift(`${prefix}: ${configResult.error}`);
           } else {
             // Expose feature flags in status output for visibility
-            featureFlags = withStabilityFeatureDefaults(
-              configResult.data.features as Record<string, unknown>,
-            );
+            rawFeatures = configResult.data.features as
+              | Record<string, unknown>
+              | undefined;
+            featureFlags = withStabilityFeatureDefaults(rawFeatures);
+          }
+
+          // rq-autoManageAdvWorktrees AC2 — surface the source (default vs
+          // explicit) of each resolved flag so the agent can audit whether a
+          // given value was inherited or set in project.json. Computed
+          // regardless of config-load success so the census is always
+          // present even when project.json is missing/invalid.
+          const featureFlagSources: Record<string, "default" | "explicit"> = {};
+          for (const key of Object.keys(featureFlags)) {
+            featureFlagSources[key] =
+              rawFeatures && typeof rawFeatures[key] !== "undefined"
+                ? "explicit"
+                : "default";
+          }
+
+          // rq-autoManageAdvWorktrees AC2 — auto-managed change census from
+          // the in-flight changes list. New changes (post-A3) get marker
+          // true; legacy changes get false via lazy migration (A4). The
+          // counts help operators see migration progress without scanning
+          // every change.json by hand.
+          const recentForCensus = status.changes.recent ?? [];
+          const autoManagedCensus = {
+            auto: 0,
+            legacy: 0,
+            unmigrated: 0,
+          };
+          for (const c of recentForCensus) {
+            const marker = (c as { worktree_auto_managed?: boolean })
+              .worktree_auto_managed;
+            if (marker === true) autoManagedCensus.auto += 1;
+            else if (marker === false) autoManagedCensus.legacy += 1;
+            else autoManagedCensus.unmigrated += 1;
           }
 
           // Single-pass over recent changes: context snapshot, gate recommendation,
@@ -1290,6 +1329,10 @@ export const statusTools = {
                 }
               : {}),
             feature_flags: featureFlags,
+            // rq-autoManageAdvWorktrees AC2 — per-flag source (default | explicit)
+            feature_flag_sources: featureFlagSources,
+            // rq-autoManageAdvWorktrees AC2 — auto-managed change census
+            auto_managed_changes: autoManagedCensus,
             worker_role: getTemporalWorkerRole(),
             _freshness: probeFreshness,
             temporal_health: temporalHealth,

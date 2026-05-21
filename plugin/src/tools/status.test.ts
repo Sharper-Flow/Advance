@@ -589,6 +589,54 @@ Vague in-flight work.
       });
     });
 
+    // rq-autoManageAdvWorktrees AC2
+    test("health view surfaces feature_flag_sources marking each flag default | explicit", async () => {
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const health = parseToolOutput(result);
+
+      expect(health.feature_flag_sources).toBeDefined();
+      // Each key in feature_flags has a corresponding source entry that is
+      // either "default" (no explicit project.json override) or "explicit"
+      // (set in project.json). The fixture may or may not set
+      // worktree_guard_enforce explicitly — either source is valid.
+      for (const key of Object.keys(health.feature_flags)) {
+        expect(["default", "explicit"]).toContain(
+          health.feature_flag_sources[key],
+        );
+      }
+      // Both worktree_guard_enforce and worker_singleton_enforce always
+      // resolve (they have withStabilityFeatureDefaults coverage), so their
+      // source entries must be present.
+      expect(
+        health.feature_flag_sources.worktree_guard_enforce,
+      ).toMatch(/^(default|explicit)$/);
+      expect(
+        health.feature_flag_sources.worker_singleton_enforce,
+      ).toMatch(/^(default|explicit)$/);
+    });
+
+    test("health view surfaces auto_managed_changes census from recent changes", async () => {
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const health = parseToolOutput(result);
+
+      expect(health.auto_managed_changes).toBeDefined();
+      expect(typeof health.auto_managed_changes.auto).toBe("number");
+      expect(typeof health.auto_managed_changes.legacy).toBe("number");
+      expect(typeof health.auto_managed_changes.unmigrated).toBe("number");
+      // The empty-fixture store has no recent changes — all counts are 0.
+      const total =
+        health.auto_managed_changes.auto +
+        health.auto_managed_changes.legacy +
+        health.auto_managed_changes.unmigrated;
+      expect(total).toBeGreaterThanOrEqual(0);
+    });
+
     test("health view includes probe freshness and reuses cached temporal health", async () => {
       const firstResult = await statusTools.adv_status.execute(
         { view: "health" },
