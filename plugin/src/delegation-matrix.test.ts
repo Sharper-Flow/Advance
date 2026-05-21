@@ -1,8 +1,9 @@
 /**
  * Delegation Matrix Coverage Tests
  *
- * Validates the delegation-defaults spec against the design matrix:
+ * Validates the delegation-defaults spec's machine-readable matrix:
  * - All 9 workflow steps present with valid modes
+ * - Gate affinities and delegated sub-steps are structurally represented
  * - Sub-agent references exist as agent files
  * - No phantom or primary agents in allowed sub-agents
  * - Cross-reference consistency with command contracts
@@ -36,32 +37,83 @@ type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 const VALID_MODES = ["inline_required", "subagent_primary", "hybrid"] as const;
 type DelegationMode = (typeof VALID_MODES)[number];
 
+const VALID_SUBSTEP_MODES = ["subagent_primary", "delegate_allowed"] as const;
+type DelegatedSubstepMode = (typeof VALID_SUBSTEP_MODES)[number];
+
+const EXPECTED_GATE_AFFINITY: Record<WorkflowStep, string> = {
+  proposal: "proposal",
+  discovery: "discovery",
+  design: "design",
+  prep: "planning",
+  apply: "execution",
+  review: "acceptance",
+  harden: "release",
+  archive: "release",
+  reflect: "post-release",
+};
+
 // rq-delDefaults03: forbidden agent names
 const PHANTOM_AGENTS = ["librarian", "mechanic", "prioritizer"];
 const PRIMARY_AGENTS = ["adv", "plan", "build", "adv-atc"];
 
-// Known global agents (built-in to OpenCode, not in .opencode/agents/)
+// Known global agents (built into OpenCode, not in .opencode/agents/).
 const GLOBAL_AGENTS = new Set(["explore", "general"]);
 
-// Expected matrix per design D2
+const KNOWN_SPAWNABLE_SUBAGENTS = [
+  "adv-engineer",
+  "adv-reviewer",
+  "adv-researcher",
+  "adv-tron",
+  "explore",
+  "general",
+] as const;
+
+// Canonical matrix loaded from the delegation-defaults spec.
 interface MatrixRow {
   step: WorkflowStep;
+  gateAffinity: string;
   mode: DelegationMode;
   allowedAgents: string[];
   inlineBoundaries: string[];
+  delegatedSubsteps?: DelegatedSubstep[];
+}
+
+interface DelegatedSubstep {
+  name: string;
+  mode: DelegatedSubstepMode;
+  allowedAgents: string[];
 }
 
 interface DelegationMatrixEntry {
   step: string;
+  gate_affinity: string;
   mode: string;
   allowed_subagents: string[];
   inline_boundaries: string[];
+  delegated_substeps?: {
+    name: string;
+    mode: string;
+    allowed_subagents: string[];
+  }[];
+}
+
+interface SpecRequirement {
+  id: string;
+  body: string;
+  scenarios?: { then?: string[] }[];
+}
+
+interface DelegationDefaultsSpec {
+  delegation_matrix?: DelegationMatrixEntry[];
+  requirements?: SpecRequirement[];
+}
+
+function loadSpec(): DelegationDefaultsSpec {
+  return JSON.parse(readFileSync(SPEC_PATH, "utf8")) as DelegationDefaultsSpec;
 }
 
 function loadDelegationMatrix(): MatrixRow[] {
-  const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
-    delegation_matrix?: DelegationMatrixEntry[];
-  };
+  const spec = loadSpec();
 
   if (!Array.isArray(spec.delegation_matrix)) {
     throw new Error(
@@ -71,9 +123,15 @@ function loadDelegationMatrix(): MatrixRow[] {
 
   return spec.delegation_matrix.map((entry) => ({
     step: entry.step as WorkflowStep,
+    gateAffinity: entry.gate_affinity,
     mode: entry.mode as DelegationMode,
     allowedAgents: entry.allowed_subagents,
     inlineBoundaries: entry.inline_boundaries,
+    delegatedSubsteps: entry.delegated_substeps?.map((substep) => ({
+      name: substep.name,
+      mode: substep.mode as DelegatedSubstepMode,
+      allowedAgents: substep.allowed_subagents,
+    })),
   }));
 }
 
@@ -149,6 +207,10 @@ describe("delegation matrix coverage", () => {
         Array.isArray(row.inlineBoundaries),
         `matrix row ${row.step} inline_boundaries must be an array`,
       ).toBe(true);
+      expect(
+        typeof row.gateAffinity,
+        `matrix row ${row.step} gate_affinity must be a string`,
+      ).toBe("string");
     }
   });
 
@@ -164,6 +226,14 @@ describe("delegation matrix coverage", () => {
     expect(new Set(EXPECTED_MATRIX.map((r) => r.step)).size).toBe(
       WORKFLOW_STEPS.length,
     );
+  });
+
+  // rq-delDefaults01: each workflow step maps to one gate-affinity phase
+  test("gate affinities match the seven-gate lifecycle", () => {
+    const affinityMap = Object.fromEntries(
+      EXPECTED_MATRIX.map((row) => [row.step, row.gateAffinity]),
+    );
+    expect(affinityMap).toEqual(EXPECTED_GATE_AFFINITY);
   });
 
   // rq-delDefaults02: valid mode per step
@@ -232,6 +302,67 @@ describe("delegation matrix coverage", () => {
     }
   });
 
+  // rq-delDefaults02 rq-delDefaults03: delegable steps structurally name delegated sub-steps
+  test("hybrid and subagent_primary steps name delegated sub-steps", () => {
+    for (const row of EXPECTED_MATRIX) {
+      if (row.mode === "inline_required") {
+        expect(
+          row.delegatedSubsteps ?? [],
+          `Step ${row.step} is inline_required and must not delegate sub-steps`,
+        ).toEqual([]);
+        continue;
+      }
+
+      expect(
+        row.delegatedSubsteps?.length ?? 0,
+        `Step ${row.step} must structurally name delegated sub-steps`,
+      ).toBeGreaterThan(0);
+
+      for (const substep of row.delegatedSubsteps ?? []) {
+        expect(substep.name.length).toBeGreaterThan(0);
+        expect(
+          VALID_SUBSTEP_MODES.includes(substep.mode),
+          `Sub-step ${row.step}/${substep.name} has invalid mode ${substep.mode}`,
+        ).toBe(true);
+        expect(
+          substep.allowedAgents.length,
+          `Sub-step ${row.step}/${substep.name} must name allowed sub-agents`,
+        ).toBeGreaterThan(0);
+        for (const agent of substep.allowedAgents) {
+          expect(
+            row.allowedAgents.includes(agent),
+            `Sub-step ${row.step}/${substep.name} references ${agent} outside row allowed_subagents`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  // rq-delDefaults04: discovery wide scans delegate; prep does not
+  test("wide-scan delegation is explicit for discovery and absent for prep", () => {
+    const rows = Object.fromEntries(
+      EXPECTED_MATRIX.map((row) => [row.step, row]),
+    );
+
+    expect(rows.discovery.delegatedSubsteps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Prior Research Extension",
+          mode: "subagent_primary",
+          allowedAgents: ["adv-researcher"],
+        }),
+        expect.objectContaining({
+          name: "P25 Related-Pattern Scan",
+          mode: "subagent_primary",
+          allowedAgents: ["explore", "adv-researcher"],
+        }),
+      ]),
+    );
+    expect(rows.prep.mode).toBe("inline_required");
+    expect(rows.prep.allowedAgents).toEqual([]);
+    expect(rows.prep.delegatedSubsteps ?? []).toEqual([]);
+  });
+
   // rq-delDefaults03: referenced agents exist as agent files or are known global agents
   test("referenced sub-agents exist as .opencode/agents/*.md files or known global agents", () => {
     for (const row of EXPECTED_MATRIX) {
@@ -293,6 +424,40 @@ describe("delegation matrix coverage", () => {
     expect(agentMap.review).toEqual(new Set(["adv-reviewer", "explore"]));
     expect(agentMap.harden).toEqual(new Set(["adv-reviewer", "explore"]));
   });
+
+  // rq-delDefaults05: worker reports must stay structured enough for orchestration
+  test("structured worker report coverage is represented in the spec", () => {
+    const spec = loadSpec();
+    const requirement = spec.requirements?.find(
+      (entry) => entry.id === "rq-delDefaults05",
+    );
+    expect(requirement, "rq-delDefaults05 must exist").toBeDefined();
+
+    const text = [
+      requirement?.body ?? "",
+      ...(requirement?.scenarios ?? []).flatMap(
+        (scenario) => scenario.then ?? [],
+      ),
+    ].join("\n");
+
+    for (const agent of [
+      "adv-engineer",
+      "adv-reviewer",
+      "adv-researcher",
+      "adv-tron",
+    ]) {
+      expect(text).toContain(agent);
+    }
+
+    for (const requiredField of [
+      "evidence",
+      "scope",
+      "blockers",
+      "next action",
+    ]) {
+      expect(text.toLowerCase()).toContain(requiredField);
+    }
+  });
 });
 
 describe("delegation matrix cross-reference", () => {
@@ -306,15 +471,17 @@ describe("delegation matrix cross-reference", () => {
       const content = readCommandFile(row.step);
       if (!content) continue;
 
-      // Check for explicit sub-agent spawning instructions
-      const hasExplicitSubagentSpawn =
-        /subagent_type:\s*["'](?:adv-engineer|adv-reviewer|adv-researcher|explore|general|adv-tron)["']/i.test(
-          content,
-        );
+      // Check for explicit Task args and prose-level spawn/delegation instructions.
+      const subagentAlternation = KNOWN_SPAWNABLE_SUBAGENTS.join("|");
+      const hasExplicitSubagentSpawn = new RegExp(
+        `(?:["']?subagent_type["']?\\s*:\\s*["'](?:${subagentAlternation})["']|\\b(?:may\\s+)?spawn\\s+\\x60?(?:${subagentAlternation})\\x60?|\\bdelegate\\s+to\\s+\\x60?(?:${subagentAlternation})\\x60?)`,
+        "i",
+      );
+      const violatesInline = hasExplicitSubagentSpawn.test(content);
 
       expect(
-        hasExplicitSubagentSpawn,
-        `Step ${row.step} is inline_required but command file contains explicit subagent_type spawn for a sub-agent`,
+        violatesInline,
+        `Step ${row.step} is inline_required but command file contains explicit sub-agent spawn/delegation guidance`,
       ).toBe(false);
     }
   });

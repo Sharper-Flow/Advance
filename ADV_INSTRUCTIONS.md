@@ -697,23 +697,11 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 <!-- rq-delDefaults01 rq-delDefaults02 rq-delDefaults03 rq-delDefaults04 -->
 
-The workflow-step delegation matrix is spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`): single source for step delegation mode, allowed sub-agents, and safety boundaries.
-
-| Step | Mode | Allowed Sub-Agents |
-|------|------|-------------------|
-| proposal | `inline_required` | none |
-| discovery | `hybrid` | `adv-researcher`, `explore` |
-| design | `hybrid` | `adv-researcher` (mandatory validator) |
-| prep | `inline_required` | none |
-| apply | `hybrid` | `adv-engineer`, `general` |
-| review | `hybrid` | `adv-reviewer`, `explore` |
-| harden | `subagent_primary` | `adv-reviewer`, `explore` |
-| archive | `inline_required` | none |
-| reflect | `inline_required` | none |
+The workflow-step delegation matrix is spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`): single source for step delegation mode, allowed sub-agents, delegated sub-steps, and safety boundaries. Do not duplicate the matrix here; update the spec and its asset tests instead.
 
 Inline-only commands: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-reflect`. Design gate requires mandatory independent `adv-researcher` validator before completion (`VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`).
 
-Utility commands keep their own delegation rules in command files, not the workflow-step matrix. Known utility fan-out:
+Utility commands keep their own delegation rules in command files, not the workflow-step matrix. Examples of utility fan-out:
 
 | Command | Pattern | Worker |
 |---|---|---|
@@ -767,7 +755,7 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable subagents: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable subagents: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 

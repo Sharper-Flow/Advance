@@ -25,7 +25,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { readFileSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -51,7 +51,7 @@ interface PatternSpec {
  *
  * Patterns are targeted at active spawnable routing — table rows, spawn args,
  * spawn/delegate prose, numbered agent lists, and slash-separated routing
- * paths. We deliberately do NOT add a blanket `\bnametest\b` pattern because
+ * paths. We deliberately do NOT add a blanket `\b${name}\b` pattern because
  * `skill("prioritizer")` is a legitimate inline-skill invocation we must NOT
  * flag.
  */
@@ -65,10 +65,13 @@ function buildPatterns(name: string): PatternSpec[] {
       kind: "agent-table-row",
       pattern: new RegExp(`\\|\\s*\`${name}\`\\s*\\|`, "g"),
     },
-    // Task tool spawn argument: subagent_type: "name" / 'name'
+    // Task tool spawn argument: subagent_type: "name" / 'name' / "subagent_type": "name"
     {
       kind: "subagent_type-arg",
-      pattern: new RegExp(`subagent_type:\\s*["']${name}["']`, "gi"),
+      pattern: new RegExp(
+        `["']?subagent_type["']?\\s*:\\s*["']${name}["']`,
+        "gi",
+      ),
     },
     // Imperative spawn: "spawn name" / "Spawn `name`"
     {
@@ -96,17 +99,20 @@ function buildPatterns(name: string): PatternSpec[] {
   ];
 }
 
+function markdownFilesUnder(relativeDir: string): string[] {
+  const absoluteDir = join(REPO_ROOT, relativeDir);
+  return readdirSync(absoluteDir)
+    .filter((entry) => entry.endsWith(".md"))
+    .map((entry) => `${relativeDir}/${entry}`)
+    .sort();
+}
+
 const ACTIVE_SURFACES = [
   "ADV_INSTRUCTIONS.md",
   "SETUP.md",
-  ".opencode/agents/adv.md",
-  ".opencode/agents/plan.md",
-  ".opencode/command/adv-research.md",
-  ".opencode/command/adv-review.md",
-  ".opencode/command/adv-harden.md",
-  ".opencode/command/adv-prep.md",
-  ".opencode/command/adv-task.md",
-] as const;
+  ...markdownFilesUnder(".opencode/agents"),
+  ...markdownFilesUnder(".opencode/command"),
+];
 
 // Historical/archive paths are intentionally excluded per agreement DONT1:
 //   - CHANGELOG.md (release history)
@@ -193,6 +199,10 @@ function scanForPrimaries(surface: string): PrimaryFinding[] {
 
   for (const primary of PRIMARIES) {
     for (const { kind, pattern } of buildPatterns(primary)) {
+      // Primary names like "build" appear frequently in filesystem paths.
+      // Slash-routing is useful for phantom names, but too noisy for primary
+      // agent enforcement; spawn/delegate/table/subagent_type patterns own it.
+      if (kind === "slash-routing") continue;
       // Reset lastIndex defensively (regex objects keep state across exec)
       pattern.lastIndex = 0;
       let match: RegExpExecArray | null;
