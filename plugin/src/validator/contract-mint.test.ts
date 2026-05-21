@@ -91,6 +91,18 @@ describe("buildContractFromAgreement", () => {
     ]);
   });
 
+  test("rejects duplicate contract ids during mint", () => {
+    expect(() =>
+      buildContractFromAgreement({
+        agreement: `## Acceptance Criteria
+- AC1: First criterion.
+- AC1: Duplicate criterion.
+`,
+        approvedAt,
+      }),
+    ).toThrow(/CONTRACT_DUPLICATE_ID/);
+  });
+
   test("rejects agreements with no contract items", () => {
     expect(() =>
       buildContractFromAgreement({

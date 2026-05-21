@@ -146,6 +146,58 @@ describe("contractTools", () => {
     expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
+  test("adv_contract_mint requires force before overwriting an existing contract", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(
+      baseChange({
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            contentHash: "a".repeat(64),
+            approvedAt,
+          },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Existing contract item.",
+              sourceArtifact: "agreement",
+              sourceHash: "a".repeat(64),
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          reviewMatrix: { reviewedAt: approvedAt, rows: [] },
+          amendments: [],
+        },
+      }),
+      changesDir,
+    );
+
+    const blocked = parse(
+      await contractTools.adv_contract_mint.execute(
+        { changeId: "contractRecovery" },
+        store,
+      ),
+    );
+
+    expect(blocked.error).toContain("already has a contract");
+    expect(blocked.hasReviewMatrix).toBe(true);
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+
+    const forced = parse(
+      await contractTools.adv_contract_mint.execute(
+        { changeId: "contractRecovery", force: true },
+        store,
+      ),
+    );
+    expect(forced.success).toBe(true);
+    expect(fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+  });
+
   test("adv_contract_mint works before discovery gate completion", async () => {
     const changesDir = await writeAgreement("contractRecovery");
     const store = createStore(
@@ -409,7 +461,8 @@ describe("contractTools", () => {
         {
           changeId: "contractRecovery",
           recoveryMode: "poisoned_history",
-          recoveryEvidence: "operator confirmed poisoned history",
+          recoveryEvidence:
+            "TMPRL1100: Nondeterminism error in workflow history",
         },
         store,
       ),
@@ -461,7 +514,8 @@ describe("contractTools", () => {
         {
           changeId: "contractRecovery",
           recoveryMode: "poisoned_history",
-          recoveryEvidence: "operator confirmed poisoned history",
+          recoveryEvidence:
+            "TMPRL1100: Nondeterminism error in workflow history",
         },
         store,
       ),
@@ -488,7 +542,8 @@ describe("contractTools", () => {
         {
           changeId: "contractRecovery",
           recoveryMode: "poisoned_history",
-          recoveryEvidence: "operator confirmed poisoned history",
+          recoveryEvidence:
+            "TMPRL1100: Nondeterminism error in workflow history",
         },
         store,
       ),

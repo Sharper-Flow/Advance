@@ -133,6 +133,7 @@ export function buildContractFromAgreement(
 
   const contentHash = hashContent(input.agreement);
   const fallbackCounts = new Map<string, number>();
+  const seenIds = new Set<string>();
   const items: ChangeContract["items"] = [];
   let currentMapping: SectionContractMapping | undefined;
 
@@ -158,6 +159,10 @@ export function buildContractFromAgreement(
       labelMapping && parsed.label
         ? parsed.label
         : nextFallbackId(fallbackCounts, mapping);
+    if (seenIds.has(id)) {
+      throw new Error(`CONTRACT_DUPLICATE_ID: duplicate contract item ${id}`);
+    }
+    seenIds.add(id);
     if (labelMapping && parsed.label) {
       const numeric = Number.parseInt(parsed.label.replace(/^[A-Z]+/, ""), 10);
       if (Number.isFinite(numeric)) {

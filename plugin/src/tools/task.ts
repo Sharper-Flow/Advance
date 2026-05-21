@@ -12,7 +12,9 @@ import { randomUUID } from "crypto";
 import type { Store } from "../storage/store";
 import {
   ErrorRecoverySchema,
+  TaskContractRefsSchema,
   type ErrorRecovery,
+  type TaskContractRefs,
   type TddReclassification,
   type Task,
 } from "../types";
@@ -457,6 +459,9 @@ export const taskTools = {
       error_recovery: ErrorRecoverySchema.optional().describe(
         "Structured retry history for doom-loop tracking, including attempts[]",
       ),
+      contract_refs: TaskContractRefsSchema.optional().describe(
+        "Structured links from this task to approved change-contract items. Use implements/verifies/respects arrays, or not_applicable_reason for code tasks that intentionally have no contract obligation.",
+      ),
       target_path: z
         .string()
         .optional()
@@ -483,6 +488,7 @@ export const taskTools = {
         notes?: string;
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
+        contract_refs?: TaskContractRefs;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -548,6 +554,12 @@ export const taskTools = {
 
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
+        const taskRecord = await activeStore.tasks.show(args.taskId);
+        const currentStatus = taskRecord?.task.status;
+        const shouldPatchExistingDoneTask =
+          Boolean(args.contract_refs) &&
+          args.status === "done" &&
+          currentStatus === "done";
 
         if (args.status === "in_progress") {
           await fireSignalAndRefresh(
@@ -574,7 +586,7 @@ export const taskTools = {
               blockedAt: now,
             },
           );
-        } else if (args.status === "done") {
+        } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
           const combinedText = [args.implementation_summary, args.notes]
             .filter(Boolean)
             .join("\n");
@@ -613,6 +625,9 @@ export const taskTools = {
                 }),
                 ...(args.error_recovery && {
                   error_recovery: args.error_recovery,
+                }),
+                ...(args.contract_refs && {
+                  contract_refs: args.contract_refs,
                 }),
               },
               updatedAt: now,
@@ -686,6 +701,9 @@ export const taskTools = {
         .record(z.string(), z.string())
         .optional()
         .describe("Optional task metadata (e.g., { tdd_intent: 'inline' })"),
+      contract_refs: TaskContractRefsSchema.optional().describe(
+        "Structured links from this task to approved change-contract items. Add implements/verifies/respects refs during prep for standard/strict contracts, or not_applicable_reason when appropriate.",
+      ),
       blockedBy: z
         .array(z.string())
         .optional()
@@ -703,6 +721,7 @@ export const taskTools = {
         changeId: string;
         content: string;
         metadata?: Record<string, string>;
+        contract_refs?: TaskContractRefs;
         blockedBy?: string[];
         section?: string;
         target_path?: string;
@@ -715,7 +734,14 @@ export const taskTools = {
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
       ) => {
-        const { changeId, content, metadata, blockedBy, section } = args;
+        const {
+          changeId,
+          content,
+          metadata,
+          contract_refs,
+          blockedBy,
+          section,
+        } = args;
 
         let changeForGuard: Change | undefined;
         try {
@@ -812,6 +838,7 @@ export const taskTools = {
           ...(Object.keys(mergedMetadata).length > 0
             ? { metadata: mergedMetadata }
             : {}),
+          ...(contract_refs ? { contract_refs } : {}),
         };
 
         await fireSignalAndRefresh(

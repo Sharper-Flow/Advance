@@ -1,11 +1,11 @@
-import { collectErrorText } from "./retry-wrapper";
+import { collectErrorText } from "./error-text";
 import type { ContractEvidenceStatus } from "../types";
 
 const POISONED_HISTORY_RE =
   /TMPRL1100|Nondeterminism error|No command scheduled for event/i;
 
 const POISONED_HISTORY_EVIDENCE_RE =
-  /TMPRL1100|Nondeterminism|No command scheduled|poisoned[-\s]?history|workflow history|WorkflowExecutionUpdateAccepted/i;
+  /TMPRL1100|Nondeterminism|No command scheduled|WorkflowExecutionUpdateAccepted/i;
 
 export const RECOVERY_RECONCILIATION_WARNING =
   "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";

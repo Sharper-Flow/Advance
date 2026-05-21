@@ -50,6 +50,7 @@ export interface AddTaskInput {
   type?: Task["type"];
   section?: string;
   blockedBy?: string[];
+  contract_refs?: Task["contract_refs"];
   metadata?: Record<string, string>;
 }
 
@@ -607,6 +608,7 @@ export function addTaskToChangeState(
       type: "blocked_by" as const,
       target,
     })),
+    ...(input.contract_refs ? { contract_refs: input.contract_refs } : {}),
     ...(input.metadata ? { metadata: input.metadata } : {}),
   };
 

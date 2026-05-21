@@ -219,6 +219,12 @@ export const contractTools = {
         .boolean()
         .optional()
         .describe("Preview the parsed contract without writing or signaling."),
+      force: z
+        .boolean()
+        .optional()
+        .describe(
+          "Overwrite an existing contract. Required when a contract already exists because re-minting invalidates any review matrix.",
+        ),
       approvedAt: z
         .string()
         .optional()
@@ -233,6 +239,7 @@ export const contractTools = {
         changeId: string;
         rigor?: "minimal" | "standard" | "strict";
         dryRun?: boolean;
+        force?: boolean;
         approvedAt?: string;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
@@ -247,6 +254,15 @@ export const contractTools = {
           const recoveryError = recoveryEvidenceError(args);
           if (recoveryError) return formatToolOutput({ error: recoveryError });
           const change = await loadChange(activeStore, args.changeId);
+          if (change.contract && !args.dryRun && !args.force) {
+            return formatToolOutput({
+              error:
+                "Change already has a contract. Pass force: true to overwrite it and invalidate any existing review matrix.",
+              changeId: args.changeId,
+              existingItemCount: change.contract.items.length,
+              hasReviewMatrix: Boolean(change.contract.reviewMatrix),
+            });
+          }
           const agreement = await readAgreement(activeStore, args.changeId);
           const contract = buildContractFromAgreement({
             agreement,

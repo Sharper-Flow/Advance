@@ -369,6 +369,51 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
+    test("patches contract_refs on an already done task without recompleting it", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "done",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "done",
+        contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[3]).toBeDefined();
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        partial: {
+          status: "done",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+        },
+      });
+      expect(signalCall[4]).not.toHaveProperty("verification");
+    });
+
     test("routes done status to taskCompletedSignal with verification text", async () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue({
@@ -527,6 +572,37 @@ describe("task tools — signal/query adapters", () => {
         expect.anything(),
         expect.objectContaining({
           task: expect.objectContaining({ title: "Target Task" }),
+        }),
+      );
+    });
+
+    test("attaches contract_refs to added tasks", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue([]);
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "change-123",
+          content: "Implement contract proof",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.task.contract_refs).toEqual({
+        implements: ["AC1"],
+        verifies: ["AC1"],
+      });
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        store,
+        "change-123",
+        expect.anything(),
+        expect.objectContaining({
+          task: expect.objectContaining({
+            contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+          }),
         }),
       );
     });

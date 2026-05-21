@@ -1,3 +1,5 @@
+import { collectErrorText } from "./error-text";
+
 export type TemporalErrorClass = "transient" | "fallback" | "fatal";
 
 export interface WorkerRunErrorTelemetry {
@@ -14,6 +16,8 @@ export interface OpTelemetry {
   lastOpAt: string | null;
   lastError: string | null;
 }
+
+export { collectErrorText };
 
 interface RetryTelemetry {
   lastOpAt: string | null;
@@ -38,24 +42,6 @@ export const temporalOpLatency = {
   },
   reset(): void {},
 };
-
-export function collectErrorText(error: unknown): string {
-  const parts: string[] = [];
-  let current: unknown = error;
-  const seen = new Set<unknown>();
-  while (current && !seen.has(current)) {
-    seen.add(current);
-    if (current instanceof Error) {
-      parts.push(current.message);
-      parts.push(current.name);
-      current = (current as Error & { cause?: unknown }).cause;
-    } else {
-      parts.push(String(current));
-      break;
-    }
-  }
-  return parts.join(" | ");
-}
 
 export function classifyTemporalError(error: unknown): TemporalErrorClass {
   const text = collectErrorText(error);
