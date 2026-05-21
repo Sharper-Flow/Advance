@@ -56,6 +56,9 @@ jobs:
         run: pnpm run build:worker
         working-directory: plugin
 
+      - name: Install Temporal CLI
+        uses: temporalio/setup-temporal@v0
+
       - name: Test
         run: pnpm test
         working-directory: plugin
