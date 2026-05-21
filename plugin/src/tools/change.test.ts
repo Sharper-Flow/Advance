@@ -326,6 +326,164 @@ describe("change tools — signal-driven lifecycle", () => {
         await rm(tempRoot, { recursive: true, force: true });
       }
     });
+
+    test("returns _executiveSummary from archive bundle when active file is missing", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-archive-exec-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const archiveDir = pathJoin(tempRoot, ".adv/archive");
+      const changeDir = pathJoin(changesDir, "test-change");
+      const bundleDir = pathJoin(archiveDir, "20260520-test-change");
+      await mkdir(bundleDir, { recursive: true });
+      await writeFile(
+        pathJoin(bundleDir, "change.json"),
+        JSON.stringify({ id: "test-change", title: "Test Change" }),
+        "utf-8",
+      );
+      const archivedContent =
+        "# Executive Summary\n\n## Outcome\nArchived cleanly.\n";
+      await writeFile(
+        pathJoin(bundleDir, "executive-summary.md"),
+        archivedContent,
+        "utf-8",
+      );
+      await mkdir(changeDir, { recursive: true });
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { archive: string }).archive = archiveDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { executiveSummary: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._executiveSummary).toBe(archivedContent);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("returns artifact content from archive for all simple include flags", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-archive-flags-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const archiveDir = pathJoin(tempRoot, ".adv/archive");
+      const changeDir = pathJoin(changesDir, "test-change");
+      const bundleDir = pathJoin(archiveDir, "20260520-test-change");
+
+      await mkdir(bundleDir, { recursive: true });
+      await writeFile(
+        pathJoin(bundleDir, "change.json"),
+        JSON.stringify({ id: "test-change", title: "Test Change" }),
+        "utf-8",
+      );
+      await mkdir(changeDir, { recursive: true });
+
+      const artifacts: Record<string, string> = {
+        "problem-statement.md": "# Problem\n\nThe problem.",
+        "agreement.md": "# Agreement\n\nThe agreement.",
+        "design.md": "# Design\n\nThe design.",
+        "executive-summary.md":
+          "# Executive Summary\n\nThe executive summary.",
+      };
+      for (const [filename, content] of Object.entries(artifacts)) {
+        await writeFile(pathJoin(bundleDir, filename), content, "utf-8");
+      }
+
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { archive: string }).archive = archiveDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: {
+              problemStatement: true,
+              agreement: true,
+              design: true,
+              executiveSummary: true,
+            },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._problemStatement).toBe(
+          artifacts["problem-statement.md"],
+        );
+        expect(parsed._agreement).toBe(artifacts["agreement.md"]);
+        expect(parsed._design).toBe(artifacts["design.md"]);
+        expect(parsed._executiveSummary).toBe(
+          artifacts["executive-summary.md"],
+        );
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("prefers active artifact over archive bundle", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-archive-pref-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const archiveDir = pathJoin(tempRoot, ".adv/archive");
+      const changeDir = pathJoin(changesDir, "test-change");
+      const bundleDir = pathJoin(archiveDir, "20260520-test-change");
+
+      await mkdir(bundleDir, { recursive: true });
+      await writeFile(
+        pathJoin(bundleDir, "change.json"),
+        JSON.stringify({ id: "test-change", title: "Test Change" }),
+        "utf-8",
+      );
+      await mkdir(changeDir, { recursive: true });
+
+      const activeContent = "# Active Design\n\nCurrent version.";
+      const archivedContent = "# Archived Design\n\nOld version.";
+      await writeFile(
+        pathJoin(changeDir, "design.md"),
+        activeContent,
+        "utf-8",
+      );
+      await writeFile(
+        pathJoin(bundleDir, "design.md"),
+        archivedContent,
+        "utf-8",
+      );
+
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { archive: string }).archive = archiveDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { design: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._design).toBe(activeContent);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("adv_change_close", () => {

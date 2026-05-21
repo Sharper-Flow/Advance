@@ -46,6 +46,41 @@ import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
 const logger = createLogger("change");
 
 /**
+ * Read an artifact file from the active change directory, falling back to
+ * the latest archive bundle when the active file is missing (archived
+ * changes have their active dirs cleaned up). Returns `undefined` when
+ * neither source has the file.
+ */
+async function readArtifactWithArchiveFallback(
+  changeDir: string,
+  archiveDir: string | undefined,
+  changeId: string,
+  filename: string,
+): Promise<string | undefined> {
+  // 1. Try active change directory first
+  try {
+    const text = await readFile(join(changeDir, filename), "utf-8");
+    if (text.trim().length > 0) return text;
+  } catch {
+    // File missing or unreadable — fall through
+  }
+
+  // 2. Fall back to latest archive bundle
+  if (!archiveDir) return undefined;
+  const bundleDir = await findArchiveBundle(archiveDir, changeId);
+  if (!bundleDir) return undefined;
+
+  try {
+    const text = await readFile(join(bundleDir, filename), "utf-8");
+    if (text.trim().length > 0) return text;
+  } catch {
+    // Archive artifact missing — return undefined
+  }
+
+  return undefined;
+}
+
+/**
  * rq-backlogCoord02 / rq-backlogCoord03 — injection seam for the
  * pre-create + post-create claim-collision checks. Production wires to
  * `queryClaimsByIssueNumber` via `getService()`; tests inject a
@@ -1476,12 +1511,15 @@ export const changeTools = {
 
             // GH #21: Artifact content include flags — read raw markdown
             // from the change directory. Only reads when explicitly
-            // requested to avoid unnecessary I/O.
+            // requested to avoid unnecessary I/O. Falls back to the
+            // latest archive bundle for archived changes.
+            const archiveDir = activeStore.paths.archive;
             if (include.proposal) {
               try {
                 const { content } = await loadProposalWithFallback(
                   changeDir,
                   change.title,
+                  { archiveDir, changeId },
                 );
                 if (content) output._proposal = content;
               } catch {
@@ -1489,37 +1527,40 @@ export const changeTools = {
               }
             }
             if (include.problemStatement) {
-              try {
-                const text = await readFile(
-                  join(changeDir, "problem-statement.md"),
-                  "utf-8",
-                );
-                output._problemStatement = text;
-              } catch {
-                // File may not exist
-              }
+              const text = await readArtifactWithArchiveFallback(
+                changeDir,
+                archiveDir,
+                changeId,
+                "problem-statement.md",
+              );
+              if (text) output._problemStatement = text;
             }
             if (include.agreement) {
-              try {
-                const text = await readFile(
-                  join(changeDir, "agreement.md"),
-                  "utf-8",
-                );
-                output._agreement = text;
-              } catch {
-                // File may not exist
-              }
+              const text = await readArtifactWithArchiveFallback(
+                changeDir,
+                archiveDir,
+                changeId,
+                "agreement.md",
+              );
+              if (text) output._agreement = text;
             }
             if (include.design) {
-              try {
-                const text = await readFile(
-                  join(changeDir, "design.md"),
-                  "utf-8",
-                );
-                output._design = text;
-              } catch {
-                // File may not exist
-              }
+              const text = await readArtifactWithArchiveFallback(
+                changeDir,
+                archiveDir,
+                changeId,
+                "design.md",
+              );
+              if (text) output._design = text;
+            }
+            if (include.executiveSummary) {
+              const text = await readArtifactWithArchiveFallback(
+                changeDir,
+                archiveDir,
+                changeId,
+                "executive-summary.md",
+              );
+              if (text) output._executiveSummary = text;
             }
             if (include.executiveSummary) {
               try {

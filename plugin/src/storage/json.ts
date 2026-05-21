@@ -521,9 +521,15 @@ export async function saveChange(
  * @param changeDir - Absolute path to the change directory (e.g. .adv/changes/myChange)
  * @param changeTitle - Used to generate the scaffold title if proposal.md is absent
  */
+export interface LoadProposalOptions {
+  archiveDir?: string;
+  changeId?: string;
+}
+
 export async function loadProposalWithFallback(
   changeDir: string,
   changeTitle: string,
+  options?: LoadProposalOptions,
 ): Promise<{ content: string; warning?: string }> {
   const proposalPath = join(changeDir, "proposal.md");
 
@@ -532,14 +538,34 @@ export async function loadProposalWithFallback(
     if (raw.trim().length > 0) {
       return { content: raw };
     }
-    // File exists but is empty — fall through to scaffold
+    // File exists but is empty — fall through to archive / scaffold
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
       logger.warn(
         `Unexpected error reading proposal: ${(err as Error).message}`,
       );
     }
-    // File missing or unreadable — fall through to scaffold
+    // File missing or unreadable — fall through to archive / scaffold
+  }
+
+  // Archive bundle fallback — read proposal.md from the latest bundle
+  // when active dir is missing (archived changes are cleaned up).
+  if (options?.archiveDir && options?.changeId) {
+    try {
+      const { findArchiveBundle } = await import("../archive/archive");
+      const bundleDir = await findArchiveBundle(
+        options.archiveDir,
+        options.changeId,
+      );
+      if (bundleDir) {
+        const raw = await readFile(join(bundleDir, "proposal.md"), "utf-8");
+        if (raw.trim().length > 0) {
+          return { content: raw };
+        }
+      }
+    } catch {
+      // Archive bundle missing or unreadable — fall through to scaffold
+    }
   }
 
   const scaffold = `# ${changeTitle}
