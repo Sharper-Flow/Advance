@@ -1,0 +1,35 @@
+{
+  "entries": [
+    {
+      "id": "ws-86qPhd",
+      "type": "gotcha",
+      "content": "SDK v1 vs v2 path-resolution trap: `@opencode-ai/sdk@1.15.5` ships TWO complete SDK surfaces — v1 at `dist/gen/sdk.gen.d.ts` and v2 at `dist/v2/gen/sdk.gen.d.ts`. The v2 SDK exposes typed `client.experimental.workspace.{list,create,remove,warp,status,syncList}` methods; the v1 SDK does NOT. The plugin's `PluginInput.client` type is `ReturnType<typeof createOpencodeClient>` where `createOpencodeClient` is imported from `@opencode-ai/sdk` (the v1 path, NOT `@opencode-ai/sdk/v2`), so the plugin actually receives a v1 client.\n\nThis caused a real validator misread during the fixWarpSessionLookup design phase: the adv-researcher validator read the v2 SDK file and asserted typed workspace methods exist, leading to a CONFLICT-level finding that turned out to be wrong for the plugin's actual surface.\n\nLesson: when reading SDK types, verify which path the consuming code actually imports from. `PluginInput.client` type → trace the import → confirm v1 vs v2. Both v1 and v2 share the same fetch-interceptor pattern (auto-attaches `x-opencode-directory` for default config + GET→query rewrite), but only v2 exposes typed workspace endpoints. Future migration to v2 client would let us drop the explicit-header attachment on POST/DELETE/PUT in `workspace-warp.ts`.",
+      "recorded_at": "2026-05-21T04:32:55.269Z"
+    },
+    {
+      "id": "ws-H0UWIB",
+      "type": "pattern",
+      "content": "Pattern: discriminated-union result tuple for never-throws lookup functions. The original `getSessionWorkspaceID(deps, sessionID): Promise<string | null>` threw on non-2xx and on JSON parse drift, forcing every caller to wrap in try/catch and string-format the error for downstream `downgrade_reason`. Replacing the signature with:\n\n```ts\ntype SessionLookupResult =\n  | { ok: true; workspaceID: string | null }\n  | { ok: false; status?: number; detail: string };\n```\n\n— let callers branch precisely without lossy `String(error)` conversion. The function catches its own SDK throws and returns structured failure. Combined with the `downgrade_reason` discriminated union at the tool-output layer, this gives agents a fully structural channel for failure-mode branching (`downgrade_reason.kind`, with `status?` and `detail?` where applicable) without parsing prose `warning` strings.\n\nThis is the P33 (structural-correctness) pattern applied at the function-signature level: deterministic structural surface > heuristic string parsing.",
+      "recorded_at": "2026-05-21T04:33:02.707Z"
+    },
+    {
+      "id": "ws-3r1oOu",
+      "type": "gotcha",
+      "content": "Test env-leak gotcha: `vi.unstubAllEnvs()` only restores envs that were explicitly stubbed via `vi.stubEnv()`. It does NOT clear pre-existing shell envs. When ADV is being developed and `OPENCODE_EXPERIMENTAL_WORKSPACES=true` is set in the developer's shell, tests asserting `warpFlagEnabled()` returns `false` (no env set) silently break.\n\nFix pattern: in test `beforeEach` blocks for any test file that exercises `warpFlagEnabled()`, explicitly clear both flag vars:\n\n```ts\nbeforeEach(() => {\n  vi.stubEnv(\"OPENCODE_EXPERIMENTAL\", \"\");\n  vi.stubEnv(\"OPENCODE_EXPERIMENTAL_WORKSPACES\", \"\");\n  // ... other setup\n});\nafterEach(() => {\n  vi.unstubAllEnvs();\n});\n```\n\nEmpty string is treated as falsy by `process.env.X === \"true\"` check. Discovered during fixWarpSessionLookup T1 — applied as P25 touched-scope fix to workspace-warp.test.ts, index-create.test.ts, and index-delete.test.ts.",
+      "recorded_at": "2026-05-21T04:33:08.172Z"
+    },
+    {
+      "id": "ws-gQwYiH",
+      "type": "gotcha",
+      "content": "Grep-gate regexes that use negated character classes like `/fetch[^;{]*\\/session\\//` are fragile against modern JavaScript syntax. Template literals contain `${`, which means any `{`-excluding character class halts before reaching the target substring. The original gate in worktree-warp-mode-assets.test.ts missed `fetch(`${url}/session/${id}`)` — the exact shape of the pre-fix regression — even though it caught string-concat and `new URL` forms.\n\nPattern: when writing structural grep gates against source code, walk balanced parentheses to extract the call's argument expression and test for the literal target substring within it. Excluding `{` is incompatible with template literals; excluding `;` only happens to work because raw fetches typically don't span statement boundaries.\n\nSurfaced by adv-reviewer during fixWarpSessionLookup acceptance review (2026-05-21). Reviewer applied scoped fix to use a balanced-paren scanner instead of regex negation.",
+      "recorded_at": "2026-05-21T04:40:49.598Z"
+    },
+    {
+      "id": "ws-pXFISi",
+      "type": "pattern",
+      "content": "Asset-test grep gates should be exercised against simulated regressions BEFORE shipping. If you author a structural grep gate (e.g., \"no raw fetch to /session/:id\"), add a parallel meta-test that constructs synthetic regression patterns in-memory (template literal, string concat, new URL, member-call variants) and asserts the gate function flags each one. This catches gate-erosion without requiring an actual regression to expose it.\n\nThe grep-gate-template-literal blindspot in fixWarpSessionLookup's T6 asset test (caught by adv-reviewer during acceptance) would have been caught at TDD time if the gate had been tested against its own regression vectors. Generalize: any pattern-detection assertion should have positive AND negative cases.",
+      "recorded_at": "2026-05-21T04:40:54.394Z"
+    }
+  ],
+  "count": 5
+}

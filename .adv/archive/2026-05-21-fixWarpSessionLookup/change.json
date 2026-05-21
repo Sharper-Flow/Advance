@@ -1,0 +1,335 @@
+{
+  "id": "fixWarpSessionLookup",
+  "title": "fix warp session lookup",
+  "status": "archived",
+  "created_at": "2026-05-21T03:36:04.267Z",
+  "tasks": [
+    {
+      "id": "tk-a0955a3b3a49",
+      "title": "Rewrite getSessionWorkspaceID to use SDK client + structured result tuple",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T04:06:24.630Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:10:30.192Z",
+      "verification": "T1 complete. Implementation:\n\n1. Extended `WarpDeps` (plugin/src/utils/workspace-warp.ts) with required `directory: string` and optional `client?: OpencodeClient`. Both fields documented with rq-warpModeContract IDs for T6 spec law traceability.\n\n2. Exported new `SessionLookupResult` discriminated tuple type:\n   - `{ ok: true; workspaceID: string | null }`\n   - `{ ok: false; status?: number; detail: string }`\n\n3. Rewrote `getSessionWorkspaceID(deps, sessionID)` to:\n   - Return `{ ok: false, detail: \"missing client\" }` when `deps.client` is undefined (drives `missing_client` downgrade reason in T3)\n   - Call `deps.client.session.get({ path: { id: sessionID } })` using v1 SDK shape\n   - Translate the v1 SDK `RequestResult` `{ data?, error?, response? }` to the structured tuple\n   - Catch thrown errors → `{ ok: false, detail: String(error) }` (network failures)\n   - Empty-string workspaceID → `{ ok: true, workspaceID: null }`\n   - Never throws — callers branch on `.ok`\n\n4. Added `stringifyErrorDetail` helper to safely format various error shapes (string / Error / object with message / JSON-serializable).\n\n5. P25 touched-scope fix: added `vi.stubEnv(\"OPENCODE_EXPERIMENTAL\", \"\")` and `vi.stubEnv(\"OPENCODE_EXPERIMENTAL_WORKSPACES\", \"\")` in beforeEach blocks of workspace-warp.test.ts, index-create.test.ts (line 132), and index-delete.test.ts (line 140) so flag-off tests assert off-by-default behavior even when the shell env has the experimental var set during ADV development.\n\nTDD evidence:\n- 32/32 workspace-warp.test.ts tests pass (8 new SDK-routed tests for getSessionWorkspaceID + 24 existing tests updated for `directory` field)\n- 100/100 tools/worktree tests pass after P25 env-leak fix\n- Typecheck has 8 cascade errors at adv-worktree.ts (lines 91, 94, 309, 341) and worktree/index.ts (lines 2160, 2211, 2462) — expected; T3 rewrites resolveCreateRuntimeMode for new tuple return and threads `directory`, T5 consolidates the legacy worktree/index.ts call sites.",
+      "summary": "T1 complete. Implementation:\n\n1. Extended `WarpDeps` (plugin/src/utils/workspace-warp.ts) with required `directory: string` and optional `client?: OpencodeClient`. Both fields documented with rq-warpModeContract IDs for T6 spec law traceability.\n\n2. Exported new `SessionLookupResult` discriminated tuple type:\n   - `{ ok: true; workspaceID: string | null }`\n   - `{ ok: false; status?: number; detail: string }`\n\n3. Rewrote `getSessionWorkspaceID(deps, sessionID)` to:\n   - Return `{ ok: false, detail: \"missing client\" }` when `deps.client` is undefined (drives `missing_client` downgrade reason in T3)\n   - Call `deps.client.session.get({ path: { id: sessionID } })` using v1 SDK shape\n   - Translate the v1 SDK `RequestResult` `{ data?, error?, response? }` to the structured tuple\n   - Catch thrown errors → `{ ok: false, detail: String(error) }` (network failures)\n   - Empty-string workspaceID → `{ ok: true, workspaceID: null }`\n   - Never throws — callers branch on `.ok`\n\n4. Added `stringifyErrorDetail` helper to safely format various error shapes (string / Error / object with message / JSON-serializable).\n\n5. P25 touched-scope fix: added `vi.stubEnv(\"OPENCODE_EXPERIMENTAL\", \"\")` and `vi.stubEnv(\"OPENCODE_EXPERIMENTAL_WORKSPACES\", \"\")` in beforeEach blocks of workspace-warp.test.ts, index-create.test.ts (line 132), and index-delete.test.ts (line 140) so flag-off tests assert off-by-default behavior even when the shell env has the experimental var set during ADV development.\n\nTDD evidence:\n- 32/32 workspace-warp.test.ts tests pass (8 new SDK-routed tests for getSessionWorkspaceID + 24 existing tests updated for `directory` field)\n- 100/100 tools/worktree tests pass after P25 env-leak fix\n- Typecheck has 8 cascade errors at adv-worktree.ts (lines 91, 94, 309, 341) and worktree/index.ts (lines 2160, 2211, 2462) — expected; T3 rewrites resolveCreateRuntimeMode for new tuple return and threads `directory`, T5 consolidates the legacy worktree/index.ts call sites.",
+      "implementation_summary": "T1 complete. Implementation:\n\n1. Extended `WarpDeps` (plugin/src/utils/workspace-warp.ts) with required `directory: string` and optional `client?: OpencodeClient`. Both fields documented with rq-warpModeContract IDs for T6 spec law traceability.\n\n2. Exported new `SessionLookupResult` discriminated tuple type:\n   - `{ ok: true; workspaceID: string | null }`\n   - `{ ok: false; status?: number; detail: string }`\n\n3. Rewrote `getSessionWorkspaceID(deps, sessionID)` to:\n   - Return `{ ok: false, detail: \"missing client\" }` when `deps.client` is undefined (drives `missing_client` downgrade reason in T3)\n   - Call `deps.client.session.get({ path: { id: sessionID } })` using v1 SDK shape\n   - Translate the v1 SDK `RequestResult` `{ data?, error?, response? }` to the structured tuple\n   - Catch thrown errors → `{ ok: false, detail: String(error) }` (network failures)\n   - Empty-string workspaceID → `{ ok: true, workspaceID: null }`\n   - Never throws — callers branch on `.ok`\n\n4. Added `stringifyErrorDetail` helper to safely format various error shapes (string / Error / object with message / JSON-serializable).\n\n5. P25 touched-scope fix: added `vi.stubEnv(\"OPENCODE_EXPERIMENTAL\", \"\")` and `vi.stubEnv(\"OPENCODE_EXPERIMENTAL_WORKSPACES\", \"\")` in beforeEach blocks of workspace-warp.test.ts, index-create.test.ts (line 132), and index-delete.test.ts (line 140) so flag-off tests assert off-by-default behavior even when the shell env has the experimental var set during ADV development.\n\nTDD evidence:\n- 32/32 workspace-warp.test.ts tests pass (8 new SDK-routed tests for getSessionWorkspaceID + 24 existing tests updated for `directory` field)\n- 100/100 tools/worktree tests pass after P25 env-leak fix\n- Typecheck has 8 cascade errors at adv-worktree.ts (lines 91, 94, 309, 341) and worktree/index.ts (lines 2160, 2211, 2462) — expected; T3 rewrites resolveCreateRuntimeMode for new tuple return and threads `directory`, T5 consolidates the legacy worktree/index.ts call sites.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:19:04.148Z",
+      "completed_at": "2026-05-21T04:19:04.148Z"
+    },
+    {
+      "id": "tk-2b7a28b48dcf",
+      "title": "Attach x-opencode-directory header on all raw-fetch workspace endpoints",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T04:06:39.800Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a0955a3b3a49"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:19:04.740Z",
+      "verification": "T2 complete. Added `directoryHeaders(deps, extra?)` helper in workspace-warp.ts that returns `{ ...extra, \"x-opencode-directory\": encodeURIComponent(deps.directory) }`. Applied to all five raw-fetch workspace endpoints: workspaceAndWarpAvailable (GET), createAdvWorkspace (POST), warpSession (POST), deleteAdvWorkspace (DELETE), findWorkspaceByDirectory (GET). Encoding matches v1 SDK behavior at @opencode-ai/sdk@1.15.5/dist/client.js:42-45. Content-Type preserved on POST endpoints alongside the new header. 7 new tests added (RED→GREEN): header presence on each endpoint, encodeURIComponent behavior with special characters (verified \"/home/jon/My Code/repo\" → \"%2Fhome%2Fjon%2FMy%20Code%2Frepo\"), content-type preservation on POST. 39/39 workspace-warp tests pass.",
+      "summary": "T2 complete. Added `directoryHeaders(deps, extra?)` helper in workspace-warp.ts that returns `{ ...extra, \"x-opencode-directory\": encodeURIComponent(deps.directory) }`. Applied to all five raw-fetch workspace endpoints: workspaceAndWarpAvailable (GET), createAdvWorkspace (POST), warpSession (POST), deleteAdvWorkspace (DELETE), findWorkspaceByDirectory (GET). Encoding matches v1 SDK behavior at @opencode-ai/sdk@1.15.5/dist/client.js:42-45. Content-Type preserved on POST endpoints alongside the new header. 7 new tests added (RED→GREEN): header presence on each endpoint, encodeURIComponent behavior with special characters (verified \"/home/jon/My Code/repo\" → \"%2Fhome%2Fjon%2FMy%20Code%2Frepo\"), content-type preservation on POST. 39/39 workspace-warp tests pass.",
+      "implementation_summary": "T2 complete. Added `directoryHeaders(deps, extra?)` helper in workspace-warp.ts that returns `{ ...extra, \"x-opencode-directory\": encodeURIComponent(deps.directory) }`. Applied to all five raw-fetch workspace endpoints: workspaceAndWarpAvailable (GET), createAdvWorkspace (POST), warpSession (POST), deleteAdvWorkspace (DELETE), findWorkspaceByDirectory (GET). Encoding matches v1 SDK behavior at @opencode-ai/sdk@1.15.5/dist/client.js:42-45. Content-Type preserved on POST endpoints alongside the new header. 7 new tests added (RED→GREEN): header presence on each endpoint, encodeURIComponent behavior with special characters (verified \"/home/jon/My Code/repo\" → \"%2Fhome%2Fjon%2FMy%20Code%2Frepo\"), content-type preservation on POST. 39/39 workspace-warp tests pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:20:35.122Z",
+      "completed_at": "2026-05-21T04:20:35.122Z"
+    },
+    {
+      "id": "tk-0ada6fc2847e",
+      "title": "Update resolveCreateRuntimeMode to emit structured downgrade_reason on every path + thread client into WarpDeps",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T04:07:04.617Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a0955a3b3a49"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2b7a28b48dcf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:20:36.166Z",
+      "verification": "T3 complete. Implementation:\n\n1. Added `client?: OpencodeClient` to `AdvWorktreeCreateRuntime` interface.\n\n2. Exported `DowngradeReason` discriminated union with 7 variants:\n   - `{ kind: \"missing_server\" }`\n   - `{ kind: \"missing_session\" }`\n   - `{ kind: \"missing_client\" }` (NEW)\n   - `{ kind: \"flag_disabled\" }`\n   - `{ kind: \"lookup_failed\"; status?: number; detail?: string }`\n   - `{ kind: \"endpoint_unreachable\" }`\n   - `{ kind: \"warp_failed\"; detail: string; cleanupFailed?: boolean }` (NEW)\n\n3. Rewrote `resolveCreateRuntimeMode` to:\n   - Insert `missing_client` check after sessionID check, before flag check\n   - Construct `WarpDeps` with `directory: projectRoot` and `client: runtime.client`\n   - Use new tuple shape: `const lookup = await getSessionWorkspaceID(warpDeps, sessionID); if (!lookup.ok) {...}`\n   - Emit structured `downgrade_reason` on every fallback path with appropriate kind + status/detail\n\n4. Updated `terminalModePayload` to accept and pass through `downgrade_reason?: DowngradeReason`.\n\n5. Updated the post-create warp failure path (try/catch around createAdvWorkspace + warpSession) to emit `{ kind: \"warp_failed\", detail: String(error), cleanupFailed: ... }` when warp fails after the workspace was created. `cleanupFailed: true` is added when orphan-workspace cleanup also fails.\n\n6. Updated `adv_worktree_delete` and `adv_worktree_cleanup` to:\n   - Accept `client?: OpencodeClient` in their `options` argument\n   - Build `warpDeps` with `directory: projectRoot` and `client: options.client`\n   - (Threading from `tool-registry.ts` happens in T4)\n\nTDD evidence:\n- 20/20 adv-worktree.test.ts tests pass\n- 11 new tests added covering every `downgrade_reason.kind`, legacy warning preservation, WarpDeps construction with directory+client, and cleanupFailed reporting\n- Existing tests updated: SESSION_ALREADY_WARPED block now verifies NO downgrade_reason (it's a block, not a downgrade)\n- All test mocks updated to use new tuple shape `{ ok: true, workspaceID }` / `{ ok: false, status, detail }`",
+      "summary": "T3 complete. Implementation:\n\n1. Added `client?: OpencodeClient` to `AdvWorktreeCreateRuntime` interface.\n\n2. Exported `DowngradeReason` discriminated union with 7 variants:\n   - `{ kind: \"missing_server\" }`\n   - `{ kind: \"missing_session\" }`\n   - `{ kind: \"missing_client\" }` (NEW)\n   - `{ kind: \"flag_disabled\" }`\n   - `{ kind: \"lookup_failed\"; status?: number; detail?: string }`\n   - `{ kind: \"endpoint_unreachable\" }`\n   - `{ kind: \"warp_failed\"; detail: string; cleanupFailed?: boolean }` (NEW)\n\n3. Rewrote `resolveCreateRuntimeMode` to:\n   - Insert `missing_client` check after sessionID check, before flag check\n   - Construct `WarpDeps` with `directory: projectRoot` and `client: runtime.client`\n   - Use new tuple shape: `const lookup = await getSessionWorkspaceID(warpDeps, sessionID); if (!lookup.ok) {...}`\n   - Emit structured `downgrade_reason` on every fallback path with appropriate kind + status/detail\n\n4. Updated `terminalModePayload` to accept and pass through `downgrade_reason?: DowngradeReason`.\n\n5. Updated the post-create warp failure path (try/catch around createAdvWorkspace + warpSession) to emit `{ kind: \"warp_failed\", detail: String(error), cleanupFailed: ... }` when warp fails after the workspace was created. `cleanupFailed: true` is added when orphan-workspace cleanup also fails.\n\n6. Updated `adv_worktree_delete` and `adv_worktree_cleanup` to:\n   - Accept `client?: OpencodeClient` in their `options` argument\n   - Build `warpDeps` with `directory: projectRoot` and `client: options.client`\n   - (Threading from `tool-registry.ts` happens in T4)\n\nTDD evidence:\n- 20/20 adv-worktree.test.ts tests pass\n- 11 new tests added covering every `downgrade_reason.kind`, legacy warning preservation, WarpDeps construction with directory+client, and cleanupFailed reporting\n- Existing tests updated: SESSION_ALREADY_WARPED block now verifies NO downgrade_reason (it's a block, not a downgrade)\n- All test mocks updated to use new tuple shape `{ ok: true, workspaceID }` / `{ ok: false, status, detail }`",
+      "implementation_summary": "T3 complete. Implementation:\n\n1. Added `client?: OpencodeClient` to `AdvWorktreeCreateRuntime` interface.\n\n2. Exported `DowngradeReason` discriminated union with 7 variants:\n   - `{ kind: \"missing_server\" }`\n   - `{ kind: \"missing_session\" }`\n   - `{ kind: \"missing_client\" }` (NEW)\n   - `{ kind: \"flag_disabled\" }`\n   - `{ kind: \"lookup_failed\"; status?: number; detail?: string }`\n   - `{ kind: \"endpoint_unreachable\" }`\n   - `{ kind: \"warp_failed\"; detail: string; cleanupFailed?: boolean }` (NEW)\n\n3. Rewrote `resolveCreateRuntimeMode` to:\n   - Insert `missing_client` check after sessionID check, before flag check\n   - Construct `WarpDeps` with `directory: projectRoot` and `client: runtime.client`\n   - Use new tuple shape: `const lookup = await getSessionWorkspaceID(warpDeps, sessionID); if (!lookup.ok) {...}`\n   - Emit structured `downgrade_reason` on every fallback path with appropriate kind + status/detail\n\n4. Updated `terminalModePayload` to accept and pass through `downgrade_reason?: DowngradeReason`.\n\n5. Updated the post-create warp failure path (try/catch around createAdvWorkspace + warpSession) to emit `{ kind: \"warp_failed\", detail: String(error), cleanupFailed: ... }` when warp fails after the workspace was created. `cleanupFailed: true` is added when orphan-workspace cleanup also fails.\n\n6. Updated `adv_worktree_delete` and `adv_worktree_cleanup` to:\n   - Accept `client?: OpencodeClient` in their `options` argument\n   - Build `warpDeps` with `directory: projectRoot` and `client: options.client`\n   - (Threading from `tool-registry.ts` happens in T4)\n\nTDD evidence:\n- 20/20 adv-worktree.test.ts tests pass\n- 11 new tests added covering every `downgrade_reason.kind`, legacy warning preservation, WarpDeps construction with directory+client, and cleanupFailed reporting\n- Existing tests updated: SESSION_ALREADY_WARPED block now verifies NO downgrade_reason (it's a block, not a downgrade)\n- All test mocks updated to use new tuple shape `{ ok: true, workspaceID }` / `{ ok: false, status, detail }`",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:23:52.819Z",
+      "completed_at": "2026-05-21T04:23:52.819Z"
+    },
+    {
+      "id": "tk-d9c0aee37953",
+      "title": "Wire input.client through plugin init → tool-registry → adv_worktree_create runtime",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-21T04:07:24.706Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0ada6fc2847e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:23:53.316Z",
+      "verification": "T4 complete. Wired input.client end-to-end:\n\n1. `plugin/src/index.ts`: destructured `client` from `input` at advancePluginImpl line 308; passed to `createToolMap` at line 727 (now multi-line with explicit args).\n\n2. `plugin/src/tool-registry.ts`:\n   - Imported `OpencodeClient` type from `./utils/opencode-types`\n   - Extended `createToolMap` signature with `client?: OpencodeClient` as 5th arg\n   - Threaded `client` into all 6 worktree tool registration sites:\n     - `adv_worktree_create` (line ~604)\n     - `adv_worktree_delete` (line ~620)\n     - `adv_worktree_cleanup` (line ~638)\n     - Legacy aliases `worktree_create`, `worktree_delete`, `worktree_cleanup` (lines ~666, ~684, ~702)\n\nVerification:\n- 181/181 tests pass across tool-registry, adv-worktree, workspace-warp, and tools/worktree/ test files\n- Typecheck reduced from 8 errors to 3 — remaining errors in `tools/worktree/index.ts:2160,2211,2462` are the legacy WorktreePlugin standalone code path that T5 consolidates",
+      "summary": "T4 complete. Wired input.client end-to-end:\n\n1. `plugin/src/index.ts`: destructured `client` from `input` at advancePluginImpl line 308; passed to `createToolMap` at line 727 (now multi-line with explicit args).\n\n2. `plugin/src/tool-registry.ts`:\n   - Imported `OpencodeClient` type from `./utils/opencode-types`\n   - Extended `createToolMap` signature with `client?: OpencodeClient` as 5th arg\n   - Threaded `client` into all 6 worktree tool registration sites:\n     - `adv_worktree_create` (line ~604)\n     - `adv_worktree_delete` (line ~620)\n     - `adv_worktree_cleanup` (line ~638)\n     - Legacy aliases `worktree_create`, `worktree_delete`, `worktree_cleanup` (lines ~666, ~684, ~702)\n\nVerification:\n- 181/181 tests pass across tool-registry, adv-worktree, workspace-warp, and tools/worktree/ test files\n- Typecheck reduced from 8 errors to 3 — remaining errors in `tools/worktree/index.ts:2160,2211,2462` are the legacy WorktreePlugin standalone code path that T5 consolidates",
+      "implementation_summary": "T4 complete. Wired input.client end-to-end:\n\n1. `plugin/src/index.ts`: destructured `client` from `input` at advancePluginImpl line 308; passed to `createToolMap` at line 727 (now multi-line with explicit args).\n\n2. `plugin/src/tool-registry.ts`:\n   - Imported `OpencodeClient` type from `./utils/opencode-types`\n   - Extended `createToolMap` signature with `client?: OpencodeClient` as 5th arg\n   - Threaded `client` into all 6 worktree tool registration sites:\n     - `adv_worktree_create` (line ~604)\n     - `adv_worktree_delete` (line ~620)\n     - `adv_worktree_cleanup` (line ~638)\n     - Legacy aliases `worktree_create`, `worktree_delete`, `worktree_cleanup` (lines ~666, ~684, ~702)\n\nVerification:\n- 181/181 tests pass across tool-registry, adv-worktree, workspace-warp, and tools/worktree/ test files\n- Typecheck reduced from 8 errors to 3 — remaining errors in `tools/worktree/index.ts:2160,2211,2462` are the legacy WorktreePlugin standalone code path that T5 consolidates",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:25:39.016Z",
+      "completed_at": "2026-05-21T04:25:39.016Z"
+    },
+    {
+      "id": "tk-b88da819f7ea",
+      "title": "Consolidate parallel session-lookup implementation in tools/worktree/index.ts",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-21T04:07:39.268Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a0955a3b3a49"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:25:39.683Z",
+      "verification": "T5 complete. Consolidated parallel session-lookup implementation:\n\n1. Deleted local `getCurrentSessionWorkspaceID` helper (was `tools/worktree/index.ts:1958-1968`).\n\n2. Added `getSessionWorkspaceID` to the import block at lines 98-107 (already importing other utils from `../../utils/workspace-warp`).\n\n3. Rewrote `resolveEffectiveWorktreeMode`:\n   - Removed try/catch around the lookup (the shared utility never throws)\n   - Branches on `lookup.ok` to handle the structured tuple\n   - When `lookup.ok === false`, logs warning with `lookup.detail`\n   - When `lookup.workspaceID` is set, returns blocked (same SESSION_ALREADY_WARPED semantics)\n   - The `_client` parameter is retained (prefixed with `_` to indicate unused) for back-compat with the legacy WorktreePlugin signature — the actual client now flows via `warpDeps.client`\n\n4. Updated the 3 legacy WorktreePlugin WarpDeps construction sites to include `directory` and `client` from the outer `ctx` closure:\n   - `processPendingDeletes` at line 2150\n   - `worktree_create.execute` at line 2201 (`const warpDeps: WarpDeps = { serverUrl, directory, client }`)\n   - `worktree_delete.execute` at line 2452\n\nVerification:\n- Typecheck: clean (0 errors, down from 3)\n- 181/181 tests pass across tool-registry, adv-worktree, workspace-warp, and tools/worktree/ — the existing harness in index-create.test.ts continues to work because the shared `getSessionWorkspaceID` accepts the same v1 SDK `{ path: { id } }` shape",
+      "summary": "T5 complete. Consolidated parallel session-lookup implementation:\n\n1. Deleted local `getCurrentSessionWorkspaceID` helper (was `tools/worktree/index.ts:1958-1968`).\n\n2. Added `getSessionWorkspaceID` to the import block at lines 98-107 (already importing other utils from `../../utils/workspace-warp`).\n\n3. Rewrote `resolveEffectiveWorktreeMode`:\n   - Removed try/catch around the lookup (the shared utility never throws)\n   - Branches on `lookup.ok` to handle the structured tuple\n   - When `lookup.ok === false`, logs warning with `lookup.detail`\n   - When `lookup.workspaceID` is set, returns blocked (same SESSION_ALREADY_WARPED semantics)\n   - The `_client` parameter is retained (prefixed with `_` to indicate unused) for back-compat with the legacy WorktreePlugin signature — the actual client now flows via `warpDeps.client`\n\n4. Updated the 3 legacy WorktreePlugin WarpDeps construction sites to include `directory` and `client` from the outer `ctx` closure:\n   - `processPendingDeletes` at line 2150\n   - `worktree_create.execute` at line 2201 (`const warpDeps: WarpDeps = { serverUrl, directory, client }`)\n   - `worktree_delete.execute` at line 2452\n\nVerification:\n- Typecheck: clean (0 errors, down from 3)\n- 181/181 tests pass across tool-registry, adv-worktree, workspace-warp, and tools/worktree/ — the existing harness in index-create.test.ts continues to work because the shared `getSessionWorkspaceID` accepts the same v1 SDK `{ path: { id } }` shape",
+      "implementation_summary": "T5 complete. Consolidated parallel session-lookup implementation:\n\n1. Deleted local `getCurrentSessionWorkspaceID` helper (was `tools/worktree/index.ts:1958-1968`).\n\n2. Added `getSessionWorkspaceID` to the import block at lines 98-107 (already importing other utils from `../../utils/workspace-warp`).\n\n3. Rewrote `resolveEffectiveWorktreeMode`:\n   - Removed try/catch around the lookup (the shared utility never throws)\n   - Branches on `lookup.ok` to handle the structured tuple\n   - When `lookup.ok === false`, logs warning with `lookup.detail`\n   - When `lookup.workspaceID` is set, returns blocked (same SESSION_ALREADY_WARPED semantics)\n   - The `_client` parameter is retained (prefixed with `_` to indicate unused) for back-compat with the legacy WorktreePlugin signature — the actual client now flows via `warpDeps.client`\n\n4. Updated the 3 legacy WorktreePlugin WarpDeps construction sites to include `directory` and `client` from the outer `ctx` closure:\n   - `processPendingDeletes` at line 2150\n   - `worktree_create.execute` at line 2201 (`const warpDeps: WarpDeps = { serverUrl, directory, client }`)\n   - `worktree_delete.execute` at line 2452\n\nVerification:\n- Typecheck: clean (0 errors, down from 3)\n- 181/181 tests pass across tool-registry, adv-worktree, workspace-warp, and tools/worktree/ — the existing harness in index-create.test.ts continues to work because the shared `getSessionWorkspaceID` accepts the same v1 SDK `{ path: { id } }` shape",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:27:56.969Z",
+      "completed_at": "2026-05-21T04:27:56.969Z"
+    },
+    {
+      "id": "tk-103417d1b49d",
+      "title": "Author spec law worktree-warp-mode + asset test enforcing structure",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-21T04:08:08.283Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a0955a3b3a49"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2b7a28b48dcf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0ada6fc2847e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:27:57.996Z",
+      "verification": "T6 complete. Authored spec law `.adv/specs/worktree-warp-mode/spec.json` with 6 requirements (rq-warpModeContract01 through rq-warpModeContract06):\n\n- rq-warpModeContract01: Warp Mode Selection — the 5 preconditions\n- rq-warpModeContract02: Already-Warped Block Contract — SESSION_ALREADY_WARPED is a block, not a downgrade\n- rq-warpModeContract03: Downgrade Reason Discriminated Union — all 7 kinds enumerated (including warp_failed added at T3)\n- rq-warpModeContract04: SDK-Routed Session Lookup — client.session.get with v1 shape + grep gate\n- rq-warpModeContract05: x-opencode-directory Header on Workspace Endpoints — all 5 raw-fetch functions\n- rq-warpModeContract06: Client Threading From Plugin Input — PluginInput.client through createToolMap\n\nEach requirement has body, priority=\"must\", tags, and 1-2 scenarios with given/when/then.\n\nAsset test `plugin/src/__tests__/worktree-warp-mode-assets.test.ts` with 11 tests covering: spec file existence + valid JSON, name/title/purpose strings, all 6 rq-IDs present, every requirement has required fields, each rq's body contains its key contract terms (e.g. rq-01 mentions all 5 preconditions, rq-03 enumerates all 7 downgrade kinds, rq-05 lists all 5 function names), and a live grep gate (rq-04 enforcement) that scans `plugin/src/utils/workspace-warp.ts` and `plugin/src/tools/worktree/index.ts` for any `fetch(...)/session/` pattern — returns zero matches.\n\nVerification:\n- 11/11 asset tests pass\n- `adv_spec action: \"show\" capability: \"worktree-warp-mode\"` returns the new capability with all 6 requirements correctly",
+      "summary": "T6 complete. Authored spec law `.adv/specs/worktree-warp-mode/spec.json` with 6 requirements (rq-warpModeContract01 through rq-warpModeContract06):\n\n- rq-warpModeContract01: Warp Mode Selection — the 5 preconditions\n- rq-warpModeContract02: Already-Warped Block Contract — SESSION_ALREADY_WARPED is a block, not a downgrade\n- rq-warpModeContract03: Downgrade Reason Discriminated Union — all 7 kinds enumerated (including warp_failed added at T3)\n- rq-warpModeContract04: SDK-Routed Session Lookup — client.session.get with v1 shape + grep gate\n- rq-warpModeContract05: x-opencode-directory Header on Workspace Endpoints — all 5 raw-fetch functions\n- rq-warpModeContract06: Client Threading From Plugin Input — PluginInput.client through createToolMap\n\nEach requirement has body, priority=\"must\", tags, and 1-2 scenarios with given/when/then.\n\nAsset test `plugin/src/__tests__/worktree-warp-mode-assets.test.ts` with 11 tests covering: spec file existence + valid JSON, name/title/purpose strings, all 6 rq-IDs present, every requirement has required fields, each rq's body contains its key contract terms (e.g. rq-01 mentions all 5 preconditions, rq-03 enumerates all 7 downgrade kinds, rq-05 lists all 5 function names), and a live grep gate (rq-04 enforcement) that scans `plugin/src/utils/workspace-warp.ts` and `plugin/src/tools/worktree/index.ts` for any `fetch(...)/session/` pattern — returns zero matches.\n\nVerification:\n- 11/11 asset tests pass\n- `adv_spec action: \"show\" capability: \"worktree-warp-mode\"` returns the new capability with all 6 requirements correctly",
+      "implementation_summary": "T6 complete. Authored spec law `.adv/specs/worktree-warp-mode/spec.json` with 6 requirements (rq-warpModeContract01 through rq-warpModeContract06):\n\n- rq-warpModeContract01: Warp Mode Selection — the 5 preconditions\n- rq-warpModeContract02: Already-Warped Block Contract — SESSION_ALREADY_WARPED is a block, not a downgrade\n- rq-warpModeContract03: Downgrade Reason Discriminated Union — all 7 kinds enumerated (including warp_failed added at T3)\n- rq-warpModeContract04: SDK-Routed Session Lookup — client.session.get with v1 shape + grep gate\n- rq-warpModeContract05: x-opencode-directory Header on Workspace Endpoints — all 5 raw-fetch functions\n- rq-warpModeContract06: Client Threading From Plugin Input — PluginInput.client through createToolMap\n\nEach requirement has body, priority=\"must\", tags, and 1-2 scenarios with given/when/then.\n\nAsset test `plugin/src/__tests__/worktree-warp-mode-assets.test.ts` with 11 tests covering: spec file existence + valid JSON, name/title/purpose strings, all 6 rq-IDs present, every requirement has required fields, each rq's body contains its key contract terms (e.g. rq-01 mentions all 5 preconditions, rq-03 enumerates all 7 downgrade kinds, rq-05 lists all 5 function names), and a live grep gate (rq-04 enforcement) that scans `plugin/src/utils/workspace-warp.ts` and `plugin/src/tools/worktree/index.ts` for any `fetch(...)/session/` pattern — returns zero matches.\n\nVerification:\n- 11/11 asset tests pass\n- `adv_spec action: \"show\" capability: \"worktree-warp-mode\"` returns the new capability with all 6 requirements correctly",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:30:13.700Z",
+      "completed_at": "2026-05-21T04:30:13.700Z"
+    },
+    {
+      "id": "tk-189faa3fabfe",
+      "title": "Append revised validation methodology scenario to warp-live-validation doc",
+      "type": "code",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-21T04:08:29.315Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:30:14.760Z",
+      "verification": "T7 complete. Appended \"Revised methodology — fresh standalone session (no --attach --dir)\" section to docs/spikes/warp-live-validation.md (after Deviations). Documents the 5-step validation scenario: (1) start OpenCode without --attach --dir; (2) invoke adv_worktree_create; (3) expected outcome — mode:warp with workspaceID; (4) regression diagnosis steps if mode:terminal with lookup_failed (check client threading per rq-warpModeContract06, SDK routing per rq-warpModeContract04, v1 SDK construction directory); (5) confirm --attach --dir scenario still works (no regression). Explains why this matters (Instance.project.id resolution + --dir masking the missing-header bug). References fixWarpSessionLookup archive (TBD), the new spec law's rq-04 and rq-05, and upstream opencode issues #8538/#7149/#14595/#3551.",
+      "summary": "T7 complete. Appended \"Revised methodology — fresh standalone session (no --attach --dir)\" section to docs/spikes/warp-live-validation.md (after Deviations). Documents the 5-step validation scenario: (1) start OpenCode without --attach --dir; (2) invoke adv_worktree_create; (3) expected outcome — mode:warp with workspaceID; (4) regression diagnosis steps if mode:terminal with lookup_failed (check client threading per rq-warpModeContract06, SDK routing per rq-warpModeContract04, v1 SDK construction directory); (5) confirm --attach --dir scenario still works (no regression). Explains why this matters (Instance.project.id resolution + --dir masking the missing-header bug). References fixWarpSessionLookup archive (TBD), the new spec law's rq-04 and rq-05, and upstream opencode issues #8538/#7149/#14595/#3551.",
+      "implementation_summary": "T7 complete. Appended \"Revised methodology — fresh standalone session (no --attach --dir)\" section to docs/spikes/warp-live-validation.md (after Deviations). Documents the 5-step validation scenario: (1) start OpenCode without --attach --dir; (2) invoke adv_worktree_create; (3) expected outcome — mode:warp with workspaceID; (4) regression diagnosis steps if mode:terminal with lookup_failed (check client threading per rq-warpModeContract06, SDK routing per rq-warpModeContract04, v1 SDK construction directory); (5) confirm --attach --dir scenario still works (no regression). Explains why this matters (Instance.project.id resolution + --dir masking the missing-header bug). References fixWarpSessionLookup archive (TBD), the new spec law's rq-04 and rq-05, and upstream opencode issues #8538/#7149/#14595/#3551.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:30:55.455Z",
+      "completed_at": "2026-05-21T04:30:55.455Z"
+    },
+    {
+      "id": "tk-bf50d6e9d4a7",
+      "title": "Green-bar verification — full pnpm test + check + build",
+      "type": "code",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-21T04:08:42.902Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a0955a3b3a49"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2b7a28b48dcf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0ada6fc2847e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d9c0aee37953"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b88da819f7ea"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-103417d1b49d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-189faa3fabfe"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T04:30:56.327Z",
+      "verification": "T8 complete — full green-bar verification:\n\n- `pnpm test`: 208 test files passed | 1 skipped (209 total). 2559 tests passed | 2 skipped (2561 total) | 0 failed. Duration 28.54s.\n- `pnpm run check`: clean. typecheck → check-test-isolation → check-lockfile-policy → lint → format:check all pass. (One small remediation step: `pnpm run format` to normalize formatting on the 3 newly-touched files before re-running.)\n- `pnpm run build`: ESM + DTS build success. dist/index.js + dist/index.d.ts emitted cleanly along with temporal/ worker bundle.\n\nVerifies AC6 (full pnpm test + check + build green) and AC7 (no regression in legacy paths — 2559 tests is the full suite including all existing legacy tests).",
+      "summary": "T8 complete — full green-bar verification:\n\n- `pnpm test`: 208 test files passed | 1 skipped (209 total). 2559 tests passed | 2 skipped (2561 total) | 0 failed. Duration 28.54s.\n- `pnpm run check`: clean. typecheck → check-test-isolation → check-lockfile-policy → lint → format:check all pass. (One small remediation step: `pnpm run format` to normalize formatting on the 3 newly-touched files before re-running.)\n- `pnpm run build`: ESM + DTS build success. dist/index.js + dist/index.d.ts emitted cleanly along with temporal/ worker bundle.\n\nVerifies AC6 (full pnpm test + check + build green) and AC7 (no regression in legacy paths — 2559 tests is the full suite including all existing legacy tests).",
+      "implementation_summary": "T8 complete — full green-bar verification:\n\n- `pnpm test`: 208 test files passed | 1 skipped (209 total). 2559 tests passed | 2 skipped (2561 total) | 0 failed. Duration 28.54s.\n- `pnpm run check`: clean. typecheck → check-test-isolation → check-lockfile-policy → lint → format:check all pass. (One small remediation step: `pnpm run format` to normalize formatting on the 3 newly-touched files before re-running.)\n- `pnpm run build`: ESM + DTS build success. dist/index.js + dist/index.d.ts emitted cleanly along with temporal/ worker bundle.\n\nVerifies AC6 (full pnpm test + check + build green) and AC7 (no regression in legacy paths — 2559 tests is the full suite including all existing legacy tests).",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T04:32:46.242Z",
+      "completed_at": "2026-05-21T04:32:46.242Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-86qPhd",
+      "type": "gotcha",
+      "content": "SDK v1 vs v2 path-resolution trap: `@opencode-ai/sdk@1.15.5` ships TWO complete SDK surfaces — v1 at `dist/gen/sdk.gen.d.ts` and v2 at `dist/v2/gen/sdk.gen.d.ts`. The v2 SDK exposes typed `client.experimental.workspace.{list,create,remove,warp,status,syncList}` methods; the v1 SDK does NOT. The plugin's `PluginInput.client` type is `ReturnType<typeof createOpencodeClient>` where `createOpencodeClient` is imported from `@opencode-ai/sdk` (the v1 path, NOT `@opencode-ai/sdk/v2`), so the plugin actually receives a v1 client.\n\nThis caused a real validator misread during the fixWarpSessionLookup design phase: the adv-researcher validator read the v2 SDK file and asserted typed workspace methods exist, leading to a CONFLICT-level finding that turned out to be wrong for the plugin's actual surface.\n\nLesson: when reading SDK types, verify which path the consuming code actually imports from. `PluginInput.client` type → trace the import → confirm v1 vs v2. Both v1 and v2 share the same fetch-interceptor pattern (auto-attaches `x-opencode-directory` for default config + GET→query rewrite), but only v2 exposes typed workspace endpoints. Future migration to v2 client would let us drop the explicit-header attachment on POST/DELETE/PUT in `workspace-warp.ts`.",
+      "recorded_at": "2026-05-21T04:32:55.269Z"
+    },
+    {
+      "id": "ws-H0UWIB",
+      "type": "pattern",
+      "content": "Pattern: discriminated-union result tuple for never-throws lookup functions. The original `getSessionWorkspaceID(deps, sessionID): Promise<string | null>` threw on non-2xx and on JSON parse drift, forcing every caller to wrap in try/catch and string-format the error for downstream `downgrade_reason`. Replacing the signature with:\n\n```ts\ntype SessionLookupResult =\n  | { ok: true; workspaceID: string | null }\n  | { ok: false; status?: number; detail: string };\n```\n\n— let callers branch precisely without lossy `String(error)` conversion. The function catches its own SDK throws and returns structured failure. Combined with the `downgrade_reason` discriminated union at the tool-output layer, this gives agents a fully structural channel for failure-mode branching (`downgrade_reason.kind`, with `status?` and `detail?` where applicable) without parsing prose `warning` strings.\n\nThis is the P33 (structural-correctness) pattern applied at the function-signature level: deterministic structural surface > heuristic string parsing.",
+      "recorded_at": "2026-05-21T04:33:02.707Z"
+    },
+    {
+      "id": "ws-3r1oOu",
+      "type": "gotcha",
+      "content": "Test env-leak gotcha: `vi.unstubAllEnvs()` only restores envs that were explicitly stubbed via `vi.stubEnv()`. It does NOT clear pre-existing shell envs. When ADV is being developed and `OPENCODE_EXPERIMENTAL_WORKSPACES=true` is set in the developer's shell, tests asserting `warpFlagEnabled()` returns `false` (no env set) silently break.\n\nFix pattern: in test `beforeEach` blocks for any test file that exercises `warpFlagEnabled()`, explicitly clear both flag vars:\n\n```ts\nbeforeEach(() => {\n  vi.stubEnv(\"OPENCODE_EXPERIMENTAL\", \"\");\n  vi.stubEnv(\"OPENCODE_EXPERIMENTAL_WORKSPACES\", \"\");\n  // ... other setup\n});\nafterEach(() => {\n  vi.unstubAllEnvs();\n});\n```\n\nEmpty string is treated as falsy by `process.env.X === \"true\"` check. Discovered during fixWarpSessionLookup T1 — applied as P25 touched-scope fix to workspace-warp.test.ts, index-create.test.ts, and index-delete.test.ts.",
+      "recorded_at": "2026-05-21T04:33:08.172Z"
+    },
+    {
+      "id": "ws-gQwYiH",
+      "type": "gotcha",
+      "content": "Grep-gate regexes that use negated character classes like `/fetch[^;{]*\\/session\\//` are fragile against modern JavaScript syntax. Template literals contain `${`, which means any `{`-excluding character class halts before reaching the target substring. The original gate in worktree-warp-mode-assets.test.ts missed `fetch(`${url}/session/${id}`)` — the exact shape of the pre-fix regression — even though it caught string-concat and `new URL` forms.\n\nPattern: when writing structural grep gates against source code, walk balanced parentheses to extract the call's argument expression and test for the literal target substring within it. Excluding `{` is incompatible with template literals; excluding `;` only happens to work because raw fetches typically don't span statement boundaries.\n\nSurfaced by adv-reviewer during fixWarpSessionLookup acceptance review (2026-05-21). Reviewer applied scoped fix to use a balanced-paren scanner instead of regex negation.",
+      "recorded_at": "2026-05-21T04:40:49.598Z"
+    },
+    {
+      "id": "ws-pXFISi",
+      "type": "pattern",
+      "content": "Asset-test grep gates should be exercised against simulated regressions BEFORE shipping. If you author a structural grep gate (e.g., \"no raw fetch to /session/:id\"), add a parallel meta-test that constructs synthetic regression patterns in-memory (template literal, string concat, new URL, member-call variants) and asserts the gate function flags each one. This catches gate-erosion without requiring an actual regression to expose it.\n\nThe grep-gate-template-literal blindspot in fixWarpSessionLookup's T6 asset test (caught by adv-reviewer during acceptance) would have been caught at TDD time if the gate had been tested against its own regression vectors. Generalize: any pattern-detection assertion should have positive AND negative cases.",
+      "recorded_at": "2026-05-21T04:40:54.394Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T03:38:05.073Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved problem statement via 'approve' at proposal checkpoint 2026-05-21."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T03:49:38.183Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings D1-D7 documented inline in proposal.md (Discovery findings section, 2026-05-21): SDK v2 auto-routes directory via fetch interceptor (GET→query, POST/DELETE→header); plugin input already exposes a correctly-configured client that ADV's advancePluginImpl ignores; two parallel implementations exist (SDK-routed in worktree/index.ts is dead-code via WorktreePlugin, raw-fetch in utils/workspace-warp.ts is the live regression); existing test harness in index-create.test.ts is adaptable; POST/DELETE workspace endpoints need explicit x-opencode-directory; SDK method shape (client.session.get returns {data,error,response}) confirmed; validation methodology gap identified (--attach --dir masks the bug). Carry into design: SDK typed-method coverage for experimental.workspace.* endpoints (open question)."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:05:11.230Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Validator (adv-researcher) returned CAUTION with one CONFLICT-level finding (dimension 1: claim that typed experimental.workspace methods don't exist). Conflict resolved inline: validator was reading v2 SDK (dist/v2/gen/sdk.gen.d.ts), but PluginInput.client is v1 (per @opencode-ai/plugin@1.15.5/dist/index.d.ts:1,37) and v1 OpencodeClient (dist/gen/sdk.gen.d.ts:377-403) has no experimental.workspace.* methods and uses {path:{id}} session.get shape. Architecture unchanged; design wording corrected with explicit v1/v2 documentation section and KD-2 alternatives table. No contract-compromise risk. No user-value tradeoff. Validator's caution findings on dimensions 2/3/4 are informational. Resolution captured in \"Validator Result\" section of design.md."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:10:22.420Z",
+      "completed_by": "agent",
+      "approval_evidence": "8 tasks created from design's implementation sequence. User approved prep vision via 'approve' at planning checkpoint 2026-05-21. Task graph: T1 (getSessionWorkspaceID rewrite) is foundation; T2 (header attach), T3 (downgrade_reason + runtime), T5 (consolidate parallel impl) depend on T1; T4 (plugin/registry wiring) depends on T3; T6 (spec law) depends on T1+T2+T3; T7 (docs) independent; T8 (verification) blocks on all. 6 inline TDD, 2 not_applicable. All inline_required except T7 (delegate_allowed)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:33:21.864Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 8 tasks done. Full green-bar verified: pnpm test (2559 passed), pnpm run check (clean), pnpm run build (success). Implementation per design — session lookup unified on v1 SDK client, x-opencode-directory header attached on all 5 raw-fetch workspace endpoints, structured downgrade_reason with 7 kinds emitted on every warp→terminal fallback, client threaded end-to-end from PluginInput → createToolMap → AdvWorktreeCreateRuntime, dead-code parallel session-lookup consolidated, net-new worktree-warp-mode spec law authored with 6 requirements + asset test, validation methodology gap closed in docs. 3 wisdom entries captured."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:46:49.989Z",
+      "completed_by": "agent",
+      "approval_evidence": "adv-reviewer verdict: READY. No blockers. 1 question (legacy WorktreePlugin `_client` vestige — agreement-explicit out-of-scope follow-up), 1 nit (stringifyErrorDetail forward-declared), 3 praise findings. Reviewer applied 1 scoped fix to the asset-test grep gate (template-literal regression vector closed). 2 P25 touched-scope fixes applied: env-leak in 3 test beforeEach blocks, and ARTIFACT_FIELDS missing executiveSummary in tool-arg-preflight.ts (surfaced during acceptance phase when executive-summary persist was blocked). Executive summary persisted. Full suite green: pnpm test (2561/2561), pnpm run check (clean), pnpm run build (success)."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:48:06.097Z",
+      "completed_by": "agent",
+      "approval_evidence": "User signed off at archive boundary via 'sign off' (Tier B whitelist match) 2026-05-21. All gates complete, all 8 tasks done, full test suite green (2561/2561), check clean, build success. adv-reviewer READY verdict. Executive summary persisted. 5 wisdom entries captured (2 promoted to project-level). Proceeding to archive."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-21T03:48:45.577Z"
+    }
+  ]
+}

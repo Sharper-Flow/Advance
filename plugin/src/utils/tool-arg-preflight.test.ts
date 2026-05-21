@@ -95,6 +95,20 @@ describe("tool arg preflight", () => {
         proposal: "real content",
       }).ok,
     ).toBe(true);
+
+    // fixWarpSessionLookup regression: executiveSummary must be recognized
+    // as a valid artifact field (see plugin/src/utils/tool-arg-preflight.ts
+    // ARTIFACT_FIELDS — historically omitted, blocking acceptance flows).
+    const schemaWithSummary = {
+      ...schema,
+      executiveSummary: z.string().optional(),
+    };
+    expect(
+      validateToolArgsBeforeExecute("adv_change_update", schemaWithSummary, {
+        changeId: "abc",
+        executiveSummary: "post-acceptance narrative",
+      }).ok,
+    ).toBe(true);
   });
 
   test("redacts sensitive received args in preflight errors", () => {
