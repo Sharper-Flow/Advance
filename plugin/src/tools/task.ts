@@ -86,6 +86,10 @@ export function evaluateTaskAddWorktreeIsolation(input: {
   features: unknown;
   cwd: string;
   change: Change | undefined;
+  /** rq-autoManageAdvWorktrees AC4 D1 — target_path → "target", scope_repos → "scope". */
+  role?: "current" | "target" | "scope";
+  /** Required when role === "scope" (D2). */
+  repoId?: string;
   autoManageDeps?: EnsureWorktreeForMutationDeps;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
 }): Promise<WorktreeIsolationResult>;
@@ -93,6 +97,8 @@ export function evaluateTaskAddWorktreeIsolation(input: {
   features: unknown;
   cwd: string;
   change?: Change;
+  role?: "current" | "target" | "scope";
+  repoId?: string;
   autoManageDeps?: EnsureWorktreeForMutationDeps;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
 }): WorktreeIsolationResult | Promise<WorktreeIsolationResult> {
@@ -114,6 +120,8 @@ export function evaluateTaskAddWorktreeIsolation(input: {
   return ensureWorktreeForMutation({
     change: input.change,
     cwd: input.cwd,
+    role: input.role,
+    repoId: input.repoId,
     features: input.features,
     deps: {
       ...input.autoManageDeps,
@@ -155,6 +163,10 @@ export function evaluateTaskUpdateWorktreeIsolation(input: {
   cwd: string;
   status: TaskUpdateStatus;
   change: Change | undefined;
+  /** rq-autoManageAdvWorktrees AC4 D1 — target_path → "target", scope_repos → "scope". */
+  role?: "current" | "target" | "scope";
+  /** Required when role === "scope" (D2). */
+  repoId?: string;
   autoManageDeps?: EnsureWorktreeForMutationDeps;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
 }): Promise<WorktreeIsolationResult>;
@@ -163,6 +175,8 @@ export function evaluateTaskUpdateWorktreeIsolation(input: {
   cwd: string;
   status: TaskUpdateStatus;
   change?: Change;
+  role?: "current" | "target" | "scope";
+  repoId?: string;
   autoManageDeps?: EnsureWorktreeForMutationDeps;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
 }): WorktreeIsolationResult | Promise<WorktreeIsolationResult> {
@@ -183,6 +197,8 @@ export function evaluateTaskUpdateWorktreeIsolation(input: {
   return ensureWorktreeForMutation({
     change: input.change,
     cwd: input.cwd,
+    role: input.role,
+    repoId: input.repoId,
     features: input.features,
     deps: {
       ...input.autoManageDeps,
@@ -494,11 +510,19 @@ export const taskTools = {
         } catch {
           // Pass undefined → guard runs in legacy mode based on global flag.
         }
+        // rq-autoManageAdvWorktrees AC4 D1 — target_path mutations route
+        // through the target store; pass role="target" so the
+        // worktreeAttachedSignal projection fires against the originating
+        // change record. Production resumeRuntime wiring is a follow-up
+        // (the auto-create branch surfaces an AC6 defensive error today
+        // pointing the agent at the manual resume path); the role hint is
+        // in place for end-to-end fire when the runtime is wired.
         const isolation = await evaluateTaskUpdateWorktreeIsolation({
           features: activeStore.config?.features,
           cwd: process.cwd(),
           status: args.status,
           change: changeForGuard,
+          role: args.target_path ? "target" : "current",
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
@@ -702,10 +726,12 @@ export const taskTools = {
         } catch {
           // Pass undefined → guard runs in legacy mode based on global flag.
         }
+        // rq-autoManageAdvWorktrees AC4 D1 — target_path → role:"target".
         const isolation = await evaluateTaskAddWorktreeIsolation({
           features: activeStore.config?.features,
           cwd: process.cwd(),
           change: changeForGuard,
+          role: args.target_path ? "target" : "current",
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
