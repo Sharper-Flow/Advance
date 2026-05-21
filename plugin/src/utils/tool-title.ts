@@ -60,7 +60,6 @@ const STATIC_TITLES: Record<
   },
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
   adv_session_list: { title: "List sessions", titleKind: "read" },
-  worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
 };
 
@@ -132,10 +131,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_worktree_resume: (args) =>
     operator(`Resume worktree${suffix(args, "changeId", "branch")}`),
   adv_worktree_delete: (args) =>
-    operator(`Delete worktree${suffix(args, "branch")}`),
-  worktree_create: (args) =>
-    operator(`Create worktree${suffix(args, "branch")}`),
-  worktree_delete: (args) =>
     operator(`Delete worktree${suffix(args, "branch")}`),
   adv_session_show: (args) => read(`Show session${suffix(args, "sessionId")}`),
 };

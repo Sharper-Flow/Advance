@@ -74,6 +74,7 @@ import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
 import { worktreeDeletedSignal } from "../../temporal/messages";
 import { getPendingDeletes } from "./state";
+import { synthesizeTestProjectId } from "../../utils/project-id";
 
 const isLinux = process.platform === "linux";
 
@@ -100,7 +101,10 @@ function createMockDeps(
 ): AdvWorktreeDeleteDeps {
   return {
     projectRoot,
-    database: { projectDir: projectRoot, projectId: "test-id" },
+    database: {
+      projectDir: projectRoot,
+      projectId: synthesizeTestProjectId(projectRoot),
+    },
     log: {
       debug: vi.fn(),
       info: vi.fn(),

@@ -117,7 +117,7 @@ See also `ADV_INSTRUCTIONS.md § Large-Scope Validity` — size alone is never g
 
 ### Tool Check
 
-If `worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools required but unavailable. Configure worktree MCP server to proceed.` → stop.
+If `adv_worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools required but unavailable. Configure ADV worktree tools to proceed.` → stop.
 
 ### Detect Existing Worktree
 
@@ -129,10 +129,10 @@ If `worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools r
 
 ### Create Worktree
 
-1. `worktree_create branch: "change/{change-id}"`
+1. `adv_worktree_create branch: "change/{change-id}"`
 2. **Immediately** capture returned path and set `workdir` for ALL subsequent tool calls
 3. Continue inline — no handoff, no new terminal needed
-4. When deleting later, pass `branch: "change/{change-id}"` to `worktree_delete`
+4. When deleting later, pass `branch: "change/{change-id}"` to `adv_worktree_delete`
 
 ### Post-Creation Path Verification
 
@@ -159,7 +159,7 @@ When a session on change A needs to work on change B:
 
 1. `git worktree list --porcelain` → find `change/{change-b-id}` branch
 2. If worktree-B exists → switch `workdir` to worktree-B path
-3. If worktree-B missing → `worktree_create branch: "change/{change-b-id}"` → capture path → switch `workdir`
+3. If worktree-B missing → `adv_worktree_create branch: "change/{change-b-id}"` → capture path → switch `workdir`
 4. Resume work on change B in its isolated worktree
 5. To return to change A → switch `workdir` back to worktree-A path
 

@@ -140,9 +140,9 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_investment_report",
   "adv_temporal_worker_restart",
   // Worktree mutations
-  "worktree_create",
-  "worktree_delete",
-  "worktree_cleanup",
+  "adv_worktree_create",
+  "adv_worktree_delete",
+  "adv_worktree_cleanup",
 ];
 
 // Body anchor strings — pin the system prompt's required sections.

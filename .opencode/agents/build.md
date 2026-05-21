@@ -73,8 +73,8 @@ tools:
   adv_agenda_complete: false
   adv_agenda_cancel: false
   adv_agenda_prioritize: false
-  worktree_create: false
-  worktree_delete: false
+  adv_worktree_create: false
+  adv_worktree_delete: false
 ---
 <!-- ADV_SYNC:START build -->
 ## ADV Overlay
