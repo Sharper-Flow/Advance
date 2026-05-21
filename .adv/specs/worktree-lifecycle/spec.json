@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
-  "version": "1.1.0",
-  "updated_at": "2026-05-12T00:00:00.000Z",
+  "version": "1.2.0",
+  "updated_at": "2026-05-21T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -161,6 +161,119 @@
             "cleanupEligible=false",
             "cleanupBlockedBy documents the active session"
           ]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupReaper01",
+      "title": "Terminal Worktree Cleanup Reaper",
+      "body": "ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. All deletion attempts must delegate to advWorktreeDelete.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "terminal", "reaper"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupReaper01.1",
+          "title": "Shared triggers reach the reaper",
+          "given": [
+            "A terminal ADV worktree exists for an archived or closed change"
+          ],
+          "when": "archive, manual cleanup, status/triage, startup, or session.deleted cleanup runs",
+          "then": [
+            "The shared terminal cleanup reaper evaluates the candidate",
+            "The actual deletion attempt delegates to advWorktreeDelete"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupReaper01.2",
+          "title": "Startup remains bounded",
+          "given": ["Plugin startup begins with pending deletes recorded"],
+          "when": "Startup cleanup runs",
+          "then": [
+            "Only already-known pending deletes are drained",
+            "Full terminal discovery is not executed during startup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupSafety01",
+      "title": "Terminal Cleanup Safety Gate",
+      "body": "Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "safety"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupSafety01.1",
+          "title": "Unsafe candidates are retained",
+          "given": [
+            "A cleanup candidate is dirty, unmerged, non-terminal, or in use"
+          ],
+          "when": "The terminal cleanup reaper evaluates it",
+          "then": [
+            "The candidate is retained with a blocker",
+            "No direct git worktree remove command is run"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupSafety01.2",
+          "title": "Census eligibility is not authority",
+          "given": ["census.cleanupEligible is true for a worktree"],
+          "when": "The reaper attempts cleanup",
+          "then": [
+            "advWorktreeDelete still verifies durable ADV state before deletion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupVisibility01",
+      "title": "Terminal Cleanup Visibility",
+      "body": "Retained terminal cleanup blockers must be visible without requiring manual git inspection. adv_status must surface aggregate retained-terminal-worktree counts/classes only. adv_worktree_triage must surface exact branches, paths, and blockers for retained terminal cleanup candidates.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "status", "triage"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupVisibility01.1",
+          "title": "Status shows aggregates",
+          "given": ["Retained terminal cleanup blockers exist"],
+          "when": "adv_status runs",
+          "then": [
+            "The output includes retained cleanup counts/classes",
+            "The normal status surface does not dump every retained path"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupVisibility01.2",
+          "title": "Triage shows exact blockers",
+          "given": ["Retained terminal cleanup blockers exist"],
+          "when": "adv_worktree_triage runs",
+          "then": ["Exact branches, paths, and blockers are returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupLifecycle01",
+      "title": "Single Terminal Cleanup Lifecycle Path",
+      "body": "Terminal cleanup processing must route through one shared cleanup path instead of duplicate lifecycle loops. Concurrent cleanup triggers must be serialized or idempotent, and retained in-use worktrees must stay queued or preserved for retry. Manual cleanup must be able to retry safe terminal pending deletes even when prior automatic attempts reached an attempt cap.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "lifecycle", "concurrency"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupLifecycle01.1",
+          "title": "Concurrent triggers are idempotent",
+          "given": ["Two cleanup triggers process the same pending delete"],
+          "when": "Both triggers run concurrently or sequentially",
+          "then": [
+            "Processing is serialized or idempotent",
+            "At most one deletion succeeds and retained state remains consistent"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupLifecycle01.2",
+          "title": "Manual cleanup can retry exhausted safe items",
+          "given": ["A safe terminal pending delete has exhausted automatic attempts"],
+          "when": "Manual cleanup runs",
+          "then": ["The safe pending delete is retried through the shared path"]
         }
       ]
     },

@@ -24,6 +24,7 @@ vi.mock("./state", () => ({
   })),
   listWorktrees: vi.fn(async () => []),
   getChangeSummaries: vi.fn(async () => ({})),
+  getPendingDeletes: vi.fn(async () => []),
 }));
 
 vi.mock("../../utils/stale-head", () => ({
@@ -35,11 +36,12 @@ vi.mock("../../utils/stale-head", () => ({
 }));
 
 import { triageWorktrees } from "./triage";
-import { listWorktrees, getChangeSummaries } from "./state";
+import { listWorktrees, getChangeSummaries, getPendingDeletes } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 
 const mockedListWorktrees = vi.mocked(listWorktrees);
 const mockedGetSummaries = vi.mocked(getChangeSummaries);
+const mockedGetPendingDeletes = vi.mocked(getPendingDeletes);
 const mockedStaleHead = vi.mocked(detectStaleBranchHead);
 
 describe("triageWorktrees (T18)", () => {
@@ -60,6 +62,7 @@ describe("triageWorktrees (T18)", () => {
     // Reset default mocks.
     mockedListWorktrees.mockResolvedValue([]);
     mockedGetSummaries.mockResolvedValue({});
+    mockedGetPendingDeletes.mockResolvedValue([]);
     mockedStaleHead.mockResolvedValue({
       stale: false,
       reason: "on default branch",
@@ -352,5 +355,29 @@ describe("triageWorktrees (T18)", () => {
       expect(orphan?.reason).toMatch(/3/);
       expect(orphan?.reason).toMatch(/2/);
     });
+  });
+
+  it("reports retained terminal cleanup pending deletes with exact branch path and blocker", async () => {
+    mockedGetPendingDeletes.mockResolvedValue([
+      {
+        branch: "change/live-terminal",
+        path: "/tmp/live-terminal",
+        reason: "worktree is still in use by a running process",
+        recordedAt: "2026-05-21T00:00:00.000Z",
+        attempts: 3,
+      },
+    ]);
+
+    const result = await triageWorktrees(repoRoot);
+
+    expect(result.orphans).toContainEqual(
+      expect.objectContaining({
+        class: "terminal_cleanup_retained",
+        branch: "change/live-terminal",
+        path: "/tmp/live-terminal",
+        reason: expect.stringContaining("worktree is still in use"),
+        recommendedFix: expect.stringContaining("adv_worktree_cleanup"),
+      }),
+    );
   });
 });

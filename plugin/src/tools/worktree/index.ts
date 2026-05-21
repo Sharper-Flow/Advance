@@ -73,14 +73,15 @@ import {
   getWorktreePath,
   findBranchOwnersAcrossChanges,
   inferChangeIdFromBranch,
-  incrementPendingDeleteAttempts,
   initStateDb,
   listWorktrees,
+  recordPendingDeleteFailure,
   removeSession,
   setPendingDelete,
   updateWorktreeRecord,
 } from "./state";
 import { openTerminal } from "./terminal";
+import { scanGitWorkspaceFacts } from "./census";
 import { runHooksWithSafety, HookFailedError } from "./hooks";
 import { appendDebugLog } from "../../utils/debug-log";
 import { execGit, getDefaultBranch } from "../../utils/git";
@@ -2016,51 +2017,161 @@ export interface AdvWorktreeCleanupDeps {
   dryRun?: boolean;
   store?: Store;
   warpDeps?: WarpDeps;
+  /** Automatic triggers use false; manual cleanup defaults to true. */
+  forceAttempts?: boolean;
+  /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
+  discover?: boolean;
 }
 
-export async function advWorktreeCleanup(
-  _reason: string,
-  deps: AdvWorktreeCleanupDeps,
-): Promise<{ removed: number; retained: number; dryRun?: boolean }> {
+export interface DrainPendingDeletesOptions {
+  /** Manual remediation triggers may ignore the automatic retry cap. */
+  forceAttempts?: boolean;
+  /** Preview pending-delete handling without mutating attempts or deleting. */
+  dryRun?: boolean;
+}
+
+export interface PendingDeleteDrainResult {
+  removed: number;
+  retained: number;
+  dryRun?: boolean;
+}
+
+async function discoverTerminalCleanupCandidates(
+  trigger: string,
+  deps: AdvWorktreeDeleteDeps,
+): Promise<number> {
+  if (!deps.store) return 0;
+
+  let defaultBranch: string;
+  try {
+    defaultBranch = await getDefaultBranch(deps.projectRoot);
+  } catch (error) {
+    deps.log.warn(
+      `[worktree] Skipping terminal cleanup discovery during ${trigger} — default branch unresolved: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    return 0;
+  }
+
+  const facts = await scanGitWorkspaceFacts(deps.projectRoot, defaultBranch);
+  let discovered = 0;
+
+  for (const worktree of facts.worktrees) {
+    const branch = worktree.branch;
+    const changeId = inferChangeIdFromBranch(branch);
+    if (!changeId) continue;
+
+    let status: string | undefined;
+    try {
+      const loaded = await deps.store.changes.get(changeId);
+      status = loaded.success && loaded.data ? loaded.data.status : undefined;
+    } catch (error) {
+      deps.log.warn(
+        `[worktree] Skipping terminal cleanup discovery for ${branch} during ${trigger} — change state unavailable: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      continue;
+    }
+
+    if (status !== "archived" && status !== "closed") continue;
+
+    await setPendingDelete(
+      deps.database,
+      branch,
+      worktree.path,
+      `terminal cleanup discovered during ${trigger}`,
+    );
+    discovered++;
+  }
+
+  return discovered;
+}
+
+function classifyDeleteResultForPendingDelete(
+  result: Exclude<AdvWorktreeDeleteResult, { ok: true }>,
+): string {
+  switch (result.error) {
+    case "WORKTREE_IN_USE":
+      return "worktree_in_use";
+    case "WORKTREE_NOT_FOUND":
+      return "worktree_not_found";
+    case "UNCOMMITTED_WORK":
+    case "HOOK_INTRODUCED_CHANGES":
+      return "dirty_worktree";
+    case "INTEGRATION_REQUIRED":
+      if ("reason" in result && result.reason === "branch_not_merged") {
+        return "branch_not_merged";
+      }
+      if ("reason" in result && result.reason === "change_not_terminal") {
+        return "change_not_terminal";
+      }
+      return "integration_required";
+    case "REMOVE_FAILED":
+      return "remove_failed";
+    case "HOOK_FAILED":
+      return "hook_failed";
+    case "INVALID_BRANCH":
+      return "invalid_branch";
+    default:
+      return "other";
+  }
+}
+
+export async function drainPendingDeletes(
+  trigger: string,
+  deps: AdvWorktreeDeleteDeps,
+  options: DrainPendingDeletesOptions = {},
+): Promise<PendingDeleteDrainResult> {
   const pendingDeletes = await getPendingDeletes(deps.database);
   if (pendingDeletes.length === 0) {
     return {
       removed: 0,
       retained: 0,
-      ...(deps.dryRun ? { dryRun: true } : {}),
+      ...(options.dryRun ? { dryRun: true } : {}),
     };
   }
 
   let removed = 0;
   let retained = 0;
+  const worktreeInUseFn = deps.isWorktreeInUse ?? isWorktreeInUse;
 
   for (const pendingDelete of pendingDeletes) {
     const { path: worktreePath, branch } = pendingDelete;
 
-    if (isWorktreeInUse(worktreePath)) {
+    if (
+      !options.forceAttempts &&
+      pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS
+    ) {
       deps.log.warn(
-        `[worktree] Skipping worktree removal during worktree_cleanup — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
+        `[worktree] Skipping pending delete for ${branch} during ${trigger} — max attempts reached (${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS}). Run worktree_cleanup after fixing the underlying issue.`,
       );
-      await incrementPendingDeleteAttempts(deps.database, branch);
       retained++;
       continue;
     }
 
-    if (deps.dryRun) {
+    if (options.dryRun) {
+      retained++;
+      continue;
+    }
+
+    if (worktreeInUseFn(worktreePath)) {
+      deps.log.warn(
+        `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
+      );
+      await recordPendingDeleteFailure(
+        deps.database,
+        branch,
+        "WORKTREE_IN_USE",
+        "worktree_in_use",
+      );
       retained++;
       continue;
     }
 
     const result = await advWorktreeDelete(
       branch,
-      { force: true },
+      { force: options.forceAttempts },
       {
-        projectRoot: deps.projectRoot,
-        database: deps.database,
-        log: deps.log,
+        ...deps,
         worktreePath,
-        store: deps.store,
-        warpDeps: deps.warpDeps,
       },
     );
 
@@ -2071,12 +2182,39 @@ export async function advWorktreeCleanup(
       deps.log.warn(
         `[worktree] Failed pending delete for ${branch}: ${result.error}`,
       );
-      await incrementPendingDeleteAttempts(deps.database, branch);
+      await recordPendingDeleteFailure(
+        deps.database,
+        branch,
+        result.error,
+        classifyDeleteResultForPendingDelete(result),
+      );
       retained++;
     }
   }
 
-  return { removed, retained, ...(deps.dryRun ? { dryRun: true } : {}) };
+  return { removed, retained, ...(options.dryRun ? { dryRun: true } : {}) };
+}
+
+export async function advWorktreeCleanup(
+  _reason: string,
+  deps: AdvWorktreeCleanupDeps,
+): Promise<PendingDeleteDrainResult> {
+  const deleteDeps: AdvWorktreeDeleteDeps = {
+    projectRoot: deps.projectRoot,
+    database: deps.database,
+    log: deps.log,
+    store: deps.store,
+    warpDeps: deps.warpDeps,
+  };
+
+  if (!deps.dryRun && deps.discover !== false) {
+    await discoverTerminalCleanupCandidates("worktree_cleanup", deleteDeps);
+  }
+
+  return drainPendingDeletes("worktree_cleanup", deleteDeps, {
+    dryRun: deps.dryRun,
+    forceAttempts: deps.forceAttempts ?? true,
+  });
 }
 
 // =============================================================================
@@ -2107,65 +2245,44 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
   // Initialize worktree state access
   const database = await initDb(directory, log);
+  const warpDeps: WarpDeps = { serverUrl, directory, client };
+
+  try {
+    const cleanup = await drainPendingDeletes(
+      "startup",
+      {
+        projectRoot: directory,
+        database,
+        log,
+        warpDeps,
+      },
+      { forceAttempts: false },
+    );
+    if (cleanup.removed > 0 || cleanup.retained > 0) {
+      log.info(
+        `[worktree] Startup pending-delete drain complete. Removed ${cleanup.removed}, retained ${cleanup.retained}.`,
+      );
+    }
+  } catch (error) {
+    log.warn(
+      `[worktree] Startup pending-delete drain failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 
   async function processPendingDeletes(
     trigger: string,
     options: { forceAttempts?: boolean } = {},
   ): Promise<{ removed: number; retained: number }> {
-    const pendingDeletes = await getPendingDeletes(database);
-    if (pendingDeletes.length === 0) return { removed: 0, retained: 0 };
-
-    let removed = 0;
-    let retained = 0;
-
-    for (const pendingDelete of pendingDeletes) {
-      const { path: worktreePath, branch } = pendingDelete;
-
-      if (
-        !options.forceAttempts &&
-        pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS
-      ) {
-        log.warn(
-          `[worktree] Skipping pending delete for ${branch} during ${trigger} — max attempts reached (${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS}). Run worktree_cleanup after fixing the underlying issue.`,
-        );
-        retained++;
-        continue;
-      }
-
-      if (isWorktreeInUse(worktreePath)) {
-        log.warn(
-          `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
-        );
-        await incrementPendingDeleteAttempts(database, branch);
-        retained++;
-        continue;
-      }
-
-      const result = await advWorktreeDelete(
-        branch,
-        { force: options.forceAttempts },
-        {
-          projectRoot: directory,
-          database,
-          log,
-          worktreePath,
-          warpDeps: { serverUrl, directory, client },
-        },
-      );
-
-      if (result.ok) {
-        await clearPendingDelete(database, branch);
-        removed++;
-      } else {
-        log.warn(
-          `[worktree] Failed pending delete for ${branch}: ${result.error}`,
-        );
-        await incrementPendingDeleteAttempts(database, branch);
-        retained++;
-      }
-    }
-
-    return { removed, retained };
+    return drainPendingDeletes(
+      trigger,
+      {
+        projectRoot: directory,
+        database,
+        log,
+        warpDeps,
+      },
+      options,
+    );
   }
 
   return {

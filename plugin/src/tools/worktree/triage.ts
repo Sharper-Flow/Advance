@@ -31,6 +31,7 @@ import {
   initStateDb,
   listWorktrees,
   getChangeSummaries,
+  getPendingDeletes,
   type WorktreeStateAccess,
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
@@ -47,7 +48,8 @@ export type OrphanClass =
   | "missing_from_disk"
   | "registry_missing_change_id"
   | "archived_not_cleaned"
-  | "dirty_uncommitted_work";
+  | "dirty_uncommitted_work"
+  | "terminal_cleanup_retained";
 
 export interface OrphanRecord {
   class: OrphanClass;
@@ -176,7 +178,9 @@ export async function triageWorktrees(
       branch: dw.branch,
       path: dw.path,
       reason: `Disk worktree at ${dw.path} (branch ${dw.branch}) has no entry in worktree_registry`,
-      recommendedFix: `adv_worktree_create --adopt ${dw.branch}  # or manually delete the orphan worktree`,
+      recommendedFix:
+        `adv_worktree_create --adopt ${dw.branch} if this worktree is still active; ` +
+        `otherwise run adv_worktree_delete ${dw.branch} and let the terminal/merged/clean gates decide`,
     });
   }
 
@@ -204,8 +208,8 @@ export async function triageWorktrees(
       path: r.path,
       reason: `worktree_registry has ${r.branch} at ${r.path}, but the record has no owning changeId`,
       recommendedFix:
-        `repair registry metadata for ${r.branch} before using adv_worktree_delete, ` +
-        `or manually delete only after archived+merged+clean verification`,
+        `repair registry metadata for ${r.branch}, then use adv_worktree_delete ` +
+        `so terminal+merged+clean verification stays centralized`,
     });
   }
 
@@ -254,6 +258,19 @@ export async function triageWorktrees(
       recommendedFix:
         `Inspect first: \`cd ${dw.path} && git status\`. ` +
         `Commit, stash, or review before deletion.`,
+    });
+  }
+
+  const pendingDeletes = await getPendingDeletes(access).catch(() => []);
+  for (const pendingDelete of pendingDeletes) {
+    orphans.push({
+      class: "terminal_cleanup_retained",
+      branch: pendingDelete.branch,
+      path: pendingDelete.path,
+      reason:
+        `Terminal cleanup retained ${pendingDelete.branch}: ${pendingDelete.reason}. ` +
+        `Attempts: ${pendingDelete.attempts}.`,
+      recommendedFix: `Resolve the blocker, then run adv_worktree_cleanup for ${pendingDelete.branch}.`,
     });
   }
 

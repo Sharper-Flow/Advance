@@ -94,6 +94,10 @@ export interface StatusInput {
     total: number;
     stale: Array<{ path: string; branch: string; lastActivity: string }>;
   };
+  terminalCleanupRetained?: {
+    total: number;
+    classes: Record<string, number>;
+  };
   /**
    * T22: peer sessions list (privacy-defensive schema). Each entry shows
    * sessionId, startedAt, worktree (basename only), and isSelf flag.
@@ -434,7 +438,15 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   if (!input.worktreeCensus) {
     worktreeSection = "## Worktrees\n(unavailable)";
   } else if (input.worktreeCensus.total === 0) {
-    worktreeSection = "## Worktrees\n(none)";
+    if (input.terminalCleanupRetained?.total) {
+      const classes = Object.entries(input.terminalCleanupRetained.classes)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([klass, count]) => `${klass}:${count}`)
+        .join(", ");
+      worktreeSection = `## Worktrees\n0 active, ${input.terminalCleanupRetained.total} cleanup retained (${classes})`;
+    } else {
+      worktreeSection = "## Worktrees\n(none)";
+    }
   } else {
     const parts = [`${input.worktreeCensus.total} active`];
     if (input.worktreeCensus.stale.length > 0) {
@@ -443,6 +455,15 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
           input.worktreeCensus.stale
             .map((s) => `  ⏰ ${s.branch} — last activity ${s.lastActivity}`)
             .join("\n"),
+      );
+    }
+    if (input.terminalCleanupRetained?.total) {
+      const classes = Object.entries(input.terminalCleanupRetained.classes)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([klass, count]) => `${klass}:${count}`)
+        .join(", ");
+      parts.push(
+        `${input.terminalCleanupRetained.total} cleanup retained (${classes})`,
       );
     }
     worktreeSection = `## Worktrees\n${parts.join(", ")}`;

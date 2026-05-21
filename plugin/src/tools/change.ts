@@ -44,6 +44,8 @@ import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
+import { advWorktreeCleanup } from "./worktree";
+import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
 const logger = createLogger("change");
 
@@ -2838,6 +2840,20 @@ export const changeTools = {
         } catch (err) {
           archiveResult.errors.push(
             `Source cleanup warning: failed to remove changes/${change.id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+
+        try {
+          await advWorktreeCleanup("archive", {
+            projectRoot: store.paths.root,
+            database: await initWorktreeStateDb(store.paths.root),
+            log: logger,
+            store,
+            forceAttempts: false,
+          });
+        } catch (err) {
+          archiveResult.errors.push(
+            `Worktree cleanup warning: failed to run archive cleanup discovery: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }

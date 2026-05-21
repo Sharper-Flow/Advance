@@ -21,6 +21,12 @@ import {
 import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
+import {
+  clearPendingDelete,
+  incrementPendingDeleteAttempts,
+  initStateDb as initWorktreeStateDb,
+  setPendingDelete,
+} from "./worktree/state";
 
 const {
   mockScanOpenCodeSessionDebt,
@@ -209,6 +215,37 @@ describe("Status Tools", () => {
       expect(parsed.recommendations).toContain(
         "⚠️ Temporal bootstrap in progress — status read hit replay recovery errors repeatedly; retry shortly.",
       );
+    });
+
+    test("shows retained terminal cleanup blocker counts without exact paths", async () => {
+      const access = await initWorktreeStateDb(tempDir);
+      await setPendingDelete(
+        access,
+        "change/status-retained",
+        "/tmp/status-retained",
+        "worktree is still in use by a running process",
+      );
+      for (let i = 0; i < 5; i++) {
+        await incrementPendingDeleteAttempts(access, "change/status-retained");
+      }
+
+      try {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.terminal_cleanup_retained).toMatchObject({
+          total: 1,
+          classes: { worktree_in_use: 1 },
+        });
+        expect(JSON.stringify(parsed.terminal_cleanup_retained)).not.toContain(
+          "/tmp/status-retained",
+        );
+      } finally {
+        await clearPendingDelete(access, "change/status-retained");
+      }
     });
 
     test("shows ↳ prefix for fast-follow changes in formatted output", async () => {

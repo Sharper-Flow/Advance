@@ -71,6 +71,13 @@ import {
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
 import { scanSnapshotHealth } from "./snapshot-scan";
+import { advWorktreeCleanup } from "./worktree";
+import {
+  getPendingDeletes,
+  initStateDb as initWorktreeStateDb,
+  summarizePendingDeletes,
+  type PendingDeleteSummary,
+} from "./worktree/state";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -898,6 +905,7 @@ export function applyStatusView(
       projection.recommendations = full.recommendations ?? [];
       projection.temporal_health_ok = !!temporalHealth?.server_alive;
       projection.worktree_count = worktreeCensus?.total ?? 0;
+      projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       if (full.bootstrap_retry) {
         projection.diagnostics = full.diagnostics;
         projection.bootstrap_retry = full.bootstrap_retry;
@@ -932,6 +940,7 @@ export function applyStatusView(
       if (full.metrics) projection.metrics = full.metrics;
       projection.plugin_runtime = full.plugin_runtime;
       projection.snapshot_health = full.snapshot_health;
+      projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       break;
     }
     case "changes": {
@@ -947,6 +956,7 @@ export function applyStatusView(
       projection.external_state_hygiene = full.external_state_hygiene;
       projection.migration_status = full.migration_status;
       projection.snapshot_health = full.snapshot_health;
+      projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       break;
     }
   }
@@ -1195,6 +1205,33 @@ export const statusTools = {
           }
 
           // Worktree census
+          let terminalCleanupRetained: PendingDeleteSummary = {
+            total: 0,
+            classes: {},
+          };
+          try {
+            const worktreeAccess = await initWorktreeStateDb(
+              activeStore.paths.root,
+            );
+            await advWorktreeCleanup("status", {
+              projectRoot: activeStore.paths.root,
+              database: worktreeAccess,
+              log: {
+                debug: () => undefined,
+                info: () => undefined,
+                warn: () => undefined,
+                error: () => undefined,
+              },
+              store: activeStore,
+              forceAttempts: false,
+            });
+            terminalCleanupRetained = summarizePendingDeletes(
+              await getPendingDeletes(worktreeAccess),
+            );
+          } catch {
+            // Status cleanup discovery is best-effort; status itself must remain available.
+          }
+
           const worktreeCensusProbe =
             await statusWorktreeCensusProbeCache.fetch(activeStore.paths.root);
           const worktreeCensus = worktreeCensusProbe.value;
@@ -1292,6 +1329,7 @@ export const statusTools = {
                   stale: worktreeCensus.stale,
                 }
               : undefined,
+            terminalCleanupRetained,
             peerSessions,
             opencodeSessionDebt: opencodeSessionDebt.available
               ? {
@@ -1350,6 +1388,7 @@ export const statusTools = {
             project_metadata: projectMetadata,
             external_state_hygiene: externalStateHygiene,
             worktree_census: worktreeCensus,
+            terminal_cleanup_retained: terminalCleanupRetained,
             snapshot_health: snapshotHealth,
             _healthSnapshot: healthSnapshot,
             // AC6: in-memory counters surfaced via view: "health".

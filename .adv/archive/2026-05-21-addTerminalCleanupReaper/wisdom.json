@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-qCvfIc",
+      "type": "gotcha",
+      "content": "Worktree pending-delete state is durable external project state, not temp-repo-local. Tests using a fixed WorktreeStateAccess.projectId can leak queued deletes/attempt counts across runs; use a unique projectId per temp fixture when asserting pending-delete behavior.",
+      "source_task": "tk-3a92a9e84532",
+      "recorded_at": "2026-05-21T05:58:48.172Z"
+    },
+    {
+      "id": "ws-6dpEaA",
+      "type": "convention",
+      "content": "Worktree cleanup recommendations should not suggest manual filesystem/git deletion for ADV worktrees; route operators through adv_worktree_delete so durable terminal-state, merged, clean, and live-CWD gates stay centralized.",
+      "source_task": "tk-0729c1866844",
+      "recorded_at": "2026-05-21T06:49:13.780Z"
+    }
+  ],
+  "count": 2
+}
