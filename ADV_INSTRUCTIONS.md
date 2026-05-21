@@ -697,9 +697,7 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 <!-- rq-delDefaults01 rq-delDefaults02 rq-delDefaults03 rq-delDefaults04 -->
 
-The workflow-step delegation matrix is defined as spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`). The spec is the single source of truth for which steps allow delegation, which sub-agents are allowed per step, and what safety boundaries constrain delegation.
-
-**Summary per design D2:**
+The workflow-step delegation matrix is spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`): single source for step delegation mode, allowed sub-agents, and safety boundaries.
 
 | Step | Mode | Allowed Sub-Agents |
 |------|------|-------------------|
@@ -713,11 +711,15 @@ The workflow-step delegation matrix is defined as spec law in `delegation-defaul
 | archive | `inline_required` | none |
 | reflect | `inline_required` | none |
 
-Inline-only commands (no sub-agent delegation): `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-reflect`.
+Inline-only commands: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-reflect`. Design gate requires mandatory independent `adv-researcher` validator before completion (`VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`).
 
-Design gate requires mandatory independent validator (adv-researcher) before gate completion. Verdicts: VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE.
+Utility commands keep their own delegation rules in command files, not the workflow-step matrix. Known utility fan-out:
 
-Utility commands (research, tron, slop-scan, audit, improve, etc.) have their own delegation rules specified in their command files, not in the matrix.
+| Command | Pattern | Worker |
+|---|---|---|
+| slop-scan | Sequential categories | explore × 9 (single-level only) |
+
+For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
 
 ### Delegation Routing
 
@@ -765,26 +767,18 @@ After each phase, use `adv_change_update` to record compact summaries. Do not du
 
 ### Agent Tiers
 
-| Tier                      | Agents                                                                | Loading             |
-| ------------------------- | --------------------------------------------------------------------- | ------------------- |
-| Primary (user-selectable) | `adv`, `plan`, `build`                                                | Global agents       |
-| Common subagents          | `explore`, `general`                                                  | Global agents       |
-| ADV specialists           | `adv-researcher`, `adv-engineer`, `adv-reviewer`                      | Bundled global      |
-| Repo-local                | `adv-tron`                                                            | `.opencode/agents/` |
-| Skill/inline (not spawnable) | `prioritizer` (load `skill("prioritizer")`); MCP/infra diagnostics handled inline by the orchestrator | n/a                 |
-
-Only `mode: subagent` agents spawn via Task. `adv`, `plan`, `build` are primary only.
+Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable subagents: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 
-| Agent            | Use                                                                                                              |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `explore`        | Code navigation, scoped read-only scans                                                                          |
-| `adv-researcher` | Docs/API/examples research (Context7, Exa, searchcode, webfetch) AND architecture validation; independent validator |
-| `adv-engineer`   | Delegated ADV code-writing; must use packet `workdir`                                                            |
-| `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, `/adv-harden` analysis with scoped repo-write remediation; emits `REVIEWER_REPORT` |
-| `general`        | Verify bursts + generic multi-step work                                                                          |
-| `adv-tron`       | Recon + hotspots (repo-local)                                                                                    |
+| Agent | Use |
+| --- | --- |
+| `explore` | Code navigation, scoped read-only scans |
+| `adv-researcher` | Docs/API/examples research + architecture validation; independent validator |
+| `adv-engineer` | Delegated ADV code-writing; must use packet `workdir` |
+| `adv-reviewer` | Prep pre-flight, `/adv-review`, `/adv-harden` analysis/remediation; emits `REVIEWER_REPORT` |
+| `general` | Verify bursts + generic multi-step work |
+| `adv-tron` | Recon + hotspots (repo-local) |
 
 `adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn.
 
