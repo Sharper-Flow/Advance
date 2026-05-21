@@ -146,6 +146,51 @@ describe("contractTools", () => {
     expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
+  test("adv_contract_mint works before discovery gate completion", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(
+      baseChange({ gates: createDefaultGates() }),
+      changesDir,
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        { changeId: "contractRecovery" },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    const payload = fireSignalAndRefresh.mock.calls[0][4];
+    expect(payload.contract.source.approvedAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T/,
+    );
+  });
+
+  test("adv_contract_mint uses explicit approvedAt when provided", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(
+      baseChange({ gates: createDefaultGates() }),
+      changesDir,
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          approvedAt: "2026-05-21T06:17:00.000Z",
+          dryRun: true,
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.contract.source.approvedAt).toBe(
+      "2026-05-21T06:17:00.000Z",
+    );
+  });
+
   test("adv_contract_review_matrix_set fires contractReviewMatrixSetSignal", async () => {
     const store = createStore(
       baseChange({

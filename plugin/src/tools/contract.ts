@@ -79,14 +79,13 @@ async function readAgreement(store: Store, changeId: string): Promise<string> {
   return text;
 }
 
-function discoveryApprovedAt(change: Change): string {
-  const approvedAt = change.gates?.discovery?.completed_at;
-  if (!approvedAt) {
-    throw new Error(
-      "Contract minting requires completed discovery gate timestamp for ContractSource.approvedAt",
-    );
-  }
-  return approvedAt;
+function contractApprovedAt(input: {
+  change: Change;
+  approvedAt?: string;
+}): string {
+  const approvedAt = input.approvedAt?.trim();
+  if (approvedAt) return approvedAt;
+  return input.change.gates?.discovery?.completed_at ?? new Date().toISOString();
 }
 
 async function healthySignalHandle(store: Store, changeId: string) {
@@ -201,6 +200,12 @@ export const contractTools = {
         .boolean()
         .optional()
         .describe("Preview the parsed contract without writing or signaling."),
+      approvedAt: z
+        .string()
+        .optional()
+        .describe(
+          "Optional ISO approval timestamp for the approved agreement. Defaults to discovery completion timestamp, or now when minting before discovery completion.",
+        ),
       ...recoveryArgs,
       ...targetArgs,
     },
@@ -209,6 +214,7 @@ export const contractTools = {
         changeId: string;
         rigor?: "minimal" | "standard" | "strict";
         dryRun?: boolean;
+        approvedAt?: string;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
         target_path?: string;
@@ -225,7 +231,7 @@ export const contractTools = {
           const agreement = await readAgreement(activeStore, args.changeId);
           const contract = buildContractFromAgreement({
             agreement,
-            approvedAt: discoveryApprovedAt(change),
+            approvedAt: contractApprovedAt({ change, approvedAt: args.approvedAt }),
             rigor: args.rigor,
           });
           if (args.dryRun) {
