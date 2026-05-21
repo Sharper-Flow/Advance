@@ -2146,6 +2146,29 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
   // Initialize worktree state access
   const database = await initDb(directory, log);
+  const warpDeps: WarpDeps = { serverUrl, directory, client };
+
+  try {
+    const cleanup = await drainPendingDeletes(
+      "startup",
+      {
+        projectRoot: directory,
+        database,
+        log,
+        warpDeps,
+      },
+      { forceAttempts: false },
+    );
+    if (cleanup.removed > 0 || cleanup.retained > 0) {
+      log.info(
+        `[worktree] Startup pending-delete drain complete. Removed ${cleanup.removed}, retained ${cleanup.retained}.`,
+      );
+    }
+  } catch (error) {
+    log.warn(
+      `[worktree] Startup pending-delete drain failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 
   async function processPendingDeletes(
     trigger: string,
@@ -2157,7 +2180,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
         projectRoot: directory,
         database,
         log,
-        warpDeps: { serverUrl, directory, client },
+        warpDeps,
       },
       options,
     );
