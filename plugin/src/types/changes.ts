@@ -537,6 +537,42 @@ export const ChangeSchema = z
      * Optional for legacy compatibility — ownerless changes are best-effort.
      */
     adv_project_id: z.string().optional(),
+
+    /**
+     * Per-change worktree-management marker (rq-autoManageAdvWorktrees AC3).
+     * - `true` — change is auto-managed: mutation guards proactively create
+     *   the worktree on first discovery-phase mutation from main checkout.
+     * - `false` — grandfathered legacy change; guards run in block-only mode
+     *   when the global `worktree_guard_enforce` flag is true.
+     * - `undefined` — lazy-migrated to `false` on first read after this
+     *   schema lands (sticky once set). Migration flows through
+     *   `worktreeAutoManagedSignal` so workflow state stays authoritative.
+     * Decoupled from `features.worktree_guard_enforce`: per-change marker
+     * is the activation switch for auto-create behavior.
+     */
+    worktree_auto_managed: z.boolean().optional(),
+
+    /**
+     * Projection of the per-change worktree path on a cross-project mutation
+     * target (rq-autoManageAdvWorktrees AC4). Populated lazily via
+     * `worktreeAttachedSignal({ role: "target" })` after the auto-create
+     * helper materializes a worktree in the target project. Set back to
+     * `null` after archive Phase 9 cleanup completes. Registry remains the
+     * canonical source per `rq-worktreeRegistry01`; this field is a
+     * routing-convenience projection, never bypassing the signal path.
+     */
+    target_worktree_path: z.string().nullable().optional(),
+
+    /**
+     * Projection of per-`scope_repos` worktree paths for product-linked
+     * changes (rq-autoManageAdvWorktrees AC4). Keyed by `repo_id` from
+     * `scope_repos[*].repo_id`. Populated lazily per repo via
+     * `worktreeAttachedSignal({ role: "scope", repoId, path })`. Cleared
+     * to `{}` after archive Phase 9 cleanup completes. Iteration order
+     * matches `Object.keys` insertion order, which the cleanup helper
+     * relies on for deterministic per-repo deletion.
+     */
+    scope_worktrees: z.record(z.string(), z.string()).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
