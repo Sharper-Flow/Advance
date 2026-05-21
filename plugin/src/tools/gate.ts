@@ -50,6 +50,7 @@ import {
 } from "./worktree-isolation-guard";
 import {
   ensureWorktreeForMutation,
+  buildWorktreeAutoManageDeps,
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
@@ -633,10 +634,10 @@ export const gateTools = {
           features: activeStore.config?.features,
           cwd: process.cwd(),
           change,
-          // Block D wires the auto-create runtime here (target_path /
-          // scope_repos routing); for now the helper falls back to the
-          // structural defensive failure on missing resumeRuntime, which
-          // surfaces a clear AC6 error rather than a vague NPE.
+          autoManageDeps:
+            change.worktree_auto_managed === true
+              ? await buildWorktreeAutoManageDeps(activeStore)
+              : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({

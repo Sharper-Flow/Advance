@@ -56,6 +56,7 @@ import {
 } from "./worktree-isolation-guard";
 import {
   ensureWorktreeForMutation,
+  buildWorktreeAutoManageDeps,
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
 import type { Change } from "../types";
@@ -511,18 +512,18 @@ export const taskTools = {
           // Pass undefined → guard runs in legacy mode based on global flag.
         }
         // rq-autoManageAdvWorktrees AC4 D1 — target_path mutations route
-        // through the target store; pass role="target" so the
-        // worktreeAttachedSignal projection fires against the originating
-        // change record. Production resumeRuntime wiring is a follow-up
-        // (the auto-create branch surfaces an AC6 defensive error today
-        // pointing the agent at the manual resume path); the role hint is
-        // in place for end-to-end fire when the runtime is wired.
+        // through the target store; pass role="target" so auto-managed
+        // worktree materialization uses the target project's worktree state.
         const isolation = await evaluateTaskUpdateWorktreeIsolation({
           features: activeStore.config?.features,
           cwd: process.cwd(),
           status: args.status,
           change: changeForGuard,
           role: args.target_path ? "target" : "current",
+          autoManageDeps:
+            changeForGuard?.worktree_auto_managed === true
+              ? await buildWorktreeAutoManageDeps(activeStore)
+              : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
@@ -732,6 +733,10 @@ export const taskTools = {
           cwd: process.cwd(),
           change: changeForGuard,
           role: args.target_path ? "target" : "current",
+          autoManageDeps:
+            changeForGuard?.worktree_auto_managed === true
+              ? await buildWorktreeAutoManageDeps(activeStore)
+              : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({

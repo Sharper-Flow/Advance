@@ -16,11 +16,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  buildWorktreeAutoManageDeps,
   ensureWorktreeForMutation,
   evaluateWorktreeGuardActivation,
 } from "./worktree-auto-manage";
 import type { AdvWorktreeResumeResult } from "./worktree";
 import type { Change } from "../types";
+import type { Store } from "../storage/store";
 
 function legacyChange(overrides: Partial<Change> = {}): Change {
   return {
@@ -62,6 +64,49 @@ const fakeRuntime = {
   database: {},
   log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 } as never;
+
+function fakeStore(root = "/repo/main"): Store {
+  return {
+    paths: { root },
+  } as Store;
+}
+
+// ===========================================================================
+// production dependency builder
+// ===========================================================================
+
+describe("buildWorktreeAutoManageDeps", () => {
+  it("builds resumeRuntime from the active store", async () => {
+    const deps = await buildWorktreeAutoManageDeps(fakeStore());
+
+    expect(deps.resumeRuntime).toMatchObject({
+      projectRoot: "/repo/main",
+      store: fakeStore(),
+    });
+    expect(deps.resumeRuntime?.database).toMatchObject({
+      projectDir: "/repo/main",
+    });
+    expect(deps.resumeRuntime?.log).toMatchObject({
+      debug: expect.any(Function),
+      info: expect.any(Function),
+      warn: expect.any(Function),
+      error: expect.any(Function),
+    });
+  });
+
+  it("preserves caller overrides while supplying resumeRuntime", async () => {
+    const getSessionContext = vi.fn(() => mainCtx);
+    const onWarning = vi.fn();
+    const deps = await buildWorktreeAutoManageDeps(fakeStore(), {
+      getSessionContext,
+      onWarning,
+    });
+
+    expect(deps.getSessionContext).toBe(getSessionContext);
+    expect(deps.onWarning).toBe(onWarning);
+    expect(deps.resumeRuntime?.projectRoot).toBe("/repo/main");
+  });
+});
 
 // ===========================================================================
 // evaluateWorktreeGuardActivation
