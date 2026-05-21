@@ -162,9 +162,7 @@ describe("contractTools", () => {
 
     expect(output.success).toBe(true);
     const payload = fireSignalAndRefresh.mock.calls[0][4];
-    expect(payload.contract.source.approvedAt).toMatch(
-      /^\d{4}-\d{2}-\d{2}T/,
-    );
+    expect(payload.contract.source.approvedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   test("adv_contract_mint uses explicit approvedAt when provided", async () => {
@@ -186,9 +184,7 @@ describe("contractTools", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(output.contract.source.approvedAt).toBe(
-      "2026-05-21T06:17:00.000Z",
-    );
+    expect(output.contract.source.approvedAt).toBe("2026-05-21T06:17:00.000Z");
   });
 
   test("adv_contract_review_matrix_set fires contractReviewMatrixSetSignal", async () => {

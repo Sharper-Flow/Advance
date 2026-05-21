@@ -114,7 +114,9 @@ describe("gate readiness", () => {
       makeState({
         gates,
         projectionChangesDir: "/tmp/changes",
-        documents: { agreement: "# Agreement\n\n## Acceptance Criteria\n- AC1: Works" },
+        documents: {
+          agreement: "# Agreement\n\n## Acceptance Criteria\n- AC1: Works",
+        },
       }),
       "discovery",
     );

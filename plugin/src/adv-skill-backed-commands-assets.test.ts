@@ -448,7 +448,9 @@ describe("thin-command shape enforcement", () => {
     expect(content).toMatch(/acceptanceCriteria.*projection/i);
     expect(content).toContain("DISCOVERY_CONTRACT_MISSING");
     const mintIdx = content.indexOf("adv_contract_mint");
-    const gateIdx = content.indexOf("adv_gate_complete changeId: {change-id} gateId: discovery");
+    const gateIdx = content.indexOf(
+      "adv_gate_complete changeId: {change-id} gateId: discovery",
+    );
     expect(mintIdx).toBeGreaterThanOrEqual(0);
     expect(gateIdx).toBeGreaterThan(mintIdx);
   });

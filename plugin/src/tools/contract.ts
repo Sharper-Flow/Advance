@@ -85,7 +85,9 @@ function contractApprovedAt(input: {
 }): string {
   const approvedAt = input.approvedAt?.trim();
   if (approvedAt) return approvedAt;
-  return input.change.gates?.discovery?.completed_at ?? new Date().toISOString();
+  return (
+    input.change.gates?.discovery?.completed_at ?? new Date().toISOString()
+  );
 }
 
 async function healthySignalHandle(store: Store, changeId: string) {
@@ -231,7 +233,10 @@ export const contractTools = {
           const agreement = await readAgreement(activeStore, args.changeId);
           const contract = buildContractFromAgreement({
             agreement,
-            approvedAt: contractApprovedAt({ change, approvedAt: args.approvedAt }),
+            approvedAt: contractApprovedAt({
+              change,
+              approvedAt: args.approvedAt,
+            }),
             rigor: args.rigor,
           });
           if (args.dryRun) {
