@@ -53,6 +53,8 @@ import {
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+import { evaluateGateReadiness } from "../temporal/gate-readiness";
+import { isPoisonedHistoryError } from "../temporal/recovery-classification";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
 const GATE_COMPLETION_POLL_DELAY_MS = 25;
@@ -106,6 +108,121 @@ function gateCompletionNotConfirmedResponse(input: {
     gateId: input.gateId,
     workflowGateStatus: input.gate?.status,
     hint: "Retry adv_gate_status to inspect workflow state before retrying adv_gate_complete.",
+  });
+}
+
+const RECOVERY_RECONCILIATION_WARNING =
+  "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";
+
+function hasPoisonedHistoryMarker(change: Change): boolean {
+  return (
+    (change as Change & { _recovery?: { reason?: string } })._recovery
+      ?.reason === "poisoned_history"
+  );
+}
+
+async function completeAcceptanceViaRecovery(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  gateId: GateId;
+  gates: Gates;
+  completedBy: string;
+  notes?: string;
+  compatibilityReason?: string;
+  boundaryWarning?: string;
+  extraPayload?: Record<string, unknown>;
+}): Promise<string> {
+  if (input.gateId !== "acceptance") {
+    return formatToolOutput({
+      error: "poisoned-history gate recovery is only supported for acceptance",
+      changeId: input.changeId,
+      gateId: input.gateId,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  if (!input.compatibilityReason?.trim()) {
+    return formatToolOutput({
+      error:
+        "poisoned-history acceptance recovery requires compatibilityReason",
+      changeId: input.changeId,
+      gateId: input.gateId,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  if (!canCompleteGate(input.gates, input.gateId)) {
+    const blockedBy = GATE_ORDER.slice(
+      0,
+      GATE_ORDER.indexOf(input.gateId),
+    ).filter((gate) => input.gates[gate].status !== "done");
+    return formatToolOutput({
+      error: `Cannot complete ${input.gateId}: prior gate(s) incomplete`,
+      blockedBy,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  const incompleteTasks = input.change.tasks.filter(
+    (task) => task.status !== "done" && task.status !== "cancelled",
+  );
+  if (incompleteTasks.length > 0) {
+    return formatToolOutput({
+      error: `Cannot complete acceptance: ${incompleteTasks.length} task(s) not done or cancelled`,
+      incompleteTasks: incompleteTasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        status: task.status,
+      })),
+      ...(input.extraPayload ?? {}),
+    });
+  }
+
+  const readiness = evaluateGateReadiness(
+    {
+      ...input.change,
+      changeId: input.change.id,
+      createdAt: input.change.created_at,
+      gates: input.gates,
+      tasks: input.change.tasks,
+      wisdom: input.change.wisdom ?? [],
+    } as never,
+    "acceptance",
+    { compatibilityReason: input.compatibilityReason },
+  );
+  if (!readiness.ready) {
+    return workflowReadinessBlockedResponse({
+      changeId: input.changeId,
+      gateId: input.gateId,
+      gate: {
+        status: "stuck",
+        stuck_reason: readiness.blockers[0]?.code,
+        readiness_blockers: readiness.blockers,
+      },
+    });
+  }
+
+  const completedAt = new Date().toISOString();
+  const updatedGates: Gates = {
+    ...input.gates,
+    acceptance: {
+      status: "done",
+      completed_at: completedAt,
+      completed_by: input.completedBy,
+      approval_evidence: input.notes,
+      artifact_evidence: readiness.evidence,
+    },
+  };
+  await input.store.changes.save({ ...input.change, gates: updatedGates });
+  return formatToolOutput({
+    success: true,
+    changeId: input.changeId,
+    gateId: input.gateId,
+    status: "done",
+    completed_at: completedAt,
+    completed_by: input.completedBy,
+    boundaryWarning: input.boundaryWarning,
+    _recoveryMutation: true,
+    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+    ...(input.extraPayload ?? {}),
   });
 }
 
@@ -520,6 +637,12 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Optional notes about the gate completion"),
+      compatibilityReason: z
+        .string()
+        .optional()
+        .describe(
+          "Acceptance-only legacy/replay compatibility rationale. Used for explicit poisoned-history recovery; rejected for non-acceptance gates.",
+        ),
       target_path: z
         .string()
         .optional()
@@ -536,6 +659,7 @@ export const gateTools = {
         completedBy = "agent",
         userApproved,
         notes,
+        compatibilityReason,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -545,6 +669,7 @@ export const gateTools = {
         completedBy?: string;
         userApproved?: boolean;
         notes?: string;
+        compatibilityReason?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -590,6 +715,32 @@ export const gateTools = {
 
         let gates: Gates = change.gates ?? createDefaultGates();
 
+        if (compatibilityReason?.trim() && gateId !== "acceptance") {
+          return formatToolOutput({
+            error:
+              "compatibilityReason is only supported for acceptance gate recovery",
+            changeId,
+            gateId,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
+
+        if (hasPoisonedHistoryMarker(change) && gateId === "acceptance") {
+          const boundaryWarning = validateGateBoundary(gateId, completedBy);
+          return completeAcceptanceViaRecovery({
+            store: activeStore,
+            change,
+            changeId,
+            gateId,
+            gates,
+            completedBy,
+            notes,
+            compatibilityReason,
+            boundaryWarning,
+            extraPayload: projectContext ? { _projectContext: projectContext } : {},
+          });
+        }
+
         const bundle = getService();
         if (!bundle) {
           return formatToolOutput({
@@ -607,11 +758,33 @@ export const gateTools = {
           });
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
-        const queriedGates = await querySignal<Gates>(
-          handle,
-          getGateStatusQuery,
-          undefined,
-        );
+        let queriedGates: Gates | undefined;
+        try {
+          queriedGates = await querySignal<Gates>(
+            handle,
+            getGateStatusQuery,
+            undefined,
+          );
+        } catch (error) {
+          if (gateId === "acceptance" && isPoisonedHistoryError(error)) {
+            const boundaryWarning = validateGateBoundary(gateId, completedBy);
+            return completeAcceptanceViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason,
+              boundaryWarning,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          }
+          throw error;
+        }
         if (queriedGates && typeof queriedGates === "object") {
           gates = queriedGates;
         }
@@ -699,18 +872,39 @@ export const gateTools = {
         // sequence/task checks pass. rq-cacheRefresh01: helper invalidates
         // the cache so completeGateAndBuildResponse + subsequent reads
         // see the fresh gate-done state.
-        await fireSignalAndRefresh(
-          handle,
-          activeStore,
-          changeId,
-          gateCompletedSignal,
-          {
-            gateId,
-            completedBy,
-            completedAt: new Date().toISOString(),
-            approvalEvidence: notes,
-          },
-        );
+        try {
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            gateCompletedSignal,
+            {
+              gateId,
+              completedBy,
+              completedAt: new Date().toISOString(),
+              approvalEvidence: notes,
+              compatibilityReason,
+            },
+          );
+        } catch (error) {
+          if (gateId === "acceptance" && isPoisonedHistoryError(error)) {
+            return completeAcceptanceViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason,
+              boundaryWarning,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          }
+          throw error;
+        }
 
         const postSignalGate = await waitForGateCompletionResult(
           handle,
