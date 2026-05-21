@@ -34,19 +34,27 @@ describe("overlay sync script support", () => {
 
   test("contains a deploy-time plugin dist freshness guard", () => {
     expect(content).toContain("ensure_plugin_dist_fresh()");
-    expect(content).toContain('ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"');
+    expect(content).toContain(
+      'ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"',
+    );
     expect(content).toContain(
       'find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$ADV_PLUGIN_DIST" -print -quit',
     );
-    expect(content).toContain('(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)');
+    expect(content).toContain(
+      '(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)',
+    );
     expect(content).toContain("refusing to deploy stale dist");
   });
 
   test("plugin dist freshness guard preserves check-only mode", () => {
     const checkExit = content.indexOf('if [ "$MODE" = "check" ]; then');
-    const sourceGuard = content.indexOf('if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then');
+    const sourceGuard = content.indexOf(
+      'if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then',
+    );
     const guardCall = content.indexOf("ensure_plugin_dist_fresh", sourceGuard);
-    const pluginRsync = content.indexOf('rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/"');
+    const pluginRsync = content.indexOf(
+      'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/"',
+    );
 
     expect(checkExit).toBeGreaterThan(-1);
     expect(sourceGuard).toBeGreaterThan(checkExit);
