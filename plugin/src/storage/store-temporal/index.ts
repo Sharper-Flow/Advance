@@ -1,11 +1,8 @@
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
-import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import {
-  classifyTemporalError,
-  collectErrorText,
-} from "../../temporal/retry-wrapper";
+import { classifyTemporalError } from "../../temporal/retry-wrapper";
+import { recoveryReasonFromError } from "../../temporal/recovery-classification";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
@@ -31,6 +28,7 @@ import {
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 import { createChangeOps } from "./changes";
@@ -59,14 +57,6 @@ function withProjectionRecovery(
     _source: source,
     _recovery: { mode: "temporal_query_fallback", reason },
   };
-}
-
-function recoveryReasonFromError(error: unknown): ProjectionRecoveryReason {
-  return /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(
-    collectErrorText(error),
-  )
-    ? "poisoned_history"
-    : "missing_workflow";
 }
 
 export function createTemporalStoreBackend(
@@ -444,14 +434,7 @@ export function createTemporalStoreBackend(
         initializedAt: change.created_at,
         projectionChangesDir: legacy.paths.changes,
         archiveProjects: [{ projectPath: legacy.paths.root }],
-        seedState: {
-          status: change.status,
-          tasks: change.tasks ?? [],
-          deltas: change.deltas ?? {},
-          wisdom: change.wisdom ?? [],
-          gates: change.gates ?? createDefaultGates(),
-          reentry_history: change.reentry_history ?? [],
-        },
+        seedState: changeSeedStateFromChange(change),
       });
     } catch (err) {
       // Re-seed itself failed — surface the original not-found to callers

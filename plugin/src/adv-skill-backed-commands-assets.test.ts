@@ -438,6 +438,7 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
+    expect(content).toContain("adv_contract_mint");
     expect(content).toContain("contractSetSignal");
     expect(content).toContain("ChangeContract");
     expect(content).toContain("SC1..n");
@@ -445,6 +446,41 @@ describe("thin-command shape enforcement", () => {
     expect(content).toContain("DONT1..n");
     expect(content).toContain("OOS1..n");
     expect(content).toMatch(/acceptanceCriteria.*projection/i);
+    expect(content).toContain("DISCOVERY_CONTRACT_MISSING");
+    const mintIdx = content.indexOf("adv_contract_mint");
+    const gateIdx = content.indexOf(
+      "adv_gate_complete changeId: {change-id} gateId: discovery",
+    );
+    expect(mintIdx).toBeGreaterThanOrEqual(0);
+    expect(gateIdx).toBeGreaterThan(mintIdx);
+  });
+
+  test("adv-review preflights contract proof before acceptance checkpoint", () => {
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+
+    expect(review).toContain("Pre-Acceptance Contract Preflight");
+    expect(review).toContain("change.contract");
+    expect(review).toContain("contract.reviewMatrix");
+    expect(review).toContain("fresh OpenCode session");
+    const preflightIdx = review.indexOf("Pre-Acceptance Contract Preflight");
+    const checkpointIdx = review.indexOf("Inline Approval prompt");
+    expect(preflightIdx).toBeGreaterThanOrEqual(0);
+    expect(checkpointIdx).toBeGreaterThan(preflightIdx);
+  });
+
+  test("prep checklist requires reload checkpoint for new MCP tools", () => {
+    const checklist = readFileSync(
+      join(REPO_ROOT, "docs/checklists/prep-checklist.md"),
+      "utf8",
+    );
+
+    expect(checklist).toContain("Tool Registration Bootstrap");
+    expect(checklist).toContain("new MCP tools");
+    expect(checklist).toContain("fresh OpenCode session");
+    expect(checklist).toContain("self-application/reload checkpoint");
   });
 
   test("adv-prep requires contract refs when synthesizing tasks", () => {
@@ -480,6 +516,7 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
+    expect(review).toContain("adv_contract_review_matrix_set");
     expect(review).toContain("contractReviewMatrixSetSignal");
     expect(review).toContain("contract.reviewMatrix");
     expect(review).toContain("required contract item");

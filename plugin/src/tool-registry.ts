@@ -28,6 +28,7 @@ import { specTools } from "./tools/spec";
 import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
 import { changeTools } from "./tools/change";
+import { contractTools } from "./tools/contract";
 import { taskTools } from "./tools/task";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
@@ -309,6 +310,18 @@ export function createToolMap(
     adv_change_reenter: bindTool(
       changeTools.adv_change_reenter,
       "adv_change_reenter",
+      store,
+    ),
+
+    // Contract Tools
+    adv_contract_mint: bindTool(
+      contractTools.adv_contract_mint,
+      "adv_contract_mint",
+      store,
+    ),
+    adv_contract_review_matrix_set: bindTool(
+      contractTools.adv_contract_review_matrix_set,
+      "adv_contract_review_matrix_set",
       store,
     ),
 
@@ -699,6 +712,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_update_issues",
   "adv_change_reenter",
+  "adv_contract_mint",
+  "adv_contract_review_matrix_set",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",

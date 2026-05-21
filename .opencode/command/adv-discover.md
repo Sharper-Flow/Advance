@@ -481,7 +481,7 @@ Suggested structure:
 
 ### Contract Minting
 
-After Phase 4.5.1 AC approval and before completing the `discovery` gate, mint the typed contract from the approved agreement and persist it through the `contractSetSignal`-backed change mutation path.
+After Phase 4.5.1 AC approval and before completing the `discovery` gate, call `adv_contract_mint` for this change. The tool deterministically parses the approved `agreement.md`, validates `ChangeContract`, and persists it through the `contractSetSignal`-backed change mutation path.
 
 Contract rules:
 
@@ -494,9 +494,12 @@ Contract rules:
   - `DONT1..n` — rejected approaches / explicit avoidances.
   - `OOS1..n` — out-of-scope boundaries.
 - Set `sourceArtifact: "agreement"` for initial items.
-- Choose evidence policy by item kind: `AC*` usually `test`; `C*` `test`/`static_check`/`review`; `DONT*` and `OOS*` `static_check`/`review`/`design_proof` unless an executable test is meaningful.
+- The mint tool assigns deterministic evidence policies by item kind: `SC*` → `review`, `AC*` → `test`, `C*` → `static_check`, `DONT*` → `review`, `OOS*` → `not_applicable`.
+- For poisoned-history recovery only, use `adv_contract_mint recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`; this repairs the disk projection only and does not heal the poisoned workflow.
 
 Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or projected `acceptanceCriteria` would drift from the approved `AC*` items.
+
+If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`, do not continue to design. Run `adv_contract_mint`, resolve any parser/schema failures in the approved agreement, then retry discovery gate completion.
 
 ---
 ## Phase 5: Complete Gate

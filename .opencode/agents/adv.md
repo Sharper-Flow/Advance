@@ -64,7 +64,6 @@ tools:
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
-  # Project wisdom
   adv_project_wisdom_list: true
   # Investment governance
   adv_investment_report: true
@@ -78,6 +77,8 @@ tools:
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
+  adv_contract_mint: true
+  adv_contract_review_matrix_set: true
   adv_run_test: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
@@ -91,7 +92,6 @@ tools:
   adv_conformance: true
   # Project metadata
   adv_project_metadata: true
-  # Mesh
   adv_wip_state: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true

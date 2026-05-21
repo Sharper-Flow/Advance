@@ -12,7 +12,9 @@ import { randomUUID } from "crypto";
 import type { Store } from "../storage/store";
 import {
   ErrorRecoverySchema,
+  TaskContractRefsSchema,
   type ErrorRecovery,
+  type TaskContractRefs,
   type TddReclassification,
   type Task,
 } from "../types";
@@ -68,6 +70,22 @@ import type { Change } from "../types";
 
 function makeTaskId(): string {
   return `tk-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
+function validateContractRefsAgainstContract(
+  change: Change | undefined,
+  refs: TaskContractRefs | undefined,
+): string | undefined {
+  if (!change?.contract || !refs) return undefined;
+  const validIds = new Set(change.contract.items.map((item) => item.id));
+  const referenced = [
+    ...(refs.implements ?? []),
+    ...(refs.verifies ?? []),
+    ...(refs.respects ?? []),
+  ];
+  const unknown = referenced.filter((id) => !validIds.has(id));
+  if (unknown.length === 0) return undefined;
+  return `Task contract_refs reference unknown contract item${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}`;
 }
 
 /**
@@ -459,6 +477,9 @@ export const taskTools = {
       error_recovery: ErrorRecoverySchema.optional().describe(
         "Structured retry history for doom-loop tracking, including attempts[]",
       ),
+      contract_refs: TaskContractRefsSchema.optional().describe(
+        "Structured links from this task to approved change-contract items. Use implements/verifies/respects arrays, or not_applicable_reason for code tasks that intentionally have no contract obligation.",
+      ),
       target_path: z
         .string()
         .optional()
@@ -485,6 +506,7 @@ export const taskTools = {
         notes?: string;
         implementation_summary?: string;
         error_recovery?: ErrorRecovery;
+        contract_refs?: TaskContractRefs;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -511,6 +533,17 @@ export const taskTools = {
           }
         } catch {
           // Pass undefined → guard runs in legacy mode based on global flag.
+        }
+        const contractRefsError = validateContractRefsAgainstContract(
+          changeForGuard,
+          args.contract_refs,
+        );
+        if (contractRefsError) {
+          return formatToolOutput({
+            error: contractRefsError,
+            changeId,
+            taskId: args.taskId,
+          });
         }
         // rq-autoManageAdvWorktrees AC4 D1 — target_path mutations route
         // through the target store; pass role="target" so auto-managed
@@ -553,6 +586,12 @@ export const taskTools = {
 
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
+        const taskRecord = await activeStore.tasks.show(args.taskId);
+        const currentStatus = taskRecord?.task.status;
+        const shouldPatchExistingDoneTask =
+          Boolean(args.contract_refs) &&
+          args.status === "done" &&
+          currentStatus === "done";
 
         if (args.status === "in_progress") {
           await fireSignalAndRefresh(
@@ -579,7 +618,7 @@ export const taskTools = {
               blockedAt: now,
             },
           );
-        } else if (args.status === "done") {
+        } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
           const combinedText = [args.implementation_summary, args.notes]
             .filter(Boolean)
             .join("\n");
@@ -618,6 +657,9 @@ export const taskTools = {
                 }),
                 ...(args.error_recovery && {
                   error_recovery: args.error_recovery,
+                }),
+                ...(args.contract_refs && {
+                  contract_refs: args.contract_refs,
                 }),
               },
               updatedAt: now,
@@ -691,6 +733,9 @@ export const taskTools = {
         .record(z.string(), z.string())
         .optional()
         .describe("Optional task metadata (e.g., { tdd_intent: 'inline' })"),
+      contract_refs: TaskContractRefsSchema.optional().describe(
+        "Structured links from this task to approved change-contract items. Add implements/verifies/respects refs during prep for standard/strict contracts, or not_applicable_reason when appropriate.",
+      ),
       blockedBy: z
         .array(z.string())
         .optional()
@@ -708,6 +753,7 @@ export const taskTools = {
         changeId: string;
         content: string;
         metadata?: Record<string, string>;
+        contract_refs?: TaskContractRefs;
         blockedBy?: string[];
         section?: string;
         target_path?: string;
@@ -720,7 +766,14 @@ export const taskTools = {
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
       ) => {
-        const { changeId, content, metadata, blockedBy, section } = args;
+        const {
+          changeId,
+          content,
+          metadata,
+          contract_refs,
+          blockedBy,
+          section,
+        } = args;
 
         let changeForGuard: Change | undefined;
         try {
@@ -730,6 +783,16 @@ export const taskTools = {
           }
         } catch {
           // Pass undefined → guard runs in legacy mode based on global flag.
+        }
+        const contractRefsError = validateContractRefsAgainstContract(
+          changeForGuard,
+          contract_refs,
+        );
+        if (contractRefsError) {
+          return formatToolOutput({
+            error: contractRefsError,
+            changeId,
+          });
         }
         // rq-autoManageAdvWorktrees AC4 D1 — target_path → role:"target".
         const isolation = await evaluateTaskAddWorktreeIsolation({
@@ -824,6 +887,7 @@ export const taskTools = {
           ...(Object.keys(mergedMetadata).length > 0
             ? { metadata: mergedMetadata }
             : {}),
+          ...(contract_refs ? { contract_refs } : {}),
         };
 
         await fireSignalAndRefresh(

@@ -213,6 +213,105 @@ describe("gate tools — signal-driven lifecycle", () => {
       });
     });
 
+    test("passes compatibilityReason for acceptance gate completion", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
+        status: "done",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).toMatchObject({
+        compatibilityReason: "legacy replay lacks contract proof",
+      });
+    });
+
+    test("rejects compatibilityReason for non-acceptance gates", async () => {
+      const store = createMockStore();
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "design",
+          completedBy: "agent",
+          compatibilityReason: "not allowed here",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("acceptance");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("poisoned-history acceptance recovery writes disk projection", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          _source: "disk",
+          _recovery: {
+            mode: "temporal_query_fallback",
+            reason: "poisoned_history",
+          },
+        } as Partial<import("../types").Change>,
+      });
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("TMPRL1100: Nondeterminism error"),
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.reconciliationWarning).toContain("not healed");
+      expect(store.changes.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gates: expect.objectContaining({
+            acceptance: expect.objectContaining({ status: "done" }),
+          }),
+        }),
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
     test("queries workflow gate state before firing completion signal", async () => {
       const store = createMockStore({
         gates: {

@@ -5,6 +5,7 @@ import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
 
 import { createDefaultGates } from "../../types";
+import type { ChangeContract } from "../../types";
 import type { ChangeWorkflowInput, ChangeWorkflowState } from "../contracts";
 import {
   agreementUpdatedSignal,
@@ -27,6 +28,29 @@ const workflowsPath = fileURLToPath(
   new URL("../workflows.ts", import.meta.url),
 );
 
+const fixtureContract: ChangeContract = {
+  version: 1,
+  rigor: "minimal",
+  source: {
+    artifact: "agreement",
+    approvedAt: "2026-05-05T00:00:00.000Z",
+  },
+  items: [
+    {
+      id: "AC1",
+      kind: "acceptance_criterion",
+      text: "Concurrent signaling fixture accepts all queued signals.",
+      sourceArtifact: "agreement",
+      verificationRequired: false,
+      evidencePolicy: "not_applicable",
+      status: "approved",
+      notRequiredReason:
+        "Concurrency fixture exercises signal serialization, not contract proof.",
+    },
+  ],
+  amendments: [],
+};
+
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
     projectId: "concurrent-signaling-test-project",
@@ -39,6 +63,7 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
       tasks: [],
       wisdom: [],
       gates: createDefaultGates(),
+      contract: fixtureContract,
       reentry_history: [],
     },
   };
