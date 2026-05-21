@@ -386,7 +386,7 @@ export const ContractReviewMatrixRowSchema = z.object({
   kind: ContractItemKindSchema,
   status: ContractEvidenceStatusSchema,
   evidencePolicy: ContractEvidencePolicySchema,
-  evidence: z.string(),
+  evidence: z.string().min(1),
   notes: z.string().optional(),
 });
 export type ContractReviewMatrixRow = z.infer<

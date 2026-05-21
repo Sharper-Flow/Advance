@@ -15,6 +15,7 @@ import {
   contractReviewMatrixSetSignal,
   contractSetSignal,
 } from "../temporal/messages";
+import { acceptanceCriteriaFromContract } from "../temporal/change-state";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
@@ -75,13 +76,29 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
   return result.data;
 }
 
-async function readAgreement(store: Store, changeId: string): Promise<string> {
-  const text = await readFile(
-    join(store.paths.changes, changeId, "agreement.md"),
-    "utf-8",
-  );
-  if (!text.trim()) throw new Error(`Agreement artifact is empty: ${changeId}`);
-  return text;
+function assertSafeChangeId(changeId: string): void {
+  if (/\.\.|[\\/\0]/.test(changeId)) {
+    throw new Error(
+      `Invalid changeId for agreement artifact path: ${changeId}`,
+    );
+  }
+}
+
+async function readAgreement(store: Store, change: Change): Promise<string> {
+  assertSafeChangeId(change.id);
+  const cached = change.documents?.agreement;
+  try {
+    const text = await readFile(
+      join(store.paths.changes, change.id, "agreement.md"),
+      "utf-8",
+    );
+    if (text.trim()) return text;
+    if (cached?.trim()) return cached;
+    throw new Error(`Agreement artifact is empty: ${change.id}`);
+  } catch (error) {
+    if (cached?.trim()) return cached;
+    throw error;
+  }
 }
 
 function contractApprovedAt(input: {
@@ -140,12 +157,13 @@ async function saveRecoveredContract(input: {
   change: Change;
   contract: Change["contract"];
 }): Promise<void> {
+  if (!input.contract) {
+    throw new Error("Cannot recover contract: no contract is set");
+  }
   const updated = {
     ...input.change,
     contract: input.contract,
-    acceptanceCriteria: input.contract?.items
-      .filter((item) => item.kind === "acceptance_criterion")
-      .map((item) => item.text),
+    acceptanceCriteria: acceptanceCriteriaFromContract(input.contract),
   } as Change;
   await input.store.changes.save(updated);
   await bestEffortRefresh(input.store, input.change.id);
@@ -182,7 +200,10 @@ function ensureRowsReferenceContract(
   change: Change,
   matrix: ContractReviewMatrix,
 ): string | undefined {
-  const contractIds = new Set(change.contract?.items.map((item) => item.id));
+  if (!change.contract) {
+    return "Cannot validate review matrix rows: no contract is set";
+  }
+  const contractIds = new Set(change.contract.items.map((item) => item.id));
   for (const row of matrix.rows) {
     if (!contractIds.has(row.contractId)) {
       return `Review matrix references unknown contract item: ${row.contractId}`;
@@ -201,7 +222,7 @@ function hasSuppliedReviewMatrix(
   reviewMatrix?: ContractReviewMatrix,
 ): reviewMatrix is ContractReviewMatrix {
   return (
-    Boolean(reviewMatrix?.reviewedAt?.trim()) ||
+    Boolean(reviewMatrix?.reviewedAt?.trim()) &&
     Boolean(reviewMatrix?.rows?.length)
   );
 }
@@ -263,7 +284,7 @@ export const contractTools = {
               hasReviewMatrix: Boolean(change.contract.reviewMatrix),
             });
           }
-          const agreement = await readAgreement(activeStore, args.changeId);
+          const agreement = await readAgreement(activeStore, change);
           const contract = buildContractFromAgreement({
             agreement,
             approvedAt: contractApprovedAt({
@@ -395,7 +416,7 @@ export const contractTools = {
           if (!hasRows && !hasReviewMatrix) {
             return formatToolOutput({
               error:
-                "adv_contract_review_matrix_set requires either rows or reviewMatrix",
+                "adv_contract_review_matrix_set requires either rows or reviewMatrix with at least one row",
               changeId: args.changeId,
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });

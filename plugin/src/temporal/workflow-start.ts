@@ -1,6 +1,7 @@
 import type { Change } from "../types";
 import { buildChangeWorkflowId, buildProjectTaskQueue } from "./client";
-import type { ChangeWorkflowInput, ChangeWorkflowState } from "./contracts";
+import type { ChangeWorkflowInput } from "./contracts";
+import { changeSeedStateFromChange } from "./change-state";
 import { buildTemporalSearchAttributes } from "./observability";
 import { changeWorkflow } from "./workflows";
 
@@ -81,19 +82,6 @@ export async function reImportChangeState(
     initializedAt: input.initializedAt ?? input.change.created_at,
     projectionChangesDir: input.projectionChangesDir,
     archiveProjects: input.archiveProjects,
-    seedState: {
-      status: input.change.status,
-      tasks: input.change.tasks,
-      deltas: input.change.deltas,
-      wisdom: input.change.wisdom,
-      gates: input.change.gates,
-      reentry_history: input.change.reentry_history,
-      origin: input.change.origin,
-      artifacts: input.change.artifacts as ChangeWorkflowState["artifacts"],
-      lastSignalAt: input.change.lastSignalAt,
-      acceptanceCriteria: input.change.acceptanceCriteria,
-      contract: input.change.contract,
-      documents: input.change.documents,
-    },
+    seedState: changeSeedStateFromChange(input.change),
   });
 }

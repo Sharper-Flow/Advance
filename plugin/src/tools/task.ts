@@ -70,6 +70,22 @@ function makeTaskId(): string {
   return `tk-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
 }
 
+function validateContractRefsAgainstContract(
+  change: Change | undefined,
+  refs: TaskContractRefs | undefined,
+): string | undefined {
+  if (!change?.contract || !refs) return undefined;
+  const validIds = new Set(change.contract.items.map((item) => item.id));
+  const referenced = [
+    ...(refs.implements ?? []),
+    ...(refs.verifies ?? []),
+    ...(refs.respects ?? []),
+  ];
+  const unknown = referenced.filter((id) => !validIds.has(id));
+  if (unknown.length === 0) return undefined;
+  return `Task contract_refs reference unknown contract item${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}`;
+}
+
 /**
  * Task-add worktree-isolation guard (rq-autoManageAdvWorktrees AC5).
  *
@@ -516,6 +532,17 @@ export const taskTools = {
         } catch {
           // Pass undefined → guard runs in legacy mode based on global flag.
         }
+        const contractRefsError = validateContractRefsAgainstContract(
+          changeForGuard,
+          args.contract_refs,
+        );
+        if (contractRefsError) {
+          return formatToolOutput({
+            error: contractRefsError,
+            changeId,
+            taskId: args.taskId,
+          });
+        }
         // rq-autoManageAdvWorktrees AC4 D1 — target_path mutations route
         // through the target store; pass role="target" so the
         // worktreeAttachedSignal projection fires against the originating
@@ -751,6 +778,16 @@ export const taskTools = {
           }
         } catch {
           // Pass undefined → guard runs in legacy mode based on global flag.
+        }
+        const contractRefsError = validateContractRefsAgainstContract(
+          changeForGuard,
+          contract_refs,
+        );
+        if (contractRefsError) {
+          return formatToolOutput({
+            error: contractRefsError,
+            changeId,
+          });
         }
         // rq-autoManageAdvWorktrees AC4 D1 — target_path → role:"target".
         const isolation = await evaluateTaskAddWorktreeIsolation({

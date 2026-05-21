@@ -83,6 +83,20 @@ function hashContent(content: string): string {
   return createHash("sha256").update(content).digest("hex");
 }
 
+function normalizeApprovedAt(approvedAt: string): string {
+  const trimmed = approvedAt.trim();
+  if (!trimmed) {
+    throw new Error("approvedAt is required to mint a ChangeContract");
+  }
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(trimmed) ||
+    Number.isNaN(Date.parse(trimmed))
+  ) {
+    throw new Error("approvedAt must be a valid ISO timestamp");
+  }
+  return trimmed;
+}
+
 function normalizeHeading(raw: string): string | undefined {
   const match = raw.match(/^#{2,6}\s+(.+?)\s*$/);
   return match?.[1]?.replace(/[:#]+$/g, "").trim();
@@ -127,9 +141,7 @@ function nextFallbackId(
 export function buildContractFromAgreement(
   input: BuildContractFromAgreementInput,
 ): ChangeContract {
-  if (!input.approvedAt.trim()) {
-    throw new Error("approvedAt is required to mint a ChangeContract");
-  }
+  const approvedAt = normalizeApprovedAt(input.approvedAt);
 
   const contentHash = hashContent(input.agreement);
   const fallbackCounts = new Map<string, number>();
@@ -200,7 +212,7 @@ export function buildContractFromAgreement(
     source: {
       artifact: "agreement",
       contentHash,
-      approvedAt: input.approvedAt,
+      approvedAt,
     },
     items,
     amendments: [],

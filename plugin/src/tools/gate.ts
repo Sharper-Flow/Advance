@@ -54,7 +54,7 @@ import {
 } from "./worktree-auto-manage";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 import { evaluateGateReadiness } from "../temporal/gate-readiness";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import { changeToWorkflowState } from "../temporal/change-state";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isPoisonedHistoryError,
@@ -119,37 +119,14 @@ function buildRecoveryReadinessState(input: {
   change: Change;
   gates: Gates;
   projectionChangesDir: string;
-}): ChangeWorkflowState {
-  return {
+}) {
+  return changeToWorkflowState({
     projectId: "recovery-disk-projection",
-    changeId: input.change.id,
-    title: input.change.title,
+    change: input.change,
     initializedAt: input.change.created_at,
     projectionChangesDir: input.projectionChangesDir,
-    id: input.change.id,
-    status: input.change.status,
-    createdAt: input.change.created_at,
-    tasks: input.change.tasks,
-    deltas: input.change.deltas,
-    wisdom: input.change.wisdom ?? [],
     gates: input.gates,
-    reentry_history: input.change.reentry_history,
-    artifacts:
-      (input.change.artifacts as
-        | ChangeWorkflowState["artifacts"]
-        | undefined) ?? {},
-    fast_follow_of: input.change.fast_follow_of,
-    affectedProjects: input.change.affectedProjects,
-    affectedPaths: input.change.affectedPaths,
-    lastSignalAt: input.change.lastSignalAt,
-    acceptanceCriteria: input.change.acceptanceCriteria,
-    contract: input.change.contract,
-    documents: input.change.documents,
-    origin: input.change.origin,
-    worktree_auto_managed: input.change.worktree_auto_managed,
-    target_worktree_path: input.change.target_worktree_path,
-    scope_worktrees: input.change.scope_worktrees,
-  };
+  });
 }
 
 async function completeAcceptanceViaRecovery(input: {

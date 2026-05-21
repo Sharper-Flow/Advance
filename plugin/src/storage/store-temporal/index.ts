@@ -1,6 +1,5 @@
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
-import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 import { classifyTemporalError } from "../../temporal/retry-wrapper";
 import { recoveryReasonFromError } from "../../temporal/recovery-classification";
@@ -29,6 +28,7 @@ import {
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 import { createChangeOps } from "./changes";
@@ -434,20 +434,7 @@ export function createTemporalStoreBackend(
         initializedAt: change.created_at,
         projectionChangesDir: legacy.paths.changes,
         archiveProjects: [{ projectPath: legacy.paths.root }],
-        seedState: {
-          status: change.status,
-          tasks: change.tasks ?? [],
-          deltas: change.deltas ?? {},
-          wisdom: change.wisdom ?? [],
-          gates: change.gates ?? createDefaultGates(),
-          reentry_history: change.reentry_history ?? [],
-          artifacts: change.artifacts as ChangeWorkflowState["artifacts"],
-          lastSignalAt: change.lastSignalAt,
-          acceptanceCriteria: change.acceptanceCriteria,
-          contract: change.contract,
-          documents: change.documents,
-          origin: change.origin,
-        },
+        seedState: changeSeedStateFromChange(change),
       });
     } catch (err) {
       // Re-seed itself failed — surface the original not-found to callers

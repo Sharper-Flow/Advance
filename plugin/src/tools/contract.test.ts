@@ -239,6 +239,42 @@ describe("contractTools", () => {
     expect(output.contract.source.approvedAt).toBe("2026-05-21T06:17:00.000Z");
   });
 
+  test("adv_contract_mint rejects invalid approvedAt audit timestamps", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(
+      baseChange({ gates: createDefaultGates() }),
+      changesDir,
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          approvedAt: "not-a-date",
+          dryRun: true,
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("approvedAt must be a valid ISO timestamp");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("adv_contract_mint rejects unsafe change IDs before reading agreement artifacts", async () => {
+    const store = createStore(baseChange({ id: "../outside" }), "/tmp/unused");
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        { changeId: "../outside", dryRun: true },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("Invalid changeId");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
   test("adv_contract_review_matrix_set fires contractReviewMatrixSetSignal", async () => {
     const store = createStore(
       baseChange({
@@ -406,6 +442,156 @@ describe("contractTools", () => {
     });
   });
 
+  test("adv_contract_review_matrix_set rejects both rows and complete reviewMatrix", async () => {
+    const store = createStore(
+      baseChange({
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: { artifact: "agreement", approvedAt },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Contract minting fires a production signal.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          amendments: [],
+        },
+      }),
+      "/tmp/unused",
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          rows: [
+            {
+              contractId: "AC1",
+              kind: "acceptance_criterion",
+              status: "pass",
+              evidencePolicy: "test",
+              evidence: "passing test",
+            },
+          ],
+          reviewMatrix: {
+            reviewedAt: "2026-05-21T06:00:00.000Z",
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "pass",
+                evidencePolicy: "test",
+                evidence: "passing test",
+              },
+            ],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("either rows or reviewMatrix, not both");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("adv_contract_review_matrix_set rejects empty complete reviewMatrix rows", async () => {
+    const store = createStore(
+      baseChange({
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: { artifact: "agreement", approvedAt },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Contract minting fires a production signal.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          amendments: [],
+        },
+      }),
+      "/tmp/unused",
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          reviewMatrix: {
+            reviewedAt: "2026-05-21T06:00:00.000Z",
+            rows: [],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain(
+      "requires either rows or reviewMatrix with at least one row",
+    );
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("adv_contract_review_matrix_set rejects empty evidence in complete reviewMatrix", async () => {
+    const store = createStore(
+      baseChange({
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: { artifact: "agreement", approvedAt },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Contract minting fires a production signal.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          amendments: [],
+        },
+      }),
+      "/tmp/unused",
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          reviewMatrix: {
+            reviewedAt: "2026-05-21T06:00:00.000Z",
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "pass",
+                evidencePolicy: "test",
+                evidence: "",
+              },
+            ],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("evidence");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
   test("adv_contract_review_matrix_set rejects unknown contract ids", async () => {
     const store = createStore(
       baseChange({
@@ -475,6 +661,72 @@ describe("contractTools", () => {
       expect.objectContaining({
         contract: expect.objectContaining({ items: expect.any(Array) }),
         acceptanceCriteria: ["Contract minting fires a production signal."],
+      }),
+    );
+    expect(fireSignalAndRefresh).toHaveBeenCalled();
+  });
+
+  test("poisoned-history review matrix recovery writes disk projection with warning", async () => {
+    const change = baseChange({
+      _source: "disk",
+      _recovery: {
+        mode: "temporal_query_fallback",
+        reason: "poisoned_history",
+      },
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: { artifact: "agreement", approvedAt },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion",
+            text: "Contract minting fires a production signal.",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      },
+    } as Partial<Change>);
+    const store = createStore(change, "/tmp/unused");
+    fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("TMPRL1100: Nondeterminism error"),
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "TMPRL1100: Nondeterminism error in workflow history",
+          rows: [
+            {
+              contractId: "AC1",
+              kind: "acceptance_criterion",
+              status: "pass",
+              evidencePolicy: "test",
+              evidence: "passing test",
+            },
+          ],
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(output.reconciliationWarning).toContain("not healed");
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contract: expect.objectContaining({
+          reviewMatrix: expect.objectContaining({
+            rows: [expect.objectContaining({ contractId: "AC1" })],
+          }),
+        }),
       }),
     );
     expect(fireSignalAndRefresh).toHaveBeenCalled();

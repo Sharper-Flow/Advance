@@ -414,6 +414,77 @@ describe("task tools — signal/query adapters", () => {
       expect(signalCall[4]).not.toHaveProperty("verification");
     });
 
+    test("rejects task contract_refs that do not reference the change contract", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "done",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      vi.mocked(store.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Known contract item",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          contract_refs: { implements: ["AC404"], verifies: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("unknown contract item");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
     test("routes done status to taskCompletedSignal with verification text", async () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue({
@@ -578,12 +649,11 @@ describe("task tools — signal/query adapters", () => {
 
     test("attaches contract_refs to added tasks", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue([]);
 
       const result = await taskTools.adv_task_add.execute(
         {
-          changeId: "change-123",
-          content: "Implement contract proof",
+          changeId: "test-change",
+          content: "Implement AC1",
           contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
         },
         store,
@@ -597,7 +667,7 @@ describe("task tools — signal/query adapters", () => {
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
         expect.anything(),
         store,
-        "change-123",
+        "test-change",
         expect.anything(),
         expect.objectContaining({
           task: expect.objectContaining({
@@ -605,6 +675,64 @@ describe("task tools — signal/query adapters", () => {
           }),
         }),
       );
+    });
+
+    test("rejects added task contract_refs that do not reference the change contract", async () => {
+      const store = createMockStore();
+      vi.mocked(store.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Known contract item",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+
+      const result = await taskTools.adv_task_add.execute(
+        {
+          changeId: "test-change",
+          content: "Implement AC404",
+          contract_refs: { implements: ["AC404"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("unknown contract item");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 
