@@ -1,0 +1,324 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "delegation-defaults",
+  "title": "Delegation Defaults",
+  "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
+  "version": "1.0.0",
+  "updated_at": "2026-05-21T00:00:00.000Z",
+  "delegation_matrix": [
+    {
+      "step": "proposal",
+      "gate_affinity": "proposal",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    },
+    {
+      "step": "discovery",
+      "gate_affinity": "discovery",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-researcher", "explore"],
+      "inline_boundaries": ["problem synthesis", "agreement updates", "scope decisions", "gate completion"],
+      "delegated_substeps": [
+        { "name": "Prior Research Extension", "mode": "subagent_primary", "allowed_subagents": ["adv-researcher"] },
+        { "name": "P25 Related-Pattern Scan", "mode": "subagent_primary", "allowed_subagents": ["explore", "adv-researcher"] }
+      ]
+    },
+    {
+      "step": "design",
+      "gate_affinity": "design",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-researcher"],
+      "inline_boundaries": ["architecture decision ownership", "design artifact updates", "scope-drift decisions", "gate completion"],
+      "delegated_substeps": [
+        { "name": "Independent Design Validator", "mode": "subagent_primary", "allowed_subagents": ["adv-researcher"] }
+      ]
+    },
+    {
+      "step": "prep",
+      "gate_affinity": "planning",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    },
+    {
+      "step": "apply",
+      "gate_affinity": "execution",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-engineer", "general"],
+      "inline_boundaries": ["task selection", "ADV state mutation", "scope-drift handling", "TDD evidence acceptance", "task completion"],
+      "delegated_substeps": [
+        { "name": "Context-Shed Implementation", "mode": "delegate_allowed", "allowed_subagents": ["adv-engineer"] },
+        { "name": "Verify-Only Burst", "mode": "delegate_allowed", "allowed_subagents": ["general"] }
+      ]
+    },
+    {
+      "step": "review",
+      "gate_affinity": "acceptance",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-reviewer", "explore"],
+      "inline_boundaries": ["finding verdict synthesis", "user acceptance", "ADV state mutation", "scope-drift handling"],
+      "delegated_substeps": [
+        { "name": "Independent Review Analysis", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer"] },
+        { "name": "Scoped Evidence Scan", "mode": "delegate_allowed", "allowed_subagents": ["explore"] }
+      ]
+    },
+    {
+      "step": "harden",
+      "gate_affinity": "release",
+      "mode": "subagent_primary",
+      "allowed_subagents": ["adv-reviewer", "explore"],
+      "inline_boundaries": ["readiness verdict synthesis", "release decision", "ADV state mutation", "scope-drift handling"],
+      "delegated_substeps": [
+        { "name": "Six-Scanner Hardening Pass", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer", "explore"] }
+      ]
+    },
+    {
+      "step": "archive",
+      "gate_affinity": "release",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    },
+    {
+      "step": "reflect",
+      "gate_affinity": "post-release",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "rq-delDefaults01",
+      "title": "Matrix Coverage for All Workflow Steps",
+      "body": "The delegation matrix MUST define a delegation default for each of the 9 workflow steps: proposal, discovery, design, prep, apply, review, harden, archive, reflect. Each step maps to exactly one gate-affinity phase in the 7-gate lifecycle (harden and reflect are post-gate phases). Utility commands (research, tron, slop-scan, audit, improve, etc.) have their own delegation rules specified in their command files and are out of scope for this matrix.",
+      "priority": "must",
+      "tags": ["delegation", "matrix", "coverage"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults01.1",
+          "title": "All 9 workflow steps have delegation entries",
+          "given": ["The delegation-defaults spec is loaded"],
+          "when": "Matrix coverage is checked",
+          "then": [
+            "Entries exist for: proposal, discovery, design, prep, apply, review, harden, archive, reflect",
+            "No duplicate entries exist",
+            "No extra entries outside the 9 canonical steps exist"
+          ]
+        },
+        {
+          "id": "rq-delDefaults01.2",
+          "title": "Utility commands excluded from matrix",
+          "given": ["The delegation matrix defines its 9 steps"],
+          "when": "Matrix scope is evaluated",
+          "then": [
+            "research, tron, slop-scan, audit, improve, cleanup, clarify, status, validate, roadmap, task, idea, problem, atc are NOT in the matrix",
+            "These commands define delegation rules in their own command files"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults02",
+      "title": "Valid Mode Classification Per Step",
+      "body": "Each workflow step MUST declare exactly one default delegation mode from the set: inline_required, subagent_primary, hybrid. inline_required means all work happens in the orchestrator context with no sub-agent delegation. subagent_primary means the primary work is delegated to sub-agents with only verdict synthesis remaining inline. hybrid means the step mixes delegable sub-steps with inline-required sub-steps; the spec enumerates delegated sub-steps and inline boundaries structurally.",
+      "priority": "must",
+      "tags": ["delegation", "mode", "classification"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults02.1",
+          "title": "Each step has a valid mode",
+          "given": ["The delegation matrix is loaded"],
+          "when": "Mode validation is checked",
+          "then": [
+            "proposal.mode == inline_required",
+            "discovery.mode == hybrid",
+            "design.mode == hybrid",
+            "prep.mode == inline_required",
+            "apply.mode == hybrid",
+            "review.mode == hybrid",
+            "harden.mode == subagent_primary",
+            "archive.mode == inline_required",
+            "reflect.mode == inline_required"
+          ]
+        },
+        {
+          "id": "rq-delDefaults02.2",
+          "title": "Mode values are from valid enum",
+          "given": ["A delegation matrix entry"],
+          "when": "The mode value is validated",
+          "then": [
+            "mode is one of: inline_required, subagent_primary, hybrid",
+            "Any other value is a validation error"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults03",
+      "title": "Agent and Boundary Specification Per Step",
+      "body": "Each workflow step MUST name its allowed sub-agents and its inline-only safety boundaries. For inline_required steps, allowed sub-agents is empty and the boundary is 'full' (all work inline). For hybrid steps, the spec enumerates delegated sub-steps and the sub-agents allowed for each. Repo-local or bundled ADV agents MUST exist as .opencode/agents/*.md files and have mode: subagent; known OpenCode global workers (explore, general) are allowed even though they are not repo-local agent files. Primary agents (adv, plan, build, adv-atc) and phantom agents (librarian, mechanic, prioritizer) MUST NOT appear in any allowed sub-agents list.",
+      "priority": "must",
+      "tags": ["delegation", "agents", "boundaries"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults03.1",
+          "title": "Inline steps have no sub-agents",
+          "given": ["A step with mode inline_required"],
+          "when": "Agent specification is checked",
+          "then": [
+            "allowed_subagents is empty",
+            "inline_boundaries includes 'full'"
+          ]
+        },
+        {
+          "id": "rq-delDefaults03.2",
+          "title": "Hybrid steps name specific sub-agents per delegated sub-step",
+          "given": ["A step with mode hybrid"],
+          "when": "Agent specification is checked",
+          "then": [
+            "allowed_subagents is non-empty",
+            "delegated_substeps is non-empty for hybrid and subagent_primary steps",
+            "Each named ADV sub-agent exists as .opencode/agents/{name}.md",
+            "Each named ADV sub-agent has mode: subagent in its frontmatter",
+            "Known global workers (explore, general) are accepted as spawnable sub-agents",
+            "inline_boundaries is non-empty (identifies synthesis/checkpoint work)"
+          ]
+        },
+        {
+          "id": "rq-delDefaults03.3",
+          "title": "No phantom or primary agents in sub-agents lists",
+          "given": ["Any step in the delegation matrix"],
+          "when": "Sub-agent names are validated",
+          "then": [
+            "Phantom agents (librarian, mechanic, prioritizer) do not appear in allowed_subagents",
+            "Primary agents (adv, plan, build, adv-atc) do not appear in allowed_subagents",
+            "Only spawnable sub-agents (explore, general, adv-researcher, adv-engineer, adv-reviewer, adv-tron) may appear"
+          ]
+        },
+        {
+          "id": "rq-delDefaults03.4",
+          "title": "Specific agent assignments match design",
+          "given": ["The delegation matrix with all 9 steps"],
+          "when": "Agent assignments are checked",
+          "then": [
+            "discovery allows: adv-researcher, explore",
+            "design allows: adv-researcher (mandatory for validation)",
+            "apply allows: adv-engineer, general",
+            "review allows: adv-reviewer, explore",
+            "harden allows: adv-reviewer, explore",
+            "proposal, prep, archive, reflect allow: none"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults04",
+      "title": "Wide Scan Delegation Justification",
+      "body": "Discovery wide scans (Prior Research Extension, P25 Related-Pattern Scan) MUST be delegated to sub-agents (adv-researcher, explore) within the hybrid step. Prep is classified as inline_required — no wide scan delegation is applicable. This requirement ensures that evidence-gathering scans that would consume significant orchestrator context are delegated, while synthesis and decision-making remain inline.",
+      "priority": "must",
+      "tags": ["delegation", "scans", "discovery"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults04.1",
+          "title": "Discovery wide scans delegate to sub-agents",
+          "given": ["The discovery step with mode hybrid"],
+          "when": "Wide scan sub-steps are evaluated",
+          "then": [
+            "Prior Research Extension is delegated to adv-researcher",
+            "P25 Related-Pattern Scan is delegated to explore or adv-researcher",
+            "These sub-steps are marked as subagent_primary within the hybrid step"
+          ]
+        },
+        {
+          "id": "rq-delDefaults04.2",
+          "title": "Prep wide scans remain inline",
+          "given": ["The prep step with mode inline_required"],
+          "when": "Wide scan sub-steps are evaluated",
+          "then": [
+            "No sub-step delegation is allowed",
+            "No advisory sub-agent pre-flight is allowed in prep",
+            "All synthesis, gap analysis, and task creation remain inline"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults05",
+      "title": "Structured Worker Report Fields",
+      "body": "Sub-agents used in delegation MUST return structured reports that include: evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. Existing report schemas (ENGINEER_REPORT, REVIEWER_REPORT, adv-researcher format, TRON report) already satisfy these fields. Future sub-agent additions MUST include reports with these 4 field categories.",
+      "priority": "must",
+      "tags": ["delegation", "reports", "structured-output"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults05.1",
+          "title": "Existing sub-agents satisfy report requirements",
+          "given": ["The 4 sub-agents with structured reports"],
+          "when": "Report field coverage is validated",
+          "then": [
+            "adv-engineer (ENGINEER_REPORT) includes verification (evidence), scope, blockers, context_update_for_adv.suggested_next_action (next action)",
+            "adv-reviewer (REVIEWER_REPORT) includes verification (evidence), scope, blocking_findings (blockers), required_main_agent_actions (next action)",
+            "adv-researcher format includes SOURCES (evidence), ARCHITECTURE ASSESSMENT (impact), VALIDATION (blockers/assessment), RECOMMENDATION (next action)",
+            "adv-tron format includes Evidence: file:line (evidence), FINDINGS/HOTSPOTS/RISKS (impact), OPEN QUESTIONS (blockers), SUGGESTED NEXT COMMANDS (next action)"
+          ]
+        },
+        {
+          "id": "rq-delDefaults05.2",
+          "title": "Future agents must include structured reports",
+          "given": ["A new sub-agent is added to the ADV system"],
+          "when": "The agent's report schema is evaluated",
+          "then": [
+            "The report includes an evidence references field",
+            "The report includes a scope/impact assessment field",
+            "The report includes a blockers field",
+            "The report includes a recommended next action field"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-delDefaults06",
+      "title": "Test Coverage for Matrix and Agent Routing",
+      "body": "Tests MUST validate: (1) all 9 matrix steps are present with valid modes and gate affinities, (2) sub-agent references exist as agent files or known global workers, (3) no phantom or primary agents appear in sub-agent routing, (4) matrix classifications are consistent with command contracts, (5) wide-scan delegated sub-steps are structurally represented, and (6) structured report field coverage is represented. The phantom-subagent-roster test MUST also detect forbidden routing to primary agents (adv, plan, build, adv-atc) in addition to phantom agents (librarian, mechanic, prioritizer).",
+      "priority": "must",
+      "tags": ["delegation", "tests", "coverage"],
+      "scenarios": [
+        {
+          "id": "rq-delDefaults06.1",
+          "title": "Matrix coverage test validates all rows",
+          "given": ["The delegation-matrix.test.ts test suite"],
+          "when": "Tests run",
+          "then": [
+            "All 9 workflow steps have entries",
+            "Each entry has a valid mode",
+            "Non-inline steps have non-empty allowed sub-agents",
+            "Inline steps have empty allowed sub-agents"
+          ]
+        },
+        {
+          "id": "rq-delDefaults06.2",
+          "title": "No phantom or primary agents in routing",
+          "given": ["The phantom-subagent-roster.test.ts with primary agent coverage"],
+          "when": "Tests run",
+          "then": [
+            "No active guidance surface routes to librarian, mechanic, or prioritizer",
+            "No active guidance surface routes to adv, plan, build, or adv-atc as sub-agents",
+            "The PRIMARIES list is pinned to prevent silent weakening"
+          ]
+        },
+        {
+          "id": "rq-delDefaults06.3",
+          "title": "Cross-reference consistency check",
+          "given": ["The delegation matrix spec and command files"],
+          "when": "Consistency is validated",
+          "then": [
+            "If a step is inline_required in the spec, its command file does not mandate sub-agent usage",
+            "If a step is hybrid in the spec, its command file does not say 'no sub-agents'",
+            "Contradictions are caught by the test suite"
+          ]
+        }
+      ]
+    }
+  ]
+}

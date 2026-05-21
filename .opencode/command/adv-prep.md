@@ -73,15 +73,6 @@ If this change was re-entered via `adv_change_reenter`, the planning gate has be
 
 Doctor-Lite: check cross-repo routing completeness — flag MUST gap if `target_repo`/`target_path` missing on cross-repo tasks. Product-linked changes must also have structural `scope_repos`: default current repo for local work; explicit multi-entry `scope_repos` with `merge_order` for cross-cutting archive/merge order.
 
-### Optional: `adv-reviewer` Pre-Flight (advisory)
-
-When pre-flight readiness analysis would shed context from the main agent — for example, a large cross-cutting concern scan, a wide codebase impact scan, or a deep cross-spec consistency scan — `/adv-prep` MAY spawn `adv-reviewer` with `phase: "prep"` for read-only analysis. The reviewer returns a structured `REVIEWER_REPORT` that `/adv-prep` ingests as findings into its gap analysis.
-
-`/adv-prep` retains sole authority over `adv_task_add`, task sequencing, contract refs, and `adv_gate_complete gateId: 'planning'` per `rq-prep-out1`. The reviewer surfaces findings only; it does NOT create tasks, complete gates, or mutate any ADV orchestration state. When the reviewer's report includes `verdict: "CONFLICT"` with non-null `scope_drift`, `/adv-prep` MUST stop and route to scope-discovery (`docs/scope-discovery-protocol.md`) — do not absorb scope-changing findings into the task graph.
-
-This pre-flight is optional. Default prep behavior remains inline gap analysis with no sub-agent spawn.
-
----
 ## Phase 2: Gap Analysis + Task Synthesis
 <!-- rq-prep-synth1 -->
 Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the loaded skill methodology:
