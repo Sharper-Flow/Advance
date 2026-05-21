@@ -128,4 +128,16 @@ describe("checkpoint surface drift", () => {
       "adv-discover.md must still mention question tool for clarification rounds (non-checkpoint)",
     ).toMatch(/up to 5 questions per round via the `question` tool/i);
   });
+
+  test("note convention does not appear in any checkpoint command doc", () => {
+    // The "Note for agent" convention is non-checkpoint only.
+    // No checkpoint command doc should contain the note convention header.
+    for (const { file } of checkpointCommands) {
+      const content = readFileSync(join(COMMANDS_DIR, file), "utf8");
+      expect(
+        content,
+        `${file} must NOT contain note convention header "Note for agent" (checkpoint surface)`,
+      ).not.toMatch(/"Note for agent"/);
+    }
+  });
 });

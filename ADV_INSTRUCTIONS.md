@@ -293,6 +293,8 @@ Write-in option enforced by P26 (`rules.yaml`). ADV notes:
 - 2-5 options including write-in, concise labels
 - Leave custom input enabled
 
+**Note convention:** Optionally append a synthetic trailing question with header `"Note for agent"` to give users a free-form context slot. Positional parsing extracts the note from the last answers-array element. Normalizes empty/`"No note"`/missing → absent. Max 4 real questions + 1 note = 5 total. See `docs/adv-question-tool.md` § Note for Agent Convention for full rules. **Non-checkpoint only** — never add to human checkpoint surfaces (`rq-inlineApproval01`).
+
 **Scope of question tool use:** Reserved for non-checkpoint structured choices: change-id selection / disambiguation, doom-loop recovery, drift detection in `/adv-review` and `/adv-harden`, AC clarification rounds (Phase 4.5 of `/adv-discover`), and triage commands (`/adv-idea`, `/adv-problem`, `/adv-clarify`). Human checkpoints listed above use inline handoff text per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01`.
 
 ### Tradeoff Prioritizer Protocol
