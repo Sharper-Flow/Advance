@@ -295,7 +295,7 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off via the `contractReviewMatrixSetSignal`-backed mutation path.
+If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path.
 
 Rules:
 
@@ -306,6 +306,7 @@ Rules:
 - `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
+- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, then complete acceptance with `adv_gate_complete compatibilityReason: "..."` when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 

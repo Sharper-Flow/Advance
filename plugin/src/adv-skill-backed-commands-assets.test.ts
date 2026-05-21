@@ -438,6 +438,7 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
+    expect(content).toContain("adv_contract_mint");
     expect(content).toContain("contractSetSignal");
     expect(content).toContain("ChangeContract");
     expect(content).toContain("SC1..n");
@@ -480,6 +481,7 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
+    expect(review).toContain("adv_contract_review_matrix_set");
     expect(review).toContain("contractReviewMatrixSetSignal");
     expect(review).toContain("contract.reviewMatrix");
     expect(review).toContain("required contract item");
