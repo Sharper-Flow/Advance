@@ -326,6 +326,38 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-worktreeBoundedCleanup01",
+      "title": "Bounded Worktree Cleanup",
+      "body": "Worktree cleanup operations must be bounded to prevent runaway deletion. After each worktree deletion, a post-delete notification must be emitted within the default 10s timeout. Per-item cleanup must proceed sequentially with bounded retries; batch or parallel unbounded cleanup is prohibited. The cleanup tool must classify worktrees into drift groups (safe, blocked, dirty/in-use, needs-investigation) and remain report-only for worktree drift even under `--execute`. Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "bounded", "safety"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeBoundedCleanup01.1",
+          "title": "Post-delete notification is bounded",
+          "given": [
+            "A worktree deletion is requested via adv_worktree_delete or adv_worktree_cleanup"
+          ],
+          "when": "The deletion completes",
+          "then": [
+            "A post-delete notification is emitted within the default 10s timeout",
+            "No unbounded wait blocks subsequent operations"
+          ]
+        },
+        {
+          "id": "rq-worktreeBoundedCleanup01.2",
+          "title": "Per-item sequential cleanup with bounded retries",
+          "given": ["Multiple worktrees are eligible for cleanup"],
+          "when": "adv_worktree_cleanup processes the queue",
+          "then": [
+            "Worktrees are processed sequentially, one at a time",
+            "Each item has a bounded retry count (max 5)",
+            "Batch or parallel unbounded deletion is not performed"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -482,6 +482,34 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     expect(list).not.toContain(branch);
   });
 
+  it("returns success with warning when post-delete signal times out", async () => {
+    const branch = "change/signal-timeout";
+    const wtPath = addWorktree(repoRoot, branch);
+
+    workflowSignal.mockImplementationOnce(
+      () =>
+        new Promise(() => {
+          /* intentionally never resolves */
+        }),
+    );
+
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath, changeId: "signal-timeout" }];
+    deps.signalTimeoutMs = 1;
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: true,
+      branch,
+      path: wtPath,
+      warning: expect.stringMatching(/notification|signal|timeout/i),
+    });
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
   it("force-with-approval — removes worktree with uncommitted changes and logs audit", async () => {
     const branch = "change/force";
     const wtPath = addWorktree(repoRoot, branch);
@@ -875,6 +903,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
   it("respects the automatic attempt cap unless the trigger forces attempts", async () => {
     const branch = "change/capped";
     const pendingPath = join(repoRoot, "worktrees", "change", "capped");
+    mkdirSync(pendingPath, { recursive: true });
     const deps = createDrainDeps(pendingPath);
     await setPendingDelete(
       deps.database,
@@ -922,6 +951,120 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     await expect(getPendingDeletes(deps.database)).resolves.toEqual([
       expect.objectContaining({ branch, attempts: 0 }),
     ]);
+  });
+
+  it("retains timed-out pending deletes and continues to later items", async () => {
+    const firstBranch = "change/timeout-first";
+    const secondBranch = "change/timeout-second";
+    const firstPath = join(repoRoot, "worktrees", "change", "timeout-first");
+    const secondPath = join(repoRoot, "worktrees", "change", "timeout-second");
+    mkdirSync(firstPath, { recursive: true });
+    mkdirSync(secondPath, { recursive: true });
+    const deps = createDrainDeps(firstPath);
+    await setPendingDelete(deps.database, firstBranch, firstPath, "timeout");
+    await setPendingDelete(deps.database, secondBranch, secondPath, "second");
+
+    let callCount = 0;
+    const deleteWorktree = vi.fn(async () => {
+      callCount++;
+      if (callCount === 1) {
+        return new Promise(() => {
+          /* intentionally never resolves */
+        });
+      }
+      return { ok: true as const, branch: secondBranch, path: secondPath };
+    });
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      cleanupItemTimeoutMs: 1,
+      deleteWorktree,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 1 });
+    expect(deleteWorktree).toHaveBeenCalledTimes(2);
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch: firstBranch,
+        attempts: 1,
+        lastError: "TIMEOUT",
+        lastErrorClass: "timeout",
+      }),
+    ]);
+  });
+
+  it("does not consume retry attempts while the worktree is still in use", async () => {
+    const branch = "change/in-use-skip";
+    const pendingPath = join(repoRoot, "worktrees", "change", "in-use-skip");
+    mkdirSync(pendingPath, { recursive: true });
+    const deps = createDrainDeps(pendingPath);
+    deps.isWorktreeInUse = () => true;
+    await setPendingDelete(deps.database, branch, pendingPath, "in use");
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+    });
+
+    expect(result).toEqual({ removed: 0, retained: 1 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({ branch, attempts: 0 }),
+    ]);
+  });
+
+  it("clears a timed-out pending delete when the late delete succeeds", async () => {
+    const branch = "change/late";
+    const pendingPath = join(repoRoot, "worktrees", "change", "late");
+    mkdirSync(pendingPath, { recursive: true });
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(deps.database, branch, pendingPath, "late");
+
+    const deleteWorktree = vi.fn(
+      () =>
+        new Promise<{ ok: true; branch: string; path: string }>((resolve) => {
+          setTimeout(
+            () => resolve({ ok: true, branch, path: pendingPath }),
+            10,
+          );
+        }),
+    );
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      cleanupItemTimeoutMs: 1,
+      deleteWorktree,
+    });
+
+    expect(result).toEqual({ removed: 0, retained: 1 });
+    expect(await getPendingDeletes(deps.database)).toHaveLength(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
+    expect(deps.log.warn).toHaveBeenCalledWith(
+      expect.stringContaining("resolved after timeout"),
+    );
+  });
+
+  it("clears pending deletes whose worktree path is already gone", async () => {
+    const branch = "change/gone";
+    const pendingPath = join(repoRoot, "worktrees", "change", "gone");
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(deps.database, branch, pendingPath, "gone");
+
+    const deleteWorktree = vi.fn(async () => ({
+      ok: true as const,
+      branch,
+      path: pendingPath,
+    }));
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+      deleteWorktree,
+    });
+
+    expect(result).toEqual({ removed: 1, retained: 0 });
+    expect(deleteWorktree).not.toHaveBeenCalled();
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
   });
 
   it("passes the durable store into registry-drift change branch cleanup", async () => {
@@ -978,6 +1121,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
       "missing-retained",
     );
     const deps = createDrainDeps(pendingPath);
+    mkdirSync(pendingPath, { recursive: true });
     await setPendingDelete(
       deps.database,
       branch,
@@ -994,13 +1138,13 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
       expect.objectContaining({
         branch,
         attempts: 1,
-        lastError: "INTEGRATION_REQUIRED",
-        lastErrorClass: "integration_required",
+        lastError: "WORKTREE_NOT_FOUND",
+        lastErrorClass: "worktree_not_found",
       }),
     ]);
   });
 
-  it("drains known pending deletes during plugin startup", async () => {
+  it("clears missing known pending deletes during plugin startup", async () => {
     const branch = "change/startup";
     const access = await initStateDb(repoRoot);
     startupAccess = access;
@@ -1022,9 +1166,7 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
       serverUrl: new URL("http://127.0.0.1:4096"),
     } as any);
 
-    await expect(getPendingDeletes(access)).resolves.toEqual([
-      expect.objectContaining({ branch, attempts: 1 }),
-    ]);
+    await expect(getPendingDeletes(access)).resolves.toEqual([]);
   });
 });
 

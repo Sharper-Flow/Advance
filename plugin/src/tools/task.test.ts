@@ -64,6 +64,10 @@ const mocks = vi.hoisted(() => {
       trustSource: context.trustSource,
       stateMode: context.stateMode,
     })),
+    resolveTargetAwareMutationCwd: vi.fn(
+      ({ store, target_path }: { store: Store; target_path?: string }) =>
+        target_path ? store.paths.root : process.cwd(),
+    ),
   };
 });
 
@@ -78,10 +82,7 @@ vi.mock("./target-project", async () => {
     withTargetPathStore: mocks.withTargetPathStore,
     withOptionalTargetPathStore: mocks.withOptionalTargetPathStore,
     formatTargetProjectContext: mocks.formatTargetProjectContext,
-    resolveTargetAwareMutationCwd: vi.fn(
-      ({ store, target_path }: { store: Store; target_path?: string }) =>
-        target_path ? store.paths.root : process.cwd(),
-    ),
+    resolveTargetAwareMutationCwd: mocks.resolveTargetAwareMutationCwd,
     appendTargetProjectContextOutput: vi.fn((output: string) => output),
   };
 });
@@ -334,6 +335,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -356,6 +358,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -460,6 +463,47 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.error).toContain("adv_task_cancel");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    test("routes target_path task update isolation through target store root", async () => {
+      const store = createMockStore();
+      mocks.targetStore.tasks.show.mockResolvedValue({
+        task: { id: "tk-abc", title: "Target task", status: "in_progress" },
+        changeId: "test-change",
+      });
+      mocks.targetStore.changes.get.mockResolvedValue({
+        success: true,
+        data: { id: "test-change", tasks: [] },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "done",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.resolveTargetAwareMutationCwd).toHaveBeenCalledWith({
+        store: mocks.targetStore,
+        target_path: "/tmp/target",
+      });
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "test-change",
+        expect.anything(),
+        expect.objectContaining({ taskId: "tk-abc" }),
+      );
+    });
   });
 
   describe("adv_task_add", () => {
@@ -473,6 +517,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toBeDefined();
       expect(parsed.task).toBeDefined();
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
@@ -531,6 +576,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toBeDefined();
       expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
@@ -548,6 +594,10 @@ describe("task tools — signal/query adapters", () => {
         "/tmp/target",
         undefined,
       );
+      expect(mocks.resolveTargetAwareMutationCwd).toHaveBeenCalledWith({
+        store: mocks.targetStore,
+        target_path: "/tmp/target",
+      });
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
         expect.anything(),
         mocks.targetStore,

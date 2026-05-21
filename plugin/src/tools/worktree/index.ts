@@ -113,6 +113,7 @@ import {
   worktreeDeletedSignal,
 } from "../../temporal/messages";
 import type { Store } from "../../storage/store";
+import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -123,37 +124,62 @@ const DB_RETRY_DELAY_MS = 100;
 /** Maximum depth to traverse session parent chain */
 const MAX_SESSION_CHAIN_DEPTH = 10;
 
+type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
+
+const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 10_000;
+
 async function fireWorktreeSignal(
   projectDir: string,
   store: Store | undefined,
   changeId: string | undefined,
   signal: unknown,
   payload: unknown,
-): Promise<void> {
-  if (!changeId) return;
+  signalTimeoutMs = DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS,
+): Promise<WorktreeSignalResult> {
+  if (!changeId) return { ok: true };
   try {
     const bundle = getService();
-    if (!bundle) return;
+    if (!bundle) {
+      const warning =
+        "Worktree notification skipped: Temporal service unavailable";
+      appendDebugLog("worktree", warning);
+      return { ok: false, warning };
+    }
     const projectId = await getProjectIdRaw(projectDir);
-    if (!projectId) return;
+    if (!projectId) {
+      const warning = `Worktree notification skipped: project ID unavailable for ${projectDir}`;
+      appendDebugLog("worktree", warning);
+      return { ok: false, warning };
+    }
     const handle = getChangeHandle(bundle.client, projectId, changeId);
     if (store) {
       // rq-cacheRefresh01: invalidate the cache after firing the signal
       // so subsequent reads see the worktree-create/delete state change.
-      await fireSignalAndRefresh(handle, store, changeId, signal, payload);
+      await withTimeout(
+        fireSignalAndRefresh(handle, store, changeId, signal, payload),
+        signalTimeoutMs,
+        "Worktree signal/cache refresh timed out",
+      );
     } else {
       // rq-cacheRefresh01-exempt: ADV worktree calls without a store
       // bound (legacy/test paths) skip refresh — these paths are not
       // backed by a live cache. The store argument is plumbed via
       // AdvWorktreeCreateDeps/AdvWorktreeDeleteDeps for production use.
       const { fireSignal: _fs } = await import("../_adapters");
-      await _fs(handle, signal, payload);
+      await withTimeout(
+        _fs(handle, signal, payload),
+        signalTimeoutMs,
+        "Worktree signal timed out",
+      );
     }
+    return { ok: true };
   } catch (err) {
-    appendDebugLog(
-      "worktree",
-      `worktree signal failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    const warning =
+      err instanceof TimeoutError
+        ? `Worktree notification timed out after ${signalTimeoutMs}ms`
+        : `Worktree notification failed: ${err instanceof Error ? err.message : String(err)}`;
+    appendDebugLog("worktree", warning);
+    return { ok: false, warning };
   }
 }
 
@@ -1295,6 +1321,11 @@ export interface AdvWorktreeDeleteDeps {
    * callers via adv-worktree.ts always provide store.
    */
   store?: Store;
+  /**
+   * Optional timeout in milliseconds for the post-delete workflow signal.
+   * Primarily a test seam; defaults to 10s in production.
+   */
+  signalTimeoutMs?: number;
   worktreePath?: string;
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
@@ -1753,7 +1784,7 @@ export async function advWorktreeDelete(
 
   // Signal-driven: notify change workflow that worktree was deleted
   const deletedChangeId = inferChangeIdFromBranch(branch);
-  await fireWorktreeSignal(
+  const deleteSignalResult = await fireWorktreeSignal(
     deps.projectRoot,
     deps.store,
     deletedChangeId ?? undefined,
@@ -1763,14 +1794,22 @@ export async function advWorktreeDelete(
       reason: opts.force ? "force_delete" : "integration_complete",
       deletedAt: new Date().toISOString(),
     },
+    deps.signalTimeoutMs,
   );
 
-  // 8. Return success
+  // 8. Return success (deterministic warning composition)
+  let warning: string | undefined = workspaceCleanupWarning ?? undefined;
+  if (!deleteSignalResult.ok) {
+    warning = warning
+      ? `${warning}; ${deleteSignalResult.warning}`
+      : deleteSignalResult.warning;
+  }
+
   return {
     ok: true as const,
     branch,
     path: worktreePath,
-    ...(workspaceCleanupWarning ? { warning: workspaceCleanupWarning } : {}),
+    ...(warning ? { warning } : {}),
   };
 }
 
@@ -2010,6 +2049,9 @@ async function resolveEffectiveWorktreeMode(
 // ADV WORKTREE CLEANUP (extracted for tool-registry wiring, T24)
 // =============================================================================
 
+/** Default timeout for each pending-delete item during cleanup (ms). */
+const DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS = 30_000;
+
 export interface AdvWorktreeCleanupDeps {
   projectRoot: string;
   database: Database;
@@ -2021,6 +2063,12 @@ export interface AdvWorktreeCleanupDeps {
   forceAttempts?: boolean;
   /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
   discover?: boolean;
+  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  cleanupItemTimeoutMs?: number;
+  /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
+  deleteWorktree?: typeof advWorktreeDelete;
+  /** Injection seam for testing. Defaults to {@link isWorktreeInUse}. */
+  isWorktreeInUse?: (worktreePath: string) => boolean;
 }
 
 export interface DrainPendingDeletesOptions {
@@ -2028,6 +2076,10 @@ export interface DrainPendingDeletesOptions {
   forceAttempts?: boolean;
   /** Preview pending-delete handling without mutating attempts or deleting. */
   dryRun?: boolean;
+  /** Optional per-item timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
+  cleanupItemTimeoutMs?: number;
+  /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
+  deleteWorktree?: typeof advWorktreeDelete;
 }
 
 export interface PendingDeleteDrainResult {
@@ -2136,6 +2188,20 @@ export async function drainPendingDeletes(
   for (const pendingDelete of pendingDeletes) {
     const { path: worktreePath, branch } = pendingDelete;
 
+    if (options.dryRun) {
+      retained++;
+      continue;
+    }
+
+    if (!(await pathExists(worktreePath))) {
+      deps.log.warn(
+        `[worktree] Clearing pending delete for ${branch} during ${trigger} — worktree path already missing: ${worktreePath}`,
+      );
+      await clearPendingDelete(deps.database, branch);
+      removed++;
+      continue;
+    }
+
     if (
       !options.forceAttempts &&
       pendingDelete.attempts >= MAX_PENDING_DELETE_ATTEMPTS
@@ -2147,26 +2213,18 @@ export async function drainPendingDeletes(
       continue;
     }
 
-    if (options.dryRun) {
-      retained++;
-      continue;
-    }
-
     if (worktreeInUseFn(worktreePath)) {
       deps.log.warn(
-        `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
-      );
-      await recordPendingDeleteFailure(
-        deps.database,
-        branch,
-        "WORKTREE_IN_USE",
-        "worktree_in_use",
+        `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempts ${pendingDelete.attempts}/${MAX_PENDING_DELETE_ATTEMPTS})`,
       );
       retained++;
       continue;
     }
 
-    const result = await advWorktreeDelete(
+    const deleteFn = options.deleteWorktree ?? advWorktreeDelete;
+    const timeoutMs =
+      options.cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS;
+    const deletePromise = deleteFn(
       branch,
       { force: options.forceAttempts },
       {
@@ -2175,18 +2233,53 @@ export async function drainPendingDeletes(
       },
     );
 
-    if (result.ok) {
-      await clearPendingDelete(deps.database, branch);
-      removed++;
-    } else {
-      deps.log.warn(
-        `[worktree] Failed pending delete for ${branch}: ${result.error}`,
+    try {
+      const result = await withTimeout(
+        deletePromise,
+        timeoutMs,
+        `Pending delete for ${branch} timed out`,
       );
+
+      if (result.ok) {
+        await clearPendingDelete(deps.database, branch);
+        removed++;
+      } else {
+        deps.log.warn(
+          `[worktree] Failed pending delete for ${branch}: ${result.error}`,
+        );
+        await recordPendingDeleteFailure(
+          deps.database,
+          branch,
+          result.error,
+          classifyDeleteResultForPendingDelete(result),
+        );
+        retained++;
+      }
+    } catch (err) {
+      if (!(err instanceof TimeoutError)) throw err;
+
+      deps.log.warn(
+        `[worktree] Pending delete for ${branch} timed out after ${timeoutMs}ms — retaining for retry`,
+      );
+      void deletePromise
+        .then(async (result) => {
+          if (result.ok || !(await pathExists(worktreePath))) {
+            await clearPendingDelete(deps.database, branch);
+            deps.log.warn(
+              `[worktree] Late pending delete for ${branch} resolved after timeout — cleared queued record`,
+            );
+          }
+        })
+        .catch((lateErr: unknown) => {
+          deps.log.warn(
+            `[worktree] Late pending delete for ${branch} failed after timeout: ${String(lateErr)}`,
+          );
+        });
       await recordPendingDeleteFailure(
         deps.database,
         branch,
-        result.error,
-        classifyDeleteResultForPendingDelete(result),
+        "TIMEOUT",
+        "timeout",
       );
       retained++;
     }
@@ -2205,6 +2298,7 @@ export async function advWorktreeCleanup(
     log: deps.log,
     store: deps.store,
     warpDeps: deps.warpDeps,
+    isWorktreeInUse: deps.isWorktreeInUse,
   };
 
   if (!deps.dryRun && deps.discover !== false) {
@@ -2214,6 +2308,8 @@ export async function advWorktreeCleanup(
   return drainPendingDeletes("worktree_cleanup", deleteDeps, {
     dryRun: deps.dryRun,
     forceAttempts: deps.forceAttempts ?? true,
+    cleanupItemTimeoutMs: deps.cleanupItemTimeoutMs,
+    deleteWorktree: deps.deleteWorktree,
   });
 }
 

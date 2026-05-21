@@ -219,10 +219,12 @@ describe("Status Tools", () => {
 
     test("shows retained terminal cleanup blocker counts without exact paths", async () => {
       const access = await initWorktreeStateDb(tempDir);
+      const retainedPath = join(tempDir, "status-retained");
+      await mkdir(retainedPath, { recursive: true });
       await setPendingDelete(
         access,
         "change/status-retained",
-        "/tmp/status-retained",
+        retainedPath,
         "worktree is still in use by a running process",
       );
       for (let i = 0; i < 5; i++) {
@@ -241,7 +243,7 @@ describe("Status Tools", () => {
           classes: { worktree_in_use: 1 },
         });
         expect(JSON.stringify(parsed.terminal_cleanup_retained)).not.toContain(
-          "/tmp/status-retained",
+          retainedPath,
         );
       } finally {
         await clearPendingDelete(access, "change/status-retained");

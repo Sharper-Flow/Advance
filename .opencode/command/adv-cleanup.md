@@ -51,6 +51,27 @@ Inspect cheaply: duplicate pass over active+archived list; if hot/non-stale and 
 
 ---
 
+## Phase 2.5: Worktree Drift Report (report-only)
+
+Call `adv_worktree_triage` to produce a separate worktree drift report. This section is always report-only; even `--execute` does not delete worktrees here.
+
+Classify each worktree into one of four drift groups:
+
+| Group | Meaning |
+|---|---|
+| **safe** | No active sessions, not the current process CWD, eligible for cleanup |
+| **blocked** | Has active sessions or is the current process CWD; skip deletion |
+| **dirty/in-use** | Uncommitted changes or running processes detected; defer to user |
+| **needs-investigation** | Classification ambiguous (missing registry entry, stale head, etc.) |
+
+Required snippet:
+
+- Worktree drift → `Worktree drift report (report-only): {safe} safe, {blocked} blocked, {dirty/in-use} dirty/in-use, {needs-investigation} needs-investigation.`
+
+Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`; `/adv-cleanup` never deletes worktrees.
+
+---
+
 ## Phase 3: Present Findings
 
 Emit grouped inline report; skip Healthy. Include mode, scanned, hot excluded, age threshold, bucket counts, reasons, total candidates, and filtered bucket note when applicable.
