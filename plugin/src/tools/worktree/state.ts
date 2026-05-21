@@ -80,6 +80,8 @@ export interface PendingDelete {
   reason: string;
   recordedAt: string;
   attempts: number;
+  lastError?: string;
+  lastErrorClass?: string;
 }
 
 export interface PendingDeleteSummary {
@@ -133,12 +135,22 @@ function _recordToWorktree(r: WorktreeRecord): Worktree {
 }
 
 function _recordToPending(r: PendingWorktreeDelete): PendingDelete {
+  const record = r as PendingWorktreeDelete & {
+    lastError?: unknown;
+    lastErrorClass?: unknown;
+  };
   return {
     branch: r.branch,
     path: r.path,
     reason: r.reason,
     recordedAt: r.recordedAt,
     attempts: r.attempts,
+    ...(typeof record.lastError === "string"
+      ? { lastError: record.lastError }
+      : {}),
+    ...(typeof record.lastErrorClass === "string"
+      ? { lastErrorClass: record.lastErrorClass }
+      : {}),
   };
 }
 
@@ -164,7 +176,10 @@ function isPendingDelete(value: unknown): value is PendingDelete {
     typeof record.recordedAt === "string" &&
     typeof record.attempts === "number" &&
     Number.isInteger(record.attempts) &&
-    record.attempts >= 0
+    record.attempts >= 0 &&
+    (record.lastError === undefined || typeof record.lastError === "string") &&
+    (record.lastErrorClass === undefined ||
+      typeof record.lastErrorClass === "string")
   );
 }
 
@@ -306,6 +321,8 @@ export async function setPendingDelete(
       reason,
       recordedAt: existing?.recordedAt ?? now ?? new Date().toISOString(),
       attempts: existing?.attempts ?? 0,
+      lastError: existing?.lastError,
+      lastErrorClass: existing?.lastErrorClass,
     };
     await writePendingDeletes(access, [
       ...pendingDeletes.filter((entry) => entry.branch !== branch),
@@ -321,8 +338,9 @@ export async function getPendingDeletes(
 }
 
 export function classifyPendingDelete(
-  entry: Pick<PendingDelete, "reason">,
+  entry: Pick<PendingDelete, "reason" | "lastErrorClass">,
 ): string {
+  if (entry.lastErrorClass) return entry.lastErrorClass;
   const reason = entry.reason.toLowerCase();
   if (reason.includes("in use")) return "worktree_in_use";
   if (reason.includes("terminal cleanup discovered")) {
@@ -359,6 +377,30 @@ export async function incrementPendingDeleteAttempts(
       pendingDeletes.map((entry) =>
         entry.branch === branch
           ? { ...entry, attempts: entry.attempts + 1 }
+          : entry,
+      ),
+    );
+  });
+}
+
+export async function recordPendingDeleteFailure(
+  access: WorktreeStateAccess,
+  branch: string,
+  lastError: string,
+  lastErrorClass: string,
+): Promise<void> {
+  await withPendingDeleteLock(access, async () => {
+    const pendingDeletes = await readPendingDeletes(access);
+    await writePendingDeletes(
+      access,
+      pendingDeletes.map((entry) =>
+        entry.branch === branch
+          ? {
+              ...entry,
+              attempts: entry.attempts + 1,
+              lastError,
+              lastErrorClass,
+            }
           : entry,
       ),
     );

@@ -23,6 +23,7 @@ import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
 import {
   clearPendingDelete,
+  incrementPendingDeleteAttempts,
   initStateDb as initWorktreeStateDb,
   setPendingDelete,
 } from "./worktree/state";
@@ -224,6 +225,9 @@ describe("Status Tools", () => {
         "/tmp/status-retained",
         "worktree is still in use by a running process",
       );
+      for (let i = 0; i < 5; i++) {
+        await incrementPendingDeleteAttempts(access, "change/status-retained");
+      }
 
       try {
         const result = await statusTools.adv_status.execute(

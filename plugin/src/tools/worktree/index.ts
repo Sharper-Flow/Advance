@@ -73,9 +73,9 @@ import {
   getWorktreePath,
   findBranchOwnersAcrossChanges,
   inferChangeIdFromBranch,
-  incrementPendingDeleteAttempts,
   initStateDb,
   listWorktrees,
+  recordPendingDeleteFailure,
   removeSession,
   setPendingDelete,
   updateWorktreeRecord,
@@ -2085,6 +2085,36 @@ async function discoverTerminalCleanupCandidates(
   return discovered;
 }
 
+function classifyDeleteResultForPendingDelete(
+  result: Exclude<AdvWorktreeDeleteResult, { ok: true }>,
+): string {
+  switch (result.error) {
+    case "WORKTREE_IN_USE":
+      return "worktree_in_use";
+    case "WORKTREE_NOT_FOUND":
+      return "worktree_not_found";
+    case "UNCOMMITTED_WORK":
+    case "HOOK_INTRODUCED_CHANGES":
+      return "dirty_worktree";
+    case "INTEGRATION_REQUIRED":
+      if ("reason" in result && result.reason === "branch_not_merged") {
+        return "branch_not_merged";
+      }
+      if ("reason" in result && result.reason === "change_not_terminal") {
+        return "change_not_terminal";
+      }
+      return "integration_required";
+    case "REMOVE_FAILED":
+      return "remove_failed";
+    case "HOOK_FAILED":
+      return "hook_failed";
+    case "INVALID_BRANCH":
+      return "invalid_branch";
+    default:
+      return "other";
+  }
+}
+
 export async function drainPendingDeletes(
   trigger: string,
   deps: AdvWorktreeDeleteDeps,
@@ -2126,7 +2156,12 @@ export async function drainPendingDeletes(
       deps.log.warn(
         `[worktree] Skipping worktree removal during ${trigger} — directory still in use: ${worktreePath} (attempt ${pendingDelete.attempts + 1})`,
       );
-      await incrementPendingDeleteAttempts(deps.database, branch);
+      await recordPendingDeleteFailure(
+        deps.database,
+        branch,
+        "WORKTREE_IN_USE",
+        "worktree_in_use",
+      );
       retained++;
       continue;
     }
@@ -2147,7 +2182,12 @@ export async function drainPendingDeletes(
       deps.log.warn(
         `[worktree] Failed pending delete for ${branch}: ${result.error}`,
       );
-      await incrementPendingDeleteAttempts(deps.database, branch);
+      await recordPendingDeleteFailure(
+        deps.database,
+        branch,
+        result.error,
+        classifyDeleteResultForPendingDelete(result),
+      );
       retained++;
     }
   }

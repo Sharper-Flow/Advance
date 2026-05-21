@@ -858,6 +858,10 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
         "change/archived-clean",
       ),
       clearPendingDelete({ projectDir: repoRoot, projectId }, "change/startup"),
+      clearPendingDelete(
+        { projectDir: repoRoot, projectId },
+        "change/missing-retained",
+      ),
       startupAccess
         ? clearPendingDelete(startupAccess, "change/startup")
         : Promise.resolve(),
@@ -962,6 +966,37 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     expect(
       execSync("git worktree list", { cwd: repoRoot }).toString(),
     ).not.toContain(branch);
+  });
+
+  it("records retained delete failure metadata for retry visibility", async () => {
+    const branch = "change/missing-retained";
+    const pendingPath = join(
+      repoRoot,
+      "worktrees",
+      "change",
+      "missing-retained",
+    );
+    const deps = createDrainDeps(pendingPath);
+    await setPendingDelete(
+      deps.database,
+      branch,
+      pendingPath,
+      "terminal cleanup discovered during test",
+    );
+
+    const result = await drainPendingDeletes("worktree_cleanup", deps, {
+      forceAttempts: true,
+    });
+
+    expect(result).toEqual({ removed: 0, retained: 1 });
+    await expect(getPendingDeletes(deps.database)).resolves.toEqual([
+      expect.objectContaining({
+        branch,
+        attempts: 1,
+        lastError: "INTEGRATION_REQUIRED",
+        lastErrorClass: "integration_required",
+      }),
+    ]);
   });
 
   it("drains known pending deletes during plugin startup", async () => {
