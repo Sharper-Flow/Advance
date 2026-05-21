@@ -112,6 +112,7 @@ import {
   worktreeDeletedSignal,
 } from "../../temporal/messages";
 import type { Store } from "../../storage/store";
+import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
@@ -122,37 +123,53 @@ const DB_RETRY_DELAY_MS = 100;
 /** Maximum depth to traverse session parent chain */
 const MAX_SESSION_CHAIN_DEPTH = 10;
 
+type WorktreeSignalResult = { ok: true } | { ok: false; warning: string };
+
+const DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS = 10_000;
+
 async function fireWorktreeSignal(
   projectDir: string,
   store: Store | undefined,
   changeId: string | undefined,
   signal: unknown,
   payload: unknown,
-): Promise<void> {
-  if (!changeId) return;
+  signalTimeoutMs = DEFAULT_WORKTREE_SIGNAL_TIMEOUT_MS,
+): Promise<WorktreeSignalResult> {
+  if (!changeId) return { ok: true };
   try {
     const bundle = getService();
-    if (!bundle) return;
+    if (!bundle) return { ok: true };
     const projectId = await getProjectIdRaw(projectDir);
-    if (!projectId) return;
+    if (!projectId) return { ok: true };
     const handle = getChangeHandle(bundle.client, projectId, changeId);
     if (store) {
       // rq-cacheRefresh01: invalidate the cache after firing the signal
       // so subsequent reads see the worktree-create/delete state change.
-      await fireSignalAndRefresh(handle, store, changeId, signal, payload);
+      await withTimeout(
+        fireSignalAndRefresh(handle, store, changeId, signal, payload),
+        signalTimeoutMs,
+        "Worktree signal/cache refresh timed out",
+      );
     } else {
       // rq-cacheRefresh01-exempt: ADV worktree calls without a store
       // bound (legacy/test paths) skip refresh — these paths are not
       // backed by a live cache. The store argument is plumbed via
       // AdvWorktreeCreateDeps/AdvWorktreeDeleteDeps for production use.
       const { fireSignal: _fs } = await import("../_adapters");
-      await _fs(handle, signal, payload);
+      await withTimeout(
+        _fs(handle, signal, payload),
+        signalTimeoutMs,
+        "Worktree signal timed out",
+      );
     }
+    return { ok: true };
   } catch (err) {
-    appendDebugLog(
-      "worktree",
-      `worktree signal failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    const warning =
+      err instanceof TimeoutError
+        ? `Worktree notification timed out after ${signalTimeoutMs}ms`
+        : `Worktree notification failed: ${err instanceof Error ? err.message : String(err)}`;
+    appendDebugLog("worktree", warning);
+    return { ok: false, warning };
   }
 }
 
@@ -806,6 +823,11 @@ export interface AdvWorktreeCreateDeps {
    * callers via adv-worktree.ts always provide store.
    */
   store?: Store;
+  /**
+   * Optional timeout in milliseconds for the post-create workflow signal.
+   * Primarily a test seam; defaults to 10s in production.
+   */
+  signalTimeoutMs?: number;
   resolveDefaultBranch?: (cwd: string) => Promise<string | null>;
   detectStaleBasis?: (
     base: string,
@@ -1132,7 +1154,7 @@ export async function advWorktreeCreate(
 
     // Signal-driven: notify change workflow that worktree was created
     const createdChangeId = inferChangeIdFromBranch(branch);
-    await fireWorktreeSignal(
+    const createSignalResult = await fireWorktreeSignal(
       repoRoot,
       deps.store,
       createdChangeId ?? undefined,
@@ -1144,7 +1166,11 @@ export async function advWorktreeCreate(
         headSha,
         createdAt: new Date().toISOString(),
       },
+      deps.signalTimeoutMs,
     );
+    if (!createSignalResult.ok) {
+      deps.log.warn(`[worktree] ${createSignalResult.warning}`);
+    }
 
     return {
       ok: true,
@@ -1294,6 +1320,11 @@ export interface AdvWorktreeDeleteDeps {
    * callers via adv-worktree.ts always provide store.
    */
   store?: Store;
+  /**
+   * Optional timeout in milliseconds for the post-delete workflow signal.
+   * Primarily a test seam; defaults to 10s in production.
+   */
+  signalTimeoutMs?: number;
   worktreePath?: string;
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
@@ -1752,7 +1783,7 @@ export async function advWorktreeDelete(
 
   // Signal-driven: notify change workflow that worktree was deleted
   const deletedChangeId = inferChangeIdFromBranch(branch);
-  await fireWorktreeSignal(
+  const deleteSignalResult = await fireWorktreeSignal(
     deps.projectRoot,
     deps.store,
     deletedChangeId ?? undefined,
@@ -1762,14 +1793,22 @@ export async function advWorktreeDelete(
       reason: opts.force ? "force_delete" : "integration_complete",
       deletedAt: new Date().toISOString(),
     },
+    deps.signalTimeoutMs,
   );
 
-  // 8. Return success
+  // 8. Return success (deterministic warning composition)
+  let warning: string | undefined = workspaceCleanupWarning ?? undefined;
+  if (!deleteSignalResult.ok) {
+    warning = warning
+      ? `${warning}; ${deleteSignalResult.warning}`
+      : deleteSignalResult.warning;
+  }
+
   return {
     ok: true as const,
     branch,
     path: worktreePath,
-    ...(workspaceCleanupWarning ? { warning: workspaceCleanupWarning } : {}),
+    ...(warning ? { warning } : {}),
   };
 }
 

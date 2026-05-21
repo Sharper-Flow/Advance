@@ -100,7 +100,10 @@ function createMockDeps(
 ): AdvWorktreeDeleteDeps {
   return {
     projectRoot,
-    database: { projectDir: projectRoot, projectId: "test-id" },
+    database: {
+      projectDir: projectRoot,
+      projectId: `test-id-${projectRoot.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+    },
     log: {
       debug: vi.fn(),
       info: vi.fn(),
@@ -465,6 +468,36 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     );
 
     // Worktree should be gone
+    const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+    expect(list).not.toContain(branch);
+  });
+
+  it("returns success with warning when post-delete signal times out", async () => {
+    const branch = "change/signal-timeout";
+    const wtPath = addWorktree(repoRoot, branch);
+
+    // Mock signal to never resolve so withTimeout always trips
+    workflowSignal.mockImplementationOnce(
+      () =>
+        new Promise(() => {
+          /* intentionally never resolves */
+        }),
+    );
+
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [{ branch, path: wtPath, changeId: "signal-timeout" }];
+    deps.signalTimeoutMs = 1; // tiny timeout to ensure the race always loses
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toMatchObject({
+      ok: true,
+      branch,
+      path: wtPath,
+      warning: expect.stringMatching(/notification|signal|timeout/i),
+    });
+
+    // Worktree should still be gone even though signal stalled
     const list = execSync("git worktree list", { cwd: repoRoot }).toString();
     expect(list).not.toContain(branch);
   });
