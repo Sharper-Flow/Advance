@@ -54,6 +54,12 @@ import {
   buildWorktreeAutoManageDeps,
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
+import {
+  detectArchiveMode,
+  detectDefaultBranch,
+  resolveMainCheckout,
+  verifyChangeBranchReachable,
+} from "./archive-helpers/git-finalize";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
@@ -108,6 +114,22 @@ function gateCompletionNotConfirmedResponse(input: {
     gateId: input.gateId,
     workflowGateStatus: input.gate?.status,
     hint: "Retry adv_gate_status to inspect workflow state before retrying adv_gate_complete.",
+  });
+}
+
+function releaseRequiresTrunkMergeResponse(input: {
+  changeId: string;
+  defaultBranch: string;
+  unmergedCommits: string[];
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_TRUNK_MERGE: change/${input.changeId} is not reachable from ${input.defaultBranch}`,
+    code: "RELEASE_REQUIRES_TRUNK_MERGE",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    defaultBranch: input.defaultBranch,
+    unmergedCommits: input.unmergedCommits,
+    remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (merge + push + verify), then retry release gate completion.`,
   });
 }
 
@@ -698,6 +720,26 @@ export const gateTools = {
             });
           }
           // All tasks done/cancelled (or empty list) — fall through
+        }
+
+        if (gateId === "release") {
+          const { archiveMode } = detectArchiveMode(activeStore.config ?? {});
+          if (archiveMode === "direct") {
+            const mainCheckout = resolveMainCheckout(activeStore.paths.root);
+            const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+            const reachability = verifyChangeBranchReachable(
+              mainCheckout,
+              defaultBranch,
+              changeId,
+            );
+            if (!reachability.reachable) {
+              return releaseRequiresTrunkMergeResponse({
+                changeId,
+                defaultBranch,
+                unmergedCommits: reachability.unmergedCommits,
+              });
+            }
+          }
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after

@@ -372,7 +372,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           design: { status: "done" },
           planning: { status: "done" },
           execution: { status: "done" },
-          acceptance: { status: "done" },
+          acceptance: { status: "pending" },
           release: { status: "pending" },
         } as import("../types").Gates,
       });
@@ -382,7 +382,7 @@ describe("gate tools — signal-driven lifecycle", () => {
         design: { status: "done" },
         planning: { status: "done" },
         execution: { status: "done" },
-        acceptance: { status: "done" },
+        acceptance: { status: "pending" },
         release: { status: "pending" },
       } as import("../types").Gates);
       mocks.querySignal.mockResolvedValueOnce({ status: "done" });
@@ -390,7 +390,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const result = await gateTools.adv_gate_complete.execute(
         {
           changeId: "test-change",
-          gateId: "release",
+          gateId: "acceptance",
           completedBy: "user",
           notes: "Manual finalization",
         },

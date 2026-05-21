@@ -113,6 +113,7 @@ function createMockStore(): Store {
 describe("release gate trunk-merge enforcement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.querySignal.mockReset();
     mocks.querySignal.mockResolvedValueOnce(releaseReadyGates());
     mocks.querySignal.mockResolvedValueOnce({ status: "done" });
   });
