@@ -693,25 +693,31 @@ Slash commands are top-level entry points for the user/session, not an internal 
 - OpenCode may re-dispatch slash commands through command frontmatter `agent:` routing, which can override the current agent context and compound orchestration
 - When an agent needs an ADV workflow, it must execute that workflow inline with tools (or read the command file as a contract) rather than calling the slash command itself
 
-### Sub-Agent Orchestration (optional, requires `task` tool)
+### Delegation Defaults
 
-Use for 3+ independent scan dimensions. Single-level only.
+<!-- rq-delDefaults01 rq-delDefaults02 rq-delDefaults03 rq-delDefaults04 -->
 
-| Command                                | Inline                 | Sub-Agent                                                                                                  |
-| -------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| research/task                          | Context7 + Exa + lgrep | `adv-researcher`                                                                                           |
-| review/harden                          | Sequential scans       | `explore` for scoped scans; `adv-reviewer` for review/harden analysis + scoped remediation; `adv-engineer` for primary implementation fixes |
-| audit/slop-scan/refactor               | Sequential scans       | `explore`/`general` as command docs specify                                                                |
-| slop-scan                              | Sequential categories  | explore × 9 (single-level only)                                                                            |
-| tron                                   | lgrep + read           | `adv-tron`                                                                                                 |
+The workflow-step delegation matrix is defined as spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`). The spec is the single source of truth for which steps allow delegation, which sub-agents are allowed per step, and what safety boundaries constrain delegation.
 
-Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
+**Summary per design D2:**
 
-For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
+| Step | Mode | Allowed Sub-Agents |
+|------|------|-------------------|
+| proposal | `inline_required` | none |
+| discovery | `hybrid` | `adv-researcher`, `explore` |
+| design | `hybrid` | `adv-researcher` (mandatory validator) |
+| prep | `inline_required` | none |
+| apply | `hybrid` | `adv-engineer`, `general` |
+| review | `hybrid` | `adv-reviewer`, `explore` |
+| harden | `subagent_primary` | `adv-reviewer`, `explore` |
+| archive | `inline_required` | none |
+| reflect | `inline_required` | none |
+
+Inline-only commands (no sub-agent delegation): `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-reflect`.
 
 Design gate requires mandatory independent validator (adv-researcher) before gate completion. Verdicts: VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE.
 
-Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`.
+Utility commands (research, tron, slop-scan, audit, improve, etc.) have their own delegation rules specified in their command files, not in the matrix.
 
 ### Delegation Routing
 
