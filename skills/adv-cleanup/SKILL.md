@@ -69,6 +69,25 @@ Before any closure bucket, check unarchived fast-follow children: any active cha
 
 If found, move candidate to `Blocked: has unarchived child`; do not include in approval prompt or close set.
 
+## Worktree Drift Report (report-only)
+
+Call `adv_worktree_triage` to produce a separate worktree drift report. This section is always report-only; even `--execute` does not delete worktrees here.
+
+Classify each worktree into one of four drift groups:
+
+| Group | Meaning |
+|---|---|
+| **safe** | No active sessions, not the current process CWD, eligible for cleanup |
+| **blocked** | Has active sessions or is the current process CWD; skip deletion |
+| **dirty/in-use** | Uncommitted changes or running processes detected; defer to user |
+| **needs-investigation** | Classification ambiguous (missing registry entry, stale head, etc.) |
+
+Required snippet:
+
+- Worktree drift → `Worktree drift report (report-only): {safe} safe, {blocked} blocked, {dirty/in-use} dirty/in-use, {needs-investigation} needs-investigation.`
+
+Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`; `/adv-cleanup` never deletes worktrees.
+
 ## Report Shape
 
 Inline report, no `question` popup.
