@@ -611,12 +611,12 @@ Vague in-flight work.
       // Both worktree_guard_enforce and worker_singleton_enforce always
       // resolve (they have withStabilityFeatureDefaults coverage), so their
       // source entries must be present.
-      expect(
-        health.feature_flag_sources.worktree_guard_enforce,
-      ).toMatch(/^(default|explicit)$/);
-      expect(
-        health.feature_flag_sources.worker_singleton_enforce,
-      ).toMatch(/^(default|explicit)$/);
+      expect(health.feature_flag_sources.worktree_guard_enforce).toMatch(
+        /^(default|explicit)$/,
+      );
+      expect(health.feature_flag_sources.worker_singleton_enforce).toMatch(
+        /^(default|explicit)$/,
+      );
     });
 
     test("health view surfaces auto_managed_changes census from recent changes", async () => {

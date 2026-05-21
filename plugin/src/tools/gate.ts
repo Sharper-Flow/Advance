@@ -45,7 +45,6 @@ import {
   getGateStatusQuery,
 } from "../temporal/messages";
 import {
-  checkWorktreeIsolation,
   type WorktreeIsolationDeps,
   type WorktreeIsolationResult,
 } from "./worktree-isolation-guard";

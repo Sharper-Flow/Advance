@@ -515,9 +515,7 @@ export async function changeWorkflow(
     if (typeof input.seedState.worktree_auto_managed === "boolean") {
       state.worktree_auto_managed = input.seedState.worktree_auto_managed;
     }
-    if (
-      typeof input.seedState.target_worktree_path !== "undefined"
-    ) {
+    if (typeof input.seedState.target_worktree_path !== "undefined") {
       state.target_worktree_path = input.seedState.target_worktree_path;
     }
     if (input.seedState.scope_worktrees) {

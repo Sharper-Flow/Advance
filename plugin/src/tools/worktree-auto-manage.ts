@@ -224,9 +224,7 @@ export async function ensureWorktreeForMutation(
   // change is guaranteed defined here: activation === "auto_manage" implies
   // change.worktree_auto_managed === true, so change cannot be undefined.
   const changeId = change!.id;
-  const existing = await Promise.resolve(
-    deps?.lookupExistingPath?.(changeId),
-  );
+  const existing = await Promise.resolve(deps?.lookupExistingPath?.(changeId));
   if (existing) {
     await fireAttachment(deps, changeId, role, repoId, existing);
     return blockWithExpectedPath({
@@ -251,11 +249,7 @@ export async function ensureWorktreeForMutation(
 
   let result: AdvWorktreeResumeResult;
   try {
-    result = await resumeImpl(
-      { changeId },
-      {},
-      deps.resumeRuntime,
-    );
+    result = await resumeImpl({ changeId }, {}, deps.resumeRuntime);
   } catch (err) {
     return autoCreateFailure({
       mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,

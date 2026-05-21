@@ -200,14 +200,7 @@ describe("createChangeOps", () => {
       dualWriteAfterMutation: vi.fn(),
     } as never);
 
-    await ops.create(
-      "New auto-managed change",
-      "test",
-      "",
-      "",
-      "",
-      "",
-    );
+    await ops.create("New auto-managed change", "test", "", "", "", "");
 
     // 1. Workflow seedState carries the marker so the workflow starts with it set.
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(

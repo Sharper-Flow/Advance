@@ -351,9 +351,7 @@ describe("evaluateTask*WorktreeIsolation (AC4 D1/D2 role propagation)", () => {
         },
       },
     });
-    expect(result.expectedWorktreePath).toBe(
-      "/target-project/wt/autoManaged",
-    );
+    expect(result.expectedWorktreePath).toBe("/target-project/wt/autoManaged");
     expect(attachments[0]).toMatchObject({
       changeId: "autoManaged",
       role: "target",
