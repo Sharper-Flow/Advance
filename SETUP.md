@@ -357,21 +357,24 @@ pnpm test
 
 ### Step 1: Create or Update OpenCode Config
 
-Add ADV to your global OpenCode configuration at `~/.config/opencode/opencode.json`:
+ADV is normally registered from the stable deployed runtime plugin path that
+`scripts/deploy-local.sh --fix` maintains:
 
 ```json
 {
   "instructions": ["~/.config/opencode/identity.md"],
-  "plugin": ["/path/to/Advance/plugin"]
+  "plugin": ["~/.local/share/Advance/plugin"]
 }
 ```
 
-**Important**: Replace `/path/to/Advance` with the actual path where you cloned the repository.
+For manual/dev-only setup you may point at a source checkout plugin directory,
+but the recommended flow below keeps OpenCode loading the stable deployed copy.
 
 ### Step 2: Run the Sync Script (Recommended)
 
-The easiest way to set up and update ADV is the sync script. It copies commands,
-agents, and skills to the global config, and validates (or patches) `opencode.json`:
+The easiest way to set up and update ADV is the sync script. It rebuilds and
+syncs the runtime plugin when needed, copies commands, agents, and skills to the
+global config, and validates (or patches) `opencode.json`:
 
 ```bash
 # Check what needs updating (config only, no file changes)
@@ -389,12 +392,16 @@ agents, and skills to the global config, and validates (or patches) `opencode.js
 
 The `--fix` flag will:
 
+- Rebuild `plugin/dist` when it is missing or older than plugin build inputs
+- Refuse to deploy stale dist if the build fails or freshness is still unproven
+- Sync `plugin/` to the stable runtime path `~/.local/share/Advance/plugin/`
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
 - Copy only repo-local ADV agents where direct sync is appropriate
-- Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, and `plan` without replacing the full file
+- Assemble the single global `adv.md` runtime agent from the repo-owned ADV agent plus `ADV_INSTRUCTIONS.md`
+- Apply repo-owned managed overlay blocks to shared global agents like `general`, `build`, and `plan` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-slop-detection` and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
-- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions` and embed the ADV protocol into generated ADV provider prompts
+- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions` and embed the ADV protocol into the single global `adv.md` runtime agent
 - Back up `opencode.json` before any patches
 - Preserve all non-ADV settings (mcp, provider, permissions, etc.)
 
@@ -402,7 +409,7 @@ Top-level ADV slash commands are synced as entrypoint contracts only; they do no
 
 ### Step 2b: Install Git Hooks (Strongly Recommended for ADV Maintainers)
 
-If you are developing ADV itself (not just consuming it), install the tracked git hooks so commits that touch `.opencode/`, `ADV_INSTRUCTIONS.md`, or `skills/` automatically re-sync the global install:
+If you are developing ADV itself (not just consuming it), install the tracked git hooks so commits that touch `.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`, `plugin/src/`, or `scripts/deploy-local.sh` automatically re-sync the global install:
 
 ```bash
 ./scripts/install-git-hooks.sh            # sets core.hooksPath=.githooks, chmod +x
@@ -415,7 +422,7 @@ Hooks installed:
 - `post-commit` — runs `deploy-local.sh --fix` when the commit touched a mirrored path (idempotent, ~1s, never blocks).
 - `pre-push` — safety-net sync before pushing, in case a commit bypassed the post-commit hook.
 
-Without these, a commit that updates a command contract will land in the repo but the global `~/.config/opencode/` keeps the old copy until `deploy-local.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts.
+Without these, a commit that updates a command contract or plugin source will land in the repo but the global install keeps the old copy until `deploy-local.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts or stale runtime plugin code.
 
 Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
 
@@ -423,7 +430,7 @@ Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install
 
 If you prefer manual setup, add the ADV plugin path to your `opencode.json`.
 Do **not** add `ADV_INSTRUCTIONS.md` to global `instructions[]`; `deploy-local.sh`
-scopes that protocol to generated ADV provider prompts so non-ADV agents do not
+scopes that protocol to the generated ADV runtime agent so non-ADV agents do not
 pay the prompt cost.
 
 ```json
@@ -436,10 +443,9 @@ pay the prompt cost.
 Legacy migration: if your config already contains `/path/to/Advance/ADV_INSTRUCTIONS.md`
 or `~/.config/opencode/instructions/ADV_INSTRUCTIONS.md`, run
 `./scripts/deploy-local.sh --fix`. The script removes only ADV instruction paths,
-preserves unrelated global instructions, and regenerates ADV provider prompts with
-the protocol embedded. Manual setups without provider ADV variants intentionally do
-not receive the ADV operating protocol; the supported ADV-agent setup path is the
-sync script above.
+preserves unrelated global instructions, and regenerates the single global `adv.md`
+runtime agent with the protocol embedded. Manual setups that bypass the sync script
+do not receive the supported ADV runtime-agent assembly.
 
 Then copy slash commands manually:
 
@@ -1149,12 +1155,11 @@ ls .opencode/command/adv-*.md
 Verify plugin path in `opencode.json`:
 
 ```bash
-# Check the path exists
-ls /path/to/Advance/plugin/dist/index.js
+# Check the deployed runtime path exists
+ls ~/.local/share/Advance/plugin/dist/index.js
 
-# If missing, rebuild
-cd /path/to/Advance/plugin
-pnpm build
+# If missing or stale, rebuild and sync the runtime plugin
+./scripts/deploy-local.sh --fix
 ```
 
 ---

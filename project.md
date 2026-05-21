@@ -106,7 +106,7 @@ Tool arg schemas use `as any` in `tool-registry.ts` for SDK compatibility. Do no
 
 ```bash
 ./scripts/deploy-local.sh --check          # What's out of date?
-./scripts/deploy-local.sh --fix            # Sync skills + agents + opencode.json
+./scripts/deploy-local.sh --fix            # Rebuild/sync runtime plugin + assets/config
 ./scripts/deploy-local.sh --dry-run --diff # Preview changes
 ```
 Requires `jq`.

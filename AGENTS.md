@@ -59,13 +59,14 @@ pnpm run format:check         # prettier --check
 
 ### Source-vs-Dist Reload Gotcha
 
-OpenCode loads the plugin from `plugin/dist/index.js` at session startup and caches it in process memory. **Source edits to `plugin/src/` do NOT take effect in the current OpenCode session.** Unit tests run against source via vitest and pick up changes immediately, but live tool invocations (`adv_*` calls from the agent) continue to use the cached pre-build `dist/index.js` until the session restarts.
+OpenCode loads the plugin from the deployed runtime copy (normally `~/.local/share/Advance/plugin/dist/index.js`) at session startup and caches it in process memory. **Source edits to `plugin/src/` do NOT take effect in the current OpenCode session.** Unit tests run against source via vitest and pick up changes immediately, but live tool invocations (`adv_*` calls from the agent) continue to use the cached deployed `dist/index.js` until the runtime copy is rebuilt/synced and the session restarts.
 
 To validate a source change end-to-end through live tool invocations:
 
-1. `pnpm run build` — regenerates `dist/index.js` (and `dist/temporal/*.js`)
-2. Restart the OpenCode session (or restart the plugin host)
-3. Re-invoke the affected tool
+1. `pnpm run build` — regenerates source-checkout `dist/index.js` (and `dist/temporal/*.js`)
+2. `./scripts/deploy-local.sh --fix` — rebuilds if needed and syncs `plugin/` to the stable runtime path
+3. Restart the OpenCode session (or restart the plugin host)
+4. Re-invoke the affected tool
 
 For agent-driven changes that modify ADV tool behavior, the practical workflow is:
 

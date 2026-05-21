@@ -19,6 +19,7 @@
 #   ./scripts/deploy-local.sh --diff    # Show overlay diffs when managed blocks change
 #
 # What it does:
+#   0. Ensures plugin/dist is fresh, then syncs plugin/ -> ~/.local/share/Advance/plugin
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
 #   2. Removes stale commands from global that no longer exist in repo
 #   3. Removes legacy non-ADV commands
@@ -181,21 +182,45 @@ fi
 # ---------------------------------------------------------------------------
 config_issues=0
 
-plugin_dist_stale_reason() {
-	if [ ! -f "$ADV_PLUGIN_DIST" ]; then
-		printf '%s\n' "plugin dist is missing"
+plugin_build_input_newer_than() {
+	local output="$1"
+
+	if [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$output" -print -quit)" ]; then
 		return 0
 	fi
 
+	local input
+	for input in package.json pnpm-lock.yaml tsconfig.json tsup.config.ts; do
+		if [ -f "$ADV_SOURCE_PLUGIN_PATH/$input" ] && [ "$ADV_SOURCE_PLUGIN_PATH/$input" -nt "$output" ]; then
+			return 0
+		fi
+	done
+
+	if [ -d "$ADV_SOURCE_PLUGIN_PATH/scripts" ] && [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/scripts" -type f -newer "$output" -print -quit)" ]; then
+		return 0
+	fi
+
+	return 1
+}
+
+plugin_dist_stale_reason() {
 	if [ ! -d "$ADV_SOURCE_PLUGIN_PATH/src" ]; then
 		printf '%s\n' "plugin source directory is missing"
 		return 0
 	fi
 
-	if [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$ADV_PLUGIN_DIST" -print -quit)" ]; then
-		printf '%s\n' "plugin source is newer than dist"
-		return 0
-	fi
+	local output_rel output
+	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js; do
+		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
+		if [ ! -f "$output" ]; then
+			printf '%s\n' "plugin dist output is missing: $output_rel"
+			return 0
+		fi
+		if plugin_build_input_newer_than "$output"; then
+			printf '%s\n' "plugin build input is newer than $output_rel"
+			return 0
+		fi
+	done
 
 	return 1
 }

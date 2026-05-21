@@ -34,6 +34,7 @@ describe("overlay sync script support", () => {
   });
 
   test("contains a deploy-time plugin dist freshness guard", () => {
+    expect(content).toContain("plugin_build_input_newer_than()");
     expect(content).toContain("plugin_dist_stale_reason()");
     expect(content).toContain("ensure_plugin_dist_fresh()");
     expect(content).toContain("same_git_common_dir()");
@@ -41,8 +42,12 @@ describe("overlay sync script support", () => {
       'ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"',
     );
     expect(content).toContain(
-      'find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$ADV_PLUGIN_DIST" -print -quit',
+      'find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$output" -print -quit',
     );
+    expect(content).toContain("pnpm-lock.yaml");
+    expect(content).toContain("tsup.config.ts");
+    expect(content).toContain("dist/temporal/worker.js");
+    expect(content).toContain("dist/temporal/workflows.js");
     expect(content).toContain(
       '(cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build)',
     );
@@ -69,8 +74,8 @@ describe("overlay sync script support", () => {
   test("plugin dist freshness guard supports dry-run without building", () => {
     expect(content).toContain("would rebuild plugin dist");
     expect(content).toContain('if [ "$DRY_RUN" = true ]; then');
-    expect(content).toContain("plugin dist is missing");
-    expect(content).toContain("plugin source is newer than dist");
+    expect(content).toContain("plugin dist output is missing");
+    expect(content).toContain("plugin build input is newer than $output_rel");
   });
 
   test("plugin dist freshness guard replaces warn-only deploy behavior", () => {
@@ -98,6 +103,55 @@ describe("overlay sync script support", () => {
       );
       utimesSync(
         srcPath,
+        new Date("2020-01-02T00:00:00Z"),
+        new Date("2020-01-02T00:00:00Z"),
+      );
+    };
+
+    const makeFresh = () => {
+      const distPath = join(tempWorktree, "plugin", "dist", "index.js");
+      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
+      mkdirSync(join(tempWorktree, "plugin", "dist", "temporal"), {
+        recursive: true,
+      });
+      writeFileSync(distPath, "// fresh dist\n");
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
+        "// fresh worker\n",
+      );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        "// fresh workflows\n",
+      );
+      utimesSync(
+        distPath,
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        new Date("2030-01-01T00:00:00Z"),
+        new Date("2030-01-01T00:00:00Z"),
+      );
+    };
+
+    const makeBuildInputStale = () => {
+      const distPath = join(tempWorktree, "plugin", "dist", "index.js");
+      const packagePath = join(tempWorktree, "plugin", "package.json");
+      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
+      writeFileSync(distPath, "// stale dist\n");
+      utimesSync(
+        distPath,
+        new Date("2020-01-01T00:00:00Z"),
+        new Date("2020-01-01T00:00:00Z"),
+      );
+      utimesSync(
+        packagePath,
         new Date("2020-01-02T00:00:00Z"),
         new Date("2020-01-02T00:00:00Z"),
       );
@@ -135,9 +189,17 @@ printf '%s %s\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
 if [ "\${FAKE_PNPM_FAIL:-}" = "1" ]; then
   exit 42
 fi
+if [ "\${FAKE_PNPM_NO_REFRESH:-}" = "1" ]; then
+  exit 0
+fi
 mkdir -p "$PWD/dist"
+mkdir -p "$PWD/dist/temporal"
 printf '// fake build\n' > "$PWD/dist/index.js"
+printf '// fake worker\n' > "$PWD/dist/temporal/worker.js"
+printf '// fake workflows\n' > "$PWD/dist/temporal/workflows.js"
 touch "$PWD/dist/index.js"
+touch "$PWD/dist/temporal/worker.js"
+touch "$PWD/dist/temporal/workflows.js"
 `,
         { mode: 0o755 },
       );
@@ -189,6 +251,16 @@ exit 0
       );
       expect(existsSync(pnpmLog)).toBe(false);
 
+      makeFresh();
+      const freshResult = runDeploy({
+        FAKE_PNPM_LOG: pnpmLog,
+        FAKE_RSYNC_LOG: rsyncLog,
+      });
+      expect(freshResult.status).toBe(0);
+      expect(existsSync(pnpmLog)).toBe(false);
+      expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
+      rmSync(rsyncLog, { force: true });
+
       makeStale();
       const failureResult = runDeploy({
         FAKE_PNPM_LOG: pnpmLog,
@@ -202,6 +274,30 @@ exit 0
       expect(existsSync(rsyncLog)).toBe(false);
 
       rmSync(pnpmLog, { force: true });
+      makeStale();
+      const postBuildFailureResult = runDeploy({
+        FAKE_PNPM_LOG: pnpmLog,
+        FAKE_RSYNC_LOG: rsyncLog,
+        FAKE_PNPM_NO_REFRESH: "1",
+      });
+      expect(postBuildFailureResult.status).not.toBe(0);
+      expect(
+        `${postBuildFailureResult.stdout}${postBuildFailureResult.stderr}`,
+      ).toContain("refusing to deploy stale dist after build");
+      expect(existsSync(rsyncLog)).toBe(false);
+
+      rmSync(pnpmLog, { force: true });
+      makeBuildInputStale();
+      const buildInputResult = runDeploy({
+        FAKE_PNPM_LOG: pnpmLog,
+        FAKE_RSYNC_LOG: rsyncLog,
+      });
+      expect(buildInputResult.status).toBe(0);
+      expect(readFileSync(pnpmLog, "utf8")).toContain("run build");
+      expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
+      rmSync(rsyncLog, { force: true });
+      rmSync(pnpmLog, { force: true });
+
       makeStale();
       const successResult = runDeploy({
         FAKE_PNPM_LOG: pnpmLog,
@@ -397,11 +493,32 @@ exit 0
       // The temp worktree is created from HEAD, but this test needs to execute
       // the *current* working-tree version of deploy-local.sh under test.
       writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
-      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
+      mkdirSync(join(tempWorktree, "plugin", "dist", "temporal"), {
+        recursive: true,
+      });
       writeFileSync(
         join(tempWorktree, "plugin", "dist", "index.js"),
         "// test dist is fresh\n",
       );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
+        "// test worker is fresh\n",
+      );
+      writeFileSync(
+        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+        "// test workflows is fresh\n",
+      );
+      for (const distFile of [
+        join(tempWorktree, "plugin", "dist", "index.js"),
+        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
+        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
+      ]) {
+        utimesSync(
+          distFile,
+          new Date("2030-01-01T00:00:00Z"),
+          new Date("2030-01-01T00:00:00Z"),
+        );
+      }
 
       const worktreeScript = join(tempWorktree, "scripts", "deploy-local.sh");
       const fixResult = spawnSync("bash", [worktreeScript, "--fix"], {
