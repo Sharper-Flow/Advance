@@ -238,6 +238,9 @@ describe("gate tools — signal-driven lifecycle", () => {
           },
         } as Partial<import("../types").Change>,
       });
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("TMPRL1100: Nondeterminism error"),
+      );
 
       const result = await gateTools.adv_gate_complete.execute(
         {

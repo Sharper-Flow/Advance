@@ -347,6 +347,9 @@ describe("contractTools", () => {
       },
     } as Partial<Change>);
     const store = createStore(change, changesDir);
+    fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("TMPRL1100: Nondeterminism error"),
+    );
 
     const output = parse(
       await contractTools.adv_contract_mint.execute(
@@ -368,7 +371,7 @@ describe("contractTools", () => {
         acceptanceCriteria: ["Contract minting fires a production signal."],
       }),
     );
-    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(fireSignalAndRefresh).toHaveBeenCalled();
   });
 
   test("poisoned-history recovery requires explicit recoveryEvidence", async () => {
@@ -405,7 +408,7 @@ describe("contractTools", () => {
         {
           changeId: "contractRecovery",
           recoveryMode: "poisoned_history",
-          recoveryEvidence: "operator confirmed recovery",
+          recoveryEvidence: "operator confirmed poisoned history",
         },
         store,
       ),
@@ -414,5 +417,39 @@ describe("contractTools", () => {
     expect(output.error).toContain("Workflow execution not found");
     expect(output._recoveryMutation).toBeUndefined();
     expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("stale poisoned-history markers do not bypass healthy Temporal signaling", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const change = baseChange({
+      _source: "disk",
+      _recovery: {
+        mode: "temporal_query_fallback",
+        reason: "poisoned_history",
+      },
+    } as Partial<Change>);
+    const store = createStore(change, changesDir);
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "operator confirmed poisoned history",
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBeUndefined();
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(fireSignalAndRefresh).toHaveBeenCalledWith(
+      expect.anything(),
+      store,
+      "contractRecovery",
+      contractSetSignal,
+      expect.anything(),
+    );
   });
 });

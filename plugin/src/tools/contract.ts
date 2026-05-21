@@ -19,7 +19,12 @@ import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { buildContractFromAgreement } from "../validator/contract-mint";
-import { isPoisonedHistoryError } from "../temporal/recovery-classification";
+import {
+  RECOVERY_RECONCILIATION_WARNING,
+  isFailingContractReviewStatus,
+  isPoisonedHistoryError,
+  isPrecisePoisonedHistoryEvidence,
+} from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import {
   formatTargetProjectContext,
@@ -98,19 +103,6 @@ async function healthySignalHandle(store: Store, changeId: string) {
   return getChangeHandle(bundle.client, projectId, changeId);
 }
 
-const RECOVERY_RECONCILIATION_WARNING =
-  "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";
-
-type RecoveryMarkedChange = Change & {
-  _recovery?: { reason?: string };
-};
-
-function hasPoisonedHistoryMarker(change: Change): boolean {
-  return (
-    (change as RecoveryMarkedChange)._recovery?.reason === "poisoned_history"
-  );
-}
-
 function recoveryEvidenceError(input: {
   recoveryMode?: "normal" | "poisoned_history";
   recoveryEvidence?: string;
@@ -120,6 +112,13 @@ function recoveryEvidenceError(input: {
     !input.recoveryEvidence?.trim()
   ) {
     return "poisoned_history recovery requires non-empty recoveryEvidence";
+  }
+  if (
+    input.recoveryMode === "poisoned_history" &&
+    input.recoveryEvidence &&
+    !isPrecisePoisonedHistoryEvidence(input.recoveryEvidence)
+  ) {
+    return "poisoned_history recoveryEvidence must cite precise poisoned-history evidence";
   }
   return undefined;
 }
@@ -157,11 +156,14 @@ async function saveRecoveredReviewMatrix(input: {
   change: Change;
   reviewMatrix: ContractReviewMatrix;
 }): Promise<void> {
+  if (!input.change.contract) {
+    throw new Error(
+      "Cannot recover contract review matrix: no contract is set",
+    );
+  }
   const updated = {
     ...input.change,
-    contract: input.change.contract
-      ? { ...input.change.contract, reviewMatrix: input.reviewMatrix }
-      : undefined,
+    contract: { ...input.change.contract, reviewMatrix: input.reviewMatrix },
   } as Change;
   await input.store.changes.save(updated);
   await bestEffortRefresh(input.store, input.change.id);
@@ -245,25 +247,6 @@ export const contractTools = {
               dryRun: true,
               itemCount: contract.items.length,
               contract,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          }
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            hasPoisonedHistoryMarker(change)
-          ) {
-            await saveRecoveredContract({
-              store: activeStore,
-              change,
-              contract,
-            });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              itemCount: contract.items.length,
-              contractIds: contract.items.map((item) => item.id),
-              _recoveryMutation: true,
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
@@ -407,27 +390,6 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
-          if (
-            args.recoveryMode === "poisoned_history" &&
-            hasPoisonedHistoryMarker(change)
-          ) {
-            await saveRecoveredReviewMatrix({
-              store: activeStore,
-              change,
-              reviewMatrix,
-            });
-            return formatToolOutput({
-              success: true,
-              changeId: args.changeId,
-              rowCount: reviewMatrix.rows.length,
-              failingRows: reviewMatrix.rows.filter((row) =>
-                ["fail", "violated", "unknown"].includes(row.status),
-              ).length,
-              _recoveryMutation: true,
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          }
           try {
             const handle = await healthySignalHandle(
               activeStore,
@@ -455,7 +417,7 @@ export const contractTools = {
                 changeId: args.changeId,
                 rowCount: reviewMatrix.rows.length,
                 failingRows: reviewMatrix.rows.filter((row) =>
-                  ["fail", "violated", "unknown"].includes(row.status),
+                  isFailingContractReviewStatus(row.status),
                 ).length,
                 _recoveryMutation: true,
                 reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
@@ -469,7 +431,7 @@ export const contractTools = {
             changeId: args.changeId,
             rowCount: reviewMatrix.rows.length,
             failingRows: reviewMatrix.rows.filter((row) =>
-              ["fail", "violated", "unknown"].includes(row.status),
+              isFailingContractReviewStatus(row.status),
             ).length,
             ...(projectContext ? { _projectContext: projectContext } : {}),
           });

@@ -7,6 +7,7 @@ import {
   type GateReadinessBlocker,
 } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
+import { isFailingContractReviewStatus } from "./recovery-classification";
 
 export const ARTIFACT_BACKED_GATES: Partial<Record<GateId, GateArtifactKind>> =
   {
@@ -159,7 +160,7 @@ function acceptanceContractBlockers(
           }),
         ];
       }
-      if (["fail", "violated", "unknown"].includes(row.status)) {
+      if (isFailingContractReviewStatus(row.status)) {
         return [
           makeBlocker({
             code: "ACCEPTANCE_REVIEW_ROW_FAILING",

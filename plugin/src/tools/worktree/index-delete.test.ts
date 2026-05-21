@@ -13,7 +13,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
-import { join } from "path";
+import { basename, join } from "path";
 import { execSync } from "child_process";
 
 const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
@@ -100,7 +100,7 @@ function createMockDeps(
 ): AdvWorktreeDeleteDeps {
   return {
     projectRoot,
-    database: { projectDir: projectRoot, projectId: "test-id" },
+    database: { projectDir: projectRoot, projectId: basename(projectRoot) },
     log: {
       debug: vi.fn(),
       info: vi.fn(),

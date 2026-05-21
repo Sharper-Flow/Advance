@@ -54,7 +54,11 @@ import {
 } from "./worktree-auto-manage";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 import { evaluateGateReadiness } from "../temporal/gate-readiness";
-import { isPoisonedHistoryError } from "../temporal/recovery-classification";
+import type { ChangeWorkflowState } from "../temporal/contracts";
+import {
+  RECOVERY_RECONCILIATION_WARNING,
+  isPoisonedHistoryError,
+} from "../temporal/recovery-classification";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
 const GATE_COMPLETION_POLL_DELAY_MS = 25;
@@ -111,14 +115,41 @@ function gateCompletionNotConfirmedResponse(input: {
   });
 }
 
-const RECOVERY_RECONCILIATION_WARNING =
-  "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";
-
-function hasPoisonedHistoryMarker(change: Change): boolean {
-  return (
-    (change as Change & { _recovery?: { reason?: string } })._recovery
-      ?.reason === "poisoned_history"
-  );
+function buildRecoveryReadinessState(input: {
+  change: Change;
+  gates: Gates;
+  projectionChangesDir: string;
+}): ChangeWorkflowState {
+  return {
+    projectId: "recovery-disk-projection",
+    changeId: input.change.id,
+    title: input.change.title,
+    initializedAt: input.change.created_at,
+    projectionChangesDir: input.projectionChangesDir,
+    id: input.change.id,
+    status: input.change.status,
+    createdAt: input.change.created_at,
+    tasks: input.change.tasks,
+    deltas: input.change.deltas,
+    wisdom: input.change.wisdom ?? [],
+    gates: input.gates,
+    reentry_history: input.change.reentry_history,
+    artifacts:
+      (input.change.artifacts as
+        | ChangeWorkflowState["artifacts"]
+        | undefined) ?? {},
+    fast_follow_of: input.change.fast_follow_of,
+    affectedProjects: input.change.affectedProjects,
+    affectedPaths: input.change.affectedPaths,
+    lastSignalAt: input.change.lastSignalAt,
+    acceptanceCriteria: input.change.acceptanceCriteria,
+    contract: input.change.contract,
+    documents: input.change.documents,
+    origin: input.change.origin,
+    worktree_auto_managed: input.change.worktree_auto_managed,
+    target_worktree_path: input.change.target_worktree_path,
+    scope_worktrees: input.change.scope_worktrees,
+  };
 }
 
 async function completeAcceptanceViaRecovery(input: {
@@ -177,14 +208,11 @@ async function completeAcceptanceViaRecovery(input: {
   }
 
   const readiness = evaluateGateReadiness(
-    {
-      ...input.change,
-      changeId: input.change.id,
-      createdAt: input.change.created_at,
+    buildRecoveryReadinessState({
+      change: input.change,
       gates: input.gates,
-      tasks: input.change.tasks,
-      wisdom: input.change.wisdom ?? [],
-    } as never,
+      projectionChangesDir: input.store.paths.changes,
+    }),
     "acceptance",
     { compatibilityReason: input.compatibilityReason },
   );
@@ -722,24 +750,6 @@ export const gateTools = {
             changeId,
             gateId,
             ...(projectContext ? { _projectContext: projectContext } : {}),
-          });
-        }
-
-        if (hasPoisonedHistoryMarker(change) && gateId === "acceptance") {
-          const boundaryWarning = validateGateBoundary(gateId, completedBy);
-          return completeAcceptanceViaRecovery({
-            store: activeStore,
-            change,
-            changeId,
-            gateId,
-            gates,
-            completedBy,
-            notes,
-            compatibilityReason,
-            boundaryWarning,
-            extraPayload: projectContext
-              ? { _projectContext: projectContext }
-              : {},
           });
         }
 
