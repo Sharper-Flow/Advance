@@ -18,7 +18,10 @@ const mocks = vi.hoisted(() => {
     getChangeHandle: vi.fn(() => handleMock),
     detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
     resolveMainCheckout: vi.fn(() => "/tmp/main"),
-    detectDefaultBranch: vi.fn(() => ({ branch: "trunk", source: "local-trunk" })),
+    detectDefaultBranch: vi.fn(() => ({
+      branch: "trunk",
+      source: "local-trunk",
+    })),
     verifyChangeBranchReachable: vi.fn(() => ({
       reachable: false,
       unmergedCommits: ["abc123 task commit"],

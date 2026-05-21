@@ -85,24 +85,41 @@ export function detectDefaultBranch(
 ): { branch: string; source: string } {
   const runGit = deps.runGit ?? defaultRunGit;
   for (const branch of ["main", "trunk"]) {
-    const result = runGit(mainCheckout, ["rev-parse", "--verify", `refs/heads/${branch}`]);
+    const result = runGit(mainCheckout, [
+      "rev-parse",
+      "--verify",
+      `refs/heads/${branch}`,
+    ]);
     if (result.status === 0) return { branch, source: `local-${branch}` };
   }
 
-  const originHead = runGit(mainCheckout, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]);
-  if (originHead.status === 0 && originHead.stdout.trim().startsWith("origin/")) {
+  const originHead = runGit(mainCheckout, [
+    "symbolic-ref",
+    "--short",
+    "refs/remotes/origin/HEAD",
+  ]);
+  if (
+    originHead.status === 0 &&
+    originHead.stdout.trim().startsWith("origin/")
+  ) {
     return {
       branch: originHead.stdout.trim().replace(/^origin\//, ""),
       source: "origin-head",
     };
   }
 
-  const configured = runGit(mainCheckout, ["config", "--get", "init.defaultBranch"]);
+  const configured = runGit(mainCheckout, [
+    "config",
+    "--get",
+    "init.defaultBranch",
+  ]);
   if (configured.status === 0 && configured.stdout.trim()) {
     return { branch: configured.stdout.trim(), source: "init-defaultBranch" };
   }
 
-  throw new Error("Unable to resolve default branch (tried main, trunk, origin/HEAD, init.defaultBranch)");
+  throw new Error(
+    "Unable to resolve default branch (tried main, trunk, origin/HEAD, init.defaultBranch)",
+  );
 }
 
 export type MainInvariantResult =
@@ -120,7 +137,11 @@ export function verifyMainInvariants(
   defaultBranch: string,
   deps: GitFinalizeDeps = {},
 ): MainInvariantResult {
-  const branch = runGitOrThrow(mainCheckout, ["branch", "--show-current"], deps);
+  const branch = runGitOrThrow(
+    mainCheckout,
+    ["branch", "--show-current"],
+    deps,
+  );
   if (branch !== defaultBranch) {
     return {
       ok: false,
@@ -130,7 +151,11 @@ export function verifyMainInvariants(
     };
   }
 
-  const porcelain = runGitOrThrow(mainCheckout, ["status", "--porcelain"], deps);
+  const porcelain = runGitOrThrow(
+    mainCheckout,
+    ["status", "--porcelain"],
+    deps,
+  );
   const dirtyFiles = splitLines(porcelain);
   if (dirtyFiles.length > 0) {
     return {
@@ -182,7 +207,11 @@ export function mergeChangeBranch(
   deps: GitFinalizeDeps = {},
 ): MergeChangeBranchResult {
   const runGit = deps.runGit ?? defaultRunGit;
-  const merge = runGit(mainCheckout, ["merge", "--ff-only", `change/${changeId}`]);
+  const merge = runGit(mainCheckout, [
+    "merge",
+    "--ff-only",
+    `change/${changeId}`,
+  ]);
   if (merge.status === 0) {
     return {
       status: "merged",
@@ -196,7 +225,11 @@ export function mergeChangeBranch(
   );
   runGit(mainCheckout, ["merge", "--abort"]);
 
-  if (merge.status === 1 || conflictFiles.length > 0 || /CONFLICT/i.test(message)) {
+  if (
+    merge.status === 1 ||
+    conflictFiles.length > 0 ||
+    /CONFLICT/i.test(message)
+  ) {
     return {
       status: "blocked",
       code: "MERGE_CONFLICT",
@@ -222,14 +255,23 @@ export function pushToOrigin(
   | { status: "pushed"; output: string }
   | { status: "skipped"; reason: string }
   | { status: "failed"; reason: string } {
-  if (options.skipPush) return { status: "skipped", reason: "--no-push requested" };
-  if (!options.autoPush) return { status: "skipped", reason: "auto_push disabled" };
+  if (options.skipPush)
+    return { status: "skipped", reason: "--no-push requested" };
+  if (!options.autoPush)
+    return { status: "skipped", reason: "auto_push disabled" };
 
-  const push = (options.runGit ?? defaultRunGit)(mainCheckout, ["push", "origin", defaultBranch]);
+  const push = (options.runGit ?? defaultRunGit)(mainCheckout, [
+    "push",
+    "origin",
+    defaultBranch,
+  ]);
   if (push.status === 0) {
     return { status: "pushed", output: push.stdout || push.stderr };
   }
-  return { status: "failed", reason: (push.stderr || push.stdout || "push failed").trim() };
+  return {
+    status: "failed",
+    reason: (push.stderr || push.stdout || "push failed").trim(),
+  };
 }
 
 export function detectArchiveMode(

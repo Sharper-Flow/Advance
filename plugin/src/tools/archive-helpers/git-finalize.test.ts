@@ -5,7 +5,7 @@
  * release gate cannot be satisfied by prose-only /adv-archive instructions.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, rm, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -123,7 +123,9 @@ describe("git-finalize helpers", () => {
 
     expect(verifyChangeBranchReachable(repo, "trunk", "example")).toEqual({
       reachable: false,
-      unmergedCommits: expect.arrayContaining([expect.stringContaining("feature")]),
+      unmergedCommits: expect.arrayContaining([
+        expect.stringContaining("feature"),
+      ]),
     });
 
     git(repo, ["merge", "--ff-only", "change/example"]);
@@ -156,9 +158,14 @@ describe("git-finalize helpers", () => {
       runGit: (_cwd, args) => {
         calls.push(args);
         if (args[0] === "merge") {
-          return { status: 1, stdout: "", stderr: "CONFLICT (content): Merge conflict in file.txt" };
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "CONFLICT (content): Merge conflict in file.txt",
+          };
         }
-        if (args[0] === "diff") return { status: 0, stdout: "file.txt\n", stderr: "" };
+        if (args[0] === "diff")
+          return { status: 0, stdout: "file.txt\n", stderr: "" };
         return { status: 0, stdout: "", stderr: "" };
       },
     });
@@ -178,7 +185,9 @@ describe("git-finalize helpers", () => {
       status: "skipped",
       reason: "auto_push disabled",
     });
-    expect(pushToOrigin("/repo", "trunk", { autoPush: true, skipPush: true })).toMatchObject({
+    expect(
+      pushToOrigin("/repo", "trunk", { autoPush: true, skipPush: true }),
+    ).toMatchObject({
       status: "skipped",
       reason: "--no-push requested",
     });
@@ -194,17 +203,19 @@ describe("git-finalize helpers", () => {
   });
 
   it("detectArchiveMode defaults direct and validates PR mode gh availability", () => {
-    expect(detectArchiveMode({})).toEqual({ archiveMode: "direct", autoPush: true });
-    expect(detectArchiveMode({ archive_mode: "direct", auto_push: false })).toEqual({
+    expect(detectArchiveMode({})).toEqual({
+      archiveMode: "direct",
+      autoPush: true,
+    });
+    expect(
+      detectArchiveMode({ archive_mode: "direct", auto_push: false }),
+    ).toEqual({
       archiveMode: "direct",
       autoPush: false,
     });
 
     expect(() =>
-      detectArchiveMode(
-        { archive_mode: "pr" },
-        { commandExists: () => false },
-      ),
+      detectArchiveMode({ archive_mode: "pr" }, { commandExists: () => false }),
     ).toThrow(/gh CLI is required/);
   });
 
