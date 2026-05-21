@@ -1,5 +1,5 @@
 import { collectErrorText } from "./retry-wrapper";
-import type { Change, ContractEvidenceStatus } from "../types";
+import type { ContractEvidenceStatus } from "../types";
 
 const POISONED_HISTORY_RE =
   /TMPRL1100|Nondeterminism error|No command scheduled for event/i;
@@ -16,10 +16,6 @@ export const FAILING_CONTRACT_REVIEW_STATUSES = [
   "unknown",
 ] as const satisfies readonly ContractEvidenceStatus[];
 
-type RecoveryMarkedChange = Change & {
-  _recovery?: { reason?: string };
-};
-
 export function isPoisonedHistoryError(error: unknown): boolean {
   return POISONED_HISTORY_RE.test(collectErrorText(error));
 }
@@ -33,12 +29,6 @@ export function isFailingContractReviewStatus(
 ): boolean {
   return FAILING_CONTRACT_REVIEW_STATUSES.includes(
     status as (typeof FAILING_CONTRACT_REVIEW_STATUSES)[number],
-  );
-}
-
-export function hasPoisonedHistoryMarker(change: Change): boolean {
-  return (
-    (change as RecoveryMarkedChange)._recovery?.reason === "poisoned_history"
   );
 }
 
