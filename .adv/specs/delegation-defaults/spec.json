@@ -5,6 +5,71 @@
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
   "version": "1.0.0",
   "updated_at": "2026-05-21T00:00:00.000Z",
+  "delegation_matrix": [
+    {
+      "step": "proposal",
+      "gate_affinity": "proposal",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    },
+    {
+      "step": "discovery",
+      "gate_affinity": "discovery",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-researcher", "explore"],
+      "inline_boundaries": ["problem synthesis", "agreement updates", "scope decisions", "gate completion"]
+    },
+    {
+      "step": "design",
+      "gate_affinity": "design",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-researcher"],
+      "inline_boundaries": ["architecture decision ownership", "design artifact updates", "scope-drift decisions", "gate completion"]
+    },
+    {
+      "step": "prep",
+      "gate_affinity": "planning",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    },
+    {
+      "step": "apply",
+      "gate_affinity": "execution",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-engineer", "general"],
+      "inline_boundaries": ["task selection", "ADV state mutation", "scope-drift handling", "TDD evidence acceptance", "task completion"]
+    },
+    {
+      "step": "review",
+      "gate_affinity": "acceptance",
+      "mode": "hybrid",
+      "allowed_subagents": ["adv-reviewer", "explore"],
+      "inline_boundaries": ["finding verdict synthesis", "user acceptance", "ADV state mutation", "scope-drift handling"]
+    },
+    {
+      "step": "harden",
+      "gate_affinity": "release",
+      "mode": "subagent_primary",
+      "allowed_subagents": ["adv-reviewer", "explore"],
+      "inline_boundaries": ["readiness verdict synthesis", "release decision", "ADV state mutation", "scope-drift handling"]
+    },
+    {
+      "step": "archive",
+      "gate_affinity": "release",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    },
+    {
+      "step": "reflect",
+      "gate_affinity": "post-release",
+      "mode": "inline_required",
+      "allowed_subagents": [],
+      "inline_boundaries": ["full"]
+    }
+  ],
   "requirements": [
     {
       "id": "rq-delDefaults01",

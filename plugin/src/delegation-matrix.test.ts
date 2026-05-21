@@ -16,6 +16,7 @@ import { existsSync, readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
+const SPEC_PATH = join(REPO_ROOT, ".adv/specs/delegation-defaults/spec.json");
 
 // rq-delDefaults01: canonical 9 workflow steps
 const WORKFLOW_STEPS = [
@@ -47,31 +48,36 @@ interface MatrixRow {
   step: WorkflowStep;
   mode: DelegationMode;
   allowedAgents: string[];
+  inlineBoundaries: string[];
 }
 
-const EXPECTED_MATRIX: MatrixRow[] = [
-  { step: "proposal", mode: "inline_required", allowedAgents: [] },
-  {
-    step: "discovery",
-    mode: "hybrid",
-    allowedAgents: ["adv-researcher", "explore"],
-  },
-  { step: "design", mode: "hybrid", allowedAgents: ["adv-researcher"] },
-  { step: "prep", mode: "inline_required", allowedAgents: [] },
-  { step: "apply", mode: "hybrid", allowedAgents: ["adv-engineer", "general"] },
-  {
-    step: "review",
-    mode: "hybrid",
-    allowedAgents: ["adv-reviewer", "explore"],
-  },
-  {
-    step: "harden",
-    mode: "subagent_primary",
-    allowedAgents: ["adv-reviewer", "explore"],
-  },
-  { step: "archive", mode: "inline_required", allowedAgents: [] },
-  { step: "reflect", mode: "inline_required", allowedAgents: [] },
-];
+interface DelegationMatrixEntry {
+  step: string;
+  mode: string;
+  allowed_subagents: string[];
+  inline_boundaries: string[];
+}
+
+function loadDelegationMatrix(): MatrixRow[] {
+  const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+    delegation_matrix?: DelegationMatrixEntry[];
+  };
+
+  if (!Array.isArray(spec.delegation_matrix)) {
+    throw new Error(
+      "delegation-defaults spec must define a machine-readable delegation_matrix array",
+    );
+  }
+
+  return spec.delegation_matrix.map((entry) => ({
+    step: entry.step as WorkflowStep,
+    mode: entry.mode as DelegationMode,
+    allowedAgents: entry.allowed_subagents,
+    inlineBoundaries: entry.inline_boundaries,
+  }));
+}
+
+const EXPECTED_MATRIX: MatrixRow[] = loadDelegationMatrix();
 
 /**
  * Get agent files that exist in .opencode/agents/
@@ -124,6 +130,28 @@ function readCommandFile(step: string): string | null {
 describe("delegation matrix coverage", () => {
   const existingAgents = getExistingAgentFiles();
 
+  // rq-delDefaults01: spec provides a machine-readable delegation matrix
+  test("spec provides a machine-readable delegation matrix", () => {
+    expect(EXPECTED_MATRIX.length).toBeGreaterThan(0);
+    for (const row of EXPECTED_MATRIX) {
+      expect(typeof row.step, "matrix row step must be a string").toBe(
+        "string",
+      );
+      expect(
+        typeof row.mode,
+        `matrix row ${row.step} mode must be a string`,
+      ).toBe("string");
+      expect(
+        Array.isArray(row.allowedAgents),
+        `matrix row ${row.step} allowed_subagents must be an array`,
+      ).toBe(true);
+      expect(
+        Array.isArray(row.inlineBoundaries),
+        `matrix row ${row.step} inline_boundaries must be an array`,
+      ).toBe(true);
+    }
+  });
+
   // rq-delDefaults01: all 9 steps present
   test("all 9 workflow steps have matrix entries", () => {
     const stepSet = new Set(EXPECTED_MATRIX.map((r) => r.step));
@@ -172,6 +200,22 @@ describe("delegation matrix coverage", () => {
           row.allowedAgents,
           `Step ${row.step} is inline_required but has allowed agents`,
         ).toEqual([]);
+      }
+    }
+  });
+
+  // rq-delDefaults03: all rows name inline-only safety boundaries
+  test("each step names inline-only safety boundaries", () => {
+    for (const row of EXPECTED_MATRIX) {
+      expect(
+        row.inlineBoundaries.length,
+        `Step ${row.step} must name inline-only safety boundaries`,
+      ).toBeGreaterThan(0);
+      if (row.mode === "inline_required") {
+        expect(
+          row.inlineBoundaries,
+          `Step ${row.step} is inline_required and must declare full inline boundary`,
+        ).toContain("full");
       }
     }
   });
