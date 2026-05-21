@@ -50,10 +50,14 @@ describe("adv-cleanup worktree drift-report contract", () => {
   test("command keeps worktree deletion report-only under --execute", () => {
     // Cleanup command must NOT perform actual worktree deletion even with --execute.
     // Deletion remains owned by adv_worktree_delete / adv_worktree_cleanup.
-    expect(command).toMatch(/report-only|drift report|does not delete worktrees/i);
+    expect(command).toMatch(
+      /report-only|drift report|does not delete worktrees/i,
+    );
   });
 
   test("skill keeps worktree deletion report-only under --execute", () => {
-    expect(skill).toMatch(/report-only|drift report|does not delete worktrees/i);
+    expect(skill).toMatch(
+      /report-only|drift report|does not delete worktrees/i,
+    );
   });
 });
