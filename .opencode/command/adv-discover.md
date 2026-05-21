@@ -299,6 +299,36 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 - Do not create `agreement.md` here
 ---
 
+## Phase 3.5: Discovery Opportunity Scout
+<!-- rq-discOpportunityScout01 -->
+
+Run a mandatory bounded opportunity-scout pass after current-state research and before agreement formation. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
+
+### Execution
+
+1. **Load scout skill** — `skill("adv-opportunity-scout")` with mode `discovery`. If skill unavailable, record "Scout skill unavailable; skipping opportunity scan" and proceed.
+2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
+3. **Spawn adv-researcher** — use the discovery-mode prompt template from the skill. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
+4. **Sort candidates** — by payoff/risk ratio (highest first).
+5. **Route adoption** per the skill's routing taxonomy:
+   - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
+   - **Surface to user** for all other candidates (untied, medium+ risk, or user-value tradeoff).
+6. **Integrate adopted findings** — auto-adopted candidates are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
+
+### Opt-Out
+
+The scout phase may be skipped with rationale for trivially scoped changes where the opportunity surface is likely zero. Record "Scout: skipped — {rationale}" in the phase output.
+
+### Degradation
+
+If adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+
+### Output
+
+- "Discovery Opportunity Scout" section with: candidates considered (count), auto-adopted (count + summary), surfaced to user (count + summary), inconclusive/skipped (if applicable).
+
+---
+
 ## Phase 4: Present Agreement Draft + Resolve Questions
 <!-- rq-disc11 -->
 - Load the refreshed discovery context from proposal findings
