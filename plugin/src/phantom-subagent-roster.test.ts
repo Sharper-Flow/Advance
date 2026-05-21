@@ -78,7 +78,10 @@ function buildPatterns(name: string): PatternSpec[] {
     // Delegation prose: "delegate to name" / "Delegate to `name`"
     {
       kind: "delegate-prose",
-      pattern: new RegExp(`\\bdelegate\\s+to\\s+\`?${name}\`?${notCompound}`, "gi"),
+      pattern: new RegExp(
+        `\\bdelegate\\s+to\\s+\`?${name}\`?${notCompound}`,
+        "gi",
+      ),
     },
     // Numbered emphasized agent reference: "1. **name** — ..."
     {

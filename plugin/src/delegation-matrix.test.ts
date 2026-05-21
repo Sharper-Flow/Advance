@@ -32,11 +32,7 @@ const WORKFLOW_STEPS = [
 type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
 // rq-delDefaults02: valid mode enum
-const VALID_MODES = [
-  "inline_required",
-  "subagent_primary",
-  "hybrid",
-] as const;
+const VALID_MODES = ["inline_required", "subagent_primary", "hybrid"] as const;
 type DelegationMode = (typeof VALID_MODES)[number];
 
 // rq-delDefaults03: forbidden agent names
@@ -55,12 +51,24 @@ interface MatrixRow {
 
 const EXPECTED_MATRIX: MatrixRow[] = [
   { step: "proposal", mode: "inline_required", allowedAgents: [] },
-  { step: "discovery", mode: "hybrid", allowedAgents: ["adv-researcher", "explore"] },
+  {
+    step: "discovery",
+    mode: "hybrid",
+    allowedAgents: ["adv-researcher", "explore"],
+  },
   { step: "design", mode: "hybrid", allowedAgents: ["adv-researcher"] },
   { step: "prep", mode: "inline_required", allowedAgents: [] },
   { step: "apply", mode: "hybrid", allowedAgents: ["adv-engineer", "general"] },
-  { step: "review", mode: "hybrid", allowedAgents: ["adv-reviewer", "explore"] },
-  { step: "harden", mode: "subagent_primary", allowedAgents: ["adv-reviewer", "explore"] },
+  {
+    step: "review",
+    mode: "hybrid",
+    allowedAgents: ["adv-reviewer", "explore"],
+  },
+  {
+    step: "harden",
+    mode: "subagent_primary",
+    allowedAgents: ["adv-reviewer", "explore"],
+  },
   { step: "archive", mode: "inline_required", allowedAgents: [] },
   { step: "reflect", mode: "inline_required", allowedAgents: [] },
 ];
@@ -120,10 +128,14 @@ describe("delegation matrix coverage", () => {
   test("all 9 workflow steps have matrix entries", () => {
     const stepSet = new Set(EXPECTED_MATRIX.map((r) => r.step));
     for (const step of WORKFLOW_STEPS) {
-      expect(stepSet.has(step), `Missing matrix entry for step: ${step}`).toBe(true);
+      expect(stepSet.has(step), `Missing matrix entry for step: ${step}`).toBe(
+        true,
+      );
     }
     expect(EXPECTED_MATRIX.length).toBe(WORKFLOW_STEPS.length);
-    expect(new Set(EXPECTED_MATRIX.map((r) => r.step)).size).toBe(WORKFLOW_STEPS.length);
+    expect(new Set(EXPECTED_MATRIX.map((r) => r.step)).size).toBe(
+      WORKFLOW_STEPS.length,
+    );
   });
 
   // rq-delDefaults02: valid mode per step
@@ -180,8 +192,7 @@ describe("delegation matrix coverage", () => {
   test("referenced sub-agents exist as .opencode/agents/*.md files or known global agents", () => {
     for (const row of EXPECTED_MATRIX) {
       for (const agent of row.allowedAgents) {
-        const exists =
-          existingAgents.has(agent) || GLOBAL_AGENTS.has(agent);
+        const exists = existingAgents.has(agent) || GLOBAL_AGENTS.has(agent);
         expect(
           exists,
           `Agent ${agent} (referenced by step ${row.step}) does not exist as .opencode/agents/${agent}.md and is not a known global agent`,
@@ -252,9 +263,10 @@ describe("delegation matrix cross-reference", () => {
       if (!content) continue;
 
       // Check for explicit sub-agent spawning instructions
-      const hasExplicitSubagentSpawn = /subagent_type:\s*["'](?:adv-engineer|adv-reviewer|adv-researcher|explore|general|adv-tron)["']/i.test(
-        content,
-      );
+      const hasExplicitSubagentSpawn =
+        /subagent_type:\s*["'](?:adv-engineer|adv-reviewer|adv-researcher|explore|general|adv-tron)["']/i.test(
+          content,
+        );
 
       expect(
         hasExplicitSubagentSpawn,
@@ -265,9 +277,7 @@ describe("delegation matrix cross-reference", () => {
 
   // rq-delDefaults06: hybrid steps should not claim "no sub-agents"
   test("hybrid steps do not claim 'no sub-agents' in command files", () => {
-    const hybridSteps = EXPECTED_MATRIX.filter(
-      (r) => r.mode === "hybrid",
-    );
+    const hybridSteps = EXPECTED_MATRIX.filter((r) => r.mode === "hybrid");
 
     for (const row of hybridSteps) {
       const content = readCommandFile(row.step);
