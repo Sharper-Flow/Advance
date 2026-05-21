@@ -262,6 +262,10 @@ Choose inline vs delegation for context continuity and progress tracking.
 - Pre-change investigation: Due diligence first. Unknown platform/architecture/capability questions require source-appropriate evidence before answer/recommend/decide. Quick-answer requests shorten reply only; blocked diligence stops and surfaces blockage.
 - Context-shed delegation: delegate only when design decisions are made, task HOW does not feed downstream decisions, AC are defined, task is mechanical implementation, and floor ≈5 files or ≈50 lines. If unsure, inline.
 
+### Worktree Isolation Routing
+
+Mutating ADV implementation runs from the per-change worktree. If isolation is required but unavailable, hard-block instead of editing the default checkout. Reuse existing `change/{change-id}` worktrees; use returned workdir for subsequent tools.
+
 ## Sub-Agent Policy
 
 Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guard). Recommended limits: depth ≤ 1, max 3 concurrent sub-agents per primary agent. Only `mode: subagent` agents spawnable via Task tool.

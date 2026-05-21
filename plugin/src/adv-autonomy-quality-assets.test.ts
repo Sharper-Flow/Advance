@@ -329,3 +329,48 @@ describe("Archive and spec assets", () => {
     );
   });
 });
+
+// =============================================================================
+// 6. Opportunity Scout Phase & Schema Anchors
+// =============================================================================
+
+describe("Opportunity scout phase and schema anchors", () => {
+  const SCOUT_SKILL = join(REPO_ROOT, "skills/adv-opportunity-scout/SKILL.md");
+
+  test("adv-opportunity-scout skill exists with required sections", () => {
+    const content = readAsset(SCOUT_SKILL);
+    // Output schema
+    expect(content).toMatch(/candidate/);
+    expect(content).toMatch(/evidence/);
+    expect(content).toMatch(/payoff/);
+    expect(content).toMatch(/risk/);
+    expect(content).toMatch(/contract_tie/);
+    expect(content).toMatch(/prior_consideration/);
+    expect(content).toMatch(/recommended_fate/);
+    expect(content).toMatch(/fate_rationale/);
+    // Hard cap
+    expect(content).toMatch(/≤ ?5|at most 5/);
+    // Degradation path
+    expect(content).toMatch(/inconclusive/i);
+    // Two modes
+    expect(content).toMatch(/discovery/);
+    expect(content).toMatch(/design/);
+  });
+
+  test("adv-discover spec contains scout requirements", () => {
+    const specPath = join(REPO_ROOT, ".adv/specs/adv-discover/spec.json");
+    const content = readAsset(specPath);
+    const spec = JSON.parse(content);
+    const ids = spec.requirements.map((r: { id: string }) => r.id);
+    expect(ids).toContain("rq-discOpportunityScout01");
+    expect(ids).toContain("rq-discOpportunityScout02");
+  });
+
+  test("advance-workflow spec contains design scout requirement", () => {
+    const specPath = join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json");
+    const content = readAsset(specPath);
+    const spec = JSON.parse(content);
+    const ids = spec.requirements.map((r: { id: string }) => r.id);
+    expect(ids).toContain("rq-designOpportunityScout01");
+  });
+});

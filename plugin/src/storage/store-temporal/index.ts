@@ -26,7 +26,10 @@ import {
   getGuardedChangeHandle,
   runTemporalQuery,
 } from "./shared";
-import { changeStateQuery } from "../../temporal/messages";
+import {
+  changeStateQuery,
+  worktreeAutoManagedSignal,
+} from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
@@ -202,6 +205,52 @@ export function createTemporalStoreBackend(
   const invalidateChange = (changeId: string): void => {
     changeCache.delete(changeId);
     memo.invalidate(changeId);
+  };
+
+  /**
+   * rq-autoManageAdvWorktrees AC3 — lazy migration of legacy changes.
+   *
+   * On first read of a change whose workflow state lacks
+   * `worktree_auto_managed`, fire `worktreeAutoManagedSignal` best-effort
+   * with `value: false, source: "migrate"`. The signal handler is sticky
+   * (`applyWorktreeAutoManagedToState`) so concurrent migrations from
+   * peer sessions are idempotent. Failures log at `debug` and do NOT
+   * block the read — the next read retries automatically.
+   *
+   * Lazy by design (DONT3): never fires at plugin load. Only triggers
+   * when a tool actually requests a change.
+   *
+   * Pre-A3 detection: any change with the marker undefined is necessarily
+   * legacy (new changes get the marker stamped at create per A3, across
+   * workflow seedState + disk + Memo overlay simultaneously).
+   */
+  const fireWorktreeAutoManagedMigrationIfNeeded = (
+    changeId: string,
+    workflowMarker: boolean | undefined,
+    diskMarker: boolean | undefined,
+  ): void => {
+    if (
+      typeof workflowMarker === "boolean" ||
+      typeof diskMarker === "boolean"
+    ) {
+      return;
+    }
+    void (async () => {
+      try {
+        const handle = await getGuardedChangeHandle(input, changeId);
+        await handle.signal(worktreeAutoManagedSignal, {
+          value: false,
+          source: "migrate",
+          recordedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        logger.debug(
+          `Lazy worktree_auto_managed migration skipped for change ${changeId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    })();
   };
 
   const updateOverlay = (changeId: string, patch: Partial<Change>): void => {
@@ -462,6 +511,13 @@ export function createTemporalStoreBackend(
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
+      // rq-autoManageAdvWorktrees AC3 — lazy migration trigger.
+      // Fires once on legacy reads; sticky handler dedupes concurrent races.
+      fireWorktreeAutoManagedMigrationIfNeeded(
+        changeId,
+        state.worktree_auto_managed,
+        undefined,
+      );
       return { success: true, data: setCachedChange(state) };
     } catch (error) {
       // P1.5 — orphan-tolerant changes.get with re-seed. When the
@@ -480,6 +536,15 @@ export function createTemporalStoreBackend(
           recoveryReasonFromError(error),
         );
         if (reseeded) {
+          // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.
+          // The disk projection may lack the marker for legacy changes
+          // that pre-date this field; signal the workflow once so the
+          // marker becomes sticky in the freshly-seeded state.
+          fireWorktreeAutoManagedMigrationIfNeeded(
+            changeId,
+            undefined,
+            reseeded.worktree_auto_managed,
+          );
           return { success: true, data: reseeded };
         }
       }

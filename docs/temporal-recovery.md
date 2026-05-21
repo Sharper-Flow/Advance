@@ -100,15 +100,18 @@ The diagnostic output reports:
 
 `adv_status view: "health"` also shows feature flags. `worker_singleton_enforce`
 default true; rollback/debug escape hatches are setting that flag false or
-`ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` default false during
-rollout; when omitted or false, the trunk write firewall does not block
-default-checkout file writes or classified destructive bash writes. Projects that
-want strict mode set `features.worktree_guard_enforce: true` explicitly.
+`ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` default true
+post-rollout (rq-autoManageAdvWorktrees AC2); when omitted or true, the trunk
+write firewall blocks default-checkout file writes and classified destructive
+bash writes. Pre-flip behavior (omitted or false allows default-checkout file
+writes) is preserved only when `worktree_guard_enforce` is explicitly false —
+the legacy escape hatch for projects that want to keep editing in the main
+checkout.
 
 Restart verification timeout: `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` defaults to
 10000 ms. Raise only when Temporal queue serviceability is slow but healthy.
 
-Plain anchors for drift tests: worker_singleton_enforce default true; worktree_guard_enforce default false.
+Plain anchors for drift tests: worker_singleton_enforce default true; worktree_guard_enforce default true.
 
 Stale `_freshness` values are diagnostic-only. Do not treat stale serviceability
 as proof of restart success, worker-lock reclaim safety, override safety, or

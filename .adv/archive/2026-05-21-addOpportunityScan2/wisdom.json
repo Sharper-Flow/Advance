@@ -1,0 +1,11 @@
+{
+  "entries": [
+    {
+      "id": "ws-LF4yge",
+      "type": "pattern",
+      "content": "ChangeContract signals (contractSetSignal, contractReviewMatrixSetSignal) are fired by the adv-acceptance command workflow, not by individual tools. When resuming a change from a prior session that was created before the contract mechanism existed, the contract and review matrix must be set via direct Temporal signals before acceptance gate can complete. Use signal names 'adv.change.contractSet' and 'adv.change.contractReviewMatrixSet' (from contracts.ts SIGNAL_NAMES).",
+      "recorded_at": "2026-05-21T02:01:25.004Z"
+    }
+  ],
+  "count": 1
+}

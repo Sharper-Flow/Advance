@@ -167,7 +167,7 @@
     {
       "id": "rq-worktreeMutationGuard01",
       "title": "Machine-Enforced ADV Worktree Mutation Guard",
-      "body": "ADV mutating tools that advance gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true. Mutations from an ADV worktree remain allowed. The proposal gate remains exempt so a change can be created before a worktree exists. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions.",
+      "body": "ADV mutating tools that advance gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. The proposal gate remains exempt so a change can be created before a worktree exists. For auto-managed changes, the guard MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
       "priority": "must",
       "tags": ["worktree", "safety", "mutation-guard"],
       "scenarios": [
@@ -201,14 +201,14 @@
         },
         {
           "id": "rq-worktreeMutationGuard01.3",
-          "title": "Proposal gate and flag-off paths remain compatible",
+          "title": "Proposal gate and explicit-false paths remain compatible",
           "given": [
-            "The proposal gate is being completed or worktree_guard_enforce is false"
+            "The proposal gate is being completed or worktree_guard_enforce is explicitly false for a non-auto-managed change"
           ],
           "when": "A supported ADV mutation executes from the main checkout",
           "then": [
             "The proposal gate completion remains allowed so a worktree can be created after proposal",
-            "Flag-off behavior preserves legacy mutation flow",
+            "Explicit-false behavior preserves legacy mutation flow for non-auto-managed changes",
             "The guard remains additive and does not alter read-only tools"
           ]
         }

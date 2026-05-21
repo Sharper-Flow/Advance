@@ -43,6 +43,35 @@ Produce a design covering:
 Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not what files exist.
 
 ---
+## Phase 2.5: Design Leverage Scout
+<!-- rq-designOpportunityScout01 -->
+
+Run a mandatory bounded leverage-scout pass after draft design and before independent validation (Phase 3.5). The scout identifies leverage points: shortcuts, reusable components, parallelism opportunities, simplification paths, and cross-cutting improvements.
+
+### Execution
+
+1. **Load scout skill** — `skill("adv-opportunity-scout")` with mode `design`. If skill unavailable, record "Scout skill unavailable; skipping leverage scan" and proceed.
+2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, draft design content (Phase 2 output), and prior-consideration data from discovery's conflict scan.
+3. **Spawn adv-researcher** — use the design-mode prompt template from the skill. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
+4. **Sort candidates** — by payoff/risk ratio (highest first).
+5. **Route adoption** per the skill's routing taxonomy:
+   - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
+   - **Surface to user** for all other candidates (untied, medium+ risk, or user-value tradeoff).
+6. **Integrate adopted findings** — auto-adopted candidates are incorporated into the design before the validator runs (Phase 3.5). The validator then validates the design including any adopted improvements.
+
+### Opt-Out
+
+The scout phase may be skipped with rationale for trivially scoped changes where the opportunity surface is likely zero. Record "Scout: skipped — {rationale}" in the phase output.
+
+### Degradation
+
+If adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+
+### Output
+
+- "Design Leverage Scout" section in design.md with: candidates considered (count), auto-adopted (count + summary), surfaced to user (count + summary), inconclusive/skipped (if applicable).
+
+---
 ## Phase 3: Persist Design
 Write `design.md` via `adv_change_update`.
 

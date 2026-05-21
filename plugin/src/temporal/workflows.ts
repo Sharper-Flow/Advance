@@ -46,6 +46,8 @@ import {
   applyTaskRemovedToState,
   applyTaskUpdatedToState,
   applyWisdomAddedToState,
+  applyWorktreeAttachedToState,
+  applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
   archiveChangeInChangeState,
@@ -261,6 +263,12 @@ const worktreeCreatedSignal = wf.defineSignal<
 const worktreeDeletedSignal = wf.defineSignal<
   [import("../types").WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+const worktreeAutoManagedSignal = wf.defineSignal<
+  [import("../types").WorktreeAutoManagedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAutoManaged);
+const worktreeAttachedSignal = wf.defineSignal<
+  [import("../types").WorktreeAttachedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
 const conformanceLockedSignal = wf.defineSignal<
   [import("../types").ConformanceLockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);
@@ -503,6 +511,15 @@ export async function changeWorkflow(
     }
     if (input.seedState.origin) {
       state.origin = input.seedState.origin;
+    }
+    if (typeof input.seedState.worktree_auto_managed === "boolean") {
+      state.worktree_auto_managed = input.seedState.worktree_auto_managed;
+    }
+    if (typeof input.seedState.target_worktree_path !== "undefined") {
+      state.target_worktree_path = input.seedState.target_worktree_path;
+    }
+    if (input.seedState.scope_worktrees) {
+      state.scope_worktrees = { ...input.seedState.scope_worktrees };
     }
   }
 
@@ -929,6 +946,18 @@ export async function changeWorkflow(
     worktreeDeletedSignal,
     signalMutation("worktreeDeleted", (payload) =>
       applyWorktreeDeletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeAutoManagedSignal,
+    signalMutation("worktreeAutoManaged", (payload) =>
+      applyWorktreeAutoManagedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeAttachedSignal,
+    signalMutation("worktreeAttached", (payload) =>
+      applyWorktreeAttachedToState(state, payload),
     ),
   );
   wf.setHandler(

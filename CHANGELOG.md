@@ -1,3 +1,162 @@
+## 2026-05-21 (v0.9.1)
+
+### Fixed
+
+- widen integration gate to terminal-set {archived, closed}
+### Changed
+
+- archive fixWorktreeTerminalStatusGate (chore)
+
+### Change Highlights
+
+- **05-21-fixWorktreeTerminalStatusGate**: Outcome
+
+## 2026-05-21 (v0.9.0)
+
+### Added
+
+- first-class executive summary with archive fallback
+- persist executive summary as 5th narrative artifact
+- add executive summary and structured list guidance
+- track plugin + lib + unit tests previously untracked
+- add thread-close subcommand for single-instance graceful shutdown
+- hygiene recommendations emit actionable commands (#122)
+- triage flags worktrees with uncommitted work (#120)
+- add /ship command with worktree-aware cleanup
+- replace Phase 3b text-only batch prompt with question tool one-by-one
+- adv_roadmap MCP tool + /adv-roadmap command + change.origin field
+- enforce git mutation guard
+- add ADV triage guard guidance
+- add ADV triage command contract
+- accept signal-driven verification as TDD compliance evidence
+- disk-layer guard against synthetic-fixture change IDs (rq-synthstate01)
+- add test-only runtime Zod schema guard at SDK boundary
+- wire OCA ensure-window hook
+- add one-writer-per-worktree lease protocol
+- add trunk guard for worktree-first execution
+### Fixed
+
+- bump pnpm to v11, drop Node 20 from matrix
+- resolve default branch via local refs before init.defaultBranch (#113)
+- expose ADV backlog and WIP tools
+- flag stale snapshot drift
+- filter closed GH issues from live source
+- add adv_roadmap to ADV agent tool allowlists
+- trust live Temporal gates as authoritative for archive preflight
+- archive gate resolution + temporal compat query names
+- adv_task_cancel crash on missing reasons
+- distinguish permission-ATTN from idle-ATTN (#86)
+- stop flagging in-repo archive as legacy, extend test isolation checks (#60)
+- add disk-only close fallback for terminated workflows (#54)
+- add data/constant trivial patterns to TDD classifier (#62)
+- use store.paths.projectMetadata for live source
+- mandate full ROADMAP.md echo in chat after regen
+- allowlist ROADMAP.md, force-bypass non-registered branches, autofill option
+- allow stash/checkout/switch on dirty default branch (RECOVERY)
+- patch fast-uri vulnerabilities
+- replace gh project item-edit with batched GraphQL mutations
+- resolve post-merge verification issues
+- drop newly-orphan InvestmentReport type + reclassify conformance TODO
+- drop residual tier surface from Temporal workflow + adv-reflect docs
+- return 'compliant' from getTaskTddCompliance when red+green evidence present
+- invalidate change cache after gateCompletedSignal (R1 follow-on)
+- drop AdvAffectedPaths to fit Temporal dev-server KeywordList cap
+- enforce exact MCP tool names
+- remove stale tool entries from canonical adv.md allowlist
+- lazy-load temporal/service in state.ts; add service mock to oca-hook test
+- remove stale hardcoded tool count from index.ts header
+- harden branch-aware worktree lifecycle
+- require explicit gate reentry timestamp
+- remove stale bun lockfile
+- raise outer safety-net timeout to 305s
+- add path verification defense-in-depth for adv-engineer file-not-found errors
+- restore OCA ensure-window hook integration tests
+- skip OCA hook integration tests pending proper mock setup
+- resolve lint errors and format drift in worktree test files
+- peer worker lock allows mutations when this session has no worker
+- bypass local-worker check when peer pollers serve queue
+- auto-bootstrap project workflow + fast-fail on missing workflow
+- resolve worker_alive false-negative in multi-session setups
+### Changed
+
+- install Temporal CLI before integration tests (ci)
+- apply prettier to drifted test files (style)
+- archive addOpportunityScan2 (chore)
+- archive persistExecutiveSummary (chore)
+- archive removePhantomSubAgent (chore)
+- replace sync-global references (docs)
+- archive fixWorktreeSessionRoot (chore)
+- archive improveAcceptanceReviews (chore)
+- archive addAcpTitlesAdvTools (chore)
+- archive gateTrunkFirewall (chore)
+- archive requireProblemSpecLaw (chore)
+- align JSONC deploy-local behavior (test: plugin)
+- rename deploy-local banner (chore: plugin)
+- update deploy-local worktree fixture (test: plugin)
+- simplify ADV terminal tab titles (chore: plugin)
+- remove Windows Terminal / WSL spawning code (chore)
+- revert pnpm metadata drift (chore)
+- refresh pnpm metadata and terminal fallback (chore: plugin)
+- switch guidance to exa and searchcode (chore: research)
+- WSL chrome-launcher hazard section (#123) (docs: worktree-guide)
+- archive advstabilityhardening (chore)
+- regenerate via /adv-triage (docs: roadmap)
+- adopt mattpocock skills (chore: archive)
+- archive extendAdvAuditProjectWideSpec (chore)
+- regenerate ROADMAP.md — score #106-#110, 36 features ranked (chore: triage)
+- archive optimizeAdvCommandTokenLoadVia (chore)
+- archive defaultLinkedIssueClosure (chore)
+- /adv-triage update 2026-05-11 (chore: roadmap)
+- flip default to execute, --dry-run is the flag (chore: triage)
+- changelog for 2026-05-09 ATC bug drain (19 bugs) (docs)
+- archive 19 ADV bug-fix changes from 2026-05-09 ATC drain (docs)
+- format merged bug-fix files (style)
+- clean generated issue title (chore: roadmap)
+- /adv-triage update 2026-05-09 (chore: roadmap)
+- add score-blind change archive (chore: archive)
+- update changelog for adv-triage Phase 3b question tool update (docs)
+- format roadmap.test.ts (prettier) (style)
+- caveman-compress origin linkage section (docs: adv-instructions)
+- codify Change Origin Linkage Strategy (docs: adv-instructions)
+- /adv-triage update 2026-05-09 (chore: roadmap)
+- archive replacegitguardwithtrunkwritef (chore)
+- caveman-compress adv-atc agent overlay (354→310 lines) (refactor)
+- archive fixGitMutationGuardDeadlock (chore)
+- archive hardenPhaseValidatesImplements + harden/review findings workflow (chore)
+- archive addStructuralChangeContract (chore)
+- archive createbackendstackevaluationsk (chore)
+- add release and contract assets (chore)
+- format arch scan asset test (chore)
+- /adv-triage update 2026-05-08 (chore: roadmap)
+- stage pending changes before cavemanCompressAdvInstruction merge (chore)
+- codify structural correctness scans (docs)
+- cover git mutation guard hook (test)
+- archive scopeAdvInstructionLoadAdv (chore)
+- rename npm package scope from @goost to @sharperflow (chore)
+- fix line-scoped NOSONAR for clarify-readiness.e2e.test.ts (#77) (chore: sonar)
+- suppress remaining S7739 BDD then-field false-positives (#76) (chore: sonar)
+- address Sonar cleanup findings (chore)
+- remove OCA tmux-window bridge (#75) (chore: worktree)
+- remove OCA tmux-window bridge (chore: worktree)
+- scrub missed matrix references (docs: retire-investment-governance)
+- archive change retireinvestmentgovernancedead (chore: adv)
+- archive change fixWorkflowReplayDeterminism (chore: adv)
+- archive centralizemutationcacherefresh (chore)
+- archive refactorChangeWorkflowsSignal + reap migration disk leftovers (chore)
+- archive removeBunTypesMainTsconfig (chore)
+- archive makeAdvTaskEvidenceFallback + addagentmeshandinrepoarchive (chore)
+- add Section 9 — Removal & Test Strategy (docs: decisions)
+- record signal-driven change workflow architecture (docs: decisions)
+- use STSL singleton in probeStaleQueues, avoid fresh client overhead (perf)
+- record open issue solution plan (docs)
+- archive resolveOpenAdvanceGithubBug (chore)
+- archive terminatechangeworkflowonarchi (chore)
+
+### Change Highlights
+
+- **05-20-persistExecutiveSummary**: Executive Summary
+- **05-21-addOpportunityScan2**: Executive Summary: Add Opportunity Scout
+
 # Changelog
 
 All notable changes to ADV (Advance) will be documented in this file.

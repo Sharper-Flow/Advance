@@ -37,7 +37,8 @@ new ADV worktrees.
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Git               | Version control, change tracking                                                                                                        |
 | Temporal CLI      | Local dev server for ADV's Temporal-backed runtime                                                                                      |
-| jq                | Required only for `deploy-local.sh --fix` (config patching)                                                                              |
+| jq                | Required only for `deploy-local.sh --fix` (config patching)                                                                             |
+| rsync             | Required for `deploy-local.sh` runtime plugin deployment                                                                                |
 | GitHub CLI (`gh`) | Required for `/adv-triage` and any ADV command that reads/writes GitHub issues or Projects v2. See **GitHub CLI authentication** below. |
 
 ### Temporal-backed storage
@@ -276,13 +277,13 @@ are external shared agents supplied by your broader OpenCode install. If any
 are missing, commands fall back to inline execution or generic `explore`
 invocation, which is slower and less specialized.
 
-| Agent            | Used by                                                                                | What it does                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor`          | Codebase navigation, scoped read-only scans                                                   |
-| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`            | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
-| `general`        | `/adv-review` (cross-cutting), overlay-managed                                         | Multi-step verification                                                                       |
-| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes                  | Structured ENGINEER_REPORT payload for ADV ingestion                                          |
-| `adv-reviewer`   | `/adv-prep` pre-flight (optional), `/adv-review`, `/adv-harden`                        | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT |
+| Agent            | Used by                                                                       | What it does                                                                                                    |
+| ---------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, scoped read-only scans                                                                     |
+| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
+| `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                         |
+| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT payload for ADV ingestion                                                            |
+| `adv-reviewer`   | `/adv-prep` pre-flight (optional), `/adv-review`, `/adv-harden`               | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT               |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -292,14 +293,14 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server     | Allowlist prefix / callable examples                                                        | Used by                                       | Degradation if missing                                                      |
-| -------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text` | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`        | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
-| Context7       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`              | `adv-researcher`                              | Library documentation lookup unavailable                                    |
-| Exa            | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
-| searchcode     | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`            | `adv-researcher`                              | Public-repo code example search unavailable                                 |
-| arXiv MCP      | `arxiv-mcp_*` grants; call exact names from active schema                                   | `adv-researcher`                              | Academic paper search unavailable                                           |
+| MCP server | Allowlist prefix / callable examples                                                          | Used by                                       | Degradation if missing                                                      |
+| ---------- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| lgrep      | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`   | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl  | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
+| Context7   | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
+| Exa        | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
+| searchcode | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
+| arXiv MCP  | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
 
 Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `searchcode_code_search` to `code_search`.
 
@@ -396,12 +397,11 @@ The `--fix` flag will:
 - Refuse to deploy stale dist if the build fails or freshness is still unproven
 - Sync `plugin/` to the stable runtime path `~/.local/share/Advance/plugin/`
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
-- Copy only repo-local ADV agents where direct sync is appropriate
-- Assemble the single global `adv.md` runtime agent from the repo-owned ADV agent plus `ADV_INSTRUCTIONS.md`
+- Copy the repo-owned `adv` runtime agent as a full file and leave repo-local-only agents in-tree
 - Apply repo-owned managed overlay blocks to shared global agents like `general`, `build`, and `plan` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-slop-detection` and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
-- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions` and embed the ADV protocol into the single global `adv.md` runtime agent
+- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions`; the lean `adv` runtime prompt carries runtime-critical protocol without a global instruction entry
 - Back up `opencode.json` before any patches
 - Preserve all non-ADV settings (mcp, provider, permissions, etc.)
 
@@ -424,14 +424,14 @@ Hooks installed:
 
 Without these, a commit that updates a command contract or plugin source will land in the repo but the global install keeps the old copy until `deploy-local.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts or stale runtime plugin code.
 
-Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
+Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`) and `rsync` for runtime plugin deployment (`sudo apt-get install -y rsync` or `brew install rsync`).
 
 ### Step 2b: Manual Setup (Alternative)
 
 If you prefer manual setup, add the ADV plugin path to your `opencode.json`.
 Do **not** add `ADV_INSTRUCTIONS.md` to global `instructions[]`; `deploy-local.sh`
-scopes that protocol to the generated ADV runtime agent so non-ADV agents do not
-pay the prompt cost.
+keeps that protocol scoped to the ADV runtime agent so non-ADV agents do not pay
+the prompt cost.
 
 ```json
 {
@@ -443,9 +443,10 @@ pay the prompt cost.
 Legacy migration: if your config already contains `/path/to/Advance/ADV_INSTRUCTIONS.md`
 or `~/.config/opencode/instructions/ADV_INSTRUCTIONS.md`, run
 `./scripts/deploy-local.sh --fix`. The script removes only ADV instruction paths,
-preserves unrelated global instructions, and regenerates the single global `adv.md`
-runtime agent with the protocol embedded. Manual setups that bypass the sync script
-do not receive the supported ADV runtime-agent assembly.
+preserves unrelated global instructions, and syncs the lean `adv` runtime agent
+that carries runtime-critical ADV protocol. Manual setups that skip the sync
+script must copy `.opencode/agents/adv.md` themselves to install the supported
+ADV-agent runtime prompt.
 
 Then copy slash commands manually:
 

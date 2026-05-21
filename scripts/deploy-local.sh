@@ -3,7 +3,8 @@
 #
 # Deploys this repo's ADV assets to the local machine:
 #   - Runtime plugin -> ~/.local/share/Advance/plugin
-#   - Slash commands, agents, skills, instructions -> ~/.config/opencode/
+#   - Slash commands, agents, skills -> ~/.config/opencode/
+#   - Stale ADV instruction registrations are removed from opencode.json
 #   - Companion binaries (acp-mux) -> ~/.local/bin/
 #
 # Single source of truth for "what's installed on this machine from this repo".
@@ -23,10 +24,10 @@
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
 #   2. Removes stale commands from global that no longer exist in repo
 #   3. Removes legacy non-ADV commands
-#   4. Copies repo-local agents and applies managed overlays for shared agents
+#   4. Copies repo-owned agents and applies managed overlays for shared agents
 #   5. Copies skills/adv-*/SKILL.md  -> ~/.config/opencode/skills/adv-*/
-#   6. Validates opencode.json has ADV plugin + instruction entries
-#   7. (--fix only) Patches opencode.json to add missing ADV entries
+#   6. Validates opencode.json has ADV plugin entries and no stale ADV instruction entry
+#   7. (--fix only) Patches opencode.json to add missing ADV plugin entries and remove stale ADV instruction entries
 #   8. Deploys acp-mux/bin/acp-mux  -> ~/.local/bin/acp-mux (real file, no symlink)
 #
 # Deploy semantics: every binary is a real file copy. NO SYMLINKS — a stale
@@ -262,6 +263,15 @@ check_jq() {
 	return 0
 }
 
+check_rsync() {
+	if ! command -v rsync &>/dev/null; then
+		echo "    ✗  rsync not found — runtime plugin deployment requires rsync"
+		echo "    Install: sudo apt-get install -y rsync  (or brew install rsync)"
+		return 1
+	fi
+	return 0
+}
+
 # Strip JSONC comments (// and /* */) so jq can parse the content.
 # Handles both .json (no-op passthrough) and .jsonc files.
 # Usage: jsonc_to_json < file.jsonc | jq ...
@@ -418,13 +428,10 @@ PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
 
 sync_adv_runtime_agent() {
-	local canonical="$REPO_AGENTS/adv.md"
-	if [ ! -f "$canonical" ]; then
-		echo "    ✗  ADV runtime agent: canonical adv.md missing at $canonical"
-		return 1
-	fi
-	if [ ! -f "$ADV_INSTRUCTION_PATH" ]; then
-		echo "    ✗  ADV runtime agent: ADV_INSTRUCTIONS.md missing at $ADV_INSTRUCTION_PATH"
+	local runtime_agent="$REPO_AGENTS/adv.md"
+	local dest="$GLOBAL_AGENTS/adv.md"
+	if [ ! -f "$runtime_agent" ]; then
+		echo "    ✗  ADV runtime agent: canonical adv.md missing at $runtime_agent"
 		return 1
 	fi
 
@@ -434,14 +441,15 @@ sync_adv_runtime_agent() {
 	fi
 
 	mkdir -p "$GLOBAL_AGENTS"
-	python3 - "$canonical" "$ADV_INSTRUCTION_PATH" "$GLOBAL_AGENTS/adv.md" <<'PY'
+	python3 - "$runtime_agent" "$dest" <<'PY'
 from pathlib import Path
 import sys
 
-canonical, instructions, dest = map(Path, sys.argv[1:4])
-canonical_text = canonical.read_text().rstrip()
-instructions_text = instructions.read_text().rstrip()
-dest.write_text(canonical_text + "\n\n" + instructions_text + "\n")
+runtime_agent, dest = map(Path, sys.argv[1:3])
+runtime_text = runtime_agent.read_text().rstrip()
+tmp = dest.with_name(dest.name + ".tmp")
+tmp.write_text(runtime_text + "\n")
+tmp.replace(dest)
 PY
 	echo "    assembled ADV runtime agent: adv.md"
 }
@@ -724,8 +732,14 @@ fix_config() {
 		return 1
 	fi
 
-	# Create config dir if needed
-	mkdir -p "$GLOBAL_CONFIG"
+	# Create config dir if needed.
+	if [ ! -d "$GLOBAL_CONFIG" ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run: would create config directory $GLOBAL_CONFIG"
+		else
+			mkdir -p "$GLOBAL_CONFIG"
+		fi
+	fi
 
 	# If no config file, create a minimal one (always .json for new files)
 	if [ ! -f "$GLOBAL_JSON" ]; then
@@ -795,7 +809,8 @@ fix_config() {
 	fi
 
 	# Remove canonical ADV_INSTRUCTIONS.md from global instructions if present.
-	# The protocol body is embedded into generated ADV provider prompts instead.
+	# Runtime ADV protocol is covered by the lean adv.md agent plus specs/tests,
+	# not by registering this reference file globally.
 	if json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
 		jq --arg instr "$ADV_INSTRUCTION_PATH" \
 			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $instr)))' \
@@ -898,6 +913,7 @@ ensure_plugin_dist_fresh
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
 else
+	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
 	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
@@ -906,7 +922,11 @@ fi
 # ---------------------------------------------------------------------------
 # 1. Ensure global command dir exists
 # ---------------------------------------------------------------------------
-mkdir -p "$GLOBAL_COMMANDS"
+if [ "$DRY_RUN" = true ]; then
+	echo "    dry-run: would ensure command directory $GLOBAL_COMMANDS"
+else
+	mkdir -p "$GLOBAL_COMMANDS"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Copy all adv-*.md commands from repo to global
@@ -964,9 +984,9 @@ done
 
 # ---------------------------------------------------------------------------
 # 4b. Remove stale global ADV_INSTRUCTIONS.md copy if it exists.
-#     The canonical copy lives at $REPO_ROOT/ADV_INSTRUCTIONS.md and is
-#     registered in opencode.json by deploy-local --fix. A duplicate in
-#     ~/.config/opencode/instructions/ wastes ~7K tokens per prompt.
+#     The canonical copy lives at $REPO_ROOT/ADV_INSTRUCTIONS.md as a repo/dev
+#     reference. A duplicate in ~/.config/opencode/instructions/ wastes prompt
+#     tokens for non-ADV agents.
 # ---------------------------------------------------------------------------
 STALE_GLOBAL_INSTR="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
 if [ -f "$STALE_GLOBAL_INSTR" ]; then
@@ -1010,7 +1030,11 @@ fi
 # repo-owned overlay blocks. They should NOT be fully copied from this repo,
 # or user/global customization would be overwritten.
 # ---------------------------------------------------------------------------
-mkdir -p "$GLOBAL_AGENTS"
+if [ "$DRY_RUN" = true ]; then
+	echo "    dry-run: would ensure agent directory $GLOBAL_AGENTS"
+else
+	mkdir -p "$GLOBAL_AGENTS"
+fi
 agents_copied=0
 # Agents that must stay repo-local (not synced to global)
 REPO_LOCAL_ONLY="adv-tron.md"
@@ -1198,7 +1222,11 @@ echo ""
 echo "==> Deploying local binaries"
 
 LOCAL_BIN="$HOME/.local/bin"
-mkdir -p "$LOCAL_BIN"
+if [ "$DRY_RUN" = true ]; then
+	echo "    dry-run: would ensure local bin directory $LOCAL_BIN"
+else
+	mkdir -p "$LOCAL_BIN"
+fi
 
 bin_deployed=0
 bin_skipped=0

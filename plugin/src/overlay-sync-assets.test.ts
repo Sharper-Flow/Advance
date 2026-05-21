@@ -15,8 +15,10 @@ import { join, resolve } from "path";
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 
-// deploy-local.sh can rebuild plugin/dist before syncing runtime assets. The
-// first integration-style spawn in a fresh checkout may pay that build cost.
+// deploy-local.sh can rebuild plugin/dist before syncing runtime assets in
+// addition to copying the single ADV runtime agent and provider hint assets;
+// the first integration-style spawn in a fresh checkout may pay that build
+// cost on top of the asset copies. Bump beyond the default 5s timeout.
 vi.setConfig({ testTimeout: 120_000 });
 
 describe("overlay sync script support", () => {
@@ -604,7 +606,7 @@ exit 0
     }
   });
 
-  test("synced adv.md contains canonical ADV body plus ADV_INSTRUCTIONS protocol", () => {
+  test("synced adv.md contains lean canonical ADV runtime prompt without full ADV_INSTRUCTIONS append", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-single-runtime-"));
 
     try {
@@ -632,7 +634,11 @@ exit 0
       );
       const advContent = readFileSync(join(globalAgents, "adv.md"), "utf8");
       expect(advContent).toContain("ADV_SYNC:START adv");
-      expect(advContent).toContain("### TDD Protocol (RSTC)");
+      expect(advContent).toContain("## Slash Command Boundary");
+      expect(advContent).toContain("### Worktree Isolation Routing");
+      expect(advContent).not.toContain("### TDD Protocol (RSTC)");
+      expect(advContent).not.toContain("## Critical Protocols");
+      expect(advContent).not.toContain("### Provider ADV runtime hints");
       expect(advContent).not.toContain("<!-- PROVIDER_HINT:");
       expect(config.agent?.["adv-gpt"]?.prompt).toBeUndefined();
     } finally {

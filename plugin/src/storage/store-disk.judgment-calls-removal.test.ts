@@ -30,7 +30,10 @@ async function makeTempProject(): Promise<string> {
 }
 
 describe("store-disk — judgment_calls removal", () => {
-  test("init writes explicit worktree_guard_enforce false by default", async () => {
+  // rq-autoManageAdvWorktrees AC2 — init template flipped to write
+  // explicit true so the project starts in strict mode. Explicit false
+  // remains the legacy escape hatch for projects that want to opt out.
+  test("init writes explicit worktree_guard_enforce true by default", async () => {
     const dir = await mkdtemp(join(tmpdir(), "adv-store-init-"));
     const store = await createDiskStore(dir);
 
@@ -41,7 +44,7 @@ describe("store-disk — judgment_calls removal", () => {
     ) as {
       features?: { worktree_guard_enforce?: unknown };
     };
-    expect(config.features?.worktree_guard_enforce).toBe(false);
+    expect(config.features?.worktree_guard_enforce).toBe(true);
   });
 
   test("(a) createChange does NOT initialize judgment_calls", async () => {

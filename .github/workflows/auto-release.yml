@@ -97,6 +97,22 @@ jobs:
 
           COMMITS=$(git log "${LAST_TAG}..HEAD" --pretty=format:"%s")
 
+          # Collect executive-summary highlights from archived ADV changes
+          HIGHLIGHTS=""
+          ARCHIVE_FILES=$(git diff --name-only "${LAST_TAG}..HEAD" -- '.adv/archive/*/executive-summary.md' 2>/dev/null || true)
+          if [ -n "$ARCHIVE_FILES" ]; then
+            while IFS= read -r archive_file; do
+              # Extract change title from bundle directory name: <timestamp>-<changeId>
+              BUNDLE_NAME=$(dirname "$archive_file" | xargs basename)
+              CHANGE_TITLE=$(echo "$BUNDLE_NAME" | sed -E 's/^[0-9]+-//')
+              CONTENT=$(git show "HEAD:$archive_file" 2>/dev/null | head -20 || true)
+              if [ -n "$CONTENT" ]; then
+                HIGHLIGHTS="${HIGHLIGHTS}
+          - **${CHANGE_TITLE}**: $(echo "$CONTENT" | head -1 | sed 's/^#* *//')"
+              fi
+            done <<< "$ARCHIVE_FILES"
+          fi
+
           while IFS= read -r line; do
             MSG=$(echo "$line" | sed -E 's/^[a-z]+(\(.+\))?:\s*//')
             if echo "$line" | grep -qE '^feat(\(.+\))?:'; then
@@ -129,6 +145,10 @@ jobs:
           [ -n "$OTHER_ENTRIES" ] && ENTRY="${ENTRY}
           ### Changed
           ${OTHER_ENTRIES}"
+          [ -n "$HIGHLIGHTS" ] && ENTRY="${ENTRY}
+
+          ### Change Highlights
+          ${HIGHLIGHTS}"
 
           if [ -f CHANGELOG.md ]; then
             EXISTING=$(cat CHANGELOG.md)
@@ -159,7 +179,7 @@ jobs:
         if: steps.bump.outputs.skip != 'true'
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
 
       - name: Install dependencies
         if: steps.bump.outputs.skip != 'true'
