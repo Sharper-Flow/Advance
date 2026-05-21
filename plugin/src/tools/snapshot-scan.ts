@@ -3,6 +3,7 @@
 import { readdir, stat, access, readFile, unlink, rm } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { spawn } from "node:child_process";
+import { spawnGitStreams } from "../utils/git-binary";
 import { getDataHome } from "../utils/project-id";
 
 // =============================================================================
@@ -31,7 +32,8 @@ export type SnapshotFindingPattern =
 export type RepairAction =
   | "delete_stale_locks"
   | "delete_zero_byte_objects"
-  | "delete_orphan_bare_repos";
+  | "delete_orphan_bare_repos"
+  | "delete_fsck_corrupt_repos";
 
 export interface SnapshotFinding {
   pattern: SnapshotFindingPattern;
@@ -319,6 +321,7 @@ async function scanBareRepo(
         project_id: pid,
         bare_repo_path: repoPath,
         detail: `git fsck error: ${errLine}`,
+        remediation: "delete_fsck_corrupt_repos",
         metadata: {
           error_line: errLine,
         },
@@ -369,8 +372,7 @@ async function findLockFiles(repoPath: string): Promise<string[]> {
 
 async function runFsck(repoPath: string): Promise<string[]> {
   return new Promise((resolve) => {
-    const proc = spawn(
-      "git",
+    const proc = spawnGitStreams(
       ["--git-dir", repoPath, "fsck", "--no-dangling", "--connectivity-only"],
       { timeout: 20000 },
     );
@@ -615,6 +617,33 @@ export async function executeRepair(
         } else {
           record.status = "success";
           record.reason = "dryRun";
+        }
+        break;
+      }
+
+      case "delete_fsck_corrupt_repos": {
+        // Safety: re-run fsck on the live repo before deletion so a
+        // transient/race-y false positive from the original scan cannot
+        // destroy a now-healthy bare repo. Skip the re-check in dryRun
+        // so previews are cheap.
+        if (opts.dryRun) {
+          record.status = "success";
+          record.reason = "dryRun";
+        } else {
+          const liveErrors = await runFsck(f.bare_repo_path);
+          if (liveErrors.length === 0) {
+            record.status = "skipped";
+            record.reason = "fsck now clean";
+          } else {
+            try {
+              await rm(f.bare_repo_path, { recursive: true, force: true });
+              record.status = "success";
+              record.reason = `removed ${liveErrors.length} fsck error(s) worth of corruption`;
+            } catch (err) {
+              record.status = "failed";
+              record.reason = String(err);
+            }
+          }
         }
         break;
       }

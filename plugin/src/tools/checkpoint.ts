@@ -17,7 +17,7 @@
  * - Persists touched_files and error_class bridge via store.tasks.update.
  */
 
-import { execFile } from "child_process";
+import { execFileGitCb } from "../utils/git-binary";
 import { access } from "fs/promises";
 import { isAbsolute, resolve } from "path";
 import { z } from "zod";
@@ -92,8 +92,7 @@ export function runGit(
   cwd: string,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
+    execFileGitCb(
       args,
       {
         cwd,

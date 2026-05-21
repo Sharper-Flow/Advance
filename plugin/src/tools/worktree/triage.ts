@@ -24,9 +24,6 @@
  *            rq-worktreeDirtyDetection01 (#120).
  */
 
-import { execFile } from "child_process";
-import { promisify } from "util";
-
 import {
   initStateDb,
   listWorktrees,
@@ -35,8 +32,7 @@ import {
   type WorktreeStateAccess,
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
-
-const execFileAsync = promisify(execFile);
+import { execFileGitAsync } from "../../utils/git-binary";
 
 // =============================================================================
 // Public types
@@ -82,11 +78,9 @@ interface DiskWorktree {
 async function listDiskWorktrees(repoRoot: string): Promise<DiskWorktree[]> {
   let stdout: string;
   try {
-    const result = await execFileAsync(
-      "git",
-      ["worktree", "list", "--porcelain"],
-      { cwd: repoRoot },
-    );
+    const result = await execFileGitAsync(["worktree", "list", "--porcelain"], {
+      cwd: repoRoot,
+    });
     stdout = result.stdout;
   } catch {
     return [];
@@ -302,7 +296,7 @@ async function getWorktreeDirtySummary(
 ): Promise<WorktreeDirtySummary | null> {
   let stdout: string;
   try {
-    const result = await execFileAsync("git", ["status", "--porcelain"], {
+    const result = await execFileGitAsync(["status", "--porcelain"], {
       cwd: worktreePath,
     });
     stdout = result.stdout;
