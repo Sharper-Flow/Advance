@@ -1,3 +1,16 @@
+## 2026-05-21 (v0.9.1)
+
+### Fixed
+
+- widen integration gate to terminal-set {archived, closed}
+### Changed
+
+- archive fixWorktreeTerminalStatusGate (chore)
+
+### Change Highlights
+
+- **05-21-fixWorktreeTerminalStatusGate**: Outcome
+
 ## 2026-05-21 (v0.9.0)
 
 ### Added
