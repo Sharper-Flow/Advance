@@ -39,6 +39,8 @@ import {
   TaskRemovedSignalPayloadSchema,
   TaskUpdatedSignalPayloadSchema,
   WisdomAddedSignalPayloadSchema,
+  WorktreeAttachedSignalPayloadSchema,
+  WorktreeAutoManagedSignalPayloadSchema,
   WorktreeCreatedSignalPayloadSchema,
   WorktreeDeletedSignalPayloadSchema,
 } from "../types";
@@ -68,6 +70,8 @@ const designSignalKeys = [
   "reflectionRecorded",
   "worktreeCreated",
   "worktreeDeleted",
+  "worktreeAutoManaged",
+  "worktreeAttached",
   "conformanceLocked",
   "conformanceVerdict",
   "conformanceOverridden",
@@ -87,11 +91,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 32 signal surface", () => {
+  it("defines the 34 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(32);
+    expect(surfacedKeys).toHaveLength(34);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -277,6 +281,14 @@ describe("change workflow message contract", () => {
       [
         WorktreeDeletedSignalPayloadSchema,
         { branch: "change/x", reason: "merged", deletedAt: timestamp },
+      ],
+      [
+        WorktreeAutoManagedSignalPayloadSchema,
+        { value: true, source: "create", recordedAt: timestamp },
+      ],
+      [
+        WorktreeAttachedSignalPayloadSchema,
+        { role: "target", path: "/abs/target", recordedAt: timestamp },
       ],
       [
         ConformanceLockedSignalPayloadSchema,

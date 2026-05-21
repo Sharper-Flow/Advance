@@ -33,6 +33,8 @@ import type {
   TddReclassification,
   WisdomAddedSignalPayload,
   WisdomType,
+  WorktreeAttachedSignalPayload,
+  WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
 } from "../types";
@@ -432,6 +434,75 @@ export function applyWorktreeDeletedToState(
     },
   };
   setLastSignalAt(state, payload.deletedAt);
+  return state;
+}
+
+/**
+ * rq-autoManageAdvWorktrees AC3 — stamp/migrate worktree_auto_managed.
+ *
+ * Sticky semantics: once `state.worktree_auto_managed` is set to a
+ * boolean, subsequent signals are ignored. This protects both the
+ * create-time stamp (true) and the lazy migration (false) from being
+ * overwritten by an out-of-order or retried signal.
+ */
+export function applyWorktreeAutoManagedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeAutoManagedSignalPayload,
+): ChangeWorkflowState {
+  if (typeof state.worktree_auto_managed === "boolean") {
+    // Sticky — ignore; the first boolean wins.
+    return state;
+  }
+  state.worktree_auto_managed = payload.value;
+  setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
+/**
+ * rq-autoManageAdvWorktrees AC4 — project a worktree path onto the
+ * change record for cross-project / scope_repos routing convenience.
+ *
+ * Idempotent: writing the same value twice is a no-op (no state churn).
+ * Differing values overwrite — the ensure-helper guarantees the new
+ * value reflects the canonical registry post-create or post-cleanup.
+ */
+export function applyWorktreeAttachedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeAttachedSignalPayload,
+): ChangeWorkflowState {
+  switch (payload.role) {
+    case "target": {
+      if (state.target_worktree_path === payload.path) return state;
+      state.target_worktree_path = payload.path;
+      break;
+    }
+    case "scope": {
+      if (!payload.repoId) {
+        // Defensive: scope role requires repoId; skip without mutating.
+        return state;
+      }
+      const current = state.scope_worktrees ?? {};
+      if (payload.path === null) {
+        if (!(payload.repoId in current)) return state;
+        const next = { ...current };
+        delete next[payload.repoId];
+        state.scope_worktrees = next;
+        break;
+      }
+      if (current[payload.repoId] === payload.path) return state;
+      state.scope_worktrees = { ...current, [payload.repoId]: payload.path };
+      break;
+    }
+    case "current": {
+      // Current-repo worktree state lives in state.worktrees today (via
+      // worktreeCreatedSignal). The attached signal with role:"current"
+      // is reserved for future parity with target/scope — no-op for now
+      // so the helper module can fire uniformly across roles without
+      // double-writing the worktrees registry.
+      return state;
+    }
+  }
+  setLastSignalAt(state, payload.recordedAt);
   return state;
 }
 
