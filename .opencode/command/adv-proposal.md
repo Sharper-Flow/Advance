@@ -20,7 +20,6 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 **Gate:** Completes `proposal`.
 
-> **CHECKLIST**: Follow [docs/checklists/proposal-checklist.md](../../docs/checklists/proposal-checklist.md).
 > <UserRequest>
 > $ARGUMENTS
 > </UserRequest>

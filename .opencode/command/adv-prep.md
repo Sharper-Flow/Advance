@@ -29,7 +29,7 @@ Analyze change for gaps (missing scenarios, tasks, cross-cutting concerns) → a
 
 Reusable gap analysis and task synthesis methodology for ADV prep workflows. Provides the INVEST criteria, requirements smell detection, task sequencing rules, and cross-cutting concern checklist.
 
-**Canonical source:** `docs/checklists/prep-checklist.md` — see that checklist for detailed INVEST checks, sequencing rules, absorption analysis, TDD ordering, dependency coherence, and cross-cutting concern templates. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the prep methodology needed during command execution.
 
 #### Gap Analysis Protocol
 
@@ -51,7 +51,7 @@ All steps must be executed. Skipping requires explicit justification.
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the planning gate
-- **Canonical source** — defer to `docs/checklists/prep-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No architecture decisions** — those belong in `/adv-design`
 - **No workflow sequencing** — command owns phase ordering
 
@@ -75,7 +75,7 @@ Doctor-Lite: check cross-repo routing completeness — flag MUST gap if `target_
 
 ## Phase 2: Gap Analysis + Task Synthesis
 <!-- rq-prep-synth1 -->
-Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the loaded skill methodology:
+Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the embedded methodology above:
 1. **Requirements quality** — INVEST criteria + smell detection (from skill)
 2. **Task sequencing** — absorption analysis, TDD ordering, dependency graph coherence (from skill)
 3. **Cross-cutting concerns** — 12-item checklist, document N/A with rationale (from skill)

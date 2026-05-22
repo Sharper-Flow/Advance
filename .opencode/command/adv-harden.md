@@ -19,7 +19,6 @@ Orchestrate multi-dimensional hardening via sub-agents. Command is part of the r
 | 🎤 BLOCKED    | Blocker or unresolved review findings → user decides       |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
-> **CHECKLIST**: Follow [docs/checklists/harden-checklist.md](../../docs/checklists/harden-checklist.md).
 > <UserRequest>
 > $ARGUMENTS
 > </UserRequest>
@@ -49,7 +48,7 @@ Extract from `$ARGUMENTS`:
 
 Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework overview.
 
-**Canonical source:** `docs/checklists/harden-checklist.md` — see that checklist for severity scoring, priority matrix, status determination, minimum findings threshold, documentation hygiene standard, and technical debt classification. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the hardening methodology needed during command execution.
 
 #### 6-Scanner Framework
 
@@ -70,7 +69,7 @@ All 6 must be executed. Skipping requires explicit justification.
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the harden gate
-- **Canonical source** — defer to `docs/checklists/harden-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Pre-flight
@@ -313,7 +312,7 @@ Priority = Impact × Effort
 
 ### Minimum Findings Enforcement
 
-Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per [harden-checklist.md](../../docs/checklists/harden-checklist.md).
+Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per the Harden Methodology section above.
 
 ### Status Determination
 

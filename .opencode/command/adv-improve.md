@@ -26,8 +26,6 @@ Fallback: run phases in this file; cap findings; cite evidence; write only `docs
 
 **Gate:** none. Read-only for ADV state.
 
-> **CHECKLIST**: Follow `docs/checklists/improve-checklist.md`.
-
 ## Target Resolution
 
 `$ARGUMENTS` optional:
@@ -57,7 +55,7 @@ Load `adv_project_context`, `adv_change_list`, `adv_agenda_list`, `adv_spec acti
 
 ## Phase 2: Current-State Scan
 
-Analyze 6 categories from skill/checklist; cap 5 findings each: Security, Reliability, Testing, Observability, Developer Experience, Code Quality.
+Analyze 6 categories from the loaded skill or embedded fallback; cap 5 findings each: Security, Reliability, Testing, Observability, Developer Experience, Code Quality.
 
 Every finding MUST have evidence: file path, searched path, or source citation.
 
