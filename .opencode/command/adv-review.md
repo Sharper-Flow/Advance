@@ -346,16 +346,16 @@ Using `agreement.md`, produce:
 2. **Acceptance Criteria checklist**
 3. **Constraints respected / avoidances honored**
 4. **Outstanding caveats**
-5. **Investment summary** (informational) — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate acceptance.
+5. **Investment summary** — call `adv_investment_report changeId: {id}`; include one line: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Informational only; not a gate.
 
-Keep the summary concise and user-facing.
+Keep concise; user-facing.
 
 ### Persist Executive Summary
 
-After composing the acceptance summary and before asking for acceptance, persist the executive summary as a durable artifact:
+Before acceptance prompt, persist durable executive summary:
 
-1. `adv_investment_report changeId: {id}` → gather programmatic metrics (task counts, elapsed time, retry density, per-gate durations).
-2. Compose the executive summary from acceptance summary content + investment metrics, following this shape:
+1. `adv_investment_report changeId: {id}` → task counts, elapsed time, retry density, gate durations.
+2. Compose from acceptance summary + metrics:
    ```
    # Executive Summary
 
@@ -378,20 +378,20 @@ After composing the acceptance summary and before asking for acceptance, persist
    {open items or "None".}
    ```
 3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
-4. Verify the artifact was written: `adv_change_show changeId: {id} include: { executiveSummary: true }` → confirm `_executiveSummary` is present.
+4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present.
 
-After the user accepts, the executive summary artifact is already persisted — no additional write needed at the acceptance gate completion step.
+After user accepts, artifact already exists. No extra acceptance-step write.
 
 ### Pre-Acceptance Contract Preflight
 
-Before emitting the acceptance summary or **Inline Approval prompt**, load the change with `adv_change_show` and verify:
+Before acceptance summary or **Inline Approval prompt**, load `adv_change_show`; verify:
 
 - `change.contract` exists.
-- `contract.reviewMatrix` exists when required contract items exist.
-- Required rows do not have `fail`, `violated`, `unknown`, or missing evidence.
-- The current session can call any required new MCP tool. If this change added or registered the needed tool in source during the same OpenCode session and the live tool registry does not expose it yet, stop and instruct the user to open a fresh OpenCode session after build/plugin reload. Do not present acceptance as complete and do not ask for acceptance until the proof path is available.
+- `contract.reviewMatrix` exists when contract items require it.
+- Required rows have no `fail`, `violated`, `unknown`, or missing evidence.
+- Required new MCP tool is callable in current session. If source registered it but live registry lacks it, stop: tell user to build/reload plugin and open fresh OpenCode session. Do not ask for acceptance until proof path exists.
 
-If preflight fails, surface the blocker and remediation. Do not continue to the acceptance checkpoint.
+Preflight fail → surface blocker + remediation. Do not continue to acceptance checkpoint.
 
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
@@ -420,13 +420,13 @@ See `docs/scope-discovery-protocol.md` for the full protocol on scope discovery 
 
 **Anchor phrase:** `Reply `accept``
 
-If user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding. The `split` reply creates a fast-follow child change for the discovered scope, preserving current change's momentum.
+If user identifies new objectives or AC requiring scope expansion: `reopen {gate}` triggers `adv_change_reenter` from earliest affected gate. `split` creates fast-follow child change; current change keeps momentum.
 
 ### Complete Gate
 On acceptance:
 `adv_gate_complete changeId: {change-id} gateId: acceptance`
 
-If `adv_gate_complete` returns `workflowGateStatus: "stuck"`, inspect `readinessBlockers` and `stuckReason`. Resolve missing/failing contract rows or artifact-generation failures, then retry. Do not present acceptance as complete until the tool reports success.
+`workflowGateStatus: "stuck"` → inspect `readinessBlockers` + `stuckReason`, fix missing/failing contract rows or artifact-generation failures, retry. Do not present acceptance complete until tool succeeds.
 
 ---
 ## Output

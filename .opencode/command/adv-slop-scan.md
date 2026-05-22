@@ -142,12 +142,12 @@ Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 fin
 
 ### Scanner Coverage Report
 
-Always include a compact scanner coverage summary in normal text output. Track skipped detectors, degraded detectors, timed-out detectors, missing deletion-candidate proof sources, and active false-positive protections.
+Always include compact coverage in text output: skipped, degraded, timed-out, missing detectors; phase coverage; method coverage. Empty findings still report coverage.
 
 <!-- rq-ss007 -->
-Text output: `SLOP SCAN REPORT` banner, scope, phase counts, severity/category summaries, actionable findings with smell ID, `file:line`, description, fix, then `Low-confidence / non-blocking findings`, then next steps. No findings → `[OK] No slop detected.`
+Text output: `SLOP SCAN REPORT`, scope, phase counts, severity/category summaries, actionable findings (`id`, `file:line`, description, fix), `Low-confidence / non-blocking findings`, next steps. No findings → `[OK] No slop detected.`
 
-JSON output: `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields plus `grouping` and `actionability`, and `coverage` with `coverage.skippedDetectors`, `coverage.degradedDetectors`, and `coverage.falsePositiveProtections`. `grouping: 'actionable' | 'low-confidence'`; `actionability: 'blocking' | 'non-blocking'`.
+JSON output: `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields + `grouping` + `actionability`, `coverage.skippedDetectors`, `coverage.degradedDetectors`, `coverage.falsePositiveProtections`. `grouping: 'actionable' | 'low-confidence'`; `actionability: 'blocking' | 'non-blocking'`.
 ## Phase 4: Write Metadata
 
 After successful completion, call `adv_project_metadata action:"write"`:

@@ -11,7 +11,7 @@ metadata:
 
 ## Purpose
 
-Reusable architecture inconsistency detection for ADV arch-scan workflows. Three-phase strategy: deterministic tools for known stacks → research fallback for unknown stacks → AI heuristic as universal fallback.
+Detect architecture inconsistencies across codebase, specs, command docs, and workflow assets. Three phases: deterministic tools → research fallback → AI heuristic.
 
 ## Three-Phase Detection Strategy
 
@@ -47,13 +47,12 @@ When stack is NOT in the Stack Packs matrix OR user requests `--phase 2`:
 
 ### Phase 3: AI Heuristic (Universal Fallback)
 
-Run Phase 3 when the user requests `--phase 3`, or during the default all-phases flow when Phase 1 and Phase 2 produce no findings:
-
-- Analyze file structure and import patterns heuristically
-- Detect likely layer violations (e.g., UI importing DB directly)
-- Flag circular dependencies via import graph analysis
-- Flag suspected structural-correctness boundary violations only when source evidence shows heuristic/prose/regex/LLM judgment owns correctness, security, persistence, workflow state, gate completion, or spec compliance
-- Mark all findings with `detectionMethod: heuristic` and `confidence: low`
+Run Phase 3 when the user requests `--phase 3`, after Phase 1/2 produce no findings, or when no Stack Pack applies.
+- Compare claimed architecture vs implementation evidence.
+- Flag orphaned layers, bypassed abstractions, dead integration paths, duplicate responsibility, doc/spec/code drift.
+- Flag P33 boundary violations only when source shows heuristic/prose/regex/LLM judgment owns correctness, security, persistence, workflow state, gate completion, or spec compliance.
+- Mark all findings `detectionMethod: heuristic`, `confidence: low`.
+- Do not create blocking findings from vibes; cite concrete evidence.
 
 ## Stack Packs Matrix
 
@@ -71,7 +70,9 @@ The ADV stack pack cites existing tests and validators as authoritative structur
 
 ## Architecture Scanner Coverage Report
 
-Text output summarizes detected stacks, applied Stack Packs, missing Stack Packs, skipped detectors, and degraded detectors. JSON includes `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, and `coverage.degradedDetectors`.
+Text output: detected stacks, applied Stack Packs, missing Stack Packs, skipped detectors, degraded detectors. JSON: `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, `coverage.degradedDetectors`.
+
+Missing pack ≠ finding by itself. It is coverage debt.
 
 ## Research-Fallback Protocol
 
@@ -98,14 +99,14 @@ Example: Kotlin project detected → Exa: "Kotlin architecture linter" → Conte
 
 | Level | Criteria | Action |
 |-------|----------|--------|
-| blocker | Circular deps at core layer, build-breaking drift | Must fix before merge |
-| major | Layer violations, orphaned critical modules | Fix in current sprint |
+| blocker | Core circular deps, build-breaking drift | Must fix before merge |
+| major | Layer violations, orphaned critical modules | Fix current sprint |
 | minor | Style inconsistency, minor complexity | Fix opportunistically |
 | nit | Naming mismatch, formatting | Campsite rule |
 
-Structural-correctness severity: blocker when heuristic-owned authority controls security, persistence, workflow state, gate completion, or spec compliance in touched scope; major when it controls input recognition/classification without immediate mutation; minor/nit only for advisory-only smells with clear guardrails.
+Structural-correctness severity: `blocker` when heuristic-owned authority controls security, persistence, workflow state, gate completion, or spec compliance in touched scope; `major` for input recognition/classification authority without immediate mutation; `minor`/`nit` for advisory-only smells with guardrails.
 
-Cross-scanner comparison: arch-scan `blocker≈CRITICAL`, `major≈HIGH`, `minor≈MEDIUM`, and `nit≈LOW` relative to slop-scan severity labels. Keep each scanner's native labels in its own output schema.
+Cross-scanner comparison: arch-scan `blocker≈CRITICAL`, `major≈HIGH`, `minor≈MEDIUM`, `nit≈LOW` vs slop-scan. Keep each scanner's native labels.
 
 ## Constraints
 

@@ -157,11 +157,11 @@ Show a compact summary with:
   - No validation data (legacy design with no validator markers) → omit section silently
 
 After displaying the validator result:
-- If a visual comparison block is used, keep it text-readable and align it with the inline reply choices below
-- If the design involves real user-value tradeoffs, emit the **Inline Approval prompt (Tier A)** before moving into `/adv-prep`
-- If the validator found an unresolved `CONFLICT`, always pause with the inline approval prompt for user resolution before planning
-- If the agent identifies a contract-compromise risk — the design can only be delivered by compromising agreed acceptance criteria, explicit constraints, or stated avoidances (as written in agreement.md) — always pause and surface a discussion of possible routes to user before planning, regardless of validator verdict (see Phase 4.1)
-- If the design is straightforward with no user-value tradeoffs, no unresolved `CONFLICT` (resolved Phase 3.6 conflicts do not count), and no contract-compromise risk, and validation returned `VALIDATED`, `CAUTION`, or `INCONCLUSIVE`, proceed directly to `/adv-prep` (no inline pause)
+- Visual comparison block: keep text-readable; align with inline choices.
+- Real user-value tradeoffs → emit **Inline Approval prompt (Tier A)** before `/adv-prep`.
+- Unresolved `CONFLICT` → pause for user resolution before planning.
+- Contract-compromise risk → always pause; surface route discussion before planning, any validator verdict.
+- Straightforward design + no tradeoff + no unresolved `CONFLICT` + no contract-compromise risk + validator `VALIDATED`/`CAUTION`/`INCONCLUSIVE` → proceed to `/adv-prep`; no pause.
 
 **Inline Approval prompt when pausing** (Tier A per `docs/command-voice-standard.md` § Inline Approval Voice):
 
@@ -189,16 +189,14 @@ Want to stop here? Reply `cancel` or `stop`.
 
 ### Phase 4.1: Contract-Compromise Risk Assessment (Inline)
 
-When the agent recognizes that the chosen design path requires violating an explicit acceptance criterion, constraint, or avoidance stated in agreement.md, it must surface the compromise risk not silently proceed.
+Trigger: chosen design path can only work by violating agreement.md acceptance criteria, explicit constraints, or stated avoidances. Surface risk; do not silently proceed.
 
-If both an unresolved `CONFLICT` and a contract-compromise risk are present, surface them in one combined user discussion, not two separate pauses.
+Unresolved `CONFLICT` + compromise risk → one combined user discussion.
 
-**Trigger:** The design's only viable path breaks a rule user explicitly set.
-
-**Assessment criteria:**
-1. Which acceptance criteria, constraints, or avoidances are at risk?
-2. Is there a materially different approach that preserves them?
-3. What is the minimum viable scope if the compromise is accepted?
+**Assessment:**
+1. Which AC/constraint/avoidance is at risk?
+2. Is there another approach that preserves it?
+3. Minimum viable scope if compromise accepted?
 
 **Inline Approval prompt** (Tier A, with route options as inline reply choices):
 
@@ -226,9 +224,9 @@ Reply:
 | `defer` / `cancel` / `stop` | Halt change; record reason in change notes |
 
 **Amendment procedure for "keep with compromise":**
-- Use `adv_change_update` to append a "Design Compromise" section to agreement.md
-- Document: which criterion/constraint/avoidance is compromised, why it was unavoidable, and approval evidence (user's `keep with compromise` reply text + timestamp)
-- Only proceed to `/adv-prep` after the amendment is persisted
+- `adv_change_update` → append `Design Compromise` section to agreement.md.
+- Document compromised item, why unavoidable, approval evidence (reply text + timestamp).
+- Proceed to `/adv-prep` only after persisted.
 
 ### Phase 4.5: Persist Revisions
 If user requests adjustments, update the design/proposal artifacts via `adv_change_update`.
@@ -265,4 +263,4 @@ Chosen architecture + key tradeoff outcomes.
 > → `/adv-prep {change-id}`
 ```
 
-**Auto-continue:** After gate completion (whether user approved with "proceed" or design was straightforward enough to skip user pause), immediately begin `/adv-prep` inline. Do not stop or ask "shall I proceed?" — approval or clean auto-pass is the go-ahead.
+**Auto-continue:** After gate completion, begin `/adv-prep` inline. Covers explicit approval and clean auto-pass. Do not ask "shall I proceed?" Approval/auto-pass is go-ahead.

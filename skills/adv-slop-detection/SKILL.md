@@ -25,7 +25,15 @@ Reusable methodology for `/adv-slop-scan` and hardening flows. Detect AI-generat
 
 ## Phase 1: Automatable Detection
 
-Run AST-first structural checks plus regex signals. Prefer tool-backed evidence. Fallbacks are allowed only with lower confidence and explicit `detectionMethod: "degraded"`.
+Core Phase 1 categories: debug artifacts, type evasion, incomplete work, error suppression, hardcoded environment, AI signatures, security smells, defensive overkill, dead code/deletion candidates, structural-correctness bypass.
+
+<!-- rq-ss010 -->
+
+Preferred tools:
+- AST-first structural checks
+- Regex signals
+
+Fallbacks are allowed only with lower confidence and explicit `detectionMethod: "degraded"`.
 
 Default thresholds from `features.slop_scan`:
 
@@ -36,15 +44,11 @@ Default thresholds from `features.slop_scan`:
 | `complexity` | 10 |
 | `ast_timeout_ms` | 10000 |
 
-Core Phase 1 categories: debug artifacts, type evasion, incomplete work, error suppression, hardcoded environment, AI signatures, security smells, defensive overkill, dead code / deletion candidates, structural-correctness bypass.
-
-<!-- rq-ss010 -->
-
-Deletion candidates are `MAINT-003 deletion_candidate` findings with explicit subtypes: unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, and impossible feature-flag path.
+Deletion candidates are `MAINT-003 deletion_candidate` findings. Subtypes: unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, impossible feature-flag path.
 
 <!-- rq-ss011 -->
 
-Deletion safety boundary: do not auto-delete. Heuristic-only or text-only unused-code guesses are not actionable removal proof. Uncertain deletion candidates go to `low-confidence / user-review` with non-blocking actionability unless structural source/tool evidence proves the candidate safe to review for removal.
+Deletion safety: do not auto-delete. Heuristic-only/text-only unused-code guesses are not removal proof. Uncertain deletion candidates → `low-confidence / user-review` + non-blocking actionability unless structural source/tool evidence proves safe review.
 
 ## Phase 2: Heuristic Detection
 
@@ -101,17 +105,17 @@ Text report includes a scanner coverage summary for skipped, timed-out, missing,
 
 ## False-Positive Control
 
-Context Boundary: context packets are orientation only, not finding locations. Do not report findings against ADV change summaries, task evidence, examples, or fixture descriptions unless same issue exists in target source.
-
-Source Evidence Requirement: Every finding must cite a target source file via `file:line` or scoped source evidence. If evidence is unavailable, omit or return low confidence.
-
-Low-confidence findings are non-blocking by default. Preserve them for JSON/audit output, but separate them from actionable findings in text reports.
-
-Confidence anchors: AST-backed structural findings default to `confidence: high`; Regex-only defensive-overkill findings default to `confidence: medium`; Degraded fallback findings default to `confidence: low`.
-
 <!-- rq-ss009 -->
 
-Report `QUAL-012 structural_correctness_bypass` when Heuristic/fuzzy/LLM decisions owning correctness boundaries decide security, persistence, workflow state, gate completion, or spec compliance.
+Context Boundary: context packets are orientation only, not finding locations. Do not report against ADV change summaries, task evidence, exa/context7 snippets, or archived notes unless the referenced source file itself contains the smell.
+
+Source Evidence Requirement: Every finding must cite a target source file via `file:line` or scoped source evidence. No evidence → omit or mark `confidence: low`. Low-confidence findings are non-blocking by default.
+
+Confidence anchors: AST-backed structural findings default to `confidence: high`; Regex-only defensive-overkill findings default to `confidence: medium`; Degraded fallback findings default to `confidence: low`; AI-signature findings default to `confidence: low` unless paired with concrete maintainability/security impact.
+
+Report `QUAL-012 structural_correctness_bypass` when Heuristic/fuzzy/LLM decisions owning correctness boundaries decide security, persistence, workflow state, gate completion, spec compliance, or input recognition/classification. Evidence must cite boundary + missing structural guard.
+
+Coverage output uses `coverage.skippedDetectors`, `coverage.degradedDetectors`, and `coverage.falsePositiveProtections`.
 
 ## Constraints
 

@@ -305,7 +305,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 
 ## Output Contract
 
-After completing any workflow that emits a user-facing gate-transition message, use the **Gate Handoff Voice spine** defined in `docs/command-voice-standard.md § Gate Handoff Voice`:
+After any workflow emits a user-facing gate-transition message, use **Gate Handoff Voice** from `docs/command-voice-standard.md`:
 
 ```
 ## Problem
@@ -325,7 +325,7 @@ After completing any workflow that emits a user-facing gate-transition message, 
 > → `/adv-{next-command} {change-id}`
 ```
 
-Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. The blockquote wayfinder block is the only content after `## Delivered`. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
+Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
 ## ADV State Access Policy
 
@@ -337,7 +337,7 @@ Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives 
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 
-**Additionally**, when conformance is in sibling-repo mode, NEVER read files inside the locked conformance directory (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
+**Additionally**, sibling-repo conformance mode: NEVER read locked conformance dir (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
 
 **ALWAYS** use the ADV MCP tools instead:
 

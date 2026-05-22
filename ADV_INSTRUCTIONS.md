@@ -8,7 +8,7 @@ Specs are laws. Requirements are formally defined, validated, and enforced.
 
 ### Instruction Compression Guard
 
-Use `docs/command-voice-standard.md` prose-load templates + terse/caveman-lite wording. Exact contract tokens stay unchanged: tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.
+Use `docs/command-voice-standard.md` prose-load templates + caveman-full wording. Exact contract tokens stay unchanged: tool names, gate IDs, statuses, slash commands, enum values, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.
 
 ## Core Decision Rules
 
@@ -736,13 +736,13 @@ ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `g
 
 Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
 
-`WORKING DIRECTORY` is required. `adv-engineer` must pass it as `workdir` to every `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test` call. See `.opencode/agents/adv-engineer.md § Working Directory Lock`.
+`WORKING DIRECTORY` required. `adv-engineer` passes it as `workdir` to every `bash`, `read`, `write`, `edit`, `morph_edit`, `adv_run_test`. See `.opencode/agents/adv-engineer.md § Working Directory Lock`.
 
 EXPECTED OUTPUT: implement, test, emit fenced `ENGINEER_REPORT` JSON per `.opencode/agents/adv-engineer.md`.
 
 #### ENGINEER_REPORT Payload
 
-Required keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (`what_ads_needs_to_know`, `suggested_next_action`). `agent` MUST equal `"adv-engineer"`. Full schema: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
+Required keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (`what_ads_needs_to_know`, `suggested_next_action`). `agent` MUST equal `"adv-engineer"`. Schema: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
 
 ### Structured Sub-Agent Prompt Protocol
 
@@ -750,17 +750,17 @@ Every sub-agent spawn must include: ROLE:, OUTPUT_SCHEMA:, BUDGET:, STOP_WHEN:. 
 
 ### Orchestration Token-Budget Policy
 
-When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (runtime-enforced via `enforceTaskPolicy`). Batch pattern: spawn 3, wait for completions, spawn next batch. Cap total sub-agents per command at 6 across batches. Use inline work for sequential or context-dependent tasks.
+When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (`enforceTaskPolicy`). Batch: spawn 3 → wait → next batch. Cap total sub-agents per command at 6 across batches. Inline for sequential/context-dependent work.
 
 ### Phase Summary Pattern
 
-After each phase, use `adv_change_update` to record compact summaries. Do not duplicate full context — reference change state via `adv_change_show` for detailed inspection.
+After each phase, `adv_change_update` records compact summaries. Do not duplicate full context; detailed inspection uses `adv_change_show`.
 
 ## Sub-Agent Selection
 
 ### Agent Tiers
 
-Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable subagents: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
+Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: global `explore`, `general`; bundled global `adv-researcher`, `adv-engineer`, `adv-reviewer`; repo-local `adv-tron`. Skill/inline only: `prioritizer` via `skill("prioritizer")`; MCP/infra diagnostics inline. Only `mode: subagent` agents spawn via Task.
 
 ### Agent Roster
 
@@ -791,7 +791,7 @@ Skill metadata: YAML frontmatter with `name`, `description`, `keywords`.
 
 <!-- rq-domainContext01 -->
 
-**Domain context artifacts:** Projects MAY maintain `CONTEXT.md` (root) or `CONTEXT-MAP.md` + per-context `CONTEXT.md` files as a domain glossary. `/adv-discover`, `/adv-design`, and `/adv-clarify` MAY read these for domain-language alignment. Lazy creation; advisory artifact. See `.adv/specs/domain-context/` for format and consumer contract.
+**Domain context artifacts:** Projects MAY maintain root `CONTEXT.md` or `CONTEXT-MAP.md` + per-context `CONTEXT.md` as domain glossary. `/adv-discover`, `/adv-design`, `/adv-clarify` MAY read for domain-language alignment. Lazy creation; advisory only. See `.adv/specs/domain-context/`.
 
 ### Excluded Skills
 
@@ -901,7 +901,7 @@ ADV always isolates mutating work in per-change worktrees.
 - Every change runs in a worktree — create/reuse before Phase 1
 - Worktree tools unavailable → hard block with error. Do not proceed in-place
 - Existing worktree for same change → auto-reuse
-- Trunk write firewall enforcement is default-on (`worktree_guard_enforce` defaults true post-rollout). Omitted or true blocks main-checkout file writes/destructive bash and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation; switch to `adv_worktree_resume` path. Pre-flip behavior — "omitted or false allows default-checkout file writes" — survives only when `worktree_guard_enforce` is explicitly set false (legacy escape hatch). Proposal gate remains exempt. Read-only tools and git commands allowed. Auto-managed changes (per-change marker) engage the guard regardless of the global flag. Advance repo opts into strict mode by default.
+- trunk write firewall enforcement is default-on (`worktree_guard_enforce=true`; omitted/true). Blocks main-checkout file writes, destructive bash, and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, remediation. Use `adv_worktree_resume` path. Legacy rule: omitted or false allows default-checkout file writes only through explicit `worktree_guard_enforce: false`. Proposal gate remains exempt. Read-only tools + git commands allowed. Auto-managed changes engage guard regardless of global flag. Advance repo opts into strict mode.
 
 ### Worktree Reuse
 
@@ -909,7 +909,7 @@ Before creating: `git worktree list --porcelain` → find `change/{change-id}`. 
 
 ### Worktree Setup Hooks
 
-Worktree setup lives in `.opencode/worktree.jsonc`. `sync.copyFiles` copies explicit opt-in files; `hooks.postCreate` runs setup commands after creation. `postCreate` failure marks the worktree `setup_failed` and blocks ADV routing until remediated; `hooks.preDelete` runs before deletion. See `docs/worktree-guide.md` for examples and secret-handling guidance.
+Setup lives in `.opencode/worktree.jsonc`. `sync.copyFiles` copies explicit opt-in files. `hooks.postCreate` runs after creation; failure marks worktree `setup_failed` and blocks ADV routing until fixed. `hooks.preDelete` runs before deletion. See `docs/worktree-guide.md` for examples + secret handling.
 
 ### Spec Divergence
 
@@ -922,15 +922,15 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 
 ### Worktree Protocol
 
-`adv_worktree_create` defaults to `mode: "warp"`: create/reuse git worktree → register OpenCode `adv-worktree` workspace → warp current session so later tools run from the worktree root. Enable by launching OpenCode with `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or broader `OPENCODE_EXPERIMENTAL=true`) and restarting; ADV does not mutate `process.env`. If the flag or `/experimental/workspace` surface is unavailable, ADV downgrades to `mode: "terminal"` with an actionable warning. If the current session is already warped, `adv_worktree_create` blocks with `SESSION_ALREADY_WARPED`; open a fresh OpenCode session from the trunk checkout to create another worktree.
+`adv_worktree_create` default `mode: "warp"`: create/reuse git worktree → register OpenCode `adv-worktree` workspace → warp current session so later tools run at worktree root. Requires `OPENCODE_EXPERIMENTAL_WORKSPACES=true` (or `OPENCODE_EXPERIMENTAL=true`) before launch. ADV does not mutate `process.env`. If flag or `/experimental/workspace` unavailable → downgrade to `mode: "terminal"` with actionable warning. Already warped session → `SESSION_ALREADY_WARPED`; open fresh OpenCode session from trunk to create another worktree.
 
-Advanced side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering so cross-workspace sessions of the same project are included by default instead of filtered by directory. ADV does not rely on this. No graduation timeline is published; env-var opt-in is the current mechanism.
+Side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering: same-project cross-workspace sessions included by default. ADV does not rely on this. No graduation timeline published; env-var opt-in is current mechanism.
 
-Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir` for all later tools; `mode: "spawn"` returns the worktree path for follow-up launch handling. Delete via `adv_worktree_delete` with `branch:<branch>` only after merge; warp-mode delete attempts to remove the matching OpenCode workspace row before git worktree removal, warning and continuing if workspace cleanup fails.
+Fallback modes: `mode: "terminal"` returns path; use as `workdir` for all later tools. `mode: "spawn"` returns path for follow-up launch. Delete via `adv_worktree_delete branch:<branch>` only after merge. Worktree cleanup uses canonical tool `adv_worktree_delete`. Warp-mode delete attempts matching OpenCode workspace-row removal before git worktree removal; warns and continues if workspace cleanup fails.
 
 ### Worktree Cleanup
 
-`/adv-archive` Phase 9 handles structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → `--ff-only` merge + push, or explicit PR-mode branch-push handoff. The release gate is structurally enforced: `adv_gate_complete gateId: "release"` rejects direct-mode completion unless `change/{change-id}` is reachable from and pushed with the default branch (`rq-releaseFinalization01.5`). PR-based projects must opt out explicitly with `archive_mode: "pr"` and complete the PR branch-push handoff instead (`rq-releaseFinalization01.6`). × Never delete worktree with unmerged commits. If tools unavailable: `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
+`/adv-archive` Phase 9 owns structural git finalization: validate change worktree → commit `.adv/` archive/spec artifacts → detect default branch → `--ff-only` merge + push, or PR-mode branch-push handoff. Release gate enforcement: `adv_gate_complete gateId: "release"` rejects direct-mode completion unless `change/{change-id}` is reachable from and pushed with default branch (`rq-releaseFinalization01.5`). PR projects must set `archive_mode: "pr"` and complete PR branch-push handoff (`rq-releaseFinalization01.6`). × Never delete worktree with unmerged commits. Tools unavailable → `[ADV:BLOCKED] Worktree tools unavailable — hard block with error. Do not proceed in-place.`
 
 ## When to Use ADV
 
@@ -939,4 +939,4 @@ Fallback modes: `mode: "terminal"` returns a path that MUST be used as `workdir`
 
 ### Provider ADV runtime hints
 
-<!-- rq-scopedAdvInstructions01 --> `scripts/deploy-local.sh` writes one global `adv` runtime agent from the lean canonical `.opencode/agents/adv.md`. This `ADV_INSTRUCTIONS.md` file remains the full repo/dev reference and is not appended wholesale into runtime `adv.md`; runtime protocol coverage is tracked by `docs/adv-runtime-protocol-coverage.md`, specs, tests, and command contracts. Provider-specific guidance is injected at runtime through the single system block when structured provider/model identity is known. Retired `adv-{provider}` generated agents are not recreated; stale config requires manual cleanup.
+<!-- rq-scopedAdvInstructions01 --> `scripts/deploy-local.sh` writes one global `adv` runtime agent from lean canonical `.opencode/agents/adv.md`. `ADV_INSTRUCTIONS.md` remains full repo/dev reference; not appended wholesale into runtime `adv.md`. Runtime coverage: `docs/adv-runtime-protocol-coverage.md`, specs, tests, command contracts. Provider-specific guidance injects at runtime through single system block when provider/model identity known. Retired `adv-{provider}` generated agents not recreated; stale config needs manual cleanup.

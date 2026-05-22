@@ -379,35 +379,38 @@ Record `(hook_strategy, sync_action)` for the Phase 8 archive report (footer lin
 
 ### Step 6: Verify
 
-`git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty (every commit on change branch is reachable from default-branch). If non-empty → stop, × do NOT delete worktree.
+`git -C "$MAIN" log --oneline {default-branch}..change/{change-id}` → MUST return empty. Non-empty → stop. × Do NOT delete worktree.
 
-If push was performed (Step 5 succeeded): `git -C "$MAIN" fetch origin {default-branch}` then compare `git -C "$MAIN" rev-parse origin/{default-branch}` with `git -C "$MAIN" rev-parse {default-branch}` → MUST be equal. If mismatch → stop, do NOT delete worktree, report drift in Phase 8.
+If Step 5 pushed: `git -C "$MAIN" fetch origin {default-branch}` → compare `origin/{default-branch}` and local `{default-branch}` SHAs. Mismatch → stop, keep worktree, report drift in Phase 8.
 
 ### Step 7: Cleanup Worktree(s)
 
-Auto-managed changes (`change.worktree_auto_managed: true`) may own multiple worktrees — current-repo + `target_worktree_path` + `scope_worktrees[*]`. The cleanup helper `collectWorktreeCleanupTargets(change)` (plugin/src/tools/worktree/cleanup-targets.ts) returns the deterministic iteration order:
+Auto-managed changes (`change.worktree_auto_managed: true`) may own: current repo, `target_worktree_path`, `scope_worktrees[*]`.
 
-1. Current-repo worktree (branch `change/{change-id}`).
-2. `target_worktree_path` if set (cross-project mutations).
-3. `scope_worktrees[*]` in `Object.keys` insertion order (product-linked changes).
+`collectWorktreeCleanupTargets(change)` (`plugin/src/tools/worktree/cleanup-targets.ts`) order:
 
-For each target, only proceed if merge was verified in Step 6:
+1. Current-repo worktree (`change/{change-id}`).
+2. `target_worktree_path` if set.
+3. `scope_worktrees[*]` in `Object.keys` insertion order.
+
+Per target, proceed only after Step 6 merge proof:
 - `adv_worktree_delete branch: "change/{change-id}" reason: "Change {change-id} merged"`
-- For target / scope entries, scope the deletion to the target's repo root via `workdir` if the deletion tool supports it; otherwise emit the manual fallback: `git -C "<target-repo-root>" worktree remove <path>` followed by `git -C "<target-repo-root>" branch -D change/{change-id}`.
+- Target/scope repo: scope deletion to target repo root when tool supports it.
+- No scoped tool support → manual fallback: `git -C "<target-repo-root>" worktree remove <path>` then `git -C "<target-repo-root>" branch -D change/{change-id}`.
 
-Idempotency: re-running cleanup on an already-cleaned change is a no-op — entries already deleted by a prior archive attempt are skipped by `adv_worktree_delete`'s record check.
+Idempotency: already-cleaned entries skip via `adv_worktree_delete` record check.
 
-Partial-failure tolerance: a per-target deletion that fails MUST NOT abort iteration of subsequent targets. Record per-entry outcomes and surface failures in Phase 8's archive report under `worktree_cleanup_failures`.
+Partial failure: one delete failure MUST NOT stop later targets. Record per-entry outcomes; surface failures in Phase 8 under `worktree_cleanup_failures`.
 
-After successful cleanup of each target, the archive flow clears the corresponding field on the change record via `worktreeAttachedSignal({ role, path: null, ...})`:
+After each successful cleanup, archive flow clears its change field via `worktreeAttachedSignal({ role, path: null, ...})`:
 - target → `target_worktree_path: null`
-- scope → `scope_worktrees[repoId]` deleted (signal with `repoId` + `path: null`)
+- scope → delete `scope_worktrees[repoId]` via signal with `repoId` + `path: null`
 
-If `adv_worktree_delete` is unavailable globally → emit an info banner naming the manual fallback once.
+`adv_worktree_delete` unavailable globally → emit one info banner with manual fallback.
 
-**Legacy single-worktree changes** (`change.worktree_auto_managed !== true`) follow the pre-AC4 behavior: only the current-repo worktree is deleted if running in one AND merge verified.
+Legacy changes (`change.worktree_auto_managed !== true`): pre-AC4 rule. Delete only current-repo worktree, only when running inside one AND merge verified.
 
-After successful cleanup, include `Continue from: {mainCheckout} ({default-branch})` in the archive report. This is terminal-neutral wayfinding for the agent/operator; it does not claim ADV changed the caller's shell CWD. Warp or other terminal UX may switch attention as a convenience, but correctness must not depend on it.
+Successful cleanup report includes `Continue from: {mainCheckout} ({default-branch})`. Terminal-neutral wayfinding only; does not claim shell CWD changed. Terminal UX may switch attention; correctness cannot depend on it.
 
 ### Step 8: Temp Artifacts
 
@@ -416,46 +419,46 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 <!-- rq-issueChangeLinkage02 -->
 ### Step 8.5: Linked GitHub Issue Close (rq-issueChangeLinkage02)
 
-**Tool-driven (structural enforcement):** `adv_change_archive` defaults to closing linked GH issues for roadmap/triage origins after successful archive state transition. The agent does NOT need to shell out `gh` commands manually — the tool handles it.
+`adv_change_archive` defaults to closing linked GH issues after durable archive transition. Agent does not run `gh issue close` manually.
 
-**Trigger (enforced by tool code):**
+**Trigger (tool-enforced):**
 
-- `--no-close-issue` was NOT passed.
+- `--no-close-issue` NOT passed.
 - `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number > 0`.
-- Push verification succeeded (archive commits reachable on default branch) — the tool fires after archive status is durable and the release gate is recorded.
-- `dryRun` is false.
+- Push verification passed; archive status durable; release gate recorded.
+- `dryRun` false.
 
 **Tool behavior:**
 
-1. Posts comment: `Shipped via {change-id} ({short-sha})` (skipped on re-archive when bundle already exists).
-2. Runs `gh issue close <N> --reason completed` (idempotent — already-closed returns exit 0).
-3. Cross-repo: resolves `--repo {owner}/{name}` via `github_project` config when needed.
+1. Post comment: `Shipped via {change-id} ({short-sha})` (skip if re-archive bundle exists).
+2. Run `gh issue close <N> --reason completed` (idempotent; already closed exits 0).
+3. Cross-repo: resolve `--repo {owner}/{name}` from `github_project` config.
 4. `ghNotFound` → silent skip (`close_eligible: true, issue_closed: []`).
-5. Non-zero exit → non-fatal error in `issue_closure_error` with manual remediation command.
+5. Non-zero → non-fatal `issue_closure_error` + manual remediation command.
 
-**Agent responsibility:** Check `issue_closed` and `issue_closure_error` in archive output. If `issue_closure_error` present, surface `[ADV:ATTN]` with the manual command. No other action needed.
+**Agent job:** inspect `issue_closed` + `issue_closure_error`. Error present → surface `[ADV:ATTN]` with manual command. Nothing else.
 
 **Anti-patterns:**
 
 | × Bad | ✓ Good |
 |---|---|
-| Agent manually runs `gh issue close` after archive | Tool handles closure automatically; agent only surfaces errors. |
-| Close issue when `origin.kind === 'discovery'` or `'adhoc'` | Only roadmap- and triage-origin changes close automatically. |
-| Roll back archive on close failure | Archive state is canonical; close failure is non-fatal advisory. |
+| Agent manually runs `gh issue close` after archive | Tool handles closure; agent surfaces errors only. |
+| Close issue for `origin.kind === 'discovery'` or `'adhoc'` | Auto-close roadmap/triage origins only. |
+| Roll back archive on close failure | Archive state canonical; close failure advisory. |
 
 ### Completion
 
-Emit GIT FINALIZATION COMPLETE only after Step 6 verification passes: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, and final `git -C "$MAIN" status --short --branch` output. If push or deploy did not succeed, use a non-shipped terminal verb and state the exact remaining command.
+Emit `GIT FINALIZATION COMPLETE` only after Step 6 proof. Include: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, final `git -C "$MAIN" status --short --branch`. If push/deploy failed, use non-shipped terminal verb + exact remaining command.
 
 ### Step 9: Post-Deploy Nudge
 
-After Phase 9 completes and archive summary is displayed (Phase 8), if project has a detectable deployment target, append a one-line nudge:
+After Phase 9 + Phase 8 summary, if deploy target detectable, append one line:
 
 ```
 → Deploy to production when ready
 ```
 
-Production deployment is outside ADV's gate lifecycle — ADV stops at verified default-branch push plus local developer-environment deploy when `scripts/deploy-local.sh` exists. Production deploy remains a separate, user-initiated step.
+Production deploy is outside ADV gate lifecycle. ADV stops at verified default-branch push + local developer-environment deploy when `scripts/deploy-local.sh` exists. Production deploy remains user-initiated.
 
 ---
 

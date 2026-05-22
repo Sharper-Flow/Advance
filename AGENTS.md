@@ -86,11 +86,11 @@ Temporal TypeScript workflow sandbox patches `Date.now()`, `new Date()`, and `Ma
 
 #### Cache-refresh discipline (rq-cacheRefresh01)
 
-Tool-layer code SHALL use `fireSignalAndRefresh(handle, store, changeId, signal, ...args)` from `plugin/src/tools/_adapters.ts` for any signal targeting a change workflow. The helper fires the signal AND invalidates the in-memory `changeCache` so subsequent `store.changes.get()` calls return fresh state. Direct `fireSignal` use is permitted only for signals NOT associated with a single change (none currently exist; documented exemptions require a `// rq-cacheRefresh01-exempt: <reason>` annotation at the call site). The grep gate `grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v ".test.ts" | grep -v rq-cacheRefresh01-exempt` MUST return zero matches.
+Tool-layer code SHALL use `fireSignalAndRefresh(handle, store, changeId, signal, ...args)` from `plugin/src/tools/_adapters.ts` for change-workflow signals. Helper fires signal + invalidates `changeCache`; later `store.changes.get()` returns fresh state. Direct `fireSignal` allowed only for signals not tied to one change (none now). Exemptions require `// rq-cacheRefresh01-exempt: <reason>`. Gate: `grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v ".test.ts" | grep -v rq-cacheRefresh01-exempt` → zero matches.
 
-Cross-project note: when mutating a change in another project via `target_path`, the helper invalidates the TARGET project's cache via the `store` argument that wraps that project's StoreBackend. Use `withTargetPathStore(...)` upstream to obtain the correct store reference before calling the helper. Task mutation tools (`add`, `cancel`, `update`, `reclassify_tdd`) must route lookup, validation, signal, cache refresh, and snapshot through the target store (`rq-crossProjectTaskMutation01`).
+Cross-project: target mutations use target store cache. Use `withTargetPathStore(...)` before helper. Task mutation tools (`add`, `cancel`, `update`, `reclassify_tdd`) route lookup, validation, signal, cache refresh, snapshot through target store (`rq-crossProjectTaskMutation01`).
 
-Dry-run note (`rq-dryRunMutation01`): preview-capable mutation tools return same-shape success + `dryRun: true` and skip all writes/signals/hooks/audit entries. Cross-project dry-runs may validate against target state with read-only trust posture.
+Dry-run (`rq-dryRunMutation01`): preview-capable mutation tools return same-shape success + `dryRun: true`; no writes/signals/hooks/audit. Cross-project dry-runs may validate target state read-only.
 
 Non-LLM tool exec note (`rq-nonLlmToolExec01`): do not ship direct ADV CLI/tool exec unless OpenCode exposes stable tool execution or equivalent structural runtime. Current #71 outcome: document/defer; no duplicate STSL/Temporal/store runtime.
 
@@ -145,23 +145,23 @@ See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 ### Overlay sync model
 
-Shared global agents (`general`, `build`, `plan`) are NOT fully replaced by sync. Instead, `.opencode/overlays/*.overlay.md` contains managed blocks that `scripts/deploy-local.sh` injects into the global agent files without overwriting user customization. The `adv` runtime agent is repo-owned and full-file synced from `.opencode/agents/adv.md`.
+Shared global agents (`general`, `build`, `plan`) are not fully replaced. `.opencode/overlays/*.overlay.md` managed blocks are injected by `scripts/deploy-local.sh`; user customization stays.
 
 ### Provider ADV runtime hints
 
-`scripts/deploy-local.sh` now assembles one global ADV runtime agent:
+`scripts/deploy-local.sh` assembles one global ADV runtime agent:
 
-1. **Copy canonical ADV body** — `.opencode/agents/adv.md` remains the source of truth.
-2. **Preserve ADV protocol by coverage** — repository `ADV_INSTRUCTIONS.md` remains the full reference, but is not appended wholesale into global `~/.config/opencode/agents/adv.md`; runtime coverage is tracked in `docs/adv-runtime-protocol-coverage.md`, specs, tests, and command contracts.
-3. **Retire provider variants** — stale global `adv-{provider}.md` files and concatenated provider prompt files are removed instead of regenerated.
-4. **Runtime hints** — `plugin/src/utils/system-block.ts` injects one provider hint into `output.system[0]` when structured provider/model identity is known.
-5. **Drift checks** — `check_tool_drift` validates the canonical ADV agent allowlist only.
+1. Copy canonical ADV body from `.opencode/agents/adv.md`.
+2. Preserve protocol by coverage. `ADV_INSTRUCTIONS.md` remains full reference, not appended wholesale. Coverage tracked in `docs/adv-runtime-protocol-coverage.md`, specs, tests, command contracts.
+3. Retire provider variants. Stale global `adv-{provider}.md` and concatenated provider prompts removed.
+4. Runtime hints. `plugin/src/utils/system-block.ts` injects one provider hint into `output.system[0]` when provider/model identity known.
+5. Drift checks. `check_tool_drift` validates canonical ADV agent allowlist only.
 
-No `adv-claude`, `adv-gpt`, `adv-glm`, or `adv-kimi` compatibility aliases are generated. User-owned `agent.adv-{provider}` config requires one-time manual cleanup; see `docs/provider-agent-assembly.md`.
+No `adv-claude`, `adv-gpt`, `adv-glm`, `adv-kimi` aliases generated. User-owned `agent.adv-{provider}` config needs one-time manual cleanup; see `docs/provider-agent-assembly.md`.
 
 ### Tool registration pattern
 
-Each tool file in `src/tools/` exports a `*Tools` object with description, args schema, and execute function. `tool-registry.ts` binds them all via `createToolMap()`. To add a new tool:
+Each `src/tools/*.ts` file exports a `*Tools` object: description, args schema, execute. `tool-registry.ts` binds via `createToolMap()`. Add tool:
 
 1. Define it in the relevant `src/tools/*.ts` file
 2. Export from `src/tools/index.ts`
@@ -169,7 +169,7 @@ Each tool file in `src/tools/` exports a `*Tools` object with description, args 
 
 ### Schema source of truth
 
-Zod schemas in `plugin/src/types.ts` are the authoritative source. `plugin/schemas/*.json` contains `$ref`-only stub files that point at the Zod types; they are NOT auto-generated from Zod. When you extend a Zod schema (add a field, change a type), no separate schema-regeneration step is required — the Zod type is the contract, and the committed stubs are informational anchors only.
+Zod schemas in `plugin/src/types.ts` are authoritative. `plugin/schemas/*.json` are `$ref` stubs pointing at Zod types; not auto-generated. Extending Zod needs no schema regeneration.
 
 ## Testing Conventions
 

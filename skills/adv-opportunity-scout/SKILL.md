@@ -21,7 +21,7 @@ metadata:
 
 ## Purpose
 
-Bounded opportunity-scout methodology for `/adv-discover` Phase 3.5 (Discovery Opportunity Scout) and `/adv-design` Phase 2.5 (Design Leverage Scout). Provides the scout protocol, output schema, routing taxonomy, prompt templates, and degradation rules. Commands own workflow/state/gate completion; this skill owns the reusable methodology.
+Bounded scout methodology for `/adv-discover` Phase 3.5 and `/adv-design` Phase 2.5. Owns protocol, schema, routing, prompt templates, degradation. Commands own workflow/state/gates.
 
 ## Modes
 
@@ -32,11 +32,11 @@ Bounded opportunity-scout methodology for `/adv-discover` Phase 3.5 (Discovery O
 
 ## Execution Protocol
 
-1. **Load context** — orchestrator passes: proposal summary, agreement (objectives, AC, constraints, avoidances), current-state findings (discovery mode) or draft design (design mode), conflict scan results (for prior_consideration), change ID.
-2. **Spawn adv-researcher** — orchestrator spawns the existing `adv-researcher` sub-agent with the mode-specific prompt template. The prompt includes all loaded context.
-3. **Collect candidates** — adv-researcher returns structured candidates following the output schema below. Hard cap: ≤5 candidates per mode.
-4. **Sort by payoff/risk** — candidates are sorted by payoff/risk ratio (high payoff + low risk first).
-5. **Route adoption** — orchestrator applies the routing taxonomy (§ Routing).
+1. **Load context** — proposal, agreement (objectives, AC, constraints, avoidances), current-state findings or draft design, conflict-scan prior_consideration, change ID.
+2. **Spawn adv-researcher** — existing `adv-researcher` with mode prompt below.
+3. **Collect candidates** — structured output schema; hard cap ≤5.
+4. **Sort** — payoff/risk ratio; high payoff + low risk first.
+5. **Route** — taxonomy below.
 
 ## Output Schema
 
@@ -57,13 +57,13 @@ interface ScoutCandidate {
 
 ### Field Notes
 
-- **contract_tie**: Must reference a specific acceptance criterion (e.g., "AC1"), constraint, objective, or avoidance from the agreement. Use "untied" when the candidate doesn't directly tie to any contract item but is still potentially valuable.
-- **prior_consideration**: Populated by the orchestrator from Phase 1.6 conflict scan results and archived change history before the prompt is sent to adv-researcher. The scout receives this data in its prompt context; it does not re-query archived changes. Values:
+- **contract_tie**: Specific AC, constraint, objective, or avoidance. Use `"untied"` only when valuable but not contract-bound.
+- **prior_consideration**: Orchestrator fills from Phase 1.6 conflict scan + archive history before spawn. Scout receives data; it does not query archives.
   - `new` — not previously considered
-  - `archived:{change-id}` — previously attempted in an archived change
-  - `rejected:{reason}` — previously considered and rejected with reason
-  - `conflict:{change-id}` — conflicts with an active change
-- **recommended_fate**: Advisory — the orchestrator makes the final routing decision.
+  - `archived:{change-id}` — previously attempted in archived change
+  - `rejected:{reason}` — previously rejected
+  - `conflict:{change-id}` — conflicts with active change
+- **recommended_fate**: Advisory; orchestrator decides final route.
 
 ## Routing Taxonomy
 
@@ -77,13 +77,13 @@ interface ScoutCandidate {
 
 ### Auto-Adopt Policy (Narrow Only)
 
-The orchestrator auto-adopts a candidate ONLY when ALL of:
-1. `contract_tie` references a specific contract item (not "untied")
-2. `risk` is `low`
-3. `recommended_fate` is `adopt_now` or `design_around`
-4. The adoption requires no user-value tradeoff
+Auto-adopt ONLY when ALL true:
+1. `contract_tie` references a specific contract item (not `"untied"`).
+2. `risk` is `low`.
+3. `recommended_fate` is `adopt_now` or `design_around`.
+4. No user-value tradeoff.
 
-All other candidates are surfaced to the user. The orchestrator MUST NOT auto-adopt untied ideas regardless of payoff.
+Otherwise surface to user. MUST NOT auto-adopt untied ideas, any payoff.
 
 ## Prompt Templates
 
@@ -119,7 +119,7 @@ CONSTRAINTS:
 - Do not propose scope expansion beyond the stated objectives
 - Evidence must be specific (file:line, URL, spec ref) — no vague claims
 
-OUTPUT: Return a JSON array of ScoutCandidate objects. Each object must have: candidate, evidence, payoff, risk, contract_tie, prior_consideration, recommended_fate, fate_rationale.
+OUTPUT: Return JSON array of ScoutCandidate objects. Required fields: candidate, evidence, payoff, risk, contract_tie, prior_consideration, recommended_fate, fate_rationale.
 ```
 
 ### Design Mode Prompt
@@ -155,32 +155,25 @@ CONSTRAINTS:
 - Do not propose replacing the core architecture (that's a design revision, not a leverage point)
 - Evidence must be specific (file:line, URL, spec ref) — no vague claims
 
-OUTPUT: Return a JSON array of ScoutCandidate objects. Each object must have: candidate, evidence, payoff, risk, contract_tie, prior_consideration, recommended_fate, fate_rationale.
+OUTPUT: Return JSON array of ScoutCandidate objects. Required fields: candidate, evidence, payoff, risk, contract_tie, prior_consideration, recommended_fate, fate_rationale.
 ```
 
 ## Degradation Path
 
-When the scout cannot execute or returns no useful output:
+Scout failure never blocks workflow.
 
-| Condition | Handling |
-|-----------|----------|
-| Skill file missing | Orchestrator skips with note: "Scout skill unavailable; skipping opportunity scan." Proceed without blocking. |
-| adv-researcher spawn fails | Orchestrator records "Scout: inconclusive (researcher unavailable)." Proceed without blocking. |
-| adv-researcher returns empty/malformed output | Orchestrator records "Scout: inconclusive (no candidates returned)." Proceed without blocking. |
-| adv-researcher times out | Orchestrator records "Scout: inconclusive (timeout)." Proceed without blocking. |
-
-Mandatory means "must attempt," not "must succeed." The scout never blocks the workflow.
+Mandatory means "attempt," not "succeed." INCONCLUSIVE allowed.
 
 ## Opt-Out for Trivially Scoped Changes
 
-The scout phase may be skipped with documented rationale when:
-- The change is a narrow bug fix or local refactor with no viable opportunity surface
-- The change has a single, well-understood implementation path
-- The scope is so small that opportunity scouting would add latency without value
+Skip with rationale when:
+- Narrow bug fix or local refactor; no useful opportunity surface
+- Single well-understood implementation path
+- Scope too small; scout adds latency without value
 
-To opt out, the orchestrator records: "Scout: skipped — {rationale}" in the phase output.
+Record: `Scout: skipped — {rationale}`.
 
-Analogous to rq-disc10.3 (External-Solution Check opt-out for purely internal changes).
+Analogous to rq-disc10.3 external-solution opt-out for purely internal changes.
 
 ## Differentiation from Existing Mechanisms
 
@@ -191,7 +184,7 @@ Analogous to rq-disc10.3 (External-Solution Check opt-out for purely internal ch
 | **External-Solution Check** (rq-disc10) | Check for viable alternative directions when ecosystem unknowns exist | Direction alternatives with source citations | Influences LBP check; no auto-adoption |
 | **Conflict Scan** (rq-disc04) | Identify overlapping/conflicting work with active/archived changes | Conflict findings | Coordination warning; no auto-adoption |
 
-The scout's unique contributions are `contract_tie` (grounding in the agreement) and `recommended_fate` (structured adoption routing). Other mechanisms do not produce fate-routed candidates.
+The scout adds `contract_tie` + `recommended_fate`: agreement grounding + adoption route. Other mechanisms do not emit fate-routed candidates.
 
 ## Constraints
 

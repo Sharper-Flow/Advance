@@ -24,7 +24,7 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 0: Load Skill
-`skill("adv-arch-detection")` → provides three-phase detection strategy, Known-Stack Rule Matrix, Research-Fallback Protocol, finding format, severity scoring. If skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-arch-detection")` → three-phase detection strategy, Known-Stack Rule Matrix, Research Fallback, finding format, severity rubric, P33 boundaries. Skill unavailable → use embedded protocol here.
 
 ---
 ## Pre-flight
@@ -98,14 +98,15 @@ Timeout or heuristic failure → keep deterministic/research findings, record th
 
 ### Architecture Scanner Coverage Report
 
-Emit ARCHITECTURE SCAN REPORT: detected stack, phases run, architecture scanner coverage summary, severity summary, findings grouped by severity (each with category, location, description, recommendation, source).
+Emit `ARCHITECTURE SCAN REPORT`: detected stack, phases run, coverage summary, severity summary, findings by severity (category, location, description, recommendation, source).
 
-Coverage summary includes detected stacks, applied Stack Packs, missing Stack Packs, skipped detectors, and degraded detectors. These gaps are visible without `--verbose`.
+Coverage includes: detected stacks, applied Stack Packs, missing Stack Packs, skipped detectors, degraded detectors. Gaps visible even when findings are empty.
 
-If no findings → `[OK] No architecture issues detected.`
+No findings → `[OK] No architecture issues detected.`
 
 ### JSON Format (if `--json`)
-Output structured JSON: `stack`, `phases`, `summary` (bySeverity, byCategory), `findings[]`, and `coverage` with `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, and `coverage.degradedDetectors`. Arch-scan findings are grouped by severity (`blocker|major|minor|nit`); heuristic-only findings remain low-confidence and non-blocking unless corroborated by source/tool evidence.
+
+Output JSON: `stack`, `phases`, `summary` (`bySeverity`, `byCategory`), `findings[]`, `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, `coverage.degradedDetectors`. Severity: `blocker|major|minor|nit`. Heuristic-only findings stay low-confidence and non-blocking unless source/tool evidence corroborates.
 
 ---
 ## Phase 5: Write Metadata

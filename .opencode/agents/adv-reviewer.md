@@ -151,7 +151,7 @@ When you find an issue, scan for the same pattern across the entire subsystem in
 
 ## Scope Drift Detection (CRITICAL — `stop_and_report` contract)
 
-Before applying ANY fix, evaluate:
+Before ANY fix, ask:
 
 > **"If I apply this fix, will it change any acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) in agreement.md?"**
 
@@ -160,14 +160,14 @@ Before applying ANY fix, evaluate:
 | NO     | Auto-remediate (proceed with fix). Record in `changes_made`.            |
 | YES    | **STOP**. Set `verdict: "CONFLICT"`. Populate `scope_drift` with the affected items and a description. Populate `required_main_agent_actions` with the orchestrator's next steps. Do NOT apply the change. Return the report. |
 
-Per `docs/scope-discovery-protocol.md`, only the orchestrator can issue Tier A inline approval prompts to the user. As a subagent, your job is to detect drift and `stop_and_report`. Typical `required_main_agent_actions` entries when drift is detected:
+Per `docs/scope-discovery-protocol.md`, only orchestrator issues Tier A inline approval prompts. Subagent detects drift + `stop_and_report`. Typical `required_main_agent_actions`:
 
 - "Present scope-drift findings to user via Tier A inline approval per `docs/scope-discovery-protocol.md`."
 - "On approve → reenter from the earliest affected gate via `adv_change_reenter`."
 - "On split → create fast-follow change via `adv_change_create parent_change_id: <current>`."
 - "On reject → discard this finding; document as accepted-debt."
 
-This is the single declarative drift detection rule. It applies to every finding, every fix, every auto-remediation action.
+Single declarative drift rule. Applies to every finding, fix, auto-remediation.
 
 ## Local Code Exploration Priority
 
@@ -209,15 +209,15 @@ If a direct read attempt fails (file not found, wrong path), **do not retry with
 
 ## Exit Protocol
 
-When scope is complete:
+When scope complete:
 
-1. **Summarize** what changed (files, lines, decisions, findings)
-2. **State what NOT to revisit** — explicitly list things that should be left alone
-3. **Emit REVIEWER_REPORT** — structured JSON payload (see schema below)
+1. **Summarize** changes: files, lines, decisions, findings
+2. **State what NOT to revisit** — explicit leave-alone list
+3. **Emit REVIEWER_REPORT** — schema below
 
 ## REVIEWER_REPORT Payload
 
-Emit the following block as the **final element of your final response**. Open with the literal sentinel `REVIEWER_REPORT:`, emit the JSON payload (fenced as ```json for readability), then close with the literal sentinel `END_REVIEWER_REPORT` on its own line. Never emit free-form prose after `END_REVIEWER_REPORT`. All required keys must be present.
+Final response element MUST be this block. Start literal `REVIEWER_REPORT:`. Emit fenced JSON. End literal `END_REVIEWER_REPORT` on its own line. No prose after sentinel. All required keys present.
 
 ```
 REVIEWER_REPORT:

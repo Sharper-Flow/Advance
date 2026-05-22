@@ -32,9 +32,9 @@ $ARGUMENTS
 
 #### Purpose
 
-Reusable discovery methodology for ADV discover workflows. Provides the protocol step overview and constraints.
+<!-- rq-noSourceChecklistReads01 -->
 
-**Runtime source:** this embedded section provides the discovery methodology needed during command execution.
+Embedded protocol below owns discovery step rules, edge cases, and output sections. This command owns orchestration.
 
 #### Discovery Protocol (8 Steps)
 
@@ -254,7 +254,7 @@ Each open design question MUST include:
 
 ### LBP and Tradeoffs
 
-If there are 2+ viable approaches with user-value tradeoffs, load `skill("prioritizer")` and apply the criteria-based tradeoff analysis workflow. If skill is unavailable, continue with existing inline prioritizer workflow before asking questions.
+If 2+ viable approaches have user-value tradeoffs, load `skill("prioritizer")` and run criteria-based comparison. If only one viable approach remains after evidence, record why.
 
 ### External-Solution Check (gated)
 <!-- rq-disc10 -->
@@ -479,25 +479,25 @@ Suggested structure:
 
 ### Contract Minting
 
-After Phase 4.5.1 AC approval and before completing the `discovery` gate, call `adv_contract_mint` for this change. The tool deterministically parses the approved `agreement.md`, validates `ChangeContract`, and persists it through the `contractSetSignal`-backed change mutation path.
+After Phase 4.5.1 AC approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved `agreement.md`, validates `ChangeContract`, persists via `contractSetSignal`.
 
 Contract rules:
 
-- Source of truth after minting: `ChangeContract.items`.
-- Legacy `acceptanceCriteria` remains only a backward-compatible projection from `AC*` contract items.
-- Mint stable IDs from the approved agreement text:
+- Source after mint: `ChangeContract.items`.
+- Legacy `acceptanceCriteria`: backward-compatible projection from `AC*` only.
+- Stable IDs from approved agreement text:
   - `SC1..n` — success criteria / desired outcomes.
   - `AC1..n` — approved acceptance criteria.
   - `C1..n` — constraints.
   - `DONT1..n` — rejected approaches / explicit avoidances.
   - `OOS1..n` — out-of-scope boundaries.
-- Set `sourceArtifact: "agreement"` for initial items.
-- The mint tool assigns deterministic evidence policies by item kind: `SC*` → `review`, `AC*` → `test`, `C*` → `static_check`, `DONT*` → `review`, `OOS*` → `not_applicable`.
-- For poisoned-history recovery only, use `adv_contract_mint recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`; this repairs the disk projection only and does not heal the poisoned workflow.
+- Initial items use `sourceArtifact: "agreement"`.
+- Evidence policies: `SC*` → `review`; `AC*` → `test`; `C*` → `static_check`; `DONT*` → `review`; `OOS*` → `not_applicable`.
+- Poisoned-history repair only: `adv_contract_mint recoveryMode: "poisoned_history"` + explicit `recoveryEvidence`. Repairs disk projection only; does not heal workflow history.
 
-Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or projected `acceptanceCriteria` would drift from the approved `AC*` items.
+Discovery completion blocked when approved agreement lacks contract spine or projected `acceptanceCriteria` drifts from approved `AC*` items.
 
-If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`, do not continue to design. Run `adv_contract_mint`, resolve any parser/schema failures in the approved agreement, then retry discovery gate completion.
+If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`: run `adv_contract_mint`, fix parser/schema failures in approved agreement, retry gate.
 
 ---
 ## Phase 5: Complete Gate
@@ -532,4 +532,4 @@ Agreed objectives + constraints + user decisions.
 > → `/adv-design {change-id}`
 ```
 
-**Auto-continue:** After user approval of acceptance criteria and agreement, immediately begin `/adv-design` inline. Do not stop or ask "shall I proceed?" — user's approval is the go-ahead.
+**Auto-continue:** After user approves AC + agreement, begin `/adv-design` inline. Do not ask "shall I proceed?" Approval is go-ahead.

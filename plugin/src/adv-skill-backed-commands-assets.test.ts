@@ -624,10 +624,10 @@ describe("thin-command shape enforcement", () => {
 describe("command voice prose-load policy", () => {
   const COMMAND_VOICE_PATH = join(REPO_ROOT, "docs/command-voice-standard.md");
 
-  test("terse/caveman-lite composes with prose-load templates", () => {
+  test("caveman-full composes with prose-load templates", () => {
     const content = readFileSync(COMMAND_VOICE_PATH, "utf8");
 
-    expect(content).toContain("### Terse/caveman-lite composition");
+    expect(content).toContain("### Caveman-full composition");
     expect(content).toContain("wording-density layer");
     expect(content).toContain("enforcement class still controls");
     expect(content).toContain("Exact contract tokens stay unchanged");
