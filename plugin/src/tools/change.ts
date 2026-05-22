@@ -1088,6 +1088,67 @@ async function recoverReleaseGateViaDiskProjection(input: {
   };
 }
 
+type DurableReleaseGateProofResult =
+  | { ok: true; gate: GateCompletion }
+  | {
+      ok: false;
+      error: string;
+      releaseGateStatus?: GateCompletion["status"];
+      readinessBlockers?: GateCompletion["readiness_blockers"];
+      stuckReason?: GateCompletion["stuck_reason"];
+    };
+
+function releaseGateEvidenceMatches(
+  gate: GateCompletion | undefined,
+  evidence: string,
+): boolean {
+  return (
+    typeof gate?.approval_evidence === "string" &&
+    gate.approval_evidence.includes(evidence)
+  );
+}
+
+async function verifyReleaseGateDurableForArchive(input: {
+  store: Store;
+  changeId: string;
+  evidence: string;
+}): Promise<DurableReleaseGateProofResult> {
+  let gates: Gates | null;
+  try {
+    gates = await input.store.gates.get(input.changeId);
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Store-backed release gate read failed: ${collectErrorText(error)}`,
+    };
+  }
+
+  const releaseGate = gates?.release;
+  if (releaseGate?.status !== "done") {
+    return {
+      ok: false,
+      error:
+        "Store-backed durable release gate proof did not observe release done",
+      releaseGateStatus: releaseGate?.status,
+      readinessBlockers: releaseGate?.readiness_blockers,
+      stuckReason: releaseGate?.stuck_reason,
+    };
+  }
+
+  if (!releaseGateEvidenceMatches(releaseGate, input.evidence)) {
+    return {
+      ok: false,
+      error:
+        "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+      releaseGateStatus: releaseGate.status,
+      readinessBlockers: releaseGate.readiness_blockers,
+      stuckReason: releaseGate.stuck_reason,
+    };
+  }
+
+  return { ok: true, gate: releaseGate };
+}
+
 /**
  * Record the release gate after Phase 9 returns shipped/pr_pushed evidence and
  * before archive status retires the workflow. Each Temporal interaction can
@@ -3180,7 +3241,38 @@ export const changeTools = {
             })),
           });
         }
-        releaseGateCompletion = releaseResult;
+        const releaseEvidence = buildReleaseCompletionEvidence(finalization);
+        const durableProof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId,
+          evidence: releaseEvidence,
+        });
+        if (!durableProof.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Archive durable release gate proof blocked: ${durableProof.error}`,
+            requirement: "rq-releaseProjectionDurability01",
+            changeId,
+            archivePath: archiveResult.archivePath,
+            finalization,
+            continueFrom: {
+              path: finalization.mainCheckout,
+              branch: finalization.defaultBranch,
+            },
+            releaseGateStatus: durableProof.releaseGateStatus,
+            stuckReason: durableProof.stuckReason,
+            readinessBlockers: durableProof.readinessBlockers,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+          });
+        }
+        releaseGateCompletion = {
+          ...releaseResult,
+          gate: durableProof.gate,
+        };
       }
 
       // Update change status in store (unless dry run)
