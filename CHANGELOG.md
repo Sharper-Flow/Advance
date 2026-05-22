@@ -1,3 +1,10 @@
+## 2026-05-22 (v0.10.5)
+
+
+### Change Highlights
+
+- **05-22-extendCompletedWorkflow**: Executive Summary
+
 ## 2026-05-22 (v0.10.4)
 
 
