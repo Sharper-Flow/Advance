@@ -10,6 +10,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { changeTools, closeLinkedIssue } from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
+import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -206,6 +207,9 @@ const allDoneGates: NonNullable<Change["gates"]> = {
 describe("change tools — signal-driven lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete (
+      mocks.handleMock as typeof mocks.handleMock & { describe?: unknown }
+    ).describe;
   });
 
   afterEach(() => {
@@ -1043,6 +1047,111 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error ?? "").not.toContain("Failed to query Workflow");
       expect(store.changes.get).toHaveBeenCalledWith("test-change");
+    });
+
+    test("recovers archived status when save fails because workflow already completed", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-completed-recovery-",
+      );
+      try {
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowNotFoundError",
+          }),
+        );
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          {
+            changeId: "test-change",
+            phase9: "skip",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "workflow execution already completed | WorkflowNotFoundError",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.archivePath).toContain("test-change");
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("does not recover completed-workflow save failure without recoveryMode", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-completed-no-recovery-",
+      );
+      try {
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowNotFoundError",
+          }),
+        );
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "test-change", phase9: "skip" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("workflow execution already completed");
+        expect(parsed._recoveryMutation).toBeUndefined();
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("keeps poisoned-description archive recovery path working", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-poisoned-recovery-",
+      );
+      try {
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          new Error("Failed to query Workflow"),
+        );
+        (
+          mocks.handleMock as typeof mocks.handleMock & {
+            describe: ReturnType<typeof vi.fn>;
+          }
+        ).describe = vi.fn(async () => ({
+          rawDescription: "TMPRL1100 Nondeterminism error",
+        }));
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          {
+            changeId: "test-change",
+            phase9: "skip",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence: "TMPRL1100 Nondeterminism error",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
     });
   });
 

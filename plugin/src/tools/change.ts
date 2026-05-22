@@ -2574,7 +2574,7 @@ export const changeTools = {
         .enum(["normal", "poisoned_history"])
         .optional()
         .describe(
-          "Optional recovery mode. 'poisoned_history' authorizes a disk-projection fallback for the final status transition when the workflow is poisoned AND the archive bundle is already present. Requires recoveryEvidence.",
+          "Optional recovery mode. 'poisoned_history' authorizes a disk-projection fallback for the final status transition when the workflow is poisoned or already completed and the archive bundle is already present/written. Requires recoveryEvidence.",
         ),
       recoveryEvidence: z
         .string()
@@ -2609,15 +2609,15 @@ export const changeTools = {
         if (!recoveryEvidence || !recoveryEvidence.trim()) {
           return formatToolOutput({
             error:
-              "poisoned_history archive recovery requires non-empty recoveryEvidence",
+              "archive recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
           });
         }
-        const { isPrecisePoisonedHistoryEvidence } =
+        const { isPreciseWorkflowRecoveryEvidence } =
           await import("../temporal/recovery-classification");
-        if (!isPrecisePoisonedHistoryEvidence(recoveryEvidence)) {
+        if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
           return formatToolOutput({
             error:
-              "poisoned_history archive recoveryEvidence must cite precise poisoned-history evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled)",
+              "archive recoveryEvidence must cite precise poisoned-history or completed-workflow evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled / WorkflowNotFoundError / workflow execution already completed)",
           });
         }
       }
@@ -2855,27 +2855,33 @@ export const changeTools = {
           // signal that flips the status field fails. Probe + recover.
           if (recoveryMode === "poisoned_history") {
             try {
-              const { workflowHasPoisonedDescription } =
-                await import("./recovery-probe");
-              const { getService } = await import("../temporal/service");
-              const { getChangeHandle } = await import("./_adapters");
-              const { getProjectId } = await import("../utils/project-id");
-              const bundle = getService();
-              const projectId = bundle
-                ? await getProjectId(store.paths.root)
-                : null;
-              const handle =
-                bundle && projectId
-                  ? getChangeHandle(bundle.client, projectId, changeId)
-                  : undefined;
-              const poisoned = handle
-                ? await workflowHasPoisonedDescription(handle)
-                : false;
-              if (poisoned) {
+              const {
+                RECOVERY_RECONCILIATION_WARNING,
+                isWorkflowCompletedError,
+              } = await import("../temporal/recovery-classification");
+              const completedWorkflow = isWorkflowCompletedError(saveError);
+              let poisoned = false;
+              if (!completedWorkflow) {
+                const { workflowHasPoisonedDescription } =
+                  await import("./recovery-probe");
+                const { getService } = await import("../temporal/service");
+                const { getChangeHandle } = await import("./_adapters");
+                const { getProjectId } = await import("../utils/project-id");
+                const bundle = getService();
+                const projectId = bundle
+                  ? await getProjectId(store.paths.root)
+                  : null;
+                const handle =
+                  bundle && projectId
+                    ? getChangeHandle(bundle.client, projectId, changeId)
+                    : undefined;
+                poisoned = handle
+                  ? await workflowHasPoisonedDescription(handle)
+                  : false;
+              }
+              if (completedWorkflow || poisoned) {
                 const { saveRecoveredChangeStatus } =
                   await import("./_recovery-writers");
-                const { RECOVERY_RECONCILIATION_WARNING } =
-                  await import("../temporal/recovery-classification");
                 await saveRecoveredChangeStatus({
                   store,
                   change,
