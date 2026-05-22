@@ -14,7 +14,6 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 | 🎤 BLOCKED | Blockers found → user decides |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
-> **CHECKLIST**: Follow [docs/checklists/review-checklist.md](../../docs/checklists/review-checklist.md).
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -31,7 +30,7 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 
 Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework and conventional comment labels.
 
-**Canonical source:** `docs/checklists/review-checklist.md` — see that checklist for minimum findings threshold, verdict criteria, remediation protocol, and sub-agent failure handling. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the review methodology needed during command execution.
 
 #### 12-Dimension Framework
 
@@ -71,7 +70,7 @@ Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optiona
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the review gate
-- **Canonical source** — defer to `docs/checklists/review-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Phase 1: Pre-flight
@@ -175,7 +174,7 @@ Verify: all target_repo/target_path tasks done, cancelled tasks have approval. R
 1. Combine all issues → group by label (blocker > issue > suggestion > nit) → deduplicate
 2. Cross-reference with spec scenarios
 ### Minimum Findings Enforcement
-If <3 non-nit findings → require genuinely-clean justification with file-level evidence per [review-checklist.md](../../docs/checklists/review-checklist.md).
+If <3 non-nit findings → require genuinely-clean justification with file-level evidence per the Review Methodology section above.
 ### Verdict
 | Verdict | Criteria |
 |---------|----------|

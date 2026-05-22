@@ -10,12 +10,35 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const TOKEN_BUDGETS_PATH = join(REPO_ROOT, ".opencode/token-budgets.json");
+const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
+
+const FORBIDDEN_RUNTIME_CHECKLIST_PATTERNS: Array<{
+  name: string;
+  pattern: RegExp;
+}> = [
+  {
+    name: "Advance checklist source path",
+    pattern: /(?:\.\.\/\.\.\/)?docs\/checklists\/[a-z0-9-]+\.md/i,
+  },
+  {
+    name: "runtime checklist follow directive",
+    pattern: /CHECKLIST[^\n]*Follow[^\n]*checklist/i,
+  },
+  {
+    name: "canonical checklist source directive",
+    pattern: /Canonical source[s]?[^\n]*checklist/i,
+  },
+  {
+    name: "Advance install tree methodology path",
+    pattern: /~\/\.local\/share\/Advance/i,
+  },
+];
 
 const SHARED_SKILL_COMMANDS = [
   {
@@ -123,7 +146,10 @@ describe("skill-backed command assets", () => {
       const content = readFileSync(commandPath, "utf8");
 
       expect(content).toContain(marker);
-      expect(content).toMatch(/Canonical source[s]?:/);
+      expect(content).toMatch(/Methodology/i);
+      expect(content).not.toMatch(
+        /skill\("adv-(discover|prep|apply|review)-methodology"\)/,
+      );
     });
 
     test(`${command} no longer loads a removed paired methodology skill`, () => {
@@ -134,6 +160,25 @@ describe("skill-backed command assets", () => {
       );
     });
   }
+
+  test("runtime adv commands do not point agents at Advance checklist files", () => {
+    const commandFiles = readdirSync(COMMAND_DIR)
+      .filter((file) => /^adv-.*\.md$/.test(file))
+      .sort();
+    const violations: string[] = [];
+
+    for (const file of commandFiles) {
+      const content = readFileSync(join(COMMAND_DIR, file), "utf8");
+      for (const { name, pattern } of FORBIDDEN_RUNTIME_CHECKLIST_PATTERNS) {
+        const match = content.match(pattern);
+        if (match) {
+          violations.push(`${file}: ${name}: ${match[0]}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
 
   test("deploy-local.sh glob covers adv-* skill directories", () => {
     const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");

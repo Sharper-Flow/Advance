@@ -874,7 +874,7 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 | Command-only         | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design`                                                                                                             |
 | Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor`; `adv-arch-scan` → `adv-arch-detection` |
 | Shared skill         | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                                                                         |
-| Embedded methodology | `adv-discover`, `adv-review`                                                                                                                                                                                                                 |
+| Embedded methodology | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology                                                                                  |
 | Dynamic discovery    | `adv-discover`, `adv-research`                                                                                                                                                                                                               |
 
 > **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
@@ -884,7 +884,7 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 - Skills × MUST NOT mutate ADV state (no `adv_change_create`, `adv_task_add`, `adv_gate_complete`).
 - Skills × MUST NOT own gate completion or workflow sequencing.
 - Commands MUST remain functional if a backing skill is unavailable — inline fallback is required.
-- Checklist docs (`docs/checklists/`) remain the canonical source; skills reference them, not duplicate them.
+- Checklist docs (`docs/checklists/`) are maintainer/reference docs only. Runtime command guidance MUST use embedded methodology or loaded skills, not source/install-tree checklist reads.
 
 ## Worktree Integration
 
