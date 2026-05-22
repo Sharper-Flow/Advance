@@ -518,21 +518,26 @@ describe("task tools — signal/query adapters", () => {
     });
 
     // rq-extend-poisoned-recovery AC9: no disk-only recovery in normal mode.
-    test("propagates signal error in normal mode without disk fallback", async () => {
+    test("rejects done in normal mode before attempting disk fallback", async () => {
       const store = createMockStore();
-      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        new Error("Failed to query Workflow"),
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+        },
+        store,
       );
 
-      await expect(
-        taskTools.adv_task_update.execute(
-          {
-            taskId: "tk-abc",
-            status: "done",
-          },
-          store,
-        ),
-      ).rejects.toThrow(/Failed to query Workflow/);
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("adv_task_checkpoint");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("does not expose adv_task_completed as a second public completion path", () => {
+      expect(
+        (taskTools as Record<string, unknown>).adv_task_completed,
+      ).toBeUndefined();
     });
 
     // rq-extend-poisoned-recovery validation
@@ -624,12 +629,8 @@ describe("task tools — signal/query adapters", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    test("routes done status to taskCompletedSignal with verification text", async () => {
+    test("rejects first-time done status outside recovery mode", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-abc",
-        status: "done",
-      });
 
       const result = await taskTools.adv_task_update.execute(
         {
@@ -642,23 +643,13 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        verification: "Focused tests passed",
-        summary: "Implemented signal path",
-      });
-      expect(signalCall[4]).not.toHaveProperty("partial");
+      expect(parsed.error).toContain("adv_task_checkpoint");
+      expect(parsed.code).toBe("TASK_DONE_REQUIRES_CHECKPOINT");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    test("extracts structured_output from <adv-output> in implementation_summary when done", async () => {
+    test("does not extract structured_output by completing through adv_task_update", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-abc",
-        status: "done",
-      });
 
       const implementationSummary = `Implemented feature.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/foo.ts", "linesAdded": 10}],\n  "testsAdded": 2\n}\n</adv-output>`;
 
@@ -673,16 +664,8 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        structured_output: {
-          filesChanged: [{ path: "src/foo.ts", linesAdded: 10 }],
-          testsAdded: 2,
-        },
-      });
+      expect(parsed.error).toContain("adv_task_checkpoint");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("rejects direct cancellation", async () => {
@@ -716,7 +699,7 @@ describe("task tools — signal/query adapters", () => {
       const result = await taskTools.adv_task_update.execute(
         {
           taskId: "tk-abc",
-          status: "done",
+          status: "in_progress",
           target_path: "/tmp/target",
           target_confirmed: true,
           confirmationEvidence: "user approved target mutation",
@@ -929,62 +912,6 @@ describe("task tools — signal/query adapters", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("unknown contract item");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("adv_task_completed", () => {
-    test("fires taskCompletedSignal with verification", async () => {
-      const store = createMockStore();
-
-      const result = await taskTools.adv_task_completed.execute(
-        {
-          taskId: "tk-abc",
-          verification: "Tests passed",
-          summary: "Implemented feature",
-          filesTouched: ["src/foo.ts"],
-          checkpointSha: "abc123",
-        },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        verification: "Tests passed",
-        summary: "Implemented feature",
-        filesTouched: ["src/foo.ts"],
-        checkpointSha: "abc123",
-      });
-    });
-
-    test("extracts structured_output from <adv-output> in verification", async () => {
-      const store = createMockStore();
-
-      const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/bar.ts", "linesAdded": 5}],\n  "testsAdded": 1\n}\n</adv-output>`;
-
-      const result = await taskTools.adv_task_completed.execute(
-        {
-          taskId: "tk-abc",
-          verification,
-          summary: "Implemented feature",
-        },
-        store,
-      );
-
-      const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        structured_output: {
-          filesChanged: [{ path: "src/bar.ts", linesAdded: 5 }],
-          testsAdded: 1,
-        },
-      });
     });
   });
 

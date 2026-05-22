@@ -503,7 +503,7 @@ export const taskTools = {
 
   adv_task_update: {
     description:
-      "Update task status. NOTE: To cancel a task, use adv_task_cancel instead — direct cancellation via this tool is not allowed. To mark a task done, use adv_task_completed instead.",
+      "Update task status. NOTE: To cancel a task, use adv_task_cancel instead — direct cancellation via this tool is not allowed. To mark a task done in normal apply flow, use adv_task_checkpoint so git checkpoint metadata is recorded.",
     args: {
       taskId: z.string().describe("Task ID"),
       status: z
@@ -642,6 +642,21 @@ export const taskTools = {
           Boolean(args.contract_refs) &&
           args.status === "done" &&
           currentStatus === "done";
+
+        if (
+          args.status === "done" &&
+          !shouldPatchExistingDoneTask &&
+          args.recoveryMode !== "poisoned_history"
+        ) {
+          return formatToolOutput({
+            error:
+              "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
+            code: "TASK_DONE_REQUIRES_CHECKPOINT",
+            hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only for explicit poisoned-history recovery with recovery evidence, or to patch an already-done task's metadata/contract refs.",
+            changeId,
+            taskId: args.taskId,
+          });
+        }
 
         let recoveredViaPoisoned = false;
         try {
@@ -1093,113 +1108,6 @@ export const taskTools = {
           error: error instanceof Error ? error.message : "Failed to add task",
         });
       }
-    },
-  },
-
-  adv_task_completed: {
-    description:
-      "Mark a task as completed by firing taskCompletedSignal. Requires verification and summary. Use after the Green Phase and checkpoint.",
-    args: {
-      taskId: z.string().describe("Task ID to mark as completed"),
-      verification: z
-        .string()
-        .min(1)
-        .describe("Verification summary (e.g., test command that passed)"),
-      summary: z
-        .string()
-        .min(1)
-        .describe("Concise summary of what was implemented"),
-      filesTouched: z
-        .array(z.string())
-        .optional()
-        .describe("Repo-relative paths of files modified by this task"),
-      checkpointSha: z
-        .string()
-        .optional()
-        .describe("Git checkpoint SHA from adv_task_checkpoint"),
-      target_path: z
-        .string()
-        .optional()
-        .describe(
-          "Optional absolute path to another ADV project. When provided, mutates that project through a Temporal-backed target store.",
-        ),
-      target_confirmed: z.literal(true).optional(),
-      confirmationEvidence: z.string().optional(),
-    },
-    execute: async (
-      args: {
-        taskId: string;
-        verification: string;
-        summary: string;
-        filesTouched?: string[];
-        checkpointSha?: string;
-        target_path?: string;
-        target_confirmed?: true;
-        confirmationEvidence?: string;
-      },
-      store: Store,
-    ) => {
-      const runComplete = async (
-        activeStore: Store,
-        projectContext?: TargetProjectOutputContext,
-      ) => {
-        const changeId = await resolveChangeId(activeStore, args.taskId);
-        if (!changeId) {
-          return formatToolOutput({ error: `Task not found: ${args.taskId}` });
-        }
-
-        const handle = await getHandleForChangeId(activeStore, changeId);
-        const now = new Date().toISOString();
-
-        const combinedText = `${args.verification}\n${args.summary}`;
-        const structuredOutput = extractStructuredOutput(combinedText);
-        await fireSignalAndRefresh(
-          handle,
-          activeStore,
-          changeId,
-          taskCompletedSignal,
-          {
-            taskId: args.taskId,
-            verification: args.verification,
-            summary: args.summary,
-            filesTouched: args.filesTouched ?? [],
-            checkpointSha: args.checkpointSha,
-            completedAt: now,
-            ...(structuredOutput && { structured_output: structuredOutput }),
-          },
-        );
-
-        const output: Record<string, unknown> = {
-          success: true,
-          taskId: args.taskId,
-          verification: args.verification,
-          summary: args.summary,
-          ...(projectContext ? { _projectContext: projectContext } : {}),
-        };
-
-        const snapshot = await fetchChangeContextTicker(activeStore, changeId);
-        if (snapshot) {
-          output._contextSnapshot = snapshot;
-        }
-
-        return formatToolOutput(output);
-      };
-
-      if (args.target_path) {
-        return withTargetPathStore(
-          {
-            currentProjectPath: store.paths.root,
-            target_path: args.target_path,
-            stateRequirement: "temporal-required",
-            target_confirmed: args.target_confirmed,
-            confirmationEvidence: args.confirmationEvidence,
-          },
-          async ({ context, store: targetStore }) =>
-            runComplete(targetStore, formatTargetProjectContext(context)),
-        );
-      }
-
-      return runComplete(store);
     },
   },
 
