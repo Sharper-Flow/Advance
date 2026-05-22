@@ -145,8 +145,8 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
 | `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation                                                |
-| `/adv-slop-scan [path]`   | Scan for AI slop patterns including defensive and nested code                                        |
-| `/adv-arch-scan [path]`   | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
+| `/adv-slop-scan [path]`   | Scan slop, deletion safety, and detector coverage                                                    |
+| `/adv-arch-scan [path]`   | Scan architecture stack packs, coverage, and heuristic fallbacks                                      |
 | `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence                       |
 
 ### Fast-Track / Advanced
@@ -266,7 +266,7 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 - `adv_session_list` — list peer sessions in same project
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
 - `adv_temporal_diagnose` — peer count, worker-lock holder PID, change workflow presence
-- Stability: `adv_status view:"health"` shows worker_singleton_enforce default true; worktree_guard_enforce default true (post-rollout, rq-autoManageAdvWorktrees AC2); `worker_role` = `host`/`client`/`degraded`; rollback/debug: explicit false or `ADV_FORCE_IN_PROCESS_WORKER=1`.
+- Stability: `adv_status view:"health"` shows worker_singleton_enforce default false; worktree_guard_enforce default true (post-rollout, rq-autoManageAdvWorktrees AC2); `worker_role` = `host`/`client`/`degraded`; opt-in: explicit true or `ADV_FORCE_IN_PROCESS_WORKER=1`.
 - Worktree guard: trunk write firewall enforcement is default-on. `worktree_guard_enforce` omitted or true enables strict blocking. Explicit `worktree_guard_enforce: false` is the legacy escape hatch — pre-flip behavior was "omitted or false allows default-checkout file writes and classified destructive bash writes". `worktree_guard_enforce=true` blocks main-checkout writes with `WorktreeIsolationViolation` + remediation. Advance repo opts into strict mode by default (no explicit project.json override needed). Auto-managed changes (per-change `worktree_auto_managed: true` marker) override the global flag and always engage the guard.
 - Health probes: `_freshness.{probe}` = `cached_at`, `stale`, optional `error`. Stale values are diagnostic-only; never use stale probe data for worker-lock reclaim, restart success, conformance override, or archive.
 
@@ -335,7 +335,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value. The final verification claim is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_update`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`.
 
 ### Reflection Protocol
 
@@ -362,8 +362,8 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 | 3b   | Red Phase — write failing test                                                                                                  |
 | 3c   | Green Phase — implement, tests pass                                                                                             |
 | 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                            |
-| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires `taskCompletedSignal` to mark the task `done` |
-| 3d   | Complete — `adv_task_update status: "done"`                                                                                     |
+| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires and verifies `taskCompletedSignal` to mark the task `done` |
+| 3d   | Complete — verify checkpoint output (`checkpointRecorded:true`); do not call `adv_task_update status: "done"` in normal apply flow            |
 
 **Failure classification:**
 
@@ -699,17 +699,20 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 <!-- rq-delDefaults01 rq-delDefaults02 rq-delDefaults03 rq-delDefaults04 -->
 
-The workflow-step delegation matrix is spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`): single source for step delegation mode, allowed sub-agents, delegated sub-steps, and safety boundaries. Do not duplicate the matrix here; update the spec and its asset tests instead.
+The workflow-step delegation matrix is Advance source-plane law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`). It is the source/evaluation artifact for step mode, allowed sub-agents, delegated sub-steps, and safety boundaries. Do not duplicate the matrix here; source maintainers update the spec and asset tests. Runtime field agents consume deployed command/agent guidance and must not be required to inspect this repo-local spec during normal downstream workflows.
 
-Inline-only commands: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-reflect`. Design gate requires mandatory independent `adv-researcher` validator before completion (`VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`).
+Design gate requires mandatory independent `adv-researcher` validator before completion (`VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`). Command files carry the exact operational packets for delegated sub-steps.
 
 Utility commands keep their own delegation rules in command files, not the workflow-step matrix. Examples of utility fan-out:
 
 | Command | Pattern | Worker |
 |---|---|---|
 | slop-scan | Sequential categories | explore × 9 (single-level only) |
+| arch-scan | Stack packs + research fallback | none; run stack tools, Context7, and Exa inline |
 
 For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and must not delegate to additional sub-agents or invoke `/adv-*` slash commands.
+
+For `/adv-arch-scan`, run stack-pack tools, Context7, and Exa inline; do not spawn sub-agents unless the command contract changes.
 
 ### Delegation Routing
 
@@ -766,7 +769,7 @@ Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable sub
 | `explore` | Code navigation, scoped read-only scans |
 | `adv-researcher` | Docs/API/examples research + architecture validation; independent validator |
 | `adv-engineer` | Delegated ADV code-writing; must use packet `workdir` |
-| `adv-reviewer` | Prep pre-flight, `/adv-review`, `/adv-harden` analysis/remediation; emits `REVIEWER_REPORT` |
+| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; emits `REVIEWER_REPORT` |
 | `general` | Verify bursts + generic multi-step work |
 | `adv-tron` | Recon + hotspots (repo-local) |
 
@@ -869,9 +872,9 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 | Class                | Commands                                                                                                                                                                                                                                     |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Command-only         | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design`                                                                                                             |
-| Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` |
+| Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor`; `adv-arch-scan` → `adv-arch-detection` |
 | Shared skill         | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                                                                         |
-| Embedded methodology | `adv-discover`, `adv-review`                                                                                                                                                                                                                 |
+| Embedded methodology | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology                                                                                  |
 | Dynamic discovery    | `adv-discover`, `adv-research`                                                                                                                                                                                                               |
 
 > **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
@@ -881,7 +884,7 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 - Skills × MUST NOT mutate ADV state (no `adv_change_create`, `adv_task_add`, `adv_gate_complete`).
 - Skills × MUST NOT own gate completion or workflow sequencing.
 - Commands MUST remain functional if a backing skill is unavailable — inline fallback is required.
-- Checklist docs (`docs/checklists/`) remain the canonical source; skills reference them, not duplicate them.
+- Checklist docs (`docs/checklists/`) are maintainer/reference docs only. Runtime command guidance MUST use embedded methodology or loaded skills, not source/install-tree checklist reads.
 
 ## Worktree Integration
 

@@ -1,7 +1,7 @@
 # Slop Scan
 
-> **Version:** 1.1.1
-> **Updated:** 2026-05-08
+> **Version:** 1.2.0
+> **Updated:** 2026-05-22
 
 ## Purpose
 
@@ -443,3 +443,122 @@ Phase 2 heuristic scanners must treat ADV context packets, examples, task summar
 
 - A QUAL-012 or security finding is emitted
 - The fix recommends moving recognition/normalization to the boundary before processing
+
+---
+
+### Deletion Candidate Taxonomy
+
+**ID:** `rq-ss010` | **Priority:** **[MUST]**
+
+/adv-slop-scan must define deletion-candidate subtypes under MAINT-003 for unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, and impossible feature-flag path. These are findings and review inputs only, not automatic deletion actions.
+
+**Tags:** `dead-code`, `deletion-candidate`, `taxonomy`, `maint-003`
+
+#### Scenarios
+
+**Deletion candidates use MAINT-003 subtypes** (`rq-ss010.1`)
+
+**Given:**
+
+- /adv-slop-scan evaluates dead-code, bloat, or reachability signals
+
+**When:** A candidate maps to unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, or impossible feature-flag path
+
+**Then:**
+
+- The finding is labeled as a MAINT-003 deletion_candidate subtype
+- The finding includes confidence, detectionMethod, source evidence, grouping, and actionability
+- The report wording does not imply automatic deletion
+
+**False-positive surfaces are protected** (`rq-ss010.2`)
+
+**Given:**
+
+- A candidate touches public exports, generated files, tests, fixtures, command modules, plugin registration surfaces, prompt context, examples, or task summaries
+
+**When:** Deletion-candidate actionability is assigned
+
+**Then:**
+
+- The candidate is low-confidence or non-blocking unless target source evidence proves the deletion is safe
+- The rationale names the protected surface or source evidence used
+
+---
+
+### Deletion Safety and Actionability Boundary
+
+**ID:** `rq-ss011` | **Priority:** **[MUST]**
+
+/adv-slop-scan must never treat heuristic-only, regex-only, text-only, or single-tool unused-code guesses as actionable removal proof. Uncertain deletion candidates must be grouped as low-confidence / user-review findings.
+
+**Tags:** `dead-code`, `actionability`, `false-positive`, `p33`
+
+#### Scenarios
+
+**Heuristic-only deletion guesses are user-review only** (`rq-ss011.1`)
+
+**Given:**
+
+- A deletion candidate is supported only by text search, regex-only signals, heuristic inference, or agent judgment
+
+**When:** Report grouping is assigned
+
+**Then:**
+
+- The candidate appears only in a low-confidence / user-review section
+- actionability is non-blocking
+- The report states that heuristic-only or text-only unused-code guesses are not actionable removal proof
+
+**Structural evidence required before actionable removal proof** (`rq-ss011.2`)
+
+**Given:**
+
+- A deletion candidate has source evidence from tools, entrypoint/config checks, exact symbol/file/dependency references, or typed reachability roots
+
+**When:** Actionability is assigned
+
+**Then:**
+
+- The candidate may be actionable only when structural evidence is present
+- No single external tool is the sole correctness authority for deletion safety
+- The finding recommends verification before removal rather than direct deletion
+
+---
+
+### Slop Scanner Coverage Report
+
+**ID:** `rq-ss012` | **Priority:** **[MUST]**
+
+/adv-slop-scan must summarize skipped, degraded, timed-out, absent, and missing detectors in normal text output, and expose detailed scanner coverage in JSON metadata.
+
+**Tags:** `coverage`, `output`, `json`, `degraded`
+
+#### Scenarios
+
+**Text output summarizes coverage gaps** (`rq-ss012.1`)
+
+**Given:**
+
+- A detector is skipped, absent, timed out, degraded, or missing for a deletion-candidate subtype
+
+**When:** Text output is generated
+
+**Then:**
+
+- The report includes a scanner coverage summary
+- Skipped and degraded detectors are visible without verbose mode
+- Missing detector coverage is surfaced as a coverage gap, not hidden
+
+**JSON output includes coverage details** (`rq-ss012.2`)
+
+**Given:**
+
+- --json output is requested
+
+**When:** Report output is generated
+
+**Then:**
+
+- The JSON object includes coverage.skippedDetectors
+- The JSON object includes coverage.degradedDetectors
+- The JSON object includes coverage.falsePositiveProtections

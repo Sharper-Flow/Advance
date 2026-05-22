@@ -1,0 +1,7 @@
+## Why
+
+The Temporal worker singleton enforcement (`worker_singleton_enforce` defaults `true`) creates a constant "degraded" / "not alive" diagnostic for every OpenCode session that doesn't hold the worker.lock file. In the actual workload — N concurrent sessions on N worktrees working on N independent changes — Temporal's task queue model already guarantees safe concurrent access via at-most-once task dispatch and sticky query routing. The singleton adds lock-file coordination, heartbeat renewal, PID-based reclaim, suspect classification, and approval-flow machinery (~400 lines across worker-lock.ts, worker-heartbeat.ts, and temporal-ops.ts) that provides no correctness benefit and actively degrades the UX with false alarms.
+
+Additionally, the enforcement has a ghost-worker bug: client-role sessions still spawn Node child processes that poll the queue, so the singleton is not actually enforced — it only prevents new spawns during `tryInitStore`, not cleanup of workers that lost the lock race.
+
+The multi-worker model is the optimal default: each session gets its own worker, fault tolerance improves (N workers means any 1 can die without stalling the queue), and the lock/heartbeat complexity evaporates. Singleton enforcement should remain available as opt-in for resource-constrained environments (CI, shared dev servers).

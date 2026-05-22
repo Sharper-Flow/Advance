@@ -99,7 +99,7 @@ or `cancel` / `stop` / `abort` to halt.
 
 **Anchor phrase:** `Reply `sign off``
 
-**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then run Phase 6 (`adv_change_archive`) and Phase 9 (git finalization) in same turn. Only after Phase 9 verifies the change branch is reachable from the default branch (direct mode) or the change branch has been pushed to origin (PR mode), call `adv_gate_complete gateId: 'release'`. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
+**On whitelist match → proceed immediately.** Emit `Archiving {change-id}.` as the opening line of the response, then run Phase 6 (`adv_change_archive`) in same turn. `adv_change_archive phase9: "run"` owns Phase 9 git finalization and records the release gate after structural merge/push evidence exists. Do not call the release gate separately on the normal archive path. Tier B safety comes from the strict whitelist (no LLM fallback) plus the six prior gate approvals already cemented; no separate confirmation-echo turn is required.
 
 **× Do NOT** use the `question` tool for archive sign-off. The inline pattern is canonical per `rq-inlineApproval01.3` (Tier B whitelist-only).
 
@@ -149,9 +149,9 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 ## Phase 6: Execute Archive
 
-`adv_change_archive changeId: <target> worktreePath: <worktree-root> phase9: "run"` — applies deltas, writes the archive bundle into the change worktree, commits the bundle/spec artifacts on `change/{id}`, finalizes git release evidence, then retires the change. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
+`adv_change_archive changeId: <target> worktreePath: <worktree-root> phase9: "run"` — applies deltas, writes the archive bundle into the change worktree, commits the bundle/spec artifacts on `change/{id}`, finalizes git release evidence, records the release gate, then retires the change. When a contract exists, archive output includes `CONTRACT_TRACEABILITY.md` only after the Contract Proof Gate passes. For product-linked `scope_repos`, inspect `multiRepo` output and `multi-repo-archive.json`; it must include before/after refs, ff-only preflight results, and verification evidence for every scoped repo.
 
-When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on change branch without `cp -r` workarounds. Omit the arg when running from the main checkout (default behavior writes to `store.paths.root`).
+When archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands in the worktree's `.adv/archive/` directory and Phase 9 Step 1 can stage it on change branch without `cp -r` workarounds. Omit `worktreePath` only for dry runs, `phase9: "skip"`, or existing-bundle recovery where the change worktree has already been cleaned up and main-checkout evidence can prove release completion.
 
 ---
 
@@ -187,6 +187,7 @@ What shipped (or merged locally), what spec deltas applied.
 - Pre-push hooks: {hooksPath | githooks | husky | lefthook | standard | none}
 - Asset sync: {auto via hook | manual fix | not needed | n/a}
 - Cleanup: worktree + temp artifacts
+- Continue from: {mainCheckout} ({default-branch})
 - Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}
 
 ---
@@ -209,7 +210,7 @@ After archive summary is displayed, invoke reflection (non-blocking):
 <!-- rq-releaseFinalization01.6 -->
 
 Runtime enforcement lives in `plugin/src/tools/archive-helpers/git-finalize.ts`
-and the `adv_gate_complete release` precondition. This markdown remains the
+and the archive-owned release-gate recording path. This markdown remains the
 human-facing orchestration recipe; the helper module is the shared runtime
 contract used by direct tool paths. When this slash-command path calls
 `adv_change_archive`, it passes `phase9: "run"` with `worktreePath` so the
@@ -218,7 +219,7 @@ the human-facing explanation of that runtime contract.
 
 > **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks user — ADV does not "fix" main's state on user's behalf.
 
-> **Completion bar:** Do not say "archived", "shipped", or "done" after only `adv_gate_complete release`, `adv_change_archive`, or the archive bundle commit. The archive workflow owns finalization through default-branch merge, local deploy (when `scripts/deploy-local.sh` exists), push or explicit local-only report, reachability verification, reflection, and clean working tree status. If any finalization step is skipped, failed, or unverified, the terminal report MUST say `Merged locally.` or `Blocked`, not `Shipped.`
+> **Completion bar:** Do not say "archived", "shipped", or "done" after only the archive bundle commit or a partial `adv_change_archive` result. The archive workflow owns finalization through default-branch merge, local deploy (when `scripts/deploy-local.sh` exists), release-gate recording, push or explicit local-only report, reachability verification, reflection, and clean working tree status. If any finalization step is skipped, failed, or unverified, the terminal report MUST say `Merged locally.` or `Blocked`, not `Shipped.`
 
 ### Step 1: Stage and Commit (in the worktree, on change branch)
 
@@ -406,6 +407,8 @@ If `adv_worktree_delete` is unavailable globally → emit an info banner naming 
 
 **Legacy single-worktree changes** (`change.worktree_auto_managed !== true`) follow the pre-AC4 behavior: only the current-repo worktree is deleted if running in one AND merge verified.
 
+After successful cleanup, include `Continue from: {mainCheckout} ({default-branch})` in the archive report. This is terminal-neutral wayfinding for the agent/operator; it does not claim ADV changed the caller's shell CWD. Warp or other terminal UX may switch attention as a convenience, but correctness must not depend on it.
+
 ### Step 8: Temp Artifacts
 
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
@@ -419,7 +422,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 - `--no-close-issue` was NOT passed.
 - `origin.kind ∈ {'roadmap', 'triage'}` and `origin.issue_number > 0`.
-- Push verification succeeded (archive commits reachable on default branch) — the tool fires after `store.changes.save()` confirms archive status.
+- Push verification succeeded (archive commits reachable on default branch) — the tool fires after archive status is durable and the release gate is recorded.
 - `dryRun` is false.
 
 **Tool behavior:**
@@ -442,7 +445,7 @@ Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 ### Completion
 
-Emit GIT FINALIZATION COMPLETE only after Step 6 verification passes: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, worktree cleanup status, artifacts removed, and final `git -C "$MAIN" status --short --branch` output. If push or deploy did not succeed, use a non-shipped terminal verb and state the exact remaining command.
+Emit GIT FINALIZATION COMPLETE only after Step 6 verification passes: commit SHA, merge target (`$MAIN` default-branch HEAD), push status, local deploy status, verification status, worktree cleanup status, artifacts removed, `Continue from: {mainCheckout} ({default-branch})`, and final `git -C "$MAIN" status --short --branch` output. If push or deploy did not succeed, use a non-shipped terminal verb and state the exact remaining command.
 
 ### Step 9: Post-Deploy Nudge
 

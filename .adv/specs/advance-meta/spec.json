@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.10.0",
-  "updated_at": "2026-05-12T00:00:00.000Z",
+  "version": "1.11.0",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -75,7 +75,7 @@
           "then": [
             "Output includes feature_flags values",
             "Defaults are applied when flags are omitted",
-            "worker_singleton_enforce defaults true when omitted",
+            "worker_singleton_enforce defaults false when omitted",
             "worktree_guard_enforce defaults true when omitted"
           ]
         }
@@ -548,6 +548,41 @@
             "ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
             "The row includes the skill identifier",
             "The command is not listed as Command-only"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-noSourceChecklistReads01",
+      "title": "Runtime Commands Avoid Source Checklist Reads",
+      "body": "ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/* remains maintainer/reference documentation only.",
+      "priority": "must",
+      "tags": ["commands", "skills", "runtime-guidance", "checklists"],
+      "scenarios": [
+        {
+          "id": "rq-noSourceChecklistReads01.1",
+          "title": "Runtime command uses embedded guidance or skill",
+          "given": [
+            "A synced ADV runtime command needs reusable methodology during execution"
+          ],
+          "when": "The command is invoked from a repository that is not the Advance source checkout",
+          "then": [
+            "The command provides the methodology through embedded runtime guidance or a loaded trusted skill",
+            "The command does not instruct the agent to read docs/checklists/* files",
+            "The command does not instruct the agent to search or read ~/.local/share/Advance/** for methodology"
+          ]
+        },
+        {
+          "id": "rq-noSourceChecklistReads01.2",
+          "title": "Checklist docs remain maintainer references",
+          "given": [
+            "Maintainer-facing docs/checklists/* files exist in the Advance repository"
+          ],
+          "when": "Runtime command guidance is authored or synced",
+          "then": [
+            "The docs may remain available for maintainer reference",
+            "Runtime command prose does not present those docs as the execution-time source of methodology",
+            "Structural drift tests fail if runtime command files reintroduce source or install-tree checklist-read directives"
           ]
         }
       ]

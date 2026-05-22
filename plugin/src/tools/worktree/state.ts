@@ -9,6 +9,7 @@
  * Spec anchors:
  * - rq-worktreeRegistry01 (state authority lives in per-change workflow)
  * - rq-multiSessionCoordination01 (signals → change workflow serialize)
+ * - rq-worktreePoisonVisibility01 (cross-change worktree query poison isolation)
  *
  * Session registry retired: sessions are process-fact based only.
  * Pending deletes are durable via external JSONL under
@@ -34,6 +35,12 @@ import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 import { getWorktreesQuery } from "../../temporal/messages";
 import { getService } from "../../temporal/service";
 import { acquireFileLock, atomicWriteFile } from "../../utils/fs";
+import { collectErrorText } from "../../temporal/error-text";
+import {
+  isPoisonedHistoryError,
+  isWorkflowCompletedError,
+} from "../../temporal/recovery-classification";
+import { workflowPoisonedDescriptionEvidence } from "../recovery-probe";
 
 // =============================================================================
 // TYPES — back-compat wrappers around the new contracts.
@@ -87,6 +94,35 @@ export interface PendingDelete {
 export interface PendingDeleteSummary {
   total: number;
   classes: Record<string, number>;
+}
+
+export type WorktreeWorkflowRecoveryReason =
+  | "poisoned_history"
+  | "missing_workflow";
+
+export interface WorktreeCrossChangeWarning {
+  source: "worktree_visibility" | "worktree_workflow";
+  message: string;
+  errorClass: string;
+  changeId?: string;
+  workflowId?: string;
+  recoveryReason?: WorktreeWorkflowRecoveryReason;
+  evidenceSummary?: string;
+}
+
+export interface WorktreePoisonedWorkflowEntry {
+  changeId: string;
+  workflowId: string;
+  recoveryReason: "poisoned_history";
+  evidenceSummary: string;
+  message: string;
+}
+
+export interface WorktreesAcrossChangesResult {
+  records: MaterializedWorktreeRecord[];
+  warnings: WorktreeCrossChangeWarning[];
+  poisonedWorkflows: WorktreePoisonedWorkflowEntry[];
+  unavailable?: boolean;
 }
 
 /** Back-compat token for callers that previously passed a Database. */
@@ -157,9 +193,56 @@ function _recordToPending(r: PendingWorktreeDelete): PendingDelete {
 const CHANGE_BRANCH_PREFIX = "change/";
 const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 const PENDING_DELETES_FILE = "worktree-pending-deletes.json";
+const MAX_WORKTREE_ERROR_EVIDENCE_CHARS = 500;
+
+type ChangeWorkflowWorktreeHandle = {
+  query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
+  describe?: () => Promise<unknown>;
+};
+
+function errorClass(error: unknown): string {
+  if (error instanceof Error && error.name) return error.name;
+  return typeof error;
+}
+
+function summarizeErrorEvidence(error: unknown): string | undefined {
+  const text = collectErrorText(error).replace(/\s+/g, " ").trim();
+  if (!text) return undefined;
+  if (text.length <= MAX_WORKTREE_ERROR_EVIDENCE_CHARS) return text;
+  return `${text.slice(0, MAX_WORKTREE_ERROR_EVIDENCE_CHARS - 1)}…`;
+}
+
+async function classifyWorktreeWorkflowFailure(
+  handle: ChangeWorkflowWorktreeHandle,
+  error: unknown,
+): Promise<{
+  recoveryReason?: WorktreeWorkflowRecoveryReason;
+  evidenceSummary?: string;
+}> {
+  const describeEvidence = await workflowPoisonedDescriptionEvidence(handle);
+  if (describeEvidence) {
+    return {
+      recoveryReason: "poisoned_history",
+      evidenceSummary: describeEvidence,
+    };
+  }
+  if (isPoisonedHistoryError(error)) {
+    return {
+      recoveryReason: "poisoned_history",
+      evidenceSummary: summarizeErrorEvidence(error),
+    };
+  }
+  if (isWorkflowCompletedError(error)) {
+    return {
+      recoveryReason: "missing_workflow",
+      evidenceSummary: summarizeErrorEvidence(error),
+    };
+  }
+  return { evidenceSummary: summarizeErrorEvidence(error) };
+}
 
 function escapeVisibilityValue(value: string): string {
-  return value.replace(/"/g, '\\"');
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function pendingDeletesPath(access: WorktreeStateAccess): string {
@@ -572,30 +655,87 @@ function materializeChangeWorktreeRecord(
 
 export async function listWorktreesAcrossChanges(
   access: WorktreeStateAccess,
-): Promise<MaterializedWorktreeRecord[] | null> {
+): Promise<WorktreesAcrossChangesResult> {
+  const unavailable = (message: string, error?: unknown) => ({
+    records: [],
+    warnings: [
+      {
+        source: "worktree_visibility" as const,
+        message,
+        errorClass: error ? errorClass(error) : "Unavailable",
+        ...(error ? { evidenceSummary: summarizeErrorEvidence(error) } : {}),
+      },
+    ],
+    poisonedWorkflows: [],
+    unavailable: true,
+  });
+
   const bundle = getService();
-  if (!bundle) return null;
+  if (!bundle) return unavailable("Temporal service unavailable");
   const client = bundle.client as WorkflowListClient & {
     workflow: WorkflowListClient["workflow"] & {
-      getHandle?: (workflowId: string) => {
-        query: (def: unknown, ...args: unknown[]) => Promise<unknown>;
-      };
+      getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
     };
   };
-  if (!client.workflow.list || !client.workflow.getHandle) return null;
+  if (!client.workflow.list || !client.workflow.getHandle) {
+    return unavailable("Temporal workflow list/getHandle unavailable");
+  }
 
-  const changeIds = await listChangeIdsWithActiveWorktrees(
-    client,
-    access.projectId,
-  );
-  const records: MaterializedWorktreeRecord[] = [];
-  for (const changeId of changeIds) {
-    const handle = client.workflow.getHandle(
-      `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`,
+  let changeIds: string[];
+  try {
+    changeIds = await listChangeIdsWithActiveWorktrees(
+      client,
+      access.projectId,
     );
-    const worktrees = (await handle.query(getWorktreesQuery)) as NonNullable<
+  } catch (error) {
+    return unavailable("Unable to list active worktree workflows", error);
+  }
+  const records: MaterializedWorktreeRecord[] = [];
+  const warnings: WorktreeCrossChangeWarning[] = [];
+  const poisonedWorkflows: WorktreePoisonedWorkflowEntry[] = [];
+  for (const changeId of changeIds) {
+    const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
+    const handle = client.workflow.getHandle(workflowId);
+    let worktrees: NonNullable<
       import("../../temporal/contracts").ChangeWorkflowState["worktrees"]
     >;
+    try {
+      worktrees = (await handle.query(getWorktreesQuery)) as NonNullable<
+        import("../../temporal/contracts").ChangeWorkflowState["worktrees"]
+      >;
+    } catch (error) {
+      const classification = await classifyWorktreeWorkflowFailure(
+        handle,
+        error,
+      );
+      const message = `Unable to query worktrees for change ${changeId}`;
+      warnings.push({
+        source: "worktree_workflow",
+        changeId,
+        workflowId,
+        message,
+        errorClass: errorClass(error),
+        ...(classification.recoveryReason
+          ? { recoveryReason: classification.recoveryReason }
+          : {}),
+        ...(classification.evidenceSummary
+          ? { evidenceSummary: classification.evidenceSummary }
+          : {}),
+      });
+      if (
+        classification.recoveryReason === "poisoned_history" &&
+        classification.evidenceSummary
+      ) {
+        poisonedWorkflows.push({
+          changeId,
+          workflowId,
+          recoveryReason: "poisoned_history",
+          evidenceSummary: classification.evidenceSummary,
+          message,
+        });
+      }
+      continue;
+    }
     for (const [branch, record] of Object.entries(worktrees ?? {})) {
       const materialized = materializeChangeWorktreeRecord(
         changeId,
@@ -605,7 +745,7 @@ export async function listWorktreesAcrossChanges(
       if (materialized) records.push(materialized);
     }
   }
-  return records;
+  return { records, warnings, poisonedWorkflows };
 }
 
 // =============================================================================

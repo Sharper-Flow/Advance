@@ -257,6 +257,12 @@ describe("adv-reviewer agent asset", () => {
     expect(body).toMatch(/NEVER\s+invoke\s+`?\/adv-\*?/i);
   });
 
+  test("body does not advertise prep pre-flight routing", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    expect(body).not.toMatch(/prep\s+pre-flight/i);
+    expect(body).not.toMatch(/phase[`"\s:]+prep/i);
+  });
+
   test("body cites scope-discovery-protocol.md for escalation", () => {
     const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
     expect(body).toContain("docs/scope-discovery-protocol.md");

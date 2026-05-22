@@ -6,7 +6,17 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-slop-scan.md");
 const ADV_INSTRUCTIONS_PATH = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
 const SLOP_SPEC_PATH = join(REPO_ROOT, ".adv/specs/slop-scan/spec.json");
+const SLOP_DOC_PATH = join(REPO_ROOT, "docs/specs/slop-scan.md");
 const SLOP_SKILL_PATH = join(REPO_ROOT, "skills/adv-slop-detection/SKILL.md");
+const SLOP_CATEGORIES_PATH = join(
+  REPO_ROOT,
+  "skills/adv-slop-detection/CATEGORIES.md",
+);
+const SLOP_DEAD_CODE_PATH = join(
+  REPO_ROOT,
+  "skills/adv-slop-detection/DEAD_CODE.md",
+);
+const SLOP_SMELLS_PATH = join(REPO_ROOT, "slop-smells.yaml");
 
 describe("adv-slop-scan anti-recursion assets", () => {
   test("documents single-level-only scanner delegation in command contract", () => {
@@ -101,6 +111,95 @@ describe("adv-slop-scan anti-recursion assets", () => {
     ]) {
       expect(content).toContain(category);
     }
+  });
+
+  test("docs mirror slop spec requirement ids", () => {
+    const doc = readFileSync(SLOP_DOC_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SLOP_SPEC_PATH, "utf8")) as {
+      version: string;
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(doc).toContain(`**Version:** ${spec.version}`);
+    for (const requirement of spec.requirements) {
+      expect(doc).toContain(`**ID:** \`${requirement.id}\``);
+    }
+  });
+
+  test("debug artifacts use a dedicated canonical smell id", () => {
+    const categories = readFileSync(SLOP_CATEGORIES_PATH, "utf8");
+    const smells = readFileSync(SLOP_SMELLS_PATH, "utf8");
+
+    expect(categories).toContain("| Debug artifacts | AI-012 |");
+    expect(smells).toContain("- id: AI-012");
+    expect(smells).toContain("name: debug_artifacts");
+  });
+
+  test("documents deletion candidate taxonomy as MAINT-003 subtypes", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+    const categories = readFileSync(SLOP_CATEGORIES_PATH, "utf8");
+    const deadCode = readFileSync(SLOP_DEAD_CODE_PATH, "utf8");
+    const smells = readFileSync(SLOP_SMELLS_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SLOP_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss010");
+    expect(command).toContain("<!-- rq-ss010 -->");
+    expect(command).toContain("Deletion Candidate Taxonomy");
+    for (const subtype of [
+      "unused dependency",
+      "unused export",
+      "unused file",
+      "unreachable branch",
+      "uncallable private symbol",
+      "impossible feature-flag path",
+    ]) {
+      expect(command).toContain(subtype);
+      expect(skill).toContain(subtype);
+      expect(categories).toContain(subtype);
+      expect(deadCode).toContain(subtype);
+    }
+    expect(smells).toContain("deletion_candidate");
+    expect(smells).toContain("MAINT-003");
+  });
+
+  test("documents deletion safety and user-review grouping", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+    const deadCode = readFileSync(SLOP_DEAD_CODE_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SLOP_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss011");
+    expect(command).toContain("<!-- rq-ss011 -->");
+    expect(command).toContain("Deletion Safety / Actionability Boundary");
+    expect(command).toContain("low-confidence / user-review");
+    expect(command).toContain(
+      "Heuristic-only or text-only unused-code guesses are not actionable removal proof",
+    );
+    expect(skill).toContain("low-confidence / user-review");
+    expect(deadCode).toContain("Do not auto-delete");
+    expect(deadCode).toContain("single external tool");
+  });
+
+  test("documents slop scanner coverage reporting", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SLOP_SKILL_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SLOP_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(spec.requirements.map((rq) => rq.id)).toContain("rq-ss012");
+    expect(command).toContain("<!-- rq-ss012 -->");
+    expect(command).toContain("Scanner Coverage Report");
+    expect(command).toContain("coverage.skippedDetectors");
+    expect(command).toContain("coverage.degradedDetectors");
+    expect(command).toContain("coverage.falsePositiveProtections");
+    expect(skill).toContain("coverage.skippedDetectors");
+    expect(skill).toContain("coverage.degradedDetectors");
   });
 
   test("documents single-level scanner orchestration in shared ADV instructions", () => {

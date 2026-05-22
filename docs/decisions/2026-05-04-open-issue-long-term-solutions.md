@@ -19,7 +19,7 @@ Status: researched issue-triage note. Use this as routing evidence when drafting
 Build a ledger reconciliation primitive, not another retry loop.
 
 - Primary seams: `plugin/src/tools/checkpoint.ts`, `plugin/src/storage/store-temporal/tasks.ts`, `plugin/src/temporal/workflows.ts`, `plugin/src/temporal/change-state.ts`, `plugin/src/temporal/retry-wrapper.ts`.
-- Recovery should inspect `TaskRunState`, task `tdd_evidence`, `tdd_phase`, `touched_files`, current branch, and `HEAD`.
+- Recovery should inspect `TaskRunState`, task completion verification, `checkpointSha`, `touched_files`, current branch, and `HEAD`.
 - It may synthesize only missing safe ledger events with `recovered: true` audit payloads, then record the checkpoint idempotently.
 - Error surfaces should preserve operation name and domain failure text, for example `Invalid task-run transition from red_recorded via checkpoint`, instead of collapsing to generic `Workflow Update failed`.
 - This primitive should serve `adv_task_checkpoint`, evidence fallback recovery, and future workflow repair.

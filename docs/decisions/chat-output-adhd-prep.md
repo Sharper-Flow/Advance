@@ -160,7 +160,7 @@ Hard cap: 2.
 
 | Pattern | Applies? | Where |
 |---|---|---|
-| Evidence-first completion | **Already implemented** | TDD contract (`tdd-contract` spec), `adv_run_test`, `adv_task_evidence`. No new work needed. |
+| Evidence-first completion | **Already implemented** | TDD contract (`tdd-contract` spec), `adv_run_test` for executable evidence, and final `taskCompletedSignal.verification` via `adv_task_checkpoint`. No new work needed. |
 | One Question Rule | **Partial — could tighten** | `rq-autonomy01` already minimizes pauses. The `question` tool currently allows multiple option lists per call but does not formally cap "questions per turn". Worth a one-line rule in `ADV_INSTRUCTIONS.md`. |
 | Async checkpoint updates / heartbeat | **Gap — OBS1** | Add prompting in `adv.md` for `/adv-apply` orchestration loops. No spec change required for v1 (pure agent behavior). |
 | Persistent ambient state (Strix-style) | **Already implemented** | ADV state is Temporal-backed; `_contextSnapshot` exposes it. Improvement opportunity is compact ticker form (DX4) not architecture. |

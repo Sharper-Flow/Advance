@@ -590,7 +590,7 @@ approve, approved, confirm, confirmed, yes, proceed, sign off, signoff, ship it
 Archiving `{change-id}`.
 ```
 
-Then proceed with `adv_gate_complete gateId: 'release'` → `adv_change_archive` → Phase 9 git finalization in the same response. No separate confirmation-echo turn. Tier B safety comes from the strict whitelist (no LLM fallback, deliberate phrases) plus the six prior gate approvals already cemented; the wait-one-turn pattern was removed because it added friction without meaningfully changing the abort surface.
+Then proceed with `adv_change_archive phase9: "run"` in the same response. The archive tool finalizes git evidence and records the release gate before retiring the change; do not call `adv_gate_complete release` separately on the normal archive path. No separate confirmation-echo turn. Tier B safety comes from the strict whitelist (no LLM fallback, deliberate phrases) plus the six prior gate approvals already cemented; the wait-one-turn pattern was removed because it added friction without meaningfully changing the abort surface.
 
 ### Pattern templates
 

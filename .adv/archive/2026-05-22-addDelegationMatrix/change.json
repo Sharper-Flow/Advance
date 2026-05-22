@@ -1,0 +1,940 @@
+{
+  "id": "addDelegationMatrix",
+  "title": "Add delegation matrix",
+  "status": "archived",
+  "created_at": "2026-05-21T00:28:05.067Z",
+  "tasks": [
+    {
+      "id": "tk-2e48a195c243",
+      "title": "Update delegation spec/test for review+harden remediation subagents",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T06:57:45.948Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "C1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT6",
+          "OOS1",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:04:22.558Z",
+      "verification": "TDD red: `pnpm exec vitest run src/delegation-matrix.test.ts` failed with expected review matrix omissions (`adv-engineer`, `adv-researcher`). Green: same command passed after updating spec/test, 20 tests passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Strengthened `plugin/src/delegation-matrix.test.ts` to require command-routed sub-agents to be represented in each delegable matrix row and added explicit review/harden remediation-substep assertions. Updated `.adv/specs/delegation-defaults/spec.json` so review allows `adv-reviewer`, `adv-engineer`, `adv-researcher`, `explore`; harden allows `adv-reviewer`, `adv-engineer`, `explore`; and remediation/research delegated substeps are structurally represented. TDD evidence: red failed on missing review `adv-engineer`/`adv-researcher`; green passed `pnpm exec vitest run src/delegation-matrix.test.ts` with 20 tests.",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "plugin/src/delegation-matrix.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        "plugin/src/delegation-matrix.test.ts"
+      ],
+      "checkpointSha": "f78d06d034f752a7317b61f93e883fb85cc46b99",
+      "completedAt": "2026-05-22T07:09:01.470Z",
+      "completed_at": "2026-05-22T07:09:01.470Z",
+      "notes": "Completed spec/test remediation alignment. Checkpoint commit f78d06d034f752a7317b61f93e883fb85cc46b99 recorded.",
+      "error_recovery": {
+        "last_error": "Initial formatting command ran from repo root and failed because package.json lives under plugin/. Retried from plugin/ with correct relative paths, then restored spec JSON to existing compact style to avoid broad formatting noise.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Use plugin/ as working directory for pnpm commands.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "[ERR_PNPM_NO_PKG_MANIFEST] No package.json found in worktree root",
+            "diagnosis": "Advance package commands run from plugin/, not repo root.",
+            "fix_tried": "Reran prettier from plugin/ using `../.adv/...` and `src/...` paths; then reverted broad spec formatting and reapplied semantic spec changes.",
+            "strategy_label": "correct-workdir",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:08:48.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:09:15.557Z"
+    },
+    {
+      "id": "tk-14161adacc2e",
+      "title": "Align review/harden command remediation routing to the matrix",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T06:58:15.765Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e48a195c243"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC4",
+          "C5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:09:52.240Z",
+      "verification": "Updated review/harden command remediation prose to use conditional remediation routing and no ad-hoc workers. Verification passed: `pnpm exec vitest run src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts` (98 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `.opencode/command/adv-review.md` to describe review remediation as conditional routing through `adv-reviewer`, `adv-engineer`, and `adv-researcher` rather than an independent ad-hoc choice. Updated `.opencode/command/adv-harden.md` to distinguish scanner lanes (`adv-reviewer`/`explore`) from remediation lanes (`adv-reviewer`/`adv-engineer`) and to avoid ad-hoc remediation workers. Verification passed `pnpm exec vitest run src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts` with 98 tests.",
+      "filesTouched": [
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md"
+      ],
+      "checkpointSha": "11b5cdc8d03bca719d3a48eda459403e0c65bcb7",
+      "completedAt": "2026-05-22T07:10:45.458Z",
+      "completed_at": "2026-05-22T07:10:45.458Z",
+      "notes": "Completed review/harden command remediation routing alignment. Checkpoint commit 11b5cdc8d03bca719d3a48eda459403e0c65bcb7 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T07:11:09.212Z"
+    },
+    {
+      "id": "tk-eff8128f2c46",
+      "title": "Align ADV instruction surfaces without downstream spec lookup",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T06:58:17.647Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e48a195c243"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "AC4",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:11:33.482Z",
+      "verification": "Aligned ADV instruction/runtime surfaces so field agents are not required to inspect repo-local delegation spec and prep pre-flight routing is removed. Verification passed: `pnpm exec vitest run src/phantom-subagent-roster.test.ts src/delegation-matrix.test.ts src/adv-instructions-assets.test.ts src/adv-reviewer-asset.test.ts` (193 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `ADV_INSTRUCTIONS.md` to distinguish the Advance source-plane delegation matrix from downstream runtime guidance and to say field agents must not be required to inspect the repo-local spec. Updated `.opencode/agents/adv.md`, `SETUP.md`, and `.opencode/agents/adv-reviewer.md` to remove stale optional prep pre-flight routing and keep prep inline-only. Updated `.opencode/agents/adv.md` primary-agent roster to include `adv` and `adv-atc`. Added an `adv-reviewer` asset regression test preventing prep pre-flight routing from reappearing. Verification passed `pnpm exec vitest run src/phantom-subagent-roster.test.ts src/delegation-matrix.test.ts src/adv-instructions-assets.test.ts src/adv-reviewer-asset.test.ts` with 193 tests.",
+      "filesTouched": [
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        "ADV_INSTRUCTIONS.md",
+        "SETUP.md",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "checkpointSha": "30de6be31506acfdd7610e7526efbb0ccf9188fe",
+      "completedAt": "2026-05-22T07:16:27.312Z",
+      "completed_at": "2026-05-22T07:16:27.312Z",
+      "notes": "Completed instruction/runtime surface alignment. Checkpoint commit 30de6be31506acfdd7610e7526efbb0ccf9188fe recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T07:16:42.446Z"
+    },
+    {
+      "id": "tk-9be1d89990c5",
+      "title": "Run focused delegation verification and selected broader checks",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T06:58:34.969Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2e48a195c243"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-14161adacc2e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-eff8128f2c46"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:17:18.014Z",
+      "verification": "Focused delegation verification passed: `pnpm exec vitest run src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts src/adv-instructions-assets.test.ts src/adv-reviewer-asset.test.ts` (193 tests). Broader selected quality check passed: `pnpm run check` (typecheck, test isolation, lockfile policy, lint, format:check).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final focused delegation verification and selected broader quality checks from `plugin/`. Focused suites passed: `src/delegation-matrix.test.ts`, `src/phantom-subagent-roster.test.ts`, `src/adv-instructions-assets.test.ts`, `src/adv-reviewer-asset.test.ts` (193 tests). Broader selected quality passed: `pnpm run check` (typecheck, test isolation, lockfile policy, lint, format:check). Worktree remained clean.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "30de6be31506acfdd7610e7526efbb0ccf9188fe",
+      "completedAt": "2026-05-22T07:18:36.384Z",
+      "completed_at": "2026-05-22T07:18:36.384Z",
+      "notes": "Verification complete; no files changed, checkpoint recorded clean at 30de6be31506acfdd7610e7526efbb0ccf9188fe.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T07:18:46.754Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-q5I2I1",
+      "type": "gotcha",
+      "content": "When running package tooling in this repo, use `plugin/` as cwd; repo root has no package.json. For repo-root files like `.adv/specs/...`, pass relative paths from `plugin/` (for example `../.adv/specs/...`).",
+      "source_task": "tk-2e48a195c243",
+      "recorded_at": "2026-05-22T07:09:25.527Z"
+    },
+    {
+      "id": "ws-ME8WTb",
+      "type": "pattern",
+      "content": "For delegation matrix drift checks, validate command files by extracting explicit Task/spawn/delegate worker targets and comparing them to each step's `allowed_subagents`; this catches hidden conditional paths such as review research/remediation workers.",
+      "source_task": "tk-14161adacc2e",
+      "recorded_at": "2026-05-22T07:11:17.870Z"
+    },
+    {
+      "id": "ws-kcw8qa",
+      "type": "gotcha",
+      "content": "Delegation defaults can drift through agent asset examples and setup docs, not just command files. When an inline-only phase changes, scan `.opencode/agents/*.md`, `ADV_INSTRUCTIONS.md`, and `SETUP.md` for stale phase-specific routing such as prep pre-flight.",
+      "source_task": "tk-eff8128f2c46",
+      "recorded_at": "2026-05-22T07:16:52.358Z"
+    },
+    {
+      "id": "ws-nRz4mx",
+      "type": "gotcha",
+      "content": "Phantom-subagent routing can appear as plus-separated worker prose (`explore + librarian`) in overlays and field-agent intent tables; roster tests should scan overlay surfaces and plus-routing idioms, not only spawn/delegate phrases.",
+      "source_task": "tk-9be1d89990c5",
+      "recorded_at": "2026-05-22T07:25:51.838Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:14:41.891Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal with Tier A reply: continue. Proposal persisted with problem statement, scope, success criteria, constraints, failure handling, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/proposal.md",
+        "content_hash": "3f7c008661dfa406787c4d358766f17761588641bb77c7e65f3609fe8671dc9f",
+        "non_whitespace_chars": 6039,
+        "checked_at": "2026-05-22T06:14:41.936Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:41:17.347Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user approved acceptance criteria with `approve`. Agreement persisted and ChangeContract minted successfully with 27 items. Discovery findings resolved field-agent boundary: matrix is an Advance repo source/evaluation artifact, not a downstream runtime lookup dependency. Retried from ADV worktree after worktree isolation block and worker restart.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/agreement.md",
+        "content_hash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "non_whitespace_chars": 4283,
+        "checked_at": "2026-05-22T06:41:17.401Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:54:04.654Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and persisted. Design uses two-plane model (Advance implementation source/evaluation vs downstream field runtime), includes D6 remediation-subagent alignment, mandatory design scout, and independent validator result CAUTION. Validator caution was resolved by adding explicit spec-law sequencing for rq-delDefaults03.4 before matrix/test updates. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/design.md",
+        "content_hash": "9e30ea44ca6b03e0caea5fa2e8f7570e864559c5e7184f692bcd5fc142b3ed6a",
+        "non_whitespace_chars": 8691,
+        "checked_at": "2026-05-22T06:54:04.711Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:03:56.271Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with exact Tier A reply `approve`. Task graph contains 4 tasks with TDD intent, dependencies, and contract refs: spec/test remediation alignment; review/harden command alignment; ADV instruction/runtime alignment; focused + selected broader verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:19:15.827Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 4 planned tasks are done with checkpoints. Implemented matrix/spec/test alignment, review/harden remediation command alignment, field-facing instruction cleanup, and verification. Evidence: `pnpm exec vitest run src/delegation-matrix.test.ts src/phantom-subagent-roster.test.ts src/adv-instructions-assets.test.ts src/adv-reviewer-asset.test.ts` passed (193 tests); `pnpm run check` passed. Worktree clean at 30de6be31506acfdd7610e7526efbb0ccf9188fe."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:33:03.011Z",
+      "completed_by": "agent",
+      "approval_evidence": "Acceptance review complete. Independent reviewer verdict: NEEDS_WORK → one non-blocking finding remediated (SETUP.md bundled-agent overview). Review matrix: 27/27 pass. 193 tests pass, pnpm run check clean. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/acceptance.md",
+        "content_hash": "75577b2211510197530646f617d371b00726dbb002d9d30394a5d7f282db9d94",
+        "non_whitespace_chars": 5437,
+        "checked_at": "2026-05-22T07:33:03.288Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:34:38.623Z",
+      "completed_by": "agent",
+      "approval_evidence": "Trunk merged (no-ff) and pushed. 14 files changed, reachability verified at f23f8ec."
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+      "approvedAt": "2026-05-22T06:40:07.269Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Delegation routing defaults are structurally represented in the Advance repo rather than owned only by duplicated prompt prose.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Command and instruction assets use the matrix as an implementation/evaluation source of truth without creating a runtime lookup burden for downstream field agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Existing delegation safety boundaries remain enforceable by tests and review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A `delegation-defaults` spec defines exactly 9 workflow-step matrix entries and no utility-command entries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Each matrix entry has exactly one valid mode, one gate affinity, inline boundaries, and valid allowed sub-agent declarations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Hybrid and subagent-primary steps structurally list delegated sub-steps and allowed sub-agents for those sub-steps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Advance repo commands/instructions that discuss workflow-step delegation are aligned to the spec-backed matrix without requiring downstream field-agent spec lookup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail if phantom agents or primary agents appear in sub-agent routing guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Tests fail if command contracts contradict inline-required or hybrid matrix classifications.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Focused delegation verification passes from `plugin/`; broader quality checks are selected during prep and must pass before release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs are laws; implementation must satisfy `.adv/specs/delegation-defaults/spec.json` or explicitly correct that spec during the change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Implementation edits must happen in the `addDelegationMatrix` ADV worktree, not the dirty default checkout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "The change is current-repo scoped to `advance`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Test hardening should be minimal: preserve existing matrix/roster coverage and add only what implementation changes or concrete failures require.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Command files may keep command-specific operational packets and spawn instructions when they are useful; only independent duplication of workflow-step defaults should be removed or aligned.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Task-level delegation hints may be clarified where touched, but broad runtime/schema refactors are not part of the default scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not route work to phantom or nonexistent sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not route work to primary agents as sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make proposal, prep, archive, or reflect delegate work to sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not require ADV agents working in downstream projects to inspect this repo-local spec during normal workflow execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not duplicate the matrix across command files or agent prompts as an independent source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not weaken gate ownership, human checkpoints, TDD evidence, worktree isolation, or ADV state mutation boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Utility command delegation defaults for research, tron, slop-scan, audit, improve, cleanup, clarify, status, validate, roadmap, task, idea, problem, or atc.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Runtime field-agent lookup of `.adv/specs/delegation-defaults/spec.json` in other projects.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Changing the global sub-agent nesting limit, max parallelism, or runtime Task tool guard behavior beyond matrix conformance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Adding new sub-agents or changing existing sub-agent report schemas except where needed to prove current report-field coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Broad task-routing runtime/schema refactors beyond aligning command/instruction prose with the matrix as reference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T07:29:53.051Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "delegation-matrix.test.ts validates 9 workflow-step matrix entries; independent reviewer confirmed count"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-review.md and adv-harden.md remediation routing aligned to spec; adv-instructions-assets.test.ts enforces alignment"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "ADV_INSTRUCTIONS.md explicitly distinguishes source plane from runtime field plane; field agents not required to inspect repo-local spec"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "delegation-matrix.test.ts asserts exactly 9 entries; spec.json inspected by reviewer — 9 entries, no utility-command rows"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "delegation-matrix.test.ts validates mode, gate_affinity, inline_boundaries, allowed_subagents per entry"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "delegation-matrix.test.ts asserts delegable rows have delegated_substeps and allowed_subagents"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command files updated to route through matrix-aligned sub-agents; no field-agent spec lookup required"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "phantom-subagent-roster.test.ts fails on phantom or primary agents in sub-agent routing"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "delegation-matrix.test.ts fails if command contracts contradict inline-required or hybrid classifications"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "193 focused tests pass; pnpm run check (typecheck, lint, format) passes clean"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Matrix lives in .adv/specs/delegation-defaults/spec.json as spec law"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Two-plane model maintained: source spec + deployed runtime guidance distinct"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "delegation-matrix.test.ts rejects utility-command entries in matrix"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad runtime/schema refactor performed; only alignment changes"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Minimal test hardening: concrete-gap tests added for review/harden remediation; no speculative expansion"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Task-level delegation_hint/delegate_preferred clarified in prose only; no schema refactor"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No downstream runtime spec lookup dependency introduced"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad task-metadata schema changes"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No utility-command matrix entries added"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ad-hoc remediation workers outside matrix-declared sub-agents"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No speculative test expansion beyond concrete-gap coverage"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to core ADV gate machinery or Temporal workflows"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Runtime delegation dispatcher not touched"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Plugin tool schema not changed"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new sub-agent profiles created"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No CI/CD pipeline changes"
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No external dependency additions"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A `delegation-defaults` spec defines exactly 9 workflow-step matrix entries and no utility-command entries.",
+    "Each matrix entry has exactly one valid mode, one gate affinity, inline boundaries, and valid allowed sub-agent declarations.",
+    "Hybrid and subagent-primary steps structurally list delegated sub-steps and allowed sub-agents for those sub-steps.",
+    "Advance repo commands/instructions that discuss workflow-step delegation are aligned to the spec-backed matrix without requiring downstream field-agent spec lookup.",
+    "Tests fail if phantom agents or primary agents appear in sub-agent routing guidance.",
+    "Tests fail if command contracts contradict inline-required or hybrid matrix classifications.",
+    "Focused delegation verification passes from `plugin/`; broader quality checks are selected during prep and must pass before release."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/proposal.md",
+      "updatedAt": "2026-05-22T07:27:37.263Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/problem-statement.md",
+      "updatedAt": "2026-05-22T07:27:37.280Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/agreement.md",
+      "updatedAt": "2026-05-22T07:27:37.305Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/design.md",
+      "updatedAt": "2026-05-22T07:27:37.325Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T07:34:38.623Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-22T07:22:08.940Z"
+    }
+  ]
+}

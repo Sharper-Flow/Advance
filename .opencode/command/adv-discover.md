@@ -8,8 +8,6 @@ description: Gather context, analyze current state, identify objectives, and obt
 
 Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow.
 
-> **CHECKLIST**: Follow [docs/checklists/discover-checklist.md](../../docs/checklists/discover-checklist.md).
-
 ## Command Boundary
 
 **Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement, `agreement.md`, and the typed `ChangeContract` spine minted from approved agreement items.
@@ -36,7 +34,7 @@ $ARGUMENTS
 
 Reusable discovery methodology for ADV discover workflows. Provides the protocol step overview and constraints.
 
-**Canonical source:** `docs/checklists/discover-checklist.md` — see that checklist for detailed rules per step, edge case handling, and output section schema. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the discovery methodology needed during command execution.
 
 #### Discovery Protocol (8 Steps)
 
@@ -60,7 +58,7 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the discovery gate
-- **Canonical source** — defer to `docs/checklists/discover-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering
 - **No architecture decisions** — those belong in `/adv-design`
 ---

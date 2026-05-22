@@ -98,7 +98,7 @@ Do NOT use provider-specific for generic logic errors, missing tests, or design 
 Recommended derived values:
 
 - `retry_density = retry_total / max(done_tasks, 1)`
-- `tdd_compliance = tasks_with_required_tdd_evidence / tasks_requiring_tdd`
+- `tdd_compliance = tasks_with_required_verification_claims / tasks_requiring_tdd`
 - `completed_gates = count(done gates)`
 - `delegation_count = tasks with delegation evidence`
 - `drift_triggers = review/harden drift pauses`

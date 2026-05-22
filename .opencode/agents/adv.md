@@ -159,7 +159,7 @@ Before doing anything, classify what the user is asking for:
 | **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; or `/adv-status` for project-wide health |
 | **What's next**       | "what's next", "what should I work on", "pick the top item", "show roadmap", "open critical bugs" | `/adv-roadmap` (NOT `/adv-status`) — read backlog, surface top item, recommend `/adv-proposal #N` if no active change linked |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
-| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `librarian` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
+| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `adv-researcher` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
@@ -248,7 +248,7 @@ After acceptance completes, ADV must stop before archive and present:
 > acceptance ✓ → release
 ```
 
-Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_gate_complete release` → `adv_change_archive` → git finalization. No `question` tool; no LLM fallback; anything else re-prompts.
+Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_change_archive phase9:"run"` finalizes git evidence and records release before retiring the change. No `question` tool; no LLM fallback; anything else re-prompts.
 
 ## Context-Optimal Execution
 
@@ -271,7 +271,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
-| `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |
@@ -281,7 +281,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Max nesting depth | 1 (runtime-enforced via `enforceTaskPolicy`) |
 | Max parallel spawn | 3 (runtime-enforced via `enforceTaskPolicy`). Batch: spawn 3, wait, spawn next 3. |
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
-| Primary agents (not spawnable) | `build`, `plan` (user switches directly) |
+| Primary agents (not spawnable) | `adv`, `build`, `plan`, `adv-atc` (user-selectable top-level agents) |
 
 **Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
 

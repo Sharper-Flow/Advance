@@ -9,18 +9,14 @@ tools:
   glob: true
   grep: true
   lgrep_search_semantic: true
-  lgrep_index_semantic: true
   lgrep_search_symbols: true
   lgrep_index_symbols_folder: true
-  lgrep_index_symbols_repo: true
   lgrep_get_symbol: true
   lgrep_get_symbols: true
   lgrep_get_file_tree: true
   lgrep_get_file_outline: true
   lgrep_get_repo_outline: true
   lgrep_search_text: true
-  lgrep_list_repos: true
-  lgrep_invalidate_cache: true
   # ADV tools - read-only spec/change queries
   adv_spec: true
   adv_change_list: true

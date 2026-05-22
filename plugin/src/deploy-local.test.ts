@@ -673,7 +673,7 @@ describe("deploy-local.sh", () => {
         advConfig?.scenarios
           ?.find((s) => s.id === "rq-advcfg01.2")
           ?.then.join("\n"),
-      ).toContain("worker_singleton_enforce defaults true");
+      ).toContain("worker_singleton_enforce defaults false");
       expect(
         advConfig?.scenarios
           ?.find((s) => s.id === "rq-advcfg01.2")

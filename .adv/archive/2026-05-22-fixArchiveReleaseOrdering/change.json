@@ -1,0 +1,698 @@
+{
+  "id": "fixArchiveReleaseOrdering",
+  "title": "Fix archive release ordering",
+  "status": "archived",
+  "created_at": "2026-05-22T05:22:30.417Z",
+  "tasks": [
+    {
+      "id": "tk-921fe91f1c10",
+      "title": "Make adv_change_archive complete release gate before archive status.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T05:42:39.441Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:53:18.007Z",
+      "verification": "RED: targeted archive Phase 9 test failed because release gate signal was not fired. GREEN: pnpm test -- src/tools/change.archive-phase9.test.ts passed after adv_change_archive completes the release gate after successful Phase 9 finalization and before archived status save.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added archive-local release gate completion after successful Phase 9 finalization and before archived status transition. The helper signals gateCompletedSignal with completedBy `adv-archive`, polls workflow release gate state until done/stuck, blocks archive status/cleanup if confirmation fails, and returns releaseGate metadata. Added regression test proving release signal fires after finalization and before store.changes.save; blocked finalization does not signal release.",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "b126bab4b293faf674c632a2a64a486e97597d0e",
+      "completedAt": "2026-05-22T05:59:10.737Z",
+      "completed_at": "2026-05-22T05:59:10.737Z",
+      "notes": "Completed release-gate-before-archive ordering. Targeted archive Phase 9 test passes.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED test failure: release gate signal was not fired by adv_change_archive after finalization.",
+            "diagnosis": "Archive finalization previously returned success and then archived status without recording the release gate.",
+            "fix_tried": "Implemented completeReleaseGateAfterFinalization using gateCompletedSignal and workflow polling before status save.",
+            "strategy_label": "release-before-archive signal owner",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T05:58:35.210Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T05:59:20.476Z"
+    },
+    {
+      "id": "tk-1a808cbb5a80",
+      "title": "Add completed-workflow / existing-bundle release metadata reconciliation.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T05:42:51.381Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:59:50.160Z",
+      "verification": "RED: no-worktree existing-bundle retry tests failed because adv_change_archive still required worktreePath; recovery-writer test failed because saveRecoveredGateCompletion used store.changes.save. GREEN: pnpm test -- src/tools/change.archive-phase9.test.ts src/tools/_recovery-writers.test.ts passed after main-checkout evidence verification and disk-direct release-gate recovery.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Moved existing-bundle detection before worktreePath enforcement so already-written bundles can be recovered without rematerializing the change worktree. Added main-checkout structural evidence verification for no-worktree retry: direct mode checks change branch reachability and default-branch push; PR mode checks change branch push. Added release gate disk-projection recovery when the workflow is already completed, and changed saveRecoveredGateCompletion to use disk-direct saveChange so archived/completed workflow repair does not call Temporal-backed store.changes.save. Skips archive-status save when status is already archived.",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "a7d84a45fb6af8b989a72adbae0c1562419e83a5",
+      "completedAt": "2026-05-22T06:11:30.484Z",
+      "completed_at": "2026-05-22T06:11:30.484Z",
+      "notes": "Completed retry/reconciliation path. Targeted archive Phase 9 and recovery-writer tests pass.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tests: no-worktree existing-bundle retry still required worktreePath; saveRecoveredGateCompletion persisted via store.changes.save.",
+            "diagnosis": "Archive retry was ordered around fresh worktree finalization, and gate recovery reused the Temporal-backed save path that fails for completed workflows.",
+            "fix_tried": "Allow existing-bundle no-worktree recovery with structural main-checkout evidence; add disk-direct release gate recovery writer path.",
+            "strategy_label": "existing-bundle evidence reconciliation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T06:11:04.156Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T06:11:43.380Z"
+    },
+    {
+      "id": "tk-c3546fc9d66e",
+      "title": "Update archive command/report wayfinding and ordering docs.",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T05:43:01.410Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T06:12:18.496Z",
+      "verification": "RED: archive asset/tool-output tests failed because docs still instructed a separate release gate call and tool output lacked continueFrom. GREEN: pnpm test -- src/adv-autonomy-quality-assets.test.ts src/tools/change.archive-phase9.test.ts passed after updating archive docs, sign-off voice, and tool continueFrom output.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated archive sign-off docs so adv_change_archive phase9:run owns Phase 9 and release-gate recording; removed the normal-path instruction to call adv_gate_complete release after finalization. Added terminal-neutral `Continue from: {mainCheckout} ({default-branch})` guidance to archive report and cleanup/completion docs. Added tool output `continueFrom` derived from finalization main checkout/default branch. Updated ADV sign-off voice and command voice standard to match the archive-owned release ordering.",
+      "filesTouched": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-archive.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "ed64799f3dd9c946e9e251ae2ef536d9995c3144",
+      "completedAt": "2026-05-22T06:18:25.862Z",
+      "completed_at": "2026-05-22T06:18:25.862Z",
+      "notes": "Completed archive wayfinding and ordering docs/report. Targeted asset/tool-output tests pass.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "RED tests: adv-archive docs did not mention archive-owned release gate recording or Continue from main/default checkout; adv_change_archive output lacked continueFrom.",
+            "diagnosis": "User-facing archive instructions still reflected the old post-finalization release gate call and lacked terminal-neutral post-cleanup wayfinding.",
+            "fix_tried": "Updated adv-archive command docs, ADV sign-off voice, command voice standard, and archive tool output continueFrom metadata.",
+            "strategy_label": "archive wayfinding contract update",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T06:17:53.553Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T06:18:39.686Z"
+    },
+    {
+      "id": "tk-99075fbdf906",
+      "title": "Run final verification and coordination checks.",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T05:43:11.577Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-921fe91f1c10"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1a808cbb5a80"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c3546fc9d66e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T06:19:06.957Z",
+      "verification": "Harden remediation verified: added JSDoc for release-evidence/recovery orchestration functions and ran pnpm run check successfully.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "e9076dc70dbdd33910705ed69c6d0fc3697651f7",
+      "completedAt": "2026-05-22T07:23:31.637Z",
+      "completed_at": "2026-05-22T07:23:31.637Z",
+      "notes": "Final verification passed. `pnpm run check`, `pnpm run build`, full `pnpm test`, and `adv_change_validate strict:true` passed. Validation warning NO_DELTAS is expected for this bug-fix/no-spec-delta change.",
+      "error_recovery": {
+        "last_error": "pnpm run check initially failed at prettier --check src/: style issues in src/adv-autonomy-quality-assets.test.ts, src/tools/change.archive-phase9.test.ts, src/tools/change.ts",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolved by formatter; no further retry needed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check failed at prettier --check src/: style issues in 3 touched files.",
+            "diagnosis": "Implementation edits were not Prettier-formatted; typecheck and lint completed before format check.",
+            "fix_tried": "Ran pnpm run format, then reran pnpm run check, pnpm run build, full pnpm test, and adv_change_validate strict:true.",
+            "strategy_label": "format-normalization",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T06:22:15.075Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T06:22:36.380Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:25:27.230Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via chat: `approve`; added consideration to include post-archive return-to-base/trunk guidance in discovery/design.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/proposal.md",
+        "content_hash": "ffb3b58d4ea5aae3b376be3abfdb9ac4346efb47db04cab6dd9d069e0d928754",
+        "non_whitespace_chars": 2455,
+        "checked_at": "2026-05-22T05:25:27.284Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:30:28.967Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement via chat: `approve`. Discovery scoped release-gate/archive ordering, retry, cleanup, and post-archive main-checkout wayfinding constraints.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/agreement.md",
+        "content_hash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "non_whitespace_chars": 2081,
+        "checked_at": "2026-05-22T05:30:29.019Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:42:26.243Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validator returned PASS_WITH_NOTES. Incorporated required adjustments: poll for release gate done before archive status, do not reuse completeGateViaRecovery for archived retry, use completedBy adv-archive, and keep Warp guidance optional.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/design.md",
+        "content_hash": "f4066520a742d6dc7801b1954a6925596a75dd87a8a549c53ced3b280fbdca9c",
+        "non_whitespace_chars": 5025,
+        "checked_at": "2026-05-22T05:42:26.288Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:52:07.010Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via chat: `approve`. Task graph covers archive release ordering, retry reconciliation, post-archive wayfinding, and final verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:23:06.047Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four planned tasks are done. Verification passed: pnpm run check, pnpm run build, full pnpm test, and adv_change_validate strict:true. Working tree clean at b35a5444e5c8cac8bea6780c0096adc1389d1f4d."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:11:05.344Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via chat: `accept`. Review verdict APPROVED; executive summary and contract review matrix persisted; verification passed: targeted archive recovery tests, pnpm run check, pnpm run build, full pnpm test, adv_change_validate strict:true with expected NO_DELTAS.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/acceptance.md",
+        "content_hash": "3cd688c688b4c0cb7cd1288457836ef0c805a3c28e82dad3549b1d4e1e193ff3",
+        "non_whitespace_chars": 4097,
+        "checked_at": "2026-05-22T07:11:05.572Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+      "approvedAt": "2026-05-22T05:30:27.134Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_archive phase9:\"run\"` completes an auto-managed change with both `change.status === \"archived\"` and `gates.release.status === \"done\"`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Release completion is recorded only after Phase 9 reachability/push evidence exists; missing merge or missing push still blocks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Retrying archive after a completed workflow or already-written archive bundle can reconcile stale release metadata without manual worktree recreation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Worktree cleanup happens only after durable release/archive state is recorded, or cleanup is delayed/queued when needed to preserve recovery context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Archive terminal report or command guidance includes a clear “continue from main/default-branch checkout” instruction after successful cleanup; no hard Warp API dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Healthy archive paths remain idempotent and do not double-merge, double-push, or weaken linked-issue closure safeguards.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Targeted regression tests, `pnpm run check`, `pnpm run build`, and full `pnpm test` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not mark release complete without structural Phase 9 evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not use direct ADV state-file edits or Temporal DB surgery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve signal/query-only change workflow architecture; no `defineUpdate` reintroduction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep task-completion semantics out of scope because another agent owns `fixTaskCompletion` / `fixCompletionSemantics`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not couple correctness to Warp or any terminal-specific navigation feature.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Broad archive workflow rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Warp endpoint smoke failures unrelated to post-archive wayfinding.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "New release modes beyond existing direct/PR archive modes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T07:09:03Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.archive-phase9.test.ts verifies release gate signal after Phase 9 and before store.changes.save; output releaseGate done. Full pnpm test passed after review remediation.",
+          "notes": "Archive-owned release completion before archived status."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Blocked-finalization tests assert no release signal/status save/issue closure when Phase 9 blocks; no-worktree missing-push test blocks. Git finalization helpers verify reachability/push.",
+          "notes": "Release completion requires shipped/pr_pushed outcome."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing-bundle/no-worktree retry test verifies main-checkout evidence path; workflow-completed and mid-poll WorkflowNotFoundError tests verify disk-projection release recovery.",
+          "notes": "Retry does not require rematerialized worktree when bundle/evidence already exist."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts orders release gate, status save, then removeChangeDir/advWorktreeCleanup; tests assert save is not called on blocked finalization/release gate. Cleanup errors are warning-only after durable state.",
+          "notes": "Recovery context preserved until durable state exists."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-autonomy-quality-assets.test.ts and change.archive-phase9.test.ts verify Continue from main/default guidance and continueFrom output. Docs state terminal-neutral/no Warp dependency.",
+          "notes": "Wayfinding is output guidance, not CWD mutation."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing-bundle path skips archiveChange/finalizeRelease; already-done release gate skips signal. finalizeRelease/gate tests cover already-reachable and push safeguards; close issue remains after durable state.",
+          "notes": "Healthy retry paths remain idempotent."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-review verification passed: targeted archive recovery tests, pnpm run check, pnpm run build, full pnpm test, and adv_change_validate strict:true with expected NO_DELTAS warning.",
+          "notes": "Final clean commit 17f54efa162f153e3ba8bcfc8eb4a818388f9a85."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "completeReleaseGateAfterFinalization rejects statuses other than shipped/pr_pushed; verifyReleaseEvidenceFromMain requires reachability and push checks before release recovery.",
+          "notes": "No release completion without structural Phase 9 evidence."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No manual ADV state-file edits or Temporal DB access. Recovery uses typed storage helper saveChange only inside _recovery-writers with required authorization reason/evidence.",
+          "notes": "Disk-projection bypass is structurally guarded and limited to completed/poisoned workflow recovery."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Release gate normal path uses gateCompletedSignal/querySignal/fireSignalAndRefresh; no defineUpdate references introduced. Existing workflow-bundle boundary tests passed.",
+          "notes": "Signal/query-only workflow preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Touched code did not modify task completion semantics; task status logic remained out of scope. Review remediation used checkpoint only for git cleanliness.",
+          "notes": "Task-completion semantics left to separate change."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "continueFrom is terminal-neutral {path, branch}; docs explicitly say correctness does not depend on Warp or terminal navigation APIs.",
+          "notes": "No terminal-specific correctness coupling."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad archive workflow rewrite performed; changes were localized to archive Phase 9 ordering/recovery/docs/tests.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No Warp endpoint smoke behavior changed; only terminal-neutral wayfinding docs/output were updated.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new release modes added; existing direct/PR archive modes retained.",
+          "notes": "Out of scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_archive phase9:\"run\"` completes an auto-managed change with both `change.status === \"archived\"` and `gates.release.status === \"done\"`.",
+    "Release completion is recorded only after Phase 9 reachability/push evidence exists; missing merge or missing push still blocks.",
+    "Retrying archive after a completed workflow or already-written archive bundle can reconcile stale release metadata without manual worktree recreation.",
+    "Worktree cleanup happens only after durable release/archive state is recorded, or cleanup is delayed/queued when needed to preserve recovery context.",
+    "Archive terminal report or command guidance includes a clear “continue from main/default-branch checkout” instruction after successful cleanup; no hard Warp API dependency.",
+    "Healthy archive paths remain idempotent and do not double-merge, double-push, or weaken linked-issue closure safeguards.",
+    "Targeted regression tests, `pnpm run check`, `pnpm run build`, and full `pnpm test` pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/proposal.md",
+      "updatedAt": "2026-05-22T07:08:46.421Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/problem-statement.md",
+      "updatedAt": "2026-05-22T07:08:46.436Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/agreement.md",
+      "updatedAt": "2026-05-22T07:08:46.458Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/design.md",
+      "updatedAt": "2026-05-22T07:08:46.473Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T07:23:31.637Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

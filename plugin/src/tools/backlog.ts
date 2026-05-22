@@ -1,5 +1,5 @@
 /**
- * Backlog Coordination Tools (rq-backlogCoord01..07).
+ * Backlog Coordination Tools (rq-backlogCoord01..07, rq-wipPoisonIsolation01).
  *
  * Two tools:
  *   - `adv_wip_state` (rq-backlogCoord04) — single-call WIP aggregator over
@@ -18,7 +18,12 @@
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
-import { initStateDb, listWorktreesAcrossChanges } from "./worktree/state";
+import {
+  initStateDb,
+  listWorktreesAcrossChanges,
+  type WorktreeCrossChangeWarning,
+  type WorktreePoisonedWorkflowEntry,
+} from "./worktree/state";
 import { listPeerSessions } from "./session";
 import {
   assessAnnotationFreshness,
@@ -50,6 +55,26 @@ export interface WipPeerSessionEntry {
   worktree?: string;
 }
 
+export interface WipPoisonedWorkflowEntry {
+  source: "worktrees";
+  changeId: string;
+  workflowId: string;
+  recoveryReason: "poisoned_history" | "missing_workflow" | "query_failed";
+  evidenceSummary: string;
+  message: string;
+}
+
+export interface WipWorktreesProviderResult {
+  worktrees: WipWorktreeEntry[];
+  warnings?: WorktreeCrossChangeWarning[];
+  poisonedWorkflows?: WorktreePoisonedWorkflowEntry[];
+  unavailable?: boolean;
+}
+
+type WipWorktreesProviderValue =
+  | WipWorktreeEntry[]
+  | WipWorktreesProviderResult;
+
 export interface WipStateResponse {
   active_changes: Array<{
     id: string;
@@ -62,6 +87,7 @@ export interface WipStateResponse {
   }>;
   worktrees: WipWorktreeEntry[];
   peer_sessions: WipPeerSessionEntry[];
+  poisoned_workflows: WipPoisonedWorkflowEntry[];
   generated_at: string;
   warnings: Array<{ source: string; reason: string }>;
 }
@@ -71,7 +97,9 @@ export interface WipStateResponse {
  * `listWorktreesAcrossChanges` + `listPeerSessions`.
  */
 export interface WipStateProviders {
-  worktreesProvider?: (projectRoot: string) => Promise<WipWorktreeEntry[]>;
+  worktreesProvider?: (
+    projectRoot: string,
+  ) => Promise<WipWorktreesProviderValue>;
   sessionsProvider?: (projectRoot: string) => Promise<{
     sessions: Array<{
       sessionId: string;
@@ -88,23 +116,59 @@ export interface WipStateProviders {
 
 async function defaultWorktreesProvider(
   projectRoot: string,
-): Promise<WipWorktreeEntry[]> {
+): Promise<WipWorktreesProviderResult> {
   const access = await initStateDb(projectRoot);
-  const records = await listWorktreesAcrossChanges(access);
-  if (records === null) return [];
-  return records.map((r) => ({
-    changeId: r.changeId ?? "",
-    branch: r.branch,
-    path: r.path,
-    status: r.status,
-    materialized: true,
-  }));
+  const result = await listWorktreesAcrossChanges(access);
+  return {
+    worktrees: result.unavailable
+      ? []
+      : result.records.map((r) => ({
+          changeId: r.changeId ?? "",
+          branch: r.branch,
+          path: r.path,
+          status: r.status,
+          materialized: true,
+        })),
+    warnings: result.warnings,
+    poisonedWorkflows: result.poisonedWorkflows,
+    unavailable: result.unavailable,
+  };
 }
 
 async function defaultSessionsProvider(
   projectRoot: string,
 ): ReturnType<NonNullable<WipStateProviders["sessionsProvider"]>> {
   return listPeerSessions({ projectRoot });
+}
+
+function normalizeWorktreesProviderValue(
+  value: WipWorktreesProviderValue,
+): WipWorktreesProviderResult {
+  if (Array.isArray(value)) return { worktrees: value };
+  return value;
+}
+
+function formatWorktreeWarning(warning: WorktreeCrossChangeWarning): string {
+  const subject = warning.changeId
+    ? `change ${warning.changeId}`
+    : "worktree visibility";
+  const evidence = warning.evidenceSummary
+    ? ` Evidence: ${warning.evidenceSummary}`
+    : "";
+  return `${warning.message} (${subject}; ${warning.errorClass}).${evidence}`;
+}
+
+function toWipPoisonedWorkflowEntry(
+  entry: WorktreePoisonedWorkflowEntry,
+): WipPoisonedWorkflowEntry {
+  return {
+    source: "worktrees",
+    changeId: entry.changeId,
+    workflowId: entry.workflowId,
+    recoveryReason: entry.recoveryReason,
+    evidenceSummary: entry.evidenceSummary,
+    message: entry.message,
+  };
 }
 
 /**
@@ -230,8 +294,25 @@ export const backlogTools = {
       }
 
       let worktrees: WipWorktreeEntry[] = [];
+      let poisoned_workflows: WipPoisonedWorkflowEntry[] = [];
       if (worktreesResult.status === "fulfilled") {
-        worktrees = worktreesResult.value;
+        const value = normalizeWorktreesProviderValue(worktreesResult.value);
+        worktrees = value.worktrees;
+        poisoned_workflows = (value.poisonedWorkflows ?? []).map(
+          toWipPoisonedWorkflowEntry,
+        );
+        for (const warning of value.warnings ?? []) {
+          warnings.push({
+            source: "worktrees",
+            reason: formatWorktreeWarning(warning),
+          });
+        }
+        if (value.unavailable && !(value.warnings?.length ?? 0)) {
+          warnings.push({
+            source: "worktrees",
+            reason: "worktree visibility unavailable",
+          });
+        }
       } else {
         warnings.push({
           source: "worktrees",
@@ -267,6 +348,7 @@ export const backlogTools = {
         active_changes,
         worktrees,
         peer_sessions,
+        poisoned_workflows,
         generated_at: new Date().toISOString(),
         warnings,
       };
@@ -319,6 +401,8 @@ export const backlogTools = {
       if (priorityFilter) {
         bugs = bugs.filter((b) => b.priority === priorityFilter);
       }
+      // Mirrors adv_roadmap semantics: `top` limits WSJF-ranked features only;
+      // bugs remain priority-filtered because they are not ordered by WSJF.
       if (top !== undefined) {
         features = features.slice(0, top);
       }

@@ -21,7 +21,7 @@ Reusable methodology for `/adv-slop-scan` and hardening flows. Detect AI-generat
 |---|---|
 | `CATEGORIES.md` | Phase 1 thresholds, AST tools, regex/signal layer, confidence defaults, Phase 2 scanner buckets |
 | `STRUCTURAL_CORRECTNESS.md` | `QUAL-012` boundary rules and false-positive controls |
-| `DEAD_CODE.md` | `MAINT-003` detector tools and fallback behavior |
+| `DEAD_CODE.md` | `MAINT-003` deletion_candidate subtypes, detector tools, safety, and fallback behavior |
 
 ## Phase 1: Automatable Detection
 
@@ -36,7 +36,15 @@ Default thresholds from `features.slop_scan`:
 | `complexity` | 10 |
 | `ast_timeout_ms` | 10000 |
 
-Core Phase 1 categories: debug artifacts, type evasion, incomplete work, error suppression, hardcoded environment, AI signatures, security smells, defensive overkill, dead code, structural-correctness bypass.
+Core Phase 1 categories: debug artifacts, type evasion, incomplete work, error suppression, hardcoded environment, AI signatures, security smells, defensive overkill, dead code / deletion candidates, structural-correctness bypass.
+
+<!-- rq-ss010 -->
+
+Deletion candidates are `MAINT-003 deletion_candidate` findings with explicit subtypes: unused dependency, unused export, unused file, unreachable branch, uncallable private symbol, and impossible feature-flag path.
+
+<!-- rq-ss011 -->
+
+Deletion safety boundary: do not auto-delete. Heuristic-only or text-only unused-code guesses are not actionable removal proof. Uncertain deletion candidates go to `low-confidence / user-review` with non-blocking actionability unless structural source/tool evidence proves the candidate safe to review for removal.
 
 ## Phase 2: Heuristic Detection
 
@@ -67,12 +75,14 @@ Each finding includes: `id`, `name`, `severity`, `file`, `line`, `description`, 
 
 | Level | Criteria |
 |---|---|
-| CRITICAL | Security/data-loss risk, e.g. `HALLU-006`, `QUAL-003` |
-| HIGH | Silent failures, context amnesia, e.g. `QUAL-001`, `STRUCT-002` |
+| CRITICAL | Security/data-loss risk or authoritative-but-wrong logic, e.g. `HALLU-006`, `QUAL-001`, `QUAL-003` |
+| HIGH | Silent failures, context amnesia, e.g. `QUAL-002`, `QUAL-012`, `STRUCT-002` |
 | MEDIUM | Maintainability debt, e.g. `STRUCT-004`, `QUAL-006` |
 | LOW | Style/minor inefficiency, e.g. `STRUCT-003` |
 
 High/medium confidence + source evidence → actionable/blocking. Low confidence or fixture/context uncertainty → low-confidence/non-blocking.
+
+Cross-scanner label mapping: slop scan keeps severity labels `CRITICAL|HIGH|MEDIUM|LOW`; architecture scan uses review-style labels `blocker|major|minor|nit`. Treat `CRITICAL≈blocker`, `HIGH≈major`, `MEDIUM≈minor`, and `LOW≈nit` when comparing scanner reports, but keep each scanner's native labels in its own output schema.
 
 ## Report Assembly
 
@@ -85,7 +95,9 @@ High/medium confidence + source evidence → actionable/blocking. Low confidence
 
 Text report includes `SLOP SCAN REPORT`, scope, phase counts, severity summary, category summary, actionable findings, low-confidence section, next steps. No findings → `[OK] No slop detected.`
 
-JSON report includes `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, and `findings[]` with diagnostic fields.
+<!-- rq-ss012 -->
+
+Text report includes a scanner coverage summary for skipped, timed-out, missing, and degraded detectors. JSON report includes `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields, and `coverage.skippedDetectors`, `coverage.degradedDetectors`, and `coverage.falsePositiveProtections`.
 
 ## False-Positive Control
 

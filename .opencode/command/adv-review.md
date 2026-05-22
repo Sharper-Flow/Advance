@@ -14,7 +14,6 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 | 🎤 BLOCKED | Blockers found → user decides |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
-> **CHECKLIST**: Follow [docs/checklists/review-checklist.md](../../docs/checklists/review-checklist.md).
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -31,7 +30,7 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 
 Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework and conventional comment labels.
 
-**Canonical source:** `docs/checklists/review-checklist.md` — see that checklist for minimum findings threshold, verdict criteria, remediation protocol, and sub-agent failure handling. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the review methodology needed during command execution.
 
 #### 12-Dimension Framework
 
@@ -71,7 +70,7 @@ Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optiona
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the review gate
-- **Canonical source** — defer to `docs/checklists/review-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Phase 1: Pre-flight
@@ -175,7 +174,7 @@ Verify: all target_repo/target_path tasks done, cancelled tasks have approval. R
 1. Combine all issues → group by label (blocker > issue > suggestion > nit) → deduplicate
 2. Cross-reference with spec scenarios
 ### Minimum Findings Enforcement
-If <3 non-nit findings → require genuinely-clean justification with file-level evidence per [review-checklist.md](../../docs/checklists/review-checklist.md).
+If <3 non-nit findings → require genuinely-clean justification with file-level evidence per the Review Methodology section above.
 ### Verdict
 | Verdict | Criteria |
 |---------|----------|
@@ -230,15 +229,15 @@ Example shape:
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. Choose the right fix worker:
+1. **Fix all blockers/issues** — no partial fix mode. Use the review step's conditional remediation routing; do not introduce ad-hoc workers.
    - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect a fenced `REVIEWER_REPORT` JSON payload per `.opencode/agents/adv-reviewer.md`.
    - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`.
-   - For non-trivial fixes: research first (Context7 / `adv-researcher`) → then implement.
+   - **Non-trivial fix research** (control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches) → spawn `adv-researcher` first, then implement through the appropriate remediation worker above.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 
 ### Drift Detection Rule (CRITICAL)
 
-Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:

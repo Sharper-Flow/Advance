@@ -19,7 +19,6 @@ Orchestrate multi-dimensional hardening via sub-agents. Command is part of the r
 | 🎤 BLOCKED    | Blocker or unresolved review findings → user decides       |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
-> **CHECKLIST**: Follow [docs/checklists/harden-checklist.md](../../docs/checklists/harden-checklist.md).
 > <UserRequest>
 > $ARGUMENTS
 > </UserRequest>
@@ -49,7 +48,7 @@ Extract from `$ARGUMENTS`:
 
 Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework overview.
 
-**Canonical source:** `docs/checklists/harden-checklist.md` — see that checklist for severity scoring, priority matrix, status determination, minimum findings threshold, documentation hygiene standard, and technical debt classification. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the hardening methodology needed during command execution.
 
 #### 6-Scanner Framework
 
@@ -70,7 +69,7 @@ All 6 must be executed. Skipping requires explicit justification.
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the harden gate
-- **Canonical source** — defer to `docs/checklists/harden-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Pre-flight
@@ -165,7 +164,7 @@ Before running 6-scanner analysis, validate and act on review suggestions/questi
 
 **Step 3: Implement valid findings:**
 - Apply drift-detection rule (same as Phase 3) before each fix
-- If no drift → implement via `adv-engineer` sub-agent or inline
+- If no drift → implement through hardening remediation routing (`adv-reviewer` for scoped review-style fixes, `adv-engineer` for primary implementation or multi-file refactors) or inline
 - If drift → STOP, present to user via `question` tool
 - After implementation → mark `fixed` with fix notes
 
@@ -313,7 +312,7 @@ Priority = Impact × Effort
 
 ### Minimum Findings Enforcement
 
-Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per [harden-checklist.md](../../docs/checklists/harden-checklist.md).
+Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per the Harden Methodology section above.
 
 ### Status Determination
 
@@ -334,7 +333,7 @@ If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-o
 
 ### Drift Detection Rule (CRITICAL)
 
-Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
@@ -350,6 +349,8 @@ This is the single declarative drift detection rule. It applies to every finding
 **Anti-pattern:** The drift-detection auto-fix path must NOT silently absorb non-campsite scope. If the fix would expand the agreement, always defer to the scope-discovery protocol above.
 
 ### Sub-Agent Routing for Fixes
+
+Hardening has two delegated lanes: scanner workers (`adv-reviewer`/`explore`) for readiness analysis and remediation workers (`adv-reviewer`/`adv-engineer`) for validated in-scope fixes. Do not introduce ad-hoc workers.
 
 | Fix shape | Worker | Returns |
 |---|---|---|

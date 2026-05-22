@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-zRVgP3",
+      "type": "pattern",
+      "content": "For cross-change Temporal visibility readers, return a structural partial-result object (`records`, `warnings`, `poisonedWorkflows`, `unavailable`) instead of throwing or returning a raw array. Wrap each per-workflow query in its own try/catch, classify with existing recovery probes/classifiers, and continue so one poisoned workflow cannot hide healthy WIP.",
+      "source_task": "tk-72eeff9ac71d",
+      "recorded_at": "2026-05-22T07:36:57.648Z"
+    },
+    {
+      "id": "ws-1BsLZ2",
+      "type": "gotcha",
+      "content": "Replay failure `UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(... ActivityTaskScheduled)` can mean current readiness logic skipped an activity that legacy history scheduled, not that search-attribute code itself is wrong. Inspect the signal payload and event window around the failing event, then patch the exact command-producing branch (`wf.patched`) so old histories replay the old activity path.",
+      "source_task": "tk-56d8f209d83d",
+      "recorded_at": "2026-05-22T07:48:17.111Z"
+    },
+    {
+      "id": "ws-ID-HMJ",
+      "type": "pattern",
+      "content": "When evolving tool provider seams from arrays to structured partial results, keep a normalization layer that accepts both the old array shape and the new object shape. This preserves existing tests/callers while allowing richer automation metadata such as `poisoned_workflows`.",
+      "source_task": "tk-a27db2c7eec7",
+      "recorded_at": "2026-05-22T07:55:02.744Z"
+    },
+    {
+      "id": "ws-_X3y0x",
+      "type": "gotcha",
+      "content": "Spec JSON files are not part of `pnpm run format:check`; running Prettier over whole spec JSON can create noisy unrelated diffs. For spec-law edits, preserve existing JSON formatting and validate with JSON parse/adv_change_validate, while applying Prettier only to markdown mirrors/docs that are checked for readability.",
+      "source_task": "tk-071cf657a9c3",
+      "recorded_at": "2026-05-22T08:02:48.411Z"
+    },
+    {
+      "id": "ws-vVreKx",
+      "type": "gotcha",
+      "content": "Adding new spec requirements requires external citations outside docs/specs and the spec.json itself. The invariant fails even when implementation tests pass. Add `rq-*` anchors near the implementing code/tests (e.g. replay test, backlog tool, worktree state) before full-suite verification.",
+      "source_task": "tk-f0ccf048b11a",
+      "recorded_at": "2026-05-22T08:08:40.848Z"
+    }
+  ],
+  "count": 5
+}

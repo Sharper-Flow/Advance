@@ -21,6 +21,7 @@ export const gateArtifactEvidenceSchema = GateArtifactEvidenceSchema;
 
 export interface GateReadinessOptions {
   compatibilityReason?: string;
+  enforceDiscoveryContract?: boolean;
 }
 
 export interface GateReadinessResult {
@@ -229,7 +230,7 @@ export function evaluateGateReadiness(
     }
   }
 
-  if (gateId === "discovery") {
+  if (gateId === "discovery" && options.enforceDiscoveryContract !== false) {
     blockers.push(...discoveryContractBlockers(state, gateId));
   }
 

@@ -168,6 +168,41 @@
       ]
     },
     {
+      "id": "rq-wipPoisonIsolation01",
+      "title": "WIP visibility exposes poisoned workflow metadata without hiding healthy state",
+      "body": "adv_wip_state MUST preserve healthy active-change, worktree, and peer-session results when one worktree-owning change workflow cannot be queried. Per-workflow poison or query failures from the worktree source MUST be surfaced as human-readable warnings and as structured poisoned_workflows metadata optimized for automation and agent triage. The metadata MUST include source, changeId, workflowId, recoveryReason, evidenceSummary, and message when poison evidence is available. The tool remains read-only and MUST NOT perform destructive recovery.",
+      "priority": "must",
+      "tags": ["coordination", "wip", "poisoned-history", "automation"],
+      "scenarios": [
+        {
+          "id": "rq-wipPoisonIsolation01.1",
+          "title": "Poisoned worktree workflow does not hide healthy WIP",
+          "given": [
+            "One change workflow returns healthy worktree records",
+            "A second change workflow query fails with poisoned-history evidence"
+          ],
+          "when": "adv_wip_state is called",
+          "then": [
+            "The healthy worktree remains in worktrees",
+            "The response includes a warnings entry for the worktree source",
+            "The response includes poisoned_workflows with source=\"worktrees\", changeId, workflowId, recoveryReason, evidenceSummary, and message"
+          ]
+        },
+        {
+          "id": "rq-wipPoisonIsolation01.2",
+          "title": "Poison metadata is read-only triage data",
+          "given": [
+            "poisoned_workflows contains a workflow with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
+          ],
+          "when": "adv_wip_state returns the response",
+          "then": [
+            "No terminate, reset, reseed, archive, or delete action is performed",
+            "Operators can use the metadata to choose a separate audited recovery path"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-backlogCoord05",
       "title": "Active-change cross-reference uses O(1) Visibility query",
       "body": "When the agent renders a backlog with active-change annotations (e.g., adv_backlog_state), it MUST use queryActiveChangesByIssueNumbers — a single Temporal Visibility query with an IN clause covering all snapshot issue numbers — and MUST NOT call store.changes.get() per change. This replaces the legacy O(n*m) buildActiveChangeIndex pattern in plugin/src/tools/roadmap.ts:703-737. Inputs > 100 issue numbers are batched at 100 per call to stay under Temporal query-string length limits.",

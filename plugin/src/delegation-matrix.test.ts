@@ -68,6 +68,10 @@ const KNOWN_SPAWNABLE_SUBAGENTS = [
   "general",
 ] as const;
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Canonical matrix loaded from the delegation-defaults spec.
 interface MatrixRow {
   step: WorkflowStep;
@@ -183,6 +187,47 @@ function readCommandFile(step: string): string | null {
   const path = join(REPO_ROOT, ".opencode/command", filename);
   if (!existsSync(path)) return null;
   return readFileSync(path, "utf8");
+}
+
+function extractExplicitCommandSubagentTargets(content: string): string[] {
+  const targets = new Set<string>();
+
+  for (const agent of KNOWN_SPAWNABLE_SUBAGENTS) {
+    const escaped = escapeRegExp(agent);
+    const patterns = [
+      new RegExp("subagent_type[\"']?\\s*:\\s*[\"']" + escaped + "[\"']", "i"),
+      new RegExp("\\bspawn\\s+`?" + escaped + "`?\\b", "i"),
+      new RegExp("\\bdelegate\\s+to\\s+`?" + escaped + "`?\\b", "i"),
+      new RegExp("Task tool \\([^)]*" + escaped + "[^)]*\\)", "i"),
+      new RegExp(
+        "`" + escaped + "`\\s+(?:sub-agent|agent|validator|worker)",
+        "i",
+      ),
+    ];
+
+    if (patterns.some((pattern) => pattern.test(content))) {
+      targets.add(agent);
+    }
+  }
+
+  return [...targets].sort();
+}
+
+function expectSubstep(
+  row: MatrixRow,
+  name: string,
+  mode: DelegatedSubstepMode,
+  allowedAgents: string[],
+): void {
+  expect(row.delegatedSubsteps).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name,
+        mode,
+        allowedAgents,
+      }),
+    ]),
+  );
 }
 
 describe("delegation matrix coverage", () => {
@@ -344,23 +389,42 @@ describe("delegation matrix coverage", () => {
       EXPECTED_MATRIX.map((row) => [row.step, row]),
     );
 
-    expect(rows.discovery.delegatedSubsteps).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: "Prior Research Extension",
-          mode: "subagent_primary",
-          allowedAgents: ["adv-researcher"],
-        }),
-        expect.objectContaining({
-          name: "P25 Related-Pattern Scan",
-          mode: "subagent_primary",
-          allowedAgents: ["explore", "adv-researcher"],
-        }),
-      ]),
+    expectSubstep(
+      rows.discovery,
+      "Prior Research Extension",
+      "subagent_primary",
+      ["adv-researcher"],
+    );
+    expectSubstep(
+      rows.discovery,
+      "P25 Related-Pattern Scan",
+      "subagent_primary",
+      ["explore", "adv-researcher"],
     );
     expect(rows.prep.mode).toBe("inline_required");
     expect(rows.prep.allowedAgents).toEqual([]);
     expect(rows.prep.delegatedSubsteps ?? []).toEqual([]);
+  });
+
+  // rq-delDefaults03 rq-delDefaults06: conditional remediation workers are explicit
+  test("review and harden remediation sub-agent routing is explicit", () => {
+    const rows = Object.fromEntries(
+      EXPECTED_MATRIX.map((row) => [row.step, row]),
+    );
+
+    expectSubstep(rows.review, "Review Remediation Fixes", "delegate_allowed", [
+      "adv-reviewer",
+      "adv-engineer",
+    ]);
+    expectSubstep(rows.review, "Non-Trivial Fix Research", "delegate_allowed", [
+      "adv-researcher",
+    ]);
+    expectSubstep(
+      rows.harden,
+      "Hardening Remediation Fixes",
+      "delegate_allowed",
+      ["adv-reviewer", "adv-engineer"],
+    );
   });
 
   // rq-delDefaults03: referenced agents exist as agent files or are known global agents
@@ -421,8 +485,12 @@ describe("delegation matrix coverage", () => {
     expect(agentMap.discovery).toEqual(new Set(["adv-researcher", "explore"]));
     expect(agentMap.design).toEqual(new Set(["adv-researcher"]));
     expect(agentMap.apply).toEqual(new Set(["adv-engineer", "general"]));
-    expect(agentMap.review).toEqual(new Set(["adv-reviewer", "explore"]));
-    expect(agentMap.harden).toEqual(new Set(["adv-reviewer", "explore"]));
+    expect(agentMap.review).toEqual(
+      new Set(["adv-reviewer", "adv-engineer", "adv-researcher", "explore"]),
+    );
+    expect(agentMap.harden).toEqual(
+      new Set(["adv-reviewer", "adv-engineer", "explore"]),
+    );
   });
 
   // rq-delDefaults05: worker reports must stay structured enough for orchestration
@@ -516,6 +584,28 @@ describe("delegation matrix cross-reference", () => {
           `Step ${row.step} is hybrid but command file definitively claims 'no sub-agents': ${matchLines[0]?.trim()}`,
         ).toBe(false);
       }
+    }
+  });
+
+  // rq-delDefaults06: command-routed sub-agents must be present in matrix rows
+  test("command files do not route to sub-agents outside each step's matrix row", () => {
+    const delegableSteps = EXPECTED_MATRIX.filter(
+      (row) => row.mode !== "inline_required",
+    );
+
+    for (const row of delegableSteps) {
+      const content = readCommandFile(row.step);
+      if (!content) continue;
+
+      const routedAgents = extractExplicitCommandSubagentTargets(content);
+      const extraAgents = routedAgents.filter(
+        (agent) => !row.allowedAgents.includes(agent),
+      );
+
+      expect(
+        extraAgents,
+        `Step ${row.step} command routes to sub-agent(s) not declared in matrix allowed_subagents: ${extraAgents.join(", ")}`,
+      ).toEqual([]);
     }
   });
 });

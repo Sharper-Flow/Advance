@@ -1,70 +1,78 @@
 import { describe, expect, it } from "vitest";
-import { workflowHasPoisonedDescription } from "./recovery-probe";
 
-describe("workflowHasPoisonedDescription", () => {
-  it("returns false when handle has no describe function", async () => {
-    expect(await workflowHasPoisonedDescription({})).toBe(false);
-  });
+import {
+  workflowHasPoisonedDescription,
+  workflowPoisonedDescriptionEvidence,
+} from "./recovery-probe";
 
-  it("returns false when describe throws", async () => {
-    const handle = {
+describe("workflow poisoned description probe", () => {
+  it("returns null/false when describe is unavailable or fails", async () => {
+    await expect(workflowPoisonedDescriptionEvidence({})).resolves.toBeNull();
+    await expect(workflowHasPoisonedDescription({})).resolves.toBe(false);
+
+    const throwingHandle = {
       describe: async () => {
-        throw new Error("Workflow not found");
+        throw new Error("describe unavailable");
       },
     };
-    expect(await workflowHasPoisonedDescription(handle)).toBe(false);
+
+    await expect(
+      workflowPoisonedDescriptionEvidence(throwingHandle),
+    ).resolves.toBeNull();
+    await expect(workflowHasPoisonedDescription(throwingHandle)).resolves.toBe(
+      false,
+    );
   });
 
-  it("returns false on healthy describe output", async () => {
-    const handle = {
+  it("extracts bounded poisoned-history evidence from describe output", async () => {
+    const longEvidence = `WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100] ${"x".repeat(1_000)}`;
+    const evidence = await workflowPoisonedDescriptionEvidence({
       describe: async () => ({
-        searchAttributes: {
-          AdvChangeStatus: ["draft"],
-        },
-        status: "RUNNING",
+        lastFailure: { message: longEvidence },
       }),
-    };
-    expect(await workflowHasPoisonedDescription(handle)).toBe(false);
+    });
+
+    expect(evidence).not.toBeNull();
+    expect(evidence).toContain("TMPRL1100");
+    expect(evidence).toHaveLength(500);
+    expect(evidence).toMatch(/…$/);
   });
 
-  it("detects WorkflowTaskFailedCauseNonDeterministicError search attribute", async () => {
-    const handle = {
-      describe: async () => ({
+  it("detects supported poisoned-history markers in describe output", async () => {
+    const cases: unknown[] = [
+      {
         searchAttributes: {
           TemporalReportedProblems: [
             "category=WorkflowTaskFailed",
             "cause=WorkflowTaskFailedCauseNonDeterministicError",
           ],
         },
-      }),
-    };
-    expect(await workflowHasPoisonedDescription(handle)).toBe(true);
-  });
-
-  it("detects Nondeterminism evidence", async () => {
-    const handle = {
-      describe: async () => ({
+      },
+      {
         searchAttributes: {
           TemporalReportedProblems: ["Nondeterminism error during replay"],
         },
-      }),
-    };
-    expect(await workflowHasPoisonedDescription(handle)).toBe(true);
+      },
+      { memo: { lastError: "TMPRL1100 nondeterminism" } },
+      "No command scheduled for event 17",
+      { historyEvent: "WorkflowExecutionUpdateAccepted" },
+    ];
+
+    for (const description of cases) {
+      const handle = { describe: async () => description };
+
+      await expect(workflowHasPoisonedDescription(handle)).resolves.toBe(true);
+      await expect(
+        workflowPoisonedDescriptionEvidence(handle),
+      ).resolves.not.toBeNull();
+    }
   });
 
-  it("detects TMPRL1100 evidence", async () => {
-    const handle = {
-      describe: async () => ({
-        memo: { lastError: "TMPRL1100 nondeterminism" },
+  it("ignores non-poisoned describe output", async () => {
+    await expect(
+      workflowPoisonedDescriptionEvidence({
+        describe: async () => ({ status: "RUNNING", lastFailure: null }),
       }),
-    };
-    expect(await workflowHasPoisonedDescription(handle)).toBe(true);
-  });
-
-  it("detects No command scheduled evidence", async () => {
-    const handle = {
-      describe: async () => "No command scheduled for event 17",
-    };
-    expect(await workflowHasPoisonedDescription(handle)).toBe(true);
+    ).resolves.toBeNull();
   });
 });

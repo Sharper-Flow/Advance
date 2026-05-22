@@ -1,0 +1,28 @@
+# Acceptance
+
+Reviewed at: 
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| AC1 | acceptance_criterion | `adv_task_checkpoint` returns `checkpointRecorded:false` when git checkpointing succeeds but workflow completion recording fails. | pass | checkpoint.ts fireTaskCompletedFromCheckpoint returns recorded:false on signal/query failure or mismatch; checkpoint.test.ts covers Temporal unavailable, committed signal failure, clean-tree signal failure, and status/verification/checkpointSha/filesTouched mismatches. Verification: targeted suite 55 tests passed. |
+| AC2 | acceptance_criterion | `/adv-apply` cannot proceed to task done on `checkpointRecorded:false`. | pass | .opencode/command/adv-apply.md requires checkpointRecorded:true and treats false as blocking; task.ts rejects normal adv_task_update status:'done' with TASK_DONE_REQUIRES_CHECKPOINT. task.test.ts covers the guard. |
+| AC3 | acceptance_criterion | Normal apply completion cannot emit a second task completion signal that overwrites stronger checkpoint metadata. | pass | change-state.ts preserves stronger checkpoint metadata against weaker duplicate taskCompletedSignal; workflows.signal-handlers.test.ts verifies duplicate signal preserves verification, summary, filesTouched, touched_files, checkpointSha, completedAt. |
+| AC4 | acceptance_criterion | `adv_task_update`, `adv_task_completed`, and `adv_task_checkpoint` have a clear, tested relationship in code and registry. | pass | task.ts documents adv_task_update done as non-canonical; taskTools no longer exposes adv_task_completed; task.test.ts asserts adv_task_completed is undefined and adv_task_update done rejects normal completion. |
+| AC5 | acceptance_criterion | `adv_run_test` docs/specs no longer claim it independently persists durable workflow evidence. | pass | ADV_INSTRUCTIONS.md, adv-apply.md, docs/specs/advance-delivery.md, docs/specs/tdd-contract.md, .adv spec JSON, and task output comments align: adv_run_test is executable run evidence; durable final proof is taskCompletedSignal.verification via checkpoint. |
+| AC6 | acceptance_criterion | Minimal Temporal/tool telemetry is either implemented or explicitly documented as already sufficient; no Prometheus/OTel dependency is introduced. | pass | docs/temporal-telemetry-posture.md documents existing health/diagnostic/counter surfaces and explicit non-goals: no Prometheus, OpenTelemetry, persistent metrics DB, or cross-session aggregation. package checks show no new telemetry dependency. |
+| C1 | constraint | Keep change-workflow mutation signal-driven. | respected | Mutations remain taskCompletedSignal/taskUpdatedSignal through existing signal path; no update-based change-workflow mutation was added. |
+| C2 | constraint | Do not reintroduce `defineUpdate` on change workflows. | respected | No defineUpdate was introduced on change workflows; workflow-bundle guard remains covered by targeted workflow tests and pnpm run check. |
+| C3 | constraint | Keep agent workflow simple; do not add ceremony for its own sake. | respected | Completion flow simplified to one normal path: adv_task_checkpoint. Telemetry is documented, not expanded with infrastructure. |
+| C4 | constraint | Use tests to lock completion semantics and failure paths. | respected | Regression tests cover checkpoint false returns, canonical done guard, tool removal, metadata preservation, and query wrapper. Targeted suite passed: 55 tests. |
+| C5 | constraint | Discovery/design questions about exact completion-tool ownership and telemetry shape are deferred to design, per user instruction. | respected | Design resolved completion ownership and telemetry shape: checkpoint owns normal completion; telemetry posture is minimal documentation/health alignment. |
+| DONT1 | avoidance | Do not silently swallow workflow recording failures after successful git checkpointing. | respected | checkpointRecorded:false plus recordingError/remediation is returned when workflow recording fails after successful git checkpoint; tests cover committed and clean-tree paths. |
+| DONT2 | avoidance | Do not keep contradictory tool guidance. | respected | adv-apply, ADV_INSTRUCTIONS, specs, and task comments consistently point to checkpoint completion and final verification on taskCompletedSignal; adv_task_completed is not exposed. |
+| DONT3 | avoidance | Do not rely on heuristic inference for completion correctness. | respected | Correctness is structural: tool guard rejects non-canonical done, checkpoint verifies workflow state by query, state reducer preserves stronger metadata, tests lock edge cases. |
+| DONT4 | avoidance | Do not introduce heavyweight telemetry infrastructure for a minimal visibility need. | respected | No Prometheus/OpenTelemetry dependency or metrics endpoint was added; telemetry posture explicitly defers platform expansion until a concrete diagnostic gap exists. |
+| OOS1 | out_of_scope | Full observability platform integration. | not_applicable | Full observability platform integration was not implemented. |
+| OOS2 | out_of_scope | Broad Temporal workflow rewrite. | not_applicable | No broad Temporal workflow rewrite was performed; change is focused on checkpoint/tool/state semantics. |
+| OOS3 | out_of_scope | Changes to gate sequencing or non-task lifecycle semantics. | not_applicable | Gate sequencing and non-task lifecycle semantics were not changed. |
+| OOS4 | out_of_scope | Prometheus/OpenTelemetry integration unless design proves it is already wired or necessary. | not_applicable | Prometheus/OpenTelemetry integration was not introduced; telemetry doc says current surfaces are sufficient. |
+

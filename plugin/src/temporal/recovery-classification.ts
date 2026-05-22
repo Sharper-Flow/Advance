@@ -4,6 +4,10 @@ import type { ContractEvidenceStatus } from "../types";
 const POISONED_HISTORY_RE =
   /TMPRL1100|Nondeterminism error|No command scheduled for event/i;
 
+// Keep this error-text classifier aligned with the tool-layer describe probe
+// in `tools/recovery-probe.ts`. The probe intentionally handles richer
+// `describe()` shapes; this workflow-safe module owns plain error/evidence
+// text only because it is imported by the workflow bundle.
 const POISONED_HISTORY_EVIDENCE_RE =
   /TMPRL1100|Nondeterminism|NonDeterministic|No command scheduled|WorkflowExecutionUpdateAccepted/i;
 
