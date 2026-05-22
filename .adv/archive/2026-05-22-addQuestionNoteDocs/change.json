@@ -1,0 +1,79 @@
+{
+  "id": "addQuestionNoteDocs",
+  "title": "Add question note docs",
+  "status": "archived",
+  "created_at": "2026-05-21T02:10:37.247Z",
+  "tasks": [],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:10:47.770Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track"
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:10:53.775Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track"
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:11:02.257Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track"
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:11:10.341Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:11:18.479Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track"
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:26:16.304Z",
+      "completed_by": "agent",
+      "approval_evidence": "All AC verified. Contract + review matrix in seed state. projectionChangesDir set. Tests green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addQuestionNoteDocs/acceptance.md",
+        "content_hash": "4df1190ae42a8c2cfdc8e325f3127f4248a01d93c408b372ccf44e0c6af37881",
+        "non_whitespace_chars": 705,
+        "checked_at": "2026-05-21T02:26:16.403Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:35:21.953Z",
+      "completed_by": "agent",
+      "approval_evidence": "All gates complete. Implementation committed (cfe8a1c). User signed off."
+    }
+  },
+  "reentry_history": [],
+  "documents": {},
+  "artifacts": {},
+  "lastSignalAt": "2026-05-22T07:43:17.550Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-22T07:40:43.162Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-22T07:40:43.162Z"
+    }
+  ]
+}
