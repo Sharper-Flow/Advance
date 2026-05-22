@@ -1,0 +1,596 @@
+{
+  "id": "fixGateAutoWorktree",
+  "title": "Fix gate auto worktree",
+  "status": "archived",
+  "created_at": "2026-05-21T05:33:42.634Z",
+  "tasks": [
+    {
+      "id": "tk-26a5fa9c7102",
+      "title": "Wire target-aware gate mutation workdir and auto-manage deps",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T20:59:29.043Z",
+      "started_at": "2026-05-21T21:02:49.484Z",
+      "completed_at": "2026-05-21T21:03:02.166Z",
+      "implementation_summary": "Added target-aware cwd selection in target-project.ts and wired adv_gate_complete to use the active target store root for worktree isolation. Preserved production auto-managed resume deps via buildWorktreeAutoManageDeps(activeStore). Added gate/worktree-auto-manage regression coverage for target_path gate completion, main-checkout auto-managed violation with expectedWorktreePath, proposal exemption, and defensive missing-runtime behavior.",
+      "verification": "Completed. Evidence: targeted regression test command passed; pnpm run check, pnpm run build, and full pnpm test passed. Checkpoint clean at 77d05a8fd2c90d34a8a8d8963e3fa28877554aae.",
+      "summary": "Added target-aware cwd selection in target-project.ts and wired adv_gate_complete to use the active target store root for worktree isolation. Preserved production auto-managed resume deps via buildWorktreeAutoManageDeps(activeStore). Added gate/worktree-auto-manage regression coverage for target_path gate completion, main-checkout auto-managed violation with expectedWorktreePath, proposal exemption, and defensive missing-runtime behavior.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T21:03:02.166Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-7ce177b4defa",
+      "title": "Wire target-aware task mutation workdir",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T20:59:34.991Z",
+      "started_at": "2026-05-21T21:03:10.159Z",
+      "completed_at": "2026-05-21T21:03:22.367Z",
+      "implementation_summary": "Wired guarded task mutations to resolve mutation cwd through the active target store when target_path is present, preventing task_add/task_update isolation checks from using the host process cwd. Added task regression coverage for target_path task creation using target root git-session detection.",
+      "verification": "Completed. Evidence: targeted regression test command passed; pnpm run check, pnpm run build, and full pnpm test passed. Checkpoint clean at 77d05a8fd2c90d34a8a8d8963e3fa28877554aae.",
+      "summary": "Wired guarded task mutations to resolve mutation cwd through the active target store when target_path is present, preventing task_add/task_update isolation checks from using the host process cwd. Added task regression coverage for target_path task creation using target root git-session detection.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T21:03:22.367Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-09482c0d9422",
+      "title": "Remove legacy worktree aliases and align specs/instructions",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T20:59:42.466Z",
+      "started_at": "2026-05-21T21:03:28.071Z",
+      "completed_at": "2026-05-21T21:03:41.378Z",
+      "implementation_summary": "Removed legacy worktree_create/worktree_delete/worktree_cleanup alias registration and degraded title entries. Updated rq-warpModeContract06 to require non-registration of legacy aliases. Updated ADV agent allowlists, command docs, worktree skill, and asset/registry tests to use canonical adv_worktree_* names only.",
+      "verification": "Completed. Evidence: targeted registry/asset tests passed; pnpm run check, pnpm run build, and full pnpm test passed. Checkpoint clean at 77d05a8fd2c90d34a8a8d8963e3fa28877554aae.",
+      "summary": "Removed legacy worktree_create/worktree_delete/worktree_cleanup alias registration and degraded title entries. Updated rq-warpModeContract06 to require non-registration of legacy aliases. Updated ADV agent allowlists, command docs, worktree skill, and asset/registry tests to use canonical adv_worktree_* names only.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T21:03:41.378Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-38fbce9d5136",
+      "title": "Stabilize blocking full-suite worktree cleanup test and verify release bar",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-21T20:59:49.386Z",
+      "started_at": "2026-05-21T21:03:53.081Z",
+      "completed_at": "2026-05-21T21:04:09.452Z",
+      "implementation_summary": "Stabilized pending-delete full-suite test state by using fixture-specific synthetic project IDs instead of a shared constant. Verified the complete branch with targeted tests, static checks, build, and full test suite. Confirmed build output leaves git status clean.",
+      "verification": "Completed. Evidence: targeted regression command passed; pnpm run check passed; pnpm run build passed; full pnpm test passed; git status clean. Runtime caveat retained: OpenCode sessions must restart after build/deploy to load changed plugin host tool code.",
+      "summary": "Stabilized pending-delete full-suite test state by using fixture-specific synthetic project IDs instead of a shared constant. Verified the complete branch with targeted tests, static checks, build, and full test suite. Confirmed build output leaves git status clean.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T21:04:09.452Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-H6pMx7",
+      "type": "gotcha",
+      "content": "`adv_change_update` writes provided empty strings as artifact contents; omit fields entirely to leave artifacts unchanged. Passing `proposal:\"\"`/`agreement:\"\"` can temporarily trip artifact readiness until restored.",
+      "source_task": "tk-09482c0d9422",
+      "recorded_at": "2026-05-21T21:03:47.558Z"
+    },
+    {
+      "id": "ws-UxQwH9",
+      "type": "success",
+      "content": "Full-suite worktree cleanup tests are safer when fixture project IDs derive from per-test temp paths; shared constants can leak external pending-delete state across runs.",
+      "source_task": "tk-38fbce9d5136",
+      "recorded_at": "2026-05-21T21:04:15.272Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:34:12.040Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly requested immediate fix: \"this is a bigger deal -- fix this and fully wire this up now\". Proposal includes scope and success criteria for urgent production wiring bug.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/proposal.md",
+        "content_hash": "df88c2676943bb4538086f8640e1cd3a53263c1ef6c3044435fefd2b94206cc6",
+        "non_whitespace_chars": 2244,
+        "checked_at": "2026-05-21T05:34:12.099Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T20:59:13.216Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery workflow completed from restored artifacts: agreement restored and adv_change_validate strict passed with only expected pre-prep warnings.",
+      "started_at": "2026-05-21T20:56:04.092Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/agreement.md",
+        "content_hash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "non_whitespace_chars": 3495,
+        "checked_at": "2026-05-21T20:59:13.272Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T20:59:18.315Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted and independently validated by adv-researcher with verdict VALIDATED. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk detected.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/design.md",
+        "content_hash": "e1a5afaca9855dc0c628b666cfd88183ce52042eea97ba97df7fd1173db877d5",
+        "non_whitespace_chars": 3794,
+        "checked_at": "2026-05-21T20:59:18.363Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T21:00:13.979Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep synthesized four-task graph from validated design. Tasks cover gate target cwd/deps, task target cwd, alias/spec/instruction cleanup, and verification/full-suite stabilization. User requested `complete fixGateAutoWorktree`, and agreement artifact records prior approval of AC/verification scope."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T21:04:26.579Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four planned tasks completed with clean checkpoints. Verification passed: targeted regression tests, pnpm run check, pnpm run build, full pnpm test, and git status clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T02:59:55.979Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User-driven recovery.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Legacy poisoned workflow. Original work shipped on trunk; all 4 tasks completed. Contract reconstructed at minimal rigor (task tools lack poisoned-history recovery per ag-sDKvJJsL)."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+      "approvedAt": "2026-05-21T20:59:13.216Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_gate_complete` production path wires auto-managed worktree resume runtime deps for non-proposal gates.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Main-checkout completion for an auto-managed change attempts resume/materialization and returns `WorktreeIsolationViolation` with `expectedWorktreePath`, not `resumeRuntime missing`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`target_path` gate completion uses the target store root as mutation cwd and sends the gate signal through the target store.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_add` / guarded task mutations use the target store root as mutation cwd when `target_path` is provided.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Proposal gate remains exempt.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Gate completion from an ADV worktree remains allowed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Production-path regression test covers `adv_gate_complete.execute`, not only helper-level seams.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Legacy aliases `worktree_create`, `worktree_delete`, and `worktree_cleanup` are not registered by `createToolMap`, are not present in `ADV_TOOL_NAMES`, and are removed from ADV orchestrator allowlists/instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Verification requires targeted regression tests, `pnpm run check`, `pnpm run build`, and full `pnpm test`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Any test failures found during required verification are fixed in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Live OpenCode tool validation in the current session is not required before acceptance; release notes must state rebuild/deploy/restart caveat.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve `rq-worktreeMutationGuard01` and `worktree-lifecycle` spec semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not allow non-proposal gate mutations to proceed from the main checkout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not bypass the main-checkout guard with symlinks, env hacks, deployed-artifact hand edits, or manual file shuffling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep implementation scoped to gate/task auto-worktree production wiring, legacy alias removal, and directly blocking verification failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Source verification runs from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change worktree lifecycle policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not remove the defensive `resumeRuntime missing` diagnostic branch; it remains useful for callers that fail to wire deps.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not keep duplicate visible worktree tool names for compatibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not absorb unrelated roadmap items unless they block the agreed required verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T03:02:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Production adv_gate_complete wires auto-managed worktree resume deps via buildWorktreeAutoManageDeps in plugin/src/tools/gate.ts; verified by 4 completed tasks.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Main checkout auto-managed violation returns WorktreeIsolationViolation with expectedWorktreePath; covered by gate.test.ts regression.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "target_path gate completion uses target store root via resolveTargetAwareMutationCwd; gate.test.ts asserts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "task.ts uses resolveTargetAwareMutationCwd; task.test.ts asserts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "proposal gate exempted via evaluateGateWorktreeIsolation early-return.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate completion from worktree allowed by isolation guard's session-context detection.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Production-path regression covers adv_gate_complete.execute via gate.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Legacy aliases removed from createToolMap, ADV_TOOL_NAMES, allowlists; tool-registry.test.ts asserts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verification recorded: targeted regression, pnpm run check, pnpm run build, full pnpm test all green at change completion.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Worktree pending-delete fixture leak fixed as part of full-suite verification.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Executive summary records rebuild/deploy/restart caveat.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "rq-worktreeMutationGuard01 + worktree-lifecycle spec semantics preserved.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Main checkout non-proposal mutations remain blocked via WorktreeIsolationViolation.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No symlink/env/deployed-artifact hacks; TS source + tests only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Scope stayed within gate/task wiring + alias cleanup.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Verification ran from plugin/.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No worktree lifecycle policy change.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Defensive resumeRuntime-missing diagnostic preserved.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Duplicate worktree aliases removed; no compatibility aliases retained.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scope unchanged beyond blocking full-suite stabilization.",
+          "notes": ""
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "`adv_gate_complete` production path wires auto-managed worktree resume runtime deps for non-proposal gates.",
+    "Main-checkout completion for an auto-managed change attempts resume/materialization and returns `WorktreeIsolationViolation` with `expectedWorktreePath`, not `resumeRuntime missing`.",
+    "`target_path` gate completion uses the target store root as mutation cwd and sends the gate signal through the target store.",
+    "`adv_task_add` / guarded task mutations use the target store root as mutation cwd when `target_path` is provided.",
+    "Proposal gate remains exempt.",
+    "Gate completion from an ADV worktree remains allowed.",
+    "Production-path regression test covers `adv_gate_complete.execute`, not only helper-level seams.",
+    "Legacy aliases `worktree_create`, `worktree_delete`, and `worktree_cleanup` are not registered by `createToolMap`, are not present in `ADV_TOOL_NAMES`, and are removed from ADV orchestrator allowlists/instructions.",
+    "Verification requires targeted regression tests, `pnpm run check`, `pnpm run build`, and full `pnpm test`.",
+    "Any test failures found during required verification are fixed in this change.",
+    "Live OpenCode tool validation in the current session is not required before acceptance; release notes must state rebuild/deploy/restart caveat."
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-21T20:50:48.201Z",
+      "resolved": true,
+      "resolved_at": "2026-05-21T20:56:10.194Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-21T20:56:10.194Z",
+      "resolved": true,
+      "resolved_at": "2026-05-21T20:58:35.268Z"
+    }
+  ],
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "_source": "disk",
+  "_recovery": {
+    "mode": "temporal_query_fallback",
+    "reason": "poisoned_history"
+  }
+}
