@@ -1,3 +1,9 @@
+## 2026-05-22 (v0.10.0)
+
+### Added
+
+- add question note convention for optional agent context
+
 ## 2026-05-22 (v0.9.10)
 
 
