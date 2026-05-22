@@ -201,11 +201,53 @@ describe("git-finalize helpers", () => {
     expect(mergeToTrunk).toBe(mergeChangeBranch);
   });
 
+  it("mergeChangeBranch reports already-reachable branch as merged without invoking git merge (rq-harden-archive-flow AC3)", async () => {
+    const repo = join(tempRoot, "repo-reachable");
+    await mkdir(repo);
+    await initRepo(repo);
+    git(repo, ["checkout", "-b", "change/already"]);
+    await writeFile(join(repo, "ready.txt"), "ready\n");
+    git(repo, ["add", "ready.txt"]);
+    git(repo, ["commit", "-m", "ready"]);
+    git(repo, ["checkout", "trunk"]);
+    git(repo, ["merge", "--ff-only", "change/already"]);
+    // Branch already merged into trunk; further merge attempt would be a no-op.
+    const calls: string[][] = [];
+    const result = mergeChangeBranch(repo, "trunk", "already", {
+      runGit: (cwd, args) => {
+        calls.push(args);
+        if (args[0] === "merge" && args[1] !== "--abort") {
+          throw new Error(
+            `mergeChangeBranch invoked git merge for already-reachable branch: ${args.join(" ")}`,
+          );
+        }
+        // Delegate to real git for inspection commands; convert spawnSync
+        // result to the GitFinalizeDeps.runGit return shape.
+        const sub = spawnSync("git", args, { cwd, encoding: "utf8" });
+        return {
+          status: sub.status ?? 1,
+          stdout: sub.stdout ?? "",
+          stderr: sub.stderr ?? "",
+        };
+      },
+    });
+
+    expect(result.status).toBe("merged");
+    expect(calls.some((c) => c[0] === "merge" && c[1] !== "--abort")).toBe(
+      false,
+    );
+  });
+
   it("mergeChangeBranch blocks on conflicts and never uses stash", () => {
     const calls: string[][] = [];
     const result = mergeChangeBranch("/repo", "trunk", "example", {
       runGit: (_cwd, args) => {
         calls.push(args);
+        // verifyChangeBranchReachable probe — return unmerged commit so we
+        // proceed into the merge code path (rq-harden-archive-flow AC3).
+        if (args[0] === "log" && args[1] === "--oneline") {
+          return { status: 0, stdout: "abc123 unmerged\n", stderr: "" };
+        }
         if (args[0] === "merge") {
           return {
             status: 1,
