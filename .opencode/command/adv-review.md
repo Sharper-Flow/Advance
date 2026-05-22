@@ -238,7 +238,7 @@ If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
 
 ### Drift Detection Rule (CRITICAL)
 
-Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
