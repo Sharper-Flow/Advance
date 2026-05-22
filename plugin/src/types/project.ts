@@ -174,7 +174,7 @@ export function withStabilityFeatureDefaults(
     worker_singleton_enforce:
       typeof features?.worker_singleton_enforce === "boolean"
         ? features.worker_singleton_enforce
-        : true,
+        : false,
     worktree_guard_enforce:
       typeof features?.worktree_guard_enforce === "boolean"
         ? features.worktree_guard_enforce

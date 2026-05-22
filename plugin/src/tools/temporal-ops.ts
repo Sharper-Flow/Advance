@@ -364,11 +364,29 @@ export const temporalOpsTools = {
         }
       }
 
+      let serverServiceable = false;
+      if (bundle && projectId) {
+        try {
+          const pollerProbe = await probeTaskQueuePollers({
+            connection: bundle.connection as unknown as Parameters<
+              typeof probeTaskQueuePollers
+            >[0]["connection"],
+            namespace: bundle.namespace,
+            taskQueue: buildProjectTaskQueue(projectId),
+          });
+          serverServiceable = pollerProbe.status === "fresh";
+        } catch {
+          serverServiceable = false;
+        }
+      }
+
       const recommendedNextAction = !serverReachable
         ? "Temporal server is unreachable — check that the Temporal service is running"
-        : !workerAlive
-          ? "Temporal worker is not alive — run adv_temporal_restart to restart the worker"
-          : "Temporal is healthy";
+        : !workerAlive && !serverServiceable
+          ? "Temporal worker is not alive and queue has no active pollers — run adv_temporal_worker_restart to restart the worker"
+          : !workerAlive && serverServiceable
+            ? "Local worker not running; queue is serviceable via peer workers"
+            : "Temporal is healthy";
 
       return formatToolOutput({
         success: true,

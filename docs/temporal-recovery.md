@@ -111,7 +111,7 @@ checkout.
 Restart verification timeout: `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` defaults to
 10000 ms. Raise only when Temporal queue serviceability is slow but healthy.
 
-Plain anchors for drift tests: worker_singleton_enforce default true; worktree_guard_enforce default true.
+Plain anchors for drift tests: worker_singleton_enforce default false; worktree_guard_enforce default true.
 
 Stale `_freshness` values are diagnostic-only. Do not treat stale serviceability
 as proof of restart success, worker-lock reclaim safety, override safety, or

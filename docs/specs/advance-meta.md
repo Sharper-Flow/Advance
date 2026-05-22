@@ -91,7 +91,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 
 - Output includes feature_flags values
 - Defaults are applied when flags are omitted
-- worker_singleton_enforce defaults true when omitted
+- worker_singleton_enforce defaults false when omitted; singleton enforcement is opt-in
 - worktree_guard_enforce defaults false when omitted
 
 ---
@@ -942,7 +942,9 @@ During vitest runs (process.env.VITEST === 'true' or process.env.ADV_TEST_MODE =
 
 ### Singleton Temporal worker per project across sessions
 
-**ID:** `rq-workerSingleton01` | **Priority:** **[MUST]**
+**ID:** `rq-workerSingleton01` | **Priority:** **[SHOULD]**
+
+When `worker_singleton_enforce` is set to `true` in project configuration, singleton enforcement MUST apply as specified below. When omitted or `false`, each plugin instance MAY spawn its own worker.
 
 When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks but proves only host liveness, not expected queue serviceability. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path. A v2 lock whose holder's local worker is not registered to the expected queue (or whose serviceability is otherwise negative) is also classified as suspect; live unserviceable v1/v2 reclaim requires explicit approval evidence unless dead-PID or stale-heartbeat rules prove the holder stale. When a lock holder's own local worker remains unserviceable past the configured grace window, the holder MUST stop renewing the heartbeat so the v2 lock can age out without manual deletion.
 
@@ -1364,7 +1366,7 @@ Production ADV code and ADV-managed instruction surfaces must frame multi-sessio
 
 **ID:** `rq-temporalConcurrentLoad01` | **Priority:** **[MUST]**
 
-The Temporal worker singleton must survive load from at least five concurrent ADV client sessions issuing state-write tool calls without lost updates, deadlocks, or replay-determinism violations. When the worker process is killed mid-load, surviving clients must respawn-elect a new worker via the singleton lock and resume normal operation.
+Scenarios apply when `worker_singleton_enforce: true` is set in project configuration. The Temporal worker singleton must survive load from at least five concurrent ADV client sessions issuing state-write tool calls without lost updates, deadlocks, or replay-determinism violations. When the worker process is killed mid-load, surviving clients must respawn-elect a new worker via the singleton lock and resume normal operation.
 
 **Tags:** `temporal`, `load-test`, `worker-singleton`, `concurrent-clients`
 

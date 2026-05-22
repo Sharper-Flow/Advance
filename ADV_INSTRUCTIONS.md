@@ -266,7 +266,7 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 - `adv_session_list` — list peer sessions in same project
 - `adv_session_show <session_id>` — own-session details only (privacy-defensive)
 - `adv_temporal_diagnose` — peer count, worker-lock holder PID, change workflow presence
-- Stability: `adv_status view:"health"` shows worker_singleton_enforce default true; worktree_guard_enforce default true (post-rollout, rq-autoManageAdvWorktrees AC2); `worker_role` = `host`/`client`/`degraded`; rollback/debug: explicit false or `ADV_FORCE_IN_PROCESS_WORKER=1`.
+- Stability: `adv_status view:"health"` shows worker_singleton_enforce default false; worktree_guard_enforce default true (post-rollout, rq-autoManageAdvWorktrees AC2); `worker_role` = `host`/`client`/`degraded`; opt-in: explicit true or `ADV_FORCE_IN_PROCESS_WORKER=1`.
 - Worktree guard: trunk write firewall enforcement is default-on. `worktree_guard_enforce` omitted or true enables strict blocking. Explicit `worktree_guard_enforce: false` is the legacy escape hatch — pre-flip behavior was "omitted or false allows default-checkout file writes and classified destructive bash writes". `worktree_guard_enforce=true` blocks main-checkout writes with `WorktreeIsolationViolation` + remediation. Advance repo opts into strict mode by default (no explicit project.json override needed). Auto-managed changes (per-change `worktree_auto_managed: true` marker) override the global flag and always engage the guard.
 - Health probes: `_freshness.{probe}` = `cached_at`, `stale`, optional `error`. Stale values are diagnostic-only; never use stale probe data for worker-lock reclaim, restart success, conformance override, or archive.
 

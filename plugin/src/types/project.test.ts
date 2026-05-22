@@ -26,7 +26,7 @@ describe("FeatureFlagsSchema stability defaults", () => {
 
   test("shared stability defaults include worker singleton and worktree guard", () => {
     expect(withStabilityFeatureDefaults(undefined)).toMatchObject({
-      worker_singleton_enforce: true,
+      worker_singleton_enforce: false,
       worktree_guard_enforce: true,
     });
     expect(
