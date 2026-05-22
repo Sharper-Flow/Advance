@@ -812,4 +812,157 @@ describe("contractTools", () => {
       expect.anything(),
     );
   });
+
+  // rq-fix-gate-tools-recovery AC3: signal succeeds (no isPoisonedHistoryError)
+  // but workflow describe reports nondeterminism — recover via disk.
+  test("adv_contract_mint persists to disk when describe shows poisoned despite signal success", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(baseChange(), changesDir);
+    fireSignalAndRefresh.mockResolvedValueOnce(undefined);
+    const describeMock = vi.fn(async () => ({
+      searchAttributes: {
+        TemporalReportedProblems: [
+          "cause=WorkflowTaskFailedCauseNonDeterministicError",
+        ],
+      },
+    }));
+    (workflowHandle as { describe?: unknown }).describe = describeMock;
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(output.reconciliationWarning).toContain("not healed");
+    expect(fireSignalAndRefresh).toHaveBeenCalled();
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contract: expect.objectContaining({ items: expect.any(Array) }),
+      }),
+    );
+    expect(describeMock).toHaveBeenCalled();
+
+    delete (workflowHandle as { describe?: unknown }).describe;
+  });
+
+  // rq-fix-gate-tools-recovery AC3: signal throws generic error AND describe
+  // shows poisoned evidence — recover.
+  test("adv_contract_mint recovers when signal throws generic error and describe shows poisoned", async () => {
+    const changesDir = await writeAgreement("contractRecovery");
+    const store = createStore(baseChange(), changesDir);
+    fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("Failed to send signal"),
+    );
+    const describeMock = vi.fn(async () => ({
+      searchAttributes: {
+        TemporalReportedProblems: [
+          "cause=WorkflowTaskFailedCauseNonDeterministicError",
+        ],
+      },
+    }));
+    (workflowHandle as { describe?: unknown }).describe = describeMock;
+
+    const output = parse(
+      await contractTools.adv_contract_mint.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(store.changes.save).toHaveBeenCalled();
+    expect(describeMock).toHaveBeenCalled();
+
+    delete (workflowHandle as { describe?: unknown }).describe;
+  });
+
+  // rq-fix-gate-tools-recovery AC4: review matrix path with signal success +
+  // poisoned describe.
+  test("adv_contract_review_matrix_set persists to disk when describe shows poisoned despite signal success", async () => {
+    const change = baseChange({
+      _source: "disk",
+      _recovery: {
+        mode: "temporal_query_fallback",
+        reason: "poisoned_history",
+      },
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: { artifact: "agreement", approvedAt },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion",
+            text: "Contract minting fires a production signal.",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      },
+    } as Partial<Change>);
+    const store = createStore(change, "/tmp/unused");
+    fireSignalAndRefresh.mockResolvedValueOnce(undefined);
+    const describeMock = vi.fn(async () => ({
+      searchAttributes: {
+        TemporalReportedProblems: [
+          "cause=WorkflowTaskFailedCauseNonDeterministicError",
+        ],
+      },
+    }));
+    (workflowHandle as { describe?: unknown }).describe = describeMock;
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+          rows: [
+            {
+              contractId: "AC1",
+              kind: "acceptance_criterion",
+              status: "pass",
+              evidencePolicy: "test",
+              evidence: "passing test",
+            },
+          ],
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contract: expect.objectContaining({
+          reviewMatrix: expect.objectContaining({
+            rows: [expect.objectContaining({ contractId: "AC1" })],
+          }),
+        }),
+      }),
+    );
+    expect(describeMock).toHaveBeenCalled();
+
+    delete (workflowHandle as { describe?: unknown }).describe;
+  });
 });
