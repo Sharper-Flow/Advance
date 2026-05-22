@@ -11,7 +11,34 @@ import type { Store } from "../storage/store";
 import type { Change, Gates } from "../types";
 
 const mocks = vi.hoisted(() => {
+  const workflow = {
+    gates: {} as Gates,
+    signalPayloads: [] as Array<Record<string, unknown>>,
+    handle: {
+      signal: vi.fn(async (_signal: unknown, payload: Record<string, unknown>) => {
+        workflow.signalPayloads.push(payload);
+        const gateId = payload.gateId as keyof Gates | undefined;
+        if (gateId) {
+          workflow.gates = {
+            ...workflow.gates,
+            [gateId]: {
+              ...(workflow.gates[gateId] ?? {}),
+              status: "done",
+              completed_at: payload.completedAt as string,
+              completed_by: payload.completedBy as string,
+              approval_evidence: payload.approvalEvidence as string,
+            },
+          } as Gates;
+        }
+      }),
+      query: vi.fn(async (_query: unknown, gateId?: keyof Gates) =>
+        gateId ? workflow.gates[gateId] : workflow.gates,
+      ),
+    },
+  };
+
   return {
+    workflow,
     archiveChange: vi.fn(() =>
       Promise.resolve({
         success: true,
@@ -44,6 +71,14 @@ const mocks = vi.hoisted(() => {
     getArchiveContractProofErrors: vi.fn(() => []),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
+    getProjectId: vi.fn(() => Promise.resolve("test-project")),
+    getService: vi.fn(() => ({
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => workflow.handle),
+        },
+      },
+    })),
   };
 });
 
@@ -68,6 +103,20 @@ vi.mock("./archive-helpers/git-finalize", async () => {
 
 vi.mock("../validator", () => ({
   validateChange: mocks.validateChange,
+}));
+
+vi.mock("../utils/project-id", async () => {
+  const actual = await vi.importActual<typeof import("../utils/project-id")>(
+    "../utils/project-id",
+  );
+  return {
+    ...actual,
+    getProjectId: mocks.getProjectId,
+  };
+});
+
+vi.mock("../temporal/service", () => ({
+  getService: mocks.getService,
 }));
 
 function createMockStore(options: { releaseDone?: boolean } = {}): Store {
@@ -98,6 +147,8 @@ function createMockStore(options: { releaseDone?: boolean } = {}): Store {
     wisdom: [],
     gates,
   };
+
+  mocks.workflow.gates = gates;
 
   return {
     paths: {
@@ -137,9 +188,11 @@ function createMockStore(options: { releaseDone?: boolean } = {}): Store {
 describe("adv_change_archive Phase 9 behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.workflow.gates = {} as Gates;
+    mocks.workflow.signalPayloads = [];
   });
 
-  test("runs finalization before retiring the change and returns the outcome", async () => {
+  test("completes release gate after finalization and before retiring the change", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
@@ -164,9 +217,26 @@ describe("adv_change_archive Phase 9 behavior", () => {
         expectedMainCheckout: "/tmp/main",
       }),
     );
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        gateId: "release",
+        completedBy: "adv-archive",
+      }),
+    );
+    expect(mocks.workflow.signalPayloads[0]?.approvalEvidence).toContain(
+      "Phase 9 finalization shipped",
+    );
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledBefore(
+      store.changes.save as ReturnType<typeof vi.fn>,
+    );
     expect(mocks.finalizeRelease).toHaveBeenCalledBefore(
       store.changes.save as ReturnType<typeof vi.fn>,
     );
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
   });
 
   test("skips finalization when phase9=skip", async () => {
@@ -204,6 +274,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain("Archive finalization blocked");
     expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });

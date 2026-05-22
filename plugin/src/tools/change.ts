@@ -30,6 +30,7 @@ import {
   ChangeOriginKindSchema,
   ChangeRepoScopeSchema,
   type GateId,
+  type GateCompletion,
   type Gates,
   type Change,
   type ChangeRepoScope,
@@ -163,6 +164,7 @@ import {
 } from "./_adapters";
 import {
   changeCancelledSignal,
+  gateCompletedSignal,
   gateReenteredSignal,
   getGateStatusQuery,
 } from "../temporal/messages";
@@ -899,6 +901,121 @@ function getArchiveGatePreflightError(
   }
 
   return null;
+}
+
+const ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS = 40;
+const ARCHIVE_RELEASE_GATE_POLL_DELAY_MS = 25;
+
+const archiveDelay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForArchiveReleaseGateCompletion(
+  handle: ReturnType<typeof getChangeHandle>,
+): Promise<GateCompletion | undefined> {
+  let latest: GateCompletion | undefined;
+  for (let attempt = 0; attempt < ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS; attempt++) {
+    latest = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      "release",
+    );
+    if (latest?.status === "done" || latest?.status === "stuck") {
+      return latest;
+    }
+    await archiveDelay(ARCHIVE_RELEASE_GATE_POLL_DELAY_MS);
+  }
+  return latest;
+}
+
+function buildReleaseCompletionEvidence(
+  finalization: GitFinalizeOutcome,
+): string {
+  const details = [
+    `defaultBranch=${finalization.defaultBranch}`,
+    `mainCheckout=${finalization.mainCheckout}`,
+    `pushStatus=${finalization.pushStatus}`,
+    finalization.mergeCommitSha
+      ? `mergeCommitSha=${finalization.mergeCommitSha}`
+      : null,
+    finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
+  ].filter(Boolean);
+  return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+
+type ArchiveReleaseGateResult =
+  | { ok: true; gate: GateCompletion; alreadyDone: boolean }
+  | {
+      ok: false;
+      error: string;
+      workflowGateStatus?: GateCompletion["status"];
+      readinessBlockers?: GateCompletion["readiness_blockers"];
+      stuckReason?: GateCompletion["stuck_reason"];
+    };
+
+async function completeReleaseGateAfterFinalization(input: {
+  store: Store;
+  changeId: string;
+  finalization: GitFinalizeOutcome;
+}): Promise<ArchiveReleaseGateResult> {
+  if (
+    input.finalization.status !== "shipped" &&
+    input.finalization.status !== "pr_pushed"
+  ) {
+    return {
+      ok: false,
+      error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
+    };
+  }
+
+  const bundle = getService();
+  if (!bundle) {
+    return {
+      ok: false,
+      error: "Temporal service not available for release gate completion",
+    };
+  }
+  const projectId = await getProjectId(input.store.paths.root);
+  if (!projectId) {
+    return {
+      ok: false,
+      error: "Could not resolve project ID for release gate completion",
+    };
+  }
+
+  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
+  const currentGate = await querySignal<GateCompletion>(
+    handle,
+    getGateStatusQuery,
+    "release",
+  );
+  if (currentGate?.status === "done") {
+    return { ok: true, gate: currentGate, alreadyDone: true };
+  }
+
+  await fireSignalAndRefresh(
+    handle,
+    input.store,
+    input.changeId,
+    gateCompletedSignal,
+    {
+      gateId: "release",
+      completedBy: "adv-archive",
+      completedAt: new Date().toISOString(),
+      approvalEvidence: buildReleaseCompletionEvidence(input.finalization),
+    },
+  );
+
+  const postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+  if (postSignalGate?.status === "done") {
+    return { ok: true, gate: postSignalGate, alreadyDone: false };
+  }
+  return {
+    ok: false,
+    error: "Cannot confirm release gate completion from workflow state",
+    workflowGateStatus: postSignalGate?.status,
+    readinessBlockers: postSignalGate?.readiness_blockers,
+    stuckReason: postSignalGate?.stuck_reason,
+  };
 }
 
 /**
@@ -2806,6 +2923,9 @@ export const changeTools = {
       // Phase 9 finalization BEFORE retiring the active change.
       // If finalization fails, the change stays active so it can be retried.
       let finalization: GitFinalizeOutcome | undefined;
+      let releaseGateCompletion:
+        | Extract<ArchiveReleaseGateResult, { ok: true }>
+        | undefined;
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
         const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
         finalization = await finalizeRelease({
@@ -2832,6 +2952,31 @@ export const changeTools = {
             })),
           });
         }
+
+        const releaseResult = await completeReleaseGateAfterFinalization({
+          store,
+          changeId,
+          finalization,
+        });
+        if (!releaseResult.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Archive release gate completion blocked: ${releaseResult.error}`,
+            requirement: "rq-releaseFinalization01",
+            changeId,
+            archivePath: archiveResult.archivePath,
+            finalization,
+            workflowGateStatus: releaseResult.workflowGateStatus,
+            stuckReason: releaseResult.stuckReason,
+            readinessBlockers: releaseResult.readinessBlockers,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+          });
+        }
+        releaseGateCompletion = releaseResult;
       }
 
       // Update change status in store (unless dry run)
@@ -2991,6 +3136,12 @@ export const changeTools = {
           ? { issue_closure_error: issueClosure.issue_closure_error }
           : {}),
         ...(finalization ? { finalization } : {}),
+        ...(releaseGateCompletion
+          ? {
+              releaseGate: releaseGateCompletion.gate,
+              releaseGateAlreadyDone: releaseGateCompletion.alreadyDone,
+            }
+          : {}),
         ...(validationResult.warnings.length > 0
           ? {
               validationWarnings: validationResult.warnings.map((w) => ({
