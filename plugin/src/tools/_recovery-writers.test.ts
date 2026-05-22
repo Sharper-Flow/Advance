@@ -141,6 +141,10 @@ describe("saveRecoveredGateCompletion", () => {
     const updated = await saveRecoveredGateCompletion({
       store,
       change,
+      authorization: {
+        reason: "completed_workflow_release_gate_recovery",
+        evidence: "WorkflowNotFoundError: workflow execution already completed",
+      },
       gateId: "release",
       completion: {
         status: "done",
@@ -164,6 +168,20 @@ describe("saveRecoveredGateCompletion", () => {
     );
     expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
   });
+
+  it("requires recovery authorization for disk-direct gate writes", async () => {
+    const { store } = createMockStore();
+    const change = baseChange();
+
+    await expect(
+      saveRecoveredGateCompletion({
+        store,
+        change,
+        gateId: "release",
+        completion: { status: "done" },
+      } as any),
+    ).rejects.toThrow(/recovery authorization/);
+  });
 });
 
 describe("saveRecoveredChangeStatus", () => {
@@ -175,6 +193,10 @@ describe("saveRecoveredChangeStatus", () => {
     const updated = await saveRecoveredChangeStatus({
       store,
       change,
+      authorization: {
+        reason: "poisoned_history_status_recovery",
+        evidence: "TMPRL1100 nondeterministic workflow history",
+      },
       status: "archived",
     });
 
@@ -190,5 +212,18 @@ describe("saveRecoveredChangeStatus", () => {
     );
     // AC2: cache invalidation still fires so the next read sees fresh state.
     expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
+  });
+
+  it("requires recovery authorization for disk-direct status writes", async () => {
+    const { store } = createMockStore();
+    const change = baseChange();
+
+    await expect(
+      saveRecoveredChangeStatus({
+        store,
+        change,
+        status: "archived",
+      } as any),
+    ).rejects.toThrow(/recovery authorization/);
   });
 });

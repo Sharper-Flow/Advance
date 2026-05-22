@@ -1047,6 +1047,7 @@ async function recoverReleaseGateViaDiskProjection(input: {
   store: Store;
   change: Change;
   evidence: string;
+  recoveryEvidence: string;
 }): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
   const { RECOVERY_RECONCILIATION_WARNING } =
     await import("../temporal/recovery-classification");
@@ -1060,6 +1061,10 @@ async function recoverReleaseGateViaDiskProjection(input: {
   const updated = await saveRecoveredGateCompletion({
     store: input.store,
     change: input.change,
+    authorization: {
+      reason: "completed_workflow_release_gate_recovery",
+      evidence: `${input.recoveryEvidence}; ${input.evidence}`,
+    },
     gateId: "release",
     completion,
   });
@@ -1120,6 +1125,7 @@ async function completeReleaseGateAfterFinalization(input: {
         store: input.store,
         change: input.change,
         evidence,
+        recoveryEvidence: collectErrorText(error),
       });
     }
     throw error;
@@ -1149,12 +1155,28 @@ async function completeReleaseGateAfterFinalization(input: {
         store: input.store,
         change: input.change,
         evidence,
+        recoveryEvidence: collectErrorText(error),
       });
     }
     throw error;
   }
 
-  const postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+  let postSignalGate: GateCompletion | undefined;
+  try {
+    postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+  } catch (error) {
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
+    if (isWorkflowCompletedError(error)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+        recoveryEvidence: collectErrorText(error),
+      });
+    }
+    throw error;
+  }
   if (postSignalGate?.status === "done") {
     return { ok: true, gate: postSignalGate, alreadyDone: false };
   }
@@ -3127,6 +3149,10 @@ export const changeTools = {
             changeId,
             archivePath: archiveResult.archivePath,
             finalization,
+            continueFrom: {
+              path: finalization.mainCheckout,
+              branch: finalization.defaultBranch,
+            },
             workflowGateStatus: releaseResult.workflowGateStatus,
             stuckReason: releaseResult.stuckReason,
             readinessBlockers: releaseResult.readinessBlockers,
@@ -3193,11 +3219,33 @@ export const changeTools = {
                   await saveRecoveredChangeStatus({
                     store,
                     change,
+                    authorization: {
+                      reason: completedWorkflow
+                        ? "completed_workflow_status_recovery"
+                        : "poisoned_history_status_recovery",
+                      evidence: recoveryEvidence ?? saveErrorText,
+                    },
                     status: "archived",
                   });
                   return formatToolOutput({
                     success: true,
                     archivePath: archiveResult.archivePath,
+                    ...(finalization ? { finalization } : {}),
+                    ...(finalization
+                      ? {
+                          continueFrom: {
+                            path: finalization.mainCheckout,
+                            branch: finalization.defaultBranch,
+                          },
+                        }
+                      : {}),
+                    ...(releaseGateCompletion
+                      ? {
+                          releaseGate: releaseGateCompletion.gate,
+                          releaseGateAlreadyDone:
+                            releaseGateCompletion.alreadyDone,
+                        }
+                      : {}),
                     specsUpdated: archiveResult.specsUpdated.map((s) => ({
                       capability: s.capability,
                       version: `${s.originalVersion} → ${s.newVersion}`,

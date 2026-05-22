@@ -412,6 +412,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
         gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
         completion: expect.objectContaining({
           status: "done",
           completed_by: "adv-archive",
@@ -419,6 +422,80 @@ describe("adv_change_archive Phase 9 behavior", () => {
       }),
     );
     expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("recovers release projection when workflow completes during confirmation poll", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    let releaseGateQueries = 0;
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          releaseGateQueries++;
+          if (releaseGateQueries > 1) {
+            throw Object.assign(
+              new Error("workflow execution already completed"),
+              {
+                name: "WorkflowNotFoundError",
+              },
+            );
+          }
+        }
+        return gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates;
+      },
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed._recoveryMutation).toBe(true);
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+      }),
+    );
+  });
+
+  test("includes continueFrom when release gate confirmation is blocked", async () => {
+    let releaseGateQueries = 0;
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          releaseGateQueries++;
+          if (releaseGateQueries > 1) {
+            return {
+              status: "stuck",
+              stuck_reason: "contract proof missing",
+              readiness_blockers: ["matrix missing"],
+            };
+          }
+        }
+        return gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates;
+      },
+    );
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive release gate completion blocked");
+    expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
     expect(store.changes.save).not.toHaveBeenCalled();
   });
 

@@ -1,19 +1,37 @@
 /**
  * Disk-projection recovery writers for poisoned-history fallback.
  *
- * These helpers write mutations directly to the disk projection through
- * `store.changes.save` when the Temporal workflow is poisoned and cannot
- * accept signals. Every recovery write must be authorized by an explicit
- * `recoveryMode: "poisoned_history"` (with evidence) or `compatibilityReason`
- * at the calling tool, and confirmed by `workflowHasPoisonedDescription`.
+ * These helpers write poisoned/completed-workflow recovery mutations to the
+ * disk projection. Task mutation writers route through `store.changes.save`;
+ * gate-completion and status-transition writers use disk-direct `saveChange`
+ * because the Temporal-backed store path can re-invoke a completed workflow.
+ * Every recovery write must be authorized by an explicit
+ * `recoveryMode: "poisoned_history"` (with evidence), completed-workflow
+ * evidence, or `compatibilityReason` at the calling tool.
  *
- * The writers do NOT enforce that gate — callers are responsible for the
- * authorization check. The writers only ensure the disk write is atomic and
- * the in-memory cache is invalidated.
+ * The disk-direct writers structurally require an authorization reason and
+ * evidence. Callers remain responsible for proving that evidence before
+ * invoking the writer; the writers ensure the disk write is atomic and the
+ * in-memory cache is invalidated.
  */
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
 import { saveChange } from "../storage/json";
+
+interface RecoveryWriteAuthorization {
+  reason: string;
+  evidence: string;
+}
+
+function assertRecoveryAuthorization(
+  authorization: RecoveryWriteAuthorization | undefined,
+): asserts authorization is RecoveryWriteAuthorization {
+  if (!authorization?.reason.trim() || !authorization.evidence.trim()) {
+    throw new Error(
+      "disk-projection recovery authorization with reason and evidence is required",
+    );
+  }
+}
 
 async function bestEffortRefresh(
   store: Store,
@@ -78,15 +96,20 @@ export async function saveRecoveredTaskAdd(input: {
  * disk-direct saveChange. This bypasses store.changes.save because archived
  * workflow recovery often happens after the workflow has already completed;
  * calling store.changes.save would route through Temporal again.
+ *
+ * A recovery authorization object is required so future call sites cannot use
+ * this bypass without structurally carrying the recovery reason/evidence.
  * The caller supplies the full completion record (status + completed_at +
  * completed_by + approval_evidence + optional artifact_evidence).
  */
 export async function saveRecoveredGateCompletion(input: {
   store: Store;
   change: Change;
+  authorization: RecoveryWriteAuthorization;
   gateId: keyof Gates;
   completion: Gates[keyof Gates];
 }): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
   const gates = (input.change.gates ?? {}) as Gates;
   const updatedGates = { ...gates, [input.gateId]: input.completion } as Gates;
   const updated = { ...input.change, gates: updatedGates } as Change;
@@ -109,8 +132,10 @@ export async function saveRecoveredGateCompletion(input: {
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
   change: Change;
+  authorization: RecoveryWriteAuthorization;
   status: Change["status"];
 }): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
   const updated = { ...input.change, status: input.status } as Change;
   await saveChange(input.store.paths.changes, updated);
   await bestEffortRefresh(input.store, input.change.id);
