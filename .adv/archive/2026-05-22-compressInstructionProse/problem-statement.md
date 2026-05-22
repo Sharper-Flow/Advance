@@ -1,0 +1,1 @@
+Recent ADV command/instruction/skill additions landed after the previous caveman-full maintenance pass. Some active instruction surfaces now carry verbose prose and stale `caveman-lite` references, increasing prompt load and conflicting with the intended caveman-full standard.
