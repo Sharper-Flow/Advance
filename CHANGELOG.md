@@ -1,3 +1,30 @@
+## 2026-05-22 (v0.11.0)
+
+### Added
+
+- flip worker_singleton_enforce default to false (multi-worker)
+### Fixed
+
+- align drift detection to contract-aware language
+- include adv-reviewer in bundled-agent overview
+### Changed
+
+- refresh roadmap snapshot (chore)
+- align ADV agent lgrep tool allowlists (chore)
+
+### Change Highlights
+
+- **05-22-addDelegationMatrix**: Executive Summary: addDelegationMatrix
+- **05-22-addQuestionNoteDocs**: Executive Summary: Add Question Note Convention
+- **05-22-addWorkflowReplayChecks**: Executive Summary
+- **05-22-enhanceScannerCoverage**: Executive Summary
+- **05-22-fixAdvChecklistReads**: Executive Summary
+- **05-22-fixArchiveReleaseOrdering**: Executive Summary
+- **05-22-fixCompletionSemantics**: Executive Summary
+- **05-22-fixToolArgSafety**: Executive Summary
+- **05-22-flipWorkerSingletonMultiWorker**: Executive Summary: Flip Worker Singleton to Multi-Worker Default
+- **05-22-updateTerminalTitles2**: Executive Summary
+
 ## 2026-05-22 (v0.10.6)
 
 
