@@ -87,7 +87,7 @@ describe("tool arg preflight", () => {
         proposal: "",
         agreement: "   ",
       }).invalid[0]?.message,
-    ).toContain("non-empty string");
+    ).toContain("non-blank strings");
 
     expect(
       validateToolArgsBeforeExecute("adv_change_update", schema, {
@@ -95,6 +95,24 @@ describe("tool arg preflight", () => {
         proposal: "real content",
       }).ok,
     ).toBe(true);
+
+    const mixedBlank = validateToolArgsBeforeExecute(
+      "adv_change_update",
+      schema,
+      {
+        changeId: "abc",
+        proposal: "real content",
+        design: "",
+      },
+    );
+    expect(mixedBlank.ok).toBe(false);
+    expect(mixedBlank.invalid).toEqual([
+      {
+        field: "design",
+        message:
+          "Provided artifact fields must be non-blank strings; omit fields you do not want to change.",
+      },
+    ]);
 
     // fixWarpSessionLookup regression: executiveSummary must be recognized
     // as a valid artifact field (see plugin/src/utils/tool-arg-preflight.ts

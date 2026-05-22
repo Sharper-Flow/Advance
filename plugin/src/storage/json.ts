@@ -750,24 +750,53 @@ export async function updateChangeArtifacts(
   // filename and the result-shape key. Mirror of createChangeScaffold's
   // optionalArtifacts table (plus a proposal entry); keep in sync.
   const artifacts = [
-    { key: "proposalPath", content: proposalContent, filename: "proposal.md" },
+    {
+      key: "proposalPath",
+      field: "proposal",
+      content: proposalContent,
+      filename: "proposal.md",
+    },
     {
       key: "problemStatementPath",
+      field: "problemStatement",
       content: problemStatementContent,
       filename: "problem-statement.md",
     },
     {
       key: "agreementPath",
+      field: "agreement",
       content: agreementContent,
       filename: "agreement.md",
     },
-    { key: "designPath", content: designContent, filename: "design.md" },
+    {
+      key: "designPath",
+      field: "design",
+      content: designContent,
+      filename: "design.md",
+    },
     {
       key: "executiveSummaryPath",
+      field: "executiveSummary",
       content: executiveSummaryContent,
       filename: "executive-summary.md",
     },
   ] as const;
+
+  // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
+  // before any partial write so tool-layer bypasses cannot erase content.
+  const blankFields = artifacts
+    .filter(
+      ({ content }) =>
+        content !== undefined &&
+        typeof content === "string" &&
+        content.trim().length === 0,
+    )
+    .map(({ field }) => field);
+  if (blankFields.length > 0) {
+    return {
+      error: `Blank artifact fields are not allowed: ${blankFields.join(", ")}. Omit fields you do not intend to change.`,
+    };
+  }
 
   const result: {
     proposalPath?: string;

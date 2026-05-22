@@ -2072,6 +2072,29 @@ export const changeTools = {
           });
         }
 
+        const artifactInputs = [
+          { field: "proposal", value: proposal },
+          { field: "problemStatement", value: problemStatement },
+          { field: "agreement", value: agreement },
+          { field: "design", value: design },
+          { field: "executiveSummary", value: executiveSummary },
+        ] as const;
+        const blankArtifactFields = artifactInputs
+          .filter(
+            ({ value }) =>
+              value !== undefined &&
+              typeof value === "string" &&
+              value.trim().length === 0,
+          )
+          .map(({ field }) => field);
+        if (blankArtifactFields.length > 0) {
+          return formatToolOutput({
+            error: "Blank artifact fields are not allowed.",
+            fields: blankArtifactFields,
+            hint: "Provide non-blank strings for artifact fields, or omit fields you do not intend to change.",
+          });
+        }
+
         // P1.12 Scope C: verify changeId exists before writing. Surface a
         // structured error that names the source-of-truth tools so the
         // agent can self-correct without guessing.

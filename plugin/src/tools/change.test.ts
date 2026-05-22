@@ -486,6 +486,54 @@ describe("change tools — signal-driven lifecycle", () => {
     });
   });
 
+  describe("adv_change_update", () => {
+    test("rejects mixed real and blank artifact updates before storage writes", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          proposal: "# Valid proposal update",
+          design: "   ",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Blank artifact fields are not allowed");
+      expect(parsed.fields).toEqual(["design"]);
+      expect(parsed.hint).toContain("omit fields you do not intend to change");
+      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+    });
+
+    test("allows omitted artifact fields to remain unchanged", async () => {
+      const store = createMockStore();
+      vi.mocked(store.changes.updateArtifacts).mockResolvedValueOnce({
+        success: true,
+        proposalPath: "/tmp/test/.adv/changes/test-change/proposal.md",
+      });
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          proposal: "# Valid proposal update",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.proposalPath).toContain("proposal.md");
+      expect(store.changes.updateArtifacts).toHaveBeenCalledWith(
+        "test-change",
+        "# Valid proposal update",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+  });
+
   describe("adv_change_close", () => {
     test("fires changeCancelledSignal with approval metadata", async () => {
       const store = createMockStore();

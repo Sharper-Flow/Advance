@@ -799,6 +799,39 @@ describe("updateChangeArtifacts", () => {
     expect(psContent).toBe("Updated problem statement only");
   });
 
+  test("rejects blank provided artifact values before any partial write", async () => {
+    const changesDir = join(tempDir, "changes");
+    await createChangeScaffold(
+      changesDir,
+      "rejectBlank",
+      "Reject Blank",
+      "# Original proposal",
+      "Original problem statement",
+      "Original agreement",
+      "Original design",
+    );
+
+    const result = await updateChangeArtifacts(
+      changesDir,
+      "rejectBlank",
+      "# Updated proposal",
+      undefined,
+      undefined,
+      "   ",
+    );
+
+    expect(result.error).toContain("Blank artifact fields are not allowed");
+    expect(result.error).toContain("design");
+
+    const proposalPath = join(changesDir, "rejectBlank", "proposal.md");
+    const proposalContent = await readFile(proposalPath, "utf-8");
+    expect(proposalContent).toBe("# Original proposal");
+
+    const designPath = join(changesDir, "rejectBlank", "design.md");
+    const designContent = await readFile(designPath, "utf-8");
+    expect(designContent).toBe("Original design");
+  });
+
   test("returns empty result when both params are omitted", async () => {
     const changesDir = join(tempDir, "changes");
     await createChangeScaffold(changesDir, "noop", "Noop");

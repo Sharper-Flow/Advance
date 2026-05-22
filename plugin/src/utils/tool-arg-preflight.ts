@@ -32,6 +32,13 @@ const ARTIFACT_FIELDS = [
   "executiveSummary",
 ];
 
+const BLANK_ARTIFACT_FIELD_MESSAGE =
+  "Provided artifact fields must be non-blank strings; omit fields you do not want to change.";
+
+function isBlankProvidedString(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length === 0;
+}
+
 const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
   adv_change_update: (args) => {
     const provided = ARTIFACT_FIELDS.filter((field) => field in args);
@@ -42,6 +49,18 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
           message: "At least one artifact field must be provided.",
         },
       ];
+    }
+
+    // rq-toolArgBlankArtifactLinkage01: blank provided artifact fields are
+    // invalid even when another artifact field in the same payload is valid.
+    const blank = provided.filter((field) =>
+      isBlankProvidedString(args[field]),
+    );
+    if (blank.length > 0) {
+      return blank.map((field) => ({
+        field,
+        message: BLANK_ARTIFACT_FIELD_MESSAGE,
+      }));
     }
 
     const nonEmpty = provided.filter((field) => {
