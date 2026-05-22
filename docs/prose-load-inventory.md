@@ -22,9 +22,9 @@ See `docs/command-voice-standard.md § Prose-Load Reduction Rules` for templates
 
 In scope:
 
-- `ADV_INSTRUCTIONS.md` (817 lines)
-- `docs/command-voice-standard.md` (706 lines, post-T0a)
-- `.opencode/agents/adv.md` (371 lines)
+- `ADV_INSTRUCTIONS.md` (942 lines, post-T7/trunk merge)
+- `docs/command-voice-standard.md` (715 lines, post-T7)
+- `.opencode/agents/adv.md` (357 lines, post-T7)
 - `.opencode/command/adv-*.md` (27 files, 5,373 lines)
 - `skills/*/SKILL.md` (19 tracked files, ~2,222 lines)
 
@@ -58,7 +58,9 @@ Rows record active instruction surfaces touched by the caveman-full label normal
 
 ---
 
-## Inventory: ADV_INSTRUCTIONS.md (817 lines)
+## Inventory: ADV_INSTRUCTIONS.md (historical 817-line baseline)
+
+Line ranges below are archival pre-retirement/pre-compression anchors. Retired rows remain only when marked as archaeological context.
 
 | Section                                             | Lines | Class    | Code Reference                                                                                                        | Gap Rationale                                                                              | Pass | Status                                                                                                                                                       |
 | --------------------------------------------------- | ----- | -------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -79,7 +81,7 @@ Rows record active instruction surfaces touched by the caveman-full label normal
 | ### Reflection Protocol (259–280)                   | 21    | partial  | `adv_reflect` tool                                                                                                    | Tool records report; agent decides when/how to interpret                                   | T4   | done                                                                                                                                                         |
 | ### Task Checkpoint Commits (281–323)               | 42    | full     | `adv_task_checkpoint`, `plugin/src/checkpoint-surface-drift.test.ts`                                                  | —                                                                                          | T2   | already-compliant (mostly tabular: apply-loop table + failure classification table; anti-patterns are V phrases asserted by `adv-checkpoint-assets.test.ts`) |
 | ### Doom Loop Detection (324–339)                   | 15    | partial  | `plugin/src/utils/tool-formatters.ts` (formatDoomLoopDiagnostics)                                                     | Format encoded; retry budget is convention                                                 | T4   | done                                                                                                                                                         |
-| ### Investment Check-In (340–343)                   | 3     | full     | `adv_investment_report`, `skills/adv-cost-governance-methodology`                                                     | —                                                                                          | T2   | already-compliant (3 lines, already minimal)                                                                                                                 |
+| ~~### Investment Check-In (340–343)~~               | 3     | removed  | `adv_investment_report`, ~~`skills/adv-cost-governance-methodology`~~                                                 | Retired by `retireinvestmentgovernancedead`                                                 | T2   | archaeological only                                                                                                                                           |
 | ### Cross-Repo Execution (344–362)                  | 18    | inherent | (workdir param exists; routing is judgment)                                                                           | Agent decides when to switch                                                               | T5   | done                                                                                                                                                         |
 | ### Cancellation Policy (363–368)                   | 5     | full     | `adv_task_cancel` (requires approvedByUser)                                                                           | —                                                                                          | T2   | already-compliant (5 lines, already minimal)                                                                                                                 |
 | ### Large-Scope Validity (369–388)                  | 19    | inherent | —                                                                                                                     | Pure agent judgment                                                                        | T5   | done                                                                                                                                                         |
@@ -182,7 +184,7 @@ Rows record active instruction surfaces touched by the caveman-full label normal
 | skills/adv-triage/SKILL.md             | 69    | inherent       | `adv_roadmap`, GH issues | Post-split index; WSJF/bootstrap/schema/prompts/anti-patterns live in sibling docs         | P4.1    | done   |
 | skills/adv-ci-release/SKILL.md         | 78    | inherent       | GitHub Actions           | Post-split index; CI/release/commit/troubleshooting detail lives in sibling docs           | P4.2    | done   |
 | skills/adv-backend-stack-eval/SKILL.md | 119   | partial        | Context7/Exa/GH-grep     | Post-split index; language/database/async/API dimensions live in sibling docs              | P4.4    | done   |
-| adv-cost-governance-methodology        | 291   | partial        | `adv_investment_report`  | Methodology + worked example; tool exists for thresholds                                   | T4      | done   |
+| ~~adv-cost-governance-methodology~~    | ~~291~~ | removed       | `adv_investment_report`  | Retired by `retireinvestmentgovernancedead`; investment report tool remains metrics-only   | T4      | archaeological only |
 | skills/adv-slop-detection/SKILL.md     | 110   | partial        | slop scan command        | Post-split index; categories/structural-correctness/dead-code detail lives in sibling docs | P4.3+P7 | done   |
 | skills/adv-audit/SKILL.md              | 98    | inherent       | `adv_spec`               | Post-split cohesive summary; report schema lives in sibling doc                            | P4.5    | done   |
 | skills/adv-reflect/SKILL.md            | 181   | inherent       | `adv_reflect`            | Reflection rubric/template; tool persists                                                  | T6      | done   |
@@ -370,13 +372,13 @@ Compression passes preserve these phrases verbatim. Heuristic-drift heading chec
 
 - `Touched-Scope Quality Ownership` (heading)
 - `Adjacent tests and docs`, `Same-pattern local subsystem issues`
-- `Phase J`, `Identify Judgment Calls`, `adv-cost-governance-methodology`
+- Retired 2026-05-07; do not preserve: `Phase J`, `Identify Judgment Calls`, `adv-cost-governance-methodology`
 
 #### `.opencode/command/adv-apply.md`
 
 - `touched-scope` (regex)
 - `MUST continue|MUST NOT pause` (regex)
-- `Phase 1.5`, `Investment Check-In Preamble`, `adv-cost-governance-methodology`
+- Retired 2026-05-07; do not preserve: `Phase 1.5`, `Investment Check-In Preamble`, `adv-cost-governance-methodology`
 - `Doom-loop`, `Hard-stop`
 - × MUST NOT contain: `Shall I continue` (regex), `Task N of M complete[^\n]*continue` (regex)
 
