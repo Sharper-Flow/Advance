@@ -135,7 +135,7 @@
     {
       "id": "rq-ADVEXEC04",
       "title": "Evidence Tool Value Justification",
-      "body": "ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof, durable evidence, and durable workflow-queryable test records. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.",
+      "body": "ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof for the current agent run; durable workflow evidence is the final task verification claim recorded by taskCompletedSignal. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -154,8 +154,8 @@
           "when": "The guidance is inspected",
           "then": [
             "It explains executable proof value",
-            "It explains durable evidence value",
-            "It explains durable workflow-queryable test record value"
+            "It explains how durable evidence is recorded through final task completion verification",
+            "It does not claim adv_run_test alone persists durable workflow evidence"
           ]
         }
       ]
@@ -570,8 +570,8 @@
     },
     {
       "id": "rq-checkpointLedger01",
-      "title": "Checkpoint ledger recording blocks task completion when ledger write fails",
-      "body": "adv_task_checkpoint MUST surface ledger recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but the task-run ledger event cannot be persisted. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint or ledger event, and only marks the task done after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.",
+      "title": "Checkpoint workflow recording blocks task completion when recording fails",
+      "body": "adv_task_checkpoint MUST surface workflow completion recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but `taskCompletedSignal` is not durably reflected in workflow state. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint recording path, and only proceeds after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.",
       "priority": "must",
       "tags": [
         "checkpoint",
@@ -586,13 +586,13 @@
           "title": "Committed checkpoint with ledger failure surfaces checkpointRecorded:false",
           "given": [
             "An /adv-apply task has dirty tree changes that pass branch and HEAD guards",
-            "The git commit phase succeeds but the task-run ledger event cannot be persisted"
+            "The git commit phase succeeds but the taskCompletedSignal completion record is not durably reflected in workflow state"
           ],
           "when": "adv_task_checkpoint executes in mode complete or cancel",
           "then": [
             "The tool returns status `committed` with the new commit sha",
-            "The tool returns `checkpointRecorded: false` to indicate the ledger event was not durably recorded",
-            "The remediation guidance names adv_task_show and a retry path for ledger recovery",
+            "The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected",
+            "The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery",
             "The result MUST NOT be silently treated as task completion"
           ]
         },
@@ -601,13 +601,13 @@
           "title": "Clean-tree checkpoint with ledger failure surfaces checkpointRecorded:false",
           "given": [
             "An /adv-apply task has no dirty tree changes",
-            "The clean-tree path executes but the task-run ledger event cannot be persisted"
+            "The clean-tree path executes but the taskCompletedSignal completion record is not durably reflected in workflow state"
           ],
           "when": "adv_task_checkpoint executes in mode complete",
           "then": [
             "The tool returns status `clean` with no new commit",
-            "The tool returns `checkpointRecorded: false` to indicate the ledger event was not durably recorded",
-            "The remediation guidance names adv_task_show and a retry path for ledger recovery"
+            "The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected",
+            "The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery"
           ]
         },
         {
@@ -618,9 +618,9 @@
           ],
           "when": "The agent prepares to mark the task done",
           "then": [
-            "The agent MUST run adv_task_show to inspect ledger state",
-            "The agent MUST retry the checkpoint or ledger event before marking the task done",
-            "The agent MUST NOT call adv_task_update with status done until checkpointRecorded:true is observed",
+            "The agent MUST run adv_task_show to inspect workflow task state",
+            "The agent MUST retry the checkpoint recording path before treating the task as done",
+            "The agent MUST NOT call adv_task_update with status done in normal apply flow",
             "Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget"
           ]
         }

@@ -335,7 +335,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value. The final verification claim is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_update`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`.
 
 ### Reflection Protocol
 
@@ -362,8 +362,8 @@ Every `/adv-apply` task with file changes in its workdir MUST produce a git comm
 | 3b   | Red Phase — write failing test                                                                                                  |
 | 3c   | Green Phase — implement, tests pass                                                                                             |
 | 3c.4 | **Incremental Verification** — build/tests/lint pass                                                                            |
-| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires `taskCompletedSignal` to mark the task `done` |
-| 3d   | Complete — `adv_task_update status: "done"`                                                                                     |
+| 3c.5 | **Checkpoint** — `adv_task_checkpoint` with change/branch/HEAD/verification fires and verifies `taskCompletedSignal` to mark the task `done` |
+| 3d   | Complete — verify checkpoint output (`checkpointRecorded:true`); do not call `adv_task_update status: "done"` in normal apply flow            |
 
 **Failure classification:**
 

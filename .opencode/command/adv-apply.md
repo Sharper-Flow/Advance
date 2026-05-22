@@ -401,7 +401,7 @@ TodoWrite is a projection over ADV tasks, not the task source of truth. Copy `_t
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof and durable workflow-queryable test record value in one command. The final verification claim is recorded on `taskCompletedSignal.verification` when task transitions to `done`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`.
 
 ### Delegation Routing
 
@@ -511,15 +511,15 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 - `expectedHeadSha: <baselineHeadSha>`
 - `verification: <task verification summary>`
 
-- `{status: 'clean' | 'committed', checkpointRecorded:true}` → `taskCompletedSignal` was fired; proceed to 3c.55.
-- `{status: 'clean' | 'committed', checkpointRecorded:false}` → `taskCompletedSignal` failed to fire even though git checkpoint succeeded. Retry `adv_task_checkpoint`; if it persists, surface remediation before declaring task done.
+- `{status: 'clean' | 'committed', checkpointRecorded:true}` → `taskCompletedSignal` was fired and verified; the task is already `done`; proceed to 3c.55.
+- `{status: 'clean' | 'committed', checkpointRecorded:false}` → workflow completion recording failed even though git checkpoint succeeded. Retry `adv_task_checkpoint`; if it persists, surface remediation before declaring task done.
 - `{status: 'failed', classification: 'SEMANTIC'}` → diagnose, re-run checkpoint (retry budget applies).
 - `{classification: 'ENVIRONMENTAL'}` → escalate via `question` tool; keep task `in_progress`.
 - `{classification: 'TRANSIENT'}` → tool already retried internally; surface remaining failure as SEMANTIC or ENVIRONMENTAL per its follow-up classification.
 
 **3c.55. Post-delegation P23 diff-scan:** If task was delegated to a sub-agent, diff the sub-agent's touched files against the pre-delegation baseline. For each touched file, check same-pattern local subsystem for identical defect/quality patterns (P23 campsite-rule scan). If same-pattern issues found and fix is small/safe/local → apply inline. If fix would expand scope → document in `follow_ups`, do NOT auto-fix. Skip this step for inline tasks.
 
-**3d. Complete:** assert task-run next action is `mark_done` or checkpoint phase is satisfied → `adv_task_update status: "done"` → show evidence
+**3d. Complete:** assert `adv_task_checkpoint` returned `checkpointRecorded:true`; do not call `adv_task_update status: "done"` in normal apply flow. Show evidence from the checkpoint result and continue.
 
 **3e. Loop:** `adv_task_ready` → if ready tasks remain, **GOTO 3a**. REPEAT until the ready queue is empty.
 

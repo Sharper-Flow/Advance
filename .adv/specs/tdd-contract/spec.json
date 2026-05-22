@@ -9,7 +9,7 @@
     {
       "id": "rq-TDD001inl",
       "title": "Inline TDD as Default Model",
-      "body": "Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. Inline TDD progress is observable via adv_run_test invocations and the final verification claim on taskCompletedSignal.",
+      "body": "Implementation tasks MUST use inline TDD by default: the red phase (write failing test) and green phase (make it pass) happen within the same task. Proposal templates MUST NOT create separate test tasks for same-scope work. Inline TDD progress is evidenced by adv_run_test invocations and durably summarized by the final verification claim on taskCompletedSignal.",
       "priority": "must",
       "tags": ["tdd", "task-model", "inline"],
       "scenarios": [
@@ -21,7 +21,7 @@
           ],
           "when": "TDD compliance is checked",
           "then": [
-            "The task records inline TDD via adv_run_test calls; final claim recorded in taskCompletedSignal.verification",
+            "The task uses adv_run_test outputs as inline TDD evidence; final durable claim is recorded in taskCompletedSignal.verification",
             "No separate test task is required for this scope"
           ]
         },

@@ -185,8 +185,8 @@ This is a critical design constraint. Any new `system.transform` behavior should
 
 What exists now:
 
-- `adv_task_evidence` records fallback/manual evidence through `plugin/src/tools/task.ts`; `adv_run_test` is the primary red/green evidence path (captures exit code + output), while `adv_task_evidence` is fallback for externally captured evidence.
-- `store.tasks.recordEvidence` updates `tdd_phase` based on phase presence, not pass/fail semantics (`plugin/src/storage/store-disk.ts`, `plugin/src/storage/store-temporal/tasks.ts`).
+- `adv_run_test` is the primary red/green evidence path (captures exit code + output), while final task proof is summarized in `taskCompletedSignal.verification` via `adv_task_checkpoint`.
+- Older `adv_task_evidence` and `tdd_phase` surfaces were retired by the signal-driven task evidence model.
 - completeness validation flags missing TDD evidence on `done` tasks (`plugin/src/validator/completeness.ts`).
 - `adv_task_update` / `store.tasks.update` allows `status: "done"` without checking TDD evidence (`plugin/src/tools/task.ts`, `plugin/src/storage/store-disk.ts`, `plugin/src/storage/store-temporal/tasks.ts`).
 
@@ -301,7 +301,7 @@ Close the real tool-enforcement gaps in the ADV plugin without touching provider
 
 ## In-scope findings
 
-### A1. `adv_task_evidence` should validate red/green semantics
+### A1. Retired fallback evidence tool should validate red/green semantics
 
 Current behavior:
 
@@ -388,7 +388,7 @@ Then run at minimum:
 
 ## Proposal-ready acceptance criteria
 
-- `adv_task_evidence` rejects semantically invalid red/green evidence
+- The retired fallback evidence tool rejects semantically invalid red/green evidence
 - `adv_gate_complete(execution)` rejects unfinished changes
 - existing targeted task/gate/integration tests continue to pass
 - no MCP API shape changes
@@ -396,7 +396,7 @@ Then run at minimum:
 ## Suggested initial task breakdown
 
 1. Add failing tests for invalid red/green evidence cases
-2. Implement evidence-phase validation in `adv_task_evidence`
+2. Implement evidence-phase validation in the fallback evidence tool
 3. Add failing tests for execution-gate task-completion preconditions
 4. Implement execution-gate validation in `adv_gate_complete`
 5. Update docs/test fixtures as needed
