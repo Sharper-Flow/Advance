@@ -251,7 +251,7 @@ Advance exposes one canonical orchestrator agent (`adv`) instead of role-based a
 | Tool surface | Per-role tool subsets to maintain | Shared MCP tools, one policy layer |
 | Delegation | Role-to-role handoffs, no recovery | Scoped sub-agent tasks within a workflow |
 
-The sub-agent system still exists — `adv-engineer` handles delegated implementation, `adv-researcher` validates architecture, `explore` scans code, `librarian` fetches docs. But these are scoped tasks, not lifecycle phases. The orchestrator stays in the loop from start to finish.
+The sub-agent system still exists — `adv-engineer` handles delegated implementation, `adv-researcher` handles docs/examples and architecture validation, and `explore` scans code. But these are scoped tasks, not lifecycle phases. The orchestrator stays in the loop from start to finish.
 
 This design also enables model competition: run the same change on two models and compare results. The gates, specs, tools, and evidence format are identical — only the reasoning varies.
 

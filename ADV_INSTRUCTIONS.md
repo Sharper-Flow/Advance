@@ -699,9 +699,9 @@ Slash commands are top-level entry points for the user/session, not an internal 
 
 <!-- rq-delDefaults01 rq-delDefaults02 rq-delDefaults03 rq-delDefaults04 -->
 
-The workflow-step delegation matrix is spec law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`): single source for step delegation mode, allowed sub-agents, delegated sub-steps, and safety boundaries. Do not duplicate the matrix here; update the spec and its asset tests instead.
+The workflow-step delegation matrix is Advance source-plane law in `delegation-defaults` (`.adv/specs/delegation-defaults/spec.json`). It is the source/evaluation artifact for step mode, allowed sub-agents, delegated sub-steps, and safety boundaries. Do not duplicate the matrix here; source maintainers update the spec and asset tests. Runtime field agents consume deployed command/agent guidance and must not be required to inspect this repo-local spec during normal downstream workflows.
 
-Inline-only commands: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-reflect`. Design gate requires mandatory independent `adv-researcher` validator before completion (`VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`).
+Design gate requires mandatory independent `adv-researcher` validator before completion (`VALIDATED`, `CAUTION`, `CONFLICT`, `INCONCLUSIVE`). Command files carry the exact operational packets for delegated sub-steps.
 
 Utility commands keep their own delegation rules in command files, not the workflow-step matrix. Examples of utility fan-out:
 
@@ -766,7 +766,7 @@ Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable sub
 | `explore` | Code navigation, scoped read-only scans |
 | `adv-researcher` | Docs/API/examples research + architecture validation; independent validator |
 | `adv-engineer` | Delegated ADV code-writing; must use packet `workdir` |
-| `adv-reviewer` | Prep pre-flight, `/adv-review`, `/adv-harden` analysis/remediation; emits `REVIEWER_REPORT` |
+| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; emits `REVIEWER_REPORT` |
 | `general` | Verify bursts + generic multi-step work |
 | `adv-tron` | Recon + hotspots (repo-local) |
 

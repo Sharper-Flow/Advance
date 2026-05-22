@@ -230,10 +230,10 @@ Example shape:
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. Choose the right fix worker:
+1. **Fix all blockers/issues** — no partial fix mode. Use the review step's conditional remediation routing; do not introduce ad-hoc workers.
    - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect a fenced `REVIEWER_REPORT` JSON payload per `.opencode/agents/adv-reviewer.md`.
    - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`.
-   - For non-trivial fixes: research first (Context7 / `adv-researcher`) → then implement.
+   - **Non-trivial fix research** (control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches) → spawn `adv-researcher` first, then implement through the appropriate remediation worker above.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 
 ### Drift Detection Rule (CRITICAL)
