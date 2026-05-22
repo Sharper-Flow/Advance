@@ -36,6 +36,16 @@ export interface ProductOriginTags {
   origin_repo_path?: string;
 }
 
+export interface ChangeCreateInitialMetadata {
+  origin?: Change["origin"];
+  fast_follow_of?: Change["fast_follow_of"];
+  scope_repos?: Change["scope_repos"];
+}
+
+export interface ChangeCreateOptions {
+  initialMetadata?: ChangeCreateInitialMetadata;
+}
+
 // Inlined from former ./sqlite module (deleted in P2.7).
 export interface WisdomSearchResult {
   id: string;
@@ -91,6 +101,7 @@ export interface Store {
       agreementContent?: string,
       designContent?: string,
       executiveSummaryContent?: string,
+      options?: ChangeCreateOptions,
     ) => Promise<{
       changeId: string;
       path: string;

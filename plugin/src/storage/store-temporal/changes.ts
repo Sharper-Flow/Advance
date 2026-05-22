@@ -40,6 +40,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       agreementContent,
       designContent,
       executiveSummaryContent,
+      options,
     ) => {
       const result = await legacy.changes.create(
         summary,
@@ -49,6 +50,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         agreementContent,
         designContent,
         executiveSummaryContent,
+        options,
       );
       const created = await legacy.changes.get(result.changeId);
       if (!created.success || !created.data) {
@@ -82,6 +84,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
             origin: created.data.origin,
+            scope_repos: created.data.scope_repos,
             // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
             // by default. Seed the workflow state with the marker so the
             // first read sees it; lazy migration (A4) covers legacy changes
@@ -137,6 +140,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         cross_project_origin: created.data.cross_project_origin,
         fast_follow_of: created.data.fast_follow_of,
         origin: created.data.origin,
+        scope_repos: created.data.scope_repos,
         adv_project_id: input.projectId,
         // rq-autoManageAdvWorktrees AC3 — surface the marker on the Memo
         // overlay so lightweight summary reads observe it without a
@@ -185,6 +189,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         reentry_history: change.reentry_history,
         cross_project_origin: change.cross_project_origin,
         fast_follow_of: change.fast_follow_of,
+        origin: change.origin,
+        scope_repos: change.scope_repos,
         adv_project_id: change.adv_project_id,
       });
     },

@@ -534,6 +534,59 @@ describe("change tools — signal-driven lifecycle", () => {
     });
   });
 
+  describe("adv_change_create", () => {
+    test("passes origin metadata into create seed instead of late-saving it", async () => {
+      const store = createMockStore({ id: "createOriginSeed" });
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "createOriginSeed",
+        path: "/tmp/test/.adv/changes/createOriginSeed/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Create origin seed",
+          origin_kind: "triage",
+          origin_issue_number: 12,
+          origin_source_artifact: "ag-12",
+        },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.origin).toEqual({
+        kind: "triage",
+        issue_number: 12,
+        source_artifact: "ag-12",
+      });
+      expect(store.changes.create).toHaveBeenCalledWith(
+        "Create origin seed",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          initialMetadata: {
+            origin: {
+              kind: "triage",
+              issue_number: 12,
+              source_artifact: "ag-12",
+            },
+          },
+        },
+      );
+      expect(store.changes.save).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          origin: expect.anything(),
+        }),
+      );
+    });
+  });
+
   describe("adv_change_close", () => {
     test("fires changeCancelledSignal with approval metadata", async () => {
       const store = createMockStore();

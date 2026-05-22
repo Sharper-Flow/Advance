@@ -35,7 +35,7 @@ import {
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
 } from "../types";
-import type { Store } from "../storage/store";
+import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
@@ -1955,7 +1955,18 @@ export const changeTools = {
         return formatToolOutput({ error: scopeResolution.error });
       }
 
-      // ----- Local creation path (unchanged) -----
+      const initialMetadata: ChangeCreateInitialMetadata = {};
+      if (origin) initialMetadata.origin = origin;
+      if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
+      if (scopeResolution.scope) initialMetadata.scope_repos = scopeResolution.scope;
+      const createOptions =
+        Object.keys(initialMetadata).length > 0
+          ? { initialMetadata }
+          : undefined;
+
+      // rq-backlogCoord08: seed creation metadata before workflow start so
+      // origin/search attributes are authoritative Temporal state, not a late
+      // disk-only patch.
       const result = await store.changes.create(
         summary,
         capability,
@@ -1964,16 +1975,12 @@ export const changeTools = {
         agreement,
         design,
         executiveSummary,
+        createOptions,
       );
 
       const output: Record<string, unknown> = { ...result };
 
       if (fastFollowOf) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          changeResult.data.fast_follow_of = fastFollowOf;
-          await store.changes.save(changeResult.data);
-        }
         output.fast_follow_of = fastFollowOf;
       }
 
@@ -1982,43 +1989,12 @@ export const changeTools = {
         output._duplicateWarning = result.duplicateWarning;
       }
 
-      // If parent_change_id set, attach fast-follow lineage
-      if (parent_change_id) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          const updatedChange = {
-            ...changeResult.data,
-            fast_follow_of: {
-              parent_change_id: parent_change_id,
-              linked_at: new Date().toISOString(),
-            },
-          };
-          await store.changes.save(updatedChange);
-          output.fast_follow_of = updatedChange.fast_follow_of;
-        }
-      }
-
-      // Persist origin provenance onto the created change. Behavior automation
-      // (auto-create issue / auto-close on archive) is intentionally NOT
-      // performed here — it ships in a follow-up change.
       if (origin) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          await store.changes.save({ ...changeResult.data, origin });
-          output.origin = origin;
-        }
+        output.origin = origin;
       }
 
       if (scopeResolution.scope) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          await store.changes.save({
-            ...changeResult.data,
-            scope_repos: scopeResolution.scope,
-          });
-          await store.changes.refresh(result.changeId);
-          output.scope_repos = scopeResolution.scope;
-        }
+        output.scope_repos = scopeResolution.scope;
       }
 
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);

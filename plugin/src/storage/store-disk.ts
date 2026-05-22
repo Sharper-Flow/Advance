@@ -336,6 +336,7 @@ export async function createDiskStore(
         agreementContent,
         designContent,
         executiveSummaryContent,
+        options,
       ) => {
         const baseId = generateChangeId(summary);
         const existing = await listChangeDirs(paths.changes);
@@ -374,6 +375,15 @@ export async function createDiskStore(
           created_at: new Date().toISOString(),
           tasks: [],
           deltas: {},
+          ...(options?.initialMetadata?.origin !== undefined
+            ? { origin: options.initialMetadata.origin }
+            : {}),
+          ...(options?.initialMetadata?.fast_follow_of !== undefined
+            ? { fast_follow_of: options.initialMetadata.fast_follow_of }
+            : {}),
+          ...(options?.initialMetadata?.scope_repos !== undefined
+            ? { scope_repos: options.initialMetadata.scope_repos }
+            : {}),
         } as Change;
         await saveChange(paths.changes, change);
 

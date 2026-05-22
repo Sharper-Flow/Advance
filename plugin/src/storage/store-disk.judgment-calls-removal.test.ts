@@ -69,6 +69,28 @@ describe("store-disk — judgment_calls removal", () => {
     expect("judgment_calls" in change).toBe(false);
     expect(change.judgment_calls).toBeUndefined();
   });
+
+  test("createChange stamps initial metadata before save", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const origin = { kind: "roadmap" as const, issue_number: 51 };
+
+    const result = await store.changes.create(
+      "Seed Origin",
+      "backlog-coordination",
+      "# Proposal\n",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { initialMetadata: { origin } },
+    );
+
+    const loaded = await store.changes.get(result.changeId);
+
+    expect(loaded.success).toBe(true);
+    expect(loaded.data?.origin).toEqual(origin);
+  });
 });
 
 describe("change-selection — batch_surfaced_at removal", () => {

@@ -73,11 +73,11 @@ describe("isWorkflowCompletedError", () => {
 });
 
 describe("createChangeOps", () => {
-  test("seeds origin into new change workflow at start (rq-backlogCoord01)", async () => {
+  test("seeds origin into new change workflow at start (rq-backlogCoord01, rq-backlogCoord08)", async () => {
     ensureChangeWorkflowStarted.mockResolvedValue(undefined);
 
     const origin = { kind: "roadmap", issue_number: 51 };
-    const createdChange = {
+    let createdChange = {
       id: "backlogFeature51",
       title: "Backlog feature 51",
       status: "draft",
@@ -87,14 +87,25 @@ describe("createChangeOps", () => {
       wisdom: [],
       gates: {},
       reentry_history: [],
-      origin,
     };
 
     const legacy = {
       paths: { changes: "/tmp/changes", root: "/tmp/project" },
       changes: {
-        create: vi.fn().mockResolvedValue({ changeId: createdChange.id }),
-        get: vi.fn().mockResolvedValue({ success: true, data: createdChange }),
+        create: vi.fn().mockImplementation(async (...args: unknown[]) => {
+          const metadata = args[7] as
+            | { initialMetadata?: { origin?: typeof origin } }
+            | undefined;
+          createdChange = {
+            ...createdChange,
+            ...metadata?.initialMetadata,
+          };
+          return { changeId: createdChange.id };
+        }),
+        get: vi.fn().mockImplementation(async () => ({
+          success: true,
+          data: createdChange,
+        })),
         save: vi.fn().mockResolvedValue(undefined),
       },
     };
@@ -124,6 +135,19 @@ describe("createChangeOps", () => {
       "",
       "",
       "",
+      undefined,
+      { initialMetadata: { origin } },
+    );
+
+    expect(legacy.changes.create).toHaveBeenCalledWith(
+      "Backlog feature 51",
+      "backlog-coordination",
+      "",
+      "",
+      "",
+      "",
+      undefined,
+      { initialMetadata: { origin } },
     );
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
