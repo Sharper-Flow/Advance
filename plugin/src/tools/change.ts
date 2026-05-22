@@ -950,6 +950,11 @@ function buildReleaseCompletionEvidence(
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
 }
 
+/**
+ * Verify Phase 9 release evidence from the main checkout when the original
+ * change worktree is already gone. Used only for existing-bundle retries; it
+ * mirrors finalizeRelease's release proof without merging or pushing again.
+ */
 function verifyReleaseEvidenceFromMain(input: {
   store: Store;
   changeId: string;
@@ -1043,6 +1048,12 @@ type ArchiveReleaseGateResult =
       stuckReason?: GateCompletion["stuck_reason"];
     };
 
+/**
+ * Repair only the release-gate disk projection after structural Phase 9
+ * evidence exists but the change workflow has already completed. The caller
+ * must pass completed-workflow evidence so disk-direct recovery remains
+ * auditable instead of becoming an unguarded state bypass.
+ */
 async function recoverReleaseGateViaDiskProjection(input: {
   store: Store;
   change: Change;
@@ -1077,6 +1088,12 @@ async function recoverReleaseGateViaDiskProjection(input: {
   };
 }
 
+/**
+ * Record the release gate after Phase 9 returns shipped/pr_pushed evidence and
+ * before archive status retires the workflow. Each Temporal interaction can
+ * race a completed workflow, so query, signal, and confirmation poll all route
+ * completed-workflow failures through disk-projection recovery.
+ */
 async function completeReleaseGateAfterFinalization(input: {
   store: Store;
   change: Change;
