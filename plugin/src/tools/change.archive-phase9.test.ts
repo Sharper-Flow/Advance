@@ -289,6 +289,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
       status: "done",
       completed_by: "adv-archive",
     });
+    expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
   });
 
   test("skips finalization when phase9=skip", async () => {

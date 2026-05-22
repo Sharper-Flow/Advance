@@ -3299,6 +3299,14 @@ export const changeTools = {
           ? { issue_closure_error: issueClosure.issue_closure_error }
           : {}),
         ...(finalization ? { finalization } : {}),
+        ...(finalization
+          ? {
+              continueFrom: {
+                path: finalization.mainCheckout,
+                branch: finalization.defaultBranch,
+              },
+            }
+          : {}),
         ...(releaseGateCompletion
           ? {
               releaseGate: releaseGateCompletion.gate,

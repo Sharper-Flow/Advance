@@ -248,7 +248,7 @@ After acceptance completes, ADV must stop before archive and present:
 > acceptance ✓ → release
 ```
 
-Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_gate_complete release` → `adv_change_archive` → git finalization. No `question` tool; no LLM fallback; anything else re-prompts.
+Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_change_archive phase9:"run"` finalizes git evidence and records release before retiring the change. No `question` tool; no LLM fallback; anything else re-prompts.
 
 ## Context-Optimal Execution
 
