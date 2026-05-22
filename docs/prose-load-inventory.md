@@ -25,8 +25,8 @@ In scope:
 - `ADV_INSTRUCTIONS.md` (942 lines, post-T7/trunk merge)
 - `docs/command-voice-standard.md` (715 lines, post-T7)
 - `.opencode/agents/adv.md` (357 lines, post-T7)
-- `.opencode/command/adv-*.md` (27 files, 5,373 lines)
-- `skills/*/SKILL.md` (19 tracked files, ~2,222 lines)
+- `.opencode/command/adv-*.md` (27 files, 5,738 lines, post-T7/trunk merge)
+- `skills/*/SKILL.md` (20 tracked files, ~2,520 lines, post-T7/trunk merge)
 
 Out of scope (constraints):
 
