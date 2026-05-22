@@ -1,7 +1,13 @@
 import type { Change } from "../../types";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import { buildChangeWorkflowId } from "../../temporal/client";
-import { withTemporalRetry } from "../../temporal/retry-wrapper";
+import {
+  classifyTemporalError,
+  collectErrorText,
+  type TemporalErrorClass,
+  withTemporalRetry,
+} from "../../temporal/retry-wrapper";
+import { recoveryReasonFromError } from "../../temporal/recovery-classification";
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
@@ -28,6 +34,7 @@ function getOwnerGuardCache(
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
+  describe?: () => Promise<unknown>;
   executeUpdate: (
     definition: unknown,
     options: { args?: unknown[] },
@@ -209,6 +216,68 @@ const QUERY_TIMEOUT_MS = 5_000;
  */
 export async function runTemporalQuery<T>(op: () => Promise<T>): Promise<T> {
   return runTemporal(op, { timeoutMs: QUERY_TIMEOUT_MS });
+}
+
+const GENERIC_QUERY_FAILURE_RE = /Failed to query Workflow|query Workflow/i;
+const POISONED_WORKFLOW_EVIDENCE_RE =
+  /WorkflowTaskFailedCauseNonDeterministicError|Nondeterminism|TMPRL1100|No command scheduled/i;
+
+function stringifyEvidence(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return "";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+async function hasPoisonedWorkflowDescription(
+  input: TemporalStoreBackendInput,
+  changeId: string,
+): Promise<boolean> {
+  const handle = getChangeHandle(input, changeId);
+  if (typeof handle.describe !== "function") return false;
+  try {
+    const description = await runTemporal(async () => handle.describe?.(), {
+      timeoutMs: QUERY_TIMEOUT_MS,
+    });
+    return POISONED_WORKFLOW_EVIDENCE_RE.test(stringifyEvidence(description));
+  } catch (error) {
+    logger.debug(
+      `Poisoned workflow describe probe failed for change ${changeId}: ${collectErrorText(error)}`,
+    );
+    return false;
+  }
+}
+
+export interface TemporalReadFailureClassification {
+  errorClass: TemporalErrorClass;
+  recoveryReason?: "missing_workflow" | "poisoned_history";
+}
+
+export async function classifyTemporalReadFailure(
+  input: TemporalStoreBackendInput,
+  changeId: string,
+  error: unknown,
+): Promise<TemporalReadFailureClassification> {
+  const errorClass = classifyTemporalError(error);
+  if (errorClass === "fallback") {
+    return {
+      errorClass,
+      recoveryReason: recoveryReasonFromError(error),
+    };
+  }
+
+  if (
+    errorClass === "fatal" &&
+    GENERIC_QUERY_FAILURE_RE.test(collectErrorText(error)) &&
+    (await hasPoisonedWorkflowDescription(input, changeId))
+  ) {
+    return { errorClass: "fallback", recoveryReason: "poisoned_history" };
+  }
+
+  return { errorClass };
 }
 
 export interface StoreDeps {
