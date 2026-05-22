@@ -4,7 +4,7 @@
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
   "version": "1.0.0",
-  "updated_at": "2026-05-21T00:00:00.000Z",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "delegation_matrix": [
     {
       "step": "proposal",
@@ -56,21 +56,24 @@
       "step": "review",
       "gate_affinity": "acceptance",
       "mode": "hybrid",
-      "allowed_subagents": ["adv-reviewer", "explore"],
+      "allowed_subagents": ["adv-reviewer", "adv-engineer", "adv-researcher", "explore"],
       "inline_boundaries": ["finding verdict synthesis", "user acceptance", "ADV state mutation", "scope-drift handling"],
       "delegated_substeps": [
         { "name": "Independent Review Analysis", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer"] },
-        { "name": "Scoped Evidence Scan", "mode": "delegate_allowed", "allowed_subagents": ["explore"] }
+        { "name": "Scoped Evidence Scan", "mode": "delegate_allowed", "allowed_subagents": ["explore"] },
+        { "name": "Review Remediation Fixes", "mode": "delegate_allowed", "allowed_subagents": ["adv-reviewer", "adv-engineer"] },
+        { "name": "Non-Trivial Fix Research", "mode": "delegate_allowed", "allowed_subagents": ["adv-researcher"] }
       ]
     },
     {
       "step": "harden",
       "gate_affinity": "release",
       "mode": "subagent_primary",
-      "allowed_subagents": ["adv-reviewer", "explore"],
+      "allowed_subagents": ["adv-reviewer", "adv-engineer", "explore"],
       "inline_boundaries": ["readiness verdict synthesis", "release decision", "ADV state mutation", "scope-drift handling"],
       "delegated_substeps": [
-        { "name": "Six-Scanner Hardening Pass", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer", "explore"] }
+        { "name": "Six-Scanner Hardening Pass", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer", "explore"] },
+        { "name": "Hardening Remediation Fixes", "mode": "delegate_allowed", "allowed_subagents": ["adv-reviewer", "adv-engineer"] }
       ]
     },
     {
@@ -206,8 +209,8 @@
             "discovery allows: adv-researcher, explore",
             "design allows: adv-researcher (mandatory for validation)",
             "apply allows: adv-engineer, general",
-            "review allows: adv-reviewer, explore",
-            "harden allows: adv-reviewer, explore",
+            "review allows: adv-reviewer, adv-engineer, adv-researcher, explore",
+            "harden allows: adv-reviewer, adv-engineer, explore",
             "proposal, prep, archive, reflect allow: none"
           ]
         }
