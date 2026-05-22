@@ -145,8 +145,8 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | `/adv-review <change-id>` | Review code for correctness, security, and architecture; emit REVIEW_FINDINGS                        |
 | `/adv-harden <change-id>` | Detect low-quality code, verify test coverage, clean up; block archive on open findings              |
 | `/adv-audit [capability]` | Detect drift between specs and current implementation                                                |
-| `/adv-slop-scan [path]`   | Scan for AI slop patterns including defensive and nested code                                        |
-| `/adv-arch-scan [path]`   | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
+| `/adv-slop-scan [path]`   | Scan slop, deletion safety, and detector coverage                                                    |
+| `/adv-arch-scan [path]`   | Scan architecture stack packs, coverage, and heuristic fallbacks                                      |
 | `/adv-comp-scan <target>` | Scan competitor capabilities against this project for competitive intelligence                       |
 
 ### Fast-Track / Advanced

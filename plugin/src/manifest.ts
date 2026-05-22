@@ -379,8 +379,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-slop-scan": {
     name: "adv-slop-scan",
-    description:
-      "Scan for AI slop patterns including defensive and nested code",
+    description: "Scan slop, deletion safety, and detector coverage",
     phase: "post-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -422,7 +421,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-arch-scan": {
     name: "adv-arch-scan",
     description:
-      "Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic",
+      "Scan architecture stack packs, coverage, and heuristic fallbacks",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],

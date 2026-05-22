@@ -277,8 +277,8 @@ This design also enables model competition: run the same change on two models an
 | `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
 | `/adv-atc`  | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-audit`      | Detect drift between specs and current implementation                             |
-| `/adv-slop-scan`  | Scan for AI slop patterns including defensive and nested code                     |
-| `/adv-arch-scan`  | Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic |
+| `/adv-slop-scan`  | Scan slop, deletion safety, and detector coverage                                |
+| `/adv-arch-scan`  | Scan architecture stack packs, coverage, and heuristic fallbacks                  |
 | `/adv-comp-scan`  | Scan competitor capabilities against this project for competitive intelligence    |
 | `/adv-refactor`   | Refresh a stale proposal or batch-refresh the oldest 30% of active changes       |
 | `/adv-cleanup`    | Triage stale, abandoned, duplicate, and ready-to-archive active changes          |

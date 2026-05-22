@@ -1,6 +1,6 @@
 ---
 name: adv-arch-scan
-description: Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic
+description: Scan architecture stack packs, coverage, and heuristic fallbacks
 ---
 <!-- manifest: adv-arch-scan · requiresChangeId: false -->
 # ADV Architecture Scan

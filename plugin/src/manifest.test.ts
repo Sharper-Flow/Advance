@@ -69,6 +69,15 @@ describe("Command Manifest", () => {
     }
   });
 
+  test("scanner command descriptions mention coverage-oriented capabilities", () => {
+    expect(COMMAND_MANIFEST["adv-slop-scan"].description).toBe(
+      "Scan slop, deletion safety, and detector coverage",
+    );
+    expect(COMMAND_MANIFEST["adv-arch-scan"].description).toBe(
+      "Scan architecture stack packs, coverage, and heuristic fallbacks",
+    );
+  });
+
   test("gate-affecting commands reference valid gate IDs", () => {
     const validGates: GateId[] = [
       "proposal",

@@ -1,6 +1,6 @@
 ---
 name: adv-slop-scan
-description: Scan for AI slop patterns including defensive and nested code
+description: Scan slop, deletion safety, and detector coverage
 ---
 
 <!-- manifest: adv-slop-scan · requiresChangeId: false -->
