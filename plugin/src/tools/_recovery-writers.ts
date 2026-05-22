@@ -13,6 +13,7 @@
  */
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
+import { saveChange } from "../storage/json";
 
 async function bestEffortRefresh(
   store: Store,
@@ -94,6 +95,13 @@ export async function saveRecoveredGateCompletion(input: {
 /**
  * Transition the change's `status` field (typically draft → archived) on
  * disk projection when the terminating workflow signal cannot be processed.
+ *
+ * rq-fix-archive-recovery-disk-write: bypass `store.changes.save` because
+ * for `status: "archived"` the temporal store routes through
+ * `archiveChangeSignal` on the workflow — which is exactly what we are
+ * recovering from. Write the disk projection directly via `saveChange`
+ * and best-effort invalidate the in-memory cache so subsequent reads
+ * pull the fresh disk state.
  */
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
@@ -101,7 +109,7 @@ export async function saveRecoveredChangeStatus(input: {
   status: Change["status"];
 }): Promise<Change> {
   const updated = { ...input.change, status: input.status } as Change;
-  await input.store.changes.save(updated);
+  await saveChange(input.store.paths.changes, updated);
   await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }
