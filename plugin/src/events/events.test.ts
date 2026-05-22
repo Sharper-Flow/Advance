@@ -366,9 +366,7 @@ describe("buildTabTitle", () => {
   });
 
   it("trims leading and trailing whitespace without semantic normalization", () => {
-    expect(buildTabTitle("🟩", "  Jester  ", "  changeX  ")).toBe(
-      "changeX",
-    );
+    expect(buildTabTitle("🟩", "  Jester  ", "  changeX  ")).toBe("changeX");
   });
 
   it("never includes progress text", () => {
