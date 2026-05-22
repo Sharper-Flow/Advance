@@ -901,7 +901,7 @@ ADV always isolates mutating work in per-change worktrees.
 - Every change runs in a worktree — create/reuse before Phase 1
 - Worktree tools unavailable → hard block with error. Do not proceed in-place
 - Existing worktree for same change → auto-reuse
-- trunk write firewall enforcement is default-on (`worktree_guard_enforce=true`; omitted/true). Blocks main-checkout file writes, destructive bash, and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, remediation. Use `adv_worktree_resume` path. Legacy rule: omitted or false allows default-checkout file writes only through explicit `worktree_guard_enforce: false`. Proposal gate remains exempt. Read-only tools + git commands allowed. Auto-managed changes engage guard regardless of global flag. Advance repo opts into strict mode.
+- trunk write firewall enforcement is default-on (`worktree_guard_enforce=true` or omitted). Blocks main-checkout file writes, destructive bash, and task/gate execution mutations with `WorktreeIsolationViolation`, `mainCheckoutPath`, remediation. Use `adv_worktree_resume` path. Legacy explicit opt-out: only `worktree_guard_enforce: false` allows default-checkout file writes; omitted never opts out. Proposal gate remains exempt. Read-only tools + git commands allowed. Auto-managed changes engage guard regardless of global flag. Advance repo opts into strict mode.
 
 ### Worktree Reuse
 
@@ -926,7 +926,7 @@ Spec changes in worktree A invisible to B until merged; merge promptly after arc
 
 Side effect: `OPENCODE_EXPERIMENTAL_WORKSPACES=true` also changes OpenCode `client.session.list` filtering: same-project cross-workspace sessions included by default. ADV does not rely on this. No graduation timeline published; env-var opt-in is current mechanism.
 
-Fallback modes: `mode: "terminal"` returns path; use as `workdir` for all later tools. `mode: "spawn"` returns path for follow-up launch. Delete via `adv_worktree_delete branch:<branch>` only after merge. Worktree cleanup uses canonical tool `adv_worktree_delete`. Warp-mode delete attempts matching OpenCode workspace-row removal before git worktree removal; warns and continues if workspace cleanup fails.
+Fallback modes: `mode: "terminal"` returns path; MUST use as `workdir` for all later tools. `mode: "spawn"` returns path for follow-up launch. Delete via `adv_worktree_delete branch:<branch>` only after merge. Worktree cleanup uses canonical tool `adv_worktree_delete`. Warp-mode delete attempts matching OpenCode workspace-row removal before git worktree removal; warns and continues if workspace cleanup fails.
 
 ### Worktree Cleanup
 

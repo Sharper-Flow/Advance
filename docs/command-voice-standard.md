@@ -157,7 +157,7 @@ Command doc frontmatter `description` MUST be a **single-line YAML scalar** — 
 
 Manifest descriptions and command doc text cover **what** and **when**. This section covers **how to speak** when emitting runtime user-facing prose.
 
-### Style target — caveman-full
+### Style target — caveman-full (uniform wording-density compression)
 
 - Short sentences. Fragments OK.
 - Bullets and tables over prose.

@@ -107,7 +107,7 @@ Text report includes a scanner coverage summary for skipped, timed-out, missing,
 
 <!-- rq-ss009 -->
 
-Context Boundary: context packets are orientation only, not finding locations. Do not report against ADV change summaries, task evidence, exa/context7 snippets, or archived notes unless the referenced source file itself contains the smell.
+Context Boundary: context packets are orientation only, not finding locations. Do not report against ADV change summaries, task evidence, examples, fixture descriptions, exa/context7 snippets, or archived notes unless the referenced source file itself contains the smell.
 
 Source Evidence Requirement: Every finding must cite a target source file via `file:line` or scoped source evidence. No evidence → omit or mark `confidence: low`. Low-confidence findings are non-blocking by default.
 

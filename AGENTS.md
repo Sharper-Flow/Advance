@@ -86,9 +86,9 @@ Temporal TypeScript workflow sandbox patches `Date.now()`, `new Date()`, and `Ma
 
 #### Cache-refresh discipline (rq-cacheRefresh01)
 
-Tool-layer code SHALL use `fireSignalAndRefresh(handle, store, changeId, signal, ...args)` from `plugin/src/tools/_adapters.ts` for change-workflow signals. Helper fires signal + invalidates `changeCache`; later `store.changes.get()` returns fresh state. Direct `fireSignal` allowed only for signals not tied to one change (none now). Exemptions require `// rq-cacheRefresh01-exempt: <reason>`. Gate: `grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v ".test.ts" | grep -v rq-cacheRefresh01-exempt` → zero matches.
+Tool-layer code SHALL use `fireSignalAndRefresh(handle, store, changeId, signal, ...args)` from `plugin/src/tools/_adapters.ts` for change-workflow signals. Helper fires signal + invalidates `changeCache`; later `store.changes.get()` returns fresh state. Direct `fireSignal` allowed only for signals not tied to one change (none now). Exemptions require `// rq-cacheRefresh01-exempt: <reason>`. Gate: `grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v ".test.ts" | grep -v rq-cacheRefresh01-exempt` MUST return zero matches.
 
-Cross-project: target mutations use target store cache. Use `withTargetPathStore(...)` before helper. Task mutation tools (`add`, `cancel`, `update`, `reclassify_tdd`) route lookup, validation, signal, cache refresh, snapshot through target store (`rq-crossProjectTaskMutation01`).
+Cross-project: target mutations use target store cache. Use `withTargetPathStore(...)` before helper; target store wraps target project's `StoreBackend`, so helper invalidates target cache. Task mutation tools (`add`, `cancel`, `update`, `reclassify_tdd`) route lookup, validation, signal, cache refresh, snapshot through target store (`rq-crossProjectTaskMutation01`).
 
 Dry-run (`rq-dryRunMutation01`): preview-capable mutation tools return same-shape success + `dryRun: true`; no writes/signals/hooks/audit. Cross-project dry-runs may validate target state read-only.
 
@@ -145,7 +145,7 @@ See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 ### Overlay sync model
 
-Shared global agents (`general`, `build`, `plan`) are not fully replaced. `.opencode/overlays/*.overlay.md` managed blocks are injected by `scripts/deploy-local.sh`; user customization stays.
+Shared global agents (`general`, `build`, `plan`) are not fully replaced. `.opencode/overlays/*.overlay.md` managed blocks are injected by `scripts/deploy-local.sh`; user customization stays. The `adv` agent is repo-owned and full-file synced from `.opencode/agents/adv.md`.
 
 ### Provider ADV runtime hints
 
