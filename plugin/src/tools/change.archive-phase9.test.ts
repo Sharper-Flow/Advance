@@ -93,13 +93,17 @@ const mocks = vi.hoisted(() => {
         change: Change;
         gateId: keyof Gates;
         completion: Gates[keyof Gates];
-      }) => ({
-        ...input.change,
-        gates: {
+      }) => {
+        const gates = {
           ...(input.change.gates ?? {}),
           [input.gateId]: input.completion,
-        } as Gates,
-      }),
+        } as Gates;
+        mocks.workflow.gates = gates;
+        return {
+          ...input.change,
+          gates,
+        };
+      },
     ),
   };
 });
@@ -150,7 +154,11 @@ vi.mock("./_recovery-writers", () => ({
 }));
 
 function createMockStore(
-  options: { releaseDone?: boolean; status?: Change["status"] } = {},
+  options: {
+    releaseDone?: boolean;
+    status?: Change["status"];
+    durableReleasePending?: boolean;
+  } = {},
 ): Store {
   const gates: Gates = {
     proposal: { status: "done" },
@@ -212,7 +220,14 @@ function createMockStore(
     } as Store["changes"],
     tasks: {} as Store["tasks"],
     wisdom: {} as Store["wisdom"],
-    gates: {} as Store["gates"],
+    gates: {
+      get: vi.fn(async () => ({
+        ...mocks.workflow.gates,
+        ...(options.durableReleasePending
+          ? { release: { status: "pending" } }
+          : {}),
+      })),
+    } as unknown as Store["gates"],
     status: vi.fn(),
   } as unknown as Store;
 }
@@ -292,6 +307,24 @@ describe("adv_change_archive Phase 9 behavior", () => {
       completed_by: "adv-archive",
     });
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+  });
+
+  test("blocks archive success when store-backed release proof remains pending", async () => {
+    const store = createMockStore({ durableReleasePending: true });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseProjectionDurability01");
+    expect(parsed.error).toContain("durable release gate proof");
+    expect(parsed.releaseGateStatus).toBe("pending");
+    expect(store.gates.get).toHaveBeenCalledWith("example");
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
   test("skips finalization when phase9=skip", async () => {

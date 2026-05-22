@@ -69,13 +69,13 @@ Investigate the local codebase to map structure, identify hotspots, surface risk
 
 When given a target, resolve it to concrete code:
 
-| Target looks like | Resolution strategy |
-|-------------------|---------------------|
-| File path (`src/tools/task.ts`) | Read directly |
-| Directory (`src/tools/`) | Outline all files in it |
-| Symbol name (`createStore`) | `lgrep_search_symbols` |
-| Concept/theme (`error handling`) | `lgrep_search_semantic` |
-| Ambiguous | Try semantic search first, then symbol search, then text search |
+| Target looks like                | Resolution strategy                                             |
+| -------------------------------- | --------------------------------------------------------------- |
+| File path (`src/tools/task.ts`)  | Read directly                                                   |
+| Directory (`src/tools/`)         | Outline all files in it                                         |
+| Symbol name (`createStore`)      | `lgrep_search_symbols`                                          |
+| Concept/theme (`error handling`) | `lgrep_search_semantic`                                         |
+| Ambiguous                        | Try semantic search first, then symbol search, then text search |
 
 ### Search Tool Priority
 
