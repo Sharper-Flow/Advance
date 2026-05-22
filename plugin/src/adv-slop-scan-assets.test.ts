@@ -155,7 +155,7 @@ describe("adv-slop-scan anti-recursion assets", () => {
     expect(command).toContain("Deletion Safety / Actionability Boundary");
     expect(command).toContain("low-confidence / user-review");
     expect(command).toContain(
-      "heuristic-only or text-only unused-code guesses are not actionable removal proof",
+      "Heuristic-only or text-only unused-code guesses are not actionable removal proof",
     );
     expect(skill).toContain("low-confidence / user-review");
     expect(deadCode).toContain("Do not auto-delete");

@@ -75,12 +75,14 @@ Each finding includes: `id`, `name`, `severity`, `file`, `line`, `description`, 
 
 | Level | Criteria |
 |---|---|
-| CRITICAL | Security/data-loss risk, e.g. `HALLU-006`, `QUAL-003` |
-| HIGH | Silent failures, context amnesia, e.g. `QUAL-001`, `STRUCT-002` |
+| CRITICAL | Security/data-loss risk or authoritative-but-wrong logic, e.g. `HALLU-006`, `QUAL-001`, `QUAL-003` |
+| HIGH | Silent failures, context amnesia, e.g. `QUAL-002`, `QUAL-012`, `STRUCT-002` |
 | MEDIUM | Maintainability debt, e.g. `STRUCT-004`, `QUAL-006` |
 | LOW | Style/minor inefficiency, e.g. `STRUCT-003` |
 
 High/medium confidence + source evidence → actionable/blocking. Low confidence or fixture/context uncertainty → low-confidence/non-blocking.
+
+Cross-scanner label mapping: slop scan keeps severity labels `CRITICAL|HIGH|MEDIUM|LOW`; architecture scan uses review-style labels `blocker|major|minor|nit`. Treat `CRITICAL≈blocker`, `HIGH≈major`, `MEDIUM≈minor`, and `LOW≈nit` when comparing scanner reports, but keep each scanner's native labels in its own output schema.
 
 ## Report Assembly
 

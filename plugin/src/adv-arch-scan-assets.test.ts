@@ -102,4 +102,17 @@ describe("adv-arch-scan structural correctness assets", () => {
     expect(skill).toContain("coverage.detectedStacks");
     expect(skill).toContain("coverage.missingPacks");
   });
+
+  test("command and skill document phase 3 trigger semantics", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SKILL_PATH, "utf8");
+
+    expect(command).toContain("--phase 3");
+    expect(command).toContain(
+      "only when Phase 1 and Phase 2 produce no findings",
+    );
+    expect(command).toContain("single-phase heuristic scan");
+    expect(skill).toContain("when the user requests `--phase 3`");
+    expect(skill).toContain("produce no findings");
+  });
 });

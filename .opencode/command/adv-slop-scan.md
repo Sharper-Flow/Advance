@@ -36,7 +36,7 @@ Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explor
 
 1. Git repo check: `git rev-parse --is-inside-work-tree`; stop if false.
 2. Load `slop-smells.yaml`; stop if missing/malformed.
-3. Enumerate `git ls-files <path>` plus `--others --exclude-standard` when `--include-untracked`.
+3. Validate `<path>` resolves inside the repository root, then enumerate `git ls-files <path>` plus `--others --exclude-standard` when `--include-untracked`.
 4. Filter source files; exclude minified, lock, generated, binary.
 5. Load `features.slop_scan` from `project.json`; defaults: `nesting_depth=4`, `defensive_guard=3`, `complexity=10`, `ast_timeout_ms=10000`.
 6. Record `{workdir}` via `pwd`. Include `WORKING DIRECTORY: {workdir}` in Phase 1 commands and sub-agent prompts.
@@ -60,7 +60,7 @@ Run deterministic checks from skill:
 - Regex signal layer: defensive overkill, debug artifacts, type evasion, incomplete work, error suppression, hardcoded env, AI signatures, security, `QUAL-012`
 - Dead code / deletion candidates: `vulture`, `knip`, `deadcode` when available; otherwise note skipped detector
 
-Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `phase: 1`; include `nestingDepth`/`complexity` where applicable.
+Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `grouping`, `actionability`, `phase: 1`; include `nestingDepth`/`complexity` where applicable.
 
 ### Phase 1 Confidence Defaults
 
@@ -90,9 +90,9 @@ Every deletion candidate must include source evidence, confidence, detectionMeth
 
 Do not auto-delete. A deletion candidate is actionable only when structural evidence exists: tool-backed symbol/file/dependency evidence, exact reachability proof, entrypoint/config checks, typed roots, or source citations. No single external tool is the sole correctness authority for deletion safety.
 
-Uncertain candidates go to `low-confidence / user-review`. heuristic-only or text-only unused-code guesses are not actionable removal proof.
+Uncertain candidates go to `low-confidence / user-review`. Heuristic-only or text-only unused-code guesses are not actionable removal proof.
 
-If `--phase 1` only → Report Generation.
+If `--phase 1` only → Phase 3: Report Generation.
 ## Phase 2: Heuristic Detection
 
 AI-assisted semantic scan via first-level `explore` sub-agents only.
@@ -130,7 +130,7 @@ Also include smell definitions for category, file list, novelty check, and these
 Context packet text is orientation only, not a finding location. Every finding must cite a target source file and line or scoped source evidence. Do NOT emit findings against CHANGE, AFFECTED FILES summaries, TASK EVIDENCE SUMMARY, examples, or fixture descriptions.
 
 Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 findings only and suggest `--phase 1` or retry.
-## Report Generation
+## Phase 3: Report Generation
 
 > Anti-Loop: after Phase 2 → aggregate directly.
 
@@ -154,7 +154,7 @@ After successful completion, call `adv_project_metadata action:"write"`:
 
 - `key`: `"slop-scan"`
 - `count`: total findings count, or 0
-- `summary`: `"{count} findings: {majorCount} major, {minorCount} minor"` or `"no findings"`
+- `summary`: `"{count} findings: {majorCount} major, {minorCount} minor"` or `"no findings"`; `majorCount = CRITICAL + HIGH`, `minorCount = MEDIUM + LOW`
 - `written_by`: `"agent"`
 ## Verbose/Debug
 

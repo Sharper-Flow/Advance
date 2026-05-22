@@ -1,7 +1,7 @@
 # Slop Scan
 
-> **Version:** 1.1.1
-> **Updated:** 2026-05-08
+> **Version:** 1.2.0
+> **Updated:** 2026-05-22
 
 ## Purpose
 

@@ -4,7 +4,7 @@ description: "Architecture inconsistency detection via deterministic tools, rese
 keywords: ["architecture", "layer", "circular-deps", "drift", "tech-stack", "dependencies", "structure"]
 metadata:
   priority: medium
-  source: agent-created
+  source: .adv/specs/arch-scan/spec.json
 ---
 
 # Architecture Detection Skill
@@ -47,7 +47,7 @@ When stack is NOT in the Stack Packs matrix OR user requests `--phase 2`:
 
 ### Phase 3: AI Heuristic (Universal Fallback)
 
-When Phase 1 and 2 produce no results:
+Run Phase 3 when the user requests `--phase 3`, or during the default all-phases flow when Phase 1 and Phase 2 produce no findings:
 
 - Analyze file structure and import patterns heuristically
 - Detect likely layer violations (e.g., UI importing DB directly)
@@ -104,6 +104,8 @@ Example: Kotlin project detected → Exa: "Kotlin architecture linter" → Conte
 | nit | Naming mismatch, formatting | Campsite rule |
 
 Structural-correctness severity: blocker when heuristic-owned authority controls security, persistence, workflow state, gate completion, or spec compliance in touched scope; major when it controls input recognition/classification without immediate mutation; minor/nit only for advisory-only smells with clear guardrails.
+
+Cross-scanner comparison: arch-scan `blocker≈CRITICAL`, `major≈HIGH`, `minor≈MEDIUM`, and `nit≈LOW` relative to slop-scan severity labels. Keep each scanner's native labels in its own output schema.
 
 ## Constraints
 
