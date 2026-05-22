@@ -7,9 +7,19 @@ import {
 } from "./_recovery-writers";
 import type { Change } from "../types";
 
+vi.mock("../storage/json", () => ({
+  saveChange: vi.fn(async (_changesDir: string, _change: Change) => undefined),
+}));
+
+import { saveChange as mockedSaveChange } from "../storage/json";
+
 function createMockStore(): { store: any; saveCalls: Change[] } {
   const saveCalls: Change[] = [];
   const store: any = {
+    paths: {
+      root: "/tmp/test",
+      changes: "/tmp/test/.adv/changes",
+    },
     changes: {
       save: vi.fn(async (change: Change) => {
         saveCalls.push(change);
@@ -146,9 +156,10 @@ describe("saveRecoveredGateCompletion", () => {
 });
 
 describe("saveRecoveredChangeStatus", () => {
-  it("transitions status and persists", async () => {
+  it("transitions status via disk-direct saveChange (bypasses store.changes.save)", async () => {
     const { store, saveCalls } = createMockStore();
     const change = baseChange();
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
 
     const updated = await saveRecoveredChangeStatus({
       store,
@@ -156,8 +167,17 @@ describe("saveRecoveredChangeStatus", () => {
       status: "archived",
     });
 
+    // rq-fix-archive-recovery-disk-write AC1: store.changes.save is NOT
+    // called because it would invoke archiveChangeSignal on a poisoned
+    // workflow.
     expect(updated.status).toBe("archived");
-    expect(saveCalls).toHaveLength(1);
-    expect(saveCalls[0].status).toBe("archived");
+    expect(saveCalls).toHaveLength(0);
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({ status: "archived" }),
+    );
+    // AC2: cache invalidation still fires so the next read sees fresh state.
+    expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
   });
 });
