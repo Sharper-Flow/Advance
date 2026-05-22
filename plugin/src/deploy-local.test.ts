@@ -521,8 +521,8 @@ describe("deploy-local.sh", () => {
     test("advance-meta markdown mirror is synced to spec metadata and new laws", () => {
       const specDoc = readFileSync(ADVANCE_META_SPEC_DOC_PATH, "utf8");
 
-      expect(specDoc).toContain("> **Version:** 1.10.0");
-      expect(specDoc).toContain("> **Updated:** 2026-05-12");
+      expect(specDoc).toContain("> **Version:** 1.11.0");
+      expect(specDoc).toContain("> **Updated:** 2026-05-22");
       expect(specDoc).toContain("**ID:** `rq-providerAdvSkinny01`");
       expect(specDoc).toContain("**ID:** `rq-providerAdvMetrics01`");
       expect(specDoc).toContain("**ID:** `rq-scopedAdvInstructions01`");
