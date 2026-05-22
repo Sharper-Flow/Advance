@@ -323,7 +323,8 @@ function validateCreateOriginLinkage(input: {
 
   if (input.origin_kind === "discovery" && hasIssue) {
     return {
-      error: "origin_issue_number is only allowed for roadmap or triage origins.",
+      error:
+        "origin_issue_number is only allowed for roadmap or triage origins.",
       fields: ["origin_issue_number"],
       hint: "Use origin_kind 'roadmap' or 'triage' for issue-linked changes, or omit origin_issue_number for discovery origins.",
     };
@@ -1958,7 +1959,8 @@ export const changeTools = {
       const initialMetadata: ChangeCreateInitialMetadata = {};
       if (origin) initialMetadata.origin = origin;
       if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
-      if (scopeResolution.scope) initialMetadata.scope_repos = scopeResolution.scope;
+      if (scopeResolution.scope)
+        initialMetadata.scope_repos = scopeResolution.scope;
       const createOptions =
         Object.keys(initialMetadata).length > 0
           ? { initialMetadata }

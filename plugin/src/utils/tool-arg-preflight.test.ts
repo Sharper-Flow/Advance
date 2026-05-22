@@ -137,7 +137,9 @@ describe("tool arg preflight", () => {
       agreement: z.string().optional(),
       design: z.string().optional(),
       executiveSummary: z.string().optional(),
-      origin_kind: z.enum(["roadmap", "discovery", "triage", "adhoc"]).optional(),
+      origin_kind: z
+        .enum(["roadmap", "discovery", "triage", "adhoc"])
+        .optional(),
       origin_issue_number: z.number().int().positive().optional(),
       origin_source_artifact: z.string().optional(),
     };
@@ -185,7 +187,8 @@ describe("tool arg preflight", () => {
     );
     expect(invalidRoadmapSource.invalid).toContainEqual({
       field: "origin_source_artifact",
-      message: "origin_source_artifact is only allowed for triage or discovery origins.",
+      message:
+        "origin_source_artifact is only allowed for triage or discovery origins.",
     });
 
     const validTriage = validateToolArgsBeforeExecute(

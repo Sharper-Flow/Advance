@@ -84,7 +84,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
             origin: created.data.origin,
-            scope_repos: created.data.scope_repos,
             // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
             // by default. Seed the workflow state with the marker so the
             // first read sees it; lazy migration (A4) covers legacy changes

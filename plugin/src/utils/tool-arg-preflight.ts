@@ -85,7 +85,8 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
       if (hasIssueNumber) {
         invalid.push({
           field: "origin_issue_number",
-          message: "origin_issue_number is only allowed for roadmap or triage origins.",
+          message:
+            "origin_issue_number is only allowed for roadmap or triage origins.",
         });
       }
     } else if (originKind === "adhoc") {

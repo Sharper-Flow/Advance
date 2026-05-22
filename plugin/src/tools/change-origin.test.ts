@@ -191,7 +191,9 @@ describe("adv_change_create origin field", () => {
       store,
     );
     const parsed = parseToolOutput(output);
-    expect(parsed.error).toMatch(/Blank artifact or linkage fields are not allowed/);
+    expect(parsed.error).toMatch(
+      /Blank artifact or linkage fields are not allowed/,
+    );
     expect(parsed.fields).toEqual(["design", "origin_source_artifact"]);
     expect(parsed.hint).toContain("omit fields you do not intend to set");
   });
