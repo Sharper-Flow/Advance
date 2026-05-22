@@ -34,6 +34,12 @@ describe("recovery-classification", () => {
         "WorkflowExecutionUpdateAccepted event poisoned replay",
       ),
     ).toBe(true);
+    // rq-fix-gate-tools-recovery: cite Temporal's own search-attribute label.
+    expect(
+      isPrecisePoisonedHistoryEvidence(
+        "Temporal describe reports WorkflowTaskFailedCauseNonDeterministicError for change foo",
+      ),
+    ).toBe(true);
     expect(
       isPrecisePoisonedHistoryEvidence("operator confirmed poisoned history"),
     ).toBe(false);
