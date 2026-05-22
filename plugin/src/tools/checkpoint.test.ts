@@ -164,6 +164,23 @@ function mockGitResponses(
   );
 }
 
+function mockRecordedTask(
+  overrides: Partial<{
+    status: string;
+    verification: string;
+    checkpointSha: string;
+    filesTouched: string[];
+  }> = {},
+) {
+  mocks.queryMock.mockResolvedValueOnce({
+    status: "done",
+    verification: "Tests passed",
+    checkpointSha: "abc123def456",
+    filesTouched: ["src/file.ts"],
+    ...overrides,
+  });
+}
+
 describe("checkpoint tools — signal-driven", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -205,6 +222,7 @@ describe("checkpoint tools — signal-driven", () => {
     test("fires taskCompletedSignal after commit in complete mode", async () => {
       const store = createMockStore();
       mockGitResponses({});
+      mockRecordedTask();
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -232,6 +250,7 @@ describe("checkpoint tools — signal-driven", () => {
       mockGitResponses({});
 
       const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
+      mockRecordedTask({ verification });
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
         {
@@ -260,6 +279,10 @@ describe("checkpoint tools — signal-driven", () => {
       const store = createMockStore();
       mockGitResponses({
         "status --porcelain": { stdout: "" },
+      });
+      mockRecordedTask({
+        verification: "Clean tree checkpoint",
+        filesTouched: [],
       });
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
@@ -303,7 +326,7 @@ describe("checkpoint tools — signal-driven", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    test("returns error when Temporal service unavailable", async () => {
+    test("returns checkpointRecorded false when Temporal service unavailable", async () => {
       mocks.getService.mockReturnValueOnce(null);
       const store = createMockStore();
       mockGitResponses({});
@@ -318,9 +341,36 @@ describe("checkpoint tools — signal-driven", () => {
         "/tmp/test",
       );
 
-      // The signal fire is wrapped in try/catch, so the checkpoint should still return success
       const parsed = JSON.parse(result);
       expect(parsed.status).toBe("committed");
+      expect(parsed.checkpointRecorded).toBe(false);
+      expect(parsed.recordingError).toContain("Temporal service not available");
+      expect(parsed.remediation).toContain("adv_task_checkpoint");
+    });
+
+    test("returns checkpointRecorded false on clean tree when completion signal fails", async () => {
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("signal failed"),
+      );
+      const store = createMockStore();
+      mockGitResponses({
+        "status --porcelain": { stdout: "" },
+      });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("clean");
+      expect(parsed.checkpointRecorded).toBe(false);
+      expect(parsed.recordingError).toContain("signal failed");
+      expect(parsed.remediation).toContain("adv_task_checkpoint");
     });
   });
 });

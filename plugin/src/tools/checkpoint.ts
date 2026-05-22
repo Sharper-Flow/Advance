@@ -27,7 +27,7 @@ import type { ErrorRecovery } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import { taskCompletedSignal } from "../temporal/messages";
+import { changeTaskQuery, taskCompletedSignal } from "../temporal/messages";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -65,12 +65,22 @@ interface CheckpointResult {
   expectedHeadSha?: string;
   actualHeadSha?: string;
   checkpointRecorded?: boolean;
+  recordingError?: string;
   remediation?: string;
   /** Repo-relative paths of files modified in this checkpoint */
   touched_files?: string[];
 }
 
 type ErrorClass = "SEMANTIC" | "ENVIRONMENTAL" | "TRANSIENT";
+
+interface CheckpointRecordingResult {
+  recorded: boolean;
+  error?: string;
+  remediation?: string;
+}
+
+const CHECKPOINT_RECORDING_REMEDIATION =
+  "Workflow task completion was not recorded. Retry adv_task_checkpoint before declaring the task done; if it persists, run adv_temporal_diagnose and repair worker connectivity.";
 
 export type RepoState =
   | "ok"
@@ -353,10 +363,16 @@ async function fireTaskCompletedFromCheckpoint(
   sha: string,
   verification: string,
   touchedFiles: string[],
-): Promise<void> {
+): Promise<CheckpointRecordingResult> {
   try {
     const changeId = await resolveChangeId(store, taskId);
-    if (!changeId) return;
+    if (!changeId) {
+      return {
+        recorded: false,
+        error: `Task not found: ${taskId}`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
     const handle = await getHandleForChangeId(store, changeId);
     const structuredOutput = extractStructuredOutput(verification);
     // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
@@ -372,13 +388,73 @@ async function fireTaskCompletedFromCheckpoint(
       completedAt: new Date().toISOString(),
       ...(structuredOutput && { structured_output: structuredOutput }),
     });
+
+    const recordedTask = (await handle.query(changeTaskQuery, taskId)) as
+      | {
+          status?: string;
+          verification?: string;
+          checkpointSha?: string;
+          filesTouched?: string[];
+        }
+      | null;
+
+    if (!recordedTask) {
+      return {
+        recorded: false,
+        error: `Task ${taskId} was not readable after checkpoint completion signal`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
+
+    if (recordedTask.status !== "done") {
+      return {
+        recorded: false,
+        error: `Task ${taskId} status is ${recordedTask.status ?? "unknown"} after checkpoint completion signal`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
+
+    if (recordedTask.verification !== verification) {
+      return {
+        recorded: false,
+        error: `Task ${taskId} verification did not match checkpoint verification`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
+
+    if (recordedTask.checkpointSha !== sha) {
+      return {
+        recorded: false,
+        error: `Task ${taskId} checkpointSha did not match ${sha}`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
+
+    const recordedFiles = recordedTask.filesTouched ?? [];
+    const filesMatch =
+      recordedFiles.length === touchedFiles.length &&
+      recordedFiles.every((file, index) => file === touchedFiles[index]);
+    if (!filesMatch) {
+      return {
+        recorded: false,
+        error: `Task ${taskId} filesTouched did not match checkpoint files`,
+        remediation: CHECKPOINT_RECORDING_REMEDIATION,
+      };
+    }
+
+    return { recorded: true };
   } catch (err) {
     if (ADV_DEBUG) {
       console.warn(
-        "[checkpoint] taskCompletedSignal fire failed (non-fatal):",
+        "[checkpoint] taskCompletedSignal fire failed:",
         err,
       );
     }
+    return {
+      recorded: false,
+      error: err instanceof Error ? err.message : String(err),
+      remediation: CHECKPOINT_RECORDING_REMEDIATION,
+    };
   }
 }
 
@@ -593,8 +669,11 @@ export const checkpointTools = {
       if (statusOutput.trim() === "") {
         // Clean tree — idempotent, no commit needed
         // For complete mode, fire taskCompletedSignal so the task is marked done
+        let checkpointRecording: CheckpointRecordingResult = {
+          recorded: mode !== "complete",
+        };
         if (mode === "complete") {
-          await fireTaskCompletedFromCheckpoint(
+          checkpointRecording = await fireTaskCompletedFromCheckpoint(
             store,
             args.taskId,
             actualHeadSha,
@@ -609,7 +688,13 @@ export const checkpointTools = {
           workdir: cwd,
           gitRoot,
           changeId: derivedChangeId,
-          checkpointRecorded: true,
+          checkpointRecorded: checkpointRecording.recorded,
+          ...(checkpointRecording.error && {
+            recordingError: checkpointRecording.error,
+          }),
+          ...(checkpointRecording.remediation && {
+            remediation: checkpointRecording.remediation,
+          }),
         } satisfies CheckpointResult);
       }
 
@@ -697,8 +782,11 @@ export const checkpointTools = {
         }
 
         // For complete mode, fire taskCompletedSignal to mark task done
+        let checkpointRecording: CheckpointRecordingResult = {
+          recorded: mode !== "complete",
+        };
         if (mode === "complete") {
-          await fireTaskCompletedFromCheckpoint(
+          checkpointRecording = await fireTaskCompletedFromCheckpoint(
             store,
             args.taskId,
             sha.trim(),
@@ -715,7 +803,13 @@ export const checkpointTools = {
           gitRoot,
           message: subject,
           changeId: derivedChangeId,
-          checkpointRecorded: true,
+          checkpointRecorded: checkpointRecording.recorded,
+          ...(checkpointRecording.error && {
+            recordingError: checkpointRecording.error,
+          }),
+          ...(checkpointRecording.remediation && {
+            remediation: checkpointRecording.remediation,
+          }),
           touched_files: touchedFiles,
         } satisfies CheckpointResult);
       } catch (err) {
