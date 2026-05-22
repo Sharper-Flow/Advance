@@ -389,14 +389,12 @@ async function fireTaskCompletedFromCheckpoint(
       ...(structuredOutput && { structured_output: structuredOutput }),
     });
 
-    const recordedTask = (await handle.query(changeTaskQuery, taskId)) as
-      | {
-          status?: string;
-          verification?: string;
-          checkpointSha?: string;
-          filesTouched?: string[];
-        }
-      | null;
+    const recordedTask = (await handle.query(changeTaskQuery, taskId)) as {
+      status?: string;
+      verification?: string;
+      checkpointSha?: string;
+      filesTouched?: string[];
+    } | null;
 
     if (!recordedTask) {
       return {
@@ -445,10 +443,7 @@ async function fireTaskCompletedFromCheckpoint(
     return { recorded: true };
   } catch (err) {
     if (ADV_DEBUG) {
-      console.warn(
-        "[checkpoint] taskCompletedSignal fire failed:",
-        err,
-      );
+      console.warn("[checkpoint] taskCompletedSignal fire failed:", err);
     }
     return {
       recorded: false,
