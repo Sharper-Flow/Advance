@@ -241,6 +241,13 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/push fails/);
   });
 
+  test("advance-workflow spec encodes release projection durability", () => {
+    const content = readAsset(ADVANCE_WORKFLOW_SPEC);
+    expect(content).toMatch(/rq-releaseProjectionDurability01/);
+    expect(content).toMatch(/adv_gate_status/);
+    expect(content).toMatch(/store-backed gate read/i);
+  });
+
   test("advance-workflow spec encodes product-linked multi-repo state", () => {
     // rq-productLinking01 rq-productScopedChanges01 rq-productLearning01 rq-multiRepoArchive01
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);

@@ -12,11 +12,11 @@ Archive change → apply deltas to specs → canonical ship/finalize path via ma
 
 ## Exits
 
-| Exit        | Condition                                      |
-| ----------- | ---------------------------------------------- |
+| Exit        | Condition                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ✅ Complete | All gates passed, specs updated, release committed, merged to default branch, pushed or explicitly reported local-only, local deploy run when available, verified |
-| 🎤 Blocked  | Incomplete gates/tasks or merge conflicts      |
-| 🔁 Dry Run  | Preview only, no changes                       |
+| 🎤 Blocked  | Incomplete gates/tasks or merge conflicts                                                                                                                         |
+| 🔁 Dry Run  | Preview only, no changes                                                                                                                                          |
 
 <UserRequest>
   $ARGUMENTS
@@ -90,12 +90,12 @@ or `cancel` / `stop` / `abort` to halt.
 
 **Reply parsing (Tier B — strict, no LLM fallback):**
 
-| Reply (exact match, case-insensitive, trimmed) | Action |
-|---|---|
+| Reply (exact match, case-insensitive, trimmed)                                 | Action                                                                                                                      |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `sign off` / `signoff` / `approve` / `confirm` / `yes` / `proceed` / `ship it` | Emit one-line acknowledgment (`Archiving {change-id}.`), then execute Phase 6 onward in same response — no second user turn |
-| `dry run` / `dryrun` | Run `adv_change_archive dryRun: true`, present results, re-prompt with same options |
-| `cancel` / `stop` / `abort` | Halt |
-| Anything else | Re-prompt with same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance |
+| `dry run` / `dryrun`                                                           | Run `adv_change_archive dryRun: true`, present results, re-prompt with same options                                         |
+| `cancel` / `stop` / `abort`                                                    | Halt                                                                                                                        |
+| Anything else                                                                  | Re-prompt with same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance                                         |
 
 **Anchor phrase:** `Reply `sign off``
 
@@ -119,15 +119,16 @@ Run only if the spec being archived has `conformance_required: true` in the conf
 
 3. **Evaluate verdict.**
 
-   | Verdict | Action |
-   |---------|--------|
-   | `PASS` | Continue to Phase 6. |
-   | `DRIFT` | **HALT.** Do NOT proceed to Phase 6. Present drift report and user options. |
+   | Verdict                      | Action                                                                                     |
+   | ---------------------------- | ------------------------------------------------------------------------------------------ |
+   | `PASS`                       | Continue to Phase 6.                                                                       |
+   | `DRIFT`                      | **HALT.** Do NOT proceed to Phase 6. Present drift report and user options.                |
    | Artifact missing / malformed | **HALT.** Report CI outage. User must resolve externally (re-run CI, check workflow logs). |
 
 4. **On DRIFT — present user options (inline, NOT question tool).**
 
    Print failing AC labels with full diagnostic:
+
    ```
    ## Conformance Drift Detected
 
@@ -205,14 +206,16 @@ After archive summary is displayed, invoke reflection (non-blocking):
 ---
 
 ## Phase 9: Git Finalization (Mandatory)
+
 <!-- rq-releaseFinalization01 -->
 <!-- rq-releaseFinalization01.5 -->
 <!-- rq-releaseFinalization01.6 -->
+<!-- rq-releaseProjectionDurability01 -->
 
 Runtime enforcement lives in `plugin/src/tools/archive-helpers/git-finalize.ts`
-and the archive-owned release-gate recording path. This markdown remains the
-human-facing orchestration recipe; the helper module is the shared runtime
-contract used by direct tool paths. When this slash-command path calls
+and the archive-owned release-gate recording/projection-proof path. This
+markdown remains the human-facing orchestration recipe; the helper module is
+the shared runtime contract used by direct tool paths. When this slash-command path calls
 `adv_change_archive`, it passes `phase9: "run"` with `worktreePath` so the
 shared helper owns the structural git finalization. The markdown below remains
 the human-facing explanation of that runtime contract.
@@ -301,6 +304,7 @@ When `git rebase` surfaces conflicts during Phase 9, /adv-archive runs the full 
 $ git rebase origin/trunk
 Successfully rebased and updated refs/heads/change/feature.
 ```
+
 navigateConflicts is not invoked (no conflicts detected).
 
 #### Example B — single duplicate-content (auto-skip)
@@ -309,6 +313,7 @@ navigateConflicts is not invoked (no conflicts detected).
 $ git rebase origin/trunk
 CONFLICT (content): Merge conflict in src/foo.ts
 ```
+
 classifyConflict returns `duplicate_content` (tree at REBASE_HEAD matches origin/trunk for src/foo.ts).
 navigateConflicts presents summary `auto-skippable: 1`. User picks `auto`. applyResolveAction runs `git rebase --skip` with audit "duplicate-content commit (T28: tree matches origin/trunk)".
 
@@ -320,9 +325,10 @@ CONFLICT (content): Merge conflict in a.ts (whitespace only)
 CONFLICT (content): Merge conflict in b.ts (already on trunk)
 CONFLICT (content): Merge conflict in c.ts (semantic)
 ```
+
 classifyConflict returns 1 trivial, 1 duplicate, 1 divergent.
 navigateConflicts presents:
-  `auto-skippable: 1, auto-resolvable: 1, divergent: 1. Reply auto/step/abort.`
+`auto-skippable: 1, auto-resolvable: 1, divergent: 1. Reply auto/step/abort.`
 User picks `auto`. b.ts skipped, a.ts auto-resolved (THEIRS side written + add + continue), c.ts escalated → resolveDivergent stub returns user_resolve_in_place. All 3 audit entries captured.
 
 ### Step 5: Publish Safety (merge+push finalization for the default branch)
@@ -417,6 +423,7 @@ Successful cleanup report includes `Continue from: {mainCheckout} ({default-bran
 Remove `*.bak`, `*.tmp`, `*.orig` from `$MAIN` (excluding `node_modules`).
 
 <!-- rq-issueChangeLinkage02 -->
+
 ### Step 8.5: Linked GitHub Issue Close (rq-issueChangeLinkage02)
 
 `adv_change_archive` defaults to closing linked GH issues after durable archive transition. Agent does not run `gh issue close` manually.
@@ -470,6 +477,6 @@ Delta application error → ARCHIVE FAILED banner with delta ID, target, error. 
 
 ## Key Tool
 
-| Purpose | Tool                                |
-| ------- | ----------------------------------- |
+| Purpose | Tool                                                                            |
+| ------- | ------------------------------------------------------------------------------- |
 | Archive | `adv_change_archive changeId: <id> worktreePath: <worktree-root> phase9: "run"` |

@@ -486,6 +486,107 @@ describe("change tools — signal-driven lifecycle", () => {
     });
   });
 
+  describe("adv_change_update", () => {
+    test("rejects mixed real and blank artifact updates before storage writes", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          proposal: "# Valid proposal update",
+          design: "   ",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Blank artifact fields are not allowed");
+      expect(parsed.fields).toEqual(["design"]);
+      expect(parsed.hint).toContain("omit fields you do not intend to change");
+      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+    });
+
+    test("allows omitted artifact fields to remain unchanged", async () => {
+      const store = createMockStore();
+      vi.mocked(store.changes.updateArtifacts).mockResolvedValueOnce({
+        success: true,
+        proposalPath: "/tmp/test/.adv/changes/test-change/proposal.md",
+      });
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          proposal: "# Valid proposal update",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.proposalPath).toContain("proposal.md");
+      expect(store.changes.updateArtifacts).toHaveBeenCalledWith(
+        "test-change",
+        "# Valid proposal update",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+  });
+
+  describe("adv_change_create", () => {
+    test("passes origin metadata into create seed instead of late-saving it", async () => {
+      const store = createMockStore({ id: "createOriginSeed" });
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "createOriginSeed",
+        path: "/tmp/test/.adv/changes/createOriginSeed/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Create origin seed",
+          origin_kind: "triage",
+          origin_issue_number: 12,
+          origin_source_artifact: "ag-12",
+        },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.origin).toEqual({
+        kind: "triage",
+        issue_number: 12,
+        source_artifact: "ag-12",
+      });
+      expect(store.changes.create).toHaveBeenCalledWith(
+        "Create origin seed",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          initialMetadata: {
+            origin: {
+              kind: "triage",
+              issue_number: 12,
+              source_artifact: "ag-12",
+            },
+          },
+        },
+      );
+      expect(store.changes.save).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          origin: expect.anything(),
+        }),
+      );
+    });
+  });
+
   describe("adv_change_close", () => {
     test("fires changeCancelledSignal with approval metadata", async () => {
       const store = createMockStore();

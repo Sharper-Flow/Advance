@@ -92,6 +92,22 @@ describe("adv_change_create origin field", () => {
     expect(parsed.origin).toEqual({ kind: "discovery" });
   });
 
+  test("origin_kind=discovery with source_artifact persists origin", async () => {
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Mid-session sourced discovery",
+        origin_kind: "discovery",
+        origin_source_artifact: "note-17",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.origin).toEqual({
+      kind: "discovery",
+      source_artifact: "note-17",
+    });
+  });
+
   test("origin_kind=adhoc persists kind only", async () => {
     const output = await changeTools.adv_change_create.execute(
       {
@@ -114,6 +130,72 @@ describe("adv_change_create origin field", () => {
     );
     const parsed = parseToolOutput(output);
     expect(parsed.error).toMatch(/origin_issue_number is required/);
+  });
+
+  test("origin_kind=roadmap rejects source_artifact", async () => {
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Roadmap with source",
+        origin_kind: "roadmap",
+        origin_issue_number: 77,
+        origin_source_artifact: "ag-should-not-apply",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.error).toMatch(/origin_source_artifact is only allowed/);
+    expect(parsed.fields).toEqual(["origin_source_artifact"]);
+  });
+
+  test("origin_kind=discovery rejects issue_number", async () => {
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Discovery with issue",
+        origin_kind: "discovery",
+        origin_issue_number: 42,
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.error).toMatch(/origin_issue_number is only allowed/);
+    expect(parsed.fields).toEqual(["origin_issue_number"]);
+  });
+
+  test("origin_kind=adhoc rejects linkage fields", async () => {
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Adhoc with linkage",
+        origin_kind: "adhoc",
+        origin_issue_number: 42,
+        origin_source_artifact: "ag-nope",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.error).toMatch(/origin linkage fields are not allowed/);
+    expect(parsed.fields).toEqual([
+      "origin_issue_number",
+      "origin_source_artifact",
+    ]);
+  });
+
+  test("blank create artifacts and source_artifact are rejected", async () => {
+    const output = await changeTools.adv_change_create.execute(
+      {
+        summary: "Blank create args",
+        proposal: "real proposal",
+        design: "  ",
+        origin_kind: "triage",
+        origin_source_artifact: " ",
+      },
+      store,
+    );
+    const parsed = parseToolOutput(output);
+    expect(parsed.error).toMatch(
+      /Blank artifact or linkage fields are not allowed/,
+    );
+    expect(parsed.fields).toEqual(["design", "origin_source_artifact"]);
+    expect(parsed.hint).toContain("omit fields you do not intend to set");
   });
 
   test("origin_issue_number without origin_kind is rejected", async () => {

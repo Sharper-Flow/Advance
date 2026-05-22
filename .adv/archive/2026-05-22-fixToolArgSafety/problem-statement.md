@@ -1,0 +1,1 @@
+ADV tool calls need structural safeguards so provided blank optional fields cannot accidentally overwrite artifacts, and origin metadata supplied at change creation is validated and persisted through authoritative Temporal state.

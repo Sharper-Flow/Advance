@@ -427,6 +427,63 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 ---
 
+### Archive Success Requires Durable Release Projection
+
+**ID:** `rq-releaseProjectionDurability01` | **Priority:** **[MUST]**
+
+When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated by durable release-gate projection proof. Before `adv_change_archive phase9:"run"` reports success or performs archive retirement side effects, the store-backed gate read used by `adv_gate_status` MUST report `gates.release.status === "done"` with Phase 9 evidence in the release completion record. If this proof cannot be established, archive MUST return a blocked/recoverable result and MUST NOT claim shipped success, close linked issues, or run terminal cleanup as a successful retirement. Existing-bundle or completed-workflow retries MAY reconcile release metadata only after structural Phase 9 evidence is re-verified from the main checkout or PR branch state.
+
+**Tags:** `workflow`, `archive`, `release`, `projection`, `durability`
+
+#### Scenarios
+
+**Archive success proves gate-status-equivalent release done** (`rq-releaseProjectionDurability01.1`)
+
+**Given:**
+
+- Phase 9 finalization returns shipped or pr_pushed evidence
+- The release gate completion signal or recovery path has run
+
+**When:** `adv_change_archive phase9:"run"` is about to return success
+
+**Then:**
+
+- The store-backed gate read used by `adv_gate_status` reports `gates.release.status === "done"`
+- The release completion record includes Phase 9 evidence
+- Archive does not report success while the gate-status-equivalent read would show release pending
+
+**Unproven release projection blocks retirement side effects** (`rq-releaseProjectionDurability01.2`)
+
+**Given:**
+
+- Phase 9 finalization has succeeded
+- The store-backed release gate proof is missing, stale, pending, unreadable, or lacks matching Phase 9 evidence
+
+**When:** `adv_change_archive` evaluates archive success
+
+**Then:**
+
+- The archive returns a blocked or recoverable result citing `rq-releaseProjectionDurability01`
+- The change is not retired as successfully archived
+- Linked issue closure and terminal worktree cleanup are not reported as successful retirement effects
+
+**Terminal retry repairs projection only with structural finalization evidence** (`rq-releaseProjectionDurability01.3`)
+
+**Given:**
+
+- An archive bundle already exists or the change workflow has completed
+- Release gate metadata is stale or missing from the store-backed read
+
+**When:** Archive retry attempts release projection repair
+
+**Then:**
+
+- Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
+- PR archive mode re-verifies the change branch was pushed for PR handoff before repair
+- If finalization evidence is missing or invalid, repair is rejected and release remains not done
+
+---
+
 ### Product-Linked ADV State
 
 **ID:** `rq-productLinking01` | **Priority:** **[MUST]**

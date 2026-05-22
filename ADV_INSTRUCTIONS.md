@@ -196,7 +196,7 @@ Emit at START of each response:
 | `[ADV:REFLECTION]`         | Reflection report emitted                                     | 🟪    |
 | `[ADV:PEER_SESSIONS]`      | Informational; peer sessions detected in same project         | ⬜    |
 
-Tab title: initial identity only, `project: advChange` when a change is active or `project` when idle. No dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
+Tab title: initial identity only, `advChange` when a change is active or `project` when idle. No dynamic status/progress retitles. System-emitted: `[ADV:ACCUMULATED_WISDOM]`, `[ADV:TODO_CONTINUATION]`, `[ADV:RECORD_WISDOM]`
 
 ### Context Snapshot
 
@@ -884,7 +884,7 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 - Skills × MUST NOT mutate ADV state (no `adv_change_create`, `adv_task_add`, `adv_gate_complete`).
 - Skills × MUST NOT own gate completion or workflow sequencing.
 - Commands MUST remain functional if a backing skill is unavailable — inline fallback is required.
-- Checklist docs (`docs/checklists/`) are maintainer/reference docs only. Runtime command guidance MUST use embedded methodology or loaded skills, not source/install-tree checklist reads.
+- Checklist docs (`docs/checklists/`) are maintainer/reference docs only. Runtime command guidance MUST use embedded methodology or loaded skills, not source/install-tree checklist reads. <!-- rq-noSourceChecklistReads01 -->
 
 ## Worktree Integration
 

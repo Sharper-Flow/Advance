@@ -1,0 +1,701 @@
+{
+  "id": "updateTerminalTitles2",
+  "title": "Update terminal titles",
+  "status": "archived",
+  "created_at": "2026-05-22T15:31:32.916Z",
+  "tasks": [
+    {
+      "id": "tk-26267080ad36",
+      "title": "Implement terminal title identity policy and focused RED/GREEN tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T15:52:49.630Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T15:55:14.275Z",
+      "verification": "RED: `pnpm exec vitest run src/events/events.test.ts src/events/terminal.test.ts` failed with expected `advance: addFeatureX`/project-prefixed title assertions. GREEN: same command passed with 70 tests after changing `buildTabTitle` active-change precedence and updating tests for active-only title, inactive fallback, whitespace fallback, no project prefix, sanitization, and status-churn no-retitle.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed `buildTabTitle` so sanitized/trimmed active change ids take precedence over project names, falling back to project when no active change exists. Updated terminal title comments and focused events/terminal tests for raw active id, inactive project fallback, whitespace change fallback, no project prefix, active payload sanitization, failed emission retry, and status-churn no-retitle behavior.",
+      "filesTouched": [
+        "plugin/src/events/events.test.ts",
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts"
+      ],
+      "touched_files": [
+        "plugin/src/events/events.test.ts",
+        "plugin/src/events/terminal.test.ts",
+        "plugin/src/events/terminal.ts"
+      ],
+      "checkpointSha": "0ece7bb08f2fe9154bdf6b65527d4270a5512467",
+      "completedAt": "2026-05-22T15:56:37.492Z",
+      "completed_at": "2026-05-22T15:56:37.492Z",
+      "notes": "Implemented active-change precedence for terminal title identity and updated focused tests. Checkpoint commit 0ece7bb08f2fe9154bdf6b65527d4270a5512467.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Focused RED tests failed because runtime still emitted project-prefixed active titles like `advance: addFeatureX`.",
+            "diagnosis": "Expected failure after updating tests before implementation; current formatter prioritized `projectLabel && changeLabel`.",
+            "fix_tried": "Changed `buildTabTitle` precedence to return `changeLabel` before `projectLabel` and updated comments.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T15:56:20.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T15:56:49.386Z"
+    },
+    {
+      "id": "tk-e3fbc28b4f1e",
+      "title": "Add current docs/spec title-identity law and drift coverage",
+      "type": "code",
+      "section": "Spec and docs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T15:53:00.723Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC7",
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T15:57:07.192Z",
+      "verification": "RED: `pnpm exec vitest run src/handoff-footer-drift.test.ts` failed because `rq-titleIdentity01` was missing. GREEN: same command passed with 24 tests after adding `rq-titleIdentity01` to canonical spec and markdown mirror, adding drift assertions, and updating current tab-title docs/comments. Static searches: `project: advChange` has no matches; `Project: change-id` remains only in a negative drift assertion.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `rq-titleIdentity01` to `.adv/specs/chat-output-display/spec.json` with scenarios for active change id, inactive project fallback, status-churn no-retitle, and title safety preservation. Updated `docs/specs/chat-output-display.md`, drift assertions in `handoff-footer-drift.test.ts`, and current tab-title prose in `ADV_INSTRUCTIONS.md` / `events/status.ts`. Preserved `rq-titleBell01` unchanged and left historical-only references untouched.",
+      "filesTouched": [
+        ".adv/specs/chat-output-display/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/chat-output-display.md",
+        "plugin/src/events/status.ts",
+        "plugin/src/handoff-footer-drift.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/chat-output-display/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/chat-output-display.md",
+        "plugin/src/events/status.ts",
+        "plugin/src/handoff-footer-drift.test.ts"
+      ],
+      "checkpointSha": "d39bef140ec41699b5bc7e29cdcb329b8aef4208",
+      "completedAt": "2026-05-22T15:59:23.202Z",
+      "completed_at": "2026-05-22T15:59:23.202Z",
+      "notes": "Added title identity spec/docs law and drift coverage. Checkpoint commit d39bef140ec41699b5bc7e29cdcb329b8aef4208.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Focused RED drift test failed because `rq-titleIdentity01` was absent.",
+            "diagnosis": "Expected failure after adding drift assertion before spec/docs law.",
+            "fix_tried": "Added canonical spec requirement, markdown mirror, current docs update, and drift assertions.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T15:58:36.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T15:59:38.398Z"
+    },
+    {
+      "id": "tk-b975614f63fc",
+      "title": "Run final verification and contract/static safety audit",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T15:53:29.497Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-26267080ad36"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e3fbc28b4f1e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T15:59:55.504Z",
+      "verification": "Focused verification passed: `pnpm exec vitest run src/events/events.test.ts src/events/terminal.test.ts src/handoff-footer-drift.test.ts` (94 tests), static title audit passed, full `pnpm test` passed after remediating unrelated pre-existing drift failures surfaced by the first run, `pnpm run check` passed after formatting, `pnpm run build` passed, and `adv_change_validate strict:true` passed with non-blocking NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran focused title/spec verification, static title safety/current-doc audit, full `pnpm test`, `pnpm run check`, `pnpm run build`, and strict ADV validation. First full test run exposed unrelated pre-existing drift failures (`adv-tron` lgrep remote index tool permission, advance-meta mirror test metadata, missing external citation for `rq-noSourceChecklistReads01`); applied minimal corrections so the full suite passes. Formatted `events.test.ts` to satisfy check.",
+      "filesTouched": [
+        ".opencode/agents/adv-tron.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/events/events.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-tron.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/events/events.test.ts"
+      ],
+      "checkpointSha": "b77901277067b699f6a9423d52052521a825c39a",
+      "completedAt": "2026-05-22T16:06:29.097Z",
+      "completed_at": "2026-05-22T16:06:29.097Z",
+      "notes": "Final verification complete. Checkpoint commit b77901277067b699f6a9423d52052521a825c39a.",
+      "error_recovery": {
+        "last_error": "Initial `pnpm test` failed on three unrelated pre-existing drift tests; initial `pnpm run check` failed on Prettier formatting for events.test.ts.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm test` failed: adv-tron agent missing `lgrep_index_symbols_repo`, deploy-local test expected stale advance-meta v1.10 metadata, and spec citation invariant lacked external citation for `rq-noSourceChecklistReads01`.",
+            "diagnosis": "Failures were unrelated to terminal title behavior but blocked AC8 full-suite verification; all were small drift corrections from prior archived work.",
+            "fix_tried": "Added `lgrep_index_symbols_repo: true`, updated deploy-local assertions to v1.11/2026-05-22 and `rq-noSourceChecklistReads01`, and cited `rq-noSourceChecklistReads01` in ADV_INSTRUCTIONS.",
+            "strategy_label": "repair pre-existing drift blockers",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T16:03:40.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "`pnpm run check` failed on Prettier formatting for `src/events/events.test.ts`.",
+            "diagnosis": "Test edits needed formatting after line wrapping.",
+            "fix_tried": "Ran `pnpm exec prettier --write src/events/events.test.ts` and reran check.",
+            "strategy_label": "format remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T16:05:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T16:06:44.509Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-SLo0Hq",
+      "type": "gotcha",
+      "content": "Full-suite verification can surface unrelated archived-change drift (asset allowlists, spec mirror metadata, citation invariants). Classify first; when failures are tiny structural drift blockers, repair minimally and record them in task error_recovery rather than weakening the requested verification bar.",
+      "source_task": "tk-b975614f63fc",
+      "recorded_at": "2026-05-22T16:06:55.469Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T15:37:41.091Z",
+      "completed_by": "agent:adv-proposal",
+      "approval_evidence": "User approved proposal checkpoint with reply: continue. Problem, scope, success criteria, constraints, and avoidances are captured in proposal artifacts.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/proposal.md",
+        "content_hash": "4814e7ba1c135978e932cbec6b8cc7f717177b75313d95bc51d0663930b72f69",
+        "non_whitespace_chars": 2241,
+        "checked_at": "2026-05-22T15:37:41.128Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T15:47:43.684Z",
+      "completed_by": "agent:adv-discover",
+      "approval_evidence": "Discovery completed. User approved AC and agreement via `approve`. Agreement persisted and contract minted with 17 items. Duplicate `updateTerminalTitles` closed as superseded by user request.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/agreement.md",
+        "content_hash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "non_whitespace_chars": 2783,
+        "checked_at": "2026-05-22T15:47:43.752Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T15:52:12.910Z",
+      "completed_by": "agent:adv-design",
+      "approval_evidence": "Design completed. Straightforward formatter-boundary design; independent validator verdict VALIDATED. No user-value tradeoff, unresolved conflict, or contract-compromise risk. Design persisted with implementation strategy, risk mitigations, and validator result.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/design.md",
+        "content_hash": "4e74f69561e3b69b5f0d7897e3c8cc3a4f1a91159e4b04b3f33b14d50e7873fb",
+        "non_whitespace_chars": 6086,
+        "checked_at": "2026-05-22T15:52:12.968Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T15:54:43.145Z",
+      "completed_by": "agent:adv-prep",
+      "approval_evidence": "User approved prep plan via inline Tier A reply: `approve`. Task graph has 3 tasks with TDD intent, dependencies, contract refs, and verification coverage. Strict validation passed with non-blocking NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T16:07:13.444Z",
+      "completed_by": "agent:adv-apply",
+      "approval_evidence": "Execution completed. All 3 planned tasks are done with checkpoint commits. Verification passed: focused title/spec tests (94 tests), static title audit, full `pnpm test`, `pnpm run check`, `pnpm run build`, and strict ADV validation. Non-blocking validation warning remains: NO_DELTAS."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T16:31:18.246Z",
+      "completed_by": "agent:adv-review",
+      "approval_evidence": "User accepted delivered work via inline Tier A reply: `accept`. Contract review matrix has 17/17 rows passed/respected and executive summary is persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/acceptance.md",
+        "content_hash": "76c636ed1cfce8fbb3e72f30b63e54149e37e8542f9a2086dcaa31a78f52cda0",
+        "non_whitespace_chars": 3998,
+        "checked_at": "2026-05-22T16:31:18.319Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+      "approvedAt": "2026-05-22T15:46:48.488Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Active change title format is exactly `<change-id>` after existing trim/control-byte sanitization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Inactive title format is exactly `<project>` after existing trim/control-byte sanitization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Project name is not prefixed when a change id exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Worktree path, git branch, trunk/main checkout, status marker, progress, blocked marker, and emoji are not included in title strings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover active title, inactive title, empty/whitespace change id fallback, empty project with active change, sanitization, no-BEL/ST title output, and no status-churn retitle behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing tmux, `/dev/tty`, and stdout fallback title emission behavior remains intact aside from title text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Current docs/specs no longer describe the active title as `Project: change-id`; they describe `change-id` active fallback to `project` inactive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Verification from `plugin/` passes: focused terminal/events/spec tests, `pnpm test`, `pnpm run check`, and `pnpm run build`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not migrate to OpenCode `session.title` ownership in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not change chat status markers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not add Warp-specific rich styling assumptions; Warp title is plain text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not rewrite historical changelog/research-pack entries that are clearly historical unless they claim current behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not weaken existing no-BEL or control-byte sanitization guarantees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Avoid heuristic title shortening, acronym generation, verb stripping, humanization, or model-derived title text.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Avoid exposing trunk/worktree mechanics in user-visible title strings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Avoid replacing removed BEL behavior with OSC 9, OSC 777, or another ADV-owned terminal notification protocol.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Avoid using terminal title display metadata as authority for workflow correctness, security, permissions, persistence, gate completion, or spec compliance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "78f80a61ff6df46101969d1d4232f3e5ba592a08d7fbc3c43e96d32baf58444d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T16:08:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused events/terminal tests passed; `buildTabTitle` active change returns raw change id and emitted active OSC payload is change id only.",
+          "notes": "Verified by tk-26267080ad36 and final focused tests."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused `buildTabTitle` inactive test passed: no active change returns project name.",
+          "notes": "Verified by tk-26267080ad36."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused terminal test asserts emitted active title does not contain `advance: addFeatureX`; static audit forbids current `Project: change-id` runtime wording.",
+          "notes": "Verified by tk-26267080ad36/tk-b975614f63fc."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused formatter tests cover ignored status emoji/prefix/progress and active output contains only change id; design/review found no worktree/branch/trunk title inputs.",
+          "notes": "Reviewer approved no scope drift."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused test suite passed: active, inactive, whitespace fallback, empty project active, sanitization, no-BEL/ST, and status-churn no-retitle coverage.",
+          "notes": "`pnpm exec vitest run src/events/events.test.ts src/events/terminal.test.ts src/handoff-footer-drift.test.ts` passed (94 tests)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No emission control-flow changes; terminal tests covering tmux argv safety, no-BEL/ST, failed emission retry, and stdout fallback passed.",
+          "notes": "Reviewer approved preservation."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`rq-titleIdentity01` added to canonical spec and markdown mirror; ADV_INSTRUCTIONS/status current wording updated; drift test passed.",
+          "notes": "Static audit found no `project: advChange`; `Project: change-id` remains only in a negative assertion."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused tests passed; full `pnpm test` passed; `pnpm run check` passed; `pnpm run build` passed; strict ADV validation passed with NO_DELTAS warning only.",
+          "notes": "Final verification task tk-b975614f63fc."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No `session.title` migration added; implementation remains in terminal formatter/emission path.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No status marker enum/semantic changes; only title docs/comment and existing test formatting touched.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Warp styling/rich-title assumptions added; spec states plain title identity only.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Historical changelog/research-pack entries left untouched; only current docs/specs and runtime comments updated.",
+          "notes": "Reviewer explicitly said not to revisit historical CHANGELOG entries."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "`rq-titleBell01` unchanged; terminal no-BEL/ST/control-byte tests passed; static audit found no OSC 9/777 in terminal runtime.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Formatter remains trim-only with raw change id precedence; no humanization/shortening/model-derived text added.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No worktree/trunk/branch inputs added to title path; active title tests assert change id only.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Static audit checked terminal runtime for `OSC 9` and `OSC 777`; none added. No BEL replacement protocol added.",
+          "notes": "Reviewer approved."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Title remains display-only metadata; no workflow/security/persistence/gate logic reads terminal title.",
+          "notes": "Reviewer approved and aligns with P33."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Active change title format is exactly `<change-id>` after existing trim/control-byte sanitization.",
+    "Inactive title format is exactly `<project>` after existing trim/control-byte sanitization.",
+    "Project name is not prefixed when a change id exists.",
+    "Worktree path, git branch, trunk/main checkout, status marker, progress, blocked marker, and emoji are not included in title strings.",
+    "Tests cover active title, inactive title, empty/whitespace change id fallback, empty project with active change, sanitization, no-BEL/ST title output, and no status-churn retitle behavior.",
+    "Existing tmux, `/dev/tty`, and stdout fallback title emission behavior remains intact aside from title text.",
+    "Current docs/specs no longer describe the active title as `Project: change-id`; they describe `change-id` active fallback to `project` inactive.",
+    "Verification from `plugin/` passes: focused terminal/events/spec tests, `pnpm test`, `pnpm run check`, and `pnpm run build`."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/proposal.md",
+      "updatedAt": "2026-05-22T16:13:41.173Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/problem-statement.md",
+      "updatedAt": "2026-05-22T16:13:41.187Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/agreement.md",
+      "updatedAt": "2026-05-22T16:13:41.203Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTerminalTitles2/design.md",
+      "updatedAt": "2026-05-22T16:13:41.209Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T16:31:18.246Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-22T15:35:19.542Z"
+    }
+  ]
+}
