@@ -262,8 +262,9 @@ Typical outcomes:
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
-`build`, `adv-researcher`, `adv-engineer`). The `adv-researcher` and `adv-engineer`
-agents are synced globally by `deploy-local.sh` as bundled global specialists. The `adv-tron` agent remains
+`build`, `adv-researcher`, `adv-engineer`, `adv-reviewer`). The `adv-researcher`,
+`adv-engineer`, and `adv-reviewer` agents are synced globally by `deploy-local.sh`
+as bundled global specialists. The `adv-tron` agent remains
 repo-local in `.opencode/agents/`. All ADV-shipped sub-agents use the `adv-<name>` naming convention. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
