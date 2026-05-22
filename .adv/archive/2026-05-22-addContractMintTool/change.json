@@ -1,0 +1,780 @@
+{
+  "id": "addContractMintTool",
+  "title": "Add contract mint tool",
+  "status": "archived",
+  "created_at": "2026-05-21T04:04:36.532Z",
+  "tasks": [
+    {
+      "id": "tk-a9a5bc372ab8",
+      "title": "Add deterministic contract mint parser",
+      "type": "code",
+      "section": "Parser",
+      "status": "done",
+      "priority": 0,
+      "deps": [],
+      "created_at": "2026-05-21T05:34:14.351Z",
+      "started_at": "2026-05-21T05:36:21.725Z",
+      "completed_at": "2026-05-21T05:38:43.980Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/validator/contract-mint.test.ts failed because ./contract-mint did not exist. GREEN: same command passed (4 tests). Implemented deterministic agreement-to-ChangeContract parser with anchored section/label mapping, stable IDs, source hash, approvedAt, evidence policies, and schema validation.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/validator/contract-mint.test.ts",
+        "plugin/src/validator/contract-mint.ts"
+      ],
+      "checkpointSha": "6b25d8e9aa26007038cce83471ec2a9de5995dd7",
+      "completedAt": "2026-05-21T05:38:43.980Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/validator/contract-mint.test.ts",
+        "plugin/src/validator/contract-mint.ts"
+      ]
+    },
+    {
+      "id": "tk-e5ce9e836a9e",
+      "title": "Preserve contract proof during workflow seed and re-import",
+      "type": "code",
+      "section": "Recovery",
+      "status": "done",
+      "priority": 1,
+      "deps": [],
+      "created_at": "2026-05-21T05:34:23.049Z",
+      "started_at": "2026-05-21T05:39:03.590Z",
+      "completed_at": "2026-05-21T05:42:43.589Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/temporal/workflow-start.test.ts src/storage/store-temporal/index.test.ts failed because reImportChangeState and poisoned re-seed did not preserve contract proof fields. GREEN: same command passed (14 tests). Added Change projection fields and propagated contract, acceptanceCriteria, documents, artifacts, and lastSignalAt through mapTemporalChangeStateToChange, reImportChangeState, and reseedChangeFromDisk.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/workflow-start.test.ts",
+        "plugin/src/temporal/workflow-start.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "045833927d06eace58b33790093c418a822853c1",
+      "completedAt": "2026-05-21T05:42:43.589Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/workflow-start.test.ts",
+        "plugin/src/temporal/workflow-start.ts",
+        "plugin/src/types/changes.ts"
+      ]
+    },
+    {
+      "id": "tk-ba27ebec5f34",
+      "title": "Add production contract MCP tools and registration",
+      "type": "code",
+      "section": "Tools",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a9a5bc372ab8"
+        }
+      ],
+      "created_at": "2026-05-21T05:34:33.418Z",
+      "started_at": "2026-05-21T05:46:32.726Z",
+      "completed_at": "2026-05-21T05:46:50.032Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/tools/contract.test.ts failed because ./contract tool module did not exist. GREEN: same command passed (4 tests). Added adv_contract_mint and adv_contract_review_matrix_set production tools, healthy signal paths through fireSignalAndRefresh, dry-run handling, review-matrix ID validation, and tool-registry/degraded-name registration.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts"
+      ],
+      "checkpointSha": "74cec038b619559e7158149d5bec554f6d6fd2c3",
+      "completedAt": "2026-05-21T05:46:50.032Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts"
+      ]
+    },
+    {
+      "id": "tk-d61000bf66c0",
+      "title": "Add precise poisoned-history recovery path for contract tools",
+      "type": "code",
+      "section": "Recovery",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ba27ebec5f34"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e5ce9e836a9e"
+        }
+      ],
+      "created_at": "2026-05-21T05:34:43.006Z",
+      "started_at": "2026-05-21T05:49:38.750Z",
+      "completed_at": "2026-05-21T05:49:56.141Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "GREEN: pnpm exec vitest run src/tools/contract.test.ts src/storage/store-temporal/index.test.ts passed (18 tests). Added shared precise poisoned-history classifier, rewired store projection recovery to use it, and added guarded contract/review-matrix disk recovery requiring recoveryEvidence, poisoned marker or precise poisoned signal error, _recoveryMutation output, and reconciliation warning. Missing-workflow errors do not authorize recovery.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts"
+      ],
+      "checkpointSha": "33c799e0579cc114346fc557025170d43466e380",
+      "completedAt": "2026-05-21T05:49:56.141Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts"
+      ]
+    },
+    {
+      "id": "tk-c836b7229790",
+      "title": "Expose compatibilityReason on adv_gate_complete with acceptance-only recovery fallback",
+      "type": "code",
+      "section": "Gate Recovery",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e5ce9e836a9e"
+        }
+      ],
+      "created_at": "2026-05-21T05:34:52.447Z",
+      "started_at": "2026-05-21T05:50:12.298Z",
+      "completed_at": "2026-05-21T05:53:26.806Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/tools/gate.test.ts failed for missing compatibilityReason forwarding, non-acceptance rejection, and poisoned-history disk recovery. GREEN: same command passed (19 tests). Added acceptance-only compatibilityReason arg, signal payload forwarding, precise poisoned-history acceptance disk recovery with readiness/prior-gate/task checks, and reconciliation warning.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "f980dc474299f818df29ff7905458cdbc0c066ad",
+      "completedAt": "2026-05-21T05:53:26.806Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ]
+    },
+    {
+      "id": "tk-0720eb1ee73c",
+      "title": "Align ADV command docs and asset tests with contract tools",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ba27ebec5f34"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c836b7229790"
+        }
+      ],
+      "created_at": "2026-05-21T05:35:02.454Z",
+      "started_at": "2026-05-21T05:54:27.013Z",
+      "completed_at": "2026-05-21T05:54:43.719Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "GREEN: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts passed (50 tests). Updated adv-discover to call adv_contract_mint, adv-review to call adv_contract_review_matrix_set, added poisoned-history recovery notes, and pinned tool names in asset tests.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "75978fc09f3614e991ad70d761f2458c6c192f89",
+      "completedAt": "2026-05-21T05:54:43.719Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ]
+    },
+    {
+      "id": "tk-b0d86593170f",
+      "title": "Verify contract recovery change end-to-end",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 6,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d61000bf66c0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0720eb1ee73c"
+        }
+      ],
+      "created_at": "2026-05-21T05:35:11.478Z",
+      "started_at": "2026-05-21T05:55:02.932Z",
+      "completed_at": "2026-05-21T06:08:39.357Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Post-review remediation checkpoint. adv-reviewer verdict READY; remediations: unrecognized labels fall back to deterministic IDs, review matrix tool accepts rows or complete reviewMatrix, docs evidence-policy mapping aligned. Verification after remediation: focused 6-file suite passed (96 tests); pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/validator/contract-mint.test.ts",
+        "plugin/src/validator/contract-mint.ts"
+      ],
+      "checkpointSha": "1589d9807cade55d3894ba71e4e0e236bba23787",
+      "completedAt": "2026-05-21T06:08:39.357Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/validator/contract-mint.test.ts",
+        "plugin/src/validator/contract-mint.ts"
+      ]
+    },
+    {
+      "id": "tk-29ac117f6fb9",
+      "title": "Enforce discovery contract readiness structurally",
+      "type": "code",
+      "section": "Re-entry: Contract Gate",
+      "status": "done",
+      "priority": 7,
+      "deps": [],
+      "created_at": "2026-05-21T06:17:00.430Z",
+      "started_at": "2026-05-21T06:18:12.844Z",
+      "completed_at": "2026-05-21T06:19:43.007Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/temporal/gate-readiness.test.ts failed because discovery allowed agreement without contract. GREEN: same command passed (11 tests). Added DISCOVERY_CONTRACT_MISSING structural readiness blocker when agreement document/artifact exists and contract is absent; pre-agreement discovery remains unblocked.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts"
+      ],
+      "checkpointSha": "c2361531fe0a8cc534f07a2a23a3e28d996cc23d",
+      "completedAt": "2026-05-21T06:19:43.007Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts"
+      ]
+    },
+    {
+      "id": "tk-ab71cbc8f19e",
+      "title": "Make contract mint usable before discovery completion",
+      "type": "code",
+      "section": "Re-entry: Mint Timing",
+      "status": "done",
+      "priority": 8,
+      "deps": [],
+      "created_at": "2026-05-21T06:17:09.478Z",
+      "started_at": "2026-05-21T06:20:00.029Z",
+      "completed_at": "2026-05-21T06:21:40.860Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/tools/contract.test.ts failed because adv_contract_mint required discovery.completed_at. GREEN: same command passed (10 tests). Added optional approvedAt arg and defaulted approvedAt to discovery completion timestamp or current time when minting before discovery completion.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts"
+      ],
+      "checkpointSha": "3936ef109e23c33e6d9db47462056ee064676393",
+      "completedAt": "2026-05-21T06:21:40.860Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts"
+      ]
+    },
+    {
+      "id": "tk-fb9f0b4cf858",
+      "title": "Add bootstrap/reload and pre-acceptance contract preflight guidance",
+      "type": "code",
+      "section": "Re-entry: Bootstrap Docs",
+      "status": "done",
+      "priority": 9,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-29ac117f6fb9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ab71cbc8f19e"
+        }
+      ],
+      "created_at": "2026-05-21T06:17:20.218Z",
+      "started_at": "2026-05-21T06:21:57.438Z",
+      "completed_at": "2026-05-21T06:24:41.912Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED: pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts failed for missing DISCOVERY_CONTRACT_MISSING/reload/preflight guidance. GREEN: same command passed (52 tests). Added discover remediation ordering, review pre-acceptance contract/live-tool preflight, prep Tool Registration Bootstrap checklist, and asset assertions.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        "docs/checklists/prep-checklist.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "bb3f3351a9d4c6814575c07a96f9b41cbe541abb",
+      "completedAt": "2026-05-21T06:24:41.912Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        "docs/checklists/prep-checklist.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ]
+    },
+    {
+      "id": "tk-8828d8595c7c",
+      "title": "Verify re-entry contract miss prevention fixes",
+      "type": "code",
+      "section": "Re-entry: Verification",
+      "status": "done",
+      "priority": 10,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fb9f0b4cf858"
+        }
+      ],
+      "created_at": "2026-05-21T06:17:30.146Z",
+      "started_at": "2026-05-21T06:25:04.281Z",
+      "completed_at": "2026-05-21T18:48:04.840Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Review remediation complete. Red tests were added for invalid approvedAt, unsafe change IDs, reviewMatrix validation asymmetry, poisoned-history review-matrix recovery, and task contract_refs referential integrity. GREEN: pnpm exec vitest run src/tools/contract.test.ts src/tools/task.test.ts src/tools/gate.test.ts src/temporal/workflow-start.test.ts src/storage/store-temporal/index.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/workflows.test.ts src/validator/contract-mint.test.ts passed (89 tests). pnpm run check passed. pnpm run build passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflow-start.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/validator/contract-mint.ts"
+      ],
+      "checkpointSha": "4e55fa30629520bdea7d3007291d47d873bcf5d2",
+      "completedAt": "2026-05-21T18:48:04.840Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        "plugin/src/storage/store-temporal/index.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflow-start.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/validator/contract-mint.ts"
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:16:12.798Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal/problem statement via reply: approve",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/proposal.md",
+        "content_hash": "64c6a9947ab4f0e5d8f98612b1c8f6b202cc2c9decce119601145ed97a1aa2ee",
+        "non_whitespace_chars": 4076,
+        "checked_at": "2026-05-21T05:16:12.866Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:21:11.743Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement via reply: approve. Discovery findings and agreement persisted; design can proceed.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/agreement.md",
+        "content_hash": "31b4b9325ace2f4cf441217e8154e2d4bc4e21dd7323d1d911ca0f157ece5ee3",
+        "non_whitespace_chars": 3739,
+        "checked_at": "2026-05-21T05:21:11.780Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:16:43.772Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry design addendum persisted to fix acceptance-contract miss prevention. User requested fixing all identified points now; no product tradeoff or validator conflict introduced.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/design.md",
+        "content_hash": "08ba828ce7815fa73c1e64c32d3941d2c14929734407dd46e10303a727930306",
+        "non_whitespace_chars": 2180,
+        "checked_at": "2026-05-21T06:16:43.825Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:17:57.107Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved re-entry prep task graph via reply: approve"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:28:31.305Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-entry execution complete. Added structural DISCOVERY_CONTRACT_MISSING readiness, made adv_contract_mint usable before discovery completion, added bootstrap/reload and pre-acceptance contract preflight guidance. Focused tests, pnpm run check, and pnpm run build passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T02:53:55.270Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User-driven recovery: drain archive backlog after Phase 1 fixes deployed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Legacy poisoned workflow predates contract proof persistence. Original work shipped on trunk (commits in addContractMintTool branch reachable from 46e33ad). 11 tasks completed with verification evidence in executive-summary.md. Contract + review matrix reconstructed via poisoned-history recovery; matrix 13/13 pass."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+      "approvedAt": "2026-05-21T05:21:11.743Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_contract_mint` produces a deterministic ChangeContract from an approved agreement with stable IDs, evidence policies, and source hash.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_contract_mint` supports dry-run, force, target-path, and poisoned-history recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_contract_review_matrix_set` persists a typed review matrix through signal or recovery path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_gate_complete acceptance` accepts an explicit `compatibilityReason` for legacy/replay recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Temporal re-import/re-seed preserves contract, acceptanceCriteria, documents, and artifacts on a Change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Discovery gate blocks on `DISCOVERY_CONTRACT_MISSING` when agreement is present and contract is absent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Task `contract_refs` referencing unknown contract items are rejected by validation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Targeted vitest, `pnpm run check`, and `pnpm run build` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve healthy-path signal semantics for non-recovery contract operations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No direct ADV state file editing outside the documented recovery helpers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No Temporal DB surgery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not weaken contract-proof checks; recovery still requires explicit recoveryMode + recoveryEvidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not silently downgrade missing-workflow errors to poisoned-history recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "89091b944d3982bab805999594bc9daf89f1b47c710e8556ecdcd84c2b69c895",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T03:01:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Deterministic parser shipped in plugin/src/validator/contract-mint.ts; verified by tk-a9a5bc372ab8 (RED/GREEN passed 4 tests).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_contract_mint with dry-run/force/target_path/poisoned-history mode in plugin/src/tools/contract.ts; verified by tk-ba27ebec5f34/tk-d61000bf66c0/tk-ab71cbc8f19e.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_contract_review_matrix_set with signal + recovery in plugin/src/tools/contract.ts; verified by tk-ba27ebec5f34.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "compatibilityReason argument in adv_gate_complete acceptance gate in plugin/src/tools/gate.ts; verified by tk-c836b7229790 (19 tests passed).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Re-import/re-seed preservation in plugin/src/storage/store-temporal/index.ts + workflow-start.ts; verified by tk-e5ce9e836a9e (14 tests passed).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "DISCOVERY_CONTRACT_MISSING readiness blocker in plugin/src/temporal/gate-readiness.ts; verified by tk-29ac117f6fb9 (11 tests passed).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task contract_refs referential validation in plugin/src/validator/contract.ts (CONTRACT_UNKNOWN_REF + CONTRACT_AC_UNCOVERED).",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Executive summary confirms 89-test focused remediation suite + pnpm run check + pnpm run build green.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Healthy-path contract signal preserved; recovery is opt-in via recoveryMode.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery writes via saveRecoveredContract/saveRecoveredReviewMatrix helpers only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Temporal DB surgery; probe + disk projection only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "recoveryMode + non-empty recoveryEvidence required for every recovery operation.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "missing-workflow errors do not authorize recovery (covered by negative test).",
+          "notes": ""
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "`adv_contract_mint` produces a deterministic ChangeContract from an approved agreement with stable IDs, evidence policies, and source hash.",
+    "`adv_contract_mint` supports dry-run, force, target-path, and poisoned-history recovery.",
+    "`adv_contract_review_matrix_set` persists a typed review matrix through signal or recovery path.",
+    "`adv_gate_complete acceptance` accepts an explicit `compatibilityReason` for legacy/replay recovery.",
+    "Temporal re-import/re-seed preserves contract, acceptanceCriteria, documents, and artifacts on a Change.",
+    "Discovery gate blocks on `DISCOVERY_CONTRACT_MISSING` when agreement is present and contract is absent.",
+    "Task `contract_refs` referencing unknown contract items are rejected by validation.",
+    "Targeted vitest, `pnpm run check`, and `pnpm run build` pass."
+  ],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-21T22:07:15.738Z"
+    }
+  ],
+  "reentry_history": [
+    {
+      "from_gate": "design",
+      "reason": "Fix acceptance-contract orchestration miss discovered at acceptance: discovery did not structurally enforce contract minting, contract mint required a completed discovery timestamp despite docs requiring mint before discovery completion, prep omitted self-application/reload task, and acceptance flow failed late instead of preflighting live tool availability.",
+      "scope_delta": "Add structural discovery gate contract enforcement, allow contract mint before discovery gate completion with explicit/derived approvedAt, add pre-acceptance contract/live-tool preflight guidance/tests, and add bootstrap self-application/reload task coverage.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-21T06:15:36.872Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "_source": "disk",
+  "_recovery": {
+    "mode": "temporal_query_fallback",
+    "reason": "poisoned_history"
+  }
+}
