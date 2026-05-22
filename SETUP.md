@@ -283,7 +283,7 @@ invocation, which is slower and less specialized.
 | `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
 | `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                         |
 | `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT payload for ADV ingestion                                                            |
-| `adv-reviewer`   | `/adv-prep` pre-flight (optional), `/adv-review`, `/adv-harden`               | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT               |
+| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT               |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 

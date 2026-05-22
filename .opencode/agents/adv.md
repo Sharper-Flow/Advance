@@ -271,7 +271,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
 | `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
-| `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |
@@ -281,7 +281,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Max nesting depth | 1 (runtime-enforced via `enforceTaskPolicy`) |
 | Max parallel spawn | 3 (runtime-enforced via `enforceTaskPolicy`). Batch: spawn 3, wait, spawn next 3. |
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
-| Primary agents (not spawnable) | `build`, `plan` (user switches directly) |
+| Primary agents (not spawnable) | `adv`, `build`, `plan`, `adv-atc` (user-selectable top-level agents) |
 
 **Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
 
