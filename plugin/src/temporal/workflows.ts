@@ -677,6 +677,14 @@ export async function changeWorkflow(
     });
 
   const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
+  // Patch rationale: discovery contract enforcement was added after legacy
+  // discovery gate histories already scheduled artifact inspection. During
+  // replay, histories without this marker must take the old no-contract-blocker
+  // branch so their command sequence still schedules inspectArtifactActivity.
+  // Deprecation plan: keep until pre-contract discovery gate histories are
+  // archived/closed and replay fixtures no longer cover that migration path;
+  // then replace the marker with wf.deprecatePatch before final removal.
+  const DISCOVERY_CONTRACT_READINESS_PATCH = "discovery-contract-readiness-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -714,6 +722,10 @@ export async function changeWorkflow(
   ): Promise<void> => {
     const readiness = evaluateGateReadiness(state, payload.gateId, {
       compatibilityReason: payload.compatibilityReason,
+      enforceDiscoveryContract:
+        payload.gateId === "discovery"
+          ? wf.patched(DISCOVERY_CONTRACT_READINESS_PATCH)
+          : true,
     });
     if (!readiness.ready) {
       markGateStuckForBlockers(payload, readiness.blockers);
