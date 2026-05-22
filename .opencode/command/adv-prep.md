@@ -57,7 +57,7 @@ All steps must be executed. Skipping requires explicit justification.
 
 ---
 ## Phase 1: Load Context
-`adv_change_show changeId: <target> include: { snapshot: true, readyTasks: true }` collapses change + gate snapshot + ready-queue into one call. Add `include.ledger: true` only when picking up after a partial execution (re-entry path). When a fresh structured per-gate breakdown is needed (e.g. for prep-checklist enforcement), fall back to `adv_gate_status changeId: <target>`.
+`adv_change_show changeId: <target> include: { snapshot: true, readyTasks: true }` collapses change + gate snapshot + ready-queue into one call. Add `include.ledger: true` only when picking up after a partial execution (re-entry path). When a fresh structured per-gate breakdown is needed (e.g. for prep methodology enforcement), fall back to `adv_gate_status changeId: <target>`.
 
 If `change.contract` exists, load it as planning input. Contract items are the obligation source of truth; legacy `acceptanceCriteria` is only a projection.
 
@@ -76,9 +76,9 @@ Doctor-Lite: check cross-repo routing completeness — flag MUST gap if `target_
 ## Phase 2: Gap Analysis + Task Synthesis
 <!-- rq-prep-synth1 -->
 Run 4-Step Gap Analysis (desired state → current state → gap → action plan) using the embedded methodology above:
-1. **Requirements quality** — INVEST criteria + smell detection (from skill)
-2. **Task sequencing** — absorption analysis, TDD ordering, dependency graph coherence (from skill)
-3. **Cross-cutting concerns** — 12-item checklist, document N/A with rationale (from skill)
+1. **Requirements quality** — INVEST criteria + smell detection (from embedded methodology)
+2. **Task sequencing** — absorption analysis, TDD ordering, dependency graph coherence (from embedded methodology)
+3. **Cross-cutting concerns** — 12-item checklist, document N/A with rationale (from embedded methodology)
 4. **Codebase impact** — search key terms, flag missing files/dependencies
 5. **Cross-spec consistency** — `adv_spec search` for conflicts, terminology inconsistencies
 6. **Cross-repo routing** — verify `related_repos` config, routing metadata, coverage
