@@ -233,9 +233,58 @@ describe("git-finalize helpers", () => {
     });
 
     expect(result.status).toBe("merged");
+    if (result.status === "merged") {
+      expect(result.mergeMethod).toBe("already-reachable");
+    }
     expect(calls.some((c) => c[0] === "merge" && c[1] !== "--abort")).toBe(
       false,
     );
+  });
+
+  // rq-fix-phase9-commit-diverge AC1: ff-only fails but no-ff succeeds when
+  // trunk advanced concurrently while the archive bundle commit was being
+  // written on the change branch.
+  it("mergeChangeBranch falls back to --no-ff when ff-only fails on diverged histories", async () => {
+    const repo = join(tempRoot, "repo-diverged");
+    await mkdir(repo);
+    await initRepo(repo);
+
+    // Create change/diverged branch with a unique commit
+    git(repo, ["checkout", "-b", "change/diverged"]);
+    await writeFile(join(repo, "branch.txt"), "branch\n");
+    git(repo, ["add", "branch.txt"]);
+    git(repo, ["commit", "-m", "branch work"]);
+    const branchTip = git(repo, ["rev-parse", "HEAD"]);
+
+    // Advance trunk with a separate, non-conflicting commit
+    git(repo, ["checkout", "trunk"]);
+    await writeFile(join(repo, "trunk.txt"), "trunk\n");
+    git(repo, ["add", "trunk.txt"]);
+    git(repo, ["commit", "-m", "trunk advance"]);
+    const trunkBefore = git(repo, ["rev-parse", "HEAD"]);
+
+    const result = mergeChangeBranch(repo, "trunk", "diverged", {
+      runGit: (cwd, args) => {
+        const sub = spawnSync("git", args, { cwd, encoding: "utf8" });
+        return {
+          status: sub.status ?? 1,
+          stdout: sub.stdout ?? "",
+          stderr: sub.stderr ?? "",
+        };
+      },
+    });
+
+    expect(result.status).toBe("merged");
+    if (result.status === "merged") {
+      expect(result.mergeMethod).toBe("no-ff");
+    }
+    const trunkAfter = git(repo, ["rev-parse", "HEAD"]);
+    expect(trunkAfter).not.toBe(trunkBefore);
+    expect(trunkAfter).not.toBe(branchTip);
+    // Both files should now exist on trunk
+    const files = git(repo, ["ls-tree", "--name-only", "HEAD"]);
+    expect(files).toContain("branch.txt");
+    expect(files).toContain("trunk.txt");
   });
 
   it("mergeChangeBranch blocks on conflicts and never uses stash", () => {

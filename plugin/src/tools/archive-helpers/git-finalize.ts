@@ -224,8 +224,14 @@ export function verifyChangeBranchReachable(
   return { reachable: unmergedCommits.length === 0, unmergedCommits };
 }
 
+export type MergeMethod = "already-reachable" | "ff-only" | "no-ff";
+
 export type MergeChangeBranchResult =
-  | { status: "merged"; mergeCommitSha: string }
+  | {
+      status: "merged";
+      mergeCommitSha: string;
+      mergeMethod?: MergeMethod;
+    }
   | {
       status: "blocked";
       code: "MERGE_CONFLICT" | "MERGE_FAILED";
@@ -253,6 +259,7 @@ export function mergeChangeBranch(
     return {
       status: "merged",
       mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+      mergeMethod: "already-reachable",
     };
   }
   const merge = runGit(mainCheckout, [
@@ -264,6 +271,7 @@ export function mergeChangeBranch(
     return {
       status: "merged",
       mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+      mergeMethod: "ff-only",
     };
   }
 
@@ -286,7 +294,45 @@ export function mergeChangeBranch(
     };
   }
 
-  return { status: "blocked", code: "MERGE_FAILED", message };
+  // rq-fix-phase9-commit-diverge AC1: ff-only failed but not a conflict
+  // (e.g. trunk advanced concurrently with a release-please CHANGELOG
+  // commit while the archive bundle commit was being written on the
+  // change branch). Try --no-ff, which preserves both histories.
+  // Conflict detection above already short-circuited; this path only
+  // runs when histories are genuinely mergeable but not fast-forwardable.
+  const noff = runGit(mainCheckout, [
+    "merge",
+    "--no-ff",
+    "--no-edit",
+    "-m",
+    `merge: archive bundle for ${changeId}`,
+    `change/${changeId}`,
+  ]);
+  if (noff.status === 0) {
+    return {
+      status: "merged",
+      mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+      mergeMethod: "no-ff",
+    };
+  }
+
+  // no-ff also failed — abort any partial state and report the original
+  // failure cause.
+  const noffConflictFiles = splitLines(
+    runGit(mainCheckout, ["diff", "--name-only", "--diff-filter=U"]).stdout,
+  );
+  runGit(mainCheckout, ["merge", "--abort"]);
+  const noffMessage = noff.stderr || noff.stdout || message;
+  if (noffConflictFiles.length > 0 || /CONFLICT/i.test(noffMessage)) {
+    return {
+      status: "blocked",
+      code: "MERGE_CONFLICT",
+      conflictFiles: noffConflictFiles,
+      message: noffMessage,
+    };
+  }
+
+  return { status: "blocked", code: "MERGE_FAILED", message: noffMessage };
 }
 
 export const mergeToTrunk = mergeChangeBranch;
