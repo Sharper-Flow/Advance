@@ -1,0 +1,5 @@
+# Executive Summary
+
+`fixGateAutoWorktree` fixes ADV worktree mutation isolation for target-scoped gate/task tools. Gate completion and guarded task mutations now derive the effective mutation cwd from the active target store when `target_path` is present, and `adv_gate_complete` production wiring supplies auto-managed worktree resume runtime deps. Legacy standalone worktree aliases were removed from the registry/degraded titles and ADV-facing allowlists/instructions, with `worktree-warp-mode` updated to make canonical `adv_worktree_*` names the only registered worktree family.
+
+Verification passed from `plugin/`: targeted regression tests, `pnpm run check`, `pnpm run build`, and full `pnpm test`. Independent review returned no blocking findings. Release caveat: changed plugin host tool behavior requires build/deploy-local sync and an OpenCode session/plugin-host restart before live runtime validation reflects the source change.
