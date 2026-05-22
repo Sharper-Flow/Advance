@@ -1,3 +1,10 @@
+## 2026-05-22 (v0.11.2)
+
+
+### Change Highlights
+
+- **05-22-compressInstructionProse**: Executive Summary
+
 ## 2026-05-22 (v0.11.1)
 
 
