@@ -1,8 +1,6 @@
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import { classifyTemporalError } from "../../temporal/retry-wrapper";
-import { recoveryReasonFromError } from "../../temporal/recovery-classification";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
@@ -22,6 +20,7 @@ import {
   mapTemporalChangeStateToChange,
   getGuardedChangeHandle,
   runTemporalQuery,
+  classifyTemporalReadFailure,
 } from "./shared";
 import {
   changeStateQuery,
@@ -470,11 +469,12 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      if (classifyTemporalError(err) === "fallback") {
+      const failure = await classifyTemporalReadFailure(input, changeId, err);
+      if (failure.errorClass === "fallback") {
         return withProjectionRecovery(
           change,
           "disk",
-          recoveryReasonFromError(err),
+          failure.recoveryReason ?? "missing_workflow",
         );
       }
       return null;
@@ -513,10 +513,11 @@ export function createTemporalStoreBackend(
       // reseedChangeFromDisk short-circuits and returns the on-disk
       // projection without re-creating the workflow — re-seeding would
       // re-emit a summary signal and undo adv_archive_purge.
-      if (classifyTemporalError(error) === "fallback") {
+      const failure = await classifyTemporalReadFailure(input, changeId, error);
+      if (failure.errorClass === "fallback") {
         const reseeded = await reseedChangeFromDisk(
           changeId,
-          recoveryReasonFromError(error),
+          failure.recoveryReason ?? "missing_workflow",
         );
         if (reseeded) {
           // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.

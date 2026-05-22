@@ -19,6 +19,10 @@ function workflowNotFoundError(): Error {
   );
 }
 
+function genericWorkflowQueryError(): Error {
+  return new Error("Failed to query Workflow");
+}
+
 function archivedChange(id: string): Change {
   return {
     $schema: "https://advance.dev/schemas/change.v1.json",
@@ -216,6 +220,67 @@ async function createMissingWorkflowReseedFailureStore(root: string) {
   });
 }
 
+async function createGenericQueryPoisonedReseedFailureStore(root: string) {
+  const legacy = await createDiskStore(root);
+  let startCallCount = 0;
+  const handle = {
+    query: async () => {
+      throw genericWorkflowQueryError();
+    },
+    describe: async () => ({
+      searchAttributes: {
+        TemporalReportedProblems: [
+          "category=WorkflowTaskFailed cause=WorkflowTaskFailedCauseNonDeterministicError",
+        ],
+      },
+    }),
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => {
+          startCallCount += 1;
+          throw new Error("Temporal start failed: namespace handshake error");
+        },
+      },
+    },
+  };
+
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, startCallCount: () => startCallCount };
+}
+
+async function createGenericQueryUnprovenStore(root: string) {
+  const legacy = await createDiskStore(root);
+  const handle = {
+    query: async () => {
+      throw genericWorkflowQueryError();
+    },
+    describe: async () => ({ searchAttributes: {} }),
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => {
+          throw new Error("Temporal start should not be called");
+        },
+      },
+    },
+  };
+
+  return createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+}
+
 describe("createTemporalStoreBackend change projection fallback", () => {
   let tempDir: string | undefined;
 
@@ -356,6 +421,52 @@ describe("createTemporalStoreBackend change projection fallback", () => {
 
     await expect(store.changes.get("activeMissingReseedFail")).rejects.toThrow(
       /Workflow execution not found/,
+    );
+  });
+
+  it("returns disk projection for generic query failure when visibility reports nondeterminism", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("genericPoisonedVisibility"));
+
+    const { store, startCallCount } =
+      await createGenericQueryPoisonedReseedFailureStore(tempDir);
+    const result = await store.changes.get("genericPoisonedVisibility");
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("genericPoisonedVisibility");
+    const recovered = result.data as Change & {
+      _source?: string;
+      _recovery?: { mode?: string; reason?: string };
+    };
+    expect(recovered._source).toBe("disk");
+    expect(recovered._recovery?.reason).toBe("poisoned_history");
+    expect(recovered._recovery?.mode).toBe("temporal_query_fallback");
+    expect(startCallCount()).toBe(1);
+  });
+
+  it("returns recovered gates for generic query failure when visibility reports nondeterminism", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const change = activeChange("genericPoisonedVisibilityGates");
+    await legacy.changes.save(change);
+
+    const { store } =
+      await createGenericQueryPoisonedReseedFailureStore(tempDir);
+    const gates = await store.gates.get("genericPoisonedVisibilityGates");
+
+    expect(gates).toEqual(change.gates);
+  });
+
+  it("does NOT recover generic query failures without poisoned-history evidence", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("genericUnproven"));
+
+    const store = await createGenericQueryUnprovenStore(tempDir);
+
+    await expect(store.changes.get("genericUnproven")).rejects.toThrow(
+      /Failed to query Workflow/,
     );
   });
 });

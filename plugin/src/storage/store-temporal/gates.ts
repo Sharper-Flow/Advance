@@ -5,8 +5,12 @@ import {
   gateReenteredSignal,
   changeStateQuery,
 } from "../../temporal/messages";
-import { classifyTemporalError } from "../../temporal/retry-wrapper";
-import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
+import {
+  classifyTemporalReadFailure,
+  runTemporal,
+  getGuardedChangeHandle,
+  type StoreDeps,
+} from "./shared";
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {
   const {
@@ -30,7 +34,12 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
         )) as import("../../temporal/contracts").ChangeWorkflowState;
         return state.gates;
       } catch (error) {
-        if (classifyTemporalError(error) !== "fallback") {
+        const failure = await classifyTemporalReadFailure(
+          input,
+          changeId,
+          error,
+        );
+        if (failure.errorClass !== "fallback") {
           throw error;
         }
         const recovered = await getTemporalChange(changeId);
