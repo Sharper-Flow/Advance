@@ -15,22 +15,24 @@ const mocks = vi.hoisted(() => {
     gates: {} as Gates,
     signalPayloads: [] as Array<Record<string, unknown>>,
     handle: {
-      signal: vi.fn(async (_signal: unknown, payload: Record<string, unknown>) => {
-        workflow.signalPayloads.push(payload);
-        const gateId = payload.gateId as keyof Gates | undefined;
-        if (gateId) {
-          workflow.gates = {
-            ...workflow.gates,
-            [gateId]: {
-              ...(workflow.gates[gateId] ?? {}),
-              status: "done",
-              completed_at: payload.completedAt as string,
-              completed_by: payload.completedBy as string,
-              approval_evidence: payload.approvalEvidence as string,
-            },
-          } as Gates;
-        }
-      }),
+      signal: vi.fn(
+        async (_signal: unknown, payload: Record<string, unknown>) => {
+          workflow.signalPayloads.push(payload);
+          const gateId = payload.gateId as keyof Gates | undefined;
+          if (gateId) {
+            workflow.gates = {
+              ...workflow.gates,
+              [gateId]: {
+                ...(workflow.gates[gateId] ?? {}),
+                status: "done",
+                completed_at: payload.completedAt as string,
+                completed_by: payload.completedBy as string,
+                approval_evidence: payload.approvalEvidence as string,
+              },
+            } as Gates;
+          }
+        },
+      ),
       query: vi.fn(async (_query: unknown, gateId?: keyof Gates) =>
         gateId ? workflow.gates[gateId] : workflow.gates,
       ),

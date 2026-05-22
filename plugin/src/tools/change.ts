@@ -917,7 +917,11 @@ async function waitForArchiveReleaseGateCompletion(
   handle: ReturnType<typeof getChangeHandle>,
 ): Promise<GateCompletion | undefined> {
   let latest: GateCompletion | undefined;
-  for (let attempt = 0; attempt < ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS; attempt++) {
+  for (
+    let attempt = 0;
+    attempt < ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS;
+    attempt++
+  ) {
     latest = await querySignal<GateCompletion>(
       handle,
       getGateStatusQuery,
@@ -1044,9 +1048,8 @@ async function recoverReleaseGateViaDiskProjection(input: {
   change: Change;
   evidence: string;
 }): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
-  const { RECOVERY_RECONCILIATION_WARNING } = await import(
-    "../temporal/recovery-classification"
-  );
+  const { RECOVERY_RECONCILIATION_WARNING } =
+    await import("../temporal/recovery-classification");
   const { saveRecoveredGateCompletion } = await import("./_recovery-writers");
   const completion: GateCompletion = {
     status: "done",
@@ -1110,9 +1113,8 @@ async function completeReleaseGateAfterFinalization(input: {
       "release",
     );
   } catch (error) {
-    const { isWorkflowCompletedError } = await import(
-      "../temporal/recovery-classification"
-    );
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
     if (isWorkflowCompletedError(error)) {
       return recoverReleaseGateViaDiskProjection({
         store: input.store,
@@ -1140,9 +1142,8 @@ async function completeReleaseGateAfterFinalization(input: {
       },
     );
   } catch (error) {
-    const { isWorkflowCompletedError } = await import(
-      "../temporal/recovery-classification"
-    );
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
     if (isWorkflowCompletedError(error)) {
       return recoverReleaseGateViaDiskProjection({
         store: input.store,
@@ -3147,90 +3148,90 @@ export const changeTools = {
           try {
             await store.changes.save(change);
           } catch (saveError) {
-          const saveErrorText = collectErrorText(saveError);
-          const contextMismatch = extractContextMismatch(saveError);
-          if (contextMismatch) {
+            const saveErrorText = collectErrorText(saveError);
+            const contextMismatch = extractContextMismatch(saveError);
+            if (contextMismatch) {
+              return formatToolOutput({
+                success: false,
+                error: `Failed to update change status to archived: ${saveErrorText}`,
+                archivePath: archiveResult.archivePath,
+                ...contextMismatch,
+              });
+            }
+            // rq-extend-poisoned-recovery AC5: poisoned-workflow disk fallback
+            // for final status. Bundle is already written; only the workflow
+            // signal that flips the status field fails. Probe + recover.
+            if (recoveryMode === "poisoned_history") {
+              try {
+                const {
+                  RECOVERY_RECONCILIATION_WARNING,
+                  isWorkflowCompletedError,
+                } = await import("../temporal/recovery-classification");
+                const completedWorkflow = isWorkflowCompletedError(saveError);
+                let poisoned = false;
+                if (!completedWorkflow) {
+                  const { workflowHasPoisonedDescription } =
+                    await import("./recovery-probe");
+                  const { getService } = await import("../temporal/service");
+                  const { getChangeHandle } = await import("./_adapters");
+                  const { getProjectId } = await import("../utils/project-id");
+                  const bundle = getService();
+                  const projectId = bundle
+                    ? await getProjectId(store.paths.root)
+                    : null;
+                  const handle =
+                    bundle && projectId
+                      ? getChangeHandle(bundle.client, projectId, changeId)
+                      : undefined;
+                  poisoned = handle
+                    ? await workflowHasPoisonedDescription(handle)
+                    : false;
+                }
+                if (completedWorkflow || poisoned) {
+                  const { saveRecoveredChangeStatus } =
+                    await import("./_recovery-writers");
+                  await saveRecoveredChangeStatus({
+                    store,
+                    change,
+                    status: "archived",
+                  });
+                  return formatToolOutput({
+                    success: true,
+                    archivePath: archiveResult.archivePath,
+                    specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                      capability: s.capability,
+                      version: `${s.originalVersion} → ${s.newVersion}`,
+                      deltas: s.deltaResults.length,
+                    })),
+                    _recoveryMutation: true,
+                    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                  });
+                }
+              } catch {
+                // Fall through to the standard error response.
+              }
+            }
+            const searchAttributeRecovery = isSearchAttributeArchiveFailure(
+              saveErrorText,
+            )
+              ? {
+                  recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
+                  retrySafe: true,
+                }
+              : {};
+            // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
+            // the real reason) so the caller can diagnose the failure.
             return formatToolOutput({
               success: false,
               error: `Failed to update change status to archived: ${saveErrorText}`,
               archivePath: archiveResult.archivePath,
-              ...contextMismatch,
+              ...searchAttributeRecovery,
+              specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                capability: s.capability,
+                version: `${s.originalVersion} → ${s.newVersion}`,
+                deltas: s.deltaResults.length,
+              })),
             });
-          }
-          // rq-extend-poisoned-recovery AC5: poisoned-workflow disk fallback
-          // for final status. Bundle is already written; only the workflow
-          // signal that flips the status field fails. Probe + recover.
-          if (recoveryMode === "poisoned_history") {
-            try {
-              const {
-                RECOVERY_RECONCILIATION_WARNING,
-                isWorkflowCompletedError,
-              } = await import("../temporal/recovery-classification");
-              const completedWorkflow = isWorkflowCompletedError(saveError);
-              let poisoned = false;
-              if (!completedWorkflow) {
-                const { workflowHasPoisonedDescription } =
-                  await import("./recovery-probe");
-                const { getService } = await import("../temporal/service");
-                const { getChangeHandle } = await import("./_adapters");
-                const { getProjectId } = await import("../utils/project-id");
-                const bundle = getService();
-                const projectId = bundle
-                  ? await getProjectId(store.paths.root)
-                  : null;
-                const handle =
-                  bundle && projectId
-                    ? getChangeHandle(bundle.client, projectId, changeId)
-                    : undefined;
-                poisoned = handle
-                  ? await workflowHasPoisonedDescription(handle)
-                  : false;
-              }
-              if (completedWorkflow || poisoned) {
-                const { saveRecoveredChangeStatus } =
-                  await import("./_recovery-writers");
-                await saveRecoveredChangeStatus({
-                  store,
-                  change,
-                  status: "archived",
-                });
-                return formatToolOutput({
-                  success: true,
-                  archivePath: archiveResult.archivePath,
-                  specsUpdated: archiveResult.specsUpdated.map((s) => ({
-                    capability: s.capability,
-                    version: `${s.originalVersion} → ${s.newVersion}`,
-                    deltas: s.deltaResults.length,
-                  })),
-                  _recoveryMutation: true,
-                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                });
-              }
-            } catch {
-              // Fall through to the standard error response.
-            }
-          }
-          const searchAttributeRecovery = isSearchAttributeArchiveFailure(
-            saveErrorText,
-          )
-            ? {
-                recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
-                retrySafe: true,
-              }
-            : {};
-          // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
-          // the real reason) so the caller can diagnose the failure.
-          return formatToolOutput({
-            success: false,
-            error: `Failed to update change status to archived: ${saveErrorText}`,
-            archivePath: archiveResult.archivePath,
-            ...searchAttributeRecovery,
-            specsUpdated: archiveResult.specsUpdated.map((s) => ({
-              capability: s.capability,
-              version: `${s.originalVersion} → ${s.newVersion}`,
-              deltas: s.deltaResults.length,
-            })),
-          });
           }
         }
 
