@@ -458,7 +458,15 @@ categories:
       - id: MAINT-003
         name: dead_code_accumulation
         severity: medium
-        description: "Unreachable or unused code that accumulates over iterations"
+        description: "Unreachable or unused code that accumulates over iterations, including deletion_candidate review findings"
+        subtypes:
+          deletion_candidate:
+            - unused dependency
+            - unused export
+            - unused file
+            - unreachable branch
+            - uncallable private symbol
+            - impossible feature-flag path
         indicators:
           - "Functions that are never called"
           - "Commented-out code blocks"

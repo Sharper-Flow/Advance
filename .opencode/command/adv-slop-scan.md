@@ -50,12 +50,15 @@ Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explor
 <!-- rq-ss005 -->
 <!-- rq-ss006 -->
 <!-- rq-ss009 -->
+<!-- rq-ss010 -->
+<!-- rq-ss011 -->
+<!-- rq-ss012 -->
 
 Run deterministic checks from skill:
 
 - AST structural: deep nesting, complexity (`ESLint`, `radon`, `gocyclo`; brace/indent fallback with `detectionMethod: degraded`)
 - Regex signal layer: defensive overkill, debug artifacts, type evasion, incomplete work, error suppression, hardcoded env, AI signatures, security, `QUAL-012`
-- Dead code: `vulture`, `knip`, `deadcode` when available; otherwise note skipped detector
+- Dead code / deletion candidates: `vulture`, `knip`, `deadcode` when available; otherwise note skipped detector
 
 Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `phase: 1`; include `nestingDepth`/`complexity` where applicable.
 
@@ -69,6 +72,25 @@ Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description
 ### Structural Correctness Bypass (QUAL-012)
 
 Heuristics used only for discovery/ranking/triage/advisory notes are not findings.
+
+### Deletion Candidate Taxonomy
+
+Deletion candidates are `MAINT-003 deletion_candidate` findings, not automatic deletion actions. Subtypes:
+
+- unused dependency
+- unused export
+- unused file
+- unreachable branch
+- uncallable private symbol
+- impossible feature-flag path
+
+Every deletion candidate must include source evidence, confidence, detectionMethod, grouping, actionability, and a verification-oriented fix. Public exports, generated files, tests, fixtures, command modules, plugin registration surfaces, prompt context, examples, and task summaries are protected false-positive surfaces unless target source evidence proves otherwise.
+
+### Deletion Safety / Actionability Boundary
+
+Do not auto-delete. A deletion candidate is actionable only when structural evidence exists: tool-backed symbol/file/dependency evidence, exact reachability proof, entrypoint/config checks, typed roots, or source citations. No single external tool is the sole correctness authority for deletion safety.
+
+Uncertain candidates go to `low-confidence / user-review`. heuristic-only or text-only unused-code guesses are not actionable removal proof.
 
 If `--phase 1` only → Report Generation.
 ## Phase 2: Heuristic Detection
@@ -114,14 +136,18 @@ Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 fin
 
 1. Combine Phase 1 + Phase 2.
 2. Deduplicate same `file:line` + smell ID; prefer Phase 2 description when richer.
-3. Assign `grouping` and `actionability` before sort: high/medium + source evidence → `actionable` / `blocking`; low confidence or context/fixture uncertainty → `low-confidence` / `non-blocking`. Low-confidence findings are not blocking by default.
+3. Assign `grouping` and `actionability` before sort: high/medium + source evidence → `actionable` / `blocking`; low confidence or context/fixture/deletion uncertainty → `low-confidence` / `non-blocking`. Low-confidence findings are not blocking by default.
 4. Sort actionable findings: CRITICAL > HIGH > MEDIUM > LOW.
 5. Group by severity, category, scanner convergence.
+
+### Scanner Coverage Report
+
+Always include a compact scanner coverage summary in normal text output. Track skipped detectors, degraded detectors, timed-out detectors, missing deletion-candidate proof sources, and active false-positive protections.
 
 <!-- rq-ss007 -->
 Text output: `SLOP SCAN REPORT` banner, scope, phase counts, severity/category summaries, actionable findings with smell ID, `file:line`, description, fix, then `Low-confidence / non-blocking findings`, then next steps. No findings → `[OK] No slop detected.`
 
-JSON output: `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields plus `grouping` and `actionability`. `grouping: 'actionable' | 'low-confidence'`; `actionability: 'blocking' | 'non-blocking'`.
+JSON output: `scope`, `phases`, `summary.bySeverity`, `summary.byCategory`, `findings[]` with diagnostic fields plus `grouping` and `actionability`, and `coverage` with `coverage.skippedDetectors`, `coverage.degradedDetectors`, and `coverage.falsePositiveProtections`. `grouping: 'actionable' | 'low-confidence'`; `actionability: 'blocking' | 'non-blocking'`.
 ## Phase 4: Write Metadata
 
 After successful completion, call `adv_project_metadata action:"write"`:

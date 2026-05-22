@@ -54,9 +54,24 @@ Detect repeated null/undefined guards on same identifier. Escalate at `defensive
 | Quality | `QUAL-*` | Happy path only, confident incorrectness | All, batched |
 | Documentation | `DOC-*` | Obvious comments, stale docs, copy-paste | Export-heavy |
 | Dependency | `DEP-*` | Bloat, version roulette, phantom deps | Config + imports |
-| Maintainability | `MAINT-*` | Dead code, context collapse, style whiplash | All, batched |
+| Maintainability | `MAINT-*` | Dead code / deletion candidates, context collapse, style whiplash | All, batched |
 | AI-Specific | `AI-*` | Sycophantic code, context blindness | Newest files from git |
 | Performance | `PERF-*` | N+1 queries, excessive renders | Large files >100 lines |
 | Test | `TEST-*` | Magic numbers, assertion roulette | `tests/`, `__tests__/` |
 
 Cap each file at 3 scanners. Priority: Hallucination, Structure, Quality; add only strongest specialized bucket.
+
+## Deletion Candidate Taxonomy (`MAINT-003`)
+
+Use `MAINT-003 deletion_candidate` subtypes for removal-oriented findings:
+
+| Subtype | Evidence expectation |
+|---|---|
+| unused dependency | Dependency graph/tool output plus package manifest source evidence |
+| unused export | Tool-backed export reachability plus entrypoint/config checks |
+| unused file | Tool-backed file reachability plus generated/test/fixture protection checks |
+| unreachable branch | Structural AST/control-flow evidence, not text search alone |
+| uncallable private symbol | Private symbol reachability proof from tool or exact graph evidence |
+| impossible feature-flag path | Typed config/constant/allowlist proof; otherwise missing detector coverage or low-confidence / user-review |
+
+Heuristic-only or text-only unused-code guesses are never actionable removal proof. Route uncertain candidates to low-confidence / user-review.
