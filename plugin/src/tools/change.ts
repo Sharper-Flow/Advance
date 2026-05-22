@@ -252,6 +252,100 @@ function buildSyntheticValidationDraftError(
   };
 }
 
+function collectBlankCreateArtifactOrLinkageFields(input: {
+  proposal?: string;
+  problemStatement?: string;
+  agreement?: string;
+  design?: string;
+  executiveSummary?: string;
+  origin_source_artifact?: string;
+}): string[] {
+  return [
+    { field: "proposal", value: input.proposal },
+    { field: "problemStatement", value: input.problemStatement },
+    { field: "agreement", value: input.agreement },
+    { field: "design", value: input.design },
+    { field: "executiveSummary", value: input.executiveSummary },
+    { field: "origin_source_artifact", value: input.origin_source_artifact },
+  ]
+    .filter(
+      ({ value }) =>
+        value !== undefined &&
+        typeof value === "string" &&
+        value.trim().length === 0,
+    )
+    .map(({ field }) => field);
+}
+
+function validateCreateOriginLinkage(input: {
+  origin_kind?: ChangeOrigin["kind"];
+  origin_issue_number?: number;
+  origin_source_artifact?: string;
+}): { error: string; fields: string[]; hint: string } | undefined {
+  const hasIssue = input.origin_issue_number !== undefined;
+  const hasSource = input.origin_source_artifact !== undefined;
+
+  // rq-backlogCoord08: enforce the create-time origin linkage matrix before
+  // claim checks, workflow start, or any late projection persistence.
+  if (!input.origin_kind) {
+    const fields = [
+      ...(hasIssue ? ["origin_issue_number"] : []),
+      ...(hasSource ? ["origin_source_artifact"] : []),
+    ];
+    if (fields.length > 0) {
+      return {
+        error:
+          "origin_issue_number / origin_source_artifact require origin_kind to be set",
+        fields,
+        hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside allowed linkage fields, or omit linkage fields for an unlinked change.",
+      };
+    }
+    return undefined;
+  }
+
+  if (input.origin_kind === "roadmap") {
+    if (!hasIssue) {
+      return {
+        error: "origin_issue_number is required when origin_kind is 'roadmap'",
+        fields: ["origin_issue_number"],
+        hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
+      };
+    }
+    if (hasSource) {
+      return {
+        error:
+          "origin_source_artifact is only allowed for triage or discovery origins.",
+        fields: ["origin_source_artifact"],
+        hint: "Omit origin_source_artifact for roadmap origins; the issue number is the roadmap linkage.",
+      };
+    }
+  }
+
+  if (input.origin_kind === "discovery" && hasIssue) {
+    return {
+      error: "origin_issue_number is only allowed for roadmap or triage origins.",
+      fields: ["origin_issue_number"],
+      hint: "Use origin_kind 'roadmap' or 'triage' for issue-linked changes, or omit origin_issue_number for discovery origins.",
+    };
+  }
+
+  if (input.origin_kind === "adhoc") {
+    const fields = [
+      ...(hasIssue ? ["origin_issue_number"] : []),
+      ...(hasSource ? ["origin_source_artifact"] : []),
+    ];
+    if (fields.length > 0) {
+      return {
+        error: "origin linkage fields are not allowed for adhoc origins.",
+        fields,
+        hint: "Omit origin_issue_number and origin_source_artifact for adhoc origins.",
+      };
+    }
+  }
+
+  return undefined;
+}
+
 type ChangeIssueUpdate = {
   added: string[];
   removed: string[];
@@ -1691,8 +1785,8 @@ export const changeTools = {
         .positive()
         .optional()
         .describe(
-          "GitHub issue number for kind=roadmap (required) or post-hoc backlinking. " +
-            "Behavior automation (auto-create issue / auto-close on archive) lands in a follow-up change.",
+          "GitHub issue number for kind=roadmap (required) or kind=triage (optional). " +
+            "Rejected for discovery, adhoc, and omitted origin_kind.",
         ),
       origin_source_artifact: z
         .string()
@@ -1750,18 +1844,36 @@ export const changeTools = {
         });
       }
 
-      // Origin validation: kind=roadmap requires an issue number; other kinds
-      // accept it optionally. Origin is typed-state only — behavior automation
-      // (auto-create issue, auto-close on archive) lands in a follow-up change.
+      const blankCreateFields = collectBlankCreateArtifactOrLinkageFields({
+        proposal,
+        problemStatement,
+        agreement,
+        design,
+        executiveSummary,
+        origin_source_artifact,
+      });
+      if (blankCreateFields.length > 0) {
+        return formatToolOutput({
+          error: "Blank artifact or linkage fields are not allowed.",
+          fields: blankCreateFields,
+          hint: "Provide non-blank strings for fields you intend to set, or omit fields you do not intend to set.",
+        });
+      }
+
+      const originLinkageError = validateCreateOriginLinkage({
+        origin_kind,
+        origin_issue_number,
+        origin_source_artifact,
+      });
+      if (originLinkageError) {
+        return formatToolOutput(originLinkageError);
+      }
+
+      // Origin validation: the linkage matrix has already been validated.
+      // Origin is typed-state only — behavior automation (auto-create issue,
+      // auto-close on archive) lands in a follow-up change.
       let origin: ChangeOrigin | undefined;
       if (origin_kind) {
-        if (origin_kind === "roadmap" && origin_issue_number === undefined) {
-          return formatToolOutput({
-            error:
-              "origin_issue_number is required when origin_kind is 'roadmap'",
-            hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
-          });
-        }
         origin = {
           kind: origin_kind,
           ...(origin_issue_number !== undefined
@@ -1771,12 +1883,6 @@ export const changeTools = {
             ? { source_artifact: origin_source_artifact }
             : {}),
         };
-      } else if (origin_issue_number !== undefined || origin_source_artifact) {
-        return formatToolOutput({
-          error:
-            "origin_issue_number / origin_source_artifact require origin_kind to be set",
-          hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside the linkage fields.",
-        });
       }
 
       // rq-backlogCoord02 — Pre-create claim collision check.
