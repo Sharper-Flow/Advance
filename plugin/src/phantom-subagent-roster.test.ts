@@ -91,6 +91,22 @@ function buildPatterns(name: string): PatternSpec[] {
       kind: "numbered-bold-agent",
       pattern: new RegExp(`^\\s*\\d+\\.\\s*\\*\\*${name}\\*\\*`, "gim"),
     },
+    // Plus-separated parallel routing option: "explore + name" / "name + explore".
+    {
+      kind: "plus-routing",
+      pattern: new RegExp(
+        "(?:\\b(?:explore|general|adv-engineer|adv-reviewer|adv-researcher|adv-tron)\\b\\s*\\+\\s*`?" +
+          name +
+          "`?" +
+          notCompound +
+          "|`?" +
+          name +
+          "`?" +
+          notCompound +
+          "\\s*\\+\\s*\\b(?:explore|general|adv-engineer|adv-reviewer|adv-researcher|adv-tron)\\b)",
+        "gi",
+      ),
+    },
     // Slash-separated routing path option: "(X/name/Y)" or "X/name/Y"
     {
       kind: "slash-routing",
@@ -112,6 +128,7 @@ const ACTIVE_SURFACES = [
   "SETUP.md",
   ...markdownFilesUnder(".opencode/agents"),
   ...markdownFilesUnder(".opencode/command"),
+  ...markdownFilesUnder(".opencode/overlays"),
 ];
 
 // Historical/archive paths are intentionally excluded per agreement DONT1:
