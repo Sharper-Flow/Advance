@@ -2570,6 +2570,18 @@ export const changeTools = {
         .describe(
           "Phase 9 git finalization mode. Defaults to run. 'skip' is a compatibility/manual-recovery escape hatch; release gate completion must happen only after reachability/push evidence exists.",
         ),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .describe(
+          "Optional recovery mode. 'poisoned_history' authorizes a disk-projection fallback for the final status transition when the workflow is poisoned AND the archive bundle is already present. Requires recoveryEvidence.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history evidence.",
+        ),
     },
     execute: async (
       {
@@ -2579,6 +2591,8 @@ export const changeTools = {
         noCloseIssue,
         closeIssue: _closeIssue,
         phase9 = "run",
+        recoveryMode,
+        recoveryEvidence,
       }: {
         changeId: string;
         dryRun?: boolean;
@@ -2586,9 +2600,28 @@ export const changeTools = {
         noCloseIssue?: boolean;
         closeIssue?: boolean;
         phase9?: "run" | "skip";
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
+      if (recoveryMode === "poisoned_history") {
+        if (!recoveryEvidence || !recoveryEvidence.trim()) {
+          return formatToolOutput({
+            error:
+              "poisoned_history archive recovery requires non-empty recoveryEvidence",
+          });
+        }
+        const { isPrecisePoisonedHistoryEvidence } = await import(
+          "../temporal/recovery-classification"
+        );
+        if (!isPrecisePoisonedHistoryEvidence(recoveryEvidence)) {
+          return formatToolOutput({
+            error:
+              "poisoned_history archive recoveryEvidence must cite precise poisoned-history evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled)",
+          });
+        }
+      }
       // rq-harden-archive-flow AC1: refresh the change from the workflow
       // before reading. Earlier signals (release-gate completion, review
       // matrix set) can leave the store cache stale and surface as false
@@ -2817,6 +2850,56 @@ export const changeTools = {
               archivePath: archiveResult.archivePath,
               ...contextMismatch,
             });
+          }
+          // rq-extend-poisoned-recovery AC5: poisoned-workflow disk fallback
+          // for final status. Bundle is already written; only the workflow
+          // signal that flips the status field fails. Probe + recover.
+          if (recoveryMode === "poisoned_history") {
+            try {
+              const { workflowHasPoisonedDescription } = await import(
+                "./recovery-probe"
+              );
+              const { getService } = await import("../temporal/service");
+              const { getChangeHandle } = await import("./_adapters");
+              const { getProjectId } = await import("../utils/project-id");
+              const bundle = getService();
+              const projectId = bundle
+                ? await getProjectId(store.paths.root)
+                : null;
+              const handle =
+                bundle && projectId
+                  ? getChangeHandle(bundle.client, projectId, changeId)
+                  : undefined;
+              const poisoned = handle
+                ? await workflowHasPoisonedDescription(handle)
+                : false;
+              if (poisoned) {
+                const { saveRecoveredChangeStatus } = await import(
+                  "./_recovery-writers"
+                );
+                const { RECOVERY_RECONCILIATION_WARNING } = await import(
+                  "../temporal/recovery-classification"
+                );
+                await saveRecoveredChangeStatus({
+                  store,
+                  change,
+                  status: "archived",
+                });
+                return formatToolOutput({
+                  success: true,
+                  archivePath: archiveResult.archivePath,
+                  specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                    capability: s.capability,
+                    version: `${s.originalVersion} → ${s.newVersion}`,
+                    deltas: s.deltaResults.length,
+                  })),
+                  _recoveryMutation: true,
+                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                });
+              }
+            } catch {
+              // Fall through to the standard error response.
+            }
           }
           const searchAttributeRecovery = isSearchAttributeArchiveFailure(
             saveErrorText,
