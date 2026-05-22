@@ -1,0 +1,375 @@
+{
+  "id": "fixReentryTaskLookup",
+  "title": "Fix reentry task lookup",
+  "status": "archived",
+  "created_at": "2026-05-22T04:29:45.039Z",
+  "tasks": [
+    {
+      "id": "tk-e893d6e4595a",
+      "title": "Implement workflow-backed task-id lookup recovery.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T04:42:43.311Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T04:42:58.986Z",
+      "verification": "Reviewer found stale fast-path throws could bypass fallback and applied fix. GREEN after review: pnpm test -- src/tools/task.test.ts; pnpm run check; pnpm run build; pnpm test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "441a0ddd175e16d4bb4d55c205cd7e6af52311d9",
+      "completedAt": "2026-05-22T05:03:05.880Z",
+      "completed_at": "2026-05-22T05:03:05.880Z",
+      "notes": "Implemented workflow-backed task-id lookup recovery with full verification.",
+      "error_recovery": {
+        "last_error": "Initial regression failed with Task not found: tk-reentry before implementation.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — implementation fixed and verified.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/tools/task.test.ts failed on stale reverse-index fallback expectations.",
+            "diagnosis": "resolveChangeId only used store.tasks.show, so task-id-only tools could not resolve workflow-visible tasks absent from taskChangeIndex/disk projection.",
+            "fix_tried": "Added setCachedChange task indexing plus read-only active workflow task scan fallback; fixed test mock default isolation; reran targeted and full verification.",
+            "strategy_label": "red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T04:53:16.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T04:53:59.262Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-vOeO_1",
+      "type": "pattern",
+      "content": "For task-id-only tools, keep ownership recovery structural: fast-path task→change index/disk lookup, then fallback to typed workflow task arrays over active changes. Co-locate reverse-index hydration with workflow-state cache materialization (`setCachedChange`) so gate re-entry, task add refreshes, and other workflow reads maintain the same invariant.",
+      "source_task": "tk-e893d6e4595a",
+      "recorded_at": "2026-05-22T04:54:05.270Z"
+    },
+    {
+      "id": "ws-i_362s",
+      "type": "gotcha",
+      "content": "Task lookup stale-index fallback must handle both null fast-path results and thrown fast-path lookups; an unavailable old workflow can otherwise block structural live-state resolution before the fallback scan runs.",
+      "source_task": "tk-e893d6e4595a",
+      "recorded_at": "2026-05-22T05:03:13.264Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:30:39.700Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal confirmed by user resume of remaining crash-recovery follow-ups.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/proposal.md",
+        "content_hash": "80453c212b9dcf8e290d772440de315f564deb40f089b3785c0fa41c57c5f0ee",
+        "non_whitespace_chars": 1124,
+        "checked_at": "2026-05-22T04:30:39.754Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:31:00.916Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery: inspected task-id resolution, taskChangeIndex, taskAddedSignal, change refresh, and task show/update paths. Root cause is stale/missing reverse task index for workflow-visible tasks.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/agreement.md",
+        "content_hash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "non_whitespace_chars": 1043,
+        "checked_at": "2026-05-22T04:31:00.975Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:42:31.003Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validator returned PASS_WITH_NOTES; incorporated primary setCachedChange indexing fix plus bounded fallback scan constraints.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/design.md",
+        "content_hash": "80f92c1fdeb2d0a2c19c9bf4c38b37767cbb69c209afa19aab5e1775fa005933",
+        "non_whitespace_chars": 1601,
+        "checked_at": "2026-05-22T04:42:31.101Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:42:49.433Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task graph approved under user's resume-all instruction: one implementation task with inline TDD covering AC1-AC5/C1-C4."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:54:15.094Z",
+      "completed_by": "agent",
+      "approval_evidence": "All tasks done. Verification: targeted task/store tests, pnpm run check, pnpm run build, and full pnpm test passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:07:54.875Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via chat: `approve`. Review matrix rows all pass/respected; targeted tests, check, build, and full suite are green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/acceptance.md",
+        "content_hash": "d940d0636adf764aca7321861e6169b2cf0c5aed7f3f481f06b4931c6e0d8ba5",
+        "non_whitespace_chars": 2179,
+        "checked_at": "2026-05-22T05:07:55.112Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+      "approvedAt": "2026-05-22T04:31:00.586Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_show` can resolve a task that exists only in live workflow task state for an active change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_update` can resolve and mutate that same task without requiring a prior disk projection refresh.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Task cache/index population occurs structurally from workflow state, not from parsing chat/tool output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Existing indexed and disk-backed task lookup tests still pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check`, `pnpm run build`, and full `pnpm test` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not add direct ADV state-file reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not make archived/closed task lookup scan broad terminal history by default.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve target_path routing semantics for task tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Task resolution fallback must be read-only until the caller explicitly performs its requested mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T05:03:30.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`plugin/src/tools/task.ts` resolveChangeId falls back from null/throwing `store.tasks.show` to active workflow `changeTasksQuery`; tests in `plugin/src/tools/task.test.ts` cover adv_task_show null and throwing fast-path fallbacks.",
+          "notes": "Reviewer PASS_WITH_NOTES; stale throw issue fixed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv_task_update` resolves via same fallback before firing existing mutation signal; tests cover null and throwing fast-path fallback before `taskAssignedSignal`.",
+          "notes": "No prior disk projection required."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`setCachedChange` hydrates taskChangeIndex from `ChangeWorkflowState.tasks`; fallback scans typed `Task[]` results from `changeTasksQuery`, not chat/tool-output text.",
+          "notes": "Structural workflow-backed ownership."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN: `pnpm test -- src/tools/task.test.ts src/storage/store-temporal/index.test.ts`; GREEN after reviewer: `pnpm test -- src/tools/task.test.ts`.",
+          "notes": "Indexed/disk-backed paths retained."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN after reviewer changes: `pnpm run check`; `pnpm run build`; `pnpm test`.",
+          "notes": "Full verification complete."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No direct ADV state-file reads added; code uses Store APIs and Temporal queries only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fallback uses default `store.changes.list()` and explicitly skips `archived`/`closed` statuses.",
+          "notes": "No terminal broad scan by default."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Task tools continue resolving `activeStore` through `withOptionalTargetPathStore` / `withTargetPathStore`; fallback receives the same active store.",
+          "notes": "Target path semantics preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fallback performs `store.changes.list`, `getHandleForChangeId`, and `changeTasksQuery`; mutation remains the caller's existing `fireSignalAndRefresh` path after ownership is resolved.",
+          "notes": "Reviewer fix also lets stale fast-path throws fall through without mutation."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_task_show` can resolve a task that exists only in live workflow task state for an active change.",
+    "`adv_task_update` can resolve and mutate that same task without requiring a prior disk projection refresh.",
+    "Task cache/index population occurs structurally from workflow state, not from parsing chat/tool output.",
+    "Existing indexed and disk-backed task lookup tests still pass.",
+    "`pnpm run check`, `pnpm run build`, and full `pnpm test` pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/proposal.md",
+      "updatedAt": "2026-05-22T05:04:25.224Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/problem-statement.md",
+      "updatedAt": "2026-05-22T05:04:25.238Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/agreement.md",
+      "updatedAt": "2026-05-22T05:04:25.246Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/design.md",
+      "updatedAt": "2026-05-22T05:04:25.254Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T05:07:54.875Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
