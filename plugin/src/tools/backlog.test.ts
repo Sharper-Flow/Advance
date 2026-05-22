@@ -149,6 +149,7 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.worktrees[0].branch).toBe("change/changeA");
     expect(parsed.peer_sessions).toHaveLength(1);
     expect(parsed.peer_sessions[0].isSelf).toBe(true);
+    expect(parsed.poisoned_workflows).toEqual([]);
     expect(parsed.generated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(parsed.warnings).toEqual([]);
   });
@@ -174,7 +175,93 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.active_changes).toEqual([]);
     expect(parsed.worktrees).toEqual([]);
     expect(parsed.peer_sessions).toEqual([]);
+    expect(parsed.poisoned_workflows).toEqual([]);
     expect(parsed.warnings).toEqual([]);
+  });
+
+  it("exposes automation-first poisoned workflow metadata while preserving warnings", async () => {
+    const store = makeMockStore([
+      {
+        id: "healthy",
+        title: "Healthy Change",
+        status: "active",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T01:00:00.000Z",
+        taskCount: 1,
+        completedTasks: 0,
+      },
+    ]);
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => ({
+          worktrees: [
+            {
+              changeId: "healthy",
+              branch: "change/healthy",
+              path: "/wt/healthy",
+              status: "active",
+              materialized: true,
+            },
+          ],
+          warnings: [
+            {
+              source: "worktree_workflow",
+              changeId: "poisoned",
+              workflowId: "adv/change/test-id/poisoned",
+              recoveryReason: "poisoned_history",
+              evidenceSummary:
+                "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]",
+              message: "Unable to query worktrees for change poisoned",
+              errorClass: "Error",
+            },
+          ],
+          poisonedWorkflows: [
+            {
+              changeId: "poisoned",
+              workflowId: "adv/change/test-id/poisoned",
+              recoveryReason: "poisoned_history",
+              evidenceSummary:
+                "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]",
+              message: "Unable to query worktrees for change poisoned",
+            },
+          ],
+        }),
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.worktrees).toEqual([
+      expect.objectContaining({
+        changeId: "healthy",
+        branch: "change/healthy",
+      }),
+    ]);
+    expect(parsed.poisoned_workflows).toEqual([
+      {
+        source: "worktrees",
+        changeId: "poisoned",
+        workflowId: "adv/change/test-id/poisoned",
+        recoveryReason: "poisoned_history",
+        evidenceSummary:
+          "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100]",
+        message: "Unable to query worktrees for change poisoned",
+      },
+    ]);
+    expect(parsed.warnings).toEqual([
+      expect.objectContaining({
+        source: "worktrees",
+        reason: expect.stringContaining("poisoned"),
+      }),
+    ]);
   });
 
   it("isolates failure: changes succeed, worktrees fail → worktrees: [] + warning", async () => {
