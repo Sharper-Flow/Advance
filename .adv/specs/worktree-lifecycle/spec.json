@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
-  "version": "1.2.0",
-  "updated_at": "2026-05-21T00:00:00.000Z",
+  "version": "1.3.0",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -28,6 +28,52 @@
           "given": ["Registry has both materialized and branch-only entries"],
           "when": "A legacy consumer requests materialized worktrees",
           "then": ["Only entries with materialized=true are returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreePoisonVisibility01",
+      "title": "Cross-change worktree reads isolate poisoned workflow queries",
+      "body": "Cross-change worktree visibility MUST query each owning change workflow independently. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.",
+      "priority": "must",
+      "tags": ["worktree", "temporal", "poisoned-history", "visibility"],
+      "scenarios": [
+        {
+          "id": "rq-worktreePoisonVisibility01.1",
+          "title": "Per-change query failure returns partial results",
+          "given": [
+            "Visibility lists two change workflows with active worktrees",
+            "The first getWorktreesQuery succeeds",
+            "The second getWorktreesQuery fails"
+          ],
+          "when": "listWorktreesAcrossChanges runs",
+          "then": [
+            "The first workflow's materialized worktree records are returned",
+            "A warning is returned for the failed workflow",
+            "The function does not throw for the per-workflow query failure"
+          ]
+        },
+        {
+          "id": "rq-worktreePoisonVisibility01.2",
+          "title": "Poison evidence is structured",
+          "given": [
+            "The failed workflow describe output contains TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence"
+          ],
+          "when": "listWorktreesAcrossChanges classifies the failure",
+          "then": [
+            "poisonedWorkflows includes changeId, workflowId, recoveryReason=\"poisoned_history\", evidenceSummary, and message",
+            "No destructive recovery action is performed"
+          ]
+        },
+        {
+          "id": "rq-worktreePoisonVisibility01.3",
+          "title": "Visibility-source outage is explicit",
+          "given": ["Temporal service, workflow list, or getHandle is unavailable"],
+          "when": "listWorktreesAcrossChanges runs",
+          "then": [
+            "The result has records: [] and unavailable: true",
+            "A worktree_visibility warning explains the source failure"
+          ]
         }
       ]
     },

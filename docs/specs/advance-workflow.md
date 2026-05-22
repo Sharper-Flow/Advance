@@ -1676,6 +1676,58 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 
 ---
 
+### Workflow replay and versioning guard command-producing changes
+
+**ID:** `rq-workflowVersioning01` | **Priority:** **[MUST]**
+
+Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
+
+**Tags:** `temporal`, `replay`, `versioning`, `determinism`
+
+#### Scenarios
+
+**Committed histories replay in CI** (`rq-workflowVersioning01.1`)
+
+**Given:**
+
+- A sanitized changeWorkflow history fixture is committed under `plugin/src/temporal/__tests__/replay/histories`
+
+**When:** The replay determinism test runs
+
+**Then:**
+
+- Worker.runReplayHistory is invoked against the current workflow bundle
+- The test fails on DeterminismViolationError or ReplayError
+- The fixture metadata identifies the incident class or workflow behavior covered
+
+**Command-producing changes declare an evolution strategy** (`rq-workflowVersioning01.2`)
+
+**Given:**
+
+- A workflow-bundled change adds, removes, or reorders command-producing operations
+
+**When:** The change is prepared for archive
+
+**Then:**
+
+- The change includes wf.patched, Worker Versioning, or an explicit reset/recovery plan
+- Any patch marker includes a deprecation plan or documented non-deprecation rationale
+
+**Worker restart is not nondeterminism repair** (`rq-workflowVersioning01.3`)
+
+**Given:**
+
+- A workflow query or task fails with TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence
+
+**When:** Recovery guidance is presented
+
+**Then:**
+
+- The guidance does not classify worker restart as sufficient repair
+- Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate
+
+---
+
 ### Archive State Transition Must Be Resilient to Failed Disk Bundle Write
 
 **ID:** `rq-archiveOrdering01` | **Priority:** **[MUST]**

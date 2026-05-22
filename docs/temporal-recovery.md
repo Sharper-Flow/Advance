@@ -503,6 +503,24 @@ These values are compile-time constants today. If you need to adjust them for a 
 
 Treat this as a workflow-state corruption / code-history mismatch problem, not a transient retry.
 
+### Replay/versioning rule
+
+Workflow-affecting changes under `plugin/src/temporal/**` or other workflow-bundled command-producing helpers must run committed replay coverage before archive. Use `Worker.runReplayHistory` against sanitized histories in `plugin/src/temporal/__tests__/replay/histories/`.
+
+If a workflow change adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, etc.), choose one evolution strategy before shipping:
+
+| Strategy                     | Use when                                                                                                    | Requirement                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `wf.patched`                 | Local/per-session ADV deployments where old histories must replay and new histories can take the new branch | Patch name, old branch, new branch, and deprecation plan or non-deprecation rationale are documented in code/docs |
+| Worker Versioning            | Multiple worker builds may poll the same task queue concurrently                                            | Deployment/build routing is explicit and tested                                                                   |
+| Explicit reset/recovery plan | The old history cannot safely replay and the affected workflow set is bounded                               | Exact evidence plus explicit user/operator approval before destructive action                                     |
+
+Worker restart is **not** a repair for `TMPRL1100`, `NonDeterministic`, or `WorkflowTaskFailedCauseNonDeterministicError`. Restart only after code/history compatibility is understood and only to load a fixed worker bundle.
+
+### Poisoned WIP/read-only posture
+
+Cross-change WIP and worktree readers should preserve healthy partial results and surface poisoned workflows as structured metadata (`poisoned_workflows`) plus human-readable warnings. Treat that metadata as triage input only. It must not trigger automatic terminate, reset, reseed, archive, or worktree deletion.
+
 1. Confirm the error in logs or `last_error`.
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.

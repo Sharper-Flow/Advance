@@ -1,7 +1,7 @@
 # Worktree Lifecycle
 
-> **Version:** 1.2.0
-> **Updated:** 2026-05-21
+> **Version:** 1.3.0
+> **Updated:** 2026-05-22
 
 ## Purpose
 
@@ -42,6 +42,60 @@ The worktree registry (per-change workflow state, with cross-change visibility v
 **Then:**
 
 - Only entries with materialized=true are returned
+
+---
+
+### Cross-change worktree reads isolate poisoned workflow queries
+
+**ID:** `rq-worktreePoisonVisibility01` | **Priority:** **[MUST]**
+
+Cross-change worktree visibility MUST query each owning change workflow independently. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.
+
+**Tags:** `worktree`, `temporal`, `poisoned-history`, `visibility`
+
+#### Scenarios
+
+**Per-change query failure returns partial results** (`rq-worktreePoisonVisibility01.1`)
+
+**Given:**
+
+- Visibility lists two change workflows with active worktrees
+- The first getWorktreesQuery succeeds
+- The second getWorktreesQuery fails
+
+**When:** listWorktreesAcrossChanges runs
+
+**Then:**
+
+- The first workflow's materialized worktree records are returned
+- A warning is returned for the failed workflow
+- The function does not throw for the per-workflow query failure
+
+**Poison evidence is structured** (`rq-worktreePoisonVisibility01.2`)
+
+**Given:**
+
+- The failed workflow describe output contains TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence
+
+**When:** listWorktreesAcrossChanges classifies the failure
+
+**Then:**
+
+- poisonedWorkflows includes changeId, workflowId, recoveryReason="poisoned_history", evidenceSummary, and message
+- No destructive recovery action is performed
+
+**Visibility-source outage is explicit** (`rq-worktreePoisonVisibility01.3`)
+
+**Given:**
+
+- Temporal service, workflow list, or getHandle is unavailable
+
+**When:** listWorktreesAcrossChanges runs
+
+**Then:**
+
+- The result has records: [] and unavailable: true
+- A worktree_visibility warning explains the source failure
 
 ---
 
