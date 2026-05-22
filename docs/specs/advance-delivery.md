@@ -259,86 +259,55 @@ adv_change_bulk_close must support closing multiple changes in a single approved
 
 ---
 
-### Durable Task-Run Lifecycle Ledger
+### Checkpoint Workflow Recording
 
-**ID:** `rq-taskRunLedger01` | **Priority:** **[MUST]**
+**ID:** `rq-checkpointLedger01` | **Priority:** **[MUST]**
 
-/adv-apply task execution must maintain a Temporal-owned task-run ledger that records lifecycle phase, required next action, resume hint, evidence, verification, checkpoint, and blocker/failure events without moving OpenCode tool/model/file-edit execution into Temporal activities. The ledger must preserve existing inline TDD, checkpoint-before-done, and no-pause apply-loop semantics.
+adv_task_checkpoint MUST surface workflow completion recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but `taskCompletedSignal` is not durably reflected in workflow state. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint recording path, and only proceeds after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.
 
-**Tags:** `tasks`, `temporal`, `resumability`, `ledger`, `apply`
+**Tags:** `checkpoint`, `ledger`, `task-run`, `apply-flow`, `recovery`
 
 #### Scenarios
 
-**Task-run status exposes safe resume point** (`rq-taskRunLedger01.1`)
+**Committed checkpoint with ledger failure surfaces checkpointRecorded:false** (`rq-checkpointLedger01.1`)
 
 **Given:**
-- An /adv-apply task has started or partially completed
+- An /adv-apply task has dirty tree changes that pass branch and HEAD guards
+- The git commit phase succeeds but the taskCompletedSignal completion record is not durably reflected in workflow state
 
-**When:** adv_task_show is called for that task
+**When:** adv_task_checkpoint executes in mode complete or cancel
 
 **Then:**
-- The response includes the current phase
-- The response includes requiredNextAction and resumeHint
-- The response summarizes baseline, evidence, verification, checkpoint, attempts, and recent events when present
+- The tool returns status `committed` with the new commit sha
+- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
+- The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
+- The result MUST NOT be silently treated as task completion
 
-**Evidence and checkpoint events are linked to the ledger** (`rq-taskRunLedger01.2`)
+**Clean-tree checkpoint with ledger failure surfaces checkpointRecorded:false** (`rq-checkpointLedger01.2`)
 
 **Given:**
-- An /adv-apply task records red evidence, green evidence, verification, or checkpoint result
+- An /adv-apply task has no dirty tree changes
+- The clean-tree path executes but the taskCompletedSignal completion record is not durably reflected in workflow state
 
-**When:** The corresponding tool path succeeds
+**When:** adv_task_checkpoint executes in mode complete
 
 **Then:**
-- A task-run ledger event is recorded with a deterministic idempotency key
-- Duplicate idempotency keys do not append duplicate events or re-advance phase
-- The existing tdd_evidence and checkpoint outputs remain intact
+- The tool returns status `clean` with no new commit
+- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
+- The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
 
-**Ledger survives Temporal continue-as-new** (`rq-taskRunLedger01.3`)
+**Apply guidance treats checkpointRecorded:false as blocking task completion** (`rq-checkpointLedger01.3`)
 
 **Given:**
-- A change workflow has task_runs state
+- An /adv-apply task has received `checkpointRecorded: false` from adv_task_checkpoint
 
-**When:** The workflow continues as new to bound history size
-
-**Then:**
-- The task_runs state is included in the seed state
-- Handler-level idempotency data survives workflow-run rollover
-- No task-run phase or resume information is silently reset
-
-**Temporal remains the runtime state authority** (`rq-taskRunLedger01.4`)
-
-**Given:**
-- Task-run lifecycle state is persisted
-
-**When:** The runtime reads or mutates task-run state
+**When:** The agent prepares to mark the task done
 
 **Then:**
-- The authoritative runtime state lives in Temporal workflow state
-- Disk artifacts may support recovery or tests but are not the task-run runtime source of truth
-- No SQLite or replacement local database is introduced for task-run state
-
-**No direct Temporal execution of OpenCode side effects in v1** (`rq-taskRunLedger01.5`)
-
-**Given:**
-- A task-run event represents evidence, verification, or checkpoint outcome
-
-**When:** The event is recorded
-
-**Then:**
-- OpenCode agents still perform file edits, shell/test commands, model calls, sub-agent calls, and git commits
-- Temporal records externally supplied results rather than directly executing those side effects
-
-**Apply-loop autonomy is preserved** (`rq-taskRunLedger01.6`)
-
-**Given:**
-- A task-run ledger indicates the next resume action
-
-**When:** /adv-apply resumes or continues execution
-
-**Then:**
-- The ledger guides the agent to the next apply-loop step
-- No new user pause or approval checkpoint is introduced
-- Existing blocker, doom-loop, cancellation, re-entry, and acceptance checkpoints remain unchanged
+- The agent MUST run adv_task_show to inspect workflow task state
+- The agent MUST retry the checkpoint recording path before treating the task as done
+- The agent MUST NOT call adv_task_update with status done in normal apply flow
+- Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget
 
 ---
 

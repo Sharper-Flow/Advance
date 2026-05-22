@@ -185,8 +185,8 @@ This is a critical design constraint. Any new `system.transform` behavior should
 
 What exists now:
 
-- `adv_task_evidence` records fallback/manual evidence through `plugin/src/tools/task.ts`; `adv_run_test` is the primary red/green evidence path (captures exit code + output), while `adv_task_evidence` is fallback for externally captured evidence.
-- `store.tasks.recordEvidence` updates `tdd_phase` based on phase presence, not pass/fail semantics (`plugin/src/storage/store-disk.ts`, `plugin/src/storage/store-temporal/tasks.ts`).
+- `adv_run_test` is the primary red/green evidence path (captures exit code + output), while final task proof is summarized in `taskCompletedSignal.verification` via `adv_task_checkpoint`.
+- Older `adv_task_evidence` and `tdd_phase` surfaces were retired by the signal-driven task evidence model.
 - completeness validation flags missing TDD evidence on `done` tasks (`plugin/src/validator/completeness.ts`).
 - `adv_task_update` / `store.tasks.update` allows `status: "done"` without checking TDD evidence (`plugin/src/tools/task.ts`, `plugin/src/storage/store-disk.ts`, `plugin/src/storage/store-temporal/tasks.ts`).
 

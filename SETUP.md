@@ -1282,7 +1282,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
 | `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
 | `adv_task_add`            | Add a new task to a change                                    |
-| `adv_task_update`         | Update task status (pending/in_progress/done)                 |
+| `adv_task_update`         | Update task status (done is checkpoint/recovery-only)          |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 | `adv_task_checkpoint`     | Create task checkpoint commit before completion/cancellation  |
