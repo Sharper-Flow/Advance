@@ -11,7 +11,36 @@ import type { Store } from "../storage/store";
 import type { Change, Gates } from "../types";
 
 const mocks = vi.hoisted(() => {
+  const workflow = {
+    gates: {} as Gates,
+    signalPayloads: [] as Array<Record<string, unknown>>,
+    handle: {
+      signal: vi.fn(
+        async (_signal: unknown, payload: Record<string, unknown>) => {
+          workflow.signalPayloads.push(payload);
+          const gateId = payload.gateId as keyof Gates | undefined;
+          if (gateId) {
+            workflow.gates = {
+              ...workflow.gates,
+              [gateId]: {
+                ...(workflow.gates[gateId] ?? {}),
+                status: "done",
+                completed_at: payload.completedAt as string,
+                completed_by: payload.completedBy as string,
+                approval_evidence: payload.approvalEvidence as string,
+              },
+            } as Gates;
+          }
+        },
+      ),
+      query: vi.fn(async (_query: unknown, gateId?: keyof Gates) =>
+        gateId ? workflow.gates[gateId] : workflow.gates,
+      ),
+    },
+  };
+
   return {
+    workflow,
     archiveChange: vi.fn(() =>
       Promise.resolve({
         success: true,
@@ -32,11 +61,18 @@ const mocks = vi.hoisted(() => {
       }),
     ),
     detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
+    detectDefaultBranch: vi.fn(() => ({ branch: "trunk", source: "test" })),
     validateChangeWorktree: vi.fn(() => ({
       valid: true,
       mainCheckout: "/tmp/main",
       currentBranch: "change/example",
     })),
+    verifyChangeBranchReachable: vi.fn(() => ({
+      reachable: true,
+      unmergedCommits: [],
+    })),
+    verifyDefaultBranchPushed: vi.fn(() => ({ pushed: true })),
+    verifyChangeBranchPushed: vi.fn(() => ({ pushed: true })),
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
@@ -44,6 +80,27 @@ const mocks = vi.hoisted(() => {
     getArchiveContractProofErrors: vi.fn(() => []),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
+    getProjectId: vi.fn(() => Promise.resolve("test-project")),
+    getService: vi.fn(() => ({
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => workflow.handle),
+        },
+      },
+    })),
+    saveRecoveredGateCompletion: vi.fn(
+      async (input: {
+        change: Change;
+        gateId: keyof Gates;
+        completion: Gates[keyof Gates];
+      }) => ({
+        ...input.change,
+        gates: {
+          ...(input.change.gates ?? {}),
+          [input.gateId]: input.completion,
+        } as Gates,
+      }),
+    ),
   };
 });
 
@@ -62,7 +119,11 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     ...actual,
     finalizeRelease: mocks.finalizeRelease,
     detectArchiveMode: mocks.detectArchiveMode,
+    detectDefaultBranch: mocks.detectDefaultBranch,
     validateChangeWorktree: mocks.validateChangeWorktree,
+    verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
+    verifyDefaultBranchPushed: mocks.verifyDefaultBranchPushed,
+    verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
   };
 });
 
@@ -70,7 +131,27 @@ vi.mock("../validator", () => ({
   validateChange: mocks.validateChange,
 }));
 
-function createMockStore(options: { releaseDone?: boolean } = {}): Store {
+vi.mock("../utils/project-id", async () => {
+  const actual = await vi.importActual<typeof import("../utils/project-id")>(
+    "../utils/project-id",
+  );
+  return {
+    ...actual,
+    getProjectId: mocks.getProjectId,
+  };
+});
+
+vi.mock("../temporal/service", () => ({
+  getService: mocks.getService,
+}));
+
+vi.mock("./_recovery-writers", () => ({
+  saveRecoveredGateCompletion: mocks.saveRecoveredGateCompletion,
+}));
+
+function createMockStore(
+  options: { releaseDone?: boolean; status?: Change["status"] } = {},
+): Store {
   const gates: Gates = {
     proposal: { status: "done" },
     discovery: { status: "done" },
@@ -83,7 +164,7 @@ function createMockStore(options: { releaseDone?: boolean } = {}): Store {
   const change: Change = {
     id: "example",
     title: "Example",
-    status: "active",
+    status: options.status ?? "active",
     created_at: "2026-01-01T00:00:00Z",
     created_by: "test",
     tasks: [
@@ -98,6 +179,8 @@ function createMockStore(options: { releaseDone?: boolean } = {}): Store {
     wisdom: [],
     gates,
   };
+
+  mocks.workflow.gates = gates;
 
   return {
     paths: {
@@ -137,9 +220,33 @@ function createMockStore(options: { releaseDone?: boolean } = {}): Store {
 describe("adv_change_archive Phase 9 behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.workflow.gates = {} as Gates;
+    mocks.workflow.signalPayloads = [];
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) =>
+        gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates,
+    );
+    mocks.workflow.handle.signal.mockImplementation(
+      async (_signal: unknown, payload: Record<string, unknown>) => {
+        mocks.workflow.signalPayloads.push(payload);
+        const gateId = payload.gateId as keyof Gates | undefined;
+        if (gateId) {
+          mocks.workflow.gates = {
+            ...mocks.workflow.gates,
+            [gateId]: {
+              ...(mocks.workflow.gates[gateId] ?? {}),
+              status: "done",
+              completed_at: payload.completedAt as string,
+              completed_by: payload.completedBy as string,
+              approval_evidence: payload.approvalEvidence as string,
+            },
+          } as Gates;
+        }
+      },
+    );
   });
 
-  test("runs finalization before retiring the change and returns the outcome", async () => {
+  test("completes release gate after finalization and before retiring the change", async () => {
     const store = createMockStore();
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
@@ -164,9 +271,27 @@ describe("adv_change_archive Phase 9 behavior", () => {
         expectedMainCheckout: "/tmp/main",
       }),
     );
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        gateId: "release",
+        completedBy: "adv-archive",
+      }),
+    );
+    expect(mocks.workflow.signalPayloads[0]?.approvalEvidence).toContain(
+      "Phase 9 finalization shipped",
+    );
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledBefore(
+      store.changes.save as ReturnType<typeof vi.fn>,
+    );
     expect(mocks.finalizeRelease).toHaveBeenCalledBefore(
       store.changes.save as ReturnType<typeof vi.fn>,
     );
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
+    expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
   });
 
   test("skips finalization when phase9=skip", async () => {
@@ -204,8 +329,174 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(false);
     expect(parsed.error).toContain("Archive finalization blocked");
     expect(parsed.requirement).toBe("rq-releaseFinalization01");
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
+  test("reconciles release gate from existing bundle without worktree", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    expect(mocks.validateChangeWorktree).not.toHaveBeenCalled();
+    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalledWith(
+      "/tmp/main",
+      "trunk",
+      "example",
+    );
+    expect(mocks.verifyDefaultBranchPushed).toHaveBeenCalledWith(
+      "/tmp/main",
+      "trunk",
+    );
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        gateId: "release",
+        completedBy: "adv-archive",
+      }),
+    );
+    expect(store.changes.save).toHaveBeenCalled();
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      pushStatus: "pushed",
+    });
+  });
+
+  test("blocks no-worktree reconciliation when Phase 9 evidence is missing", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
+      pushed: false,
+      reason: "origin/trunk is behind",
+    });
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive finalization blocked");
+    expect(parsed.details).toContain("origin/trunk is behind");
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("repairs release projection when workflow already completed", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.workflow.handle.query.mockRejectedValue(
+      Object.assign(new Error("workflow execution already completed"), {
+        name: "WorkflowNotFoundError",
+      }),
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed._recoveryMutation).toBe(true);
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+        completion: expect.objectContaining({
+          status: "done",
+          completed_by: "adv-archive",
+        }),
+      }),
+    );
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("recovers release projection when workflow completes during confirmation poll", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    let releaseGateQueries = 0;
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          releaseGateQueries++;
+          if (releaseGateQueries > 1) {
+            throw Object.assign(
+              new Error("workflow execution already completed"),
+              {
+                name: "WorkflowNotFoundError",
+              },
+            );
+          }
+        }
+        return gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates;
+      },
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed._recoveryMutation).toBe(true);
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+      }),
+    );
+  });
+
+  test("includes continueFrom when release gate confirmation is blocked", async () => {
+    let releaseGateQueries = 0;
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          releaseGateQueries++;
+          if (releaseGateQueries > 1) {
+            return {
+              status: "stuck",
+              stuck_reason: "contract proof missing",
+              readiness_blockers: ["matrix missing"],
+            };
+          }
+        }
+        return gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates;
+      },
+    );
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive release gate completion blocked");
+    expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+    expect(store.changes.save).not.toHaveBeenCalled();
   });
 
   test("rejects invalid worktree before archive writes", async () => {

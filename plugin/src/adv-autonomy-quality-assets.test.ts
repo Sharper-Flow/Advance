@@ -208,6 +208,18 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/push failure[\s\S]*Merged locally\./i);
   });
 
+  test("adv-archive.md records release gate through archive and points back to main", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    expect(content).toMatch(
+      /adv_change_archive[\s\S]*records the release gate/i,
+    );
+    expect(content).toMatch(
+      /Continue from: \{mainCheckout\} \(\{default-branch\}\)/,
+    );
+    expect(content).toMatch(/terminal-neutral/i);
+    expect(content).not.toMatch(/call `adv_gate_complete gateId: 'release'`/);
+  });
+
   test("adv-archive.md requires local deploy before shipped finalization", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     expect(content).toMatch(/Step 5\.0: Local Deploy Gate/);
