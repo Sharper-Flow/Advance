@@ -114,6 +114,14 @@ export function createTemporalStoreBackend(
     };
     changeCache.set(state.changeId, mapped);
     memo.set(state.changeId, buildSummary(state));
+    // rq-reentryTaskLookup01: every workflow-state cache refresh must also
+    // hydrate the reverse task→change index. Tool-layer task additions and
+    // gate re-entry refresh via setCachedChange(), not store.tasks.add(), so
+    // ad-hoc indexing only at individual call sites leaves task-id-only tools
+    // unable to resolve newly visible workflow tasks.
+    for (const task of state.tasks ?? []) {
+      taskChangeIndex.set(task.id, state.changeId);
+    }
     return mapped;
   };
 

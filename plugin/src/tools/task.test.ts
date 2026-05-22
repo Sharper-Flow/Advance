@@ -162,6 +162,16 @@ function createMockStore(
     flush: vi.fn(),
     specs: {} as Store["specs"],
     changes: {
+      list: vi.fn(async () => ({
+        changes: [
+          {
+            id: "test-change",
+            title: "Test Change",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+      })),
       get: vi.fn(async () => ({
         success: true,
         data: overrides.change ?? defaultChange,
@@ -211,6 +221,8 @@ function createMockStore(
 describe("task tools — signal/query adapters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.querySignal.mockReset();
+    mocks.querySignal.mockResolvedValue([]);
     mocks.resolveGitSessionContext.mockImplementation(() => ({
       isWorktree: true,
       isMainCheckout: false,
@@ -268,6 +280,37 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Task not found");
+    });
+
+    test("falls back to active workflow task scan when task reverse index is stale", async () => {
+      const fallbackTask = {
+        id: "tk-reentry",
+        title: "Re-entry Task",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: { show: vi.fn(async () => null) },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce(fallbackTask);
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-reentry" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.changeId).toBe("test-change");
+      expect(parsed.task).toEqual(fallbackTask);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+      expect(mocks.querySignal).toHaveBeenCalledTimes(2);
+      expect(mocks.querySignal.mock.calls[0]?.slice(2)).toEqual([
+        undefined,
+        undefined,
+      ]);
+      expect(mocks.querySignal.mock.calls[1]?.[2]).toBe("tk-reentry");
     });
   });
 
@@ -353,6 +396,37 @@ describe("task tools — signal/query adapters", () => {
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
+        sessionId: "agent",
+      });
+    });
+
+    test("uses active workflow task scan fallback before mutating stale-index task", async () => {
+      const fallbackTask = {
+        id: "tk-reentry",
+        title: "Re-entry Task",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: { show: vi.fn(async () => null) },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce({ ...fallbackTask, status: "in_progress" });
+
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-reentry", status: "in_progress" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[2]).toBe("test-change");
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-reentry",
         sessionId: "agent",
       });
     });

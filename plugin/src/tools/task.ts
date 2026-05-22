@@ -285,7 +285,42 @@ async function resolveChangeId(
   taskId: string,
 ): Promise<string | null> {
   const result = await store.tasks.show(taskId);
-  return result?.changeId ?? null;
+  if (result?.changeId) return result.changeId;
+
+  // rq-reentryTaskLookup01: after re-entry, change-id-scoped workflow
+  // queries can see newly-added tasks before the reverse task→change index or
+  // disk projection is populated. Keep task-id-only tools structural by
+  // falling back to typed workflow task arrays for active/non-terminal changes.
+  // This fallback is read-only; mutations still happen only in the caller's
+  // normal signal path after the owning change is resolved.
+  let changes: Awaited<ReturnType<Store["changes"]["list"]>>["changes"];
+  try {
+    changes = (await store.changes.list()).changes;
+  } catch {
+    return null;
+  }
+
+  for (const change of changes) {
+    if (change.status === "archived" || change.status === "closed") continue;
+    try {
+      const handle = await getHandleForChangeId(store, change.id);
+      const tasks = await querySignal<Task[]>(
+        handle,
+        changeTasksQuery,
+        undefined,
+        undefined,
+      );
+      if ((tasks ?? []).some((task) => task.id === taskId)) {
+        return change.id;
+      }
+    } catch {
+      // Candidate workflow unavailable/stale — skip it. If no active workflow
+      // contains the task, callers preserve the existing deterministic
+      // `Task not found` response.
+    }
+  }
+
+  return null;
 }
 
 async function getHandleForChangeId(
