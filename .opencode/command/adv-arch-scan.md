@@ -34,19 +34,22 @@ Parse `$ARGUMENTS`:
 4. **Worktree context** — `pwd` → record as `{workdir}`. Include `WORKING DIRECTORY: {workdir}` in all sub-agent prompts.
 
 ---
-## Phase 1: Matrix (Known Stacks)
+## Phase 1: Stack Packs (Known Stacks)
 <!-- rq-archp33 -->
+<!-- rq-archstack01 -->
+<!-- rq-archstack02 -->
 
-Run stack-specific tools when stack is in the Known-Stack Rule Matrix:
+Run stack-specific tools when stack is in the Stack Packs matrix before research fallback or generic AI heuristic fallback:
 
-| Stack | Primary Tool | Fallback Tool |
-|-------|-------------|---------------|
-| TypeScript/Node | `dependency-cruiser` | `madge` |
-| Python | `pydeps` | `import-deps` |
-| Go | `go vet` | `gocyclo` |
-| Rust | `cargo-deps` | `cargo-modules` |
+| Stack Pack | Detection | Primary Tool | Fallback Tool | Checks |
+|------------|-----------|--------------|---------------|--------|
+| TypeScript/Node | `package.json` + `tsconfig.json` | `dependency-cruiser` | `madge` | Circular deps, layer violations, orphans |
+| ADV stack pack | TypeScript/Bun/OpenCode plugin/Temporal/spec-command-skill assets | existing structural enforcers | dependency graph tools | workflow bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
+| Python | `pyproject.toml` / `setup.py` | `pydeps` | `import-deps` | Import cycles, module depth |
+| Go | `go.mod` | `go vet` | `gocyclo` | Shadowing, complexity, unused code |
+| Rust | `Cargo.toml` | `cargo-deps` | `cargo-modules` | Dependency graph, unused crates |
 
-If tools are absent → graceful fallback with `detectionMethod: degraded` and a note. Skip to Phase 2.
+If tools are absent → graceful fallback with `detectionMethod: degraded` and a note. If a relevant stack has no pack → list it in missing-pack coverage before Phase 2. Skip to Phase 2.
 
 If `--phase 1` only → skip to Report.
 
@@ -61,9 +64,11 @@ During Phase 1 or Phase 2, inspect architecture paths where correctness boundari
 
 Flag architectural findings when heuristic inference, prose convention, regex-only matching, or LLM/agent judgment owns those boundaries. Mark as `category: structural-correctness`, `detectionMethod: ast|tool|research|heuristic`, and set `confidence: low` for AI-only evidence.
 
+ADV stack pack findings must cite structural owners such as `plugin/src/temporal/workflow-bundle-boundary.test.ts`, manifest/command asset tests, spec/asset anchors, and context-snapshot purity tests instead of treating prose or one external tool as sole authority.
+
 ---
 ## Phase 2: Research Fallback
-When stack is NOT in the matrix OR user requests `--phase 2`:
+When stack is NOT in the Stack Packs matrix OR user requests `--phase 2`:
 
 1. **Detect stack** from project files (e.g., `Gemfile` → Ruby, `pom.xml` → Java)
 2. **Exa query** — search `"{stack} architecture linter"`, `"{stack} circular dependency detector"`
@@ -97,12 +102,18 @@ Persists the scan result for display in `/adv-status`.
 
 ---
 ## Report Generation
-Emit ARCHITECTURE SCAN REPORT: detected stack, phases run, severity summary, findings grouped by severity (each with category, location, description, recommendation, source).
+<!-- rq-archcov01 -->
+
+### Architecture Scanner Coverage Report
+
+Emit ARCHITECTURE SCAN REPORT: detected stack, phases run, architecture scanner coverage summary, severity summary, findings grouped by severity (each with category, location, description, recommendation, source).
+
+Coverage summary includes detected stacks, applied Stack Packs, missing Stack Packs, skipped detectors, and degraded detectors. These gaps are visible without `--verbose`.
 
 If no findings → `[OK] No architecture issues detected.`
 
 ### JSON Format (if `--json`)
-Output structured JSON: `stack`, `phases`, `summary` (bySeverity, byCategory), `findings[]`.
+Output structured JSON: `stack`, `phases`, `summary` (bySeverity, byCategory), `findings[]`, and `coverage` with `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, and `coverage.degradedDetectors`.
 
 ---
 ## Execution

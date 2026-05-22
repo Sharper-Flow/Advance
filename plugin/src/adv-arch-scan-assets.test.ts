@@ -47,4 +47,59 @@ describe("adv-arch-scan structural correctness assets", () => {
     );
     expect(content).toContain("Structural-correctness severity");
   });
+
+  test("spec defines stack packs before generic fallback", () => {
+    const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string; title: string }>;
+    };
+
+    expect(spec.requirements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "rq-archstack01",
+          title: "Stack Packs Before Generic Fallback",
+        }),
+      ]),
+    );
+  });
+
+  test("command and skill document initial ADV stack pack", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SKILL_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(spec.requirements.map((rq) => rq.id)).toContain("rq-archstack02");
+    expect(command).toContain("<!-- rq-archstack01 -->");
+    expect(command).toContain("<!-- rq-archstack02 -->");
+    expect(command).toContain("Stack Packs");
+    expect(command).toContain("ADV stack pack");
+    expect(command).toContain("TypeScript/Bun/OpenCode plugin/Temporal");
+    expect(command).toContain("workflow bundle boundary");
+    expect(command).toContain("command/manifest symmetry");
+    expect(command).toContain("spec/asset anchors");
+    expect(skill).toContain("Stack Packs");
+    expect(skill).toContain("ADV stack pack");
+    expect(skill).toContain("workflow bundle boundary");
+  });
+
+  test("command and skill document architecture scanner coverage reporting", () => {
+    const command = readFileSync(COMMAND_PATH, "utf8");
+    const skill = readFileSync(SKILL_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(spec.requirements.map((rq) => rq.id)).toContain("rq-archcov01");
+    expect(command).toContain("<!-- rq-archcov01 -->");
+    expect(command).toContain("Architecture Scanner Coverage Report");
+    expect(command).toContain("coverage.detectedStacks");
+    expect(command).toContain("coverage.appliedPacks");
+    expect(command).toContain("coverage.missingPacks");
+    expect(command).toContain("coverage.skippedDetectors");
+    expect(command).toContain("coverage.degradedDetectors");
+    expect(skill).toContain("coverage.detectedStacks");
+    expect(skill).toContain("coverage.missingPacks");
+  });
 });
