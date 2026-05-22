@@ -262,8 +262,9 @@ Typical outcomes:
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
-`build`, `adv-researcher`, `adv-engineer`). The `adv-researcher` and `adv-engineer`
-agents are synced globally by `deploy-local.sh` as bundled global specialists. The `adv-tron` agent remains
+`build`, `adv-researcher`, `adv-engineer`, `adv-reviewer`). The `adv-researcher`,
+`adv-engineer`, and `adv-reviewer` agents are synced globally by `deploy-local.sh`
+as bundled global specialists. The `adv-tron` agent remains
 repo-local in `.opencode/agents/`. All ADV-shipped sub-agents use the `adv-<name>` naming convention. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
@@ -283,7 +284,7 @@ invocation, which is slower and less specialized.
 | `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
 | `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                         |
 | `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT payload for ADV ingestion                                                            |
-| `adv-reviewer`   | `/adv-prep` pre-flight (optional), `/adv-review`, `/adv-harden`               | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT               |
+| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT               |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -722,6 +723,11 @@ cat > project.json << 'EOF'
 }
 EOF
 
+# Optional archive finalization overrides (defaults shown):
+# "archive_mode": "direct" merges completed changes into the default branch.
+# Use "pr" only for repositories that require PR-based shipping.
+# "auto_push": true attempts `git push origin {default-branch}` after merge.
+
 # Create directory structure
 mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
 
@@ -750,6 +756,11 @@ cat > project.json << 'EOF'
   "docs_dir": "docs/specs"
 }
 EOF
+
+# Optional archive finalization overrides (defaults shown):
+# "archive_mode": "direct" merges completed changes into the default branch.
+# Use "pr" only for repositories that require PR-based shipping.
+# "auto_push": true attempts `git push origin {default-branch}` after merge.
 
 # Create required directories
 mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
@@ -1272,7 +1283,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
 | `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
 | `adv_task_add`            | Add a new task to a change                                    |
-| `adv_task_update`         | Update task status (pending/in_progress/done)                 |
+| `adv_task_update`         | Update task status (done is checkpoint/recovery-only)          |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 | `adv_task_checkpoint`     | Create task checkpoint commit before completion/cancellation  |

@@ -3,6 +3,7 @@ import type {
   AgreementUpdatedSignalPayload,
   ArchiveRequestedSignalPayload,
   Cancellation,
+  Change,
   ChangeCancelledSignalPayload,
   ChangeClosure,
   ContractAmendedSignalPayload,
@@ -42,6 +43,7 @@ import { createDefaultGates, GATE_ORDER } from "../types";
 import type {
   ArtifactKind,
   ArtifactMetadata,
+  ChangeWorkflowInput,
   ChangeWorkflowState,
 } from "./contracts";
 
@@ -50,6 +52,7 @@ export interface AddTaskInput {
   type?: Task["type"];
   section?: string;
   blockedBy?: string[];
+  contract_refs?: Task["contract_refs"];
   metadata?: Record<string, string>;
 }
 
@@ -106,6 +109,53 @@ export function createChangeWorkflowState(input: {
     reflections: [],
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
+  };
+}
+
+export function changeSeedStateFromChange(
+  change: Change,
+): NonNullable<ChangeWorkflowInput["seedState"]> {
+  return {
+    status: change.status,
+    tasks: change.tasks ?? [],
+    deltas: change.deltas ?? {},
+    wisdom: change.wisdom ?? [],
+    gates: change.gates ?? createDefaultGates(),
+    reentry_history: change.reentry_history ?? [],
+    artifacts: (change.artifacts as ChangeWorkflowState["artifacts"]) ?? {},
+    fast_follow_of: change.fast_follow_of,
+    affectedProjects: change.affectedProjects,
+    affectedPaths: change.affectedPaths,
+    lastSignalAt: change.lastSignalAt,
+    acceptanceCriteria: change.acceptanceCriteria,
+    contract: change.contract,
+    documents: change.documents,
+    origin: change.origin,
+    worktree_auto_managed: change.worktree_auto_managed,
+    target_worktree_path: change.target_worktree_path,
+    scope_worktrees: change.scope_worktrees,
+  };
+}
+
+export function changeToWorkflowState(input: {
+  projectId: string;
+  change: Change;
+  initializedAt?: string;
+  projectionChangesDir?: string;
+  gates?: ChangeWorkflowState["gates"];
+}): ChangeWorkflowState {
+  const seed = changeSeedStateFromChange(input.change);
+  return {
+    ...createChangeWorkflowState({
+      changeId: input.change.id,
+      title: input.change.title,
+      createdAt: input.initializedAt ?? input.change.created_at,
+    }),
+    projectId: input.projectId,
+    initializedAt: input.initializedAt ?? input.change.created_at,
+    projectionChangesDir: input.projectionChangesDir,
+    ...seed,
+    gates: input.gates ?? seed.gates ?? createDefaultGates(),
   };
 }
 
@@ -166,14 +216,20 @@ export function applyAcceptanceCriteriaSetToState(
   return state;
 }
 
+export function acceptanceCriteriaFromContract(
+  contract: NonNullable<ChangeWorkflowState["contract"]>,
+): string[] {
+  return contract.items
+    .filter((item) => item.kind === "acceptance_criterion")
+    .map((item) => item.text);
+}
+
 export function applyContractSetToState(
   state: ChangeWorkflowState,
   payload: ContractSetSignalPayload,
 ): ChangeWorkflowState {
   state.contract = payload.contract;
-  state.acceptanceCriteria = payload.contract.items
-    .filter((item) => item.kind === "acceptance_criterion")
-    .map((item) => item.text);
+  state.acceptanceCriteria = acceptanceCriteriaFromContract(payload.contract);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -265,6 +321,17 @@ export function applyTaskCompletedToState(
   payload: TaskCompletedSignalPayload,
 ): ChangeWorkflowState {
   const task = getMutableTask(state, payload.taskId);
+  const existingFiles = task.filesTouched ?? task.touched_files ?? [];
+  const incomingWouldWeakenCheckpoint =
+    task.status === "done" &&
+    ((Boolean(task.checkpointSha) && !payload.checkpointSha) ||
+      (existingFiles.length > 0 && payload.filesTouched.length === 0));
+
+  if (incomingWouldWeakenCheckpoint) {
+    setLastSignalAt(state, payload.completedAt);
+    return state;
+  }
+
   task.status = "done";
   task.verification = payload.verification;
   task.summary = payload.summary;
@@ -607,6 +674,7 @@ export function addTaskToChangeState(
       type: "blocked_by" as const,
       target,
     })),
+    ...(input.contract_refs ? { contract_refs: input.contract_refs } : {}),
     ...(input.metadata ? { metadata: input.metadata } : {}),
   };
 

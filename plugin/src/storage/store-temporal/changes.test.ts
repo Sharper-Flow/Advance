@@ -12,27 +12,13 @@
 
 import { describe, test, expect, vi } from "vitest";
 import { createChangeOps } from "./changes";
+import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 
 vi.mock("../../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted,
 }));
-
-// Re-implement the helper for direct testing (same logic as in changes.ts)
-// The helper is file-private, so we mirror it here for focused unit testing.
-function isWorkflowCompletedError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message?.toLowerCase() ?? "";
-  const name = err.name?.toLowerCase() ?? "";
-  return (
-    msg.includes("already completed") ||
-    msg.includes("workflow execution already completed") ||
-    name.includes("workflowexecutionalreadycompleted") ||
-    msg.includes("workflow is not running") ||
-    msg.includes("cannot signal a completed")
-  );
-}
 
 describe("isWorkflowCompletedError", () => {
   test("non-Error values → false", () => {

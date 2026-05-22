@@ -246,6 +246,13 @@ export function appendTargetProjectContextOutput(
   return JSON.stringify(parsed);
 }
 
+export function resolveTargetAwareMutationCwd(input: {
+  store: Pick<Store, "paths">;
+  target_path?: string;
+}): string {
+  return input.target_path ? input.store.paths.root : process.cwd();
+}
+
 export async function withOptionalTargetPathStore<T>(
   input: { store: Store; target_path?: string },
   fn: (store: Store, projectContext?: TargetProjectOutputContext) => Promise<T>,

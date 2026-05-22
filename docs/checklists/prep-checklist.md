@@ -101,6 +101,14 @@ When `change.contract` exists, task synthesis MUST keep the typed contract spine
 - [ ] **Constraint coverage** — `C*`, `DONT*`, and `OOS*` items are represented via `respects`, verification tasks, or explicit not-applicable rationale.
 - [ ] **Typed source of truth** — Contract refs are persisted as structured task fields, not prose-only notes.
 
+### Tool Registration Bootstrap
+
+For changes that add, rename, or register new MCP tools:
+
+- [ ] **self-application/reload checkpoint** — Include an explicit verification task that either uses the new live tool surface after a fresh OpenCode session/plugin reload, or stops before acceptance with that reload requirement.
+- [ ] **Fresh session caveat** — Task and acceptance notes state that source and `dist/` builds do not update the current OpenCode tool registry; a fresh OpenCode session is required before agents can call new MCP tools.
+- [ ] **No self-hosting blind spot** — If the change needs its own new tool to satisfy gate readiness (for example contract minting), the task graph contains a bootstrap step before acceptance.
+
 ### Cross-Cutting Concerns
 
 For every feature in the change, verify these are addressed (or explicitly marked N/A):

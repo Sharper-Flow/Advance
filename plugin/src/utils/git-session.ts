@@ -1,5 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
+
+import { spawnSyncGit } from "./git-binary";
 
 export interface GitSessionContext {
   isWorktree: boolean;
@@ -8,22 +9,36 @@ export interface GitSessionContext {
   currentCheckoutPath?: string;
 }
 
+function runGitSync(args: string[], cwd: string): string {
+  const result = spawnSyncGit(args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `git ${args[0]} failed: status=${result.status} signal=${result.signal}`,
+    );
+  }
+  const stdout =
+    typeof result.stdout === "string" ? result.stdout : String(result.stdout);
+  return stdout.trim();
+}
+
 export function resolveGitSessionContext(
   directory: string,
   worktree: string | undefined,
 ): GitSessionContext {
   const cwd = worktree || directory;
   try {
-    const topLevel = execFileSync(
-      "git",
+    const topLevel = runGitSync(
       ["rev-parse", "--path-format=absolute", "--show-toplevel"],
-      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim();
-    const commonDir = execFileSync(
-      "git",
+      cwd,
+    );
+    const commonDir = runGitSync(
       ["rev-parse", "--path-format=absolute", "--git-common-dir"],
-      { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim();
+      cwd,
+    );
     const mainCheckoutPath = dirname(commonDir);
     const isMainCheckout = resolve(topLevel) === resolve(mainCheckoutPath);
     return {

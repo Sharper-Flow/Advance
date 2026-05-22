@@ -14,7 +14,7 @@
  * requirements stay intact: closed ≠ unmerged-OK.
  */
 
-import { execFile } from "node:child_process";
+import { execFileGitCb } from "./git-binary";
 import { getDefaultBranch } from "./git";
 import {
   getChangeSummaries,
@@ -228,14 +228,9 @@ async function getMergedBranches(
   repoRoot: string,
 ): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
+    execFileGitCb(
       ["branch", "--merged", defaultBranch],
-      {
-        cwd: repoRoot,
-        timeout: 5000,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-      },
+      { cwd: repoRoot, timeout: 5000 },
       (error, stdout) => {
         if (error) {
           reject(error);
@@ -254,14 +249,9 @@ async function getMergedBranches(
 
 async function getWorktreeStatus(worktreePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
+    execFileGitCb(
       ["status", "--porcelain"],
-      {
-        cwd: worktreePath,
-        timeout: 5000,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-      },
+      { cwd: worktreePath, timeout: 5000 },
       (error, stdout) => {
         if (error) {
           reject(error);

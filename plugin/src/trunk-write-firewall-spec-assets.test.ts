@@ -67,4 +67,44 @@ describe("trunk write firewall spec assets", () => {
 
     expect(projectConfig.features?.worktree_guard_enforce).toBe(true);
   });
+
+  // rq-worktreeBoundedCleanup01 — bounded post-delete notification and per-item cleanup
+  test("rq-worktreeBoundedCleanup01 exists in worktree-lifecycle spec", () => {
+    const spec = JSON.parse(
+      readRepoFile(".adv/specs/worktree-lifecycle/spec.json"),
+    ) as {
+      requirements: Array<{
+        id: string;
+        body: string;
+        scenarios?: Array<{
+          id: string;
+          title: string;
+          given?: string[];
+          when?: string;
+          then?: string[];
+        }>;
+      }>;
+    };
+
+    const requirement = spec.requirements.find(
+      (req) => req.id === "rq-worktreeBoundedCleanup01",
+    );
+
+    expect(requirement).toBeDefined();
+    expect(requirement!.body).toContain("bounded");
+    expect(requirement!.body).toContain("cleanup");
+    expect(requirement!.scenarios?.length).toBeGreaterThanOrEqual(2);
+
+    const scenarioIds = requirement!.scenarios?.map((s) => s.id) ?? [];
+    expect(scenarioIds).toContain("rq-worktreeBoundedCleanup01.1");
+    expect(scenarioIds).toContain("rq-worktreeBoundedCleanup01.2");
+  });
+
+  test("rq-worktreeBoundedCleanup01 is mirrored in docs/specs/worktree-lifecycle.md", () => {
+    const doc = readRepoFile("docs/specs/worktree-lifecycle.md");
+
+    expect(doc).toContain("rq-worktreeBoundedCleanup01");
+    expect(doc).toContain("bounded");
+    expect(doc).toContain("cleanup");
+  });
 });

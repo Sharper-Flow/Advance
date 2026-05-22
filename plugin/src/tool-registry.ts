@@ -28,6 +28,7 @@ import { specTools } from "./tools/spec";
 import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
 import { changeTools } from "./tools/change";
+import { contractTools } from "./tools/contract";
 import { taskTools } from "./tools/task";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
@@ -309,6 +310,18 @@ export function createToolMap(
     adv_change_reenter: bindTool(
       changeTools.adv_change_reenter,
       "adv_change_reenter",
+      store,
+    ),
+
+    // Contract Tools
+    adv_contract_mint: bindTool(
+      contractTools.adv_contract_mint,
+      "adv_contract_mint",
+      store,
+    ),
+    adv_contract_review_matrix_set: bindTool(
+      contractTools.adv_contract_review_matrix_set,
+      "adv_contract_review_matrix_set",
       store,
     ),
 
@@ -665,69 +678,6 @@ export function createToolMap(
       store,
     ),
 
-    // Backward-compat aliases for standalone worktree plugin (KD-8 phase 2)
-    // These share the same implementation as adv_worktree_* but are registered
-    // under the old standalone names. Will be removed in a future change once
-    // standalone-plugin users have migrated.
-    worktree_create: registerTool(
-      "Alias → adv_worktree_create (backward compat). Will be removed in a future change once standalone-plugin users have migrated.",
-      advWorktreeTools.adv_worktree_create.args,
-      namedExecute(
-        "worktree_create",
-        safeExecute(
-          async (args, context) =>
-            advWorktreeTools.adv_worktree_create.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_create.execute
-              >[0],
-              store,
-              {
-                serverUrl,
-                sessionID: getToolContextSessionID(context),
-                client,
-              },
-            ),
-          "worktree_create",
-        ),
-      ),
-    ),
-    worktree_delete: registerTool(
-      "Alias → adv_worktree_delete (backward compat).",
-      advWorktreeTools.adv_worktree_delete.args,
-      namedExecute(
-        "worktree_delete",
-        safeExecute(
-          async (args) =>
-            advWorktreeTools.adv_worktree_delete.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_delete.execute
-              >[0],
-              store,
-              { serverUrl, client },
-            ),
-          "worktree_delete",
-        ),
-      ),
-    ),
-    worktree_cleanup: registerTool(
-      "Alias → adv_worktree_cleanup (backward compat).",
-      advWorktreeTools.adv_worktree_cleanup.args,
-      namedExecute(
-        "worktree_cleanup",
-        safeExecute(
-          async (args) =>
-            advWorktreeTools.adv_worktree_cleanup.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_cleanup.execute
-              >[0],
-              store,
-              { serverUrl, client },
-            ),
-          "worktree_cleanup",
-        ),
-      ),
-    ),
-
     // Session Tools
     adv_session_list: bindTool(
       advSessionTools.adv_session_list,
@@ -762,6 +712,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_update_issues",
   "adv_change_reenter",
+  "adv_contract_mint",
+  "adv_contract_review_matrix_set",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",
@@ -800,10 +752,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_session_list",
   "adv_session_show",
   "adv_snapshot_health",
-  // Backward-compat aliases (KD-8 phase 2)
-  "worktree_create",
-  "worktree_delete",
-  "worktree_cleanup",
 ] as const;
 
 /**

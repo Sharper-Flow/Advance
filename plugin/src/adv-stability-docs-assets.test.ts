@@ -41,7 +41,7 @@ describe("ADV stability hardening docs", () => {
     const instructions = readRepoFile("ADV_INSTRUCTIONS.md");
 
     for (const marker of [
-      "worker_singleton_enforce default true",
+      "worker_singleton_enforce default false",
       "worktree_guard_enforce default true",
       "ADV_FORCE_IN_PROCESS_WORKER=1",
       "worker_role",
@@ -85,7 +85,9 @@ describe("ADV stability hardening docs", () => {
     expect(worktreeGuide).toContain("WorktreeIsolationViolation");
     expect(worktreeGuide).toContain("adv_worktree_resume");
 
-    expect(temporalRecovery).toContain("worker_singleton_enforce default true");
+    expect(temporalRecovery).toContain(
+      "worker_singleton_enforce default false",
+    );
     expect(temporalRecovery).toContain("ADV_FORCE_IN_PROCESS_WORKER=1");
     expect(temporalRecovery).toContain(
       "Stale `_freshness` values are diagnostic-only",

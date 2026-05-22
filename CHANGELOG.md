@@ -1,10 +1,106 @@
+## 2026-05-22 (v0.10.6)
+
+
+### Change Highlights
+
+- **05-22-fixReentryTaskLookup**: Executive Summary
+
+## 2026-05-22 (v0.10.5)
+
+
+### Change Highlights
+
+- **05-22-extendCompletedWorkflow**: Executive Summary
+
+## 2026-05-22 (v0.10.4)
+
+
+## 2026-05-22 (v0.10.3)
+
+
+## 2026-05-22 (v0.10.2)
+
+
+## 2026-05-22 (v0.10.1)
+
+
+## 2026-05-22 (v0.10.0)
+
+### Added
+
+- add question note convention for optional agent context
+
+## 2026-05-22 (v0.9.10)
+
+
+### Change Highlights
+
+- **05-22-addContractMintTool**: Executive Summary
+- **05-22-fixGateAutoWorktree**: Executive Summary
+
+## 2026-05-22 (v0.9.9)
+
+
+## 2026-05-22 (v0.9.8)
+
+
+## 2026-05-22 (v0.9.7)
+
+
+## 2026-05-22 (v0.9.6)
+
+
+## 2026-05-21 (v0.9.5)
+
+### Fixed
+
+- tolerate default review matrix args
+
+## 2026-05-21 (v0.9.4)
+
+### Fixed
+
+- harden git spawn env and wire fsck repair action
+- route target-path isolation through target root
+
+## 2026-05-21 (v0.9.3)
+
+### Fixed
+
+- resolve trunk rebase conflict
+
+### Change Highlights
+
+- **05-21-addTerminalCleanupReaper**: Executive Summary
+- **05-21-makeArchiveMergeTrunk**: Executive Summary
+
+## 2026-05-21 (v0.9.2)
+
+### Fixed
+
+- enforce guard in project config
+- use target cwd for guarded mutations
+- wire auto-managed resume deps
+- route mode:warp session lookup through SDK client
+### Changed
+
+- capture scan prep notes (chore)
+
+### Change Highlights
+
+- **05-21-addDelegationDefaults2**: Executive Summary
+- **05-21-fixWarpSessionLookup**: Executive Summary
+- **05-21-rebuildPluginDistDeploy**: Executive Summary — rebuildPluginDistDeploy
+
 ## 2026-05-21 (v0.9.1)
 
 ### Fixed
 
+- enforce release-gate trunk merge structurally (rq-releaseFinalization01.5)
 - widen integration gate to terminal-set {archived, closed}
 ### Changed
 
+- add archive_mode PR opt-out and auto_push archive finalization config
 - archive fixWorktreeTerminalStatusGate (chore)
 
 ### Change Highlights

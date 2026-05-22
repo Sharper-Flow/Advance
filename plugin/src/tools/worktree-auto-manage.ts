@@ -24,6 +24,8 @@
  */
 
 import type { Change } from "../types";
+import type { Store } from "../storage/store";
+import { createLogger } from "../utils/debug-log";
 import { resolveGitSessionContext } from "../utils/git-session";
 import type { GitSessionContext } from "../utils/git-session";
 import {
@@ -39,6 +41,7 @@ import {
   type AdvWorktreeCreateDeps,
   type AdvWorktreeResumeResult,
 } from "./worktree";
+import { initStateDb } from "./worktree/state";
 
 // ---------------------------------------------------------------------------
 // Activation evaluation
@@ -131,6 +134,25 @@ export interface EnsureWorktreeForMutationDeps {
     changeId: string,
   ) => Promise<string | undefined> | string | undefined;
   onWarning?: (message: string) => void;
+}
+
+export async function buildWorktreeAutoManageDeps(
+  store: Store,
+  overrides: Omit<EnsureWorktreeForMutationDeps, "resumeRuntime"> = {},
+): Promise<EnsureWorktreeForMutationDeps> {
+  const projectRoot = store.paths.root;
+  const database = await initStateDb(projectRoot);
+  const log = createLogger("worktree-auto-manage");
+
+  return {
+    ...overrides,
+    resumeRuntime: {
+      projectRoot,
+      database,
+      log,
+      store,
+    },
+  };
 }
 
 export interface EnsureWorktreeForMutationInput {

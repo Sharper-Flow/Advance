@@ -1,0 +1,323 @@
+{
+  "id": "addTerminalCleanupReaper",
+  "title": "Add terminal cleanup reaper",
+  "status": "archived",
+  "created_at": "2026-05-21T04:43:14.881Z",
+  "tasks": [
+    {
+      "id": "tk-1fc62791a482",
+      "title": "T1: Add terminal cleanup reaper spec deltas and structural guard tests",
+      "type": "code",
+      "section": "Spec and guardrails",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T05:39:32.213Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements: AC10; verifies: AC5, AC9, AC10, AC11; respects: DONT2, DONT4, DONT5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T05:42:22.213Z",
+      "verification": "Completed T1. RED failed on missing rq-terminalCleanup* spec requirements; GREEN passed after adding worktree-lifecycle spec deltas and asset guard tests. Checkpoint commit e3f418fa.",
+      "summary": "Added four worktree-lifecycle spec-law requirements: rq-terminalCleanupReaper01, rq-terminalCleanupSafety01, rq-terminalCleanupVisibility01, rq-terminalCleanupLifecycle01. Added `plugin/src/__tests__/worktree-lifecycle-assets.test.ts` to assert requirement presence/content and guard against direct `git worktree remove` calls outside the existing removal primitive. Verified with `pnpm test -- src/__tests__/worktree-lifecycle-assets.test.ts`.",
+      "implementation_summary": "Added four worktree-lifecycle spec-law requirements: rq-terminalCleanupReaper01, rq-terminalCleanupSafety01, rq-terminalCleanupVisibility01, rq-terminalCleanupLifecycle01. Added `plugin/src/__tests__/worktree-lifecycle-assets.test.ts` to assert requirement presence/content and guard against direct `git worktree remove` calls outside the existing removal primitive. Verified with `pnpm test -- src/__tests__/worktree-lifecycle-assets.test.ts`.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T05:46:10.661Z",
+      "completed_at": "2026-05-21T05:46:10.661Z"
+    },
+    {
+      "id": "tk-3a92a9e84532",
+      "title": "T2: Extract shared pending-delete drain primitive",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T05:39:44.541Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1fc62791a482"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements: AC1, AC5, AC6, AC7, AC9; verifies: AC3, AC5, AC6, AC7, AC9, AC11; respects: C3, DONT2, DONT4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T05:47:37.488Z",
+      "verification": "Completed T2. Checkpoint commit fe436bbc. RED failed on missing drainPendingDeletes export/implementation; GREEN passed after extracting shared drain and routing manual/plugin cleanup through it.",
+      "summary": "Extracted exported `drainPendingDeletes(trigger, deps, options)` shared primitive in `plugin/src/tools/worktree/index.ts`. It drains known pending deletes, respects automatic retry caps unless `forceAttempts` is set, preserves dry-run as non-mutating, uses the `AdvWorktreeDeleteDeps` bundle including `store`, delegates all removal attempts to `advWorktreeDelete`, clears successful entries, and increments retained failures. Routed `advWorktreeCleanup` and the plugin-local `processPendingDeletes` wrapper through this shared primitive. Added focused tests in `plugin/src/tools/worktree/index-delete.test.ts` for retry-cap behavior, dry-run non-mutation, and store-aware registry-drift cleanup. Also made the test helper use per-temp-repo pending-delete project IDs to avoid leaked external pending-delete state across tests.",
+      "implementation_summary": "Extracted exported `drainPendingDeletes(trigger, deps, options)` shared primitive in `plugin/src/tools/worktree/index.ts`. It drains known pending deletes, respects automatic retry caps unless `forceAttempts` is set, preserves dry-run as non-mutating, uses the `AdvWorktreeDeleteDeps` bundle including `store`, delegates all removal attempts to `advWorktreeDelete`, clears successful entries, and increments retained failures. Routed `advWorktreeCleanup` and the plugin-local `processPendingDeletes` wrapper through this shared primitive. Added focused tests in `plugin/src/tools/worktree/index-delete.test.ts` for retry-cap behavior, dry-run non-mutation, and store-aware registry-drift cleanup. Also made the test helper use per-temp-repo pending-delete project IDs to avoid leaked external pending-delete state across tests.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T05:58:39.934Z",
+      "completed_at": "2026-05-21T05:58:39.934Z"
+    },
+    {
+      "id": "tk-fa32ea37dfe9",
+      "title": "T3: Route startup and session.deleted cleanup through the shared store-aware path",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T05:39:55.513Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a92a9e84532"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements: AC1, AC2, AC4, AC9; verifies: AC1, AC2, AC3, AC4, AC5, AC6, AC9, AC11; respects: C1, C2, C3, C5, DONT1, DONT2, DONT4"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T05:59:02.484Z",
+      "verification": "Completed T3. Checkpoint commit 41f1f9a. RED failed because plugin startup did not drain pending deletes; GREEN passed after adding bounded startup drain and routing main plugin startup/session.deleted through the store-aware shared drain.",
+      "summary": "Added bounded startup pending-delete drain to the legacy `WorktreePlugin`, reusing the shared `drainPendingDeletes` primitive and shared `warpDeps`. Routed the main ADV plugin through the same shared drain with durable `store` for both startup and `session.deleted`, before store close. Added startup test coverage in `plugin/src/tools/worktree/index-delete.test.ts` proving known pending deletes are retried on plugin startup. Startup/session.deleted use `forceAttempts: false`, so automatic triggers respect the retry cap and drain known pending deletes only.",
+      "implementation_summary": "Added bounded startup pending-delete drain to the legacy `WorktreePlugin`, reusing the shared `drainPendingDeletes` primitive and shared `warpDeps`. Routed the main ADV plugin through the same shared drain with durable `store` for both startup and `session.deleted`, before store close. Added startup test coverage in `plugin/src/tools/worktree/index-delete.test.ts` proving known pending deletes are retried on plugin startup. Startup/session.deleted use `forceAttempts: false`, so automatic triggers respect the retry cap and drain known pending deletes only.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T06:06:22.001Z",
+      "completed_at": "2026-05-21T06:06:22.001Z"
+    },
+    {
+      "id": "tk-6c2974f2af71",
+      "title": "T4: Add full terminal cleanup discovery for manual/status/archive triggers",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-21T05:40:11.230Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a92a9e84532"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements: AC1, AC3, AC4, AC8; verifies: AC1, AC3, AC4, AC5, AC6, AC8, AC11; respects: C2, C4, DONT2, DONT3, DONT6"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T06:06:38.347Z",
+      "verification": "Completed T4. Checkpoint commit 9b8badc. RED failed because manual cleanup did not discover terminal worktrees without pending-delete entries; GREEN passed after adding full terminal discovery and wiring manual/status/archive triggers.",
+      "summary": "Added `discoverTerminalCleanupCandidates` in `plugin/src/tools/worktree/index.ts`. It scans git worktree facts, infers `change/*` owners, verifies terminal change state from the durable store (`archived` or `closed`), queues candidates with `setPendingDelete`, then lets the shared drain and `advWorktreeDelete` enforce merged/clean/live-CWD safety structurally. Manual `advWorktreeCleanup` now runs discovery before draining by default; startup/session.deleted still call `drainPendingDeletes` directly and therefore do not run full discovery. Wired best-effort status-triggered cleanup before worktree census in `plugin/src/tools/status.ts`, and archive-triggered cleanup after durable archive status transition in `plugin/src/tools/change.ts`. Added RED/GREEN test coverage for manual discovery of an archived change worktree with no existing pending-delete entry.",
+      "implementation_summary": "Added `discoverTerminalCleanupCandidates` in `plugin/src/tools/worktree/index.ts`. It scans git worktree facts, infers `change/*` owners, verifies terminal change state from the durable store (`archived` or `closed`), queues candidates with `setPendingDelete`, then lets the shared drain and `advWorktreeDelete` enforce merged/clean/live-CWD safety structurally. Manual `advWorktreeCleanup` now runs discovery before draining by default; startup/session.deleted still call `drainPendingDeletes` directly and therefore do not run full discovery. Wired best-effort status-triggered cleanup before worktree census in `plugin/src/tools/status.ts`, and archive-triggered cleanup after durable archive status transition in `plugin/src/tools/change.ts`. Added RED/GREEN test coverage for manual discovery of an archived change worktree with no existing pending-delete entry.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T06:16:47.004Z",
+      "completed_at": "2026-05-21T06:16:47.004Z"
+    },
+    {
+      "id": "tk-f059b8d5381c",
+      "title": "T5: Surface retained terminal cleanup blockers in status and triage",
+      "type": "code",
+      "section": "Visibility",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-21T05:40:25.063Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6c2974f2af71"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements: AC8; verifies: AC8, AC11; respects: SC5, C4, DONT6"
+      },
+      "verification": "Completed T5. Checkpoint commit 683435c. RED failed because retained cleanup blockers were absent from status/triage; GREEN passed after adding status aggregates and triage exact details.",
+      "summary": "Added shared pending-delete classification and aggregation helpers in `plugin/src/tools/worktree/state.ts`. `adv_status` now surfaces `terminal_cleanup_retained` as count/classes only, and formatted Worktrees output includes retained cleanup counts without paths. `adv_worktree_triage` now reports exact retained terminal cleanup pending-delete blockers with branch, path, reason, attempts, and remediation. Added tests in `plugin/src/tools/status.test.ts` and `plugin/src/tools/worktree/triage.test.ts`.",
+      "implementation_summary": "Added shared pending-delete classification and aggregation helpers in `plugin/src/tools/worktree/state.ts`. `adv_status` now surfaces `terminal_cleanup_retained` as count/classes only, and formatted Worktrees output includes retained cleanup counts without paths. `adv_worktree_triage` now reports exact retained terminal cleanup pending-delete blockers with branch, path, reason, attempts, and remediation. Added tests in `plugin/src/tools/status.test.ts` and `plugin/src/tools/worktree/triage.test.ts`.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T06:29:34.029Z",
+      "completed_at": "2026-05-21T06:29:34.029Z"
+    },
+    {
+      "id": "tk-eb1345766ede",
+      "title": "T6: Preserve retry semantics and classify retained cleanup failures",
+      "type": "code",
+      "section": "Retry semantics",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-21T05:40:40.466Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3a92a9e84532"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements: AC6, AC7; verifies: AC6, AC7, AC11; respects: C3, C5"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T06:29:53.363Z",
+      "verification": "Completed T6. Checkpoint commit 706e073. RED failed because retained pending-delete failures lacked metadata; GREEN passed after persisting lastError/lastErrorClass and using classification in status summaries.",
+      "summary": "Extended pending-delete records with optional `lastError` and `lastErrorClass` while preserving backwards compatibility for old JSON records. Added `recordPendingDeleteFailure` to atomically increment attempts and persist failure metadata. Updated the shared drain to record classified retained failures for in-use and failed delete attempts. Status aggregation now prefers `lastErrorClass` when present. Added tests for persisted retained failure metadata and exhausted-retry status aggregation behavior.",
+      "implementation_summary": "Extended pending-delete records with optional `lastError` and `lastErrorClass` while preserving backwards compatibility for old JSON records. Added `recordPendingDeleteFailure` to atomically increment attempts and persist failure metadata. Updated the shared drain to record classified retained failures for in-use and failed delete attempts. Status aggregation now prefers `lastErrorClass` when present. Added tests for persisted retained failure metadata and exhausted-retry status aggregation behavior.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T06:40:32.145Z",
+      "completed_at": "2026-05-21T06:40:32.145Z"
+    },
+    {
+      "id": "tk-0729c1866844",
+      "title": "T7: Final integration verification for terminal cleanup reaper",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-21T05:40:50.669Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fa32ea37dfe9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6c2974f2af71"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f059b8d5381c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-eb1345766ede"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "verifies: AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC11; respects: C1-C6, DONT1-DONT6, OOS1-OOS7"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T06:40:49.826Z",
+      "verification": "Acceptance review remediation: adv-reviewer changed triage recommendations to route orphan cleanup through adv_worktree_delete instead of manual deletion. Verification passed: pnpm test -- src/tools/worktree/triage.test.ts src/__tests__/worktree-lifecycle-assets.test.ts.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "9b1ab7fec6ba4f77b5b20ceae551ca36de468f0f",
+      "completedAt": "2026-05-21T06:50:17.900Z",
+      "completed_at": "2026-05-21T06:50:17.900Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-qCvfIc",
+      "type": "gotcha",
+      "content": "Worktree pending-delete state is durable external project state, not temp-repo-local. Tests using a fixed WorktreeStateAccess.projectId can leak queued deletes/attempt counts across runs; use a unique projectId per temp fixture when asserting pending-delete behavior.",
+      "source_task": "tk-3a92a9e84532",
+      "recorded_at": "2026-05-21T05:58:48.172Z"
+    },
+    {
+      "id": "ws-6dpEaA",
+      "type": "convention",
+      "content": "Worktree cleanup recommendations should not suggest manual filesystem/git deletion for ADV worktrees; route operators through adv_worktree_delete so durable terminal-state, merged, clean, and live-CWD gates stay centralized.",
+      "source_task": "tk-0729c1866844",
+      "recorded_at": "2026-05-21T06:49:13.780Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:48:27.509Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved by user exact reply: \"continue\" after problem statement confirmation and proposal summary.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/proposal.md",
+        "content_hash": "18a7f50a0fed4d0944773f3818ee1f3c23ed1fbb632a2684d65c515ad3f780a5",
+        "non_whitespace_chars": 2067,
+        "checked_at": "2026-05-21T05:20:50.929Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:23:59.707Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted in proposal.md; agreement.md preserved with user-approved acceptance criteria. User approval already recorded in agreement Sign-Off: exact reply `approve`.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/agreement.md",
+        "content_hash": "1b2f210453445ec5331094bb5de31a24554415bf0444609e845f5db2b94eb9d1",
+        "non_whitespace_chars": 5125,
+        "checked_at": "2026-05-21T05:23:59.775Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:38:47.974Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with validator result VALIDATED. Straightforward technical design; no user-value tradeoff, no unresolved conflict, no contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/design.md",
+        "content_hash": "1b9d3902a31d0721302c9843144603f2db081ab60d670bb36dbeefc87af84c61",
+        "non_whitespace_chars": 5027,
+        "checked_at": "2026-05-21T05:38:48.035Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:41:42.895Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph with exact reply: `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T06:43:48.244Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 7 tasks done. Final verification passed: pnpm run check; pnpm test; pnpm run build. Working tree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-05-21T06:52:48.898Z",
+      "completed_at": "2026-05-21T06:58:59.523Z",
+      "completed_by": "agent",
+      "approval_evidence": "Acceptance approved by user exact reply `approve`. Typed ChangeContract and review matrix minted after readiness blocker; independent reviewer verdict PASS; final verification passed: pnpm run check, pnpm test, pnpm run build.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/acceptance.md",
+        "content_hash": "e3ae4d8026b1ab0216fb90fe0df15acb81cf71225c40010146b4b99343673b73",
+        "non_whitespace_chars": 7734,
+        "checked_at": "2026-05-21T06:58:59.656Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-21T07:57:01.247Z",
+      "completed_by": "agent",
+      "approval_evidence": "Archive sign-off approved by user exact reply `sign off`. Release finalization authorized after acceptance report; validation passed with 0 errors; working tree clean."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-21T05:07:20.422Z",
+      "resolved": true,
+      "resolved_at": "2026-05-21T05:14:57.022Z"
+    }
+  ]
+}

@@ -1,11 +1,6 @@
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
-import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import {
-  classifyTemporalError,
-  collectErrorText,
-} from "../../temporal/retry-wrapper";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
@@ -25,12 +20,14 @@ import {
   mapTemporalChangeStateToChange,
   getGuardedChangeHandle,
   runTemporalQuery,
+  classifyTemporalReadFailure,
 } from "./shared";
 import {
   changeStateQuery,
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 import { createChangeOps } from "./changes";
@@ -59,14 +56,6 @@ function withProjectionRecovery(
     _source: source,
     _recovery: { mode: "temporal_query_fallback", reason },
   };
-}
-
-function recoveryReasonFromError(error: unknown): ProjectionRecoveryReason {
-  return /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(
-    collectErrorText(error),
-  )
-    ? "poisoned_history"
-    : "missing_workflow";
 }
 
 export function createTemporalStoreBackend(
@@ -125,6 +114,14 @@ export function createTemporalStoreBackend(
     };
     changeCache.set(state.changeId, mapped);
     memo.set(state.changeId, buildSummary(state));
+    // rq-reentryTaskLookup01: every workflow-state cache refresh must also
+    // hydrate the reverse task→change index. Tool-layer task additions and
+    // gate re-entry refresh via setCachedChange(), not store.tasks.add(), so
+    // ad-hoc indexing only at individual call sites leaves task-id-only tools
+    // unable to resolve newly visible workflow tasks.
+    for (const task of state.tasks ?? []) {
+      taskChangeIndex.set(task.id, state.changeId);
+    }
     return mapped;
   };
 
@@ -444,14 +441,7 @@ export function createTemporalStoreBackend(
         initializedAt: change.created_at,
         projectionChangesDir: legacy.paths.changes,
         archiveProjects: [{ projectPath: legacy.paths.root }],
-        seedState: {
-          status: change.status,
-          tasks: change.tasks ?? [],
-          deltas: change.deltas ?? {},
-          wisdom: change.wisdom ?? [],
-          gates: change.gates ?? createDefaultGates(),
-          reentry_history: change.reentry_history ?? [],
-        },
+        seedState: changeSeedStateFromChange(change),
       });
     } catch (err) {
       // Re-seed itself failed — surface the original not-found to callers
@@ -487,11 +477,12 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      if (classifyTemporalError(err) === "fallback") {
+      const failure = await classifyTemporalReadFailure(input, changeId, err);
+      if (failure.errorClass === "fallback") {
         return withProjectionRecovery(
           change,
           "disk",
-          recoveryReasonFromError(err),
+          failure.recoveryReason ?? "missing_workflow",
         );
       }
       return null;
@@ -530,10 +521,11 @@ export function createTemporalStoreBackend(
       // reseedChangeFromDisk short-circuits and returns the on-disk
       // projection without re-creating the workflow — re-seeding would
       // re-emit a summary signal and undo adv_archive_purge.
-      if (classifyTemporalError(error) === "fallback") {
+      const failure = await classifyTemporalReadFailure(input, changeId, error);
+      if (failure.errorClass === "fallback") {
         const reseeded = await reseedChangeFromDisk(
           changeId,
-          recoveryReasonFromError(error),
+          failure.recoveryReason ?? "missing_workflow",
         );
         if (reseeded) {
           // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.

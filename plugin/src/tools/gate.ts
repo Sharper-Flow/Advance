@@ -28,6 +28,7 @@ import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 import {
   formatTargetProjectContext,
+  resolveTargetAwareMutationCwd,
   type TargetProjectOutputContext,
   withOptionalTargetPathStore,
   withTargetPathStore,
@@ -50,9 +51,25 @@ import {
 } from "./worktree-isolation-guard";
 import {
   ensureWorktreeForMutation,
+  buildWorktreeAutoManageDeps,
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
+import {
+  detectArchiveMode,
+  detectDefaultBranch,
+  resolveMainCheckout,
+  verifyChangeBranchReachable,
+  verifyChangeBranchPushed,
+  verifyDefaultBranchPushed,
+} from "./archive-helpers/git-finalize";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+import { evaluateGateReadiness } from "../temporal/gate-readiness";
+import { changeToWorkflowState } from "../temporal/change-state";
+import {
+  RECOVERY_RECONCILIATION_WARNING,
+  isPoisonedHistoryError,
+} from "../temporal/recovery-classification";
+import { workflowHasPoisonedDescription } from "./recovery-probe";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
 const GATE_COMPLETION_POLL_DELAY_MS = 25;
@@ -106,6 +123,177 @@ function gateCompletionNotConfirmedResponse(input: {
     gateId: input.gateId,
     workflowGateStatus: input.gate?.status,
     hint: "Retry adv_gate_status to inspect workflow state before retrying adv_gate_complete.",
+  });
+}
+
+function releaseRequiresTrunkMergeResponse(input: {
+  changeId: string;
+  defaultBranch: string;
+  unmergedCommits: string[];
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_TRUNK_MERGE: change/${input.changeId} is not reachable from ${input.defaultBranch}`,
+    code: "RELEASE_REQUIRES_TRUNK_MERGE",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    defaultBranch: input.defaultBranch,
+    unmergedCommits: input.unmergedCommits,
+    remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (merge + push + verify), then retry release gate completion.`,
+  });
+}
+
+function releaseRequiresPrHandoffResponse(input: {
+  changeId: string;
+  reason: string;
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_PR_HANDOFF: ${input.reason}`,
+    code: "RELEASE_REQUIRES_PR_HANDOFF",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (push change branch + PR workflow handoff), then retry release gate completion.`,
+  });
+}
+
+function releaseRequiresDefaultBranchPushResponse(input: {
+  changeId: string;
+  defaultBranch: string;
+  reason: string;
+}): string {
+  return formatToolOutput({
+    error: `RELEASE_REQUIRES_DEFAULT_BRANCH_PUSH: ${input.reason}`,
+    code: "RELEASE_REQUIRES_DEFAULT_BRANCH_PUSH",
+    requirement: "rq-releaseFinalization01",
+    changeId: input.changeId,
+    remediation: `Run /adv-archive ${input.changeId} to complete Phase 9 (merge + push ${input.defaultBranch} + verify), then retry release gate completion.`,
+  });
+}
+
+function buildRecoveryReadinessState(input: {
+  change: Change;
+  gates: Gates;
+  projectionChangesDir: string;
+}) {
+  return changeToWorkflowState({
+    projectId: "recovery-disk-projection",
+    change: input.change,
+    initializedAt: input.change.created_at,
+    projectionChangesDir: input.projectionChangesDir,
+    gates: input.gates,
+  });
+}
+
+/**
+ * rq-extend-poisoned-recovery AC4: generalized poisoned-history gate
+ * recovery. Supports acceptance and release gates. Each requires
+ * `compatibilityReason` and respects prior-gate sequencing + task
+ * completeness.
+ *
+ * Replaces the prior `completeAcceptanceViaRecovery` helper — call sites
+ * now use this entrypoint directly.
+ */
+async function completeGateViaRecovery(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  gateId: GateId;
+  gates: Gates;
+  completedBy: string;
+  notes?: string;
+  compatibilityReason?: string;
+  boundaryWarning?: string;
+  extraPayload?: Record<string, unknown>;
+}): Promise<string> {
+  if (input.gateId !== "acceptance" && input.gateId !== "release") {
+    return formatToolOutput({
+      error:
+        "poisoned-history gate recovery is only supported for acceptance and release",
+      changeId: input.changeId,
+      gateId: input.gateId,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  if (!input.compatibilityReason?.trim()) {
+    return formatToolOutput({
+      error: `poisoned-history ${input.gateId} recovery requires compatibilityReason`,
+      changeId: input.changeId,
+      gateId: input.gateId,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  if (!canCompleteGate(input.gates, input.gateId)) {
+    const blockedBy = GATE_ORDER.slice(
+      0,
+      GATE_ORDER.indexOf(input.gateId),
+    ).filter((gate) => input.gates[gate].status !== "done");
+    return formatToolOutput({
+      error: `Cannot complete ${input.gateId}: prior gate(s) incomplete`,
+      blockedBy,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  // For acceptance: all tasks must be done/cancelled. Release runs after
+  // acceptance so this is implicitly true, but we keep the check for
+  // defense in depth.
+  const incompleteTasks = input.change.tasks.filter(
+    (task) => task.status !== "done" && task.status !== "cancelled",
+  );
+  if (incompleteTasks.length > 0) {
+    return formatToolOutput({
+      error: `Cannot complete ${input.gateId}: ${incompleteTasks.length} task(s) not done or cancelled`,
+      incompleteTasks: incompleteTasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        status: task.status,
+      })),
+      ...(input.extraPayload ?? {}),
+    });
+  }
+
+  const readiness = evaluateGateReadiness(
+    buildRecoveryReadinessState({
+      change: input.change,
+      gates: input.gates,
+      projectionChangesDir: input.store.paths.changes,
+    }),
+    input.gateId,
+    { compatibilityReason: input.compatibilityReason },
+  );
+  if (!readiness.ready) {
+    return workflowReadinessBlockedResponse({
+      changeId: input.changeId,
+      gateId: input.gateId,
+      gate: {
+        status: "stuck",
+        stuck_reason: readiness.blockers[0]?.code,
+        readiness_blockers: readiness.blockers,
+      },
+    });
+  }
+
+  const completedAt = new Date().toISOString();
+  const updatedGates: Gates = {
+    ...input.gates,
+    [input.gateId]: {
+      status: "done",
+      completed_at: completedAt,
+      completed_by: input.completedBy,
+      approval_evidence: input.notes,
+      artifact_evidence: readiness.evidence,
+    },
+  } as Gates;
+  await input.store.changes.save({ ...input.change, gates: updatedGates });
+  return formatToolOutput({
+    success: true,
+    changeId: input.changeId,
+    gateId: input.gateId,
+    status: "done",
+    completed_at: completedAt,
+    completed_by: input.completedBy,
+    boundaryWarning: input.boundaryWarning,
+    _recoveryMutation: true,
+    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+    ...(input.extraPayload ?? {}),
   });
 }
 
@@ -431,6 +619,7 @@ export const gateTools = {
 
             // Get or create gates
             let gates = result.data.gates ?? createDefaultGates();
+            let poisonedFallback = false;
             const bundle = getService();
             const projectId = bundle
               ? await getProjectId(activeStore.paths.root)
@@ -441,13 +630,27 @@ export const gateTools = {
                 projectId,
                 changeId,
               );
-              const queriedGates = await querySignal<Gates>(
-                handle,
-                getGateStatusQuery,
-                undefined,
-              );
-              if (queriedGates && typeof queriedGates === "object") {
-                gates = queriedGates;
+              try {
+                const queriedGates = await querySignal<Gates>(
+                  handle,
+                  getGateStatusQuery,
+                  undefined,
+                );
+                if (queriedGates && typeof queriedGates === "object") {
+                  gates = queriedGates;
+                }
+              } catch (queryError) {
+                // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
+                // The store's changes.get already returned a disk projection
+                // (likely via temporal_query_fallback). Honour that disk
+                // projection when the workflow describe carries poisoned
+                // evidence, instead of propagating the generic
+                // "Failed to query Workflow" error.
+                if (await workflowHasPoisonedDescription(handle)) {
+                  poisonedFallback = true;
+                } else {
+                  throw queryError;
+                }
               }
             }
             const incomplete = getIncompleteGates(gates);
@@ -460,6 +663,9 @@ export const gateTools = {
               incomplete,
               canArchive,
               nextGate,
+              ...(poisonedFallback
+                ? { _recovery: { reason: "poisoned_history" } }
+                : {}),
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           } catch (error) {
@@ -520,6 +726,12 @@ export const gateTools = {
         .string()
         .optional()
         .describe("Optional notes about the gate completion"),
+      compatibilityReason: z
+        .string()
+        .optional()
+        .describe(
+          "Acceptance-only legacy/replay compatibility rationale. Used for explicit poisoned-history recovery; rejected for non-acceptance gates.",
+        ),
       target_path: z
         .string()
         .optional()
@@ -536,6 +748,7 @@ export const gateTools = {
         completedBy = "agent",
         userApproved,
         notes,
+        compatibilityReason,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -545,6 +758,7 @@ export const gateTools = {
         completedBy?: string;
         userApproved?: boolean;
         notes?: string;
+        compatibilityReason?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -590,6 +804,22 @@ export const gateTools = {
 
         let gates: Gates = change.gates ?? createDefaultGates();
 
+        if (
+          compatibilityReason?.trim() &&
+          gateId !== "acceptance" &&
+          gateId !== "release"
+        ) {
+          // rq-extend-poisoned-recovery AC4: release-gate recovery joins
+          // acceptance as a supported compatibilityReason target.
+          return formatToolOutput({
+            error:
+              "compatibilityReason is only supported for acceptance and release gate recovery",
+            changeId,
+            gateId,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
+
         const bundle = getService();
         if (!bundle) {
           return formatToolOutput({
@@ -607,11 +837,42 @@ export const gateTools = {
           });
         }
         const handle = getChangeHandle(bundle.client, projectId, changeId);
-        const queriedGates = await querySignal<Gates>(
-          handle,
-          getGateStatusQuery,
-          undefined,
-        );
+        let queriedGates: Gates | undefined;
+        try {
+          queriedGates = await querySignal<Gates>(
+            handle,
+            getGateStatusQuery,
+            undefined,
+          );
+        } catch (error) {
+          // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
+          // accept poisoned-history acceptance/release recovery when either
+          // the raw error matches the legacy regex OR workflow describe
+          // carries poisoned evidence. compatibilityReason is still required
+          // inside completeGateViaRecovery.
+          if (
+            (gateId === "acceptance" || gateId === "release") &&
+            (isPoisonedHistoryError(error) ||
+              (await workflowHasPoisonedDescription(handle)))
+          ) {
+            const boundaryWarning = validateGateBoundary(gateId, completedBy);
+            return completeGateViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason,
+              boundaryWarning,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          }
+          throw error;
+        }
         if (queriedGates && typeof queriedGates === "object") {
           gates = queriedGates;
         }
@@ -631,12 +892,15 @@ export const gateTools = {
         const isolation = await evaluateGateWorktreeIsolation({
           gateId,
           features: activeStore.config?.features,
-          cwd: process.cwd(),
+          cwd: resolveTargetAwareMutationCwd({
+            store: activeStore,
+            target_path,
+          }),
           change,
-          // Block D wires the auto-create runtime here (target_path /
-          // scope_repos routing); for now the helper falls back to the
-          // structural defensive failure on missing resumeRuntime, which
-          // surfaces a clear AC6 error rather than a vague NPE.
+          autoManageDeps:
+            change.worktree_auto_managed === true
+              ? await buildWorktreeAutoManageDeps(activeStore)
+              : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
@@ -695,22 +959,92 @@ export const gateTools = {
           // All tasks done/cancelled (or empty list) — fall through
         }
 
+        if (gateId === "release") {
+          const { archiveMode } = detectArchiveMode(activeStore.config ?? {});
+          const mainCheckout = resolveMainCheckout(activeStore.paths.root);
+          const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+
+          if (archiveMode === "direct") {
+            const reachability = verifyChangeBranchReachable(
+              mainCheckout,
+              defaultBranch,
+              changeId,
+            );
+            if (!reachability.reachable) {
+              return releaseRequiresTrunkMergeResponse({
+                changeId,
+                defaultBranch,
+                unmergedCommits: reachability.unmergedCommits,
+              });
+            }
+            const pushCheck = verifyDefaultBranchPushed(
+              mainCheckout,
+              defaultBranch,
+            );
+            if (!pushCheck.pushed) {
+              return releaseRequiresDefaultBranchPushResponse({
+                changeId,
+                defaultBranch,
+                reason:
+                  pushCheck.reason ?? `${defaultBranch} not pushed to origin`,
+              });
+            }
+          } else if (archiveMode === "pr") {
+            const pushCheck = verifyChangeBranchPushed(mainCheckout, changeId);
+            if (!pushCheck.pushed) {
+              return releaseRequiresPrHandoffResponse({
+                changeId,
+                reason:
+                  pushCheck.reason ?? "change branch not pushed to origin",
+              });
+            }
+          }
+        }
+
         // Signal-driven mutation: fire gateCompletedSignal after
         // sequence/task checks pass. rq-cacheRefresh01: helper invalidates
         // the cache so completeGateAndBuildResponse + subsequent reads
         // see the fresh gate-done state.
-        await fireSignalAndRefresh(
-          handle,
-          activeStore,
-          changeId,
-          gateCompletedSignal,
-          {
-            gateId,
-            completedBy,
-            completedAt: new Date().toISOString(),
-            approvalEvidence: notes,
-          },
-        );
+        try {
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            gateCompletedSignal,
+            {
+              gateId,
+              completedBy,
+              completedAt: new Date().toISOString(),
+              approvalEvidence: notes,
+              compatibilityReason,
+            },
+          );
+        } catch (error) {
+          // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
+          // also recover release gate when workflow describe carries
+          // poisoned evidence.
+          if (
+            (gateId === "acceptance" || gateId === "release") &&
+            (isPoisonedHistoryError(error) ||
+              (await workflowHasPoisonedDescription(handle)))
+          ) {
+            return completeGateViaRecovery({
+              store: activeStore,
+              change,
+              changeId,
+              gateId,
+              gates,
+              completedBy,
+              notes,
+              compatibilityReason,
+              boundaryWarning,
+              extraPayload: projectContext
+                ? { _projectContext: projectContext }
+                : {},
+            });
+          }
+          throw error;
+        }
 
         const postSignalGate = await waitForGateCompletionResult(
           handle,

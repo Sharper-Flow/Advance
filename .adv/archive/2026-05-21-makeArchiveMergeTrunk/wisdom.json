@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-nODvVf",
+      "type": "gotcha",
+      "content": "When adding defaulted fields to `ProjectConfigSchema`, Zod's parsed output type treats them as required. Any code constructing a parsed `ProjectConfig` manually (e.g. `store-disk.ts` default config passed to `saveProjectConfig`) must add the new defaulted fields too, or `tsc` fails even though parser callers are fine.",
+      "source_task": "tk-0b42436e966a",
+      "recorded_at": "2026-05-21T05:03:32.740Z"
+    }
+  ],
+  "count": 1
+}

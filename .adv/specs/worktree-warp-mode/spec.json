@@ -139,7 +139,7 @@
     {
       "id": "rq-warpModeContract06",
       "title": "Client Threading From Plugin Input",
-      "body": "The v1 SDK client from PluginInput.client MUST be threaded through advancePluginImpl → createToolMap → AdvWorktreeCreateRuntime to enable rq-warpModeContract04. createToolMap accepts an optional client parameter; adv_worktree_create / adv_worktree_delete / adv_worktree_cleanup and their backward-compat aliases (worktree_create / worktree_delete / worktree_cleanup) all forward the client into their runtime options. If client is absent at runtime, adv_worktree_create emits downgrade_reason { kind: \"missing_client\" } and falls back to mode:terminal — it does not crash.",
+      "body": "The v1 SDK client from PluginInput.client MUST be threaded through advancePluginImpl → createToolMap → AdvWorktreeCreateRuntime to enable rq-warpModeContract04. createToolMap accepts an optional client parameter; adv_worktree_create / adv_worktree_delete / adv_worktree_cleanup forward the client into their runtime options. Legacy standalone aliases (worktree_create / worktree_delete / worktree_cleanup) MUST NOT be registered by the ADV tool registry. If client is absent at runtime, adv_worktree_create emits downgrade_reason { kind: \"missing_client\" } and falls back to mode:terminal — it does not crash.",
       "priority": "must",
       "tags": ["worktree", "warp", "wiring", "plugin-init"],
       "scenarios": [

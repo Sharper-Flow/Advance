@@ -739,6 +739,40 @@ describe("changeWorkflow signal handlers", () => {
     });
   }, 30_000);
 
+  it("preserves checkpoint metadata when a weaker duplicate completion arrives", async () => {
+    await withSignalWorker("preserve-checkpoint-metadata", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-preserve", "preserve metadata task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(taskCompletedSignal, {
+        taskId: "tk-preserve",
+        verification: "checkpoint verification",
+        summary: "checkpoint summary",
+        filesTouched: ["src/strong.ts"],
+        checkpointSha: "strong-sha",
+        completedAt: "2026-05-05T00:00:02.000Z",
+      });
+      await handle.signal(taskCompletedSignal, {
+        taskId: "tk-preserve",
+        verification: "weaker duplicate",
+        summary: "weaker summary",
+        filesTouched: [],
+        completedAt: "2026-05-05T00:00:03.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-preserve");
+      expect(task).toBeDefined();
+      expect(task!.verification).toBe("checkpoint verification");
+      expect(task!.summary).toBe("checkpoint summary");
+      expect(task!.filesTouched).toEqual(["src/strong.ts"]);
+      expect(task!.touched_files).toEqual(["src/strong.ts"]);
+      expect(task!.checkpointSha).toBe("strong-sha");
+      expect(task!.completedAt).toBe("2026-05-05T00:00:02.000Z");
+    });
+  }, 30_000);
+
   it("drains in-flight handlers before continuing as new", () => {
     const source = readFileSync(workflowsPath, "utf8");
 

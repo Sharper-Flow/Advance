@@ -4,13 +4,25 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  minimatch: ^10.2.3
+  rollup: ^4.59.0
+  flatted: '>=3.4.2'
+  vite: '>=8.0.5'
+  picomatch: '>=4.0.4'
+  brace-expansion: '>=5.0.5'
+  protobufjs: '>=7.5.5'
+  uuid: '>=14.0.0'
+  fast-uri: '>=3.1.2'
+  zod: 4.3.6
+
 importers:
 
   .:
     dependencies:
       '@opencode-ai/plugin':
         specifier: latest
-        version: 1.15.5
+        version: 1.15.6
       '@temporalio/activity':
         specifier: ^1.16.0
         version: 1.16.0
@@ -33,7 +45,7 @@ importers:
         specifier: ^5.0.9
         version: 5.1.7
       zod:
-        specifier: ^4.3.6
+        specifier: 4.3.6
         version: 4.3.6
     devDependencies:
       '@eslint/js':
@@ -76,7 +88,7 @@ importers:
         specifier: ^8.58.2
         version: 8.58.2(eslint@10.2.0)(typescript@6.0.2)
       vite:
-        specifier: ^8.0.8
+        specifier: '>=8.0.5'
         version: 8.0.8(@types/node@25.6.0)(esbuild@0.27.4)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.4
@@ -509,12 +521,12 @@ packages:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
 
-  '@opencode-ai/plugin@1.15.5':
-    resolution: {integrity: sha512-QvhrDLlQuLeFGET1zB2crMWPvou6PpAzYtKrbun9akWvaskyAcXIAVn3lNYX/InMcut5VzL6ERbPgvM7ucHfLA==}
+  '@opencode-ai/plugin@1.15.6':
+    resolution: {integrity: sha512-yucBZCA+Hsru6J+LZ7321OkTyRi7v1bqs5qEyIRJBO+xcFiFHOf+JDMJtZ5xJnjn7E2t5wcdeH4784QgukShgg==}
     peerDependencies:
-      '@opentui/core': '>=0.2.14'
-      '@opentui/keymap': '>=0.2.14'
-      '@opentui/solid': '>=0.2.14'
+      '@opentui/core': '>=0.2.15'
+      '@opentui/keymap': '>=0.2.15'
+      '@opentui/solid': '>=0.2.15'
     peerDependenciesMeta:
       '@opentui/core':
         optional: true
@@ -523,8 +535,8 @@ packages:
       '@opentui/solid':
         optional: true
 
-  '@opencode-ai/sdk@1.15.5':
-    resolution: {integrity: sha512-ozJuEmXzrOvia5n0L1KAuvpyf9ESGmTk1FiPhn0RK5X1whbzjlTXL0NAxqNCEkqETxL35jS1KHArEiTpvtJ6FQ==}
+  '@opencode-ai/sdk@1.15.6':
+    resolution: {integrity: sha512-zeMyjgf7jjp4ge7Y9mp1oza1nHsKZAmOg9RIFixRtrM9S1IPwgNMEybMlJR+wBwPTv2ZDgjvcJasuD0z4XjSDA==}
 
   '@oxc-project/types@0.124.0':
     resolution: {integrity: sha512-VBFWMTBvHxS11Z5Lvlr3IWgrwhMTXV+Md+EQF0Xf60+wAdsGFTBx7X7K/hP4pi8N7dcm1RvcHwDxZ16Qx8keUg==}
@@ -1032,7 +1044,7 @@ packages:
     resolution: {integrity: sha512-R9HTZBhW6yCSGbGQnDnH3QHfJxokKN4KB+Yvk9Q1le7eQNYwiCyKxmLmurSpFy6BzJanSLuEUDrD+j97Q+ZLPg==}
     peerDependencies:
       msw: ^2.4.9
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: '>=8.0.5'
     peerDependenciesMeta:
       msw:
         optional: true
@@ -1259,8 +1271,8 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  effect@4.0.0-beta.65:
-    resolution: {integrity: sha512-QYKvQPAj3CmtsvWkHQww15wX4KG2gNsszDWEcOO5sZCMknp66u6Si/Opmt3wwWCwsyvRmDAdIg+JIz5qzbbFIw==}
+  effect@4.0.0-beta.66:
+    resolution: {integrity: sha512-4arEr62cziFa8BBVDUwJCJJmaVepXf/kRg7KtC0h8+bufngscrHbwWFhr9c+HonwOF+31U3iD3xUJmw9KzX7Dw==}
 
   electron-to-chromium@1.5.336:
     resolution: {integrity: sha512-AbH9q9J455r/nLmdNZes0G0ZKcRX73FicwowalLs6ijwOmCJSRRrLX63lcAlzy9ux3dWK1w1+1nsBJEWN11hcQ==}
@@ -1379,7 +1391,7 @@ packages:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
     engines: {node: '>=12.0.0'}
     peerDependencies:
-      picomatch: ^3 || ^4
+      picomatch: '>=4.0.4'
     peerDependenciesMeta:
       picomatch:
         optional: true
@@ -2070,12 +2082,8 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  uuid@11.1.1:
-    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
-    hasBin: true
-
-  uuid@13.0.2:
-    resolution: {integrity: sha512-vzi9uRZ926x4XV73S/4qQaTwPXM2JBj6/6lI/byHH1jOpCzb0zDbfytgA9LcN/hzb2l7WQSQnxITOVx5un/wGw==}
+  uuid@14.0.0:
+    resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
     hasBin: true
 
   vite@8.0.8:
@@ -2137,7 +2145,7 @@ packages:
       '@vitest/ui': 4.1.4
       happy-dom: '*'
       jsdom: '*'
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: '>=8.0.5'
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -2218,9 +2226,6 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
-
-  zod@4.1.8:
-    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
 
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
@@ -2566,13 +2571,13 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@opencode-ai/plugin@1.15.5':
+  '@opencode-ai/plugin@1.15.6':
     dependencies:
-      '@opencode-ai/sdk': 1.15.5
-      effect: 4.0.0-beta.65
-      zod: 4.1.8
+      '@opencode-ai/sdk': 1.15.6
+      effect: 4.0.0-beta.66
+      zod: 4.3.6
 
-  '@opencode-ai/sdk@1.15.5':
+  '@opencode-ai/sdk@1.15.6':
     dependencies:
       cross-spawn: 7.0.6
 
@@ -2801,7 +2806,7 @@ snapshots:
       '@temporalio/proto': 1.16.0
       abort-controller: 3.0.0
       long: 5.3.2
-      uuid: 11.1.1
+      uuid: 14.0.0
 
   '@temporalio/common@1.16.0':
     dependencies:
@@ -3273,7 +3278,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  effect@4.0.0-beta.65:
+  effect@4.0.0-beta.66:
     dependencies:
       '@standard-schema/spec': 1.1.0
       fast-check: 4.8.0
@@ -3283,7 +3288,7 @@ snapshots:
       msgpackr: 1.11.12
       multipasta: 0.2.7
       toml: 4.1.1
-      uuid: 13.0.2
+      uuid: 14.0.0
       yaml: 2.9.0
 
   electron-to-chromium@1.5.336: {}
@@ -4079,9 +4084,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  uuid@11.1.1: {}
-
-  uuid@13.0.2: {}
+  uuid@14.0.0: {}
 
   vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.4)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0):
     dependencies:
@@ -4199,7 +4202,5 @@ snapshots:
       yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
-
-  zod@4.1.8: {}
 
   zod@4.3.6: {}

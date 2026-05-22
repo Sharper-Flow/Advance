@@ -1,12 +1,9 @@
-import { execFile } from "node:child_process";
 import { readFile, stat } from "fs/promises";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
-import { promisify } from "node:util";
 
+import { execFileGitAsync } from "./git-binary";
 import { isPathInsideDirectory } from "./project-id";
-
-const execFileAsync = promisify(execFile);
 const GIT_PROBE_TIMEOUT_MS = 1000;
 
 const loadedModulePath = fileURLToPath(import.meta.url);
@@ -157,18 +154,15 @@ export function computeCwdRelation(
 export async function probeGit(
   cwd: string,
 ): Promise<{ branch: string | null; sha: string | null }> {
-  const env = { ...process.env, GIT_TERMINAL_PROMPT: "0" };
   try {
     const [branchResult, shaResult] = await Promise.all([
-      execFileAsync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      execFileGitAsync(["rev-parse", "--abbrev-ref", "HEAD"], {
         cwd,
         timeout: GIT_PROBE_TIMEOUT_MS,
-        env,
       }),
-      execFileAsync("git", ["rev-parse", "HEAD"], {
+      execFileGitAsync(["rev-parse", "HEAD"], {
         cwd,
         timeout: GIT_PROBE_TIMEOUT_MS,
-        env,
       }),
     ]);
     const branch = branchResult.stdout.toString().trim() || null;

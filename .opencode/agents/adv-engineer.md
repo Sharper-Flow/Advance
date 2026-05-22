@@ -17,21 +17,14 @@ tools:
   grep: true
   # Local code intelligence
   lgrep_search_semantic: true
-  lgrep_index_semantic: true
   lgrep_search_symbols: true
   lgrep_index_symbols_folder: true
-  lgrep_index_symbols_repo: true
   lgrep_get_symbol: true
   lgrep_get_symbols: true
   lgrep_get_file_tree: true
   lgrep_get_file_outline: true
   lgrep_get_repo_outline: true
   lgrep_search_text: true
-  lgrep_list_repos: true
-  lgrep_invalidate_cache: true
-  lgrep_status_semantic: true
-  lgrep_watch_start_semantic: true
-  lgrep_watch_stop_semantic: true
   # Web research
   webfetch: true
   context7_*: true
@@ -75,8 +68,9 @@ tools:
   adv_agenda_prioritize: false
   adv_investment_report: false
   adv_temporal_worker_restart: false
-  worktree_create: false
-  worktree_delete: false
+  adv_worktree_create: false
+  adv_worktree_delete: false
+  adv_worktree_cleanup: false
   task: false
 ---
 

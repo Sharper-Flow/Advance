@@ -1,0 +1,513 @@
+{
+  "id": "flipWorkerSingletonMultiWorker",
+  "title": "Flip worker singleton to multi-worker default",
+  "status": "archived",
+  "created_at": "2026-05-22T06:46:28.220Z",
+  "tasks": [
+    {
+      "id": "tk-3727f4d72113",
+      "title": "Flip `worker_singleton_enforce` default from `true` to `false`",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T07:10:21.483Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT3"
+        ]
+      },
+      "verification": "Flipped worker_singleton_enforce default from true to false in withStabilityFeatureDefaults. Updated project.test.ts assertion. RED/GREEN verified.",
+      "summary": "Flipped worker_singleton_enforce default from true to false in withStabilityFeatureDefaults. Updated project.test.ts assertion. RED/GREEN verified.",
+      "implementation_summary": "Flipped worker_singleton_enforce default from true to false in withStabilityFeatureDefaults. Updated project.test.ts assertion. RED/GREEN verified.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-22T07:26:52.336Z",
+      "completed_at": "2026-05-22T07:26:52.336Z"
+    },
+    {
+      "id": "tk-802b8a40e12f",
+      "title": "Fix `adv_temporal_diagnose` recommendation for server-serviceable case",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T07:10:48.419Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C2",
+          "C4"
+        ]
+      },
+      "verification": "Added server-serviceable branch to adv_temporal_diagnose recommendation. Now distinguishes dead-worker-with-peers from dead-worker-no-pollers. 8 tests pass including new multi-worker case.",
+      "summary": "Added server-serviceable branch to adv_temporal_diagnose recommendation. Now distinguishes dead-worker-with-peers from dead-worker-no-pollers. 8 tests pass including new multi-worker case.",
+      "implementation_summary": "Added server-serviceable branch to adv_temporal_diagnose recommendation. Now distinguishes dead-worker-with-peers from dead-worker-no-pollers. 8 tests pass including new multi-worker case.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-22T07:26:52.397Z",
+      "completed_at": "2026-05-22T07:26:52.397Z"
+    },
+    {
+      "id": "tk-ef5f3e99a44c",
+      "title": "Relax spec requirements in advance-meta.md",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T07:11:16.345Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "DONT1"
+        ]
+      },
+      "verification": "Relaxed 3 spec requirements: rq-workerSingleton01 MUST→SHOULD with opt-in preamble, rq-advcfg01.2 default text updated, rq-temporalConcurrentLoad01 scoped to singleton=true.",
+      "summary": "Relaxed 3 spec requirements: rq-workerSingleton01 MUST→SHOULD with opt-in preamble, rq-advcfg01.2 default text updated, rq-temporalConcurrentLoad01 scoped to singleton=true.",
+      "implementation_summary": "Relaxed 3 spec requirements: rq-workerSingleton01 MUST→SHOULD with opt-in preamble, rq-advcfg01.2 default text updated, rq-temporalConcurrentLoad01 scoped to singleton=true.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-22T07:26:52.320Z",
+      "completed_at": "2026-05-22T07:26:52.320Z"
+    },
+    {
+      "id": "tk-3ffbd515232c",
+      "title": "Update test assertions and docs to reflect new default",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T07:11:40.777Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT1"
+        ]
+      },
+      "verification": "Updated 6 files: adv-stability-docs-assets.test.ts (2 assertions), deploy-local.test.ts (1 assertion), status.test.ts (1 fixture), ADV_INSTRUCTIONS.md, docs/temporal-recovery.md, .adv/specs/advance-meta/spec.json. All targeted tests pass.",
+      "summary": "Updated 6 files: adv-stability-docs-assets.test.ts (2 assertions), deploy-local.test.ts (1 assertion), status.test.ts (1 fixture), ADV_INSTRUCTIONS.md, docs/temporal-recovery.md, .adv/specs/advance-meta/spec.json. All targeted tests pass.",
+      "implementation_summary": "Updated 6 files: adv-stability-docs-assets.test.ts (2 assertions), deploy-local.test.ts (1 assertion), status.test.ts (1 fixture), ADV_INSTRUCTIONS.md, docs/temporal-recovery.md, .adv/specs/advance-meta/spec.json. All targeted tests pass.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-22T07:26:52.403Z",
+      "completed_at": "2026-05-22T07:26:52.403Z"
+    },
+    {
+      "id": "tk-06a9c82391fe",
+      "title": "Run full test suite and verify both modes",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-22T07:11:58.252Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3727f4d72113"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-802b8a40e12f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ef5f3e99a44c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3ffbd515232c"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:27:24.067Z",
+      "verification": "Pre-existing failure in adv-tron-assets.test.ts (lgrep_index_symbols_repo) — confirmed on main, unrelated to this change.",
+      "summary": "pnpm run check: clean (typecheck+lint+format). pnpm test: 2916/2917 pass. 1 failure is pre-existing (adv-tron-assets.test.ts - old lgrep tool names), confirmed failing on main. All worker-singleton related tests pass in both singleton=true and singleton=false modes.",
+      "implementation_summary": "pnpm run check: clean (typecheck+lint+format). pnpm test: 2916/2917 pass. 1 failure is pre-existing (adv-tron-assets.test.ts - old lgrep tool names), confirmed failing on main. All worker-singleton related tests pass in both singleton=true and singleton=false modes.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-22T07:30:04.438Z",
+      "completed_at": "2026-05-22T07:30:04.438Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:47:24.505Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal confirmed via inline approval. Problem statement derived from live investigation of 5-session multi-worker setup showing ghost workers and false degraded diagnostics.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/proposal.md",
+        "content_hash": "f4ae158c8fa75a3918d0dabedc5dc247af6ae59ae1483e4b320a0449b11685a3",
+        "non_whitespace_chars": 4441,
+        "checked_at": "2026-05-22T06:47:24.543Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:56:24.247Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings confirmed: worker_role is purely diagnostic, lock classification is dead code in production, health monitor restart is already singleton-agnostic. No blockers.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/agreement.md",
+        "content_hash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "non_whitespace_chars": 3471,
+        "checked_at": "2026-05-22T06:56:24.284Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:09:31.954Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Validator CAUTION resolved inline — spec scope expanded to include rq-advcfg01.2 and rq-temporalConcurrentLoad01. No architectural changes, no user-value tradeoffs, no contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/design.md",
+        "content_hash": "1e4bedcc8d0a9fc1240069a81cccb5b5935f7cec80b79c8a87d905e73bb8e142",
+        "non_whitespace_chars": 5751,
+        "checked_at": "2026-05-22T07:09:32.001Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:13:44.260Z",
+      "completed_by": "agent",
+      "approval_evidence": "Plan approved by user. 5 tasks: default flip, diagnostic fix, spec relaxation, test/doc updates, full suite verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:30:19.130Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks complete. pnpm run check clean. 2916/2917 tests pass (1 pre-existing failure in adv-tron-assets.test.ts unrelated to this change)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:31:28.989Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 12 contract items pass/respected. 2916/2917 tests pass (1 pre-existing). Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/acceptance.md",
+        "content_hash": "5335698bff02cc3fdbbc5e10cc8ff2a815a160efc54a4de7168b54aad3dd22a1",
+        "non_whitespace_chars": 3091,
+        "checked_at": "2026-05-22T07:31:29.106Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:32:11.560Z",
+      "completed_by": "agent",
+      "approval_evidence": "User sign-off for archive. All gates complete, contract review clean, tests green."
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+      "approvedAt": "2026-05-22T06:54:16.882Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1**: With default config (no `worker_singleton_enforce` in project.json), two concurrent OpenCode sessions on the same project each spawn their own worker and both report `serviceable` status — no session reports \"degraded\" or \"not alive\"",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2**: With `worker_singleton_enforce: true` in project.json, second session takes client role and does not spawn a worker — behavior identical to current production",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3**: `adv_temporal_diagnose` does not recommend \"run adv_temporal_restart\" when worker_alive=false but queue has active server-side pollers",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4**: All tests pass (`pnpm test`, `pnpm run check`)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5**: `docs/specs/advance-meta.md` shows `rq-workerSingleton01` as SHOULD with opt-in description",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1**: `worker-lock.ts` and `worker-heartbeat.ts` modules must remain importable and functional — no deletion",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2**: No changes to Temporal workflow definitions, signal contracts, or query schemas",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3**: Existing project.json files with explicit `worker_singleton_enforce: true` must continue to work identically",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4**: No workflow state migration — this is a plugin-init-time behavioral change only",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1**: Do not delete or stub out worker-lock or worker-heartbeat modules",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2**: Do not change the worker child process spawn mechanism (createMultiWorker / createOutOfProcessWorker)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3**: Do not introduce new feature flags — reuse the existing `worker_singleton_enforce` with flipped default",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T07:30:50.648Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Default flipped to false in types/project.ts. Existing fast path (plugin-init.ts:92) already handles singleton=false correctly. Multi-session test coverage via plugin-init.worker-singleton.test.ts with workerSingletonEnforce: false."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing tests with workerSingletonEnforce: true still pass (plugin-init.worker-singleton.test.ts lines 35-108). Lock acquisition path unchanged. C3 constraint verified."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New test in temporal-ops.test.ts: when worker_alive=false but probeTaskQueuePollers returns fresh, recommendation says 'serviceable via peer workers' not 'run adv_temporal_restart'. 8 temporal-ops tests pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check: clean (typecheck+lint+format). pnpm test: 2916/2917 pass. 1 pre-existing failure (adv-tron-assets.test.ts) confirmed on main."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "docs/specs/advance-meta.md: rq-workerSingleton01 changed to SHOULD with opt-in preamble, rq-advcfg01.2 updated to 'defaults false', rq-temporalConcurrentLoad01 scoped to singleton=true."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "worker-lock.ts and worker-heartbeat.ts not modified. No imports removed from any file."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No changes to temporal/workflows.ts, contracts.ts, or any signal/query definitions."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "withStabilityFeatureDefaults preserves explicit true values via ternary. Existing tests with workerSingletonEnforce: true pass."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No migration code. Change is plugin-init-time only. No workflow state touched."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "worker-lock.ts and worker-heartbeat.ts untouched. No stubs or deletions."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "createMultiWorker and createOutOfProcessWorker not modified."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reused existing worker_singleton_enforce flag. No new flags introduced."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1**: With default config (no `worker_singleton_enforce` in project.json), two concurrent OpenCode sessions on the same project each spawn their own worker and both report `serviceable` status — no session reports \"degraded\" or \"not alive\"",
+    "**AC2**: With `worker_singleton_enforce: true` in project.json, second session takes client role and does not spawn a worker — behavior identical to current production",
+    "**AC3**: `adv_temporal_diagnose` does not recommend \"run adv_temporal_restart\" when worker_alive=false but queue has active server-side pollers",
+    "**AC4**: All tests pass (`pnpm test`, `pnpm run check`)",
+    "**AC5**: `docs/specs/advance-meta.md` shows `rq-workerSingleton01` as SHOULD with opt-in description"
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/proposal.md",
+      "updatedAt": "2026-05-22T06:47:15.288Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/agreement.md",
+      "updatedAt": "2026-05-22T06:54:12.468Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/design.md",
+      "updatedAt": "2026-05-22T07:09:18.722Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T07:32:11.560Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-22T06:48:25.972Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

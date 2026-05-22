@@ -14,12 +14,14 @@ const {
   mockGetTemporalWorkerAliveness,
   mockGetTemporalWorkerDiagnostics,
   mockRestartCurrentProjectTemporalWorker,
+  mockProbeTaskQueuePollers,
 } = vi.hoisted(() => ({
   mockGetTemporalHealth: vi.fn(),
   mockGetService: vi.fn(),
   mockGetTemporalWorkerAliveness: vi.fn(),
   mockGetTemporalWorkerDiagnostics: vi.fn(),
   mockRestartCurrentProjectTemporalWorker: vi.fn(),
+  mockProbeTaskQueuePollers: vi.fn(),
 }));
 
 vi.mock("../temporal/health-probe", () => ({
@@ -39,6 +41,21 @@ vi.mock("../plugin-init", () => ({
   getTemporalWorkerAliveness: mockGetTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics: mockGetTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker: mockRestartCurrentProjectTemporalWorker,
+}));
+
+vi.mock("../temporal/queue-serviceability", () => ({
+  probeTaskQueuePollers: mockProbeTaskQueuePollers,
+  classifyQueueServiceability: vi.fn((input: any) => ({
+    status:
+      input.serverPollerProbe?.status === "fresh"
+        ? "serviceable"
+        : "not_serviceable",
+    confidence: "server",
+    evidence: {
+      serverPollerProbe: input.serverPollerProbe?.status ?? "unavailable",
+    },
+    blockers: [],
+  })),
 }));
 
 const notServiceable = { status: "not_serviceable" } as const;
@@ -76,6 +93,12 @@ beforeEach(() => {
   mockGetTemporalWorkerDiagnostics.mockReset();
   mockGetTemporalWorkerDiagnostics.mockReturnValue([]);
   mockRestartCurrentProjectTemporalWorker.mockReset();
+  mockProbeTaskQueuePollers.mockReset();
+  mockProbeTaskQueuePollers.mockResolvedValue({
+    status: "unavailable",
+    lastAccessMs: null,
+    error: "mock unavailable",
+  });
 });
 
 function healthWithLock(schemaVersion: 1 | 2) {
@@ -170,5 +193,28 @@ describe("temporal ops probe cache", () => {
         },
       }),
     ).toBe(false);
+  });
+
+  test("diagnose does not recommend restart when worker is dead but queue has fresh peer pollers", async () => {
+    mockGetTemporalHealth.mockResolvedValue({
+      ...temporalHealth,
+      worker_alive: false,
+    });
+    mockProbeTaskQueuePollers.mockResolvedValue({
+      status: "fresh",
+      lastAccessMs: 1000,
+    });
+    mockGetService.mockReturnValue({
+      client: {},
+      connection: { workflowService: { describeTaskQueue: vi.fn() } },
+      namespace: "default",
+    });
+
+    const result = parseToolOutput(
+      await temporalOpsTools.adv_temporal_diagnose.execute({}, store),
+    );
+
+    expect(result.recommendedNextAction).not.toContain("adv_temporal_restart");
+    expect(result.recommendedNextAction).toContain("peer workers");
   });
 });

@@ -230,15 +230,15 @@ Example shape:
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. Choose the right fix worker:
+1. **Fix all blockers/issues** — no partial fix mode. Use the review step's conditional remediation routing; do not introduce ad-hoc workers.
    - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect a fenced `REVIEWER_REPORT` JSON payload per `.opencode/agents/adv-reviewer.md`.
    - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`.
-   - For non-trivial fixes: research first (Context7 / `adv-researcher`) → then implement.
+   - **Non-trivial fix research** (control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches) → spawn `adv-researcher` first, then implement through the appropriate remediation worker above.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 
 ### Drift Detection Rule (CRITICAL)
 
-Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
@@ -295,7 +295,7 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off via the `contractReviewMatrixSetSignal`-backed mutation path.
+If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path.
 
 Rules:
 
@@ -306,6 +306,7 @@ Rules:
 - `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
+- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, then complete the gate with `compatibilityReason: "..."` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 
@@ -381,6 +382,17 @@ After composing the acceptance summary and before asking for acceptance, persist
 4. Verify the artifact was written: `adv_change_show changeId: {id} include: { executiveSummary: true }` → confirm `_executiveSummary` is present.
 
 After the user accepts, the executive summary artifact is already persisted — no additional write needed at the acceptance gate completion step.
+
+### Pre-Acceptance Contract Preflight
+
+Before emitting the acceptance summary or **Inline Approval prompt**, load the change with `adv_change_show` and verify:
+
+- `change.contract` exists.
+- `contract.reviewMatrix` exists when required contract items exist.
+- Required rows do not have `fail`, `violated`, `unknown`, or missing evidence.
+- The current session can call any required new MCP tool. If this change added or registered the needed tool in source during the same OpenCode session and the live tool registry does not expose it yet, stop and instruct the user to open a fresh OpenCode session after build/plugin reload. Do not present acceptance as complete and do not ask for acceptance until the proof path is available.
+
+If preflight fails, surface the blocker and remediation. Do not continue to the acceptance checkpoint.
 
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:

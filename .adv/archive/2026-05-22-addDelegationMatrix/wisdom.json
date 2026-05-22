@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-q5I2I1",
+      "type": "gotcha",
+      "content": "When running package tooling in this repo, use `plugin/` as cwd; repo root has no package.json. For repo-root files like `.adv/specs/...`, pass relative paths from `plugin/` (for example `../.adv/specs/...`).",
+      "source_task": "tk-2e48a195c243",
+      "recorded_at": "2026-05-22T07:09:25.527Z"
+    },
+    {
+      "id": "ws-ME8WTb",
+      "type": "pattern",
+      "content": "For delegation matrix drift checks, validate command files by extracting explicit Task/spawn/delegate worker targets and comparing them to each step's `allowed_subagents`; this catches hidden conditional paths such as review research/remediation workers.",
+      "source_task": "tk-14161adacc2e",
+      "recorded_at": "2026-05-22T07:11:17.870Z"
+    },
+    {
+      "id": "ws-kcw8qa",
+      "type": "gotcha",
+      "content": "Delegation defaults can drift through agent asset examples and setup docs, not just command files. When an inline-only phase changes, scan `.opencode/agents/*.md`, `ADV_INSTRUCTIONS.md`, and `SETUP.md` for stale phase-specific routing such as prep pre-flight.",
+      "source_task": "tk-eff8128f2c46",
+      "recorded_at": "2026-05-22T07:16:52.358Z"
+    },
+    {
+      "id": "ws-nRz4mx",
+      "type": "gotcha",
+      "content": "Phantom-subagent routing can appear as plus-separated worker prose (`explore + librarian`) in overlays and field-agent intent tables; roster tests should scan overlay surfaces and plus-routing idioms, not only spawn/delegate phrases.",
+      "source_task": "tk-9be1d89990c5",
+      "recorded_at": "2026-05-22T07:25:51.838Z"
+    }
+  ],
+  "count": 4
+}

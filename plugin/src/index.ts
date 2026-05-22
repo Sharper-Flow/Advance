@@ -50,7 +50,9 @@ import {
   initStateDb as initWorktreeStateDb,
   registerSession as registerSessionInRegistry,
   unregisterSession as unregisterSessionFromRegistry,
+  type WorktreeStateAccess,
 } from "./tools/worktree/state";
+import { drainPendingDeletes } from "./tools/worktree";
 import {
   extractCompletedTask,
   extractCreatedChangeId,
@@ -439,8 +441,10 @@ const advancePluginImpl: Plugin = async (input) => {
   // plugin init. The registry is consumed by adv_status, adv_session_list,
   // adv_session_show, and adv_temporal_diagnose.
   const advSessionId = generateSessionId();
+  let worktreeStateAccess: WorktreeStateAccess | null = null;
   try {
     const access = await initWorktreeStateDb(directory);
+    worktreeStateAccess = access;
     await registerSessionInRegistry(access, {
       sessionId: advSessionId,
       worktreePath: directory,
@@ -467,6 +471,39 @@ const advancePluginImpl: Plugin = async (input) => {
   } catch (err) {
     debugLog(`session registration failed: ${(err as Error).message}`);
   }
+
+  const drainTerminalPendingDeletes = async (
+    trigger: "startup" | "session.deleted",
+  ): Promise<void> => {
+    if (!store || initError || !worktreeStateAccess) return;
+    try {
+      const cleanup = await drainPendingDeletes(
+        trigger,
+        {
+          projectRoot: store.paths.root,
+          database: worktreeStateAccess,
+          log: hooksLogger,
+          store,
+          warpDeps:
+            input.serverUrl && client
+              ? { serverUrl: input.serverUrl, directory, client }
+              : undefined,
+        },
+        { forceAttempts: false },
+      );
+      if (cleanup.removed > 0 || cleanup.retained > 0) {
+        debugLog(
+          `${trigger} pending-delete drain complete: removed=${cleanup.removed}, retained=${cleanup.retained}`,
+        );
+      }
+    } catch (err) {
+      debugLog(
+        `${trigger} pending-delete drain failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  await drainTerminalPendingDeletes("startup");
 
   // Helper to update status flags and push the resolved status to the terminal
   const setFlags = (updates: Partial<StatusFlags>) => {
@@ -700,7 +737,8 @@ const advancePluginImpl: Plugin = async (input) => {
     setStatus("BLOCKED");
   };
 
-  const handleSessionDeletedEvent = () => {
+  const handleSessionDeletedEvent = async () => {
+    await drainTerminalPendingDeletes("session.deleted");
     mainSessionId = null;
     cleanupTerminal();
     removeProcessListeners();
@@ -746,7 +784,7 @@ const advancePluginImpl: Plugin = async (input) => {
         if (eventType === "session.status") {
           handleSessionStatusEvent(event as { properties: unknown });
         } else if (eventType === "session.deleted") {
-          handleSessionDeletedEvent();
+          await handleSessionDeletedEvent();
         } else if (
           eventType === "permission.updated" ||
           eventType === "permission.asked"
