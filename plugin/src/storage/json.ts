@@ -612,6 +612,29 @@ export async function createChangeScaffold(
   const changePath = join(changeDir, "change.json");
   const proposalPath = join(changeDir, "proposal.md");
 
+  // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
+  // before any partial scaffold write so tool-layer bypasses cannot create
+  // blank narrative artifacts.
+  const blankFields = [
+    { field: "proposal", content: proposalContent },
+    { field: "problemStatement", content: problemStatementContent },
+    { field: "agreement", content: agreementContent },
+    { field: "design", content: designContent },
+    { field: "executiveSummary", content: executiveSummaryContent },
+  ]
+    .filter(
+      ({ content }) =>
+        content !== undefined &&
+        typeof content === "string" &&
+        content.trim().length === 0,
+    )
+    .map(({ field }) => field);
+  if (blankFields.length > 0) {
+    throw new Error(
+      `Blank artifact fields are not allowed: ${blankFields.join(", ")}. Omit fields you do not intend to change.`,
+    );
+  }
+
   await mkdir(changeDir, { recursive: true });
 
   // Create proposal.md template with structured sections

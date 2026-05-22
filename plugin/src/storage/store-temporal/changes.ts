@@ -458,7 +458,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         results,
         message: allSuccess
           ? `Successfully closed ${closed} change(s).`
-          : `Closed ${closed}of ${changeIds.length} change(s). See results for details.`,
+          : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
       };
     },
     updateArtifacts: async (
@@ -486,7 +486,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       const updates: Array<
         [
-          "proposal" | "problemStatement" | "agreement" | "design",
+          (
+            | "proposal"
+            | "problemStatement"
+            | "agreement"
+            | "design"
+            | "executiveSummary"
+          ),
           string | undefined,
         ]
       > = [
@@ -494,6 +500,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         ["problemStatement", result.problemStatementPath],
         ["agreement", result.agreementPath],
         ["design", result.designPath],
+        ["executiveSummary", result.executiveSummaryPath],
       ];
       for (const [kind, path] of updates) {
         if (!path) continue;

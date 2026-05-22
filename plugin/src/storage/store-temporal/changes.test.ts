@@ -235,4 +235,61 @@ describe("createChangeOps", () => {
       expect.objectContaining({ worktree_auto_managed: true }),
     );
   });
+
+  test("signals executiveSummary artifact metadata after artifact updates", async () => {
+    const signalMock = vi.fn().mockResolvedValue(undefined);
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        get: vi.fn().mockResolvedValue({
+          success: true,
+          data: { id: "summaryChange", adv_project_id: "pid-summary" },
+        }),
+        updateArtifacts: vi.fn().mockResolvedValue({
+          success: true,
+          executiveSummaryPath:
+            "/tmp/changes/summaryChange/executive-summary.md",
+        }),
+      },
+    };
+    const workflowClient = {
+      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-summary",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.updateArtifacts(
+      "summaryChange",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "# Executive Summary",
+    );
+
+    expect(signalMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        kind: "executiveSummary",
+        metadata: expect.objectContaining({
+          path: "/tmp/changes/summaryChange/executive-summary.md",
+        }),
+      }),
+    );
+  });
 });

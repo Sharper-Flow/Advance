@@ -257,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — Persist Executive Summary as Communication-Only Narrative Artifact
 
-`executive-summary.md` is a new optional narrative artifact on every change, written at acceptance time by `/adv-review` Phase 7 and restated in the pre-archive Change Report by the Sign-Off Boundary. It complements (does NOT replace) trunk's `acceptance.md`: `acceptance.md` is the gate-enforcement projection verified by `inspectArtifactActivity`; `executive-summary.md` is a field-style artifact for release notes, changelogs, and user-facing communication. Not tracked in workflow state, not gate-coupled.
+`executive-summary.md` is a new optional narrative artifact on every change, written at acceptance time by `/adv-review` Phase 7 and restated in the pre-archive Change Report by the Sign-Off Boundary. It complements (does NOT replace) trunk's `acceptance.md`: `acceptance.md` is the gate-enforcement projection verified by `inspectArtifactActivity`; `executive-summary.md` is a field-style artifact for release notes, changelogs, and user-facing communication. Artifact metadata is tracked in workflow state for freshness; it is not gate-coupled.
 
 **Tool surface (additive, backward-compatible):**
 - `adv_change_create` accepts new optional `executiveSummary` content field
@@ -265,7 +265,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `adv_change_show` accepts new optional `include.executiveSummary` flag → returns `_executiveSummary` markdown
 
 **Storage (additive):**
-- `createChangeScaffold` and `updateChangeArtifacts` in `storage/json.ts` accept a 5th optional `executiveSummaryContent` param; same threading through `store-types`, `store-disk`, and `store-temporal/changes.ts` (file write only — no workflow-state signal mapping, by design)
+- `createChangeScaffold` and `updateChangeArtifacts` in `storage/json.ts` accept a 5th optional `executiveSummaryContent` param; same threading through `store-types`, `store-disk`, and `store-temporal/changes.ts`, including workflow artifact metadata refresh when `adv_change_update` writes the artifact
 
 **Guidance:**
 - `/adv-review` Phase 7 adds a `### Persist Executive Summary` step instructing the orchestrator to compose using investment metrics + acceptance summary, then persist via `adv_change_update executiveSummary: ...` before completing the acceptance gate

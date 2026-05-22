@@ -626,6 +626,30 @@ describe("createChangeScaffold", () => {
     expect(content).toBe(customProposal);
   });
 
+  test("rejects blank provided scaffold artifacts before writing", async () => {
+    const changesDir = join(tempDir, "changes");
+
+    await expect(
+      createChangeScaffold(
+        changesDir,
+        "blankScaffold",
+        "Blank Scaffold",
+        "# Valid proposal",
+        "   ",
+        "Valid agreement",
+      ),
+    ).rejects.toThrow(
+      "Blank artifact fields are not allowed: problemStatement. Omit fields you do not intend to change.",
+    );
+
+    expect(
+      await fileExists(join(changesDir, "blankScaffold", "proposal.md")),
+    ).toBe(false);
+    expect(
+      await fileExists(join(changesDir, "blankScaffold", "agreement.md")),
+    ).toBe(false);
+  });
+
   test("writes problem-statement.md when problemStatement is provided", async () => {
     const changesDir = join(tempDir, "changes");
     const problemStatement =
