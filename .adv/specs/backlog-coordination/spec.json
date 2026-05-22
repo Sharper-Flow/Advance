@@ -3,8 +3,8 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. GitHub Project remains canonical for ranking and Value (V); the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.0.0",
-  "updated_at": "2026-05-11T04:02:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
@@ -283,6 +283,76 @@
           "when": "assessAnnotationFreshness is called",
           "then": [
             "The default 300000ms (DEFAULT_ANNOTATION_TTL_MS) is used"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord08",
+      "title": "Change Origin Linkage Matrix and Seed State",
+      "body": "adv_change_create MUST validate origin linkage metadata before workflow start and seed valid origin metadata into the authoritative change workflow state. origin_issue_number is accepted only when origin_kind is 'roadmap' or 'triage'; 'roadmap' requires origin_issue_number. origin_source_artifact is accepted only when origin_kind is 'triage' or 'discovery' and MUST be non-blank when provided. 'roadmap' rejects origin_source_artifact. 'discovery' rejects origin_issue_number. 'adhoc' and omitted origin_kind reject both origin_issue_number and origin_source_artifact. Valid origin metadata MUST appear in workflow reads and must drive relevant search attributes, including AdvBacklogIssueNumber when an issue number is present. Implementations MUST NOT rely on a late disk-only origin patch after workflow start.",
+      "priority": "must",
+      "tags": ["coordination", "origin", "claims", "search-attributes"],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord08.1",
+          "title": "Roadmap origin requires issue and rejects source artifact",
+          "given": [
+            "adv_change_create is called with origin_kind: 'roadmap'"
+          ],
+          "when": "The create invocation is validated",
+          "then": [
+            "The invocation fails if origin_issue_number is absent",
+            "The invocation fails if origin_source_artifact is provided",
+            "A valid roadmap create seeds state.origin.issue_number before workflow start"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord08.2",
+          "title": "Triage origin accepts optional issue and source artifact",
+          "given": [
+            "adv_change_create is called with origin_kind: 'triage'"
+          ],
+          "when": "origin_issue_number or non-blank origin_source_artifact is provided",
+          "then": [
+            "The linkage fields are accepted",
+            "The accepted linkage values are present in workflow state reads"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord08.3",
+          "title": "Discovery origin rejects issue and accepts non-blank source artifact",
+          "given": [
+            "adv_change_create is called with origin_kind: 'discovery'"
+          ],
+          "when": "origin_issue_number or origin_source_artifact is provided",
+          "then": [
+            "The invocation fails if origin_issue_number is provided",
+            "A non-blank origin_source_artifact is accepted and appears in workflow state reads"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord08.4",
+          "title": "Adhoc and omitted origin reject linkage fields",
+          "given": [
+            "adv_change_create is called with origin_kind: 'adhoc' or with origin_kind omitted"
+          ],
+          "when": "origin_issue_number or origin_source_artifact is provided",
+          "then": [
+            "The invocation fails before workflow start",
+            "The response names the disallowed linkage field"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord08.5",
+          "title": "Seeded issue metadata drives search attributes",
+          "given": [
+            "A change workflow is created with valid origin.issue_number"
+          ],
+          "when": "buildChangeSearchAttributes runs on workflow state",
+          "then": [
+            "AdvBacklogIssueNumber is populated from workflow state.origin.issue_number",
+            "The value is not sourced from a late disk-only patch"
           ]
         }
       ]
