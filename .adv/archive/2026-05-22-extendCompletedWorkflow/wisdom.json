@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-y_3ziY",
+      "type": "pattern",
+      "content": "When a recovery path handles both poisoned and terminal/completed workflows, centralize error/evidence classification in `temporal/recovery-classification.ts` and keep tool recovery gated by explicit recoveryMode + precise evidence. Do not depend on poisoned describe probes for completed workflows; classify the thrown save/signal error directly.",
+      "source_task": "tk-6994fb8bf2a9",
+      "recorded_at": "2026-05-22T04:09:08.048Z"
+    }
+  ],
+  "count": 1
+}

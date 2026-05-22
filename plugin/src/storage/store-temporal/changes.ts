@@ -12,29 +12,9 @@ import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
 import { createLogger } from "../../utils/debug-log";
+import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 
 const logger = createLogger("store-temporal-changes");
-
-/**
- * Detect Temporal errors indicating the workflow is already completed,
- * terminated, or otherwise not accepting signals. When a workflow is in
- * a terminal state (Completed, Terminated, Failed, Cancelled), signaling
- * throws with messages like "workflow execution already completed".
- * These are safe to treat as disk-only close — the disk write already
- * succeeded, and the workflow state is effectively closed.
- */
-function isWorkflowCompletedError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message?.toLowerCase() ?? "";
-  const name = err.name?.toLowerCase() ?? "";
-  return (
-    msg.includes("already completed") ||
-    msg.includes("workflow execution already completed") ||
-    name.includes("workflowexecutionalreadycompleted") ||
-    msg.includes("workflow is not running") ||
-    msg.includes("cannot signal a completed")
-  );
-}
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {

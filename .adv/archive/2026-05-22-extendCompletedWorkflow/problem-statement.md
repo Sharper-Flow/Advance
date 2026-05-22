@@ -1,0 +1,1 @@
+Tool-timeouts mid-archive can terminate the change workflow. Retrying archive then fails with `workflow execution already completed | WorkflowNotFoundError` — same recovery scenario as poisoned (bundle on disk, just status flip remaining) but different error class. Current recovery only catches poisoned-via-describe.
