@@ -1,3 +1,10 @@
+## 2026-05-22 (v0.11.1)
+
+
+### Change Highlights
+
+- **05-22-reviseReleaseProjection**: Executive Summary
+
 ## 2026-05-22 (v0.11.0)
 
 ### Added
