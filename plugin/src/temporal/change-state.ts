@@ -321,6 +321,17 @@ export function applyTaskCompletedToState(
   payload: TaskCompletedSignalPayload,
 ): ChangeWorkflowState {
   const task = getMutableTask(state, payload.taskId);
+  const existingFiles = task.filesTouched ?? task.touched_files ?? [];
+  const incomingWouldWeakenCheckpoint =
+    task.status === "done" &&
+    ((Boolean(task.checkpointSha) && !payload.checkpointSha) ||
+      (existingFiles.length > 0 && payload.filesTouched.length === 0));
+
+  if (incomingWouldWeakenCheckpoint) {
+    setLastSignalAt(state, payload.completedAt);
+    return state;
+  }
+
   task.status = "done";
   task.verification = payload.verification;
   task.summary = payload.summary;
