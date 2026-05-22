@@ -312,6 +312,33 @@ describe("task tools — signal/query adapters", () => {
       ]);
       expect(mocks.querySignal.mock.calls[1]?.[2]).toBe("tk-reentry");
     });
+
+    test("falls back to active workflow task scan when stale fast path throws", async () => {
+      const fallbackTask = {
+        id: "tk-reentry-throw",
+        title: "Re-entry Task From Live State",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async () => Promise.reject(new Error("stale workflow"))),
+        },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce(fallbackTask);
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-reentry-throw" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.changeId).toBe("test-change");
+      expect(parsed.task).toEqual(fallbackTask);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("adv_task_list", () => {
@@ -427,6 +454,39 @@ describe("task tools — signal/query adapters", () => {
       expect(signalCall[2]).toBe("test-change");
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-reentry",
+        sessionId: "agent",
+      });
+    });
+
+    test("uses active workflow task scan fallback before mutating when stale fast path throws", async () => {
+      const fallbackTask = {
+        id: "tk-reentry-throw",
+        title: "Re-entry Task From Live State",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async () => Promise.reject(new Error("stale workflow"))),
+        },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce({ ...fallbackTask, status: "in_progress" });
+
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-reentry-throw", status: "in_progress" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[2]).toBe("test-change");
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-reentry-throw",
         sessionId: "agent",
       });
     });

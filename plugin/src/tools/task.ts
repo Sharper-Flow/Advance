@@ -284,8 +284,15 @@ async function resolveChangeId(
   store: Store,
   taskId: string,
 ): Promise<string | null> {
-  const result = await store.tasks.show(taskId);
-  if (result?.changeId) return result.changeId;
+  try {
+    const result = await store.tasks.show(taskId);
+    if (result?.changeId) return result.changeId;
+  } catch {
+    // A stale reverse index can point store.tasks.show at an unavailable or
+    // wrong workflow. Fall through to the read-only structural scan below so a
+    // live active workflow can still own the task without requiring projection
+    // refresh first.
+  }
 
   // rq-reentryTaskLookup01: after re-entry, change-id-scoped workflow
   // queries can see newly-added tasks before the reverse task→change index or
@@ -671,7 +678,15 @@ export const taskTools = {
 
         const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
-        const taskRecord = await activeStore.tasks.show(args.taskId);
+        let taskRecord: Awaited<ReturnType<Store["tasks"]["show"]>> | null =
+          null;
+        try {
+          taskRecord = await activeStore.tasks.show(args.taskId);
+        } catch {
+          // The owning change was already resolved via structural live-state
+          // scan. If the stale index still makes the task fast path throw, do
+          // not block the normal signal mutation path.
+        }
         const currentStatus = taskRecord?.task.status;
         const shouldPatchExistingDoneTask =
           Boolean(args.contract_refs) &&
