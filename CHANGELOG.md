@@ -3,14 +3,15 @@
 
 ### Change Highlights
 
-- **05-22-fixReentryTaskLookup**: Executive Summary
+- **05-22-fixToolArgSafety**: Reject blank artifact/linkage tool arguments, enforce the origin linkage matrix, and seed origin metadata before Temporal workflow start.
+- **05-22-fixReentryTaskLookup**: Fix re-entry task lookup behavior.
 
 ## 2026-05-22 (v0.10.5)
 
 
 ### Change Highlights
 
-- **05-22-extendCompletedWorkflow**: Executive Summary
+- **05-22-extendCompletedWorkflow**: Extend completed-workflow handling for recovery-safe operations.
 
 ## 2026-05-22 (v0.10.4)
 
@@ -35,8 +36,8 @@
 
 ### Change Highlights
 
-- **05-22-addContractMintTool**: Executive Summary
-- **05-22-fixGateAutoWorktree**: Executive Summary
+- **05-22-addContractMintTool**: Add contract minting support for agreement-backed acceptance proof.
+- **05-22-fixGateAutoWorktree**: Fix gate worktree automation behavior.
 
 ## 2026-05-22 (v0.9.9)
 
@@ -71,8 +72,8 @@
 
 ### Change Highlights
 
-- **05-21-addTerminalCleanupReaper**: Executive Summary
-- **05-21-makeArchiveMergeTrunk**: Executive Summary
+- **05-21-addTerminalCleanupReaper**: Add terminal cleanup reaper behavior.
+- **05-21-makeArchiveMergeTrunk**: Make archive finalization merge through trunk.
 
 ## 2026-05-21 (v0.9.2)
 
@@ -88,9 +89,9 @@
 
 ### Change Highlights
 
-- **05-21-addDelegationDefaults2**: Executive Summary
-- **05-21-fixWarpSessionLookup**: Executive Summary
-- **05-21-rebuildPluginDistDeploy**: Executive Summary — rebuildPluginDistDeploy
+- **05-21-addDelegationDefaults2**: Add delegation defaults coverage.
+- **05-21-fixWarpSessionLookup**: Fix Warp session lookup routing.
+- **05-21-rebuildPluginDistDeploy**: Rebuild and deploy plugin dist artifacts.
 
 ## 2026-05-21 (v0.9.1)
 
@@ -250,8 +251,8 @@
 
 ### Change Highlights
 
-- **05-20-persistExecutiveSummary**: Executive Summary
-- **05-21-addOpportunityScan2**: Executive Summary: Add Opportunity Scout
+- **05-20-persistExecutiveSummary**: Persist executive summaries as communication artifacts.
+- **05-21-addOpportunityScan2**: Add Opportunity Scout.
 
 # Changelog
 

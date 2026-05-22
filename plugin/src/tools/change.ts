@@ -1981,17 +1981,6 @@ export const changeTools = {
               );
               if (text) output._executiveSummary = text;
             }
-            if (include.executiveSummary) {
-              try {
-                const text = await readFile(
-                  join(changeDir, "executive-summary.md"),
-                  "utf-8",
-                );
-                output._executiveSummary = text;
-              } catch {
-                // File may not exist
-              }
-            }
           }
 
           return formatToolOutput(output);

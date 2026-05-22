@@ -19,11 +19,7 @@ type CrossFieldValidator = (
   args: Record<string, unknown>,
 ) => ToolArgPreflightIssue[];
 
-// fixWarpSessionLookup P25 touched-scope: include `executiveSummary` so the
-// preflight validator matches the adv_change_update tool's accepted fields
-// (see plugin/src/tools/change.ts:2042-2054 and the field describe() strings
-// at lines 1966, 1972, 1978, 1984, 1990 — all five list executiveSummary as
-// a valid field).
+// rq-toolArgBlankArtifactLinkage01: all artifact fields accepted by create/update tools.
 const ARTIFACT_FIELDS = [
   "proposal",
   "problemStatement",
