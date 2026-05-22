@@ -77,6 +77,8 @@ tools:
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
+  adv_contract_mint: true
+  adv_contract_review_matrix_set: true
   adv_run_test: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true

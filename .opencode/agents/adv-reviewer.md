@@ -122,7 +122,7 @@ You may not begin analysis until scope is locked AND path preflight is complete.
 
 Every tool call you make MUST target the working directory specified in the Context Packet. This ensures your reads, edits, and test runs land in the correct worktree (typically a per-change worktree, NOT the default project root).
 
-**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
+**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as `workdir` to every tool that accepts it: `bash`, `read`, `morph_edit`, `adv_run_test`, plus native `edit`/`write` when exposed. For `apply_patch`, use paths rooted in the active workdir; if the exposed tool cannot target that workdir, stop rather than patching the default checkout.
 
 **If WORKING DIRECTORY is missing or empty:** Refuse to begin. Ask the orchestrator to provide it.
 
@@ -189,8 +189,8 @@ If `lgrep` fails or times out once, fall back immediately to `glob`/`grep`/`read
 ## Editing Tool Priority
 
 1. **Large, scattered, or whitespace-sensitive edits** — `morph_edit`
-2. **Small exact replacements** — `edit`
-3. **New files** — `write` only when truly necessary (review/harden fixes rarely create files)
+2. **Small exact replacements** — `apply_patch` on GPT-5-class sessions; native `edit` when exposed
+3. **New files** — `apply_patch` on GPT-5-class sessions; native `write` when exposed, only when necessary
 
 ## ADV State Access Policy
 

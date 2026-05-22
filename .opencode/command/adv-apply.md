@@ -396,7 +396,7 @@ TodoWrite is a projection over ADV tasks, not the task source of truth. Copy `_t
 | "Tests are flaky, marking done"                                                                | Fix flaky tests or document as environmental                                                               |
 | Marking "blocked" after 1 try                                                                  | Must attempt 3 distinct fixes                                                                              |
 | "This targets another repo"                                                                    | Switch workdir and execute                                                                                 |
-| Shell-authored test-file content (heredoc / `python -c` / `echo > *.test.*` / `tee` / `cat >`) | Prohibited for ordinary TDD. Use `edit` / `write` / `morph_edit` for file changes, then run `adv_run_test` |
+| Shell-authored test-file content (heredoc / `python -c` / `echo > *.test.*` / `tee` / `cat >`) | Prohibited for ordinary TDD. Use exposed file-edit tools (`morph_edit`, `apply_patch`, or native `edit`/`write`) for file changes, then run `adv_run_test` |
 | Silent fold of non-campsite scope                                                              | Apply scope-discovery protocol (`docs/scope-discovery-protocol.md`)                                        |
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
@@ -496,9 +496,9 @@ EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JS
 
 **3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
 
-**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence.
+**3b. Red Phase:** Write failing test using exposed file-edit tools (`morph_edit`, `apply_patch`, or native `edit`/`write`) → run with `adv_run_test phase:'red'` → show red evidence.
 
-**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
+**3c. Green Phase:** Implement using exposed file-edit tools (`morph_edit`, `apply_patch`, or native `edit`/`write`) → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
 
 **3c.4. Incremental Verification:** Run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass.
 

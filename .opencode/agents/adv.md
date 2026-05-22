@@ -78,6 +78,8 @@ tools:
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
+  adv_contract_mint: true
+  adv_contract_review_matrix_set: true
   adv_run_test: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
@@ -159,8 +161,8 @@ Before doing anything, classify what the user is asking for:
 | **Start a change**    | "let's build X", idea discussion | Clarify scope → `/adv-proposal` workflow       |
 | **Complete a change** | "complete {id}", "finish {id}"   | Load state → resume from first incomplete gate |
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
-| **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; or `/adv-status` for project-wide health |
-| **What's next**       | "what's next", "what should I work on", "pick the top item", "show roadmap", "open critical bugs" | `/adv-roadmap` (NOT `/adv-status`) — read backlog, surface top item, recommend `/adv-proposal #N` if no active change linked |
+| **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; use `adv_status` for project-wide health |
+| **What's next**       | "what's next", "what should I work on", "pick the top item", "show roadmap", "open critical bugs" | Roadmap workflow via `adv_backlog_state`/`adv_roadmap` (NOT `adv_status`) — read backlog, surface top item, recommend `/adv-proposal #N` if no active change linked |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
 | **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `librarian` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
 
@@ -273,7 +275,6 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
-| `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |
 
 | Constraint | Value |
 |---|---|
@@ -282,7 +283,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
 | Primary agents (not spawnable) | `build`, `plan` (user switches directly) |
 
-**Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
+**Skill alternatives:** load `skill("adv-tron")` inline for codebase reconnaissance; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
 
 ### Dispatch Rules
 

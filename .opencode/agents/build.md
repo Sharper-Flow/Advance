@@ -178,8 +178,8 @@ When scope is complete:
 ## Editing Tool Priority
 
 1. **Large, scattered, or whitespace-sensitive edits** — `morph_edit`
-2. **Small exact replacements** — `edit`
-3. **New files** — `write` only when truly necessary
+2. **Small exact replacements** — `apply_patch` on GPT-5-class sessions; native `edit` when exposed
+3. **New files** — `apply_patch` on GPT-5-class sessions; native `write` when exposed, only when necessary
 
 ## Output Format
 

@@ -30,8 +30,8 @@ Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissanc
 ## Phase 3: Gather Context
 1. `adv_project_context` + `adv_change_list` + `adv_agenda_list`
 2. Broad: `lgrep_get_file_tree` for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.
-## Phase 4: Spawn Tron Sub-Agent
-Spawn `adv-tron` agent via Task tool. System prompt has behavioral instructions. Pass only:
+## Phase 4: Recon Burst
+Use `explore` via Task tool for the bounded read-only search burst, or work inline if `explore` is unavailable. Pass only:
 
 **Broad:** repo root, project context, ADV state (changes/agenda/specs), file tree summary. Task: map architecture, identify hotspots, note patterns, flag risks, check spec drift, suggest agenda items. Cap: 10 findings.
 
@@ -58,4 +58,4 @@ Validate findings (require file references, remove evidence-free, deduplicate). 
 | Skill | `skill("adv-tron")` |
 | Context | `adv_project_context`, `adv_change_list`, `adv_agenda_list` |
 | Structure | `lgrep_get_file_tree`, `lgrep_get_repo_outline` |
-| Spawn | Task tool (`adv-tron` agent) |
+| Recon burst | Task tool (`explore`) or inline fallback |
