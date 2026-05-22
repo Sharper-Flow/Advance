@@ -90,9 +90,9 @@ async function defaultWorktreesProvider(
   projectRoot: string,
 ): Promise<WipWorktreeEntry[]> {
   const access = await initStateDb(projectRoot);
-  const records = await listWorktreesAcrossChanges(access);
-  if (records === null) return [];
-  return records.map((r) => ({
+  const result = await listWorktreesAcrossChanges(access);
+  if (result.unavailable) return [];
+  return result.records.map((r) => ({
     changeId: r.changeId ?? "",
     branch: r.branch,
     path: r.path,
