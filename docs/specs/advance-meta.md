@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.10.0
-> **Updated:** 2026-05-12
+> **Version:** 1.11.0
+> **Updated:** 2026-05-22
 
 ## Purpose
 
@@ -637,6 +637,46 @@ Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS
 - ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill
 - The row includes the skill identifier
 - The command is not listed as Command-only
+
+---
+
+### Runtime Commands Avoid Source Checklist Reads
+
+**ID:** `rq-noSourceChecklistReads01` | **Priority:** **[MUST]**
+
+ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/* remains maintainer/reference documentation only.
+
+**Tags:** `commands`, `skills`, `runtime-guidance`, `checklists`
+
+#### Scenarios
+
+**Runtime command uses embedded guidance or skill** (`rq-noSourceChecklistReads01.1`)
+
+**Given:**
+
+- A synced ADV runtime command needs reusable methodology during execution
+
+**When:** The command is invoked from a repository that is not the Advance source checkout
+
+**Then:**
+
+- The command provides the methodology through embedded runtime guidance or a loaded trusted skill
+- The command does not instruct the agent to read docs/checklists/* files
+- The command does not instruct the agent to search or read ~/.local/share/Advance/** for methodology
+
+**Checklist docs remain maintainer references** (`rq-noSourceChecklistReads01.2`)
+
+**Given:**
+
+- Maintainer-facing docs/checklists/* files exist in the Advance repository
+
+**When:** Runtime command guidance is authored or synced
+
+**Then:**
+
+- The docs may remain available for maintainer reference
+- Runtime command prose does not present those docs as the execution-time source of methodology
+- Structural drift tests fail if runtime command files reintroduce source or install-tree checklist-read directives
 
 ---
 
