@@ -115,7 +115,7 @@ During active inline-TDD work, runtime enforcement MUST treat shell-authored tes
 
 **ID:** `rq-ADVEXEC04` | **Priority:** **[MUST]**
 
-ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. `adv_run_test` is the normal inline TDD path because it provides executable proof, durable evidence, and durable workflow-queryable test records. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
+ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. `adv_run_test` is the normal inline TDD path because it provides executable proof for the current agent run; durable workflow evidence is the final task verification claim recorded by `taskCompletedSignal`. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
 
 **Tags:** `workflow`, `execution`, `tdd`, `evidence`, `value`
 
@@ -130,8 +130,8 @@ ADV command and instruction guidance MUST justify prescribed evidence tooling by
 
 **Then:**
 - It explains executable proof value
-- It explains durable evidence value
-- It explains durable workflow-queryable test record value
+- It explains how durable evidence is recorded through final task completion verification
+- It does not claim adv_run_test alone persists durable workflow evidence
 
 ---
 

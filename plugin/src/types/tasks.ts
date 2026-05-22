@@ -170,9 +170,9 @@ export const TaskSchema = z
     completed_by: z.string().nullable().optional(),
     /** Structured summary of what was done and how — persisted at task completion */
     implementation_summary: z.string().optional(),
-    /** Signal-driven completion proof supplied by adv_task_completed. */
+    /** Signal-driven completion proof supplied by taskCompletedSignal. */
     verification: z.string().optional(),
-    /** Concise completion summary supplied by adv_task_completed. */
+    /** Concise completion summary supplied by taskCompletedSignal. */
     summary: z.string().optional(),
     /** Repo-relative files reported by taskCompletedSignal. */
     filesTouched: z.array(z.string()).optional(),
