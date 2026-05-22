@@ -1,0 +1,870 @@
+{
+  "id": "fixAdvChecklistReads",
+  "title": "Fix ADV checklist reads",
+  "status": "archived",
+  "created_at": "2026-05-22T07:53:35.783Z",
+  "tasks": [
+    {
+      "id": "tk-d1ba38d67ee1",
+      "title": "Add runtime checklist-read regression test",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T14:42:20.241Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "SC3"
+        ],
+        "respects": [
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T14:44:58.944Z",
+      "verification": "RED evidence: `pnpm test -- src/adv-skill-backed-commands-assets.test.ts` exits 1 with the new runtime checklist-read regression test failing on current command references. Also surfaced pre-existing/unrelated adv-tron asset failure under the test invocation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Modified `plugin/src/adv-skill-backed-commands-assets.test.ts` to scan `.opencode/command/adv-*.md` for runtime directives pointing at `docs/checklists/*` or `~/.local/share/Advance`, and reconciled the embedded-methodology test by removing the `Canonical source` positive assertion.",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "a39336011a3f0fb1a0faf33dde559fd90ba7193e",
+      "completedAt": "2026-05-22T14:47:26.572Z",
+      "completed_at": "2026-05-22T14:47:26.572Z",
+      "notes": "Added runtime command forbidden-pattern regression test and updated embedded-methodology assertion to no longer require `Canonical source`. Red evidence recorded: targeted asset test fails on current command checklist references as expected; unrelated adv-tron asset failure also appears in same invocation.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T14:47:36.296Z"
+    },
+    {
+      "id": "tk-1fd385152910",
+      "title": "Remove runtime source-checklist directives from commands",
+      "type": "code",
+      "section": "Commands",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T14:42:34.164Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1ba38d67ee1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "SC1",
+          "SC4"
+        ],
+        "respects": [
+          "DONT1",
+          "C2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T14:48:36.861Z",
+      "verification": "Exact search of `.opencode/command` for `docs/checklists/` returns no results. Targeted test invocation no longer reports the new runtime checklist-read regression failure; remaining reported failures are adv-improve asset expectation to update in tk-d08872d469c7 and unrelated adv-tron asset failure.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `adv-proposal`, `adv-discover`, `adv-prep`, `adv-review`, `adv-harden`, and `adv-improve` command files to remove checklist path directives and replace canonical-source wording with embedded runtime-source guidance or existing skill/fallback wording.",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-review.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-improve.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-proposal.md",
+        ".opencode/command/adv-review.md"
+      ],
+      "checkpointSha": "e601c51d9db9b1cb0f951910ff0569798fe73cd1",
+      "completedAt": "2026-05-22T14:50:33.946Z",
+      "completed_at": "2026-05-22T14:50:33.946Z",
+      "notes": "Removed runtime checklist/source-path directives from targeted command files. Exact search of `.opencode/command` for `docs/checklists/` returns no results. Remaining test failures are covered by follow-up task for adv-improve asset expectations plus unrelated adv-tron asset drift.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T14:50:43.154Z"
+    },
+    {
+      "id": "tk-d08872d469c7",
+      "title": "Resolve adv-improve methodology source",
+      "type": "code",
+      "section": "Skills",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T14:42:44.957Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d1ba38d67ee1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC4"
+        ],
+        "verifies": [
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T14:50:52.703Z",
+      "verification": "`pnpm test -- src/adv-improve-assets.test.ts src/adv-skill-backed-commands-assets.test.ts` no longer reports adv-improve or checklist-read failures; only remaining reported failure is unrelated pre-existing adv-tron asset expectation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed `plugin/src/adv-improve-assets.test.ts` so `/adv-improve` is validated against `skill(\"adv-improve\")`, embedded fallback scan category wording, and absence of `improve-checklist.md`/`CHECKLIST` runtime references. The command already points to the loaded skill/fallback and the skill contains the six categories.",
+      "filesTouched": [
+        "plugin/src/adv-improve-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-improve-assets.test.ts"
+      ],
+      "checkpointSha": "ecbb9b54af3db0de33e6989bc74397b27f995832",
+      "completedAt": "2026-05-22T14:52:16.689Z",
+      "completed_at": "2026-05-22T14:52:16.689Z",
+      "notes": "Updated adv-improve asset expectation to require skill/fallback scan category guidance instead of runtime checklist path references. Existing skill already contains six-category current-state scan methodology. Test invocation now only reports unrelated adv-tron asset failure.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T14:52:25.809Z"
+    },
+    {
+      "id": "tk-24d05324e9c5",
+      "title": "Add no-source-checklist spec and guidance updates",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T14:42:55.738Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "SC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T14:52:34.678Z",
+      "verification": "`pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts --reporter=dot` passes: 1 file, 53 tests. Advisory token-budget warnings are warn-only and pre-existing.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `.adv/specs/advance-meta/spec.json`, `docs/specs/advance-meta.md`, and `ADV_INSTRUCTIONS.md` to make the no-source-checklist-read boundary durable and command/skill ownership explicit.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "ADV_INSTRUCTIONS.md",
+        "docs/specs/advance-meta.md"
+      ],
+      "checkpointSha": "318a18c53666c102cc2306b04e74424316603fc0",
+      "completedAt": "2026-05-22T14:55:35.541Z",
+      "completed_at": "2026-05-22T14:55:35.541Z",
+      "notes": "Added `rq-noSourceChecklistReads01` to advance-meta, bumped spec/docs to 1.11.0, and updated ADV_INSTRUCTIONS command/skill boundary to classify checklist docs as maintainer/reference only. Targeted asset test passes.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T14:55:44.467Z"
+    },
+    {
+      "id": "tk-4dea2492305f",
+      "title": "Run final verification for checklist-read boundary",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-22T14:43:08.498Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1fd385152910"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d08872d469c7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-24d05324e9c5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T14:56:03.990Z",
+      "verification": "Final verification passed: `pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/adv-improve-assets.test.ts --reporter=dot` => 2 files, 83 tests passed; `pnpm run check` => typecheck, isolation, lockfile policy, lint, and format check passed. Exact command search for `docs/checklists/` and `~/.local/share/Advance` returned no runtime command matches.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified the complete checklist-read boundary change. Also cleaned residual `adv-prep` wording to reference embedded methodology instead of skill/checklist wording before final verification.",
+      "filesTouched": [
+        ".opencode/command/adv-prep.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-prep.md"
+      ],
+      "checkpointSha": "258c7b0c63c9a99f87f372cf2c0fd3501bfdf1d6",
+      "completedAt": "2026-05-22T14:58:17.731Z",
+      "completed_at": "2026-05-22T14:58:17.731Z",
+      "notes": "Final verification passed. Targeted asset tests: 2 files, 83 tests passed. `pnpm run check` passed. Runtime command search for `docs/checklists/` and `~/.local/share/Advance` found no matches.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T14:58:28.453Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:58:38.912Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved proposal with reply: approve cleanup and proposal. Duplicates closed as superseded. B/F/S scan PASS; no critical findings.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/proposal.md",
+        "content_hash": "f755a9632d747b8bd51c435eaa02a590fba7d53cd020c7f47ca52bffe954b283",
+        "non_whitespace_chars": 5618,
+        "checked_at": "2026-05-22T07:58:38.949Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T08:06:01.351Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved agreement with reply: continue. Agreement persisted, ChangeContract minted with 23 items. Discovery checklist complete; no critical ambiguity findings. Follow-up agenda item ag-wg8YdGFm added for duplicate proposal prevention.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/agreement.md",
+        "content_hash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "non_whitespace_chars": 6473,
+        "checked_at": "2026-05-22T08:06:01.408Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T14:41:54.521Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Revised design resolves prior conflict by preserving embedded methodology and stripping source-checklist pointers. Independent validator returned CAUTION only; cautions carried into prep tasks: update existing Canonical source assertion and resolve adv-improve skill/checklist wording.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/design.md",
+        "content_hash": "5bcf4dda84da32a1dc538559f04e0f5d02f09b112d7c109c63eec5582ac15f08",
+        "non_whitespace_chars": 7082,
+        "checked_at": "2026-05-22T14:41:54.730Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T14:44:42.755Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep task graph with reply: approve. Five tasks created with contract refs and TDD intent; ready to execute in change worktree."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T14:58:45.877Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All five planned tasks completed with checkpoints. Final verification passed: targeted asset tests (2 files, 83 tests) and `pnpm run check`; runtime command searches for `docs/checklists/` and `~/.local/share/Advance` returned no matches."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T15:04:26.893Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered work with reply: accept. Independent reviewer APPROVED/READY with no findings; contract review matrix has 23 rows and no failing rows; targeted tests and pnpm run check passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/acceptance.md",
+        "content_hash": "28cc918ca7f22189df5ba93892a14c75143a389660fac64ff3b4e713f3d9b963",
+        "non_whitespace_chars": 4939,
+        "checked_at": "2026-05-22T15:04:27.198Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+      "approvedAt": "2026-05-22T08:05:03.416Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Runtime `adv-*` command files do not direct agents to follow/read `docs/checklists/*` for methodology.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Affected proposal/discovery/prep/review/harden/improve methodology remains available through skills or embedded fallback text without losing required workflow checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Automated tests fail if a runtime command reintroduces a directive to read source/install checklist files for reusable methodology.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "ADV commands invoked from a non-Advance repository do not send agents searching `~/.local/share/Advance` for checklist methodology.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Durable guidance/spec surfaces describe the no-source-checklist-read boundary and command-vs-skill ownership.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Audit all runtime `.opencode/command/adv-*.md` references to `docs/checklists/*` and classify each as remove, replace with skill load, replace with embedded fallback, or maintainer-only documentation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Replace runtime checklist-read directives with skill-backed methodology loading or embedded fallback instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Add or update regression tests that inspect command assets and fail on runtime checklist-read directives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Verify skill sibling-file sync remains sufficient for any methodology moved into skill reference files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Add/refine a spec requirement for the durable runtime boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Skills must remain read-only guidance and must not mutate ADV state, create tasks, complete gates, or own workflow sequencing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Commands must continue to own user entry points, gate transitions, state mutation, and artifact persistence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not solve this with path hacks, symlinks, environment-variable overrides, wrapper scripts, or hardcoded install paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Core ADV workflows must remain usable offline after skills are installed/synced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Regression tests should be structural and low wording-churn where possible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not instruct agents to read `~/.local/share/Advance/**` methodology files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not duplicate large methodology blocks across many command files when a skill can own the reusable guidance cleanly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not remove methodology coverage merely to shrink prompts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not expand into redesigning the seven-gate workflow, Temporal state, or worktree mechanics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Redesigning ADV gate semantics or approval checkpoints.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing ADV state storage, Temporal workflow behavior, or worktree lifecycle mechanics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Removing maintainer-facing repo docs when they are no longer runtime instructions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Implementing duplicate proposal prevention; tracked separately as agenda item `ag-wg8YdGFm`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Runtime command scan: no `.opencode/command` matches for `docs/checklists/`; reviewer contract assessment pass.",
+          "notes": "Commands no longer direct agents to source checklist files."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Embedded methodology blocks and existing `skill(\"adv-improve\")`/`skill(\"adv-slop-detection\")` retained; targeted asset tests passed 83 tests.",
+          "notes": "Methodology remains available via embedded guidance or loaded skills."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/adv-improve-assets.test.ts --reporter=dot` passed: 2 files, 83 tests; regression test failed red before cleanup.",
+          "notes": "Regression coverage added."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Runtime command scans found no `docs/checklists/` or `~/.local/share/Advance` matches; reviewer assessment pass.",
+          "notes": "Non-Advance repo invocation no longer receives source checklist path directives."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "`rq-noSourceChecklistReads01` added to advance-meta spec/docs; ADV_INSTRUCTIONS boundary updated.",
+          "notes": "Durable guidance/spec surfaces updated."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Affected commands audited and updated: adv-proposal, adv-discover, adv-prep, adv-review, adv-harden, adv-improve.",
+          "notes": "All discovered runtime checklist references classified and removed/replaced."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Command cleanup replaced checklist path directives with embedded runtime-source wording or existing skill/fallback wording.",
+          "notes": "Runtime directives replaced."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Forbidden-pattern scan added in `plugin/src/adv-skill-backed-commands-assets.test.ts`; targeted tests passed 83 tests.",
+          "notes": "Regression test enforces boundary."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "No new skill sibling files required; `adv-improve` skill already contains six-category methodology; existing skill loads preserved.",
+          "notes": "Whole-directory skill sync unchanged/sufficient."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "advance-meta spec bumped to 1.11.0 with `rq-noSourceChecklistReads01`; docs/specs mirror updated.",
+          "notes": "Spec-law updated."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No skill files required state mutation; command/state ownership preserved; reviewer assessment pass.",
+          "notes": "Skills remain read-only guidance."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only command guidance/tests/spec/docs changed; no gate/state ownership moved to skills.",
+          "notes": "Commands continue owning workflow and state."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No symlinks/env overrides/wrappers/hardcoded install paths added; source pointers removed.",
+          "notes": "No path hacks."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Core workflows use embedded guidance or installed skills; no network dependency introduced.",
+          "notes": "Offline operation preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Structural regex-based command asset scan added and passing.",
+          "notes": "Low wording-churn structural test."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Runtime command scan for `~/.local/share/Advance` returned no matches.",
+          "notes": "No install-tree read directive."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Did not add new single-command methodology skills or duplicate large blocks; reused embedded/skill guidance.",
+          "notes": "No large duplicate methodology blocks added."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Embedded methodology and existing skills retained; only source path pointers removed.",
+          "notes": "Coverage preserved."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to gate semantics, Temporal state, or worktree mechanics.",
+          "notes": "Scope preserved."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No gate semantics redesign attempted.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No ADV state storage, Temporal workflow, or worktree lifecycle changes made.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Maintainer-facing checklist docs retained.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Duplicate proposal prevention tracked separately as agenda `ag-wg8YdGFm`; not implemented here.",
+          "notes": "Out of scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Audit all runtime `.opencode/command/adv-*.md` references to `docs/checklists/*` and classify each as remove, replace with skill load, replace with embedded fallback, or maintainer-only documentation.",
+    "Replace runtime checklist-read directives with skill-backed methodology loading or embedded fallback instructions.",
+    "Add or update regression tests that inspect command assets and fail on runtime checklist-read directives.",
+    "Verify skill sibling-file sync remains sufficient for any methodology moved into skill reference files.",
+    "Add/refine a spec requirement for the durable runtime boundary."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/proposal.md",
+      "updatedAt": "2026-05-22T15:02:10.838Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/problem-statement.md",
+      "updatedAt": "2026-05-22T15:02:10.870Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/agreement.md",
+      "updatedAt": "2026-05-22T15:02:10.906Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/design.md",
+      "updatedAt": "2026-05-22T15:02:10.921Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T15:04:26.893Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-22T07:58:31.679Z",
+      "resolved": true,
+      "resolved_at": "2026-05-22T08:06:17.743Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-22T08:06:17.743Z",
+      "resolved": true,
+      "resolved_at": "2026-05-22T08:08:09.293Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
