@@ -746,4 +746,17 @@ describe("changeWorkflow signal handlers", () => {
       /await wf\.condition\(wf\.allHandlersFinished\);\s+await wf\.continueAsNew<typeof changeWorkflow>\(seed\);/,
     );
   });
+
+  it("preserves origin and worktree projections in continue-as-new seed", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+
+    for (const assignment of [
+      "origin: state.origin",
+      "worktree_auto_managed: state.worktree_auto_managed",
+      "target_worktree_path: state.target_worktree_path",
+      "scope_worktrees: state.scope_worktrees",
+    ]) {
+      expect(source).toContain(assignment);
+    }
+  });
 });

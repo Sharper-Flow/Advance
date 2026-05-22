@@ -1182,6 +1182,10 @@ export async function changeWorkflow(
       worktrees: state.worktrees,
       conformance: state.conformance,
       archiveRequest: state.archiveRequest,
+      origin: state.origin,
+      worktree_auto_managed: state.worktree_auto_managed,
+      target_worktree_path: state.target_worktree_path,
+      scope_worktrees: state.scope_worktrees,
     },
   };
   await wf.condition(wf.allHandlersFinished);

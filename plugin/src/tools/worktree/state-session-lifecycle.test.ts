@@ -130,6 +130,14 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     );
   });
 
+  it("escapes quotes and backslashes in visibility query values", () => {
+    expect(
+      buildWorktreeBranchVisibilityQuery('proj\\"id', 'change/a"b\\c'),
+    ).toBe(
+      'AdvAffectedProjects = "proj\\\\\\"id" AND AdvWorktreeBranches = "change/a\\"b\\\\c" AND AdvChangeStatus = "active"',
+    );
+  });
+
   it("lists active owner change ids for a worktree branch and excludes current change", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {

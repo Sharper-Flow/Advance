@@ -242,7 +242,7 @@ async function classifyWorktreeWorkflowFailure(
 }
 
 function escapeVisibilityValue(value: string): string {
-  return value.replace(/"/g, '\\"');
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function pendingDeletesPath(access: WorktreeStateAccess): string {
