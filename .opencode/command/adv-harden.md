@@ -165,7 +165,7 @@ Before running 6-scanner analysis, validate and act on review suggestions/questi
 
 **Step 3: Implement valid findings:**
 - Apply drift-detection rule (same as Phase 3) before each fix
-- If no drift → implement via `adv-engineer` sub-agent or inline
+- If no drift → implement through hardening remediation routing (`adv-reviewer` for scoped review-style fixes, `adv-engineer` for primary implementation or multi-file refactors) or inline
 - If drift → STOP, present to user via `question` tool
 - After implementation → mark `fixed` with fix notes
 
@@ -350,6 +350,8 @@ This is the single declarative drift detection rule. It applies to every finding
 **Anti-pattern:** The drift-detection auto-fix path must NOT silently absorb non-campsite scope. If the fix would expand the agreement, always defer to the scope-discovery protocol above.
 
 ### Sub-Agent Routing for Fixes
+
+Hardening has two delegated lanes: scanner workers (`adv-reviewer`/`explore`) for readiness analysis and remediation workers (`adv-reviewer`/`adv-engineer`) for validated in-scope fixes. Do not introduce ad-hoc workers.
 
 | Fix shape | Worker | Returns |
 |---|---|---|
