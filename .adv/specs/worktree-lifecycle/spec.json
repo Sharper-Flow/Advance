@@ -57,7 +57,7 @@
           "id": "rq-worktreePoisonVisibility01.2",
           "title": "Poison evidence is structured",
           "given": [
-            "The failed workflow describe output contains TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence"
+            "The failed workflow describe output contains TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
           ],
           "when": "listWorktreesAcrossChanges classifies the failure",
           "then": [

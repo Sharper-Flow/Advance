@@ -1,7 +1,7 @@
 # Advance Workflow
 
 > **Version:** 1.10.0
-> **Updated:** 2026-05-21
+> **Updated:** 2026-05-22
 
 ## Purpose
 
@@ -1717,7 +1717,7 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 
 **Given:**
 
-- A workflow query or task fails with TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence
+- A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
 
 **When:** Recovery guidance is presented
 

@@ -20,6 +20,9 @@ interface ReplayFixtureMetadata {
 
 const replayFixtures = [
   {
+    // Protects DISCOVERY_CONTRACT_READINESS_PATCH in workflows.ts. Keep this
+    // fixture while pre-contract discovery histories can still replay through
+    // the legacy branch; removing it should coincide with patch deprecation.
     metadataUrl: new URL(
       "./replay/histories/fixGateAutoWorktree.discovery-gate-tmprl1100.metadata.json",
       import.meta.url,

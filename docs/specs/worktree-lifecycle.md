@@ -75,7 +75,7 @@ Cross-change worktree visibility MUST query each owning change workflow independ
 
 **Given:**
 
-- The failed workflow describe output contains TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence
+- The failed workflow describe output contains TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
 
 **When:** listWorktreesAcrossChanges classifies the failure
 
@@ -261,6 +261,155 @@ Registry entries must track cleanupEligible and cleanupBlockedBy fields. Entries
 
 - cleanupEligible=false
 - cleanupBlockedBy documents the active session
+
+---
+
+### Terminal Worktree Cleanup Reaper
+
+**ID:** `rq-terminalCleanupReaper01` | **Priority:** **[MUST]**
+
+ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. All deletion attempts must delegate to advWorktreeDelete.
+
+**Tags:** `worktree`, `cleanup`, `terminal`, `reaper`
+
+#### Scenarios
+
+**Shared triggers reach the reaper** (`rq-terminalCleanupReaper01.1`)
+
+**Given:**
+
+- A terminal ADV worktree exists for an archived or closed change
+
+**When:** archive, manual cleanup, status/triage, startup, or session.deleted cleanup runs
+
+**Then:**
+
+- The shared terminal cleanup reaper evaluates the candidate
+- The actual deletion attempt delegates to advWorktreeDelete
+
+**Startup remains bounded** (`rq-terminalCleanupReaper01.2`)
+
+**Given:**
+
+- Plugin startup begins with pending deletes recorded
+
+**When:** Startup cleanup runs
+
+**Then:**
+
+- Only already-known pending deletes are drained
+- Full terminal discovery is not executed during startup
+
+---
+
+### Terminal Cleanup Safety Gate
+
+**ID:** `rq-terminalCleanupSafety01` | **Priority:** **[MUST]**
+
+Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority.
+
+**Tags:** `worktree`, `cleanup`, `safety`
+
+#### Scenarios
+
+**Unsafe candidates are retained** (`rq-terminalCleanupSafety01.1`)
+
+**Given:**
+
+- A cleanup candidate is dirty, unmerged, non-terminal, or in use
+
+**When:** The terminal cleanup reaper evaluates it
+
+**Then:**
+
+- The candidate is retained with a blocker
+- No direct git worktree remove command is run
+
+**Census eligibility is not authority** (`rq-terminalCleanupSafety01.2`)
+
+**Given:**
+
+- census.cleanupEligible is true for a worktree
+
+**When:** The reaper attempts cleanup
+
+**Then:**
+
+- advWorktreeDelete still verifies durable ADV state before deletion
+
+---
+
+### Terminal Cleanup Visibility
+
+**ID:** `rq-terminalCleanupVisibility01` | **Priority:** **[MUST]**
+
+Retained terminal cleanup blockers must be visible without requiring manual git inspection. adv_status must surface aggregate retained-terminal-worktree counts/classes only. adv_worktree_triage must surface exact branches, paths, and blockers for retained terminal cleanup candidates.
+
+**Tags:** `worktree`, `cleanup`, `status`, `triage`
+
+#### Scenarios
+
+**Status shows aggregates** (`rq-terminalCleanupVisibility01.1`)
+
+**Given:**
+
+- Retained terminal cleanup blockers exist
+
+**When:** adv_status runs
+
+**Then:**
+
+- The output includes retained cleanup counts/classes
+- The normal status surface does not dump every retained path
+
+**Triage shows exact blockers** (`rq-terminalCleanupVisibility01.2`)
+
+**Given:**
+
+- Retained terminal cleanup blockers exist
+
+**When:** adv_worktree_triage runs
+
+**Then:**
+
+- Exact branches, paths, and blockers are returned
+
+---
+
+### Single Terminal Cleanup Lifecycle Path
+
+**ID:** `rq-terminalCleanupLifecycle01` | **Priority:** **[MUST]**
+
+Terminal cleanup processing must route through one shared cleanup path instead of duplicate lifecycle loops. Concurrent cleanup triggers must be serialized or idempotent, and retained in-use worktrees must stay queued or preserved for retry. Manual cleanup must be able to retry safe terminal pending deletes even when prior automatic attempts reached an attempt cap.
+
+**Tags:** `worktree`, `cleanup`, `lifecycle`, `concurrency`
+
+#### Scenarios
+
+**Concurrent triggers are idempotent** (`rq-terminalCleanupLifecycle01.1`)
+
+**Given:**
+
+- Two cleanup triggers process the same pending delete
+
+**When:** Both triggers run concurrently or sequentially
+
+**Then:**
+
+- Processing is serialized or idempotent
+- At most one deletion succeeds and retained state remains consistent
+
+**Manual cleanup can retry exhausted safe items** (`rq-terminalCleanupLifecycle01.2`)
+
+**Given:**
+
+- A safe terminal pending delete has exhausted automatic attempts
+
+**When:** Manual cleanup runs
+
+**Then:**
+
+- The safe pending delete is retried through the shared path
 
 ---
 

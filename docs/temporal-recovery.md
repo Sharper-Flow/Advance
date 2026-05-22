@@ -521,6 +521,13 @@ Worker restart is **not** a repair for `TMPRL1100`, `NonDeterministic`, or `Work
 
 Cross-change WIP and worktree readers should preserve healthy partial results and surface poisoned workflows as structured metadata (`poisoned_workflows`) plus human-readable warnings. Treat that metadata as triage input only. It must not trigger automatic terminate, reset, reseed, archive, or worktree deletion.
 
+Evidence extraction is split by bundle boundary:
+
+- `plugin/src/tools/recovery-probe.ts` owns tool-layer `describe()` probing via `workflowPoisonedDescriptionEvidence()` and returns bounded evidence summaries.
+- `plugin/src/temporal/recovery-classification.ts` owns workflow-safe plain error/evidence classification via `isPoisonedHistoryError()` and `isPrecisePoisonedHistoryEvidence()`.
+
+Keep their core poisoned-history markers aligned (`TMPRL1100`, `NonDeterministic`, `Nondeterminism`, `WorkflowTaskFailedCauseNonDeterministicError`, `No command scheduled`, `WorkflowExecutionUpdateAccepted`). The probe stays outside `temporal/` because it touches workflow handles and must not enter the workflow bundle.
+
 1. Confirm the error in logs or `last_error`.
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.
@@ -697,6 +704,14 @@ Examples:
 | `addTask`      | `add-task-v1`      |
 | `completeGate` | `complete-gate-v1` |
 | `cancelTask`   | `cancel-task-v1`   |
+
+Active ADV patch marker:
+
+| Handler / behavior | Patch name | Purpose | Fixture |
+| ------------------ | ---------- | ------- | ------- |
+| Discovery gate contract readiness | `discovery-contract-readiness-v1` | Legacy discovery histories scheduled artifact inspection before contract-readiness enforcement; histories without the marker must replay the old no-contract-blocker branch | `fixGateAutoWorktree.discovery-gate-tmprl1100.*` |
+
+The patch is defined as `DISCOVERY_CONTRACT_READINESS_PATCH` in `plugin/src/temporal/workflows.ts`. Keep it until pre-contract discovery histories are archived/closed and the replay fixture no longer needs that migration path; then deprecate with `wf.deprecatePatch` before final removal.
 
 ### Branch structure
 

@@ -192,7 +192,7 @@
           "id": "rq-wipPoisonIsolation01.2",
           "title": "Poison metadata is read-only triage data",
           "given": [
-            "poisoned_workflows contains a workflow with TMPRL1100 or NonDeterministic evidence"
+            "poisoned_workflows contains a workflow with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
           ],
           "when": "adv_wip_state returns the response",
           "then": [

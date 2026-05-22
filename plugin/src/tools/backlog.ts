@@ -401,6 +401,8 @@ export const backlogTools = {
       if (priorityFilter) {
         bugs = bugs.filter((b) => b.priority === priorityFilter);
       }
+      // Mirrors adv_roadmap semantics: `top` limits WSJF-ranked features only;
+      // bugs remain priority-filtered because they are not ordered by WSJF.
       if (top !== undefined) {
         features = features.slice(0, top);
       }

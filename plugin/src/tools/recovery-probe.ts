@@ -12,6 +12,9 @@
  * projection.
  */
 
+// Keep the core markers aligned with `temporal/recovery-classification.ts`.
+// This probe intentionally accepts richer `describe()` output shapes while the
+// workflow-safe classifier owns plain error/evidence text.
 const POISONED_DESCRIPTION_RE =
   /WorkflowTaskFailedCauseNonDeterministicError|NonDeterministic|Nondeterminism|TMPRL1100|No command scheduled|WorkflowExecutionUpdateAccepted/i;
 

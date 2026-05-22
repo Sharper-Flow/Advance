@@ -48,6 +48,7 @@ import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
+const contractsPath = fileURLToPath(new URL("./contracts.ts", import.meta.url));
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
@@ -757,6 +758,25 @@ describe("changeWorkflow signal handlers", () => {
       "scope_worktrees: state.scope_worktrees",
     ]) {
       expect(source).toContain(assignment);
+    }
+  });
+
+  it("continues as new with every declared seedState field", () => {
+    const contracts = readFileSync(contractsPath, "utf8");
+    const workflows = readFileSync(workflowsPath, "utf8");
+    const seedStatePick = contracts.match(
+      /seedState\?: Partial<\s*Pick<\s*ChangeWorkflowState,\s*([\s\S]*?)\s*>\s*>/,
+    );
+
+    expect(seedStatePick).not.toBeNull();
+    const seedStateKeys = Array.from(
+      seedStatePick![1].matchAll(/\|\s*"([^"]+)"/g),
+      (match) => match[1],
+    );
+
+    expect(seedStateKeys).not.toHaveLength(0);
+    for (const key of seedStateKeys) {
+      expect(workflows).toContain(`${key}: state.${key}`);
     }
   });
 });

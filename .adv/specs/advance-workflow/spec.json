@@ -1949,7 +1949,7 @@
           "id": "rq-workflowVersioning01.3",
           "title": "Worker restart is not nondeterminism repair",
           "given": [
-            "A workflow query or task fails with TMPRL1100, NonDeterministic, or WorkflowTaskFailedCauseNonDeterministicError evidence"
+            "A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
           ],
           "when": "Recovery guidance is presented",
           "then": [
