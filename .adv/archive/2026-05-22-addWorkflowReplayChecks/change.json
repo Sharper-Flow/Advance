@@ -1,0 +1,1211 @@
+{
+  "id": "addWorkflowReplayChecks",
+  "title": "Add workflow replay checks",
+  "status": "archived",
+  "created_at": "2026-05-22T05:58:01.168Z",
+  "tasks": [
+    {
+      "id": "tk-56d8f209d83d",
+      "title": "Add replay fixture harness and incident-class compatibility check",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T07:21:30.810Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C6",
+          "DONT1",
+          "DONT4",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:37:20.685Z",
+      "verification": "RED: Worker.runReplayHistory against exported fixGateAutoWorktree history failed with DeterminismViolationError: [TMPRL1100] UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 182, ActivityTaskScheduled). GREEN: added sanitized committed replay fixture and compatibility patch for discovery contract readiness; pnpm test -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts passed; pnpm run typecheck passed; pnpm run format:check passed; pnpm run lint passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added committed sanitized fixGateAutoWorktree replay fixture plus metadata and a replay-determinism Vitest using Worker.runReplayHistory. The fixture covers the observed TMPRL1100 class where legacy discovery gate completion scheduled inspectArtifactActivity at event 182 before search-attribute upsert. Added a targeted wf.patched compatibility branch for discovery contract readiness so legacy histories without the marker replay the old no-contract-blocker path, while new histories retain typed contract enforcement. Gate readiness gained an explicit enforceDiscoveryContract option for structural branching.",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/fixGateAutoWorktree.discovery-gate-tmprl1100.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixGateAutoWorktree.discovery-gate-tmprl1100.metadata.json",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/fixGateAutoWorktree.discovery-gate-tmprl1100.history.json",
+        "plugin/src/temporal/__tests__/replay/histories/fixGateAutoWorktree.discovery-gate-tmprl1100.metadata.json",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "c52596ff9936060dfab167cc116080b2cf8d00ad",
+      "completedAt": "2026-05-22T07:47:53.063Z",
+      "completed_at": "2026-05-22T07:47:53.063Z",
+      "notes": "Added replay fixture harness and fixed the observed incident class. Checkpoint commit c52596ff9936060dfab167cc116080b2cf8d00ad. Verification: RED runReplayHistory failed with TMPRL1100 event 182 before compatibility fix; GREEN replay fixture and related Temporal tests passed; typecheck, format:check, lint passed.",
+      "error_recovery": {
+        "last_error": "Worker.runReplayHistory against the exported fixGateAutoWorktree history failed with DeterminismViolationError: [TMPRL1100] UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 182, ActivityTaskScheduled).",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with adv_wip_state poisoned workflow metadata exposure.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "DeterminismViolationError during replay: [TMPRL1100] UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 182, ActivityTaskScheduled).",
+            "diagnosis": "Current discovery contract-readiness enforcement changed the command sequence for legacy discovery gate histories; current code upserted search attributes where old history scheduled inspectArtifactActivity.",
+            "fix_tried": "Added wf.patched('discovery-contract-readiness-v1') to skip discovery contract blockers only for legacy histories without the patch marker; added sanitized replay fixture and replay test.",
+            "strategy_label": "temporal_patch_legacy_discovery_contract_readiness",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:39:44.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:48:09.412Z"
+    },
+    {
+      "id": "tk-72eeff9ac71d",
+      "title": "Add per-change worktree query poison isolation",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T07:21:42.584Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC7",
+          "AC9"
+        ],
+        "verifies": [
+          "AC4",
+          "AC7",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT7",
+          "OOS1",
+          "OOS3",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:24:03.721Z",
+      "verification": "RED: pnpm test -- src/tools/worktree/state-session-lifecycle.test.ts failed with existing array-returning listWorktreesAcrossChanges and uncaught poisoned query. GREEN: pnpm test -- src/tools/worktree/state-session-lifecycle.test.ts src/tools/recovery-probe.test.ts src/tools/backlog.test.ts passed; pnpm run typecheck passed; pnpm run format:check passed; pnpm run lint passed before formatting.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed listWorktreesAcrossChanges to return a structured result with records, warnings, poisonedWorkflows, and unavailable. Added per-change try/catch around getWorktreesQuery so one poisoned workflow no longer hides healthy worktrees. Reused recovery-probe and recovery-classification helpers to classify poisoned describe evidence and completed/missing workflow errors. Added bounded evidence summaries via recovery-probe. Updated backlog default worktree provider to consume result.records. Added tests for healthy+poisoned workflow query isolation.",
+      "filesTouched": [
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "checkpointSha": "3e1f549ff85d05d2e9c826028553d462976d6c03",
+      "completedAt": "2026-05-22T07:36:19.013Z",
+      "completed_at": "2026-05-22T07:36:19.013Z",
+      "notes": "Implemented per-change poison isolation for cross-change worktree reads. Checkpoint commit 3e1f549ff85d05d2e9c826028553d462976d6c03. Verification: RED state-session lifecycle test failed before implementation; GREEN targeted worktree/recovery-probe/backlog tests passed; typecheck, format:check, and lint passed.",
+      "error_recovery": {
+        "last_error": "Initial RED test showed old implementation returned a raw array and threw on a poisoned per-change workflow query.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with next task for adv_wip_state metadata exposure.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "state-session-lifecycle test failed: expected structured records/warnings/poisonedWorkflows result; poisoned query threw Error: Failed to query Workflow.",
+            "diagnosis": "listWorktreesAcrossChanges needed structural result and per-change query isolation instead of raw await in loop.",
+            "fix_tried": "Added structured result types, per-change try/catch, poisoned describe evidence reuse, and consumer/test updates.",
+            "strategy_label": "structural_result_and_isolation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:28:26.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:36:49.505Z"
+    },
+    {
+      "id": "tk-a27db2c7eec7",
+      "title": "Expose automation-first poisoned workflow metadata in adv_wip_state",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T07:21:52.925Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-72eeff9ac71d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "DONT2",
+          "DONT5",
+          "OOS1",
+          "OOS5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:48:35.908Z",
+      "verification": "RED: pnpm test -- src/tools/backlog.test.ts failed because poisoned_workflows was undefined and structured worktree provider results were not normalized. GREEN: pnpm test -- src/tools/backlog.test.ts src/tools/worktree/state-session-lifecycle.test.ts passed; pnpm run typecheck passed; pnpm run lint passed; pnpm run format:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended adv_wip_state with additive poisoned_workflows output. Added WipPoisonedWorkflowEntry with source:'worktrees' and normalized structured worktree provider results from listWorktreesAcrossChanges. Preserved human-readable warnings by mapping per-worktree workflow warnings into the existing warnings array. Kept legacy array-returning test providers compatible. Added tests for empty poison metadata and healthy worktrees plus poisoned workflow metadata.",
+      "filesTouched": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/backlog.test.ts",
+        "plugin/src/tools/backlog.ts"
+      ],
+      "checkpointSha": "ba4fe0d15e7c66c359a5d9266ed7be98f0f57b3e",
+      "completedAt": "2026-05-22T07:54:38.223Z",
+      "completed_at": "2026-05-22T07:54:38.223Z",
+      "notes": "Exposed automation-first poisoned workflow metadata in adv_wip_state. Checkpoint commit ba4fe0d15e7c66c359a5d9266ed7be98f0f57b3e. Verification: RED backlog test failed on missing poisoned_workflows/normalization; GREEN backlog + worktree tests passed; typecheck, lint, format:check passed.",
+      "error_recovery": {
+        "last_error": "Initial RED backlog test showed poisoned_workflows was undefined and structured worktree provider objects were treated as worktree arrays.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Continue with specs/runbook task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "backlog.test failed: expected poisoned_workflows []; received undefined; structured provider object appeared as parsed.worktrees object instead of array.",
+            "diagnosis": "adv_wip_state response and provider seam still assumed worktreesProvider returns a raw WipWorktreeEntry array.",
+            "fix_tried": "Added provider result union, normalization, poisoned_workflows mapping, warning preservation, and tests.",
+            "strategy_label": "normalize_structured_wip_worktree_result",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:49:53.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:54:52.079Z"
+    },
+    {
+      "id": "tk-071cf657a9c3",
+      "title": "Update replay/versioning/recovery specs and runbook",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T07:22:05.999Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC6",
+          "AC8",
+          "AC10"
+        ],
+        "verifies": [
+          "AC3",
+          "AC6",
+          "AC8",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:55:21.330Z",
+      "verification": "Spec JSON parsed successfully for advance-workflow, backlog-coordination, and worktree-lifecycle. adv_change_validate strict passed with only existing NO_DELTAS warning. Docs format check passed for temporal-recovery.md and spec mirrors. Updated specs/runbook with replay/versioning rule, poison WIP metadata, worktree poison visibility, quarantine/read-only posture, and worker restart caveat.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added advance-workflow requirement rq-workflowVersioning01 for committed replay verification, command-producing workflow evolution strategy, patch deprecation/rationale, and worker-restart caveat. Added backlog-coordination rq-wipPoisonIsolation01 for adv_wip_state poisoned_workflows plus warning preservation and read-only triage posture. Added worktree-lifecycle rq-worktreePoisonVisibility01 for per-change query isolation, structured poison metadata, and explicit unavailable results. Updated docs/specs mirrors where present and docs/temporal-recovery.md with replay/versioning decision table and poisoned WIP read-only posture.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/worktree-lifecycle.md",
+        "docs/temporal-recovery.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/worktree-lifecycle.md",
+        "docs/temporal-recovery.md"
+      ],
+      "checkpointSha": "870c8d371b539cf9143962ef8fbbbd56b64959a8",
+      "completedAt": "2026-05-22T08:02:23.651Z",
+      "completed_at": "2026-05-22T08:02:23.651Z",
+      "notes": "Updated replay/versioning/recovery specs and runbook. Checkpoint commit 870c8d371b539cf9143962ef8fbbbd56b64959a8. Verification: spec JSON parsed; adv_change_validate strict passed with expected NO_DELTAS warning; docs format check passed.",
+      "error_recovery": {
+        "last_error": "Initial docs/spec JSON formatting pass reformatted entire spec JSON files, creating noisy diffs.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to full verification task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Spec JSON formatting produced large unrelated diffs across advance-workflow/backlog/worktree specs.",
+            "diagnosis": "Prettier JSON formatting was not required by repo checks and would obscure the actual spec-law additions.",
+            "fix_tried": "Restored spec JSON baseline formatting, reapplied targeted spec additions with minimal patch diff, and validated JSON parsing plus docs format.",
+            "strategy_label": "minimal_spec_patch_after_format_noise",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:59:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T08:02:41.113Z"
+    },
+    {
+      "id": "tk-f0ccf048b11a",
+      "title": "Run full verification and release-readiness checks",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-22T07:22:19.757Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-56d8f209d83d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-72eeff9ac71d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-a27db2c7eec7"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-071cf657a9c3"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC11"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5",
+          "OOS6",
+          "OOS7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T08:03:03.881Z",
+      "verification": "Release harden remediation: fixed documentation hygiene blocker/high findings, added recovery classifier/probe alignment comments, linked replay fixture to patch marker, clarified safeUpdateHandler signal/update semantics, documented backlog top semantics, added structural continue-as-new seedState completeness test, and tracked pre-existing worktree mutation stubs as agenda item ag-dU2Zn74X. Verification passed: exact targeted vitest file run, pnpm run check, pnpm run build, full pnpm test, strict adv_change_validate with expected NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/worktree-lifecycle.md",
+        "docs/temporal-recovery.md",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/recovery-probe.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json",
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/specs/worktree-lifecycle.md",
+        "docs/temporal-recovery.md",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/recovery-probe.ts"
+      ],
+      "checkpointSha": "61d403dc4555744e5d995ac388bba58a4436693f",
+      "completedAt": "2026-05-22T14:59:06.502Z",
+      "completed_at": "2026-05-22T14:59:06.502Z",
+      "notes": "Full verification and release-readiness checks passed. Checkpoint commit 34e3e4c4837eef3495666666b24d502eb46f3205. Verification: targeted tests including spec-citation invariant passed; pnpm run check passed; pnpm run build passed; full pnpm test passed; adv_change_validate strict passed with expected NO_DELTAS warning.",
+      "error_recovery": {
+        "last_error": "Initial consolidated targeted test run failed spec-citation-invariant because the three new requirements lacked external citations.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to execution gate completion.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "spec-citation-invariant: rq-workflowVersioning01, rq-wipPoisonIsolation01, and rq-worktreePoisonVisibility01 had no external citation outside docs/specs and own spec.json.",
+            "diagnosis": "New spec requirements must be cited in implementing code/docs outside spec mirrors.",
+            "fix_tried": "Added requirement citations to replay-determinism.test.ts, backlog.ts, and worktree/state.ts, then reran targeted tests and full verification.",
+            "strategy_label": "add_external_spec_citations",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T08:03:53.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T08:08:33.563Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-zRVgP3",
+      "type": "pattern",
+      "content": "For cross-change Temporal visibility readers, return a structural partial-result object (`records`, `warnings`, `poisonedWorkflows`, `unavailable`) instead of throwing or returning a raw array. Wrap each per-workflow query in its own try/catch, classify with existing recovery probes/classifiers, and continue so one poisoned workflow cannot hide healthy WIP.",
+      "source_task": "tk-72eeff9ac71d",
+      "recorded_at": "2026-05-22T07:36:57.648Z"
+    },
+    {
+      "id": "ws-1BsLZ2",
+      "type": "gotcha",
+      "content": "Replay failure `UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(... ActivityTaskScheduled)` can mean current readiness logic skipped an activity that legacy history scheduled, not that search-attribute code itself is wrong. Inspect the signal payload and event window around the failing event, then patch the exact command-producing branch (`wf.patched`) so old histories replay the old activity path.",
+      "source_task": "tk-56d8f209d83d",
+      "recorded_at": "2026-05-22T07:48:17.111Z"
+    },
+    {
+      "id": "ws-ID-HMJ",
+      "type": "pattern",
+      "content": "When evolving tool provider seams from arrays to structured partial results, keep a normalization layer that accepts both the old array shape and the new object shape. This preserves existing tests/callers while allowing richer automation metadata such as `poisoned_workflows`.",
+      "source_task": "tk-a27db2c7eec7",
+      "recorded_at": "2026-05-22T07:55:02.744Z"
+    },
+    {
+      "id": "ws-_X3y0x",
+      "type": "gotcha",
+      "content": "Spec JSON files are not part of `pnpm run format:check`; running Prettier over whole spec JSON can create noisy unrelated diffs. For spec-law edits, preserve existing JSON formatting and validate with JSON parse/adv_change_validate, while applying Prettier only to markdown mirrors/docs that are checked for readability.",
+      "source_task": "tk-071cf657a9c3",
+      "recorded_at": "2026-05-22T08:02:48.411Z"
+    },
+    {
+      "id": "ws-vVreKx",
+      "type": "gotcha",
+      "content": "Adding new spec requirements requires external citations outside docs/specs and the spec.json itself. The invariant fails even when implementation tests pass. Add `rq-*` anchors near the implementing code/tests (e.g. replay test, backlog tool, worktree state) before full-suite verification.",
+      "source_task": "tk-f0ccf048b11a",
+      "recorded_at": "2026-05-22T08:08:40.848Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:13:37.888Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal approved inline by user reply `continue`; proceeding to discovery. B/F/S scan was clean and strict validation passed with expected pre-prep warnings only.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/proposal.md",
+        "content_hash": "0604783cf8079b1f70e733ff364851332726b274f1b6e146153fe06485004352",
+        "non_whitespace_chars": 8048,
+        "checked_at": "2026-05-22T06:13:37.932Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:05:00.562Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; user approved acceptance criteria/agreement with reply `approve`; contract minted with 32 items. Decisions: quarantine-first recovery, blocking replay checks, warning metadata optimized for automation/agent triage.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/agreement.md",
+        "content_hash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "non_whitespace_chars": 4788,
+        "checked_at": "2026-05-22T07:05:00.614Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:20:35.196Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory independent validator returned CAUTION, no CONFLICT; cautions incorporated: single structured listWorktreesAcrossChanges result, simplified design planes, fixture-vs-live replay tradeoff, Worker Versioning rationale. No user-value tradeoff or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/design.md",
+        "content_hash": "6103a571a349ced915b047de365344d4f883f9da0045f8da611befc6b3e9aecf",
+        "non_whitespace_chars": 8252,
+        "checked_at": "2026-05-22T07:20:35.247Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:23:32.026Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with reply `approve`. Five-task graph covers replay fixture harness, per-change worktree poison isolation, adv_wip_state poisoned metadata, specs/runbook, and full verification. Contract refs and TDD intent assigned."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T08:09:06.000Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 5 tasks done with checkpoints. Verification passed: targeted tests including replay determinism/spec citation/backlog/worktree/gate/workflow signal coverage; pnpm run check; pnpm run build; full pnpm test; strict validation passed with only expected NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T14:38:09.769Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Acceptance review APPROVED after remediation. Fixed continue-as-new seed preservation issue, strengthened visibility escaping, expanded recovery-probe tests. Contract review matrix persisted with 32 rows and zero failing rows. Executive summary persisted. Verification passed: targeted tests, pnpm run check, pnpm run build, full pnpm test, strict validation with expected NO_DELTAS warning.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/acceptance.md",
+        "content_hash": "b337a08a055b52d879042746bd6985d1a3398ef799b7a0838350e31066379449",
+        "non_whitespace_chars": 7368,
+        "checked_at": "2026-05-22T14:38:09.917Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+      "approvedAt": "2026-05-22T06:00:00.000Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Replay verification fails when the current workflow bundle cannot replay captured/sanitized ADV `changeWorkflow` histories.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "At least one fixture covers the observed `fixGateAutoWorktree` class: `[TMPRL1100] Nondeterminism error: UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 182, ActivityTaskScheduled)`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Workflow-code changes that add, remove, or reorder command-producing operations require `wf.patched`, Worker Versioning, or an explicit reset/recovery plan before archive; patch markers include a deprecation plan or documented rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`listWorktreesAcrossChanges` isolates per-change query failures and returns healthy worktrees from other changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_wip_state` exposes structured poisoned-workflow metadata optimized for automation, agent triage, and tooling while preserving human-readable warnings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing poisoned terminal workflows are quarantined/read-only-first by default; destructive reset, terminate, or reseed is not automatic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Any poisoned-history recovery records exact evidence such as `TMPRL1100`, `WorkflowTaskFailedCauseNonDeterministicError`, or `NonDeterministic` before recovery action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Destructive poisoned-history actions require explicit user approval and audit evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Existing poisoned-history classifiers/probes are reused; no duplicate regex-only classification path owns correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Specs/docs state worker restart alone is not a repair for nondeterministic history mismatch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Targeted tests plus `pnpm run check`, `pnpm run build`, and full `pnpm test` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve signal/query-only change workflow architecture; do not reintroduce `defineUpdate`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep Temporal as the source of truth for live change state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Make replay compatibility machine-verifiable; heuristic-only checks are insufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Use existing poisoned-history classification/probe helpers where possible instead of duplicating classification logic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Quarantine/read-only-first is the default recovery posture for already-poisoned terminal workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Blocking replay checks apply to workflow-affecting changes under `plugin/src/temporal/**` and command-producing workflow helpers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Current repo only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not rely on worker restart or repeated retries as `TMPRL1100` repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not hide healthy WIP because one workflow query fails.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not terminate, reset, reseed, or mutate poisoned workflows without exact evidence and explicit approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add broad workflow-handler rewrites beyond the replay/poison-isolation scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not weaken archive, worktree cleanup, or backlog claim safety checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not make Warp or terminal navigation part of correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not hand-edit ADV state files or Temporal database rows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Replacing Temporal as ADV's durable state engine.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Manual Temporal database surgery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad rewrite of all change workflow handlers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Task-completion semantics owned by `fixCompletionSemantics` / `fixTaskCompletion`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Archive release ordering owned by `fixArchiveReleaseOrdering`, except documented interaction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Terminal/Warp workspace switching behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS7",
+        "kind": "out_of_scope",
+        "text": "External `spec-conformance` integration unless design proves it is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T13:52:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Replay determinism test uses Worker.runReplayHistory against committed histories; RED reproduced TMPRL1100 before compatibility patch; targeted and full tests passed.",
+          "notes": "Verified by replay-determinism test and task tk-56d8f209d83d/tk-f0ccf048b11a evidence."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Committed fixGateAutoWorktree fixture metadata records incidentEventId 182, eventType EVENT_TYPE_ACTIVITY_TASK_SCHEDULED, TMPRL1100 cover string; replay test asserts metadata.",
+          "notes": "Fixture history and metadata are committed under temporal replay histories."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "workflows.ts defines DISCOVERY_CONTRACT_READINESS_PATCH='discovery-contract-readiness-v1' with rationale/deprecation comment and uses wf.patched for legacy discovery histories; specs/docs record workflow versioning rule.",
+          "notes": "No Worker Versioning needed for single-worker OpenCode deployment; patch route chosen."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "listWorktreesAcrossChanges returns structured records/warnings/poisonedWorkflows and catches per-change query failures; state-session-lifecycle test verifies healthy worktree remains visible with poisoned peer.",
+          "notes": "Targeted worktree tests passed after remediation."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_wip_state exposes poisoned_workflows while preserving warnings; backlog tests verify structured metadata and healthy worktrees remain visible.",
+          "notes": "Additive response field; legacy array provider normalized."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Poison detection paths only return metadata/warnings; docs/specs require quarantine/read-only-first and forbid automatic terminate/reset/reseed/archive/delete actions.",
+          "notes": "Review found no automatic destructive recovery action."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflowPoisonedDescriptionEvidence extracts bounded exact evidence including TMPRL1100/NonDeterministic markers; worktree and recovery-probe tests assert evidence capture.",
+          "notes": "Remediation added direct recovery-probe tests for marker and evidence bounds."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "No destructive poison recovery action was added; docs require explicit user approval/audit before destructive action; existing destructive ADV tools remain approval-gated.",
+          "notes": "Review confirmed poisoned workflow handling is read-only metadata only."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "worktree state imports shared recovery-probe and recovery-classification helpers; no local regex-only owner in state path; recovery-probe tests cover marker behavior.",
+          "notes": "Overlap risk noted as non-blocking suggestion; helper reuse is present."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "advance-workflow spec and docs/temporal-recovery.md state worker restart is not a TMPRL1100/nondeterminism repair; restart only after compatibility understood.",
+          "notes": "Docs/spec mirrors updated."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-remediation verification passed: targeted replay/backlog/worktree/recovery/gate/signal/spec-citation tests; pnpm run check; pnpm run build; full pnpm test; strict change validation.",
+          "notes": "RED signal test failed before continue-as-new seed fix, then passed after fix."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "changeWorkflow remains signal/query-only; no defineUpdate introduced; workflow tests and full suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Temporal remains live state source; change adds replay checks/read-path resilience, not alternate state authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Replay compatibility is machine-verified by Worker.runReplayHistory test, not heuristic-only inference.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Poisoned workflow classification reuses recovery-probe and temporal recovery-classification helpers.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Docs/specs and implementation keep poisoned terminal workflows in read-only metadata/quarantine posture by default.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Workflow-affecting change in temporal/ is covered by replay fixture test and compatibility patch policy/spec.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All changed files are within current Advance repo; cross-repo review found no target_repo/target_path work.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No worker restart/retry is used as TMPRL1100 repair; docs explicitly reject restart-only repair.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Worktree and WIP tests verify healthy WIP remains visible when a workflow query is poisoned.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation records poison metadata only; no terminate/reset/reseed/mutate path added without evidence/approval.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only targeted replay compatibility, worktree/WIP read resilience, specs/docs, and small review remediation were changed; no broad workflow-handler rewrite.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archive, worktree cleanup, and backlog claim safety checks were not weakened; read-path changes are additive and partial-result preserving.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No terminal/Warp navigation behavior was made part of correctness.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ADV state files or Temporal DB rows were manually edited; mutations used source edits and ADV tools only.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Temporal replacement was not implemented or proposed in code changes.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No manual Temporal database surgery performed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad rewrite of all change workflow handlers; patch is targeted.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Task-completion semantics were not changed beyond tests/checkpoint evidence.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Archive release ordering was not modified except docs noting interaction.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Terminal/Warp workspace switching was not changed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS7",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "External spec-conformance integration was not added; design did not require it.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Replay verification fails when the current workflow bundle cannot replay captured/sanitized ADV `changeWorkflow` histories.",
+    "At least one fixture covers the observed `fixGateAutoWorktree` class: `[TMPRL1100] Nondeterminism error: UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 182, ActivityTaskScheduled)`.",
+    "Workflow-code changes that add, remove, or reorder command-producing operations require `wf.patched`, Worker Versioning, or an explicit reset/recovery plan before archive; patch markers include a deprecation plan or documented rationale.",
+    "`listWorktreesAcrossChanges` isolates per-change query failures and returns healthy worktrees from other changes.",
+    "`adv_wip_state` exposes structured poisoned-workflow metadata optimized for automation, agent triage, and tooling while preserving human-readable warnings.",
+    "Existing poisoned terminal workflows are quarantined/read-only-first by default; destructive reset, terminate, or reseed is not automatic.",
+    "Any poisoned-history recovery records exact evidence such as `TMPRL1100`, `WorkflowTaskFailedCauseNonDeterministicError`, or `NonDeterministic` before recovery action.",
+    "Destructive poisoned-history actions require explicit user approval and audit evidence.",
+    "Existing poisoned-history classifiers/probes are reused; no duplicate regex-only classification path owns correctness.",
+    "Specs/docs state worker restart alone is not a repair for nondeterministic history mismatch.",
+    "Targeted tests plus `pnpm run check`, `pnpm run build`, and full `pnpm test` pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/proposal.md",
+      "updatedAt": "2026-05-22T15:01:11.976Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/problem-statement.md",
+      "updatedAt": "2026-05-22T15:01:12.015Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/agreement.md",
+      "updatedAt": "2026-05-22T15:01:12.062Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/design.md",
+      "updatedAt": "2026-05-22T15:01:12.077Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T14:59:06.502Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-22T13:53:39.114Z",
+      "resolved": true,
+      "resolved_at": "2026-05-22T13:55:33.907Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
