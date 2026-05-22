@@ -2612,9 +2612,8 @@ export const changeTools = {
               "poisoned_history archive recovery requires non-empty recoveryEvidence",
           });
         }
-        const { isPrecisePoisonedHistoryEvidence } = await import(
-          "../temporal/recovery-classification"
-        );
+        const { isPrecisePoisonedHistoryEvidence } =
+          await import("../temporal/recovery-classification");
         if (!isPrecisePoisonedHistoryEvidence(recoveryEvidence)) {
           return formatToolOutput({
             error:
@@ -2856,9 +2855,8 @@ export const changeTools = {
           // signal that flips the status field fails. Probe + recover.
           if (recoveryMode === "poisoned_history") {
             try {
-              const { workflowHasPoisonedDescription } = await import(
-                "./recovery-probe"
-              );
+              const { workflowHasPoisonedDescription } =
+                await import("./recovery-probe");
               const { getService } = await import("../temporal/service");
               const { getChangeHandle } = await import("./_adapters");
               const { getProjectId } = await import("../utils/project-id");
@@ -2874,12 +2872,10 @@ export const changeTools = {
                 ? await workflowHasPoisonedDescription(handle)
                 : false;
               if (poisoned) {
-                const { saveRecoveredChangeStatus } = await import(
-                  "./_recovery-writers"
-                );
-                const { RECOVERY_RECONCILIATION_WARNING } = await import(
-                  "../temporal/recovery-classification"
-                );
+                const { saveRecoveredChangeStatus } =
+                  await import("./_recovery-writers");
+                const { RECOVERY_RECONCILIATION_WARNING } =
+                  await import("../temporal/recovery-classification");
                 await saveRecoveredChangeStatus({
                   store,
                   change,

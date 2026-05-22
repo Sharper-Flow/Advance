@@ -687,9 +687,7 @@ export const taskTools = {
                   args.implementation_summary ??
                   "Task marked done via adv_task_update",
                 summary:
-                  args.implementation_summary ??
-                  args.notes ??
-                  "Task completed",
+                  args.implementation_summary ?? args.notes ?? "Task completed",
                 filesTouched: [],
                 completedAt: now,
                 ...(structuredOutput && {
@@ -786,8 +784,9 @@ export const taskTools = {
           const refreshed = await activeStore.changes.get(changeId);
           if (refreshed.success && refreshed.data) {
             task =
-              (refreshed.data.tasks.find((t) => t.id === args.taskId) as Task) ??
-              null;
+              (refreshed.data.tasks.find(
+                (t) => t.id === args.taskId,
+              ) as Task) ?? null;
           }
         }
 

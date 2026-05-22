@@ -183,26 +183,14 @@ function buildRecoveryReadinessState(input: {
   });
 }
 
-async function completeAcceptanceViaRecovery(input: {
-  store: Store;
-  change: Change;
-  changeId: string;
-  gateId: GateId;
-  gates: Gates;
-  completedBy: string;
-  notes?: string;
-  compatibilityReason?: string;
-  boundaryWarning?: string;
-  extraPayload?: Record<string, unknown>;
-}): Promise<string> {
-  return completeGateViaRecovery(input);
-}
-
 /**
  * rq-extend-poisoned-recovery AC4: generalized poisoned-history gate
  * recovery. Supports acceptance and release gates. Each requires
  * `compatibilityReason` and respects prior-gate sequencing + task
  * completeness.
+ *
+ * Replaces the prior `completeAcceptanceViaRecovery` helper — call sites
+ * now use this entrypoint directly.
  */
 async function completeGateViaRecovery(input: {
   store: Store;

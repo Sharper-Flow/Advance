@@ -486,13 +486,15 @@ describe("task tools — signal/query adapters", () => {
       mocks.fireSignalAndRefresh.mockRejectedValueOnce(
         new Error("Failed to query Workflow"),
       );
-      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(async () => ({
-        searchAttributes: {
-          TemporalReportedProblems: [
-            "cause=WorkflowTaskFailedCauseNonDeterministicError",
-          ],
-        },
-      }));
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }),
+      );
 
       const result = await taskTools.adv_task_update.execute(
         {

@@ -678,7 +678,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       // the unit-test environment; the important guarantee here is that
       // the *acceptance-only* gate guard no longer rejects
       // compatibilityReason for release.
-      let parsed: Record<string, unknown> = {};
+      let parsed: Record<string, unknown>;
       try {
         const result = await gateTools.adv_gate_complete.execute(
           {
