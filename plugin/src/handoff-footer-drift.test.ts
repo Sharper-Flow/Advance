@@ -468,6 +468,7 @@ describe("command-as-approval semantics", () => {
 // assertions above (rq-handoffVoice01) unmodified.
 //
 // Spec ref: rq-idleMarker01, rq-idleMarker02, rq-idleMarker03, rq-titleBell01,
+// rq-titleIdentity01,
 // rq-ctxticker1, rq-ctxticker2, rq-toolTitle01, rq-toolTitle02, rq-toolTitle03.
 
 describe("chat-output-display drift contract", () => {
@@ -576,6 +577,14 @@ describe("chat-output-display drift contract", () => {
     expect(titleBellRequirement.body).toContain("MUST NOT emit BEL");
     expect(titleBellRequirement.body).toContain("ST (`ESC \\\\`)");
     expect(titleBellRequirement.body).toContain("status/title paths");
+
+    const titleIdentityRequirement = spec.requirements.find(
+      (r: any) => r.id === "rq-titleIdentity01",
+    );
+    expect(titleIdentityRequirement).toBeTruthy();
+    expect(titleIdentityRequirement.body).toContain("active ADV change id");
+    expect(titleIdentityRequirement.body).toContain("project name");
+    expect(titleIdentityRequirement.body).not.toContain("Project: change-id");
   });
 
   test("chat-output-display markdown mirror lists every JSON requirement", () => {

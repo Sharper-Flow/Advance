@@ -237,7 +237,7 @@ describe("terminal title status contract", () => {
     expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
   });
 
-  test("WORK with active change writes raw project + raw change title", async () => {
+  test("WORK with active change writes raw change title only", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
@@ -246,10 +246,9 @@ describe("terminal title status contract", () => {
     term.updateTerminalStatus("WORK", "advance", "addFeatureX");
 
     expect(stdoutSpy).toHaveBeenCalled();
-    expectNonAudibleTitleSequence(
-      stdoutSpy.mock.calls.at(-1)?.[0],
-      "advance: addFeatureX",
-    );
+    const sequence = String(stdoutSpy.mock.calls.at(-1)?.[0]);
+    expectNonAudibleTitleSequence(sequence, "addFeatureX");
+    expect(sequence).not.toContain("advance: addFeatureX");
   });
 
   test("BLOCKED without active change keeps simple project title", async () => {
@@ -264,22 +263,22 @@ describe("terminal title status contract", () => {
     expectNonAudibleTitleSequence(stdoutSpy.mock.calls.at(-1)?.[0], "advance");
   });
 
-  test("title payload BEL is sanitized before OSC output", async () => {
+  test("active title payload BEL is sanitized before OSC output", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
     const term = await import("./terminal");
 
-    term.updateTerminalStatus("WORK", "adv\x07ance", "addFeatureX");
+    term.updateTerminalStatus("WORK", "advance", "add\x07FeatureX");
 
     expect(stdoutSpy).toHaveBeenCalled();
     expectNonAudibleTitleSequence(
       stdoutSpy.mock.calls.at(-1)?.[0],
-      "adv ance: addFeatureX",
+      "add FeatureX",
     );
   });
 
-  test("title payload ESC is sanitized before OSC output", async () => {
+  test("inactive title payload ESC is sanitized before OSC output", async () => {
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true as never);
@@ -315,7 +314,21 @@ describe("terminal title status contract", () => {
     expect(stdoutSpy).toHaveBeenCalledTimes(1);
     expectNonAudibleTitleSequence(
       stdoutSpy.mock.calls[0]?.[0],
-      "advance: removeTerminalBells",
+      "removeTerminalBells",
     );
+  });
+
+  test("status churn with same active identity does not rewrite title", async () => {
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true as never);
+    const term = await import("./terminal");
+
+    term.updateTerminalStatus("WORK", "advance", "changeX");
+    term.updateTerminalStatus("ATTN", "advance", "changeX");
+    term.updateTerminalStatus("IDLE", "advance", "changeX");
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    expectNonAudibleTitleSequence(stdoutSpy.mock.calls[0]?.[0], "changeX");
   });
 });

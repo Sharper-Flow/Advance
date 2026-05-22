@@ -263,10 +263,11 @@ const cleanTitlePart = (value: string | undefined): string =>
  *
  * Deliberately avoids semantic normalization, shortname generation, acronym
  * generation, verb stripping, or AI/agent-driven naming. The terminal title is
- * a direct reflection of the initial project basename and active ADV change ID:
+ * a direct reflection of the active ADV change ID, falling back to the initial
+ * project basename when no ADV change is active:
  *
  *   Project
- *   Project: change-id
+ *   change-id
  */
 export const buildTabTitle = (
   _emoji: string,
@@ -277,14 +278,11 @@ export const buildTabTitle = (
   const projectLabel = cleanTitlePart(projectName);
   const changeLabel = cleanTitlePart(changeId);
 
-  if (projectLabel && changeLabel) {
-    return `${projectLabel}: ${changeLabel}`;
+  if (changeLabel) {
+    return changeLabel;
   }
   if (projectLabel) {
     return projectLabel;
-  }
-  if (changeLabel) {
-    return changeLabel;
   }
   return "";
 };
@@ -294,12 +292,12 @@ let lastTitle: string | null = null;
 /**
  * Update terminal based on status.
  * Title format:
- *   - Active change: "<project>: <change-id>"
+ *   - Active change: "<change-id>"
  *   - No active change: "<project>"
  *
  * Title policy: identity-only. Do not encode status/progress or repeatedly
- * rewrite the tab title during normal status churn. The initial simple
- * `project: advChange` title is updated only when the identity string changes.
+ * rewrite the tab title during normal status churn. The simple identity title
+ * is updated only when the identity string changes.
  *
  * Notification policy: ADV core does not emit audible terminal bells for
  * status transitions. Attention/completion notifications are handled by the

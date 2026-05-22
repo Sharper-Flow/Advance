@@ -1,0 +1,1 @@
+ADV should make Warp/OpenCode terminal tabs quickly scannable by showing the active ADV change id as the primary title signal. When no ADV change is active, the project name is sufficient. The current `Project: change-id` title format duplicates project context already available from Warp vertical-tab working-directory metadata and wastes scarce tab-title width.

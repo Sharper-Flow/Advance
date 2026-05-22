@@ -333,9 +333,9 @@ describe("Terminal Utilities", () => {
 // =============================================================================
 
 describe("buildTabTitle", () => {
-  it("shows raw project and raw change ID when both present", () => {
+  it("shows raw change ID only when both project and active change are present", () => {
     expect(buildTabTitle("🟩", "Jester", "working-on-adv-change-x")).toBe(
-      "Jester: working-on-adv-change-x",
+      "working-on-adv-change-x",
     );
   });
 
@@ -347,9 +347,13 @@ describe("buildTabTitle", () => {
     expect(buildTabTitle("🟩", "Jester", "")).toBe("Jester");
   });
 
-  it("does not acronymize multi-word project names", () => {
+  it("shows raw project only when change ID is whitespace", () => {
+    expect(buildTabTitle("🟩", "Jester", "   ")).toBe("Jester");
+  });
+
+  it("does not acronymize multi-word project names or prefix them to active changes", () => {
     expect(buildTabTitle("🟩", "my-cool-project", "fixAuthTimeout")).toBe(
-      "my-cool-project: fixAuthTimeout",
+      "fixAuthTimeout",
     );
   });
 
@@ -362,9 +366,7 @@ describe("buildTabTitle", () => {
   });
 
   it("trims leading and trailing whitespace without semantic normalization", () => {
-    expect(buildTabTitle("🟩", "  Jester  ", "  changeX  ")).toBe(
-      "Jester: changeX",
-    );
+    expect(buildTabTitle("🟩", "  Jester  ", "  changeX  ")).toBe("changeX");
   });
 
   it("never includes progress text", () => {
@@ -373,9 +375,7 @@ describe("buildTabTitle", () => {
   });
 
   it("ignores BLOCKED/status prefix for the simple identity title", () => {
-    expect(buildTabTitle("🟥", "Jester", "changeX", "💀")).toBe(
-      "Jester: changeX",
-    );
+    expect(buildTabTitle("🟥", "Jester", "changeX", "💀")).toBe("changeX");
   });
 
   it("shows project only when BLOCKED/status prefix is provided without active change", () => {
@@ -383,7 +383,7 @@ describe("buildTabTitle", () => {
   });
 
   it("ignores status emoji in the tab title", () => {
-    expect(buildTabTitle("🟩", "Jester", "changeX")).toBe("Jester: changeX");
+    expect(buildTabTitle("🟩", "Jester", "changeX")).toBe("changeX");
   });
 });
 
