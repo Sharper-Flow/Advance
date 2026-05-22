@@ -28,6 +28,10 @@ const mocks = vi.hoisted(() => {
     getProjectId: vi.fn(async () => "test-project-id"),
     fireSignal: vi.fn(async () => {}),
     fireSignalAndRefresh: vi.fn(async () => {}),
+    querySignal: vi.fn(
+      async (_handle: unknown, query: unknown, ...args: unknown[]) =>
+        queryMock(query, ...args),
+    ),
     getChangeHandle: vi.fn(() => handleMock),
     execFile: vi.fn(
       (_cmd: string, _args: string[], _opts: unknown, cb: unknown) => {
@@ -59,6 +63,7 @@ vi.mock("../utils/project-id", async () => {
 vi.mock("./_adapters", () => ({
   fireSignal: mocks.fireSignal,
   fireSignalAndRefresh: mocks.fireSignalAndRefresh,
+  querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
 }));
 

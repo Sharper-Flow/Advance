@@ -26,7 +26,11 @@ import type { Store } from "../storage/store-types";
 import type { ErrorRecovery } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import {
+  fireSignalAndRefresh,
+  getChangeHandle,
+  querySignal,
+} from "./_adapters";
 import { changeTaskQuery, taskCompletedSignal } from "../temporal/messages";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 
@@ -389,12 +393,12 @@ async function fireTaskCompletedFromCheckpoint(
       ...(structuredOutput && { structured_output: structuredOutput }),
     });
 
-    const recordedTask = (await handle.query(changeTaskQuery, taskId)) as {
+    const recordedTask = await querySignal<{
       status?: string;
       verification?: string;
       checkpointSha?: string;
       filesTouched?: string[];
-    } | null;
+    } | null>(handle, changeTaskQuery, taskId);
 
     if (!recordedTask) {
       return {
