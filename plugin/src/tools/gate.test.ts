@@ -659,6 +659,182 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed.error).toContain("task(s) not done or cancelled");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    test("poisoned-history acceptance recovery covers WorkflowTaskFailedCauseNonDeterministicError describe", async () => {
+      // rq-fix-gate-tools-recovery AC2: probe-based recovery for generic
+      // signal errors when workflow describe carries poisoned evidence.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          _source: "disk",
+          _recovery: {
+            mode: "temporal_query_fallback",
+            reason: "poisoned_history",
+          },
+        } as Partial<import("../types").Change>,
+      });
+
+      // Healthy gates query succeeds (no isPoisonedHistoryError(error)
+      // signal — workflow signal will fail with a generic error instead).
+      mocks.querySignal.mockResolvedValueOnce(gates);
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to send signal"),
+      );
+
+      // Inject describe() that reports nondeterminism via TemporalReportedProblems.
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed",
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+      mocks.handleMock.describe = describeMock;
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.reconciliationWarning).toContain("not healed");
+      expect(describeMock).toHaveBeenCalled();
+      expect(store.changes.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gates: expect.objectContaining({
+            acceptance: expect.objectContaining({ status: "done" }),
+          }),
+        }),
+      );
+
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+  });
+
+  describe("adv_gate_status", () => {
+    test("falls back to disk gates with _recovery annotation on poisoned workflow", async () => {
+      // rq-fix-gate-tools-recovery AC1.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          _source: "disk",
+          _recovery: {
+            mode: "temporal_query_fallback",
+            reason: "poisoned_history",
+          },
+        } as Partial<import("../types").Change>,
+      });
+
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+      mocks.handleMock.describe = describeMock;
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.gates.planning.status).toBe("pending");
+      expect(parsed.gates.discovery.status).toBe("done");
+      expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
+      expect(describeMock).toHaveBeenCalled();
+
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    test("propagates query errors when describe does not show poisoned evidence", async () => {
+      // rq-fix-gate-tools-recovery AC6: no recovery without evidence.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: { AdvChangeStatus: ["draft"] },
+        status: "RUNNING",
+      }));
+      mocks.handleMock.describe = describeMock;
+
+      await expect(
+        gateTools.adv_gate_status.execute({ changeId: "test-change" }, store),
+      ).rejects.toThrow(/Failed to query Workflow/);
+
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    test("uses workflow gates when query succeeds", async () => {
+      const diskGates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const workflowGates = {
+        ...diskGates,
+        discovery: { status: "done" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates: diskGates });
+
+      mocks.querySignal.mockResolvedValueOnce(workflowGates);
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.gates.discovery.status).toBe("done");
+      expect(parsed._recovery).toBeUndefined();
+    });
   });
 });
 

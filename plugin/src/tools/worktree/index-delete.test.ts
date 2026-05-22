@@ -1037,9 +1037,16 @@ describe.skipIf(!isLinux)("shared pending-delete drain", () => {
     expect(result).toEqual({ removed: 0, retained: 1 });
     expect(await getPendingDeletes(deps.database)).toHaveLength(1);
 
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    // Poll up to 1s for the late-delete to resolve. Fixed sleeps flake under
+    // full-suite load (rq-fix-gate-tools-recovery: hardening uncovered flake).
+    const deadline = Date.now() + 1000;
+    let remaining = await getPendingDeletes(deps.database);
+    while (remaining.length > 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      remaining = await getPendingDeletes(deps.database);
+    }
 
-    await expect(getPendingDeletes(deps.database)).resolves.toEqual([]);
+    expect(remaining).toEqual([]);
     expect(deps.log.warn).toHaveBeenCalledWith(
       expect.stringContaining("resolved after timeout"),
     );

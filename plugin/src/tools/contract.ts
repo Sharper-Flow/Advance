@@ -27,6 +27,7 @@ import {
   isPrecisePoisonedHistoryEvidence,
 } from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { workflowHasPoisonedDescription } from "./recovery-probe";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -302,11 +303,8 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
+          const handle = await healthySignalHandle(activeStore, args.changeId);
           try {
-            const handle = await healthySignalHandle(
-              activeStore,
-              args.changeId,
-            );
             await fireSignalAndRefresh(
               handle,
               activeStore,
@@ -315,9 +313,13 @@ export const contractTools = {
               { contract, updatedAt: new Date().toISOString() },
             );
           } catch (signalError) {
+            // rq-fix-gate-tools-recovery AC3: poisoned-history mint recovers
+            // when EITHER the signal error matches the legacy regex OR the
+            // workflow's own describe carries poisoned evidence.
             if (
               args.recoveryMode === "poisoned_history" &&
-              isPoisonedHistoryError(signalError)
+              (isPoisonedHistoryError(signalError) ||
+                (await workflowHasPoisonedDescription(handle)))
             ) {
               await saveRecoveredContract({
                 store: activeStore,
@@ -335,6 +337,28 @@ export const contractTools = {
               });
             }
             throw signalError;
+          }
+          // rq-fix-gate-tools-recovery AC3: if signal "succeeded" but the
+          // workflow is in fact poisoned (signal silently ignored), persist
+          // the contract to the disk projection so subsequent reads see it.
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            (await workflowHasPoisonedDescription(handle))
+          ) {
+            await saveRecoveredContract({
+              store: activeStore,
+              change,
+              contract,
+            });
+            return formatToolOutput({
+              success: true,
+              changeId: args.changeId,
+              itemCount: contract.items.length,
+              contractIds: contract.items.map((item) => item.id),
+              _recoveryMutation: true,
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
           }
           return formatToolOutput({
             success: true,
@@ -446,11 +470,8 @@ export const contractTools = {
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           }
+          const handle = await healthySignalHandle(activeStore, args.changeId);
           try {
-            const handle = await healthySignalHandle(
-              activeStore,
-              args.changeId,
-            );
             await fireSignalAndRefresh(
               handle,
               activeStore,
@@ -459,9 +480,12 @@ export const contractTools = {
               { reviewMatrix, updatedAt: new Date().toISOString() },
             );
           } catch (signalError) {
+            // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
+            // also runs when describe carries poisoned evidence.
             if (
               args.recoveryMode === "poisoned_history" &&
-              isPoisonedHistoryError(signalError)
+              (isPoisonedHistoryError(signalError) ||
+                (await workflowHasPoisonedDescription(handle)))
             ) {
               await saveRecoveredReviewMatrix({
                 store: activeStore,
@@ -481,6 +505,29 @@ export const contractTools = {
               });
             }
             throw signalError;
+          }
+          // rq-fix-gate-tools-recovery AC4: persist when signal "succeeded"
+          // but workflow is in fact poisoned.
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            (await workflowHasPoisonedDescription(handle))
+          ) {
+            await saveRecoveredReviewMatrix({
+              store: activeStore,
+              change,
+              reviewMatrix,
+            });
+            return formatToolOutput({
+              success: true,
+              changeId: args.changeId,
+              rowCount: reviewMatrix.rows.length,
+              failingRows: reviewMatrix.rows.filter((row) =>
+                isFailingContractReviewStatus(row.status),
+              ).length,
+              _recoveryMutation: true,
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
           }
           return formatToolOutput({
             success: true,

@@ -69,6 +69,7 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
   isPoisonedHistoryError,
 } from "../temporal/recovery-classification";
+import { workflowHasPoisonedDescription } from "./recovery-probe";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
 const GATE_COMPLETION_POLL_DELAY_MS = 25;
@@ -606,6 +607,7 @@ export const gateTools = {
 
             // Get or create gates
             let gates = result.data.gates ?? createDefaultGates();
+            let poisonedFallback = false;
             const bundle = getService();
             const projectId = bundle
               ? await getProjectId(activeStore.paths.root)
@@ -616,13 +618,27 @@ export const gateTools = {
                 projectId,
                 changeId,
               );
-              const queriedGates = await querySignal<Gates>(
-                handle,
-                getGateStatusQuery,
-                undefined,
-              );
-              if (queriedGates && typeof queriedGates === "object") {
-                gates = queriedGates;
+              try {
+                const queriedGates = await querySignal<Gates>(
+                  handle,
+                  getGateStatusQuery,
+                  undefined,
+                );
+                if (queriedGates && typeof queriedGates === "object") {
+                  gates = queriedGates;
+                }
+              } catch (queryError) {
+                // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
+                // The store's changes.get already returned a disk projection
+                // (likely via temporal_query_fallback). Honour that disk
+                // projection when the workflow describe carries poisoned
+                // evidence, instead of propagating the generic
+                // "Failed to query Workflow" error.
+                if (await workflowHasPoisonedDescription(handle)) {
+                  poisonedFallback = true;
+                } else {
+                  throw queryError;
+                }
               }
             }
             const incomplete = getIncompleteGates(gates);
@@ -635,6 +651,9 @@ export const gateTools = {
               incomplete,
               canArchive,
               nextGate,
+              ...(poisonedFallback
+                ? { _recovery: { reason: "poisoned_history" } }
+                : {}),
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
           } catch (error) {
@@ -808,7 +827,15 @@ export const gateTools = {
             undefined,
           );
         } catch (error) {
-          if (gateId === "acceptance" && isPoisonedHistoryError(error)) {
+          // rq-fix-gate-tools-recovery AC2: accept poisoned-history acceptance
+          // recovery when either the raw error matches the legacy regex OR
+          // workflow describe carries poisoned evidence. compatibilityReason
+          // is still required inside completeAcceptanceViaRecovery.
+          if (
+            gateId === "acceptance" &&
+            (isPoisonedHistoryError(error) ||
+              (await workflowHasPoisonedDescription(handle)))
+          ) {
             const boundaryWarning = validateGateBoundary(gateId, completedBy);
             return completeAcceptanceViaRecovery({
               store: activeStore,
@@ -974,7 +1001,15 @@ export const gateTools = {
             },
           );
         } catch (error) {
-          if (gateId === "acceptance" && isPoisonedHistoryError(error)) {
+          // rq-fix-gate-tools-recovery AC2: also recover when workflow
+          // describe carries poisoned evidence (e.g.
+          // WorkflowTaskFailedCauseNonDeterministicError) even when the
+          // signal error itself doesn't match the legacy regex.
+          if (
+            gateId === "acceptance" &&
+            (isPoisonedHistoryError(error) ||
+              (await workflowHasPoisonedDescription(handle)))
+          ) {
             return completeAcceptanceViaRecovery({
               store: activeStore,
               change,
