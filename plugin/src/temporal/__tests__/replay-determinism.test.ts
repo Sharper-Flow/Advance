@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 
+// rq-workflowVersioning01 — committed workflow histories must replay in CI.
 const workflowsPath = fileURLToPath(
   new URL("../workflows.ts", import.meta.url),
 );

@@ -9,6 +9,7 @@
  * Spec anchors:
  * - rq-worktreeRegistry01 (state authority lives in per-change workflow)
  * - rq-multiSessionCoordination01 (signals → change workflow serialize)
+ * - rq-worktreePoisonVisibility01 (cross-change worktree query poison isolation)
  *
  * Session registry retired: sessions are process-fact based only.
  * Pending deletes are durable via external JSONL under

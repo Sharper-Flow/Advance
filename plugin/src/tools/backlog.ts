@@ -1,5 +1,5 @@
 /**
- * Backlog Coordination Tools (rq-backlogCoord01..07).
+ * Backlog Coordination Tools (rq-backlogCoord01..07, rq-wipPoisonIsolation01).
  *
  * Two tools:
  *   - `adv_wip_state` (rq-backlogCoord04) — single-call WIP aggregator over
