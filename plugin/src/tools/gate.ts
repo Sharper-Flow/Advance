@@ -195,9 +195,31 @@ async function completeAcceptanceViaRecovery(input: {
   boundaryWarning?: string;
   extraPayload?: Record<string, unknown>;
 }): Promise<string> {
-  if (input.gateId !== "acceptance") {
+  return completeGateViaRecovery(input);
+}
+
+/**
+ * rq-extend-poisoned-recovery AC4: generalized poisoned-history gate
+ * recovery. Supports acceptance and release gates. Each requires
+ * `compatibilityReason` and respects prior-gate sequencing + task
+ * completeness.
+ */
+async function completeGateViaRecovery(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  gateId: GateId;
+  gates: Gates;
+  completedBy: string;
+  notes?: string;
+  compatibilityReason?: string;
+  boundaryWarning?: string;
+  extraPayload?: Record<string, unknown>;
+}): Promise<string> {
+  if (input.gateId !== "acceptance" && input.gateId !== "release") {
     return formatToolOutput({
-      error: "poisoned-history gate recovery is only supported for acceptance",
+      error:
+        "poisoned-history gate recovery is only supported for acceptance and release",
       changeId: input.changeId,
       gateId: input.gateId,
       ...(input.extraPayload ?? {}),
@@ -205,8 +227,7 @@ async function completeAcceptanceViaRecovery(input: {
   }
   if (!input.compatibilityReason?.trim()) {
     return formatToolOutput({
-      error:
-        "poisoned-history acceptance recovery requires compatibilityReason",
+      error: `poisoned-history ${input.gateId} recovery requires compatibilityReason`,
       changeId: input.changeId,
       gateId: input.gateId,
       ...(input.extraPayload ?? {}),
@@ -223,12 +244,15 @@ async function completeAcceptanceViaRecovery(input: {
       ...(input.extraPayload ?? {}),
     });
   }
+  // For acceptance: all tasks must be done/cancelled. Release runs after
+  // acceptance so this is implicitly true, but we keep the check for
+  // defense in depth.
   const incompleteTasks = input.change.tasks.filter(
     (task) => task.status !== "done" && task.status !== "cancelled",
   );
   if (incompleteTasks.length > 0) {
     return formatToolOutput({
-      error: `Cannot complete acceptance: ${incompleteTasks.length} task(s) not done or cancelled`,
+      error: `Cannot complete ${input.gateId}: ${incompleteTasks.length} task(s) not done or cancelled`,
       incompleteTasks: incompleteTasks.map((task) => ({
         id: task.id,
         title: task.title,
@@ -244,7 +268,7 @@ async function completeAcceptanceViaRecovery(input: {
       gates: input.gates,
       projectionChangesDir: input.store.paths.changes,
     }),
-    "acceptance",
+    input.gateId,
     { compatibilityReason: input.compatibilityReason },
   );
   if (!readiness.ready) {
@@ -262,14 +286,14 @@ async function completeAcceptanceViaRecovery(input: {
   const completedAt = new Date().toISOString();
   const updatedGates: Gates = {
     ...input.gates,
-    acceptance: {
+    [input.gateId]: {
       status: "done",
       completed_at: completedAt,
       completed_by: input.completedBy,
       approval_evidence: input.notes,
       artifact_evidence: readiness.evidence,
     },
-  };
+  } as Gates;
   await input.store.changes.save({ ...input.change, gates: updatedGates });
   return formatToolOutput({
     success: true,
@@ -792,10 +816,16 @@ export const gateTools = {
 
         let gates: Gates = change.gates ?? createDefaultGates();
 
-        if (compatibilityReason?.trim() && gateId !== "acceptance") {
+        if (
+          compatibilityReason?.trim() &&
+          gateId !== "acceptance" &&
+          gateId !== "release"
+        ) {
+          // rq-extend-poisoned-recovery AC4: release-gate recovery joins
+          // acceptance as a supported compatibilityReason target.
           return formatToolOutput({
             error:
-              "compatibilityReason is only supported for acceptance gate recovery",
+              "compatibilityReason is only supported for acceptance and release gate recovery",
             changeId,
             gateId,
             ...(projectContext ? { _projectContext: projectContext } : {}),
@@ -827,17 +857,18 @@ export const gateTools = {
             undefined,
           );
         } catch (error) {
-          // rq-fix-gate-tools-recovery AC2: accept poisoned-history acceptance
-          // recovery when either the raw error matches the legacy regex OR
-          // workflow describe carries poisoned evidence. compatibilityReason
-          // is still required inside completeAcceptanceViaRecovery.
+          // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
+          // accept poisoned-history acceptance/release recovery when either
+          // the raw error matches the legacy regex OR workflow describe
+          // carries poisoned evidence. compatibilityReason is still required
+          // inside completeGateViaRecovery.
           if (
-            gateId === "acceptance" &&
+            (gateId === "acceptance" || gateId === "release") &&
             (isPoisonedHistoryError(error) ||
               (await workflowHasPoisonedDescription(handle)))
           ) {
             const boundaryWarning = validateGateBoundary(gateId, completedBy);
-            return completeAcceptanceViaRecovery({
+            return completeGateViaRecovery({
               store: activeStore,
               change,
               changeId,
@@ -1001,16 +1032,15 @@ export const gateTools = {
             },
           );
         } catch (error) {
-          // rq-fix-gate-tools-recovery AC2: also recover when workflow
-          // describe carries poisoned evidence (e.g.
-          // WorkflowTaskFailedCauseNonDeterministicError) even when the
-          // signal error itself doesn't match the legacy regex.
+          // rq-fix-gate-tools-recovery AC2 + rq-extend-poisoned-recovery AC4:
+          // also recover release gate when workflow describe carries
+          // poisoned evidence.
           if (
-            gateId === "acceptance" &&
+            (gateId === "acceptance" || gateId === "release") &&
             (isPoisonedHistoryError(error) ||
               (await workflowHasPoisonedDescription(handle)))
           ) {
-            return completeAcceptanceViaRecovery({
+            return completeGateViaRecovery({
               store: activeStore,
               change,
               changeId,
