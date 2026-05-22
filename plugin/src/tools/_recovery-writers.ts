@@ -74,7 +74,10 @@ export async function saveRecoveredTaskAdd(input: {
 }
 
 /**
- * Replace the gate completion fields for a specific gate and persist.
+ * Replace the gate completion fields for a specific gate and persist through
+ * disk-direct saveChange. This bypasses store.changes.save because archived
+ * workflow recovery often happens after the workflow has already completed;
+ * calling store.changes.save would route through Temporal again.
  * The caller supplies the full completion record (status + completed_at +
  * completed_by + approval_evidence + optional artifact_evidence).
  */
@@ -87,7 +90,7 @@ export async function saveRecoveredGateCompletion(input: {
   const gates = (input.change.gates ?? {}) as Gates;
   const updatedGates = { ...gates, [input.gateId]: input.completion } as Gates;
   const updated = { ...input.change, gates: updatedGates } as Change;
-  await input.store.changes.save(updated);
+  await saveChange(input.store.paths.changes, updated);
   await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }

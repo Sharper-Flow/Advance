@@ -133,9 +133,10 @@ describe("saveRecoveredTaskAdd", () => {
 });
 
 describe("saveRecoveredGateCompletion", () => {
-  it("replaces gate completion fields and persists", async () => {
+  it("replaces gate completion fields through disk-direct saveChange", async () => {
     const { store, saveCalls } = createMockStore();
     const change = baseChange();
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
 
     const updated = await saveRecoveredGateCompletion({
       store,
@@ -151,7 +152,17 @@ describe("saveRecoveredGateCompletion", () => {
 
     expect(updated.gates?.release?.status).toBe("done");
     expect(updated.gates?.release?.completed_by).toBe("user:jon");
-    expect(saveCalls).toHaveLength(1);
+    expect(saveCalls).toHaveLength(0);
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        gates: expect.objectContaining({
+          release: expect.objectContaining({ status: "done" }),
+        }),
+      }),
+    );
+    expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
   });
 });
 

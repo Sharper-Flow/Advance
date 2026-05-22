@@ -59,11 +59,18 @@ const mocks = vi.hoisted(() => {
       }),
     ),
     detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
+    detectDefaultBranch: vi.fn(() => ({ branch: "trunk", source: "test" })),
     validateChangeWorktree: vi.fn(() => ({
       valid: true,
       mainCheckout: "/tmp/main",
       currentBranch: "change/example",
     })),
+    verifyChangeBranchReachable: vi.fn(() => ({
+      reachable: true,
+      unmergedCommits: [],
+    })),
+    verifyDefaultBranchPushed: vi.fn(() => ({ pushed: true })),
+    verifyChangeBranchPushed: vi.fn(() => ({ pushed: true })),
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
@@ -79,6 +86,19 @@ const mocks = vi.hoisted(() => {
         },
       },
     })),
+    saveRecoveredGateCompletion: vi.fn(
+      async (input: {
+        change: Change;
+        gateId: keyof Gates;
+        completion: Gates[keyof Gates];
+      }) => ({
+        ...input.change,
+        gates: {
+          ...(input.change.gates ?? {}),
+          [input.gateId]: input.completion,
+        } as Gates,
+      }),
+    ),
   };
 });
 
@@ -97,7 +117,11 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     ...actual,
     finalizeRelease: mocks.finalizeRelease,
     detectArchiveMode: mocks.detectArchiveMode,
+    detectDefaultBranch: mocks.detectDefaultBranch,
     validateChangeWorktree: mocks.validateChangeWorktree,
+    verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
+    verifyDefaultBranchPushed: mocks.verifyDefaultBranchPushed,
+    verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
   };
 });
 
@@ -119,7 +143,13 @@ vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
 }));
 
-function createMockStore(options: { releaseDone?: boolean } = {}): Store {
+vi.mock("./_recovery-writers", () => ({
+  saveRecoveredGateCompletion: mocks.saveRecoveredGateCompletion,
+}));
+
+function createMockStore(
+  options: { releaseDone?: boolean; status?: Change["status"] } = {},
+): Store {
   const gates: Gates = {
     proposal: { status: "done" },
     discovery: { status: "done" },
@@ -132,7 +162,7 @@ function createMockStore(options: { releaseDone?: boolean } = {}): Store {
   const change: Change = {
     id: "example",
     title: "Example",
-    status: "active",
+    status: options.status ?? "active",
     created_at: "2026-01-01T00:00:00Z",
     created_by: "test",
     tasks: [
@@ -190,6 +220,28 @@ describe("adv_change_archive Phase 9 behavior", () => {
     vi.clearAllMocks();
     mocks.workflow.gates = {} as Gates;
     mocks.workflow.signalPayloads = [];
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) =>
+        gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates,
+    );
+    mocks.workflow.handle.signal.mockImplementation(
+      async (_signal: unknown, payload: Record<string, unknown>) => {
+        mocks.workflow.signalPayloads.push(payload);
+        const gateId = payload.gateId as keyof Gates | undefined;
+        if (gateId) {
+          mocks.workflow.gates = {
+            ...mocks.workflow.gates,
+            [gateId]: {
+              ...(mocks.workflow.gates[gateId] ?? {}),
+              status: "done",
+              completed_at: payload.completedAt as string,
+              completed_by: payload.completedBy as string,
+              approval_evidence: payload.approvalEvidence as string,
+            },
+          } as Gates;
+        }
+      },
+    );
   });
 
   test("completes release gate after finalization and before retiring the change", async () => {
@@ -277,6 +329,94 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
+  test("reconciles release gate from existing bundle without worktree", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+    expect(mocks.validateChangeWorktree).not.toHaveBeenCalled();
+    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalledWith(
+      "/tmp/main",
+      "trunk",
+      "example",
+    );
+    expect(mocks.verifyDefaultBranchPushed).toHaveBeenCalledWith(
+      "/tmp/main",
+      "trunk",
+    );
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        gateId: "release",
+        completedBy: "adv-archive",
+      }),
+    );
+    expect(store.changes.save).toHaveBeenCalled();
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      pushStatus: "pushed",
+    });
+  });
+
+  test("blocks no-worktree reconciliation when Phase 9 evidence is missing", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
+      pushed: false,
+      reason: "origin/trunk is behind",
+    });
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toContain("Archive finalization blocked");
+    expect(parsed.details).toContain("origin/trunk is behind");
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("repairs release projection when workflow already completed", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.workflow.handle.query.mockRejectedValue(
+      Object.assign(new Error("workflow execution already completed"), {
+        name: "WorkflowNotFoundError",
+      }),
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed._recoveryMutation).toBe(true);
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        completion: expect.objectContaining({
+          status: "done",
+          completed_by: "adv-archive",
+        }),
+      }),
+    );
+    expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
   });
 
   test("rejects invalid worktree before archive writes", async () => {

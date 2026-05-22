@@ -169,9 +169,13 @@ import {
   getGateStatusQuery,
 } from "../temporal/messages";
 import {
+  detectDefaultBranch,
   detectArchiveMode,
   finalizeRelease,
   validateChangeWorktree,
+  verifyChangeBranchReachable,
+  verifyChangeBranchPushed,
+  verifyDefaultBranchPushed,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
 
@@ -942,8 +946,91 @@ function buildReleaseCompletionEvidence(
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
 }
 
+function verifyReleaseEvidenceFromMain(input: {
+  store: Store;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+}): GitFinalizeOutcome {
+  const mainCheckout = input.store.paths.root;
+  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+
+  if (input.archiveMode === "pr") {
+    const branchPush = verifyChangeBranchPushed(mainCheckout, input.changeId);
+    if (branchPush.pushed) {
+      return {
+        status: "pr_pushed",
+        mainCheckout,
+        defaultBranch,
+        prBranch: `change/${input.changeId}`,
+        pushStatus: "pushed",
+      };
+    }
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      prBranch: `change/${input.changeId}`,
+      pushStatus: "failed",
+      pushFailureReason: branchPush.reason,
+      blocked: {
+        reason: "PR_BRANCH_PUSH_NOT_VERIFIED",
+        remediation: `Change branch change/${input.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
+        details: [branchPush.reason ?? "change branch push not verified"],
+      },
+    };
+  }
+
+  const reachability = verifyChangeBranchReachable(
+    mainCheckout,
+    defaultBranch,
+    input.changeId,
+  );
+  if (!reachability.reachable) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "CHANGE_BRANCH_NOT_REACHABLE",
+        remediation: `Change branch change/${input.changeId} must be reachable from ${defaultBranch} before release completion (rq-releaseFinalization01).`,
+        details: reachability.unmergedCommits,
+      },
+    };
+  }
+
+  const pushCheck = verifyDefaultBranchPushed(mainCheckout, defaultBranch);
+  if (!pushCheck.pushed) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "failed",
+      pushFailureReason: pushCheck.reason,
+      blocked: {
+        reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
+        remediation: `Default branch ${defaultBranch} must be pushed before release completion (rq-releaseFinalization01).`,
+        details: [pushCheck.reason ?? `${defaultBranch} push not verified`],
+      },
+    };
+  }
+
+  return {
+    status: "shipped",
+    mainCheckout,
+    defaultBranch,
+    pushStatus: "pushed",
+  };
+}
+
 type ArchiveReleaseGateResult =
-  | { ok: true; gate: GateCompletion; alreadyDone: boolean }
+  | {
+      ok: true;
+      gate: GateCompletion;
+      alreadyDone: boolean;
+      recoveryMutation?: boolean;
+      reconciliationWarning?: string;
+    }
   | {
       ok: false;
       error: string;
@@ -952,8 +1039,39 @@ type ArchiveReleaseGateResult =
       stuckReason?: GateCompletion["stuck_reason"];
     };
 
+async function recoverReleaseGateViaDiskProjection(input: {
+  store: Store;
+  change: Change;
+  evidence: string;
+}): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
+  const { RECOVERY_RECONCILIATION_WARNING } = await import(
+    "../temporal/recovery-classification"
+  );
+  const { saveRecoveredGateCompletion } = await import("./_recovery-writers");
+  const completion: GateCompletion = {
+    status: "done",
+    completed_at: new Date().toISOString(),
+    completed_by: "adv-archive",
+    approval_evidence: input.evidence,
+  };
+  const updated = await saveRecoveredGateCompletion({
+    store: input.store,
+    change: input.change,
+    gateId: "release",
+    completion,
+  });
+  return {
+    ok: true,
+    gate: updated.gates?.release ?? completion,
+    alreadyDone: false,
+    recoveryMutation: true,
+    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+  };
+}
+
 async function completeReleaseGateAfterFinalization(input: {
   store: Store;
+  change: Change;
   changeId: string;
   finalization: GitFinalizeOutcome;
 }): Promise<ArchiveReleaseGateResult> {
@@ -983,27 +1101,57 @@ async function completeReleaseGateAfterFinalization(input: {
   }
 
   const handle = getChangeHandle(bundle.client, projectId, input.changeId);
-  const currentGate = await querySignal<GateCompletion>(
-    handle,
-    getGateStatusQuery,
-    "release",
-  );
+  const evidence = buildReleaseCompletionEvidence(input.finalization);
+  let currentGate: GateCompletion | undefined;
+  try {
+    currentGate = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      "release",
+    );
+  } catch (error) {
+    const { isWorkflowCompletedError } = await import(
+      "../temporal/recovery-classification"
+    );
+    if (isWorkflowCompletedError(error)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+      });
+    }
+    throw error;
+  }
   if (currentGate?.status === "done") {
     return { ok: true, gate: currentGate, alreadyDone: true };
   }
 
-  await fireSignalAndRefresh(
-    handle,
-    input.store,
-    input.changeId,
-    gateCompletedSignal,
-    {
-      gateId: "release",
-      completedBy: "adv-archive",
-      completedAt: new Date().toISOString(),
-      approvalEvidence: buildReleaseCompletionEvidence(input.finalization),
-    },
-  );
+  try {
+    await fireSignalAndRefresh(
+      handle,
+      input.store,
+      input.changeId,
+      gateCompletedSignal,
+      {
+        gateId: "release",
+        completedBy: "adv-archive",
+        completedAt: new Date().toISOString(),
+        approvalEvidence: evidence,
+      },
+    );
+  } catch (error) {
+    const { isWorkflowCompletedError } = await import(
+      "../temporal/recovery-classification"
+    );
+    if (isWorkflowCompletedError(error)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+      });
+    }
+    throw error;
+  }
 
   const postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
   if (postSignalGate?.status === "done") {
@@ -2829,8 +2977,25 @@ export const changeTools = {
 
       const specs = await loadSpecsMap(store);
 
+      // Run the archive operation
+      // Include in-repo archive path: resolves within the repo at .adv/archive/.
+      // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
+      // the bundle lands inside the worktree so it can be staged on the change
+      // branch. Without worktreePath, falls back to store.paths.root (main
+      // checkout) for backward compatibility.
+      const inRepoBase = worktreePath ?? store.paths.root;
+      const inRepoArchive = join(inRepoBase, ".adv", "archive");
+      const archivePaths =
+        store.config?.features?.wisdom_accumulation === false
+          ? { ...store.paths, wisdom: undefined, inRepoArchive }
+          : { ...store.paths, inRepoArchive };
+
+      const existingBundlePath = !dryRun
+        ? await findArchiveBundle(archivePaths.archive, changeId)
+        : null;
+
       if (!dryRun) {
-        if (!worktreePath && phase9 !== "skip") {
+        if (!worktreePath && phase9 !== "skip" && existingBundlePath === null) {
           return formatToolOutput({
             success: false,
             error:
@@ -2863,19 +3028,6 @@ export const changeTools = {
         }
       }
 
-      // Run the archive operation
-      // Include in-repo archive path: resolves within the repo at .adv/archive/.
-      // When worktreePath is provided (e.g. /adv-archive Phase 9 from a worktree),
-      // the bundle lands inside the worktree so it can be staged on the change
-      // branch. Without worktreePath, falls back to store.paths.root (main
-      // checkout) for backward compatibility.
-      const inRepoBase = worktreePath ?? store.paths.root;
-      const inRepoArchive = join(inRepoBase, ".adv", "archive");
-      const archivePaths =
-        store.config?.features?.wisdom_accumulation === false
-          ? { ...store.paths, wisdom: undefined, inRepoArchive }
-          : { ...store.paths, inRepoArchive };
-
       // rq-archiveOrdering01: Archive State Transition Must Be Resilient
       // to Failed Disk Bundle Write. Idempotent retry: if the bundle already
       // exists on disk, skip the disk write. Two sub-cases:
@@ -2885,13 +3037,14 @@ export const changeTools = {
       //      wrote the bundle but the status transition failed. Build a
       //      synthetic result without re-writing disk; let the status
       //      transition (below) complete the recovery.
-      const existingBundlePath = !dryRun
-        ? await findArchiveBundle(archivePaths.archive, changeId)
-        : null;
       let archiveResult: import("../archive/types").ArchiveOperationResult;
 
       if (existingBundlePath !== null) {
-        if (!dryRun && archivePaths.inRepoArchive) {
+        if (
+          !dryRun &&
+          archivePaths.inRepoArchive &&
+          (worktreePath || phase9 === "skip")
+        ) {
           await reconcileInRepoArchive(
             change,
             archivePaths.inRepoArchive,
@@ -2928,13 +3081,19 @@ export const changeTools = {
         | undefined;
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
         const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
-        finalization = await finalizeRelease({
-          changeId,
-          workdir: worktreePath ?? store.paths.root,
-          expectedMainCheckout: store.paths.root,
-          archiveMode,
-          autoPush,
-        });
+        finalization = worktreePath
+          ? await finalizeRelease({
+              changeId,
+              workdir: worktreePath,
+              expectedMainCheckout: store.paths.root,
+              archiveMode,
+              autoPush,
+            })
+          : verifyReleaseEvidenceFromMain({
+              store,
+              changeId,
+              archiveMode,
+            });
 
         if (finalization.status === "blocked") {
           return formatToolOutput({
@@ -2955,6 +3114,7 @@ export const changeTools = {
 
         const releaseResult = await completeReleaseGateAfterFinalization({
           store,
+          change,
           changeId,
           finalization,
         });
@@ -2981,10 +3141,12 @@ export const changeTools = {
 
       // Update change status in store (unless dry run)
       if (!dryRun && archiveResult.success) {
-        change.status = "archived";
-        try {
-          await store.changes.save(change);
-        } catch (saveError) {
+        const statusAlreadyArchived = change.status === "archived";
+        if (!statusAlreadyArchived) {
+          change.status = "archived";
+          try {
+            await store.changes.save(change);
+          } catch (saveError) {
           const saveErrorText = collectErrorText(saveError);
           const contextMismatch = extractContextMismatch(saveError);
           if (contextMismatch) {
@@ -3069,6 +3231,7 @@ export const changeTools = {
               deltas: s.deltaResults.length,
             })),
           });
+          }
         }
 
         // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
@@ -3140,6 +3303,15 @@ export const changeTools = {
           ? {
               releaseGate: releaseGateCompletion.gate,
               releaseGateAlreadyDone: releaseGateCompletion.alreadyDone,
+              ...(releaseGateCompletion.recoveryMutation
+                ? { _recoveryMutation: true }
+                : {}),
+              ...(releaseGateCompletion.reconciliationWarning
+                ? {
+                    reconciliationWarning:
+                      releaseGateCompletion.reconciliationWarning,
+                  }
+                : {}),
             }
           : {}),
         ...(validationResult.warnings.length > 0
