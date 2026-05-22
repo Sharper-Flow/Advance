@@ -4,7 +4,7 @@
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
   "version": "1.10.0",
-  "updated_at": "2026-05-21T00:00:00.000Z",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -1909,6 +1909,52 @@
             "After registerMissingAdvSearchAttributes, checkAdvSearchAttributes is called for verification",
             "The tool output includes a verification field with ok, present, missing, wrongType",
             "The tool success field requires both registration ok AND verification ok"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-workflowVersioning01",
+      "title": "Workflow replay and versioning guard command-producing changes",
+      "body": "Changes to Temporal workflow code under plugin/src/temporal/** or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.",
+      "priority": "must",
+      "tags": ["temporal", "replay", "versioning", "determinism"],
+      "scenarios": [
+        {
+          "id": "rq-workflowVersioning01.1",
+          "title": "Committed histories replay in CI",
+          "given": [
+            "A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/__tests__/replay/histories"
+          ],
+          "when": "The replay determinism test runs",
+          "then": [
+            "Worker.runReplayHistory is invoked against the current workflow bundle",
+            "The test fails on DeterminismViolationError or ReplayError",
+            "The fixture metadata identifies the incident class or workflow behavior covered"
+          ]
+        },
+        {
+          "id": "rq-workflowVersioning01.2",
+          "title": "Command-producing changes declare an evolution strategy",
+          "given": [
+            "A workflow-bundled change adds, removes, or reorders command-producing operations"
+          ],
+          "when": "The change is prepared for archive",
+          "then": [
+            "The change includes wf.patched, Worker Versioning, or an explicit reset/recovery plan",
+            "Any patch marker includes a deprecation plan or documented non-deprecation rationale"
+          ]
+        },
+        {
+          "id": "rq-workflowVersioning01.3",
+          "title": "Worker restart is not nondeterminism repair",
+          "given": [
+            "A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
+          ],
+          "when": "Recovery guidance is presented",
+          "then": [
+            "The guidance does not classify worker restart as sufficient repair",
+            "Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate"
           ]
         }
       ]

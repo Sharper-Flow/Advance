@@ -1,0 +1,15 @@
+{
+  "name": "fixGateAutoWorktree discovery-gate TMPRL1100",
+  "workflowType": "changeWorkflow",
+  "workflowId": "adv/change/replay-project/fixGateAutoWorktree",
+  "source": "Sanitized from observed local Temporal history exported with `temporal workflow show --output json --no-json-shorthand-payloads`.",
+  "covers": [
+    "Observed poisoned-history class: [TMPRL1100] Nondeterminism error: UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(id: 182, ActivityTaskScheduled)",
+    "Legacy discovery gate completion without typed contract schedules inspectArtifactActivity before search-attribute upsert."
+  ],
+  "expected": "Worker.runReplayHistory resolves against the current workflow bundle.",
+  "sanitized": true,
+  "eventCount": 684,
+  "incidentEventId": "182",
+  "incidentEventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED"
+}
