@@ -493,7 +493,7 @@ Remaining gates: design ○, planning ○, execution ○, acceptance ○, releas
 Gate handoff messages dump internal mechanics instead of user-relevant content.
 
 ## Chosen direction
-Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + blockquote wayfinder block. Banner cleanup included. Caveman-lite matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
+Agreed objectives + constraints + user decisions. Spine = Problem / Chosen direction / Delivered + blockquote wayfinder block. Banner cleanup included. Caveman-full matches global config. Extend existing voice standard doc. Replace Orchestration Summary entirely.
 
 ## Delivered
 - Agreement confirmed: three-section spine + blockquote wayfinder block for all gate handoffs
