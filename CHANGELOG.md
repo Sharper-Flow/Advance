@@ -1,3 +1,11 @@
+## 2026-05-22 (v0.9.10)
+
+
+### Change Highlights
+
+- **05-22-addContractMintTool**: Executive Summary
+- **05-22-fixGateAutoWorktree**: Executive Summary
+
 ## 2026-05-22 (v0.9.9)
 
 
