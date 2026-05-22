@@ -6,6 +6,8 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-arch-scan.md");
 const SKILL_PATH = join(REPO_ROOT, "skills/adv-arch-detection/SKILL.md");
 const SPEC_PATH = join(REPO_ROOT, ".adv/specs/arch-scan/spec.json");
+const DOC_PATH = join(REPO_ROOT, "docs/specs/arch-scan.md");
+const ADV_INSTRUCTIONS_PATH = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
 
 describe("adv-arch-scan structural correctness assets", () => {
   test("spec defines P33 structural correctness boundary detection", () => {
@@ -63,6 +65,19 @@ describe("adv-arch-scan structural correctness assets", () => {
     );
   });
 
+  test("docs mirror architecture spec requirement ids", () => {
+    const doc = readFileSync(DOC_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8")) as {
+      version: string;
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(doc).toContain(`**Version:** ${spec.version}`);
+    for (const requirement of spec.requirements) {
+      expect(doc).toContain(`**ID:** \`${requirement.id}\``);
+    }
+  });
+
   test("command and skill document initial ADV stack pack", () => {
     const command = readFileSync(COMMAND_PATH, "utf8");
     const skill = readFileSync(SKILL_PATH, "utf8");
@@ -114,5 +129,13 @@ describe("adv-arch-scan structural correctness assets", () => {
     expect(command).toContain("single-phase heuristic scan");
     expect(skill).toContain("when the user requests `--phase 3`");
     expect(skill).toContain("produce no findings");
+  });
+
+  test("ADV instructions classify arch-scan as inline with dedicated skill", () => {
+    const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+    expect(content).toContain("| arch-scan");
+    expect(content).toContain("/adv-arch-scan");
+    expect(content).toContain("adv-arch-scan` → `adv-arch-detection");
   });
 });

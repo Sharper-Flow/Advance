@@ -6,6 +6,7 @@ const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-slop-scan.md");
 const ADV_INSTRUCTIONS_PATH = join(REPO_ROOT, "ADV_INSTRUCTIONS.md");
 const SLOP_SPEC_PATH = join(REPO_ROOT, ".adv/specs/slop-scan/spec.json");
+const SLOP_DOC_PATH = join(REPO_ROOT, "docs/specs/slop-scan.md");
 const SLOP_SKILL_PATH = join(REPO_ROOT, "skills/adv-slop-detection/SKILL.md");
 const SLOP_CATEGORIES_PATH = join(
   REPO_ROOT,
@@ -110,6 +111,28 @@ describe("adv-slop-scan anti-recursion assets", () => {
     ]) {
       expect(content).toContain(category);
     }
+  });
+
+  test("docs mirror slop spec requirement ids", () => {
+    const doc = readFileSync(SLOP_DOC_PATH, "utf8");
+    const spec = JSON.parse(readFileSync(SLOP_SPEC_PATH, "utf8")) as {
+      version: string;
+      requirements: Array<{ id: string }>;
+    };
+
+    expect(doc).toContain(`**Version:** ${spec.version}`);
+    for (const requirement of spec.requirements) {
+      expect(doc).toContain(`**ID:** \`${requirement.id}\``);
+    }
+  });
+
+  test("debug artifacts use a dedicated canonical smell id", () => {
+    const categories = readFileSync(SLOP_CATEGORIES_PATH, "utf8");
+    const smells = readFileSync(SLOP_SMELLS_PATH, "utf8");
+
+    expect(categories).toContain("| Debug artifacts | AI-012 |");
+    expect(smells).toContain("- id: AI-012");
+    expect(smells).toContain("name: debug_artifacts");
   });
 
   test("documents deletion candidate taxonomy as MAINT-003 subtypes", () => {

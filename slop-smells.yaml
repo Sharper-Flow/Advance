@@ -1,12 +1,12 @@
 # Slop Smells: AI-Generated Code Anti-Patterns
 # A comprehensive catalog of code smells commonly found in AI-generated ("slop") code
-# Compiled from industry research and practitioner experience (End of 2025)
+# Compiled from named references and ADV scanner practice.
 #
 # Reference: This builds on classic code smells (Fowler) while adding AI-specific patterns
 # that have emerged from widespread LLM coding tool adoption.
 
 meta:
-  version: "1.2"
+  version: "1.2.0"
   last_updated: "2026-05-22"
   description: "Catalog of code smells associated with AI-generated code, vibe coding, and technical debt patterns"
   sources:
@@ -15,7 +15,7 @@ meta:
     - "Refactoring.Guru Code Smells Catalog"
     - "arXiv: Technical Debt in AI-Based Competition Platforms"
     - "arXiv: A Survey of Bugs in AI-Generated Code (2512.05239)"
-    - "Community discussions: r/programming, dev.to"
+    - "ADV scanner review and hardening workflows"
 
 categories:
   hallucination_smells:
@@ -668,6 +668,16 @@ categories:
           # Good: Immediate action
           ">>> EXECUTING <<<" [tool call]
 
+      - id: AI-012
+        name: debug_artifacts
+        severity: medium
+        description: "Debug statements or breakpoints left in source after generation or troubleshooting"
+        indicators:
+          - "console.log/debug/info statements in non-diagnostic source paths"
+          - "debugger statements"
+          - "print( or fmt.Print debug output left in application code"
+        detection: "Regex/signal scan followed by source-context review to distinguish intentional diagnostics"
+
   performance_smells:
     description: "Performance bottlenecks introduced by vibe coding"
     smells:
@@ -812,44 +822,35 @@ detection_strategies:
       detects: ["DEP-*", "STRUCT-003"]
 
   manual:
-    - name: "Focused Code Review"
-      focus_areas:
-        - "Edge case handling"
-        - "Error paths"
-        - "Security implications"
-        - "Consistency with existing patterns"
-        - "Actual vs documented behavior"
+    - name: "ADV Review"
+      description: "Run /adv-review to verify correctness, security, architecture, contract traceability, and acceptance evidence before acceptance."
+      detects: ["HALLU-*", "QUAL-*", "STRUCT-*", "DOC-002"]
 
-    - name: "Fresh Eyes Review"
-      description: "Have someone unfamiliar with the context review the code"
-      detects: ["MAINT-001", "DOC-002"]
+    - name: "ADV Harden"
+      description: "Run /adv-harden before archive to re-scan test coverage, AI slop, documentation hygiene, cleanup, production readiness, and deployment readiness."
+      detects: ["QUAL-*", "MAINT-*", "DOC-*", "AI-*"]
 
-    - name: "Integration Testing"
-      description: "Test that the code actually works in the full system context"
-      detects: ["HALLU-*", "QUAL-002"]
+    - name: "Coverage Gap Triage"
+      description: "Use scanner coverage.skippedDetectors and coverage.degradedDetectors to identify missing proof sources before treating findings as actionable."
+      detects: ["MAINT-003", "QUAL-012"]
 
 mitigation:
   before_generation:
-    - "Provide clear, specific prompts with context"
-    - "Include existing code patterns and conventions"
-    - "Specify the exact libraries and versions to use"
-    - "Define error handling requirements explicitly"
+    - "Capture acceptance criteria, constraints, and avoidances in ADV agreement before implementation"
+    - "Identify structural owners such as schemas, validators, tests, and command/spec anchors before relying on prose"
+    - "Define scanner coverage expectations up front, including skipped or degraded detector visibility"
 
   during_review:
-    - "Never trust AI output without verification"
-    - "Check every import and API call"
-    - "Verify edge cases and error handling"
-    - "Run the code, don't just read it"
-    - "Check for consistency with existing codebase"
+    - "Run /adv-review and resolve all blocker/issue findings before acceptance"
+    - "Use /adv-slop-scan grouping so low-confidence findings stay non-blocking unless corroborated"
+    - "Check imports, API calls, edge cases, and error handling with tests or source/tool evidence"
 
   tooling:
-    - "Enforce strict linting and type checking"
-    - "Require comprehensive test coverage"
-    - "Use pre-commit hooks for quality gates"
-    - "Automate dependency auditing"
+    - "Run targeted Vitest asset suites plus pnpm run check for spec/command/skill/doc drift"
+    - "Use dependency, dead-code, and architecture tools as evidence, not sole correctness authority"
+    - "Inspect coverage.skippedDetectors and coverage.degradedDetectors before treating findings as complete"
 
   process:
-    - "Require human review for all AI-generated code"
-    - "Maintain style guides and enforce them automatically"
-    - "Track metrics on AI-generated code quality over time"
-    - "Create AI-specific review checklists"
+    - "Run /adv-harden before archive and remediate validated high findings"
+    - "Keep spec, command, skill, and docs mirrors covered by asset tests"
+    - "Promote repeated scanner lessons to project wisdom when they affect future changes"

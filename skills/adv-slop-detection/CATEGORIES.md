@@ -25,7 +25,7 @@ If unavailable or timed out: brace/indent counting fallback; set `detectionMetho
 
 | Category | Smell IDs | Signals |
 |---|---|---|
-| Debug artifacts | AI-008 | `console.log/debug/info`, `debugger`, `print(`, `fmt.Print` |
+| Debug artifacts | AI-012 | `console.log/debug/info`, `debugger`, `print(`, `fmt.Print` |
 | Type evasion | AI-007, AI-006 | `as any`, `as unknown as`, `@ts-ignore`, `@ts-nocheck`, `eslint-disable` |
 | Incomplete work | QUAL-004, QUAL-009 | `TODO`, `FIXME`, `HACK`, `XXX` |
 | Error suppression | QUAL-007 | Empty catch blocks, `except: pass` |

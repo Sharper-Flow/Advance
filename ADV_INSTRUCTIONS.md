@@ -703,6 +703,7 @@ Use for 3+ independent scan dimensions. Single-level only.
 | review/harden                          | Sequential scans       | `explore` for scoped scans; `adv-reviewer` for review/harden analysis + scoped remediation; `adv-engineer` for primary implementation fixes |
 | audit/slop-scan/refactor               | Sequential scans       | `explore`/`general` as command docs specify                                                                |
 | slop-scan                              | Sequential categories  | explore × 9 (single-level only)                                                                            |
+| arch-scan                              | Stack tools + research | none; run stack tools, Context7, and Exa inline                                                            |
 | tron                                   | lgrep + read           | `adv-tron`                                                                                                 |
 
 Rules: sub-agents × NEVER spawn sub-agents; cap bursts at `MAX_PARALLEL_SUBAGENTS` (3); batch independent work; no spawn for single-tool-call work. `/adv-research` and `/adv-slop-scan` workers must research/scan inline and must not delegate or invoke `/adv-*`.
@@ -711,7 +712,7 @@ For `/adv-slop-scan`, all `explore` scanner workers must do the scan inline and 
 
 Design gate requires mandatory independent validator (adv-researcher) before gate completion. Verdicts: VALIDATED, CAUTION, CONFLICT, INCONCLUSIVE.
 
-Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`.
+Inline-only: `/adv-status`, `/adv-idea`, `/adv-problem`, `/adv-proposal`, `/adv-validate`, `/adv-archive`, `/adv-clarify`, `/adv-prep`, `/adv-cleanup`, `/adv-improve`, `/adv-arch-scan`.
 
 ### Delegation Routing
 
@@ -879,7 +880,7 @@ Commands own workflow/state. Skills hold reusable read-only methodology.
 | Class                | Commands                                                                                                                                                                                                                                     |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Command-only         | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design`                                                                                                             |
-| Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` |
+| Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor`; `adv-arch-scan` → `adv-arch-detection` |
 | Shared skill         | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                                                                         |
 | Embedded methodology | `adv-discover`, `adv-review`                                                                                                                                                                                                                 |
 | Dynamic discovery    | `adv-discover`, `adv-research`                                                                                                                                                                                                               |
