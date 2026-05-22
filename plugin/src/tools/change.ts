@@ -2589,6 +2589,17 @@ export const changeTools = {
       },
       store: Store,
     ) => {
+      // rq-harden-archive-flow AC1: refresh the change from the workflow
+      // before reading. Earlier signals (release-gate completion, review
+      // matrix set) can leave the store cache stale and surface as false
+      // contract-proof failures. Refresh is best-effort; failures fall
+      // through to the existing read (which still has its own poisoned-
+      // history fallback) so we don't mask real outages.
+      try {
+        await store.changes.refresh(changeId);
+      } catch {
+        // intentionally swallowed; the next get() will surface a real error.
+      }
       const result = await store.changes.get(changeId);
       if (!result.success) {
         return formatToolOutput({ error: result.error });

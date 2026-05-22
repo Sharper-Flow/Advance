@@ -153,6 +153,7 @@ function createMockStore(
       updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
+      refresh: vi.fn(async () => undefined),
     } as Store["changes"],
     tasks: {
       ready: vi.fn(async () => ({ ready: [], blocked: [] })),
@@ -1007,6 +1008,41 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.gateStateSource).toBe("live");
       expect(parsed.storeIncompleteGates).toEqual([]);
       expect(parsed.liveIncompleteGates).toEqual(["acceptance"]);
+    });
+
+    // rq-harden-archive-flow AC1/AC2
+    test("refreshes the change from the workflow before reading for archive", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+
+      const refreshMock = store.changes.refresh as ReturnType<typeof vi.fn>;
+      const getMock = store.changes.get as ReturnType<typeof vi.fn>;
+      expect(refreshMock).toHaveBeenCalledWith("test-change");
+      const refreshOrder = refreshMock.mock.invocationCallOrder[0];
+      const firstGetOrder = getMock.mock.invocationCallOrder[0];
+      expect(refreshOrder).toBeLessThan(firstGetOrder);
+    });
+
+    // rq-harden-archive-flow AC1: refresh failure must not block archive.
+    test("tolerates refresh failures and falls through to store.changes.get", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      const refreshMock = store.changes.refresh as ReturnType<typeof vi.fn>;
+      refreshMock.mockRejectedValueOnce(new Error("Failed to query Workflow"));
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error ?? "").not.toContain("Failed to query Workflow");
+      expect(store.changes.get).toHaveBeenCalledWith("test-change");
     });
   });
 

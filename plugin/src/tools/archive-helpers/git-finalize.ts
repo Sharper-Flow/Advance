@@ -235,11 +235,26 @@ export type MergeChangeBranchResult =
 
 export function mergeChangeBranch(
   mainCheckout: string,
-  _defaultBranch: string,
+  defaultBranch: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
 ): MergeChangeBranchResult {
   const runGit = deps.runGit ?? defaultRunGit;
+  // rq-harden-archive-flow AC3: already-reachable branch is a no-op merge.
+  // Detect before invoking `git merge` so a previously-merged (FF or no-FF
+  // squash) change branch doesn't surface as MERGE_FAILED.
+  const reachability = verifyChangeBranchReachable(
+    mainCheckout,
+    defaultBranch,
+    changeId,
+    deps,
+  );
+  if (reachability.reachable) {
+    return {
+      status: "merged",
+      mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+    };
+  }
   const merge = runGit(mainCheckout, [
     "merge",
     "--ff-only",
