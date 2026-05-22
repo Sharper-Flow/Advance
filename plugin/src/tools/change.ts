@@ -36,7 +36,7 @@ import {
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
 } from "../types";
-import type { Store } from "../storage/store";
+import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
@@ -256,6 +256,101 @@ function buildSyntheticValidationDraftError(
       `Synthetic validation draft summary "${summary}" is reserved for parity/validation flows. ` +
       "Use isolated temp/test storage instead of live ADV state.",
   };
+}
+
+function collectBlankCreateArtifactOrLinkageFields(input: {
+  proposal?: string;
+  problemStatement?: string;
+  agreement?: string;
+  design?: string;
+  executiveSummary?: string;
+  origin_source_artifact?: string;
+}): string[] {
+  return [
+    { field: "proposal", value: input.proposal },
+    { field: "problemStatement", value: input.problemStatement },
+    { field: "agreement", value: input.agreement },
+    { field: "design", value: input.design },
+    { field: "executiveSummary", value: input.executiveSummary },
+    { field: "origin_source_artifact", value: input.origin_source_artifact },
+  ]
+    .filter(
+      ({ value }) =>
+        value !== undefined &&
+        typeof value === "string" &&
+        value.trim().length === 0,
+    )
+    .map(({ field }) => field);
+}
+
+function validateCreateOriginLinkage(input: {
+  origin_kind?: ChangeOrigin["kind"];
+  origin_issue_number?: number;
+  origin_source_artifact?: string;
+}): { error: string; fields: string[]; hint: string } | undefined {
+  const hasIssue = input.origin_issue_number !== undefined;
+  const hasSource = input.origin_source_artifact !== undefined;
+
+  // rq-backlogCoord08: enforce the create-time origin linkage matrix before
+  // claim checks, workflow start, or any late projection persistence.
+  if (!input.origin_kind) {
+    const fields = [
+      ...(hasIssue ? ["origin_issue_number"] : []),
+      ...(hasSource ? ["origin_source_artifact"] : []),
+    ];
+    if (fields.length > 0) {
+      return {
+        error:
+          "origin_issue_number / origin_source_artifact require origin_kind to be set",
+        fields,
+        hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside allowed linkage fields, or omit linkage fields for an unlinked change.",
+      };
+    }
+    return undefined;
+  }
+
+  if (input.origin_kind === "roadmap") {
+    if (!hasIssue) {
+      return {
+        error: "origin_issue_number is required when origin_kind is 'roadmap'",
+        fields: ["origin_issue_number"],
+        hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
+      };
+    }
+    if (hasSource) {
+      return {
+        error:
+          "origin_source_artifact is only allowed for triage or discovery origins.",
+        fields: ["origin_source_artifact"],
+        hint: "Omit origin_source_artifact for roadmap origins; the issue number is the roadmap linkage.",
+      };
+    }
+  }
+
+  if (input.origin_kind === "discovery" && hasIssue) {
+    return {
+      error:
+        "origin_issue_number is only allowed for roadmap or triage origins.",
+      fields: ["origin_issue_number"],
+      hint: "Use origin_kind 'roadmap' or 'triage' for issue-linked changes, or omit origin_issue_number for discovery origins.",
+    };
+  }
+
+  if (input.origin_kind === "adhoc") {
+    const fields = [
+      ...(hasIssue ? ["origin_issue_number"] : []),
+      ...(hasSource ? ["origin_source_artifact"] : []),
+    ];
+    if (fields.length > 0) {
+      return {
+        error: "origin linkage fields are not allowed for adhoc origins.",
+        fields,
+        hint: "Omit origin_issue_number and origin_source_artifact for adhoc origins.",
+      };
+    }
+  }
+
+  return undefined;
 }
 
 type ChangeIssueUpdate = {
@@ -1886,17 +1981,6 @@ export const changeTools = {
               );
               if (text) output._executiveSummary = text;
             }
-            if (include.executiveSummary) {
-              try {
-                const text = await readFile(
-                  join(changeDir, "executive-summary.md"),
-                  "utf-8",
-                );
-                output._executiveSummary = text;
-              } catch {
-                // File may not exist
-              }
-            }
           }
 
           return formatToolOutput(output);
@@ -1996,8 +2080,8 @@ export const changeTools = {
         .positive()
         .optional()
         .describe(
-          "GitHub issue number for kind=roadmap (required) or post-hoc backlinking. " +
-            "Behavior automation (auto-create issue / auto-close on archive) lands in a follow-up change.",
+          "GitHub issue number for kind=roadmap (required) or kind=triage (optional). " +
+            "Rejected for discovery, adhoc, and omitted origin_kind.",
         ),
       origin_source_artifact: z
         .string()
@@ -2055,18 +2139,36 @@ export const changeTools = {
         });
       }
 
-      // Origin validation: kind=roadmap requires an issue number; other kinds
-      // accept it optionally. Origin is typed-state only — behavior automation
-      // (auto-create issue, auto-close on archive) lands in a follow-up change.
+      const blankCreateFields = collectBlankCreateArtifactOrLinkageFields({
+        proposal,
+        problemStatement,
+        agreement,
+        design,
+        executiveSummary,
+        origin_source_artifact,
+      });
+      if (blankCreateFields.length > 0) {
+        return formatToolOutput({
+          error: "Blank artifact or linkage fields are not allowed.",
+          fields: blankCreateFields,
+          hint: "Provide non-blank strings for fields you intend to set, or omit fields you do not intend to set.",
+        });
+      }
+
+      const originLinkageError = validateCreateOriginLinkage({
+        origin_kind,
+        origin_issue_number,
+        origin_source_artifact,
+      });
+      if (originLinkageError) {
+        return formatToolOutput(originLinkageError);
+      }
+
+      // Origin validation: the linkage matrix has already been validated.
+      // Origin is typed-state only — behavior automation (auto-create issue,
+      // auto-close on archive) lands in a follow-up change.
       let origin: ChangeOrigin | undefined;
       if (origin_kind) {
-        if (origin_kind === "roadmap" && origin_issue_number === undefined) {
-          return formatToolOutput({
-            error:
-              "origin_issue_number is required when origin_kind is 'roadmap'",
-            hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
-          });
-        }
         origin = {
           kind: origin_kind,
           ...(origin_issue_number !== undefined
@@ -2076,12 +2178,6 @@ export const changeTools = {
             ? { source_artifact: origin_source_artifact }
             : {}),
         };
-      } else if (origin_issue_number !== undefined || origin_source_artifact) {
-        return formatToolOutput({
-          error:
-            "origin_issue_number / origin_source_artifact require origin_kind to be set",
-          hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside the linkage fields.",
-        });
       }
 
       // rq-backlogCoord02 — Pre-create claim collision check.
@@ -2154,7 +2250,19 @@ export const changeTools = {
         return formatToolOutput({ error: scopeResolution.error });
       }
 
-      // ----- Local creation path (unchanged) -----
+      const initialMetadata: ChangeCreateInitialMetadata = {};
+      if (origin) initialMetadata.origin = origin;
+      if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
+      if (scopeResolution.scope)
+        initialMetadata.scope_repos = scopeResolution.scope;
+      const createOptions =
+        Object.keys(initialMetadata).length > 0
+          ? { initialMetadata }
+          : undefined;
+
+      // rq-backlogCoord08: seed creation metadata before workflow start so
+      // origin/search attributes are authoritative Temporal state, not a late
+      // disk-only patch.
       const result = await store.changes.create(
         summary,
         capability,
@@ -2163,16 +2271,12 @@ export const changeTools = {
         agreement,
         design,
         executiveSummary,
+        createOptions,
       );
 
       const output: Record<string, unknown> = { ...result };
 
       if (fastFollowOf) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          changeResult.data.fast_follow_of = fastFollowOf;
-          await store.changes.save(changeResult.data);
-        }
         output.fast_follow_of = fastFollowOf;
       }
 
@@ -2181,43 +2285,12 @@ export const changeTools = {
         output._duplicateWarning = result.duplicateWarning;
       }
 
-      // If parent_change_id set, attach fast-follow lineage
-      if (parent_change_id) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          const updatedChange = {
-            ...changeResult.data,
-            fast_follow_of: {
-              parent_change_id: parent_change_id,
-              linked_at: new Date().toISOString(),
-            },
-          };
-          await store.changes.save(updatedChange);
-          output.fast_follow_of = updatedChange.fast_follow_of;
-        }
-      }
-
-      // Persist origin provenance onto the created change. Behavior automation
-      // (auto-create issue / auto-close on archive) is intentionally NOT
-      // performed here — it ships in a follow-up change.
       if (origin) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          await store.changes.save({ ...changeResult.data, origin });
-          output.origin = origin;
-        }
+        output.origin = origin;
       }
 
       if (scopeResolution.scope) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          await store.changes.save({
-            ...changeResult.data,
-            scope_repos: scopeResolution.scope,
-          });
-          await store.changes.refresh(result.changeId);
-          output.scope_repos = scopeResolution.scope;
-        }
+        output.scope_repos = scopeResolution.scope;
       }
 
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
@@ -2374,6 +2447,29 @@ export const changeTools = {
             error:
               "At least one of 'proposal', 'problemStatement', 'agreement', 'design', or 'executiveSummary' must be provided.",
             hint: "Pass one or more of: proposal, problemStatement, agreement, design, executiveSummary. See the tool description for which file each field writes.",
+          });
+        }
+
+        const artifactInputs = [
+          { field: "proposal", value: proposal },
+          { field: "problemStatement", value: problemStatement },
+          { field: "agreement", value: agreement },
+          { field: "design", value: design },
+          { field: "executiveSummary", value: executiveSummary },
+        ] as const;
+        const blankArtifactFields = artifactInputs
+          .filter(
+            ({ value }) =>
+              value !== undefined &&
+              typeof value === "string" &&
+              value.trim().length === 0,
+          )
+          .map(({ field }) => field);
+        if (blankArtifactFields.length > 0) {
+          return formatToolOutput({
+            error: "Blank artifact fields are not allowed.",
+            fields: blankArtifactFields,
+            hint: "Provide non-blank strings for artifact fields, or omit fields you do not intend to change.",
           });
         }
 

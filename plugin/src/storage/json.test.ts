@@ -626,6 +626,30 @@ describe("createChangeScaffold", () => {
     expect(content).toBe(customProposal);
   });
 
+  test("rejects blank provided scaffold artifacts before writing", async () => {
+    const changesDir = join(tempDir, "changes");
+
+    await expect(
+      createChangeScaffold(
+        changesDir,
+        "blankScaffold",
+        "Blank Scaffold",
+        "# Valid proposal",
+        "   ",
+        "Valid agreement",
+      ),
+    ).rejects.toThrow(
+      "Blank artifact fields are not allowed: problemStatement. Omit fields you do not intend to change.",
+    );
+
+    expect(
+      await fileExists(join(changesDir, "blankScaffold", "proposal.md")),
+    ).toBe(false);
+    expect(
+      await fileExists(join(changesDir, "blankScaffold", "agreement.md")),
+    ).toBe(false);
+  });
+
   test("writes problem-statement.md when problemStatement is provided", async () => {
     const changesDir = join(tempDir, "changes");
     const problemStatement =
@@ -797,6 +821,39 @@ describe("updateChangeArtifacts", () => {
 
     const psContent = await readFile(result.problemStatementPath!, "utf-8");
     expect(psContent).toBe("Updated problem statement only");
+  });
+
+  test("rejects blank provided artifact values before any partial write", async () => {
+    const changesDir = join(tempDir, "changes");
+    await createChangeScaffold(
+      changesDir,
+      "rejectBlank",
+      "Reject Blank",
+      "# Original proposal",
+      "Original problem statement",
+      "Original agreement",
+      "Original design",
+    );
+
+    const result = await updateChangeArtifacts(
+      changesDir,
+      "rejectBlank",
+      "# Updated proposal",
+      undefined,
+      undefined,
+      "   ",
+    );
+
+    expect(result.error).toContain("Blank artifact fields are not allowed");
+    expect(result.error).toContain("design");
+
+    const proposalPath = join(changesDir, "rejectBlank", "proposal.md");
+    const proposalContent = await readFile(proposalPath, "utf-8");
+    expect(proposalContent).toBe("# Original proposal");
+
+    const designPath = join(changesDir, "rejectBlank", "design.md");
+    const designContent = await readFile(designPath, "utf-8");
+    expect(designContent).toBe("Original design");
   });
 
   test("returns empty result when both params are omitted", async () => {

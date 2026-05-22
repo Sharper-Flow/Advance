@@ -3,7 +3,7 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
@@ -2424,6 +2424,82 @@
           "when": "The preflight error response is formatted",
           "then": [
             "Sensitive values in `received_args` are redacted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolArgBlankArtifactLinkage01",
+      "title": "Blank Artifact and Linkage Mutation Arguments",
+      "body": "ADV mutation tools MUST reject provided blank or whitespace-only strings for fields that write durable narrative artifacts or origin linkage metadata. For adv_change_update this applies to proposal, problemStatement, agreement, design, and executiveSummary, including mixed payloads where another artifact field is non-blank. For adv_change_create this applies to provided narrative artifact fields and origin_source_artifact. Omitted fields preserve existing omission/default semantics. Rejection MUST occur before writes or workflow signals, name every offending field, and tell callers to omit fields they do not intend to change. Storage artifact write boundaries MUST also reject blank artifact content so bypassing preflight cannot erase an artifact.",
+      "priority": "must",
+      "tags": [
+        "tools",
+        "validation",
+        "artifacts",
+        "origin"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.1",
+          "title": "Mixed update payload rejects blank artifact field",
+          "given": [
+            "adv_change_update receives a payload with proposal: 'real content' and design: ''"
+          ],
+          "when": "The tool invocation is validated",
+          "then": [
+            "The invocation fails before writes or workflow signals",
+            "The response names design as an offending field",
+            "The response tells the caller to omit fields not intended to change"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.2",
+          "title": "Omitted artifact fields keep omission semantics",
+          "given": [
+            "adv_change_update receives proposal: 'new content' and omits design"
+          ],
+          "when": "The update succeeds",
+          "then": [
+            "The proposal artifact may change",
+            "The omitted design artifact remains unchanged"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.3",
+          "title": "Create rejects blank provided narrative artifacts",
+          "given": [
+            "adv_change_create receives agreement: '   '"
+          ],
+          "when": "The create invocation is validated",
+          "then": [
+            "The invocation fails before the change workflow is started",
+            "The response names agreement as an offending field",
+            "Omitted narrative artifact fields still use create defaults or skip behavior"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.4",
+          "title": "Storage boundary rejects blank artifact writes",
+          "given": [
+            "A caller bypasses tool preflight and attempts to persist a blank artifact value"
+          ],
+          "when": "The storage artifact write boundary validates the content",
+          "then": [
+            "The write is rejected before any artifact file is overwritten",
+            "The error identifies the blank artifact field"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.5",
+          "title": "Blank origin source artifact is invalid when provided",
+          "given": [
+            "adv_change_create receives origin_source_artifact: '   '"
+          ],
+          "when": "The create invocation is validated",
+          "then": [
+            "The invocation fails before the change workflow is started",
+            "The response names origin_source_artifact as an offending field"
           ]
         }
       ]

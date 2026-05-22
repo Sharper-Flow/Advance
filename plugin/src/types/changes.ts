@@ -431,9 +431,9 @@ export type ChangeContract = z.infer<typeof ChangeContractSchema>;
  *   - `roadmap`   — promoted from a GitHub Project / ROADMAP.md item
  *                   (`issue_number` required)
  *   - `discovery` — surfaced mid-session (bug found, drive-by improvement);
- *                   issue may be opened post-hoc but is not required
+ *                   may carry source_artifact, never issue_number
  *   - `triage`    — promoted by `/adv-triage` from a non-GH source artifact
- *                   (agenda, wisdom, notes); `issue_number` set after promotion
+ *                   (agenda, wisdom, notes); issue_number/source_artifact optional
  *   - `adhoc`     — explicit, no upstream artifact (default for ad-hoc work)
  *
  * The schema is typed-state only at this layer; behavior automation
@@ -451,7 +451,7 @@ export type ChangeOriginKind = z.infer<typeof ChangeOriginKindSchema>;
 
 export const ChangeOriginSchema = z.object({
   kind: ChangeOriginKindSchema,
-  /** GitHub issue number when kind=roadmap (required) or backlinked later. */
+  /** rq-backlogCoord08: GitHub issue number for roadmap (required) or triage only. */
   issue_number: z.number().int().positive().optional(),
   /**
    * Stable reference to the upstream artifact that triggered this change.
