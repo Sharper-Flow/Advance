@@ -2,9 +2,9 @@
 
 > **Historical artifact:** This document reflects pre-retirement state. The cost-governance / Phase J / Phase 1.5 / Investment Check-In sections referenced below were retired 2026-05-07 in retireinvestmentgovernancedead. Entries about those surfaces are preserved for archaeological context.
 
-> **Lifecycle:** **POST-COMPRESSION ARCHIVE — pass 2** (command + extracted-skill compression complete). No maintenance owner. Durable invariants live in `.adv/specs/advance-meta/spec.json` § rq-proseReduction01–04 and `plugin/src/manifest-doc-drift.test.ts` drift assertions.
+> **Lifecycle:** **POST-COMPRESSION ARCHIVE — pass 3** (caveman-full label normalization + obvious-win compression complete). No maintenance owner. Durable invariants live in `.adv/specs/advance-meta/spec.json` § rq-proseReduction01–04 and `plugin/src/manifest-doc-drift.test.ts` drift assertions.
 >
-> Durability lives in spec deltas `rq-proseReduction01`–`rq-proseReduction04`, not this file. This inventory is the audit trail for compression passes (T2/T3/T4/T5/T6) and planning input for asset-test audit (T1.5).
+> Durability lives in spec deltas `rq-proseReduction01`–`rq-proseReduction04`, not this file. This inventory is the audit trail for compression passes (T2/T3/T4/T5/T6/T7) and planning input for asset-test audit (T1.5).
 
 ## Purpose
 
@@ -39,6 +39,22 @@ Out of scope (constraints):
 Inventory rows are at H2-section granularity. Within each section, T2/T3/T4/T5 decide paragraph-level compression guided by the assigned class. Critical Protocols (the largest H2 in `ADV_INSTRUCTIONS.md` at 295 lines) is broken out at H3 because its sub-sections span all three classes.
 
 Canonical columns: `| Section | Lines | Class | Code Reference | Gap Rationale | Pass | Status |`
+
+---
+
+## Pass 3 Delta: compressInstructionProse (T7)
+
+Rows record active instruction surfaces touched by the caveman-full label normalization + obvious-win compression pass. Prior rows remain archaeological; durable rules stay in spec/tests.
+
+| Section | Lines | Class | Code Reference | Gap Rationale | Pass | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ADV_INSTRUCTIONS.md` § Instruction Compression Guard | 3 | partial | `docs/command-voice-standard.md`, `plugin/src/manifest-doc-drift.test.ts` | Runtime label is prose-governed; structural templates/test anchors carry the invariant | T7 | done |
+| `AGENTS.md` § Provider ADV runtime hints | 26 | partial | `scripts/deploy-local.sh`, `plugin/src/utils/system-block.ts` | Developer-facing guidance; sync behavior is code-owned | T7 | done |
+| `docs/command-voice-standard.md` §§ Voice Contract / Prose-Load / Gate Handoff examples | varied | partial | `plugin/src/adv-skill-backed-commands-assets.test.ts`, `plugin/src/manifest-doc-drift.test.ts`, `plugin/src/handoff-footer-drift.test.ts` | Examples remain prose; tests cover key anchors and structure | T7 | done |
+| `.opencode/agents/adv.md`, `.opencode/agents/adv-reviewer.md` prompt prose | varied | inherent | command contracts + ADV tools | Agent judgment and review routing remain prose-owned | T7 | done |
+| `.opencode/command/adv-arch-scan.md`, `adv-archive.md`, `adv-design.md`, `adv-discover.md`, `adv-review.md`, `adv-slop-scan.md` | varied | partial | command manifest + gate/tool tests | Phase routing is partly code/tool-owned; agent still owns execution wording | T7 | done |
+| `skills/adv-arch-detection/SKILL.md`, `skills/adv-opportunity-scout/SKILL.md`, `skills/adv-slop-detection/SKILL.md` | varied | inherent | skill loader + owning command docs | Methodology prompts are agent-side judgment; use structured tables/bullets | T7 | done |
+| `plugin/src/adv-skill-backed-commands-assets.test.ts` command voice assertions | 8 | full | `plugin/src/adv-skill-backed-commands-assets.test.ts` | — | T7 | done |
 
 ---
 
