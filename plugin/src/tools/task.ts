@@ -63,6 +63,48 @@ import {
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
 import type { Change } from "../types";
+import {
+  RECOVERY_RECONCILIATION_WARNING,
+  isPrecisePoisonedHistoryEvidence,
+} from "../temporal/recovery-classification";
+import { workflowHasPoisonedDescription } from "./recovery-probe";
+import {
+  saveRecoveredTaskAdd,
+  saveRecoveredTaskMutation,
+} from "./_recovery-writers";
+
+/**
+ * rq-extend-poisoned-recovery: validate that callers using
+ * `recoveryMode: poisoned_history` provide non-empty, precise evidence.
+ * Returns an error message or undefined if validation passes.
+ */
+function validateTaskRecoveryArgs(args: {
+  recoveryMode?: "normal" | "poisoned_history";
+  recoveryEvidence?: string;
+}): string | undefined {
+  if (args.recoveryMode !== "poisoned_history") return undefined;
+  if (!args.recoveryEvidence || !args.recoveryEvidence.trim()) {
+    return "poisoned_history recovery requires non-empty recoveryEvidence";
+  }
+  if (!isPrecisePoisonedHistoryEvidence(args.recoveryEvidence)) {
+    return "poisoned_history recoveryEvidence must cite precise poisoned-history evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled)";
+  }
+  return undefined;
+}
+
+const RecoveryModeSchema = z
+  .enum(["normal", "poisoned_history"])
+  .optional()
+  .describe(
+    "Optional recovery mode for poisoned-history workflows. Default 'normal'. 'poisoned_history' authorizes a disk-projection fallback when the workflow signal fails AND workflow describe reports poisoned evidence; requires recoveryEvidence.",
+  );
+
+const RecoveryEvidenceSchema = z
+  .string()
+  .optional()
+  .describe(
+    "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history evidence (e.g. cause=WorkflowTaskFailedCauseNonDeterministicError or TMPRL1100).",
+  );
 
 // =============================================================================
 // Helpers
@@ -498,6 +540,8 @@ export const taskTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
+      recoveryMode: RecoveryModeSchema,
+      recoveryEvidence: RecoveryEvidenceSchema,
     },
     execute: async (
       args: {
@@ -510,9 +554,15 @@ export const taskTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
+      const recoveryError = validateTaskRecoveryArgs(args);
+      if (recoveryError) {
+        return formatToolOutput({ error: recoveryError });
+      }
       const runUpdate = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
@@ -593,90 +643,163 @@ export const taskTools = {
           args.status === "done" &&
           currentStatus === "done";
 
-        if (args.status === "in_progress") {
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            changeId,
-            taskAssignedSignal,
-            {
-              taskId: args.taskId,
-              sessionId: "agent",
-              assignedAt: now,
-            },
-          );
-        } else if (args.status === "blocked") {
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            changeId,
-            taskBlockedSignal,
-            {
-              taskId: args.taskId,
-              reason: args.notes ?? "Task blocked",
-              attempts: args.error_recovery?.attempts ?? [],
-              blockedAt: now,
-            },
-          );
-        } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
-          const combinedText = [args.implementation_summary, args.notes]
-            .filter(Boolean)
-            .join("\n");
-          const structuredOutput = extractStructuredOutput(combinedText);
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            changeId,
-            taskCompletedSignal,
-            {
-              taskId: args.taskId,
-              verification:
-                args.notes ??
-                args.implementation_summary ??
-                "Task marked done via adv_task_update",
-              summary:
-                args.implementation_summary ?? args.notes ?? "Task completed",
-              filesTouched: [],
-              completedAt: now,
-              ...(structuredOutput && { structured_output: structuredOutput }),
-            },
-          );
-        } else {
-          await fireSignalAndRefresh(
-            handle,
-            activeStore,
-            changeId,
-            taskUpdatedSignal,
-            {
-              taskId: args.taskId,
-              partial: {
-                status: args.status,
-                ...(args.notes && { notes: args.notes }),
-                ...(args.implementation_summary && {
-                  implementation_summary: args.implementation_summary,
-                }),
-                ...(args.error_recovery && {
-                  error_recovery: args.error_recovery,
-                }),
-                ...(args.contract_refs && {
-                  contract_refs: args.contract_refs,
+        let recoveredViaPoisoned = false;
+        try {
+          if (args.status === "in_progress") {
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              taskAssignedSignal,
+              {
+                taskId: args.taskId,
+                sessionId: "agent",
+                assignedAt: now,
+              },
+            );
+          } else if (args.status === "blocked") {
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              taskBlockedSignal,
+              {
+                taskId: args.taskId,
+                reason: args.notes ?? "Task blocked",
+                attempts: args.error_recovery?.attempts ?? [],
+                blockedAt: now,
+              },
+            );
+          } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
+            const combinedText = [args.implementation_summary, args.notes]
+              .filter(Boolean)
+              .join("\n");
+            const structuredOutput = extractStructuredOutput(combinedText);
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              taskCompletedSignal,
+              {
+                taskId: args.taskId,
+                verification:
+                  args.notes ??
+                  args.implementation_summary ??
+                  "Task marked done via adv_task_update",
+                summary:
+                  args.implementation_summary ?? args.notes ?? "Task completed",
+                filesTouched: [],
+                completedAt: now,
+                ...(structuredOutput && {
+                  structured_output: structuredOutput,
                 }),
               },
-              updatedAt: now,
-            },
-          );
+            );
+          } else {
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              taskUpdatedSignal,
+              {
+                taskId: args.taskId,
+                partial: {
+                  status: args.status,
+                  ...(args.notes && { notes: args.notes }),
+                  ...(args.implementation_summary && {
+                    implementation_summary: args.implementation_summary,
+                  }),
+                  ...(args.error_recovery && {
+                    error_recovery: args.error_recovery,
+                  }),
+                  ...(args.contract_refs && {
+                    contract_refs: args.contract_refs,
+                  }),
+                },
+                updatedAt: now,
+              },
+            );
+          }
+        } catch (signalError) {
+          // rq-extend-poisoned-recovery AC1: disk-projection fallback when
+          // workflow is poisoned. Requires explicit recoveryMode + precise
+          // evidence + describe-confirmed signature.
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            (await workflowHasPoisonedDescription(handle))
+          ) {
+            const changeResult = await activeStore.changes.get(changeId);
+            if (!changeResult.success || !changeResult.data) {
+              throw signalError;
+            }
+            const change = changeResult.data;
+            await saveRecoveredTaskMutation({
+              store: activeStore,
+              change,
+              taskId: args.taskId,
+              mutate: (task) => {
+                const patch: Partial<Task> = {
+                  status: args.status,
+                  ...(args.notes && { notes: args.notes }),
+                  ...(args.implementation_summary && {
+                    implementation_summary: args.implementation_summary,
+                    summary: args.implementation_summary,
+                  }),
+                  ...(args.error_recovery && {
+                    error_recovery: args.error_recovery,
+                  }),
+                  ...(args.contract_refs && {
+                    contract_refs: args.contract_refs,
+                  }),
+                };
+                if (args.status === "in_progress") {
+                  patch.assignedTo = "agent";
+                  patch.started_at = task.started_at ?? now;
+                } else if (args.status === "done") {
+                  patch.completed_at = now;
+                  patch.completedAt = now;
+                  patch.verification =
+                    args.notes ??
+                    args.implementation_summary ??
+                    "Task marked done via adv_task_update (poisoned-history recovery)";
+                }
+                return { ...task, ...patch } as Task;
+              },
+            });
+            recoveredViaPoisoned = true;
+          } else {
+            throw signalError;
+          }
         }
 
-        const task = await querySignal<Task | null>(
-          handle,
-          changeTaskQuery,
-          args.taskId,
-        );
+        let task: Task | null = null;
+        if (!recoveredViaPoisoned) {
+          task = await querySignal<Task | null>(
+            handle,
+            changeTaskQuery,
+            args.taskId,
+          );
+        } else {
+          // After recovery write, read task from refreshed store.
+          const refreshed = await activeStore.changes.get(changeId);
+          if (refreshed.success && refreshed.data) {
+            task =
+              (refreshed.data.tasks.find(
+                (t) => t.id === args.taskId,
+              ) as Task) ?? null;
+          }
+        }
 
         const output: Record<string, unknown> = {
           success: true,
           task,
           ...(projectContext ? { _projectContext: projectContext } : {}),
+          ...(recoveredViaPoisoned
+            ? {
+                _recoveryMutation: true,
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              }
+            : {}),
         };
         if (task?.error_recovery) {
           output.formatted_doom_loop = formatDoomLoopDiagnostics(
@@ -685,7 +808,8 @@ export const taskTools = {
         }
         if (
           changeId &&
-          (args.status === "in_progress" || args.status === "done")
+          (args.status === "in_progress" || args.status === "done") &&
+          !recoveredViaPoisoned
         ) {
           const snapshot = await fetchChangeContextTicker(
             activeStore,
@@ -746,6 +870,8 @@ export const taskTools = {
         .string()
         .optional()
         .describe("Section header (e.g., 'Testing')"),
+      recoveryMode: RecoveryModeSchema,
+      recoveryEvidence: RecoveryEvidenceSchema,
       ...targetPathSchema.shape,
     },
     execute: async (
@@ -759,9 +885,15 @@ export const taskTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
+      const recoveryError = validateTaskRecoveryArgs(args);
+      if (recoveryError) {
+        return formatToolOutput({ error: recoveryError });
+      }
       const runAdd = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
@@ -890,23 +1022,53 @@ export const taskTools = {
           ...(contract_refs ? { contract_refs } : {}),
         };
 
-        await fireSignalAndRefresh(
-          handle,
-          activeStore,
-          changeId,
-          taskAddedSignal,
-          {
-            task,
-            addedAt: now,
-          },
-        );
+        let recoveredViaPoisoned = false;
+        try {
+          await fireSignalAndRefresh(
+            handle,
+            activeStore,
+            changeId,
+            taskAddedSignal,
+            {
+              task,
+              addedAt: now,
+            },
+          );
+        } catch (signalError) {
+          // rq-extend-poisoned-recovery AC2: disk-projection fallback for add.
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            (await workflowHasPoisonedDescription(handle))
+          ) {
+            const changeResult = await activeStore.changes.get(changeId);
+            if (!changeResult.success || !changeResult.data) {
+              throw signalError;
+            }
+            await saveRecoveredTaskAdd({
+              store: activeStore,
+              change: changeResult.data,
+              task,
+            });
+            recoveredViaPoisoned = true;
+          } else {
+            throw signalError;
+          }
+        }
 
-        const snapshot = await fetchChangeContextTicker(activeStore, changeId);
+        const snapshot = recoveredViaPoisoned
+          ? null
+          : await fetchChangeContextTicker(activeStore, changeId);
         return formatToolOutput({
           taskId: task.id,
           task,
           ...(projectContext ? { _projectContext: projectContext } : {}),
           ...(snapshot ? { _contextSnapshot: snapshot } : {}),
+          ...(recoveredViaPoisoned
+            ? {
+                _recoveryMutation: true,
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              }
+            : {}),
         });
       };
 
@@ -1080,6 +1242,8 @@ export const taskTools = {
         .describe(
           "Preview cancellation without firing task cancellation signals.",
         ),
+      recoveryMode: RecoveryModeSchema,
+      recoveryEvidence: RecoveryEvidenceSchema,
       ...targetPathSchema.shape,
     },
     execute: async (
@@ -1090,12 +1254,18 @@ export const taskTools = {
         approvalEvidence: string;
         supersededBy?: Record<string, string>;
         dryRun?: boolean;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
       },
       store: Store,
     ) => {
+      const recoveryError = validateTaskRecoveryArgs(args);
+      if (recoveryError) {
+        return formatToolOutput({ error: recoveryError });
+      }
       const runCancel = async (
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
@@ -1193,18 +1363,47 @@ export const taskTools = {
 
           try {
             const handle = await getHandleForChangeId(activeStore, changeId);
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              taskCancelledSignal,
-              {
-                taskId,
-                approvalEvidence,
-                reason: reasons[taskId],
-                cancelledAt: now,
-              },
-            );
+            try {
+              await fireSignalAndRefresh(
+                handle,
+                activeStore,
+                changeId,
+                taskCancelledSignal,
+                {
+                  taskId,
+                  approvalEvidence,
+                  reason: reasons[taskId],
+                  cancelledAt: now,
+                },
+              );
+            } catch (signalError) {
+              // rq-extend-poisoned-recovery AC3: disk-projection fallback
+              // for cancel when workflow is poisoned.
+              if (
+                args.recoveryMode === "poisoned_history" &&
+                (await workflowHasPoisonedDescription(handle))
+              ) {
+                const changeResult = await activeStore.changes.get(changeId);
+                if (!changeResult.success || !changeResult.data) {
+                  throw signalError;
+                }
+                await saveRecoveredTaskMutation({
+                  store: activeStore,
+                  change: changeResult.data,
+                  taskId,
+                  mutate: (task) =>
+                    ({
+                      ...task,
+                      status: "cancelled",
+                      completed_at: now,
+                      completedAt: now,
+                      notes: reasons[taskId],
+                    }) as Task,
+                });
+              } else {
+                throw signalError;
+              }
+            }
             results.push({ taskId, success: true });
             cancelledTasks.push({ id: taskId, title: "(cancelled)" });
           } catch (err) {

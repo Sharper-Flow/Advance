@@ -120,6 +120,7 @@ function createMockStore(
   overrides: {
     tasks?: Partial<Store["tasks"]>;
     gates?: import("../types").Gates;
+    change?: import("../types").Change;
   } = {},
 ): Store {
   const defaultGates = {
@@ -131,6 +132,23 @@ function createMockStore(
     acceptance: { status: "pending" },
     release: { status: "pending" },
   } as import("../types").Gates;
+
+  const defaultChange = {
+    id: "test-change",
+    title: "Test Change",
+    status: "draft",
+    created_at: "2026-01-01T00:00:00Z",
+    tasks: [
+      {
+        id: "tk-current",
+        title: "Current Task",
+        status: "in_progress",
+      },
+    ],
+    deltas: {},
+    wisdom: [],
+    gates: overrides.gates ?? defaultGates,
+  } as unknown as import("../types").Change;
 
   return {
     paths: {
@@ -146,16 +164,10 @@ function createMockStore(
     changes: {
       get: vi.fn(async () => ({
         success: true,
-        data: {
-          tasks: [
-            {
-              id: "tk-current",
-              title: "Current Task",
-              status: "in_progress",
-            },
-          ],
-        },
+        data: overrides.change ?? defaultChange,
       })),
+      save: vi.fn(async () => undefined),
+      refresh: vi.fn(async () => undefined),
     } as unknown as Store["changes"],
     tasks: {
       show: vi.fn(async (taskId: string) => ({
@@ -433,6 +445,112 @@ describe("task tools — signal/query adapters", () => {
         },
       });
       expect(signalCall[4]).not.toHaveProperty("verification");
+    });
+
+    // rq-extend-poisoned-recovery AC1
+    test("recovers via disk projection when workflow is poisoned and recoveryMode=poisoned_history", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Done Task",
+              status: "pending",
+              type: "code",
+              section: "Implementation",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }),
+      );
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          implementation_summary: "Recovered legacy work",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.reconciliationWarning).toContain("not healed");
+      expect(store.changes.save).toHaveBeenCalled();
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    // rq-extend-poisoned-recovery AC9: no disk-only recovery in normal mode.
+    test("propagates signal error in normal mode without disk fallback", async () => {
+      const store = createMockStore();
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+
+      await expect(
+        taskTools.adv_task_update.execute(
+          {
+            taskId: "tk-abc",
+            status: "done",
+          },
+          store,
+        ),
+      ).rejects.toThrow(/Failed to query Workflow/);
+    });
+
+    // rq-extend-poisoned-recovery validation
+    test("rejects poisoned_history mode without precise evidence", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "some vague excuse",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("precise poisoned-history evidence");
     });
 
     test("rejects task contract_refs that do not reference the change contract", async () => {

@@ -608,6 +608,26 @@ describe("advWorktreeTools", () => {
     expect(out).toContain('"dryRun":true');
   });
 
+  // rq-extend-poisoned-recovery AC7: cleanup tool returns a graceful
+  // timeout response when the underlying cleanup hangs (e.g. workflow
+  // query on a poisoned workflow) so it doesn't exceed the SDK's
+  // 10s tool-execution timeout and surface as a console error.
+  it("adv_worktree_cleanup returns a timeout response instead of hanging", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "retry cleanup", timeoutMs: 25 },
+      store,
+    );
+
+    expect(out).toContain("timedOut");
+    expect(out).toContain("timed out after 25ms");
+  });
+
   it("adv_worktree_triage delegates to triageWorktrees", async () => {
     triageMock.triageWorktrees.mockResolvedValue({
       orphans: [{ class: "missing_from_disk", branch: "change/x" }],

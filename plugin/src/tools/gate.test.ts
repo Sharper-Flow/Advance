@@ -660,6 +660,44 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
+    // rq-extend-poisoned-recovery AC4: release-gate recovery accepts
+    // compatibilityReason (no longer rejected as acceptance-only).
+    test("compatibilityReason is now permitted for release gate", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
+      // The pre-signal release-gate path will fail on git resolution in
+      // the unit-test environment; the important guarantee here is that
+      // the *acceptance-only* gate guard no longer rejects
+      // compatibilityReason for release.
+      let parsed: Record<string, unknown>;
+      try {
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "release",
+            completedBy: "user:jon",
+            compatibilityReason: "legacy poisoned workflow",
+          },
+          store,
+        );
+        parsed = JSON.parse(result);
+      } catch (err) {
+        parsed = { error: (err as Error).message };
+      }
+      expect(parsed.error ?? "").not.toContain(
+        "compatibilityReason is only supported for acceptance",
+      );
+    });
+
     test("poisoned-history acceptance recovery covers WorkflowTaskFailedCauseNonDeterministicError describe", async () => {
       // rq-fix-gate-tools-recovery AC2: probe-based recovery for generic
       // signal errors when workflow describe carries poisoned evidence.

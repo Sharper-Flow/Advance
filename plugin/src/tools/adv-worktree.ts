@@ -403,9 +403,15 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Preview cleanup retries without deleting queued worktrees"),
+      timeoutMs: z
+        .number()
+        .optional()
+        .describe(
+          "Optional wall-clock timeout for the cleanup pass. Defaults to 8000ms so the tool returns before the 10s SDK timeout when cleanup hangs on poisoned workflows or stuck I/O.",
+        ),
     },
     execute: async (
-      args: { reason: string; dryRun?: boolean },
+      args: { reason: string; dryRun?: boolean; timeoutMs?: number },
       store: Store,
       options: { serverUrl?: URL; client?: OpencodeClient } = {},
     ) => {
@@ -419,7 +425,7 @@ export const advWorktreeTools = {
             client: options.client,
           }
         : undefined;
-      const result = await advWorktreeCleanup(args.reason, {
+      const cleanupPromise = advWorktreeCleanup(args.reason, {
         projectRoot,
         database,
         log,
@@ -427,6 +433,31 @@ export const advWorktreeTools = {
         store,
         warpDeps,
       });
+      // rq-extend-poisoned-recovery AC7: bound the cleanup tool with a
+      // wall-clock timeout so cleanup hangs (e.g. inside discovery's
+      // workflow queries on poisoned workflows) don't exceed the SDK's
+      // tool-execution timeout and surface as console errors.
+      const timeoutMs = args.timeoutMs ?? 8000;
+      let timeoutHandle: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<{
+        timedOut: true;
+      }>((resolve) => {
+        timeoutHandle = setTimeout(
+          () => resolve({ timedOut: true }),
+          timeoutMs,
+        );
+      });
+      const result = await Promise.race([cleanupPromise, timeoutPromise]);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if ("timedOut" in result) {
+        return formatToolOutput({
+          success: false,
+          timedOut: true,
+          error: `adv_worktree_cleanup timed out after ${timeoutMs}ms. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
+          remediation:
+            "Pass a larger timeoutMs to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
+        });
+      }
       return formatToolOutput({
         success: true,
         removed: result.removed,
