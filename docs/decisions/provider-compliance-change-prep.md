@@ -301,7 +301,7 @@ Close the real tool-enforcement gaps in the ADV plugin without touching provider
 
 ## In-scope findings
 
-### A1. `adv_task_evidence` should validate red/green semantics
+### A1. Retired fallback evidence tool should validate red/green semantics
 
 Current behavior:
 
@@ -388,7 +388,7 @@ Then run at minimum:
 
 ## Proposal-ready acceptance criteria
 
-- `adv_task_evidence` rejects semantically invalid red/green evidence
+- The retired fallback evidence tool rejects semantically invalid red/green evidence
 - `adv_gate_complete(execution)` rejects unfinished changes
 - existing targeted task/gate/integration tests continue to pass
 - no MCP API shape changes
@@ -396,7 +396,7 @@ Then run at minimum:
 ## Suggested initial task breakdown
 
 1. Add failing tests for invalid red/green evidence cases
-2. Implement evidence-phase validation in `adv_task_evidence`
+2. Implement evidence-phase validation in the fallback evidence tool
 3. Add failing tests for execution-gate task-completion preconditions
 4. Implement execution-gate validation in `adv_gate_complete`
 5. Update docs/test fixtures as needed
