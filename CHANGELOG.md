@@ -1,3 +1,10 @@
+## 2026-05-22 (v0.10.6)
+
+
+### Change Highlights
+
+- **05-22-fixReentryTaskLookup**: Executive Summary
+
 ## 2026-05-22 (v0.10.5)
 
 
