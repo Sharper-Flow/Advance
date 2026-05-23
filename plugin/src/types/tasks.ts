@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { DependencySchema } from "./specs";
+import { SubagentReportSchema } from "./subagent-reports";
 import { TaskStructuredOutputSchema } from "./task-output";
 
 // =============================================================================
@@ -224,6 +225,12 @@ export const TaskSchema = z
      * Optional — most tasks won't have this. Non-blocking extraction.
      */
     structured_output: TaskStructuredOutputSchema.optional(),
+    /**
+     * Typed, durable sub-agent reports submitted through
+     * adv_subagent_report_submit. These replace ADV worker fenced-JSON report
+     * extraction while preserving structured_output for legacy callers.
+     */
+    subagent_reports: z.array(SubagentReportSchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 
