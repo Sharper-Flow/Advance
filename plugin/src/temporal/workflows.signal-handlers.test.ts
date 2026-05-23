@@ -32,6 +32,7 @@ import {
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
   reflectionRecordedSignal,
+  subagentReportSubmittedSignal,
   taskAddedSignal,
   taskAssignedSignal,
   taskBlockedSignal,
@@ -75,6 +76,35 @@ function makeTask(id: string, title = id): Task {
     status: "pending",
     priority: 0,
     created_at: "2026-05-05T00:00:00.000Z",
+  };
+}
+
+function makeEngineerReport(taskId: string, attempt = 1) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: "signal-handler-test-project",
+    task_id: taskId,
+    attempt,
+    agent: "adv-engineer" as const,
+    scope: "Persist report",
+    status: "complete" as const,
+    files_touched: ["plugin/src/types/subagent-reports.ts"],
+    verification: [
+      {
+        command: "pnpm test",
+        exit_code: 0,
+        summary: "tests pass",
+      },
+    ],
+    decisions: [],
+    blockers: [],
+    follow_ups: [],
+    related_scan: "none",
+    workdir_used: "/tmp/worktree",
+    context_update_for_adv: {
+      what_ads_needs_to_know: "report persisted",
+      suggested_next_action: "continue",
+    },
   };
 }
 
@@ -685,6 +715,86 @@ describe("changeWorkflow signal handlers", () => {
       await expect(handle.result()).resolves.toBeUndefined();
       const description = await handle.describe();
       expect(description.status.name).toBe("COMPLETED");
+    });
+  }, 30_000);
+
+  it("stores sub-agent reports from subagentReportSubmittedSignal on task", async () => {
+    await withSignalWorker("subagent-report", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(subagentReportSubmittedSignal, {
+        taskId: "tk-report",
+        report: makeEngineerReport("tk-report"),
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.subagent_reports).toHaveLength(1);
+      expect(task!.subagent_reports![0].agent).toBe("adv-engineer");
+      expect(task!.subagent_reports![0].attempt).toBe(1);
+    });
+  }, 30_000);
+
+  it("deduplicates repeated sub-agent report submissions by task agent and attempt", async () => {
+    await withSignalWorker("subagent-report-dedupe", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      const payload = {
+        taskId: "tk-report",
+        report: makeEngineerReport("tk-report", 2),
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      };
+      await handle.signal(subagentReportSubmittedSignal, payload);
+      await handle.signal(subagentReportSubmittedSignal, {
+        ...payload,
+        submittedAt: "2026-05-05T00:00:03.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.subagent_reports).toHaveLength(1);
+      expect(task!.subagent_reports![0].attempt).toBe(2);
+    });
+  }, 30_000);
+
+  it("maps sub-agent blockers into task error_recovery", async () => {
+    await withSignalWorker("subagent-report-blocker", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(subagentReportSubmittedSignal, {
+        taskId: "tk-report",
+        report: {
+          ...makeEngineerReport("tk-report"),
+          status: "error",
+          blockers: [
+            {
+              file: "plugin/src/foo.ts",
+              line: 12,
+              what: "Type error",
+              diagnosis: "Missing export",
+            },
+          ],
+        },
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.error_recovery?.error_class).toBe("SEMANTIC");
+      expect(task!.error_recovery?.last_error).toContain("Type error");
+      expect(task!.error_recovery?.attempts?.[0].diagnosis).toContain(
+        "Missing export",
+      );
     });
   }, 30_000);
 

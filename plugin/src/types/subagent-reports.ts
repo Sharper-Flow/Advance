@@ -56,7 +56,11 @@ export const SubagentBlockerSchema = z
 
 export const SubagentConsumerWarningSchema = z
   .object({
-    kind: z.enum(["verification_mismatch", "verification_missing", "consumer_failure"]),
+    kind: z.enum([
+      "verification_mismatch",
+      "verification_missing",
+      "consumer_failure",
+    ]),
     message: z.string().min(1),
   })
   .strict();
@@ -82,7 +86,14 @@ export const EngineerSubagentReportSchema = BaseSubagentReportSchema.extend({
 export const ReviewerFindingSchema = z
   .object({
     id: z.string().min(1),
-    label: z.enum(["blocker", "issue", "suggestion", "nit", "question", "praise"]),
+    label: z.enum([
+      "blocker",
+      "issue",
+      "suggestion",
+      "nit",
+      "question",
+      "praise",
+    ]),
     file: z.string().min(1).optional(),
     line: z.number().int().positive().optional(),
     what: z.string().min(1),
@@ -103,7 +114,11 @@ export const ReviewerScopeDriftSchema = z
   .object({
     items: z.array(z.string().min(1)),
     details: z.string().min(1),
-    recommendation: z.enum(["stop_and_report", "reenter_scope", "accept_compromise"]),
+    recommendation: z.enum([
+      "stop_and_report",
+      "reenter_scope",
+      "accept_compromise",
+    ]),
   })
   .strict();
 

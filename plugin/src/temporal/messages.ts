@@ -37,6 +37,7 @@ import type {
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  SubagentReportSubmittedSignalPayload,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
   TaskBlockedSignalPayload,
@@ -156,6 +157,9 @@ export const taskAssignedSignal = wf.defineSignal<[TaskAssignedSignalPayload]>(
 export const taskCompletedSignal = wf.defineSignal<
   [TaskCompletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+export const subagentReportSubmittedSignal = wf.defineSignal<
+  [SubagentReportSubmittedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
 export const taskBlockedSignal = wf.defineSignal<[TaskBlockedSignalPayload]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.taskBlocked,
 );

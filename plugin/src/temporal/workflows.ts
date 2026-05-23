@@ -38,6 +38,7 @@ import {
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
   applyReflectionRecordedToState,
+  applySubagentReportSubmittedToState,
   applyTaskAddedToState,
   applyTaskAssignedToState,
   applyTaskBlockedToState,
@@ -230,6 +231,9 @@ const taskAssignedSignal = wf.defineSignal<
 const taskCompletedSignal = wf.defineSignal<
   [import("../types").TaskCompletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+const subagentReportSubmittedSignal = wf.defineSignal<
+  [import("../types").SubagentReportSubmittedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
 const taskBlockedSignal = wf.defineSignal<
   [import("../types").TaskBlockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskBlocked);
@@ -886,6 +890,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    subagentReportSubmittedSignal,
+    signalMutation("subagentReportSubmitted", (payload) =>
+      applySubagentReportSubmittedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     taskBlockedSignal,
     signalMutation("taskBlocked", (payload) =>
       applyTaskBlockedToState(state, payload),
@@ -1187,6 +1197,7 @@ export async function changeWorkflow(
       worktree_auto_managed: state.worktree_auto_managed,
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,
+      seenReportIds: state.seenReportIds,
     },
   };
   await wf.condition(wf.allHandlersFinished);
