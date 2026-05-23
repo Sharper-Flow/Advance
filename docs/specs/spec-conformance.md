@@ -5,7 +5,7 @@
 
 ## Purpose
 
-Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; tiered visibility. Pure opt-in per spec.
+Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; single-structured verdict visibility. Pure opt-in per spec.
 
 ## Requirements
 
@@ -112,7 +112,7 @@ Conformance source for a spec is unlocked while the spec is being authored. On t
 
 **ID:** `rq-confSignalVisibility01` | **Priority:** **[MUST]**
 
-When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object with stable code, reason, recoverability, and change-id. The warning MUST NOT be debug-log-only.
+When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object: { code: 'ADV_CONFORMANCE_SIGNAL_FAILED', message: string, reason: string, recoverable: true, changeId: string }. The warning MUST NOT be debug-log-only.
 
 **Tags:** `conformance`, `visibility`, `signals`
 
