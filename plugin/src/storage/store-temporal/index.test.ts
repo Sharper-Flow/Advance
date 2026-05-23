@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
-import { createDefaultGates, type Change } from "../../types";
+import { createDefaultGates, type Change, type Task } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
 
@@ -642,5 +642,157 @@ describe("createTemporalStoreBackend worktree_auto_managed lazy migration", () =
     // Failure to fire migration MUST NOT block the read.
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("signalFailureD");
+  });
+});
+
+describe("listResolvedChanges memo fast path", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("does not omit active changes discoverable from disk when memo is warmed", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const changeA = activeChange("memoChange");
+    const changeB = activeChange("diskOnlyChange");
+    await legacy.changes.save(changeA);
+    await legacy.changes.save(changeB);
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: (workflowId: string) => {
+            const changeId =
+              workflowId.split("/").pop() ?? workflowId.split(":").pop() ?? "";
+            if (changeId === "memoChange") {
+              return {
+                query: async () => ({
+                  id: "memoChange",
+                  changeId: "memoChange",
+                  title: "Active memoChange",
+                  status: "active",
+                  createdAt: "2026-05-07T00:00:00.000Z",
+                  initializedAt: "2026-05-07T00:00:00.000Z",
+                  projectId: "project-1",
+                  tasks: [],
+                  deltas: {},
+                  wisdom: [],
+                  gates: createDefaultGates(),
+                  reentry_history: [],
+                  artifacts: {},
+                  documents: {},
+                  reflections: [],
+                  worktrees: {},
+                  conformance: { lockedSpecs: [], overrides: [] },
+                }),
+              };
+            }
+            return {
+              query: async () => {
+                throw workflowNotFoundError();
+              },
+            };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo for changeA
+    const getA = await store.changes.get("memoChange");
+    expect(getA.success).toBe(true);
+
+    // List should include BOTH changes
+    const list = await store.changes.list();
+    const ids = list.changes.map((c) => c.id);
+    expect(ids).toContain("memoChange");
+    expect(ids).toContain("diskOnlyChange");
+  });
+
+  it("does not flatten task counts to 0/0 when memo is warmed", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const tasks: Task[] = [
+      {
+        id: "tk-1",
+        title: "Task 1",
+        status: "done",
+        changeId: "taskedChange",
+        created_at: "2026-05-07T00:00:00.000Z",
+      },
+      {
+        id: "tk-2",
+        title: "Task 2",
+        status: "pending",
+        changeId: "taskedChange",
+        created_at: "2026-05-07T00:00:00.000Z",
+      },
+    ];
+    const changeWithTasks = {
+      ...activeChange("taskedChange"),
+      tasks,
+    } as Change;
+    await legacy.changes.save(changeWithTasks);
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => ({
+              id: "taskedChange",
+              changeId: "taskedChange",
+              title: "Active taskedChange",
+              status: "active",
+              createdAt: "2026-05-07T00:00:00.000Z",
+              initializedAt: "2026-05-07T00:00:00.000Z",
+              projectId: "project-1",
+              tasks,
+              deltas: {},
+              wisdom: [],
+              gates: createDefaultGates(),
+              reentry_history: [],
+              artifacts: {},
+              documents: {},
+              reflections: [],
+              worktrees: {},
+              conformance: { lockedSpecs: [], overrides: [] },
+            }),
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo for taskedChange
+    const getResult = await store.changes.get("taskedChange");
+    expect(getResult.success).toBe(true);
+
+    // List should preserve task counts
+    const list = await store.changes.list();
+    const listed = list.changes.find((c) => c.id === "taskedChange");
+    expect(listed).toBeDefined();
+    expect(listed!.taskCount).toBe(2);
+    expect(listed!.completedTasks).toBe(1);
   });
 });
