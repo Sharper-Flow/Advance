@@ -35,8 +35,10 @@ import {
 import * as path from "node:path";
 import { execFileGitCb } from "../../utils/git-binary";
 import { type Plugin, tool } from "@opencode-ai/plugin";
-import type { Event } from "@opencode-ai/sdk";
-import type { OpencodeClient } from "../../utils/opencode-types";
+import type {
+  OpencodeClient,
+  OpencodeEvent as Event,
+} from "../../utils/opencode-types";
 
 /** Logger interface for structured logging */
 interface Logger {

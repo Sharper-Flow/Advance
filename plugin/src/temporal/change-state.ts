@@ -47,15 +47,6 @@ import type {
   ChangeWorkflowState,
 } from "./contracts";
 
-export interface AddTaskInput {
-  title: string;
-  type?: Task["type"];
-  section?: string;
-  blockedBy?: string[];
-  contract_refs?: Task["contract_refs"];
-  metadata?: Record<string, string>;
-}
-
 export interface UpdateTaskInput {
   status: Task["status"];
   now: string;
@@ -650,36 +641,6 @@ export function applyChangeCancelledToState(
   };
   setLastSignalAt(state, payload.cancelledAt);
   return state;
-}
-
-export function addTaskToChangeState(
-  state: ChangeWorkflowState,
-  input: AddTaskInput,
-  ctx: StateMutationContext,
-): Task {
-  const nextPriority =
-    state.tasks.length === 0
-      ? 0
-      : Math.max(...state.tasks.map((task) => task.priority ?? 0)) + 1;
-
-  const task: Task = {
-    id: `tk-${ctx.uuid()}`,
-    title: input.title,
-    type: input.type ?? "code",
-    section: input.section,
-    status: "pending",
-    priority: nextPriority,
-    created_at: ctx.now,
-    deps: input.blockedBy?.map((target) => ({
-      type: "blocked_by" as const,
-      target,
-    })),
-    ...(input.contract_refs ? { contract_refs: input.contract_refs } : {}),
-    ...(input.metadata ? { metadata: input.metadata } : {}),
-  };
-
-  state.tasks.push(task);
-  return task;
 }
 
 export function listTasksFromChangeState(
