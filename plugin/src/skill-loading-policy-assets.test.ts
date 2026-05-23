@@ -158,6 +158,22 @@ function agentFrontmatter(agent: string): string {
   return readFileSync(path, "utf8").split("---")[1] ?? "";
 }
 
+function hasNearbyFallback(content: string, skill: string): boolean {
+  const lines = content.split(/\r?\n/);
+  const fallbackPattern =
+    /fallback|unavailable|inconclusive|degradation|otherwise continue/i;
+
+  return lines.some((line, index) => {
+    if (!line.includes(`skill("${skill}")`)) return false;
+
+    const nearbyText = lines
+      .slice(Math.max(0, index - 3), Math.min(lines.length, index + 8))
+      .join("\n");
+
+    return fallbackPattern.test(nearbyText);
+  });
+}
+
 describe("skill loading policy assets", () => {
   test("ADV_INSTRUCTIONS documents load-site taxonomy values", () => {
     const content = readFileSync(
@@ -207,9 +223,7 @@ describe("skill loading policy assets", () => {
           join(COMMAND_DIR, entry.commandFile),
           "utf8",
         );
-        return !/fallback|unavailable|inconclusive|degradation|otherwise continue/i.test(
-          content,
-        );
+        return !hasNearbyFallback(content, entry.skill);
       })
       .map((entry) => `${entry.commandFile}:${entry.skill}`);
 
