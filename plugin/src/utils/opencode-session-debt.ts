@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 // rq-opencodeDebt01: read-only diagnostics for stale blank assistant messages.
 
@@ -12,6 +12,11 @@ export interface BlankAssistantRow {
   session_id: string;
   created_ms: number;
   part_count: number;
+}
+
+export interface OpenCodeSessionActivityRow {
+  session_id: string;
+  time_updated_ms: number;
 }
 
 export interface ClassifiedBlankAssistantRow extends BlankAssistantRow {
@@ -35,17 +40,26 @@ export interface OpenCodeSessionDebtClassification {
   ignored_with_parts: ClassifiedBlankAssistantRow[];
 }
 
+export interface ResolvedDbPath {
+  dbPath: string;
+  envValue?: string;
+  attemptedPath?: string;
+  fallbackUsed: boolean;
+}
+
 export type OpenCodeSessionDebtScan =
   | (OpenCodeSessionDebtClassification & {
       available: true;
       db_path: string;
       checked_at: string;
+      diagnostics?: string;
     })
   | {
       available: false;
       db_path: string;
       checked_at: string;
       reason: string;
+      diagnostics?: string;
       threshold_ms: number;
       total_blank: 0;
       repairable_stale: [];
@@ -82,12 +96,60 @@ type BunSqliteDatabaseConstructor = new (
   close: () => void;
 };
 
-export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): string {
-  return (
-    env?.OPENCODE_DB ||
-    process.env.OPENCODE_DB ||
-    join(homedir(), ".local", "share", "opencode", "opencode.db")
+export const BLANK_ASSISTANT_ROWS_SQL = `
+  SELECT
+    m.id AS id,
+    m.session_id AS session_id,
+    json_extract(m.data, '$.time.created') AS created_ms,
+    (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) AS part_count
+  FROM message m
+  WHERE json_extract(m.data, '$.role') = 'assistant'
+    AND json_extract(m.data, '$.finish') IS NULL
+    AND (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) = 0
+  ORDER BY json_extract(m.data, '$.time.created') DESC
+`;
+
+export const SESSION_ACTIVITY_ROWS_SQL = `
+  SELECT
+    s.id AS session_id,
+    s.time_updated AS time_updated_ms
+  FROM session s
+`;
+
+export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): ResolvedDbPath {
+  const canonicalPath = join(
+    homedir(),
+    ".local",
+    "share",
+    "opencode",
+    "opencode.db",
   );
+  const envValue = env?.OPENCODE_DB ?? process.env.OPENCODE_DB;
+
+  if (!envValue) {
+    return { dbPath: canonicalPath, fallbackUsed: false };
+  }
+
+  if (isAbsolute(envValue)) {
+    return { dbPath: envValue, envValue, fallbackUsed: false };
+  }
+
+  const attemptedPath = resolve(process.cwd(), envValue);
+  if (existsSync(attemptedPath)) {
+    return {
+      dbPath: attemptedPath,
+      envValue,
+      attemptedPath,
+      fallbackUsed: false,
+    };
+  }
+
+  return {
+    dbPath: canonicalPath,
+    envValue,
+    attemptedPath,
+    fallbackUsed: true,
+  };
 }
 
 export function classifyBlankAssistantRows(
@@ -150,19 +212,47 @@ export function getDeletableBlankAssistantIds(
   return classification.orphan_ghost.map((row) => row.id);
 }
 
+export function createSessionActivityLivenessResolver(
+  sessions: OpenCodeSessionActivityRow[],
+  options: Pick<ClassifyOptions, "nowMs" | "thresholdMs"> = {},
+): (row: BlankAssistantRow) => BlankAssistantLiveness {
+  const nowMs = options.nowMs ?? Date.now();
+  const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
+  const bySessionId = new Map(
+    sessions.map((session) => [session.session_id, session.time_updated_ms]),
+  );
+
+  return (row) => {
+    const sessionUpdatedMs = bySessionId.get(row.session_id);
+    if (sessionUpdatedMs === undefined || !Number.isFinite(sessionUpdatedMs)) {
+      return "orphan_ghost";
+    }
+
+    const latestKnownActivityMs = Math.max(row.created_ms, sessionUpdatedMs);
+    if (nowMs - latestKnownActivityMs < thresholdMs) return "live_in_flight";
+    return "orphan_ghost";
+  };
+}
+
 export async function scanOpenCodeSessionDebt(
   options: ScanOptions = {},
 ): Promise<OpenCodeSessionDebtScan> {
-  const dbPath = options.dbPath ?? getDefaultOpenCodeDbPath(options.env);
+  const resolved: ResolvedDbPath = options.dbPath
+    ? { dbPath: options.dbPath, fallbackUsed: false }
+    : getDefaultOpenCodeDbPath(options.env);
+  const dbPath = resolved.dbPath;
   const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
-  const checkedAt = new Date().toISOString();
+  const nowMs = options.nowMs ?? Date.now();
+  const checkedAt = new Date(nowMs).toISOString();
 
   if (!existsSync(dbPath)) {
+    const diagnostics = buildPathDiagnostics(resolved, false);
     return unavailable(
       dbPath,
       checkedAt,
       thresholdMs,
       `OpenCode database not found: ${dbPath}`,
+      diagnostics,
     );
   }
 
@@ -182,29 +272,30 @@ export async function scanOpenCodeSessionDebt(
 
     db = new sqlite.Database(dbPath, { readonly: true });
     const rows = db
-      .query(
-        `
-          SELECT
-            m.id AS id,
-            m.session_id AS session_id,
-            json_extract(m.data, '$.time.created') AS created_ms,
-            (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) AS part_count
-          FROM message m
-          WHERE json_extract(m.data, '$.role') = 'assistant'
-            AND json_extract(m.data, '$.finish') IS NULL
-            AND (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) = 0
-          ORDER BY json_extract(m.data, '$.time.created') DESC
-        `,
-      )
+      .query(BLANK_ASSISTANT_ROWS_SQL)
       .all()
-      .map(normalizeRow)
+      .map(normalizeBlankAssistantRow)
       .filter((row): row is BlankAssistantRow => row !== null);
+    const sessions = db
+      .query(SESSION_ACTIVITY_ROWS_SQL)
+      .all()
+      .map(normalizeSessionActivityRow)
+      .filter((row): row is OpenCodeSessionActivityRow => row !== null);
+    const classifyOptions: ClassifyOptions = {
+      ...options,
+      nowMs,
+      thresholdMs,
+      resolveSessionLiveness:
+        options.resolveSessionLiveness ??
+        createSessionActivityLivenessResolver(sessions, { nowMs, thresholdMs }),
+    };
 
     return {
       available: true,
       db_path: dbPath,
       checked_at: checkedAt,
-      ...classifyBlankAssistantRows(rows, options),
+      diagnostics: buildPathDiagnostics(resolved, true),
+      ...classifyBlankAssistantRows(rows, classifyOptions),
     };
   } catch (err) {
     return unavailable(
@@ -212,6 +303,7 @@ export async function scanOpenCodeSessionDebt(
       checkedAt,
       thresholdMs,
       err instanceof Error ? err.message : String(err),
+      buildPathDiagnostics(resolved, true),
     );
   } finally {
     db?.close();
@@ -222,7 +314,9 @@ function pushSample<T>(items: T[], item: T, limit: number): void {
   if (items.length < limit) items.push(item);
 }
 
-function normalizeRow(row: unknown): BlankAssistantRow | null {
+export function normalizeBlankAssistantRow(
+  row: unknown,
+): BlankAssistantRow | null {
   if (!row || typeof row !== "object") return null;
   const candidate = row as Record<string, unknown>;
   const id = String(candidate.id ?? "");
@@ -248,17 +342,32 @@ function normalizeRow(row: unknown): BlankAssistantRow | null {
   };
 }
 
+export function normalizeSessionActivityRow(
+  row: unknown,
+): OpenCodeSessionActivityRow | null {
+  if (!row || typeof row !== "object") return null;
+  const candidate = row as Record<string, unknown>;
+  const sessionId = String(candidate.session_id ?? "");
+  const timeUpdatedMs = Number(candidate.time_updated_ms);
+  if (!sessionId || !Number.isFinite(timeUpdatedMs) || timeUpdatedMs <= 0) {
+    return null;
+  }
+  return { session_id: sessionId, time_updated_ms: timeUpdatedMs };
+}
+
 function unavailable(
   dbPath: string,
   checkedAt: string,
   thresholdMs: number,
   reason: string,
+  diagnostics?: string,
 ): OpenCodeSessionDebtScan {
   return {
     available: false,
     db_path: dbPath,
     checked_at: checkedAt,
     reason,
+    diagnostics,
     threshold_ms: thresholdMs,
     total_blank: 0,
     repairable_stale: [],
@@ -267,6 +376,24 @@ function unavailable(
     orphan_ghost: [],
     ignored_with_parts: [],
   };
+}
+
+function buildPathDiagnostics(
+  resolved: ResolvedDbPath,
+  available: boolean,
+): string | undefined {
+  if (!resolved.envValue) return undefined;
+
+  let diagnostics = `OPENCODE_DB=${resolved.envValue}`;
+  if (resolved.attemptedPath) {
+    diagnostics += `, attempted: ${resolved.attemptedPath}`;
+  }
+  if (resolved.fallbackUsed) {
+    diagnostics += available
+      ? `, fallback: ${resolved.dbPath}`
+      : `, fallback unavailable`;
+  }
+  return diagnostics;
 }
 
 async function importBunSqlite(): Promise<unknown> {

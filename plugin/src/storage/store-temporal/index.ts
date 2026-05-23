@@ -580,32 +580,10 @@ export function createTemporalStoreBackend(
       filter?.includeArchived || filter?.includeClosed,
     );
 
-    // Fast path: when no terminal statuses are requested AND Memo has
-    // data, return Memo summaries directly (no per-change query). Mirrors
-    // the original P2.4 fast path — preserved for active-change list perf.
-    const memoAll = memo.getAll();
-    if (memoAll.length > 0 && !wantsTerminalStatuses) {
-      return memoAll.map(
-        (summary): Change => ({
-          id: summary.id,
-          title: summary.title,
-          status: summary.status,
-          created_at: summary.lastActivityAt,
-          tasks: [],
-          deltas: {},
-          wisdom: [],
-          gates: Object.fromEntries(
-            Object.entries(summary.gateProgress).map(([gate, status]) => [
-              gate,
-              { status: status as "pending" | "done" | "skipped" | "legacy" },
-            ]),
-          ) as Change["gates"],
-          fast_follow_of: summary.fast_follow_of,
-        }),
-      );
-    }
-
-    // Slow path: union three sources to find every change ID.
+    // Union three sources to find every change ID. Memo is used as a
+    // cache within per-change hydration (getTemporalChange), not as a
+    // completeness authority, so we always merge memo IDs with visibility
+    // and disk to avoid omitting active changes or flattening task counts.
     //
     // (1) Memo — picks up changes the adapter has touched (e.g.
     //     recently-closed entries that close() repopulated). Survives
@@ -622,6 +600,7 @@ export function createTemporalStoreBackend(
     //
     // Per-change load is wrapped in try/catch so one missing/terminated
     // workflow doesn't abort the batch; falls back to legacy disk read.
+    const memoAll = memo.getAll();
     const memoIds = memoAll.map((s) => s.id);
 
     const bundle = input.temporal as {

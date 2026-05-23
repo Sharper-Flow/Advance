@@ -133,6 +133,8 @@ describe("Status Tools", () => {
       total_blank: 0,
       repairable_stale: [],
       live_in_flight: [],
+      idle_active_session: [],
+      orphan_ghost: [],
       ignored_with_parts: [],
     });
     tempDir = await createTempDir();
@@ -576,7 +578,17 @@ Vague in-flight work.
             age_ms: 301_000,
           },
         ],
+        orphan_ghost: [
+          {
+            id: "msg-stale",
+            session_id: "ses-stale",
+            created_ms: 1,
+            part_count: 0,
+            age_ms: 301_000,
+          },
+        ],
         live_in_flight: [],
+        idle_active_session: [],
         ignored_with_parts: [],
       });
 
@@ -587,9 +599,9 @@ Vague in-flight work.
       const health = parseToolOutput(healthResult);
 
       expect(health.opencode_session_debt.available).toBe(true);
-      expect(health.opencode_session_debt.repairable_stale).toHaveLength(1);
+      expect(health.opencode_session_debt.orphan_ghost).toHaveLength(1);
       expect(health.formatted.sessionDebtSection).toContain(
-        "1 stale blank assistant",
+        "1 orphan ghost blank assistant",
       );
 
       // Recommendations live in summary view (and a few others); fetch
@@ -713,6 +725,7 @@ Vague in-flight work.
         threshold_ms: 300_000,
         total_blank: 1,
         repairable_stale: [],
+        orphan_ghost: [],
         live_in_flight: [
           {
             id: "msg-live",
@@ -722,6 +735,7 @@ Vague in-flight work.
             age_ms: 1_000,
           },
         ],
+        idle_active_session: [],
         ignored_with_parts: [],
       });
 

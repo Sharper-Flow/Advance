@@ -5,11 +5,17 @@ import { copyFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
+  BLANK_ASSISTANT_ROWS_SQL,
   classifyBlankAssistantRows,
+  createSessionActivityLivenessResolver,
   getDeletableBlankAssistantIds,
   getDefaultOpenCodeDbPath,
+  normalizeBlankAssistantRow,
+  normalizeSessionActivityRow,
+  SESSION_ACTIVITY_ROWS_SQL,
   STALE_BLANK_ASSISTANT_THRESHOLD_MS,
   type BlankAssistantRow,
+  type OpenCodeSessionActivityRow,
 } from "../plugin/src/utils/opencode-session-debt";
 
 // rq-opencodeDebt01: explicit dry-run + backup-before-delete repair utility.
@@ -24,7 +30,7 @@ interface Args {
 
 function parseArgs(argv: string[]): Args {
   const args: Args = {
-    dbPath: getDefaultOpenCodeDbPath(),
+    dbPath: getDefaultOpenCodeDbPath().dbPath,
     dryRun: false,
     apply: false,
     thresholdMs: STALE_BLANK_ASSISTANT_THRESHOLD_MS,
@@ -35,8 +41,10 @@ function parseArgs(argv: string[]): Args {
     if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--apply") args.apply = true;
     else if (arg === "--db") args.dbPath = requireValue(argv, ++i, "--db");
-    else if (arg === "--backup-dir") args.backupDir = requireValue(argv, ++i, "--backup-dir");
-    else if (arg === "--threshold-ms") args.thresholdMs = Number(requireValue(argv, ++i, "--threshold-ms"));
+    else if (arg === "--backup-dir")
+      args.backupDir = requireValue(argv, ++i, "--backup-dir");
+    else if (arg === "--threshold-ms")
+      args.thresholdMs = Number(requireValue(argv, ++i, "--threshold-ms"));
     else if (arg === "--help" || arg === "-h") {
       printUsage();
       process.exit(0);
@@ -46,7 +54,8 @@ function parseArgs(argv: string[]): Args {
   }
 
   if (!args.dryRun && !args.apply) args.dryRun = true;
-  if (args.dryRun && args.apply) throw new Error("Use either --dry-run or --apply, not both");
+  if (args.dryRun && args.apply)
+    throw new Error("Use either --dry-run or --apply, not both");
   if (!Number.isFinite(args.thresholdMs) || args.thresholdMs < 0) {
     throw new Error("--threshold-ms must be a non-negative number");
   }
@@ -77,35 +86,32 @@ function loadBlankAssistantRows(dbPath: string): BlankAssistantRow[] {
   const db = new Database(dbPath, { readonly: true });
   try {
     return db
-      .query(
-        `
-          SELECT
-            m.id AS id,
-            m.session_id AS session_id,
-            json_extract(m.data, '$.time.created') AS created_ms,
-            (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) AS part_count
-          FROM message m
-          WHERE json_extract(m.data, '$.role') = 'assistant'
-            AND json_extract(m.data, '$.finish') IS NULL
-            AND (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) = 0
-          ORDER BY json_extract(m.data, '$.time.created') DESC
-        `,
-      )
+      .query(BLANK_ASSISTANT_ROWS_SQL)
       .all()
-      .map((row) => row as Record<string, unknown>)
-      .map((row) => ({
-        id: String(row.id),
-        session_id: String(row.session_id),
-        created_ms: Number(row.created_ms),
-        part_count: Number(row.part_count),
-      }))
-      .filter((row) => row.id && row.session_id && Number.isFinite(row.created_ms));
+      .map(normalizeBlankAssistantRow)
+      .filter((row): row is BlankAssistantRow => row !== null);
   } finally {
     db.close();
   }
 }
 
-async function backupDatabaseFiles(dbPath: string, backupDir: string): Promise<string[]> {
+function loadSessionActivityRows(dbPath: string): OpenCodeSessionActivityRow[] {
+  const db = new Database(dbPath, { readonly: true });
+  try {
+    return db
+      .query(SESSION_ACTIVITY_ROWS_SQL)
+      .all()
+      .map(normalizeSessionActivityRow)
+      .filter((row): row is OpenCodeSessionActivityRow => row !== null);
+  } finally {
+    db.close();
+  }
+}
+
+async function backupDatabaseFiles(
+  dbPath: string,
+  backupDir: string,
+): Promise<string[]> {
   await mkdir(backupDir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const copied: string[] = [];
@@ -115,7 +121,8 @@ async function backupDatabaseFiles(dbPath: string, backupDir: string): Promise<s
     await copyFile(file, dest);
     copied.push(dest);
   }
-  if (copied.length === 0) throw new Error("No database files were backed up; refusing apply");
+  if (copied.length === 0)
+    throw new Error("No database files were backed up; refusing apply");
   return copied;
 }
 
@@ -155,8 +162,18 @@ async function main(): Promise<void> {
   }
 
   const rows = loadBlankAssistantRows(args.dbPath);
+  const sessionActivity = loadSessionActivityRows(args.dbPath);
+  const nowMs = Date.now();
   const classification = classifyBlankAssistantRows(rows, {
+    nowMs,
     thresholdMs: args.thresholdMs,
+    resolveSessionLiveness: createSessionActivityLivenessResolver(
+      sessionActivity,
+      {
+        nowMs,
+        thresholdMs: args.thresholdMs,
+      },
+    ),
   });
   const ids = getDeletableBlankAssistantIds(classification);
 

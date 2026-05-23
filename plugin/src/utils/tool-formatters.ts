@@ -114,6 +114,8 @@ export interface StatusInput {
     | { unavailable: true };
   opencodeSessionDebt?: {
     available: boolean;
+    orphanGhostCount?: number;
+    /** @deprecated Use orphanGhostCount. */
     repairableStaleCount?: number;
     liveInFlightCount?: number;
     reason?: string;
@@ -475,9 +477,12 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
   } else if (!input.opencodeSessionDebt.available) {
     sessionDebtSection = `## OpenCode Session Debt\n(unavailable: ${truncate(input.opencodeSessionDebt.reason ?? "unknown", 80)})`;
   } else {
-    const stale = input.opencodeSessionDebt.repairableStaleCount ?? 0;
+    const stale =
+      input.opencodeSessionDebt.orphanGhostCount ??
+      input.opencodeSessionDebt.repairableStaleCount ??
+      0;
     const live = input.opencodeSessionDebt.liveInFlightCount ?? 0;
-    sessionDebtSection = `## OpenCode Session Debt\n${stale} stale blank assistant row(s), ${live} live/in-flight`;
+    sessionDebtSection = `## OpenCode Session Debt\n${stale} orphan ghost blank assistant row(s), ${live} live/in-flight`;
   }
 
   // T22: Peer Sessions section (privacy-defensive — sessionId + startedAt

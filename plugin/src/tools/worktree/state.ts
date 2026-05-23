@@ -616,6 +616,7 @@ export function buildActiveWorktreeChangesVisibilityQuery(
   return [
     `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
     `AdvChangeStatus IN ("draft", "pending", "active")`,
+    `AdvWorktreeBranches IS NOT NULL`,
   ].join(" AND ");
 }
 

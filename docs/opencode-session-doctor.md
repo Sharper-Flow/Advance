@@ -16,8 +16,10 @@ bun scripts/opencode-session-doctor.ts --dry-run --db ~/.local/share/opencode/op
 
 Dry-run opens the DB read-only. If the DB is missing or inaccessible, the command reports `available:false` and exits without deletion. Output includes:
 
-- `repairable_stale` — assistant rows with `finish=null`, zero parts, and age at/above threshold
-- `live_in_flight` — same shape but younger than threshold; never repairable
+- `orphan_ghost` — assistant rows with `finish=null`, zero parts, and no recent session activity at/above threshold; these are the only deletable rows
+- `idle_active_session` — stale blank rows that are not proven orphaned; never deleted automatically
+- `live_in_flight` — same shape but younger than threshold or attached to a recently updated session; never repairable
+- `repairable_stale` — deprecated compatibility alias for `orphan_ghost`
 
 ## Apply
 
@@ -25,16 +27,8 @@ Dry-run opens the DB read-only. If the DB is missing or inaccessible, the comman
 bun scripts/opencode-session-doctor.ts --apply --backup-dir /tmp/opencode/session-doctor-backup
 ```
 
-Apply refuses to run without `--backup-dir`. It backs up `opencode.db`, `opencode.db-wal`, and `opencode.db-shm` before deleting repairable rows.
+Apply refuses to run without `--backup-dir`. It backs up `opencode.db`, `opencode.db-wal`, and `opencode.db-shm` before deleting `orphan_ghost` rows.
 
 ## Worktree Cleanup
 
-The installed `kdco/worktree` plugin in `~/.config/opencode/plugin/` now queues pending deletes in `pending_deletes` and exposes:
-
-```text
-worktree_cleanup
-```
-
-Use it after closing shells/processes that had a worktree as CWD.
-
-This is an installed-artifact patch. If `kdco/worktree` is reinstalled or synced from registry, promote the patch to that source or reapply it.
+Use ADV-native `adv_worktree_cleanup` after closing shells/processes that had a worktree as CWD. The tool retries queued deletes and skips worktrees still used by a live process.

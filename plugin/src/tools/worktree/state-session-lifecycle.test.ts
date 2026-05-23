@@ -48,6 +48,7 @@ import {
   unregisterSession,
   updateSessionActivity,
   buildWorktreeBranchVisibilityQuery,
+  buildActiveWorktreeChangesVisibilityQuery,
   findBranchOwnersAcrossChanges,
   listWorktreesAcrossChanges,
   setPendingDelete,
@@ -150,6 +151,39 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     await expect(
       findBranchOwnersAcrossChanges(access, "change/feature", "current"),
     ).resolves.toEqual(["other"]);
+  });
+
+  it("builds active worktree owner query from project, non-terminal status, and worktree branch presence", () => {
+    expect(buildActiveWorktreeChangesVisibilityQuery("proj")).toBe(
+      'AdvAffectedProjects = "proj" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
+    );
+  });
+
+  it("uses the active worktree owner query so non-owner workflows are not queried", async () => {
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/owner" };
+      })(),
+    );
+    changeWorkflowQuery.mockResolvedValueOnce({
+      "change/owner": {
+        branch: "change/owner",
+        path: "/work/owner",
+        baseRef: "main",
+        headSha: "abc123",
+        status: "created",
+        createdAt: "2026-05-01T00:00:00.000Z",
+      },
+    });
+
+    await listWorktreesAcrossChanges(access);
+
+    expect(workflowList).toHaveBeenCalledWith({
+      query:
+        'AdvAffectedProjects = "test-id" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
+    });
+    expect(workflowGetHandle).toHaveBeenCalledTimes(1);
+    expect(workflowGetHandle).toHaveBeenCalledWith("adv/change/test-id/owner");
   });
 
   it("aggregates materialized worktrees from active change workflow search results", async () => {

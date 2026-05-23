@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-gi-UD7",
+      "type": "gotcha",
+      "content": "When validating a single test file via package scripts, confirm the script forwards args. `pnpm test -- <file>` in this repo can still execute broader suites; use `npx vitest run <file>` for precise targeted evidence.",
+      "source_task": "tk-15287f20b65a",
+      "recorded_at": "2026-05-23T00:51:20.530Z"
+    }
+  ],
+  "count": 1
+}
