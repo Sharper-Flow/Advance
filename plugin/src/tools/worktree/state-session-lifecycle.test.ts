@@ -51,6 +51,9 @@ import {
   buildActiveWorktreeChangesVisibilityQuery,
   findBranchOwnersAcrossChanges,
   listWorktreesAcrossChanges,
+  getWorktreeRegistrySnapshot,
+  listWorktrees,
+  getChangeSummaries,
   setPendingDelete,
   getPendingDeletes,
   incrementPendingDeleteAttempts,
@@ -219,6 +222,63 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       ],
       warnings: [],
       poisonedWorkflows: [],
+    });
+  });
+
+  it("exposes an authoritative registry snapshot and compatibility views", async () => {
+    workflowList.mockImplementation(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/change-a" };
+      })(),
+    );
+    changeWorkflowQuery.mockResolvedValue({
+      changeId: "change-a",
+      status: "active",
+      touched_files: ["src/a.ts", "src/b.ts"],
+      worktrees: {
+        "change/change-a": {
+          branch: "change/change-a",
+          path: "/work/change-a",
+          baseRef: "main",
+          headSha: "abc123",
+          status: "created",
+          createdAt: "2026-05-01T00:00:00.000Z",
+          lastSeenAt: "2026-05-01T00:00:00.000Z",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      },
+    });
+
+    await expect(getWorktreeRegistrySnapshot(access)).resolves.toMatchObject({
+      records: [
+        expect.objectContaining({
+          changeId: "change-a",
+          branch: "change/change-a",
+          path: "/work/change-a",
+        }),
+      ],
+      changeSummaries: {
+        "change-a": {
+          status: "active",
+          touched_files: ["src/a.ts", "src/b.ts"],
+        },
+      },
+      warnings: [],
+    });
+
+    await expect(listWorktrees(access)).resolves.toEqual([
+      expect.objectContaining({
+        changeId: "change-a",
+        branch: "change/change-a",
+        path: "/work/change-a",
+      }),
+    ]);
+    await expect(getChangeSummaries(access)).resolves.toEqual({
+      "change-a": {
+        status: "active",
+        touched_files: ["src/a.ts", "src/b.ts"],
+      },
     });
   });
 

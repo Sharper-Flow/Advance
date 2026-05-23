@@ -28,11 +28,12 @@ import type {
   SessionRecord,
   WorktreeRecord,
   MaterializedWorktreeRecord,
+  ChangeWorkflowState,
 } from "../../temporal/contracts";
 import type { OpencodeClient } from "../../utils/opencode-types";
 import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
-import { getWorktreesQuery } from "../../temporal/messages";
+import { getStateQuery, getWorktreesQuery } from "../../temporal/messages";
 import { getService } from "../../temporal/service";
 import { acquireFileLock, atomicWriteFile } from "../../utils/fs";
 import { collectErrorText } from "../../temporal/error-text";
@@ -123,6 +124,13 @@ export interface WorktreesAcrossChangesResult {
   warnings: WorktreeCrossChangeWarning[];
   poisonedWorkflows: WorktreePoisonedWorkflowEntry[];
   unavailable?: boolean;
+}
+
+export interface WorktreeRegistrySnapshot extends WorktreesAcrossChangesResult {
+  changeSummaries: Record<
+    string,
+    { touched_files?: string[]; status?: string }
+  >;
 }
 
 /** Back-compat token for callers that previously passed a Database. */
@@ -533,10 +541,10 @@ export async function removeWorktree(
 }
 
 export async function listWorktrees(
-  _access: WorktreeStateAccess,
+  access: WorktreeStateAccess,
 ): Promise<Worktree[]> {
-  // Stub: will query change workflows for materialized worktrees.
-  return [];
+  const snapshot = await getWorktreeRegistrySnapshot(access);
+  return snapshot.records as Worktree[];
 }
 
 export async function getWorktree(
@@ -749,6 +757,111 @@ export async function listWorktreesAcrossChanges(
   return { records, warnings, poisonedWorkflows };
 }
 
+export async function getWorktreeRegistrySnapshot(
+  access: WorktreeStateAccess,
+): Promise<WorktreeRegistrySnapshot> {
+  const unavailable = (message: string, error?: unknown) => ({
+    records: [],
+    changeSummaries: {},
+    warnings: [
+      {
+        source: "worktree_visibility" as const,
+        message,
+        errorClass: error ? errorClass(error) : "Unavailable",
+        ...(error ? { evidenceSummary: summarizeErrorEvidence(error) } : {}),
+      },
+    ],
+    poisonedWorkflows: [],
+    unavailable: true,
+  });
+
+  const bundle = getService();
+  if (!bundle) return unavailable("Temporal service unavailable");
+  const client = bundle.client as WorkflowListClient & {
+    workflow: WorkflowListClient["workflow"] & {
+      getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
+    };
+  };
+  if (!client.workflow.list || !client.workflow.getHandle) {
+    return unavailable("Temporal workflow list/getHandle unavailable");
+  }
+
+  let changeIds: string[];
+  try {
+    changeIds = await listChangeIdsWithActiveWorktrees(
+      client,
+      access.projectId,
+    );
+  } catch (error) {
+    return unavailable("Unable to list active worktree workflows", error);
+  }
+
+  const records: MaterializedWorktreeRecord[] = [];
+  const warnings: WorktreeCrossChangeWarning[] = [];
+  const poisonedWorkflows: WorktreePoisonedWorkflowEntry[] = [];
+  const changeSummaries: WorktreeRegistrySnapshot["changeSummaries"] = {};
+
+  for (const listedChangeId of changeIds) {
+    const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${listedChangeId}`;
+    const handle = client.workflow.getHandle(workflowId);
+    let state: ChangeWorkflowState;
+    try {
+      state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
+    } catch (error) {
+      const classification = await classifyWorktreeWorkflowFailure(
+        handle,
+        error,
+      );
+      const message = `Unable to query worktree registry snapshot for change ${listedChangeId}`;
+      warnings.push({
+        source: "worktree_workflow",
+        changeId: listedChangeId,
+        workflowId,
+        message,
+        errorClass: errorClass(error),
+        ...(classification.recoveryReason
+          ? { recoveryReason: classification.recoveryReason }
+          : {}),
+        ...(classification.evidenceSummary
+          ? { evidenceSummary: classification.evidenceSummary }
+          : {}),
+      });
+      if (
+        classification.recoveryReason === "poisoned_history" &&
+        classification.evidenceSummary
+      ) {
+        poisonedWorkflows.push({
+          changeId: listedChangeId,
+          workflowId,
+          recoveryReason: "poisoned_history",
+          evidenceSummary: classification.evidenceSummary,
+          message,
+        });
+      }
+      continue;
+    }
+
+    const changeId = state.changeId || listedChangeId;
+    changeSummaries[changeId] = {
+      ...(typeof state.status === "string" ? { status: state.status } : {}),
+      ...(Array.isArray(state.touched_files)
+        ? { touched_files: [...state.touched_files] }
+        : {}),
+    };
+
+    for (const [branch, record] of Object.entries(state.worktrees ?? {})) {
+      const materialized = materializeChangeWorktreeRecord(
+        changeId,
+        branch,
+        record as WorktreeRecord,
+      );
+      if (materialized) records.push(materialized);
+    }
+  }
+
+  return { records, changeSummaries, warnings, poisonedWorkflows };
+}
+
 // =============================================================================
 // STUB EXPORTS for back-compat with consumers not yet rewritten
 // =============================================================================
@@ -807,7 +920,8 @@ export async function updateWorktreeRecord(
 }
 
 export async function getChangeSummaries(
-  _access: WorktreeStateAccess,
+  access: WorktreeStateAccess,
 ): Promise<Record<string, { touched_files?: string[]; status?: string }>> {
-  return {};
+  const snapshot = await getWorktreeRegistrySnapshot(access);
+  return snapshot.changeSummaries;
 }
