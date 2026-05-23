@@ -18,8 +18,8 @@ per-change workflow + signal/query architecture.
 - ADV state: roadmap, agenda, active changes, validation, Temporal diagnose.
 - Repo reconnaissance: implementation, command contracts, agents/skills, specs,
   docs, scripts, CI, tests.
-- External signal scan: OpenCode core issues and Sharper-Flow/Opencode-Advance
-  issues that affect ADV reliability or UX.
+- External signal scan: OpenCode core issues and Advance issues that affect ADV
+  reliability or UX.
 - Axes: code quality, architecture, performance, DX / agent UX.
 
 ## Current state
@@ -106,7 +106,7 @@ Existing roadmap / agenda items cover:
 - #83 — decompose long factory closures.
 - #84 — sweep unused type exports flagged by knip.
 - #99 — structural change-contract traceability across review/archive.
-- #104 — stable ADV read surface for OCA consumption.
+- #104 — stable ADV read surface for external tooling consumption.
 - #72 — scope ADV instruction load to ADV-using sessions.
 - #105 — `/adv-triage` Phase 3b question-tool flow.
 

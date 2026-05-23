@@ -1,13 +1,13 @@
 # Open Issue Long-Term Solution Ownership — 2026-05-04
 
-Status: researched issue-triage note. Use this as routing evidence when drafting ADV/OCA changes or commenting on GitHub issues.
+Status: researched issue-triage note. Use this as routing evidence when drafting ADV changes, external integration changes, or commenting on GitHub issues.
 
 ## Repository boundary
 
 | Issue / cluster | Correct repo | Long-term owner | Reason |
 |---|---|---|---|
 | `#37` / `#39` checkpoint commit succeeds but task-run ledger update fails | Advance | Advance plugin runtime | `adv_task_checkpoint`, Temporal store adapter, workflow update handlers, and task-run state machine all live in this repo. |
-| `#40` cached plugin/self-update confusion | Split | Advance + OCA | Advance can inspect loaded runtime provenance; OCA owns plugin install/update/build/session handoff. |
+| `#40` cached plugin/self-update confusion | Split | Advance + external tooling | Advance can inspect loaded runtime provenance; external tooling owns plugin install/update/build/session handoff. |
 | `#36` missing-from-disk worktree registry cleanup | Advance | Advance worktree tools | Registry, triage, and delete safety gates live under `plugin/src/tools/worktree/`. |
 | `#38` merged non-ADV worktree cleanup blocked | Advance | Advance worktree tools | `adv_worktree_delete` enforces branch integration/ADV archive safety. |
 | `#33` worker-health false-negative wording | Advance | Advance diagnostics | `adv_status`, `adv_temporal_diagnose`, queue serviceability, and formatted health output live in this repo. |
@@ -36,7 +36,7 @@ Advance owns runtime provenance diagnostics:
 - source-vs-dist freshness check
 - cwd/worktree-vs-loaded-plugin-root mismatch warning
 
-OCA owns deterministic rebuild + session handoff:
+External tooling owns deterministic rebuild + session handoff:
 
 - plugin doctor check for source/dist freshness
 - explicit Advance rebuild/update command path
@@ -62,6 +62,6 @@ Make formatted health serviceability-first.
 ## Sequencing recommendation
 
 1. Checkpoint ledger recovery (`#37`/`#39`) — autonomy blocker.
-2. Self-update diagnostics and OCA handoff (`#40` + OCA companion ticket) — prevents self-fix confusion.
+2. Self-update diagnostics and external handoff (`#40`) — prevents self-fix confusion.
 3. Worktree cleanup classes (`#36`/`#38`) — small, isolated safety fix.
 4. Worker health wording (`#33`) — diagnostic polish once queue serviceability is already correct.

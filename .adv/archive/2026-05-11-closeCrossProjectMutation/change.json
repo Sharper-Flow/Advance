@@ -215,8 +215,8 @@
       "assignedTo": "agent",
       "started_at": "2026-05-11T22:41:41.047Z",
       "verification": "T9 complete. Checkpoint 2126298aabb912e840ae247fac409abd63116e85. GitHub #71 updated: https://github.com/Sharper-Flow/Advance/issues/71#issuecomment-4425748592.",
-      "summary": "Updated ADV_INSTRUCTIONS target_path support list to include adv_task_reclassify_tdd, added dryRun/non-LLM execution guidance, compressed Cross-Project Coordination to pass line guard. Updated AGENTS cross-project gotchas with task mutation routing, dryRun, and non-LLM execution notes. Updated docs/f10-investigation.md with 2026-05-11 #71 outcome and supported paths. Added GitHub issue #71 comment and corrected ADV linked issue URL from Opencode-Advance#71 to Advance#71.",
-      "implementation_summary": "Updated ADV_INSTRUCTIONS target_path support list to include adv_task_reclassify_tdd, added dryRun/non-LLM execution guidance, compressed Cross-Project Coordination to pass line guard. Updated AGENTS cross-project gotchas with task mutation routing, dryRun, and non-LLM execution notes. Updated docs/f10-investigation.md with 2026-05-11 #71 outcome and supported paths. Added GitHub issue #71 comment and corrected ADV linked issue URL from Opencode-Advance#71 to Advance#71.",
+      "summary": "Updated ADV_INSTRUCTIONS target_path support list to include adv_task_reclassify_tdd, added dryRun/non-LLM execution guidance, compressed Cross-Project Coordination to pass line guard. Updated AGENTS cross-project gotchas with task mutation routing, dryRun, and non-LLM execution notes. Updated docs/f10-investigation.md with 2026-05-11 #71 outcome and supported paths. Added GitHub issue #71 comment and corrected ADV linked issue URL from Advance#71 to Advance#71.",
+      "implementation_summary": "Updated ADV_INSTRUCTIONS target_path support list to include adv_task_reclassify_tdd, added dryRun/non-LLM execution guidance, compressed Cross-Project Coordination to pass line guard. Updated AGENTS cross-project gotchas with task mutation routing, dryRun, and non-LLM execution notes. Updated docs/f10-investigation.md with 2026-05-11 #71 outcome and supported paths. Added GitHub issue #71 comment and corrected ADV linked issue URL from Advance#71 to Advance#71.",
       "filesTouched": [],
       "touched_files": [],
       "completedAt": "2026-05-11T22:45:25.098Z",
@@ -332,9 +332,9 @@
   "reentry_history": [],
   "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
   "github_issues": [
-    "https://github.com/Sharper-Flow/Opencode-Advance/issues/110",
-    "https://github.com/Sharper-Flow/Opencode-Advance/issues/68",
-    "https://github.com/Sharper-Flow/Opencode-Advance/issues/59",
+    "https://github.com/Sharper-Flow/Advance/issues/110",
+    "https://github.com/Sharper-Flow/Advance/issues/68",
+    "https://github.com/Sharper-Flow/Advance/issues/59",
     "https://github.com/Sharper-Flow/Advance/issues/71"
   ],
   "clarify_findings": [

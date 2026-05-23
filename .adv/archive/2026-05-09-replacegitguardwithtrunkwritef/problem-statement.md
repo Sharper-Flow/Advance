@@ -45,7 +45,7 @@ Same research surfaced gaps where ADV is *behind* peer tools in worktree ergonom
 1. **No `.worktreeinclude`-equivalent.** Claude Code copies gitignored env files (`.env`, secrets) into new worktrees automatically. Cursor `.cursor/worktrees.json` setup-worktree-unix scripts achieve same. ADV worktrees start empty; agents manually re-source envs ad-hoc.
 2. **No setup-worktree hook.** Cursor runs `npm ci`, migrations, port assignment per new worktree. ADV's `adv_worktree_create` returns a path with no automatic setup. Plugin development survives this; multi-stack apps would suffer.
 3. **No port/resource-isolation guidance.** Cursor and Augment guide per-worktree port offsets and separate DB instances. ADV silent on this.
-4. **`OpenCode#1` snapshot race on shared projectID.** Known, tracked, out of ADV's layer (sharper-flow/Opencode-Advance#1) — noted for completeness.
+4. **`OpenCode#1` snapshot race on shared projectID.** Known, tracked, out of ADV's layer (sharper-flow/Advance#1) — noted for completeness.
 
 ## Goal
 

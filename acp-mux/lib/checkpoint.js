@@ -1,7 +1,7 @@
 // WAL checkpoint hygiene.
 //
 // SQLite WAL files grow unbounded when a long-lived reader holds back the
-// checkpoint. The original OCA architecture doc (§10.2) explicitly flagged
+// checkpoint. The original session architecture doc (§10.2) explicitly flagged
 // "consider WAL checkpoint cadence" as an unresolved discovery item. With
 // per-instance DBs, the WAL of each retired instance can be reclaimed at
 // graceful exit so the next launch starts clean.

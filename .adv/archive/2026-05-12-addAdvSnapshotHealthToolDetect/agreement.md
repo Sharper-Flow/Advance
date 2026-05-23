@@ -74,7 +74,7 @@
 - Detection of both modern + legacy snapshot layouts
 
 #### Out of Scope (explicit)
-- Fixing OpenCode-core snapshot race (`Sharper-Flow/Opencode-Advance#1`)
+- Fixing OpenCode-core snapshot race (`Sharper-Flow/Advance#1`)
 - Worktree-keying changes to OpenCode's snapshot service
 - Background daemon / scheduled polling — on-demand only
 - History-altering repair (`git gc`, `git prune`, `git filter-repo`)

@@ -149,7 +149,7 @@
     },
     {
       "number": 104,
-      "title": "Expose stable ADV read surface for OCA consumption (O2)",
+      "title": "Expose stable ADV read surface for external tooling consumption (O2)",
       "value": 8,
       "time_criticality": 8,
       "rroe": 8,

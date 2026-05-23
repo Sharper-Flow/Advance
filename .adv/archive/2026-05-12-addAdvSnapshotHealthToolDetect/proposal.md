@@ -10,7 +10,7 @@ A fifth concrete instance surfaced during this change's discovery: a 4.6 GB stal
 
 This is *not* a fix for the upstream race (which is OpenCode-core). It is a layer above: detect degraded state, surface it, and provide a structured repair path.
 
-Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Opencode-Advance/issues/1) (closed) and [Sharper-Flow/Advance#118](https://github.com/Sharper-Flow/Advance/issues/118) (open).
+Tracked at [Sharper-Flow/Advance#1](https://github.com/Sharper-Flow/Advance/issues/1) (closed) and [Sharper-Flow/Advance#118](https://github.com/Sharper-Flow/Advance/issues/118) (open).
 
 ## Success Criteria
 
@@ -37,7 +37,7 @@ Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Ope
 
 ### Out of Scope
 
-- Fixing the upstream OpenCode race (`Sharper-Flow/Opencode-Advance#1`) — that is OpenCode-core, not ADV
+- Fixing the upstream OpenCode race (`Sharper-Flow/Advance#1`) — that is OpenCode-core, not ADV
 - Worktree-keying changes to OpenCode's snapshot service
 - Changes to ADV state files (changes/, archive/, wisdom.jsonl, etc.) — only the snapshot store
 - Snapshot-content inspection or rollback features

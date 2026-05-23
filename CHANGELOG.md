@@ -176,7 +176,7 @@
 - accept signal-driven verification as TDD compliance evidence
 - disk-layer guard against synthetic-fixture change IDs (rq-synthstate01)
 - add test-only runtime Zod schema guard at SDK boundary
-- wire OCA ensure-window hook
+- wire external ensure-window hook
 - add one-writer-per-worktree lease protocol
 - add trunk guard for worktree-first execution
 ### Fixed
@@ -208,15 +208,15 @@
 - drop AdvAffectedPaths to fit Temporal dev-server KeywordList cap
 - enforce exact MCP tool names
 - remove stale tool entries from canonical adv.md allowlist
-- lazy-load temporal/service in state.ts; add service mock to oca-hook test
+- lazy-load temporal/service in state.ts; add service mock to window-hook test
 - remove stale hardcoded tool count from index.ts header
 - harden branch-aware worktree lifecycle
 - require explicit gate reentry timestamp
 - remove stale bun lockfile
 - raise outer safety-net timeout to 305s
 - add path verification defense-in-depth for adv-engineer file-not-found errors
-- restore OCA ensure-window hook integration tests
-- skip OCA hook integration tests pending proper mock setup
+- restore external ensure-window hook integration tests
+- skip window-hook integration tests pending proper mock setup
 - resolve lint errors and format drift in worktree test files
 - peer worker lock allows mutations when this session has no worker
 - bypass local-worker check when peer pollers serve queue
@@ -281,8 +281,8 @@
 - fix line-scoped NOSONAR for clarify-readiness.e2e.test.ts (#77) (chore: sonar)
 - suppress remaining S7739 BDD then-field false-positives (#76) (chore: sonar)
 - address Sonar cleanup findings (chore)
-- remove OCA tmux-window bridge (#75) (chore: worktree)
-- remove OCA tmux-window bridge (chore: worktree)
+- remove tmux-window bridge (#75) (chore: worktree)
+- remove tmux-window bridge (chore: worktree)
 - scrub missed matrix references (docs: retire-investment-governance)
 - archive change retireinvestmentgovernancedead (chore: adv)
 - archive change fixWorkflowReplayDeterminism (chore: adv)
@@ -802,7 +802,7 @@ Improves the deterministic project shortname generator to restore meaning for co
 - **New `segmentToken(token, dict)` helper** — dynamic-programming word-break segmentation. Returns `string[]` on full-character-cover success, `null` otherwise. The full-cover requirement is the correctness guard: names that can't be cleanly decomposed fall back to the existing truncate path.
 - **`generateProjectShortname` updated** to run segmentation when a single lowercase token ≥ 4 chars remains after prefix/suffix strip. On 2+ subwords success, those become the word list and feed the existing acronym/compact branches.
 - **New behaviour examples:**
-  - `opencodeadvance → OCA` (segments `open`+`code`+`advance`, over cap → acronym)
+  - `advanceplugin → AP` (segments `advance`+`plugin`, over cap → acronym)
   - `opencode → Opencode` (segments `open`+`code`, at cap → compact)
   - `advance → Advance` (previously `Advanc`)
   - `pokeedge → Pokeedge` (segments `poke`+`edge`, at cap → compact)

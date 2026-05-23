@@ -31,7 +31,7 @@ Regenerate with `/adv-triage`. Manual edits are overwritten.
 | #84 | Sweep unused type exports flagged by knip | 3 | 1 | 2 | 1 | 6 | — |
 | #87 | Wire scanFileOverlaps into prep validator when async checks exist | 8 | 3 | 5 | 3 | 5.3 | — |
 | #42 | Stub JSON schemas provide zero validation — generate from Zod or delete | 5 | 2 | 3 | 2 | 5 | enhancement |
-| #104 | Expose stable ADV read surface for OCA consumption (O2) | 8 | 8 | 8 | 5 | 4.8 | — |
+| #104 | Expose stable ADV read surface for external tooling consumption (O2) | 8 | 8 | 8 | 5 | 4.8 | — |
 | #93 | adv_status: surface reflection friction signal in hygiene view | 5 | 3 | 5 | 3 | 4.3 | enhancement |
 | #106 | Archived/terminal change listing can time out and shadow state | 5 | 3 | 5 | 3 | 4.3 | — |
 | #103 | Permission-first config for ADV agents | 8 | 5 | 8 | 5 | 4.2 | — |

@@ -29,6 +29,9 @@
 
 ---
 
+> [!NOTE]
+> Advance targets OpenCode. Claude Code and ACP-first versions are coming soon.
+
 ## What Advance is
 
 Advance is an [OpenCode](https://github.com/anomalyco/opencode) plugin that turns AI coding from a chat-driven activity into a governed engineering system.
@@ -95,6 +98,20 @@ archive promotes learnings back into law
 
 That combination is the product.
 
+## Inspirations and how Advance extends them
+
+Advance is an original implementation, but it is not an isolated idea. It owes a lot to projects that made agentic engineering more structured, durable, and spec-driven.
+
+| Project | What inspired Advance | How Advance builds on it |
+| --- | --- | --- |
+| [Beads](https://github.com/steveyegge/beads) | Agent-friendly task memory, dependency-aware work graphs, ready-task discovery, and structured issue state instead of disposable Markdown plans. | Advance keeps the task graph idea, then binds tasks to a 7-gate change contract, TDD evidence, checkpoint commits, worktree isolation, and Temporal-backed workflows so task state survives crashes, context loss, and long-running execution. |
+| [Spec Kit](https://github.com/github/spec-kit) | Spec-driven development as a first-class workflow: define what to build, plan the implementation, generate tasks, then implement against structured artifacts. | Advance keeps the spec → design → task discipline, then adds durable gates, user checkpoints, typed MCP tools, contract review matrices, archive-time spec promotion, and runtime enforcement around planning, execution, acceptance, and release. |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Lightweight proposal/change folders, agreed-before-build behavior, delta specs, design notes, task checklists, and archive as the moment where proposed behavior becomes durable specification. | Advance keeps the proposal/design/archive lineage, then makes the lifecycle stateful and auditable with Temporal orchestration, artifact-backed gate readiness, external ADV state shared across worktrees, and explicit review/harden/release controls. |
+| [OpenCode](https://github.com/anomalyco/opencode) | The host environment: local coding agents, slash-command workflows, plugins, sub-agents, and tool-mediated development inside the editor/terminal loop. | Advance runs inside OpenCode but narrows agent autonomy with spec law, gate contracts, tool-only state mutation, bounded delegation, worktree routing, and auditable evidence rather than relying on chat memory. |
+| [Temporal](https://temporal.io/) | Durable workflow execution: long-running state machines, signal/query surfaces, recovery after process failure, and replay-safe orchestration. | Advance uses Temporal as the persistence spine for changes, tasks, gates, and recovery state, making agent work resumable across OpenCode restarts, compaction, failed workers, and multi-session handoffs. |
+
+The pattern is deliberate: take the strongest idea from each predecessor, then make it durable, inspectable, and enforceable enough for autonomous agents to use safely.
+
 ## Unique technical stack
 
 Advance is intentionally unusual. It is not just commands around an LLM.
@@ -118,15 +135,15 @@ Advance is intentionally unusual. It is not just commands around an LLM.
 
 This is why Advance is more than durable functions, more than a memory layer, more than a prompt pack, and more than a test wrapper.
 
-## Standalone maintenance surfaces
+## Integration and extension surfaces
 
-OCA owns the offline `oca maintain` operator command, but Advance provides the runtime-safe inspection surfaces it consumes:
+Advance keeps the core workflow in this repository and exposes runtime-safe seams for developers who want to build their own operators, dashboards, or editor integrations:
 
-- `scripts/maintenance/inspect.mjs --project-root <path>` emits `schema_version: 1`, archived change summaries, release-gate eligibility, and a verification summary. OCA uses this to merge only archived changes whose `release` gate is `done`.
+- `scripts/maintenance/inspect.mjs --project-root <path>` emits `schema_version: 1`, archived change summaries, release-gate eligibility, and a verification summary so external tools can inspect release readiness without mutating ADV state.
 - `adv_change_update_issues` accepts full GitHub issue URLs only (`https://github.com/<owner>/<repo>/issues/<number>`). Shorthand refs are rejected before persistence so invalid state cannot be saved.
-- `adv_status view=health` includes `plugin_runtime`, reporting the loaded module path, process start time, `dist/oca-build.json` marker path/data when present, worker script path, and the caveat that host-loaded tool code requires restarting OpenCode after rebuild.
+- `adv_status view=health` includes `plugin_runtime`, reporting the loaded module path, process start time, build marker path/data when present, worker script path, and the caveat that host-loaded tool code requires restarting OpenCode after rebuild.
 
-Maintenance remains offline by design. OCA should close/refuse active sessions before executing merge/rebuild/cleanup work; Temporal recovery is report-only unless a future Advance standalone script exposes a safe executor.
+Maintenance remains offline by design. External tools should close/refuse active sessions before merge/rebuild/cleanup work; Temporal recovery is report-only unless a future Advance standalone script exposes a safe executor.
 
 ## Core workflow
 
@@ -205,6 +222,12 @@ Every `/adv-apply` task with file changes creates a local checkpoint through `ad
 ### Worktree-aware execution
 
 Mutating work runs in per-change worktrees. ADV state is external and shared across worktrees; specs remain git-tracked and branch-local. That gives isolation without losing coordination.
+
+### ACP-first roadmap
+
+An ACP-first version is planned, with [Zed](https://zed.dev/) as the editor surface we are most excited to use. We have not focused there first because OpenCode ACP still has blocking interaction bugs for ADV-style workflows — especially [`anomalyco/opencode#17920`](https://github.com/anomalyco/opencode/issues/17920), where the `question` tool hangs in ACP mode. Advance uses explicit human checkpoints for proposal, agreement, prep, acceptance, archive, and cancellation, so ACP needs reliable question/permission round-trips before it can be the primary path.
+
+Shoutout Zed editor. Can't wait to use you.
 
 ### Bounded autonomy
 

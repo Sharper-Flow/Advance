@@ -133,8 +133,8 @@ npm run lint            # node --check on JS files
 
 ## Provenance
 
-This is the Zed-era replacement for the unbuilt portions of
-`Sharper-Flow/Opencode-Advance`:
+This is the Zed-era extraction of ACP/session-isolation ideas now kept in this
+repository:
 
 - `docs/proposals/2026-05-03-session-and-resource-architecture.md` §10.2
   flagged "session DB single-writer contention" — closed here via per-instance
@@ -146,8 +146,8 @@ This is the Zed-era replacement for the unbuilt portions of
   `opencode --session <id>` cold resume — covered by `sync-db` plus
   bypass-via-canonical (`opencode --session <id>` against master).
 
-Tmux-specific OCA pieces (status decode, resurrect, dashboard) are
-intentionally not ported — Zed owns window/session management now.
+Tmux-specific pieces (status decode, resurrect, dashboard) are intentionally
+not ported — Zed owns window/session management now.
 
 ## Upstream context (`anomalyco/opencode`)
 

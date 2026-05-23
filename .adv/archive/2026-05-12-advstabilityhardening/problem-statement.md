@@ -19,7 +19,7 @@ ADV agents in high-concurrency projects silently freeze mid-workflow after tool 
 
 ### Gap 1 — Worktree policy is agent-self-enforced (GH #118)
 
-`ADV_INSTRUCTIONS.md § Worktree Policy` mandates "always isolate" but offers no tool-level guard. Agents skip worktree creation; multiple opencode sessions end up CWD'd in the same main checkout. OpenCode's `Semaphore.makeUnsafe(1)` is per-process, so cross-process snapshot `index.lock` race re-emerges (the recurrence condition explicitly called out in the close comment on Sharper-Flow/Opencode-Advance#1). Snapshot capture blocks → message processor holds the assistant message envelope open → `part_count: 0` forever.
+`ADV_INSTRUCTIONS.md § Worktree Policy` mandates "always isolate" but offers no tool-level guard. Agents skip worktree creation; multiple opencode sessions end up CWD'd in the same main checkout. OpenCode's `Semaphore.makeUnsafe(1)` is per-process, so cross-process snapshot `index.lock` race re-emerges (the recurrence condition explicitly called out in the close comment on Sharper-Flow/Advance#1). Snapshot capture blocks → message processor holds the assistant message envelope open → `part_count: 0` forever.
 
 ### Gap 2 — Worker singleton spec ≠ implementation (GH #117)
 

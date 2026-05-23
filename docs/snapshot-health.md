@@ -4,7 +4,7 @@
 
 The tool is **read-only by default**. Repairs require explicit user approval, are restricted to a closed whitelist, and write audit entries to the ADV agenda.
 
-> **This does not fix the upstream OpenCode race.** That is OpenCode-core, tracked at Sharper-Flow/Opencode-Advance#1 (closed) and Sharper-Flow/Advance#118 (open — discovery gate running in main checkout). `adv_snapshot_health` is defense-in-depth: detect degraded state, surface it, and provide a structured repair path.
+> **This does not fix the upstream OpenCode race.** That is OpenCode-core, tracked at Sharper-Flow/Advance#118 (open — discovery gate running in main checkout). `adv_snapshot_health` is defense-in-depth: detect degraded state, surface it, and provide a structured repair path.
 
 ## What It Detects
 

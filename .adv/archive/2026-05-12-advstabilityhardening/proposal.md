@@ -64,7 +64,7 @@ AND completes within 2s p95 even under multi-session load
 
 ### Out of Scope
 
-- OpenCode-core snapshot `index.lock` cross-process race (upstream Sharper-Flow/Opencode-Advance#1)
+- OpenCode-core snapshot `index.lock` cross-process race (upstream Sharper-Flow/Advance#1)
 - TypeScript LSP / tsserver initialization timeout (downstream OpenCode / tsserver tuning)
 - Auto-materialize worktree on `adv_change_create` (deferred — couples worktree setup hooks to proposal drafting; tool-level guard sufficient per research)
 - Standalone worker daemon with IPC socket pattern (deferred — lockfile + heartbeat is LBP per research)

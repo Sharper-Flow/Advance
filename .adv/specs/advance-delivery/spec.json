@@ -1052,7 +1052,7 @@
     {
       "id": "rq-runtimeProvenance01",
       "title": "Runtime Provenance Diagnostic Surface",
-      "body": "ADV SHALL expose plugin loaded-module provenance via the adv_status health view: dist mtime/path, source mtime/path, source-vs-dist freshness verdict (one of fresh, source_ahead_of_dist, dist_ahead_of_process, unknown), plugin checkout git branch and HEAD SHA when probable, cwd-vs-plugin-root relation (match/child/outside), and a structured recovery hint when not fresh. Filesystem stat failures and git probe failures MUST degrade gracefully to null rather than throwing. The recovery hint MUST be structured as { action, commands[], paths } so callers can render verbatim or extract commands programmatically. ADV SHALL NOT perform rebuild orchestration, session restart, or workflow-cache invalidation as part of this surface — those concerns are owned by the OCA companion.",
+      "body": "ADV SHALL expose plugin loaded-module provenance via the adv_status health view: dist mtime/path, source mtime/path, source-vs-dist freshness verdict (one of fresh, source_ahead_of_dist, dist_ahead_of_process, unknown), plugin checkout git branch and HEAD SHA when probable, cwd-vs-plugin-root relation (match/child/outside), and a structured recovery hint when not fresh. Filesystem stat failures and git probe failures MUST degrade gracefully to null rather than throwing. The recovery hint MUST be structured as { action, commands[], paths } so callers can render verbatim or extract commands programmatically. ADV SHALL NOT perform rebuild orchestration, session restart, or workflow-cache invalidation as part of this surface — those concerns are owned by external tooling.",
       "priority": "must",
       "tags": [
         "diagnostics",

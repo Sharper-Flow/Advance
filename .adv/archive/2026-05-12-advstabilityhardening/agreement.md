@@ -84,7 +84,7 @@ THEN coverage exists for:
 
 ## Out of Scope
 
-- **OpenCode-core snapshot `index.lock` cross-process race** — upstream `anomalyco/opencode` issue. ADV mitigates by enforcing worktree isolation (eliminates the trigger of multiple sessions in the same path), but cannot fix the underlying snapshot service. Already filed: Sharper-Flow/Opencode-Advance#1.
+- **OpenCode-core snapshot `index.lock` cross-process race** — upstream `anomalyco/opencode` issue. ADV mitigates by enforcing worktree isolation (eliminates the trigger of multiple sessions in the same path), but cannot fix the underlying snapshot service. Already filed: Sharper-Flow/Advance#1.
 - **TypeScript LSP / tsserver init timeout in large repos** — downstream OpenCode + tsserver tuning. Out of ADV's layer.
 - **Auto-materialize worktree on `adv_change_create`** — deferred. Tool-level mutation guard (AC-2) achieves the same structural outcome without the coupling cost.
 - **Standalone worker daemon with IPC socket** — deferred. Lockfile + heartbeat is LBP per `rq-workerSingleton01` design intent.

@@ -9,12 +9,12 @@
 This document summarizes recovery class addressed by
 `fixStuckTemporalWorkerRecovery`:
 
-- [Opencode-Advance#22](https://github.com/Sharper-Flow/Opencode-Advance/issues/22) — `adv_worktree_create` blocked on stale Temporal poller rows.
-- [Opencode-Advance#23](https://github.com/Sharper-Flow/Opencode-Advance/issues/23) — `adv_temporal_worker_restart` reported success with no live worker.
-- [Opencode-Advance#24](https://github.com/Sharper-Flow/Opencode-Advance/issues/24) — wedged sessions left v1-schema `worker.lock` files alive without heartbeat.
-- [Opencode-Advance#25](https://github.com/Sharper-Flow/Opencode-Advance/issues/25) — fresh v2 heartbeat acted as poison-pill when holder was not serving the queue.
-- [Opencode-Advance#26](https://github.com/Sharper-Flow/Opencode-Advance/issues/26) — `checkpointRecorded:false` after git commit could be mistaken for task success.
-- [Opencode-Advance#27](https://github.com/Sharper-Flow/Opencode-Advance/issues/27) — STSL reconnect guidance was conflated with worker-registration recovery.
+- `adv_worktree_create` blocked on stale Temporal poller rows.
+- `adv_temporal_worker_restart` reported success with no live worker.
+- Wedged sessions left v1-schema `worker.lock` files alive without heartbeat.
+- Fresh v2 heartbeat acted as poison-pill when holder was not serving the queue.
+- `checkpointRecorded:false` after git commit could be mistaken for task success.
+- STSL reconnect guidance was conflated with worker-registration recovery.
 
 ## Shared Diagnostic Shape
 
