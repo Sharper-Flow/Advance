@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -119,9 +119,70 @@ describe("opencode-session-debt", () => {
   });
 
   test("uses OPENCODE_DB override for default database path", () => {
-    expect(
-      getDefaultOpenCodeDbPath({ OPENCODE_DB: "/tmp/custom-opencode.db" }),
-    ).toBe("/tmp/custom-opencode.db");
+    const result = getDefaultOpenCodeDbPath({
+      OPENCODE_DB: "/tmp/custom-opencode.db",
+    });
+    expect(result.dbPath).toBe("/tmp/custom-opencode.db");
+    expect(result.envValue).toBe("/tmp/custom-opencode.db");
+    expect(result.fallbackUsed).toBe(false);
+  });
+
+  test("absolute OPENCODE_DB is honored", () => {
+    const result = getDefaultOpenCodeDbPath({
+      OPENCODE_DB: "/tmp/custom-opencode.db",
+    });
+    expect(result.dbPath).toBe("/tmp/custom-opencode.db");
+    expect(result.envValue).toBe("/tmp/custom-opencode.db");
+    expect(result.attemptedPath).toBeUndefined();
+    expect(result.fallbackUsed).toBe(false);
+  });
+
+  test("relative OPENCODE_DB missing falls back to canonical when present", () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "opencode-home-"));
+    tempDirs.push(homeDir);
+    const canonicalDir = join(homeDir, ".local", "share", "opencode");
+    mkdirSync(canonicalDir, { recursive: true });
+    writeFileSync(join(canonicalDir, "opencode.db"), "stub");
+
+    const oldHome = process.env.HOME;
+    process.env.HOME = homeDir;
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/nonexistent/cwd");
+
+    const result = getDefaultOpenCodeDbPath({ OPENCODE_DB: "opencode.db" });
+
+    cwdSpy.mockRestore();
+    process.env.HOME = oldHome;
+
+    expect(result.dbPath).toBe(join(canonicalDir, "opencode.db"));
+    expect(result.envValue).toBe("opencode.db");
+    expect(result.attemptedPath).toBe("/nonexistent/cwd/opencode.db");
+    expect(result.fallbackUsed).toBe(true);
+  });
+
+  test("relative OPENCODE_DB missing with canonical missing produces diagnostic", async () => {
+    const homeDir = mkdtempSync(join(tmpdir(), "opencode-home-"));
+    tempDirs.push(homeDir);
+
+    const oldHome = process.env.HOME;
+    process.env.HOME = homeDir;
+    const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue("/nonexistent/cwd");
+
+    const result = await scanOpenCodeSessionDebt({
+      env: { OPENCODE_DB: "opencode.db" },
+      importSqlite: vi.fn(async () => {
+        throw new Error("should not import sqlite for missing DB");
+      }),
+    });
+
+    cwdSpy.mockRestore();
+    process.env.HOME = oldHome;
+
+    expect(result.available).toBe(false);
+    expect(result.diagnostics).toContain("OPENCODE_DB=opencode.db");
+    expect(result.diagnostics).toContain(
+      "attempted: /nonexistent/cwd/opencode.db",
+    );
+    expect(result.diagnostics).toContain("fallback unavailable");
   });
 
   test("scanner degrades safely when database is unavailable", async () => {

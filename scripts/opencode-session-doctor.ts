@@ -24,7 +24,7 @@ interface Args {
 
 function parseArgs(argv: string[]): Args {
   const args: Args = {
-    dbPath: getDefaultOpenCodeDbPath(),
+    dbPath: getDefaultOpenCodeDbPath().dbPath,
     dryRun: false,
     apply: false,
     thresholdMs: STALE_BLANK_ASSISTANT_THRESHOLD_MS,

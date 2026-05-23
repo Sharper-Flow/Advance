@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 
 // rq-opencodeDebt01: read-only diagnostics for stale blank assistant messages.
 
@@ -35,17 +35,26 @@ export interface OpenCodeSessionDebtClassification {
   ignored_with_parts: ClassifiedBlankAssistantRow[];
 }
 
+export interface ResolvedDbPath {
+  dbPath: string;
+  envValue?: string;
+  attemptedPath?: string;
+  fallbackUsed: boolean;
+}
+
 export type OpenCodeSessionDebtScan =
   | (OpenCodeSessionDebtClassification & {
       available: true;
       db_path: string;
       checked_at: string;
+      diagnostics?: string;
     })
   | {
       available: false;
       db_path: string;
       checked_at: string;
       reason: string;
+      diagnostics?: string;
       threshold_ms: number;
       total_blank: 0;
       repairable_stale: [];
@@ -82,12 +91,40 @@ type BunSqliteDatabaseConstructor = new (
   close: () => void;
 };
 
-export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): string {
-  return (
-    env?.OPENCODE_DB ||
-    process.env.OPENCODE_DB ||
-    join(homedir(), ".local", "share", "opencode", "opencode.db")
+export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): ResolvedDbPath {
+  const canonicalPath = join(
+    homedir(),
+    ".local",
+    "share",
+    "opencode",
+    "opencode.db",
   );
+  const envValue = env?.OPENCODE_DB ?? process.env.OPENCODE_DB;
+
+  if (!envValue) {
+    return { dbPath: canonicalPath, fallbackUsed: false };
+  }
+
+  if (isAbsolute(envValue)) {
+    return { dbPath: envValue, envValue, fallbackUsed: false };
+  }
+
+  const attemptedPath = resolve(process.cwd(), envValue);
+  if (existsSync(attemptedPath)) {
+    return {
+      dbPath: attemptedPath,
+      envValue,
+      attemptedPath,
+      fallbackUsed: false,
+    };
+  }
+
+  return {
+    dbPath: canonicalPath,
+    envValue,
+    attemptedPath,
+    fallbackUsed: true,
+  };
 }
 
 export function classifyBlankAssistantRows(
@@ -153,16 +190,21 @@ export function getDeletableBlankAssistantIds(
 export async function scanOpenCodeSessionDebt(
   options: ScanOptions = {},
 ): Promise<OpenCodeSessionDebtScan> {
-  const dbPath = options.dbPath ?? getDefaultOpenCodeDbPath(options.env);
+  const resolved: ResolvedDbPath = options.dbPath
+    ? { dbPath: options.dbPath, fallbackUsed: false }
+    : getDefaultOpenCodeDbPath(options.env);
+  const dbPath = resolved.dbPath;
   const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
   const checkedAt = new Date().toISOString();
 
   if (!existsSync(dbPath)) {
+    const diagnostics = buildPathDiagnostics(resolved, false);
     return unavailable(
       dbPath,
       checkedAt,
       thresholdMs,
       `OpenCode database not found: ${dbPath}`,
+      diagnostics,
     );
   }
 
@@ -204,6 +246,7 @@ export async function scanOpenCodeSessionDebt(
       available: true,
       db_path: dbPath,
       checked_at: checkedAt,
+      diagnostics: buildPathDiagnostics(resolved, true),
       ...classifyBlankAssistantRows(rows, options),
     };
   } catch (err) {
@@ -212,6 +255,7 @@ export async function scanOpenCodeSessionDebt(
       checkedAt,
       thresholdMs,
       err instanceof Error ? err.message : String(err),
+      buildPathDiagnostics(resolved, true),
     );
   } finally {
     db?.close();
@@ -253,12 +297,14 @@ function unavailable(
   checkedAt: string,
   thresholdMs: number,
   reason: string,
+  diagnostics?: string,
 ): OpenCodeSessionDebtScan {
   return {
     available: false,
     db_path: dbPath,
     checked_at: checkedAt,
     reason,
+    diagnostics,
     threshold_ms: thresholdMs,
     total_blank: 0,
     repairable_stale: [],
@@ -267,6 +313,24 @@ function unavailable(
     orphan_ghost: [],
     ignored_with_parts: [],
   };
+}
+
+function buildPathDiagnostics(
+  resolved: ResolvedDbPath,
+  available: boolean,
+): string | undefined {
+  if (!resolved.envValue) return undefined;
+
+  let diagnostics = `OPENCODE_DB=${resolved.envValue}`;
+  if (resolved.attemptedPath) {
+    diagnostics += `, attempted: ${resolved.attemptedPath}`;
+  }
+  if (resolved.fallbackUsed) {
+    diagnostics += available
+      ? `, fallback: ${resolved.dbPath}`
+      : `, fallback unavailable`;
+  }
+  return diagnostics;
 }
 
 async function importBunSqlite(): Promise<unknown> {
