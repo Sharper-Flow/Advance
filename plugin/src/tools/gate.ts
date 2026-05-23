@@ -19,6 +19,8 @@ import {
   getIncompleteGates,
   allGatesSatisfied,
   createDefaultGates,
+  isMetadataOnlyGate,
+  isWorktreeMutationGate,
 } from "../types";
 import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
@@ -322,7 +324,7 @@ export async function evaluateGateWorktreeIsolation(input: {
   autoManageDeps?: EnsureWorktreeForMutationDeps;
   getSessionContext?: WorktreeIsolationDeps["getSessionContext"];
 }): Promise<WorktreeIsolationResult> {
-  if (input.gateId === "proposal") return { decision: "ALLOW" };
+  if (isMetadataOnlyGate(input.gateId)) return { decision: "ALLOW" };
 
   // Delegate to the unified helper. It handles the activation matrix,
   // session-context detection, existing-worktree lookup, auto-create,
@@ -896,7 +898,8 @@ export const gateTools = {
           }),
           change,
           autoManageDeps:
-            change.worktree_auto_managed === true
+            change.worktree_auto_managed === true &&
+            isWorktreeMutationGate(gateId)
               ? await buildWorktreeAutoManageDeps(activeStore)
               : undefined,
         });

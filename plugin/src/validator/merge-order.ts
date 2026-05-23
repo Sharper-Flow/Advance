@@ -11,7 +11,10 @@
  * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes via signals)
  */
 
-import { initStateDb, getChangeSummaries } from "../tools/worktree/state";
+import {
+  initStateDb,
+  getWorktreeRegistrySnapshot,
+} from "../tools/worktree/state";
 
 export interface MergeOrderEntry {
   changeId: string;
@@ -76,8 +79,9 @@ export async function computeMergeOrder(
   } else {
     try {
       const access = await initStateDb(projectRoot);
-      const cs = await getChangeSummaries(access);
-      summaries = cs as Record<
+      const snapshot = await getWorktreeRegistrySnapshot(access);
+      if (snapshot.unavailable) return { queue: [], unavailable: true };
+      summaries = snapshot.changeSummaries as Record<
         string,
         {
           branch?: string;

@@ -26,10 +26,10 @@
 
 import {
   initStateDb,
-  listWorktrees,
-  getChangeSummaries,
+  getWorktreeRegistrySnapshot,
   getPendingDeletes,
   type WorktreeStateAccess,
+  type WorktreeCrossChangeWarning,
 } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 import { execFileGitAsync } from "../../utils/git-binary";
@@ -58,6 +58,7 @@ export interface OrphanRecord {
 export interface TriageResult {
   orphans: OrphanRecord[];
   total: number;
+  warnings?: WorktreeCrossChangeWarning[];
 }
 
 // =============================================================================
@@ -143,11 +144,13 @@ export async function triageWorktrees(
     return { orphans, total: orphans.length };
   }
 
-  const [diskList, registry, summaries] = await Promise.all([
+  const [diskList, snapshot] = await Promise.all([
     listDiskWorktrees(repoRoot),
-    listWorktrees(access),
-    getChangeSummaries(access),
+    getWorktreeRegistrySnapshot(access),
   ]);
+  const registry = snapshot.records;
+  const summaries = snapshot.changeSummaries;
+  const warnings = snapshot.warnings;
 
   const diskByBranch = new Map<string, DiskWorktree>();
   for (const dw of diskList) {
@@ -173,8 +176,8 @@ export async function triageWorktrees(
       path: dw.path,
       reason: `Disk worktree at ${dw.path} (branch ${dw.branch}) has no entry in worktree_registry`,
       recommendedFix:
-        `adv_worktree_create --adopt ${dw.branch} if this worktree is still active; ` +
-        `otherwise run adv_worktree_delete ${dw.branch} and let the terminal/merged/clean gates decide`,
+        `If still active, resume/materialize the owning ADV worktree with adv_worktree_resume for ${dw.branch}; ` +
+        `otherwise inspect manually, then use adv_worktree_delete ${dw.branch} and let the terminal/merged/clean gates decide`,
     });
   }
 
@@ -268,7 +271,11 @@ export async function triageWorktrees(
     });
   }
 
-  return { orphans, total: orphans.length };
+  return {
+    orphans,
+    total: orphans.length,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }
 
 // =============================================================================

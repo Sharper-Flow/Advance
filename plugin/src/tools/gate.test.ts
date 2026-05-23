@@ -552,7 +552,75 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     });
 
-    test("target_path gate completion uses target store root for worktree isolation deps", async () => {
+    test("target_path worktree-mutation gate completion uses target store root for worktree isolation deps", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const targetStore = createMockStore({
+        gates,
+        change: {
+          id: "target-change",
+          worktree_auto_managed: true,
+        },
+      });
+      targetStore.paths.root = "/repo/worktree/change/target-change";
+      targetStore.paths.changes =
+        "/repo/worktree/change/target-change/.adv/changes";
+      mocks.targetStoreRef.current = targetStore;
+      vi.spyOn(process, "cwd").mockReturnValue("/repo/main");
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
+        status: "done",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "target-change",
+          gateId: "planning",
+          completedBy: "adv-prep",
+          userApproved: true,
+          target_path: "/repo/worktree/change/target-change",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        createMockStore(),
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.buildWorktreeAutoManageDeps).toHaveBeenCalledWith(
+        targetStore,
+      );
+      expect(mocks.ensureWorktreeForMutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cwd: "/repo/worktree/change/target-change",
+          change: expect.objectContaining({
+            id: "target-change",
+            worktree_auto_managed: true,
+          }),
+          deps: expect.objectContaining({
+            resumeRuntime: expect.objectContaining({
+              projectRoot: "/repo/worktree/change/target-change",
+              store: targetStore,
+            }),
+          }),
+        }),
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({ gateId: "planning" }),
+      );
+    });
+
+    test("target_path metadata gate completion skips worktree isolation deps", async () => {
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "pending" },
@@ -592,24 +660,8 @@ describe("gate tools — signal-driven lifecycle", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
-      expect(mocks.buildWorktreeAutoManageDeps).toHaveBeenCalledWith(
-        targetStore,
-      );
-      expect(mocks.ensureWorktreeForMutation).toHaveBeenCalledWith(
-        expect.objectContaining({
-          cwd: "/repo/worktree/change/target-change",
-          change: expect.objectContaining({
-            id: "target-change",
-            worktree_auto_managed: true,
-          }),
-          deps: expect.objectContaining({
-            resumeRuntime: expect.objectContaining({
-              projectRoot: "/repo/worktree/change/target-change",
-              store: targetStore,
-            }),
-          }),
-        }),
-      );
+      expect(mocks.buildWorktreeAutoManageDeps).not.toHaveBeenCalled();
+      expect(mocks.ensureWorktreeForMutation).not.toHaveBeenCalled();
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
         expect.anything(),
         targetStore,
