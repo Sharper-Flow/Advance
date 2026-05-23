@@ -1,3 +1,10 @@
+## 2026-05-23 (v0.11.3)
+
+
+### Change Highlights
+
+- **05-23-fixAuditHygiene**: Executive Summary
+
 ## 2026-05-22 (v0.11.2)
 
 
