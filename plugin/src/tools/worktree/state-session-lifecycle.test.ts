@@ -183,9 +183,7 @@ describe("cross-change worktree visibility helpers (T22)", () => {
         'AdvAffectedProjects = "test-id" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
     });
     expect(workflowGetHandle).toHaveBeenCalledTimes(1);
-    expect(workflowGetHandle).toHaveBeenCalledWith(
-      "adv/change/test-id/owner",
-    );
+    expect(workflowGetHandle).toHaveBeenCalledWith("adv/change/test-id/owner");
   });
 
   it("aggregates materialized worktrees from active change workflow search results", async () => {
