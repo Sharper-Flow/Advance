@@ -226,6 +226,33 @@ describe("createDegradedToolMap parity with createToolMap", () => {
 
     expect(receivedArgs).toEqual({ summary: "Add rate limiting" });
   });
+
+  test("registry rejects invalid preflight args for non-create tools", async () => {
+    const execute = async () => JSON.stringify({ ok: true });
+    (execute as { __advToolName?: string }).__advToolName = "adv_wisdom_add";
+    const registered = registerTool(
+      "test",
+      {
+        changeId: z.string(),
+        type: z.enum(["pattern", "success", "failure", "gotcha", "convention"]),
+        content: z.string(),
+      },
+      execute,
+    );
+
+    const result = await registered.execute(
+      { changeId: "c", type: "pattern", content: " " },
+      {} as any,
+    );
+    const output = JSON.parse((result as { output: string }).output);
+
+    expect(output.code).toBe("INVALID_TOOL_ARGS");
+    expect(output.tool).toBe("adv_wisdom_add");
+    expect(output.invalid).toContainEqual({
+      field: "content",
+      message: "content must be a non-blank string.",
+    });
+  });
 });
 
 describe("KD-8 worktree + session tool registrations", () => {

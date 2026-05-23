@@ -320,6 +320,20 @@ describe("tool arg preflight", () => {
     });
   });
 
+  test.each([[], 42, true])(
+    "treats non-record raw args as empty object (%j)",
+    (rawArgs) => {
+      const result = preflightToolArgs("test_tool", {}, rawArgs);
+
+      expect(result).toEqual({
+        ok: true,
+        missing: [],
+        invalid: [],
+        normalizedArgs: {},
+      });
+    },
+  );
+
   test("returns normalized args for omission-equivalent placeholder policies", () => {
     const result = preflightToolArgs(
       "adv_change_create",

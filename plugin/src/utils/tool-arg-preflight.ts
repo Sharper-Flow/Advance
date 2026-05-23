@@ -46,9 +46,9 @@ const BLANK_ARTIFACT_FIELD_MESSAGE =
 const BLANK_SOURCE_ARTIFACT_MESSAGE =
   "origin_source_artifact must be a non-blank string; omit it when there is no source artifact.";
 
-// rq-toolPlaceholderPolicy01 / rq-toolArgPreflightSingleSource01: preflight is
-// the pure/synchronous tool-boundary policy executor. Keep this table limited
-// to structural placeholder decisions; no fs/store/Temporal lookups here.
+// rq-toolPlaceholderPolicy01: preflight is the pure/synchronous tool-boundary
+// policy executor. Keep this table limited to structural placeholder decisions;
+// no fs/store/Temporal lookups here.
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_create: {
     target_path: { blank: "reject" },
@@ -422,8 +422,8 @@ export function validateToolArgsBeforeExecute(
   return preflightToolArgs(toolName, argsSchema, rawArgs);
 }
 
-// rq-toolArgPreflightSingleSource01: callers that need execution-safe args use
-// this entry point; formatToolArgPreflightError is only the presentation layer.
+// Callers that need execution-safe args use this entry point;
+// formatToolArgPreflightError is only the presentation layer.
 export function preflightToolArgs(
   toolName: string,
   argsSchema: ToolArgsSchema,

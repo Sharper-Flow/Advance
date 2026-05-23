@@ -17,7 +17,7 @@ plugin/              # TypeScript plugin (the only buildable package)
     storage/         # Temporal-only persistence adapters, migrations, handoff, external state
     validator/       # Spec validation, prep-readiness, task classification
     events/          # Terminal UI, status markers
-    utils/           # Helpers (debug-log, project-id, safe-execute)
+    utils/           # Helpers (debug-log, project-id, safe-execute, tool-arg-preflight)
     __mocks__/       # Vitest aliases, including @opencode-ai/plugin → mock
     __tests__/setup.ts  # Shared fixtures and assertion helpers
   schemas/           # JSON schema stubs ($ref pointers; Zod types in src/types.ts are authoritative)
@@ -36,7 +36,7 @@ docs/                # Gate contracts, workflow diagram, checklists, spec docs
 **All commands run from `plugin/`, not the repo root.**
 
 ```bash
-pnpm test                    # vitest run — 1356+ tests, ~55s
+pnpm test                    # vitest run — 2900+ tests, ~55s
 pnpm run check               # typecheck → lint → format:check (no tests)
 pnpm run build               # tsup (ESM) — emits dist/index.js + dist/index.d.ts
 pnpm run typecheck            # tsc --noEmit
@@ -135,7 +135,7 @@ ADV-managed worktrees live under `$XDG_DATA_HOME/opencode/worktree/{project-id}/
 
 Invoke ADV tools with explicit required args — never with empty parameter sets.
 
-- `adv_change_update` — pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`, `executiveSummary`. Zero-args invocations hit a 10s safety-net timeout (surfaced as `errorClass: ToolExecutionTimeout`).
+- `adv_change_update` — pass `changeId` + at least one non-blank artifact field (`proposal`, `problemStatement`, `agreement`, `design`, `executiveSummary`). Zero-args or all-blank artifact payloads fail fast with `INVALID_TOOL_ARGS` before execution; omit fields you do not want to change.
 - `adv_task_add` — before passing `blockedBy`, call `adv_task_list changeId: <id>` to fetch current task IDs. Invalid IDs are rejected; the error response lists the valid IDs.
 - `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, no task is cancelled.
 - Read each tool's field `describe()` text before constructing calls — it documents relational constraints (source-of-truth tool, at-least-one-of patterns, valid enum values).
