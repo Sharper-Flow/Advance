@@ -1,0 +1,702 @@
+{
+  "id": "fixAuditHygiene",
+  "title": "Fix audit hygiene",
+  "status": "archived",
+  "created_at": "2026-05-23T00:11:18.645Z",
+  "tasks": [
+    {
+      "id": "tk-8ea23ee6aa01",
+      "title": "Fix active-change list completeness and task counts",
+      "type": "code",
+      "section": "Active listing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-23T00:20:09.659Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "npx vitest run src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts passed (27 tests). Implementation removes the memo-only active-list fast path and relies on union/hydration so task counts are preserved.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Removed the memo-only early return from listResolvedChanges so active lists always use the memo + visibility + disk ID union and hydrate per-change state. Added regressions proving warmed memo entries do not hide disk-visible active changes and completed-task counts are not flattened to 0/0.",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/index.test.ts",
+        "plugin/src/storage/store-temporal/index.ts"
+      ],
+      "checkpointSha": "b8913c2ec749a8a6a16d837d9f5b5659b8a53db6",
+      "completedAt": "2026-05-23T00:45:14.285Z",
+      "completed_at": "2026-05-23T00:45:14.285Z",
+      "notes": "Completed active-list fix. Targeted verification passed: npx vitest run src/storage/store-temporal/index.test.ts src/storage/store-temporal/changes.test.ts (27 tests).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T00:45:22.802Z"
+    },
+    {
+      "id": "tk-e5fe79e73374",
+      "title": "Harden synthetic ADV residue cleanup",
+      "type": "code",
+      "section": "Synthetic cleanup",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-23T00:20:35.544Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "npx vitest run src/__tests__/synthetic-cleanup.test.ts passed (3 tests). Synthetic cleanup now considers all synthetic dirs under ADV-owned roots while preserving marker mismatches and real project IDs.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed synthetic cleanup to consider all `0000000000000000*` dirs under ADV-owned project/worktree roots rather than only post-baseline dirs, preventing crashed-run residue from becoming permanent. Preserved marker-mismatch protection and real project ID preservation with tests.",
+      "filesTouched": [
+        "plugin/src/__tests__/synthetic-cleanup.test.ts",
+        "plugin/src/__tests__/synthetic-cleanup.ts"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/synthetic-cleanup.test.ts",
+        "plugin/src/__tests__/synthetic-cleanup.ts"
+      ],
+      "checkpointSha": "aa69ffcf2e4f1ef2660105f796ce77f46f323412",
+      "completedAt": "2026-05-23T00:45:55.060Z",
+      "completed_at": "2026-05-23T00:45:55.060Z",
+      "notes": "Completed synthetic cleanup hardening. Targeted verification passed: npx vitest run src/__tests__/synthetic-cleanup.test.ts (3 tests).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T00:46:03.718Z"
+    },
+    {
+      "id": "tk-2860dbbea52b",
+      "title": "Fix OpenCode DB path resolution diagnostics",
+      "type": "code",
+      "section": "Session debt diagnostics",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-23T00:20:35.671Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "npx vitest run src/utils/opencode-session-debt.test.ts passed (10 tests). Relative OPENCODE_DB handling now falls back to canonical DB with diagnostics while absolute env paths remain honored.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed OpenCode DB path resolution to return structured path metadata. Absolute OPENCODE_DB remains honored; missing relative OPENCODE_DB resolves explicitly and falls back to the canonical OpenCode DB when present, with diagnostics surfaced. Updated session doctor caller for the new return shape.",
+      "filesTouched": [
+        "plugin/src/utils/opencode-session-debt.test.ts",
+        "plugin/src/utils/opencode-session-debt.ts",
+        "scripts/opencode-session-doctor.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/opencode-session-debt.test.ts",
+        "plugin/src/utils/opencode-session-debt.ts",
+        "scripts/opencode-session-doctor.ts"
+      ],
+      "checkpointSha": "c81230ee9ec42a3f2a09059eef5372de7bf06f60",
+      "completedAt": "2026-05-23T00:46:38.959Z",
+      "completed_at": "2026-05-23T00:46:38.959Z",
+      "notes": "Completed OpenCode DB path diagnostics. Targeted verification passed: npx vitest run src/utils/opencode-session-debt.test.ts (10 tests).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T00:46:47.991Z"
+    },
+    {
+      "id": "tk-ebc241d271dd",
+      "title": "Narrow worktree WIP poisoned workflow discovery",
+      "type": "code",
+      "section": "Worktree WIP",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-23T00:20:37.297Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "npx vitest run src/tools/worktree/state-session-lifecycle.test.ts passed (15 tests). Active worktree discovery query now includes AdvWorktreeBranches IS NOT NULL while preserving poisoned-history handling for queried owner workflows.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Narrowed active worktree discovery visibility query with `AdvWorktreeBranches IS NOT NULL`, so WIP scans query likely worktree owners instead of every non-terminal change. Added tests for query construction/use and preserved existing poisoned-history handling for owner workflow query failures.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "checkpointSha": "57e829419d9dc8e2af129c4cff8afbf39bdb4ce2",
+      "completedAt": "2026-05-23T00:47:10.772Z",
+      "completed_at": "2026-05-23T00:47:10.772Z",
+      "notes": "Completed worktree WIP query narrowing. Targeted verification passed: npx vitest run src/tools/worktree/state-session-lifecycle.test.ts (15 tests).",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T00:47:19.820Z"
+    },
+    {
+      "id": "tk-15287f20b65a",
+      "title": "Run full verification and live hygiene checks",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-23T00:20:53.969Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8ea23ee6aa01"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e5fe79e73374"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2860dbbea52b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ebc241d271dd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "Full verification passed after formatting fix: pnpm run check, pnpm test, pnpm run build. Hygiene status reported synthetic_project_dirs: 0 and synthetic_worktree_dirs: 0. Note: live ADV tool session still uses cached deployed plugin code, so the OpenCode DB path diagnostic remains old until build/deploy/restart.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran full verification after implementation tasks. Fixed a Prettier finding in state-session-lifecycle.test.ts, reran check successfully, ran full test suite and build successfully, and verified synthetic hygiene counts are zero in current environment.",
+      "filesTouched": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts"
+      ],
+      "checkpointSha": "46b81a2893c1da426e364e17554593eb9f4f3eff",
+      "completedAt": "2026-05-23T00:50:51.340Z",
+      "completed_at": "2026-05-23T00:50:51.340Z",
+      "notes": "Full verification completed. Passed: pnpm run check, pnpm test, pnpm run build. Hygiene status reports synthetic_project_dirs: 0 and synthetic_worktree_dirs: 0. Live ADV DB diagnostic remains old in this session due plugin host source-vs-dist cache; source fix verified by tests/build and needs deploy/restart for live tool behavior.",
+      "error_recovery": {
+        "last_error": "Initial pnpm run check failed due Prettier formatting in src/tools/worktree/state-session-lifecycle.test.ts.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check reported Prettier format issue in src/tools/worktree/state-session-lifecycle.test.ts",
+            "diagnosis": "Formatting-only issue from new test additions.",
+            "fix_tried": "Ran pnpm prettier --write src/tools/worktree/state-session-lifecycle.test.ts and reran pnpm run check.",
+            "strategy_label": "format-fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T00:48:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T00:51:06.213Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-gi-UD7",
+      "type": "gotcha",
+      "content": "When validating a single test file via package scripts, confirm the script forwards args. `pnpm test -- <file>` in this repo can still execute broader suites; use `npx vitest run <file>` for precise targeted evidence.",
+      "source_task": "tk-15287f20b65a",
+      "recorded_at": "2026-05-23T00:51:20.530Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-23T00:11:53.395Z",
+      "completed_by": "agent",
+      "approval_evidence": "User instructed: \"lets fix that separate bug and the followups you created all now\". Proposal created from the four audited agenda follow-ups and confirmed problem framing from prior investigation.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/proposal.md",
+        "content_hash": "6d01adff15559436c08bd2538973124a3dd3f941f78d97f54ba30a4f7f2fd653",
+        "non_whitespace_chars": 2984,
+        "checked_at": "2026-05-23T00:11:53.451Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-05-23T00:14:28.213Z",
+      "completed_at": "2026-05-23T00:14:54.057Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed from machine audit, ADV state tools, spec/code searches, and source inspection. User instructed to fix the separate bug plus all four created follow-ups now; agreement persisted and typed contract minted (AC1-AC7, C1-C4, DONT1-DONT3).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/agreement.md",
+        "content_hash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "non_whitespace_chars": 4805,
+        "checked_at": "2026-05-23T00:14:54.111Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-23T00:19:53.954Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and validated. Independent adv-researcher validator returned CAUTION, no conflict. Tightened design per validator: delete memo fast-path, use AdvWorktreeBranches IS NOT NULL, explicit DB fallback rule, preserve worktree poison evidence for true owners.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/design.md",
+        "content_hash": "e3290eece36d1535a1db786250f65c7c5876a78a4f45e514ef71b757aa921e84",
+        "non_whitespace_chars": 1947,
+        "checked_at": "2026-05-23T00:19:54.003Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-23T00:22:57.880Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph via reply: approve. Five tasks cover AC1-AC7 with contract refs and dependencies; ready tasks are the four independent implementation tasks, verification blocked by all four."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-23T00:51:38.005Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks completed. Verification passed: targeted regressions for active list (27 tests), synthetic cleanup (3 tests), OpenCode DB path diagnostics (10 tests), worktree WIP query (15 tests), plus pnpm run check, pnpm test, and pnpm run build. Hygiene status reports synthetic_project_dirs=0 and synthetic_worktree_dirs=0. Strict validation passed with non-blocking NO_DELTAS warning. Live tool behavior requires deploy/restart due plugin source-vs-dist cache."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-23T01:21:34.756Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via reply: accept. Acceptance review verdict APPROVED after remediation. Contract matrix persisted with 14/14 rows passed/respected; executive summary persisted; verification passed: targeted remediation tests, pnpm run check, pnpm test, pnpm run build, session doctor dry-run.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/acceptance.md",
+        "content_hash": "bbb16a60fd92013623a2a66e3e58e4eb5e20456d635b2c3b35d9a046fbf71f1d",
+        "non_whitespace_chars": 3473,
+        "checked_at": "2026-05-23T01:21:34.969Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 1,
+    "source_artifact": "ag-wOFRzi_O,ag-qXxybFRa,ag-hMlQ_PKv,ag-aWL1Yd3T"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+      "approvedAt": "2026-05-23T00:14:33.799Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A test proves `listResolvedChanges()` cannot return only memo entries when other active changes exist in visibility/disk sources.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A test proves status/list task counts for a previously completed-task change are not flattened to `0/0` by summary conversion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Synthetic cleanup tests prove stale `0000000000000000*` dirs can be safely reaped and real project IDs are preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Hygiene status reports zero synthetic dirs on this machine after cleanup verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "OpenCode session-debt tests cover relative `OPENCODE_DB` and canonical fallback/diagnostic behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "WIP/worktree tests cover poisoned workflow handling without over-reporting workflows that do not own active worktrees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check`, `pnpm test`, and `pnpm run build` pass from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use structural source-backed fixes and tests, not prose-only guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve explicit recovery evidence for actual poisoned-history workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve safe destructive boundaries: no automatic deletion of non-synthetic or real project state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep runtime changes compatible with Bun host and Node/Vitest tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not terminate/reset existing Temporal workflows as part of implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add heavyweight telemetry infrastructure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not broaden cleanup to arbitrary `.local/share/opencode` paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-23T01:17:10.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression in plugin/src/storage/store-temporal/index.test.ts proves warmed memo entries do not hide disk-visible active changes; full pnpm test passed.",
+          "notes": "Review traceability found AC1 fully traced."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression in plugin/src/storage/store-temporal/index.test.ts proves completed-task counts survive list conversion; full pnpm test passed.",
+          "notes": "Review traceability found AC2 fully traced."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/__tests__/synthetic-cleanup.test.ts covers stale/new synthetic cleanup, real project preservation, marker mismatch; targeted test passed after remediation.",
+          "notes": "Remediation renamed cleanup API and added structural rm guard."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Execution verification recorded hygiene status with synthetic_project_dirs=0 and synthetic_worktree_dirs=0; cleanup mechanism retested by targeted suite.",
+          "notes": "Machine-state claim is environment verification plus mechanism tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/opencode-session-debt.test.ts covers relative OPENCODE_DB fallback/diagnostics and new session-activity liveness resolver; doctor dry-run reported orphan_ghost would_delete=10.",
+          "notes": "Review blocker fixed: session doctor now passes resolveSessionLiveness."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/worktree/state-session-lifecycle.test.ts covers AdvWorktreeBranches IS NOT NULL query narrowing and poisoned owner isolation; full pnpm test passed.",
+          "notes": "Review traceability found AC6 fully traced."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Verification after remediation passed: pnpm run check, pnpm test (226 passed, 1 skipped; 2976 passed, 2 skipped), pnpm run build.",
+          "notes": "Targeted remediation tests also passed: npx vitest run synthetic-cleanup and opencode-session-debt."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fixes are source-backed with regressions and review evidence: active list, synthetic cleanup, DB path/liveness, worktree query tests all present.",
+          "notes": "No prose-only correctness."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Worktree WIP change narrows owner query but preserves poisoned workflow evidence for queried owner workflows; no suppression of true owner poison evidence.",
+          "notes": "Reviewed in traceability and logic dimensions."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "cleanupSyntheticAdvDirs only removes basename starting 0000000000000000 under two ADV roots and checks marker mismatch; real project ID preservation test passed.",
+          "notes": "Post-remediation security/architecture re-scan resolved boundary finding."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Node/Vitest suite and Bun-targeted build passed; doctor script remains Bun shebang and dry-run executed successfully.",
+          "notes": "pnpm run check/test/build passed after remediation."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation did not terminate/reset Temporal workflows; changes are read-path/query/cleanup/test/script only.",
+          "notes": "No destructive Temporal recovery performed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No telemetry infrastructure added; only diagnostics path metadata and dry-run script classification changes.",
+          "notes": "Scope unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Synthetic cleanup remains bounded to dataHome/opencode/plugins/advance and dataHome/opencode/worktree with 0000000000000000 prefix guard.",
+          "notes": "Does not clean arbitrary .local/share/opencode paths."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "A test proves `listResolvedChanges()` cannot return only memo entries when other active changes exist in visibility/disk sources.",
+    "A test proves status/list task counts for a previously completed-task change are not flattened to `0/0` by summary conversion.",
+    "Synthetic cleanup tests prove stale `0000000000000000*` dirs can be safely reaped and real project IDs are preserved.",
+    "Hygiene status reports zero synthetic dirs on this machine after cleanup verification.",
+    "OpenCode session-debt tests cover relative `OPENCODE_DB` and canonical fallback/diagnostic behavior.",
+    "WIP/worktree tests cover poisoned workflow handling without over-reporting workflows that do not own active worktrees.",
+    "`pnpm run check`, `pnpm test`, and `pnpm run build` pass from `plugin/`."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/proposal.md",
+      "updatedAt": "2026-05-23T01:44:59.862Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/problem-statement.md",
+      "updatedAt": "2026-05-23T01:44:59.901Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/agreement.md",
+      "updatedAt": "2026-05-23T01:44:59.933Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/design.md",
+      "updatedAt": "2026-05-23T01:44:59.963Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/executive-summary.md",
+      "updatedAt": "2026-05-23T01:44:59.996Z"
+    }
+  },
+  "lastSignalAt": "2026-05-23T01:21:34.756Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-23T00:12:02.589Z",
+      "resolved": true,
+      "resolved_at": "2026-05-23T00:16:18.049Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
