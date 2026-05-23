@@ -254,7 +254,7 @@ Each open design question MUST include:
 
 ### LBP and Tradeoffs
 
-If 2+ viable approaches have user-value tradeoffs, load `skill("prioritizer")` and run criteria-based comparison. If only one viable approach remains after evidence, record why.
+If 2+ viable approaches have user-value tradeoffs, run the inline Tradeoff Prioritizer Protocol from `ADV_INSTRUCTIONS.md` and produce criteria-based comparison before asking the user. If only one viable approach remains after evidence, record why.
 
 ### External-Solution Check (gated)
 <!-- rq-disc10 -->
@@ -304,9 +304,9 @@ Run a mandatory bounded opportunity-scout pass after current-state research and 
 
 ### Execution
 
-1. **Load scout skill** — `skill("adv-opportunity-scout")` with mode `discovery`. If skill unavailable, record "Scout skill unavailable; skipping opportunity scan" and proceed.
+1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
 2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
-3. **Spawn adv-researcher** — use the discovery-mode prompt template from the skill. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
+3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
 4. **Sort candidates** — by payoff/risk ratio (highest first).
 5. **Route adoption** per the skill's routing taxonomy:
    - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
@@ -319,7 +319,7 @@ The scout phase may be skipped with rationale for trivially scoped changes where
 
 ### Degradation
 
-If adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
 
 ### Output
 

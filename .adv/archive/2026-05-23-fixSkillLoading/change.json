@@ -1,0 +1,1098 @@
+{
+  "id": "fixSkillLoading",
+  "title": "Fix skill loading",
+  "status": "archived",
+  "created_at": "2026-05-23T02:54:19.576Z",
+  "tasks": [
+    {
+      "id": "tk-0117cd2a5afa",
+      "title": "Add command-skill taxonomy matrix asset tests",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-23T03:33:31.019Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T03:40:11.417Z",
+      "verification": "pnpm exec vitest run src/skill-loading-policy-assets.test.ts passed (5 tests). Earlier red evidence showed missing Load site taxonomy and missing skill-ref inventory entries before docs/ref updates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Created plugin/src/skill-loading-policy-assets.test.ts with structural inventory for literal .opencode/command skill(...) calls and load-site classifications. Added ADV_INSTRUCTIONS load-site taxonomy docs. Replaced command-level skill(\"prioritizer\") and skill(\"global-verify\") refs with embedded protocol wording to eliminate phantom command skill refs. Verified with pnpm exec vitest run src/skill-loading-policy-assets.test.ts (5 passed).",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/ship.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/skill-loading-policy-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/ship.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/skill-loading-policy-assets.test.ts"
+      ],
+      "checkpointSha": "7f0e4d70ca8285053eb419ddb8871e807c95cea4",
+      "completedAt": "2026-05-23T03:51:17.330Z",
+      "completed_at": "2026-05-23T03:51:17.330Z",
+      "notes": "Added skill-loading policy asset tests with RED then GREEN evidence. The test covers load-site taxonomy, command skill-ref inventory, shipped-skill resolution, fallback/degradation text, and worker explicit skill-denial guard. Updated taxonomy docs and removed phantom command skill refs needed to satisfy the new guard.",
+      "error_recovery": {
+        "last_error": "Initial test run failed as expected: ADV_INSTRUCTIONS missing 'Load site' taxonomy and inventory missing adv-opportunity-scout, prioritizer, global-verify command refs. Subsequent run exposed ADV_INSTRUCTIONS line ceiling by +1 and one unrelated concurrent-signaling integration timeout from accidentally broad pnpm test invocation; fixed line ceiling and used targeted vitest invocation.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Proceed to ready tasks; use targeted vitest for asset tests and reserve full suite for verification task.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/skill-loading-policy-assets.test.ts failed: missing Load site and missing inventory entries.",
+            "diagnosis": "RED evidence for newly-added asset tests; docs and command ref cleanup not implemented yet.",
+            "fix_tried": "Added load-site taxonomy docs; inventoried adv-opportunity-scout; removed phantom command refs for prioritizer and global-verify.",
+            "strategy_label": "red-to-green-taxonomy",
+            "outcome": "failed",
+            "attempted_at": "2026-05-23T03:44:13.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Broad pnpm test invocation failed: ADV_INSTRUCTIONS.md 951 lines > 950 and unrelated concurrent-signaling integration timeout.",
+            "diagnosis": "Line ceiling was in-scope prose-load regression; integration timeout came from broad test invocation, not targeted asset test.",
+            "fix_tried": "Compressed ADV_INSTRUCTIONS taxonomy wording and reran targeted vitest command.",
+            "strategy_label": "line-ceiling-compression",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T03:50:45.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T03:51:46.899Z"
+    },
+    {
+      "id": "tk-cf07ca437bfe",
+      "title": "Document load-site taxonomy and classify command-skill refs",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-23T03:33:41.918Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T03:52:04.455Z",
+      "verification": "pnpm exec vitest run src/skill-loading-policy-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed (58 tests). Documentation/classification changes were included in prior checkpoint; worktree is clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Documented orchestrator-only, worker-only, split, and inlined-agent-methodology load sites. Classified shipped command skill refs including scout split-loading, adv-tron inlined-agent-methodology, shared slop detection, and orchestrator-only skills. Verification passed via pnpm exec vitest run src/skill-loading-policy-assets.test.ts src/adv-skill-backed-commands-assets.test.ts (58 tests).",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f0e4d70ca8285053eb419ddb8871e807c95cea4",
+      "completedAt": "2026-05-23T03:52:22.842Z",
+      "completed_at": "2026-05-23T03:52:22.842Z",
+      "notes": "Load-site taxonomy and command-skill classification are documented in ADV_INSTRUCTIONS.md and covered by asset tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T03:52:32.519Z"
+    },
+    {
+      "id": "tk-5e61989b1d6c",
+      "title": "Add phantom-skill detection and resolve missing refs",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-23T03:33:55.303Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T03:52:40.826Z",
+      "verification": "pnpm exec vitest run src/skill-loading-policy-assets.test.ts passed (5 tests). grep found no command refs to skill(\"prioritizer\") or skill(\"global-verify\"). Worktree clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "The new skill-loading policy asset test extracts literal skill(...) calls across .opencode/command/*.md, ignores documented dynamic placeholders, and fails if any literal command skill is absent from shipped repo skills. The task resolution removed skill(\"prioritizer\") from adv-discover.md in favor of the inline Tradeoff Prioritizer Protocol and removed skill(\"global-verify\") from ship.md in favor of the embedded Global Verification Contract. Verification: targeted skill-loading test passed; grep found no command refs to skill(\"prioritizer\") or skill(\"global-verify\").",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f0e4d70ca8285053eb419ddb8871e807c95cea4",
+      "completedAt": "2026-05-23T03:52:57.261Z",
+      "completed_at": "2026-05-23T03:52:57.261Z",
+      "notes": "Phantom command skill refs are detected structurally and the missing prioritizer/global-verify command refs were removed from command surfaces.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T03:53:07.319Z"
+    },
+    {
+      "id": "tk-2868e6aee43f",
+      "title": "Update scout split-loading contracts and tests",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-23T03:34:06.547Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC4",
+          "SC6"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T03:53:25.129Z",
+      "verification": "pnpm exec vitest run src/skill-loading-policy-assets.test.ts src/adv-autonomy-quality-assets.test.ts passed (36 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated adv-discover and adv-design scout phases so the orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations while prompting adv-researcher to load adv-opportunity-scout in worker context when available. Updated adv-opportunity-scout skill docs to document the split-load pattern. Updated adv-discover and advance-workflow specs to encode the split-load contract and worker skill-load degradation. Added asset-test assertions for split-load command/spec/skill wording. Verification: pnpm exec vitest run src/skill-loading-policy-assets.test.ts src/adv-autonomy-quality-assets.test.ts passed (36 tests).",
+      "filesTouched": [
+        ".adv/specs/adv-discover/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        "plugin/src/skill-loading-policy-assets.test.ts",
+        "skills/adv-opportunity-scout/SKILL.md"
+      ],
+      "touched_files": [
+        ".adv/specs/adv-discover/spec.json",
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        "plugin/src/skill-loading-policy-assets.test.ts",
+        "skills/adv-opportunity-scout/SKILL.md"
+      ],
+      "checkpointSha": "f67077dee2658d22a3bd2823be0043615cef663f",
+      "completedAt": "2026-05-23T03:56:11.165Z",
+      "completed_at": "2026-05-23T03:56:11.165Z",
+      "notes": "Scout contracts now use split-load language across commands, specs, skill docs, and asset tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T03:56:23.131Z"
+    },
+    {
+      "id": "tk-e4576c8aaf77",
+      "title": "Add worker skill-load availability and fallback guards",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-23T03:34:16.934Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "SC4",
+          "SC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T03:56:31.147Z",
+      "verification": "pnpm exec vitest run src/skill-loading-policy-assets.test.ts passed (6 tests). grep found no explicit skill:false in agent frontmatter and command fallback/degradation wording is present for worker skill-load.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Worker self-load availability is guarded by structural tests that reject explicit skill:false on worker targets instead of requiring skill:true. Scout split-load command/spec wording now defines worker skill-load unavailable as an INCONCLUSIVE degradation path. Verification: pnpm exec vitest run src/skill-loading-policy-assets.test.ts passed (6 tests); grep found no explicit skill:false in agent frontmatter and fallback/degradation text in relevant command surfaces.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f67077dee2658d22a3bd2823be0043615cef663f",
+      "completedAt": "2026-05-23T03:56:52.506Z",
+      "completed_at": "2026-05-23T03:56:52.506Z",
+      "notes": "Worker skill-load guard is covered by asset tests and command/spec fallback wording.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T03:57:01.354Z"
+    },
+    {
+      "id": "tk-867de654b848",
+      "title": "Run contract and repo verification",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-23T03:34:36.174Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0117cd2a5afa"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-cf07ca437bfe"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5e61989b1d6c"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2868e6aee43f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e4576c8aaf77"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T03:57:09.288Z",
+      "verification": "Verification passed: targeted asset tests (89 passed), adv_change_validate strict passed with NO_DELTAS warning only, pnpm run check passed after formatting, pnpm test passed, pnpm run build passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final verification: targeted asset tests passed (3 files, 89 tests); strict ADV validation passed with NO_DELTAS warning only; pnpm run check passed after formatting; full pnpm test passed; pnpm run build passed. Formatting fix for the new asset test was committed in this verification checkpoint.",
+      "filesTouched": [
+        "plugin/src/skill-loading-policy-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/skill-loading-policy-assets.test.ts"
+      ],
+      "checkpointSha": "990d0942bfe91e2b6e6cfad574279759d936b756",
+      "completedAt": "2026-05-23T03:59:45.735Z",
+      "completed_at": "2026-05-23T03:59:45.735Z",
+      "notes": "Contract and repo verification completed. The only validation warning is expected NO_DELTAS because this change updates tracked spec assets directly rather than registering ADV deltas.",
+      "error_recovery": {
+        "last_error": "pnpm run check initially failed format:check on src/skill-loading-policy-assets.test.ts.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further retry needed; verification passed after Prettier formatting.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "prettier --check reported src/skill-loading-policy-assets.test.ts formatting issues.",
+            "diagnosis": "New/updated test file needed standard formatting after added split-load assertions.",
+            "fix_tried": "Ran pnpm exec prettier --write src/skill-loading-policy-assets.test.ts and reran pnpm run check.",
+            "strategy_label": "format-fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T03:57:40.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T03:59:55.996Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-emm2_B",
+      "type": "gotcha",
+      "content": "For targeted Vitest evidence in plugin/, prefer `pnpm exec vitest run <file>` over `pnpm test -- <file>` when exact file selection matters; the latter can still run broader suites and surface unrelated integration timeouts.",
+      "source_task": "tk-0117cd2a5afa",
+      "recorded_at": "2026-05-23T03:51:52.300Z"
+    },
+    {
+      "id": "ws-q6pnkL",
+      "type": "pattern",
+      "content": "For command skill-ref asset tests, fallback/degradation assertions should be scoped near each skill reference, not file-wide, so additional refs in the same command cannot accidentally inherit unrelated fallback wording.",
+      "source_task": "tk-867de654b848",
+      "recorded_at": "2026-05-23T04:07:35.026Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-23T03:04:18.067Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal inline with Tier A reply: continue.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/proposal.md",
+        "content_hash": "bf554e16e389cb75593063fb19ddb9a9d073f2da81a746087597f652eb024bb0",
+        "non_whitespace_chars": 6321,
+        "checked_at": "2026-05-23T03:04:18.136Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-23T03:21:51.754Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings persisted; acceptance criteria approved by user reply `approve`; agreement persisted and ChangeContract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/agreement.md",
+        "content_hash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "non_whitespace_chars": 3224,
+        "checked_at": "2026-05-23T03:21:51.835Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-23T03:32:05.046Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted; design leverage scout executed; independent validator returned CAUTION; caution findings incorporated; no unresolved conflict, user-value tradeoff, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/design.md",
+        "content_hash": "3e6d00468cb519762dbd185daadc87ac20302b506e4cec28a626032ad787b75c",
+        "non_whitespace_chars": 8579,
+        "checked_at": "2026-05-23T03:32:05.089Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-23T03:39:49.879Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with reply `approve`; task graph contains 6 tasks with contract refs and validation passed with warning only (NO_DELTAS, expected before implementation)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-23T04:00:11.412Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 implementation/verification tasks done. Verification evidence: targeted asset tests passed (89 tests); strict ADV validation passed with NO_DELTAS warning only; pnpm run check passed; pnpm test passed; pnpm run build passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-23T04:10:27.714Z",
+      "completed_by": "user:accepted delivered work",
+      "approval_evidence": "User accepted delivered work with Tier A reply `accept`. Review verdict APPROVED; contract review matrix has 28 rows with 0 failing; executive summary persisted and verified.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/acceptance.md",
+        "content_hash": "7fe288b2fa42848c2ead8b416ca81f1b45581df63199d4f84e35675fa65abf9f",
+        "non_whitespace_chars": 6227,
+        "checked_at": "2026-05-23T04:10:27.881Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 1,
+    "source_artifact": "conversation:skill-loading-pattern"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+      "approvedAt": "2026-05-23T03:21:32.307Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Define a command/skill loading taxonomy that distinguishes orchestrator-only, worker-only, split, and inlined-agent-methodology patterns.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Inventory and classify every command `skill(...)` reference, including dynamic skill discovery and missing/external skill references.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Preserve orchestrator-owned authority for ADV state, gates, user checkpoints, adoption/routing, and mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Move or route worker-only methodology to worker context only when skill-tool availability and fallback behavior are machine-checkable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Add asset/spec tests for taxonomy compliance, phantom skill references, fallback/degradation requirements, and worker skill-availability assumptions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Preserve existing opportunity-scout semantics while reducing main-context load for worker-only prompt content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`ADV_INSTRUCTIONS.md` documents taxonomy: main-only, worker-only, split, and `inlined-agent-methodology` when optimal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "All `.opencode/command/*.md` `skill(...)` references are inventoried and classified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Stale or missing skill refs are removed if unused; otherwise they are fixed or explicitly allowlisted with rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Worker self-load is allowed only when tests verify no explicit deny and fallback behavior exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Orchestrator retains state, gate, user-checkpoint, adoption/routing, and mutation authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Existing scout semantics remain: ≤5 candidates, evidence required, strict schema, narrow auto-adopt only, and INCONCLUSIVE degradation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Asset/spec tests fail on taxonomy violations, phantom skill refs, missing fallback, or unsafe worker-load assumptions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not change the seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not replace or rename existing ADV sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not weaken structured output or report requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not remove fallback or degradation paths for skill-backed commands.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not allow nested sub-agent delegation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep skills read-only guidance; skills do not own ADV mutations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not let sub-agents own ADV gate completion, state mutation, or user checkpoint routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not auto-adopt sub-agent recommendations without orchestrator-owned routing rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not rely on prose-only policy without asset/spec tests where machine checks are possible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not leave stale or missing skill references unclassified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not preserve duplicate skill-vs-agent-prompt methodology without a classification or drift-control decision.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Replacing or renaming existing ADV sub-agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing the seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Global prompt optimization unrelated to command/skill loading boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Runtime token accounting or context-window measurement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-23T04:07:30.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "ADV_INSTRUCTIONS.md documents load-site taxonomy; skill-loading asset test asserts taxonomy values.",
+          "notes": "orchestrator-only, worker-only, split, inlined-agent-methodology present."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/skill-loading-policy-assets.test.ts inventories literal .opencode/command/*.md skill(...) refs and compares scanned refs to SKILL_REF_INVENTORY.",
+          "notes": "Dynamic placeholders excluded by explicit DYNAMIC_SKILL_REFS."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-discover.md/adv-design.md split-load wording keeps schema, routing, fallback/degradation, adoption, and ADV mutations with orchestrator.",
+          "notes": "Reviewer approved authority boundary."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "skill-loading-policy-assets.test.ts checks worker targets have no explicit skill:false and commands include fallback/degradation; scout commands define worker skill-load unavailable as inconclusive.",
+          "notes": "Permissive no-explicit-deny model implemented."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm exec vitest run src/skill-loading-policy-assets.test.ts src/adv-autonomy-quality-assets.test.ts src/adv-skill-backed-commands-assets.test.ts passed (89 tests).",
+          "notes": "Covers taxonomy, phantom refs, fallback locality, worker no-deny, scout split-load."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-opportunity-scout skill and scout command/spec wording preserve ≤5 candidates, evidence, strict schema, narrow auto-adopt, and INCONCLUSIVE degradation.",
+          "notes": "Reviewer approved scout semantics."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "skill-loading-policy-assets.test.ts asserts ADV_INSTRUCTIONS contains Load site plus all four taxonomy values.",
+          "notes": "Accepted taxonomy names present."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "skill-loading-policy-assets.test.ts scans command files and requires scanned literal refs equal SKILL_REF_INVENTORY.",
+          "notes": "All .opencode/command/*.md literal refs covered."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "skill-loading-policy-assets.test.ts verifies literal command skill refs resolve to shipped repo skills; grep found no command refs to skill(\"prioritizer\") or skill(\"global-verify\").",
+          "notes": "global-verify removed from ship command; prioritizer command ref replaced with embedded protocol wording."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "worker load-site asset test rejects explicit skill:false for worker agents and fallback/degradation tests pass; scout commands include worker skill-load unavailable degradation.",
+          "notes": "No explicit worker skill deny found."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review confirmed no skill/worker wording owns ADV gates, state mutation, user checkpoints, or adoption routing.",
+          "notes": "Commands retain ownership."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-autonomy-quality-assets.test.ts and skill-loading tests pass; skill docs retain ≤5, evidence, ScoutCandidate schema, narrow auto-adopt, INCONCLUSIVE.",
+          "notes": "Scout semantics preserved."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New asset tests fail on missing taxonomy values, inventory drift, phantom shipped-skill mismatch, missing nearby fallback, explicit worker skill denial, and missing scout split-load wording.",
+          "notes": "Reviewer strengthened fallback locality per skill ref."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No gate lifecycle code or command sequence changed; only docs/spec/test/skill command wording changed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No sub-agent files renamed/replaced; scout continues to use adv-researcher and adv-tron remains existing agent.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "ScoutCandidate 8-field schema and REVIEWER_REPORT expectations preserved; tests assert schema wording remains.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Fallback/degradation tests pass; reviewer strengthened fallback checks to be near each skill ref.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No command or skill adds nested sub-agent delegation; scout remains one adv-researcher spawn under orchestrator.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Skills remain read-only guidance; adv-opportunity-scout explicitly says commands own mutations.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Split-load wording explicitly keeps gates/state/checkpoints/adoption/mutations with orchestrator.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scout routing still auto-adopts only narrow low-risk contract-tied candidates; all other candidates surface to user.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Structural asset tests enforce taxonomy, phantom refs, fallback/degradation, worker-deny, and scout split-load.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Inventory plus shipped-skill test fails stale/missing literal command skill refs; prioritizer/global-verify command refs removed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-tron classified as inlined-agent-methodology; scout classified split; embedded methodology rows documented.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Not in scope; no sub-agent replacement/rename performed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Not in scope; seven-gate lifecycle unchanged.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Not in scope; changes limited to command/skill boundaries and tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Not in scope; no runtime token accounting added.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`ADV_INSTRUCTIONS.md` documents taxonomy: main-only, worker-only, split, and `inlined-agent-methodology` when optimal.",
+    "All `.opencode/command/*.md` `skill(...)` references are inventoried and classified.",
+    "Stale or missing skill refs are removed if unused; otherwise they are fixed or explicitly allowlisted with rationale.",
+    "Worker self-load is allowed only when tests verify no explicit deny and fallback behavior exists.",
+    "Orchestrator retains state, gate, user-checkpoint, adoption/routing, and mutation authority.",
+    "Existing scout semantics remain: ≤5 candidates, evidence required, strict schema, narrow auto-adopt only, and INCONCLUSIVE degradation.",
+    "Asset/spec tests fail on taxonomy violations, phantom skill refs, missing fallback, or unsafe worker-load assumptions."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/proposal.md",
+      "updatedAt": "2026-05-23T04:09:40.698Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/problem-statement.md",
+      "updatedAt": "2026-05-23T04:09:40.713Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/agreement.md",
+      "updatedAt": "2026-05-23T04:09:40.741Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/design.md",
+      "updatedAt": "2026-05-23T04:09:40.777Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/executive-summary.md",
+      "updatedAt": "2026-05-23T04:09:40.827Z"
+    }
+  },
+  "lastSignalAt": "2026-05-23T04:10:27.714Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-23T02:55:07.560Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

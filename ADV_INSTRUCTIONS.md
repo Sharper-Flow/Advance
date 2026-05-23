@@ -854,30 +854,37 @@ When all trigger conditions are true, "no matches" → conditional creation trig
 
 <!-- rq-skillProseCompression01 rq-skillClassification01 -->
 
-Commands own workflow/state. Skills hold reusable read-only methodology.
+Commands own workflow/state, user-facing invocation, mutation, gate completion. Skills hold reusable read-only methodology, domain knowledge, and command/sub-agent-loaded protocol.
 
-| Command                 | Skill                         |
-| ----------------------- | ----------------------------- |
-| User-facing entry point | Reusable protocol             |
-| Mutates ADV state       | Read-only guidance            |
-| Owns gate completion    | Loaded by commands/sub-agents |
-| Explicit invocation     | Domain knowledge              |
+### Load-site taxonomy
+
+| Load site | Meaning / fallback |
+| --------- | ------------------ |
+| `orchestrator-only` | Main command loads skill for checkpoints/routing/gates; command embeds fallback. |
+| `worker-only` | Worker loads methodology for self-contained work; orchestrator defines degraded/inconclusive handling before spawn. |
+| `split` | Orchestrator owns schema/routing/fallback/adoption/mutation; worker gets methodology detail; no auto-adopt beyond routing. |
+| `inlined-agent-methodology` | Agent prompt carries methodology; skill mirrors/documents sync; command fallback remains and no extra worker delegation. |
+
+Worker skill-load availability is permissive: guard explicit `skill: false`, not missing `skill: true`; missing exposure degrades via command fallback.
 
 ### Reference Pattern
-
-`adv-tron` pattern: command (`.opencode/command/adv-tron.md`) owns orchestration/state/user interaction; skill (`skills/adv-tron/SKILL.md`) owns protocol/search/report schema; command embeds fallback if skill missing. Fan-out commands should load skill before spawning and keep inline fallback is required.
+`adv-tron` pattern: command owns orchestration/state/user interaction; skill owns protocol/search/report schema; command embeds fallback. Fan-out commands load skill before spawning and keep inline fallback is required.
 
 ### Classification
 
-| Class                | Commands                                                                                                                                                                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Command-only         | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status`, `adv-design`                                                                                                             |
-| Dedicated skill      | `adv-tron` → `adv-tron`; `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor`; `adv-arch-scan` → `adv-arch-detection` |
-| Shared skill         | `adv-harden`, `adv-slop-scan` → `adv-slop-detection`                                                                                                                                                                                         |
-| Embedded methodology | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology                                                                                  |
-| Dynamic discovery    | `adv-discover`, `adv-research`                                                                                                                                                                                                               |
+| Class | Commands | Load site |
+| ----- | -------- | --------- |
+| Command-only | `adv-idea`, `adv-problem`, `adv-proposal`, `adv-research`, `adv-task`, `adv-validate`, `adv-archive`, `adv-status` | — |
+| Dedicated skill | `adv-triage` → `adv-triage`; `adv-reflect` → `adv-reflect`; `adv-cleanup` → `adv-cleanup`; `adv-improve` → `adv-improve`; `adv-clarify` → `adv-clarify`; `adv-arch-scan` → `adv-arch-detection` | `orchestrator-only` |
+| Dedicated skill with worker execution | `adv-audit` → `adv-audit`; `adv-refactor` → `adv-refactor` | `split` |
+| Scout skill | `adv-discover`, `adv-design` → `adv-opportunity-scout` | `split` |
+| User comparison skill | `adv-design` → `adv-user-intuit` | `orchestrator-only` |
+| Shared skill | `adv-harden`, `adv-slop-scan` → `adv-slop-detection` | `split` |
+| Dedicated agent + skill | `adv-tron` → `adv-tron` | `inlined-agent-methodology` |
+| Embedded methodology | `adv-discover`, `adv-prep`, `adv-apply`, `adv-review`; `adv-harden` keeps embedded harden guidance alongside shared `adv-slop-detection` scanner methodology | — |
+| Dynamic discovery | `adv-discover`, `adv-research` (`skill("agent-{domain}")` placeholder only) | `orchestrator-only` |
 
-> **Stale-reference note:** `adv-review-methodology` and `adv-harden-methodology` skills were inlined and deleted. Calls to `skill("adv-review-methodology")` or `skill("adv-apply-methodology")` are stale/hallucinated references — read the command file's Phase 0 section instead.
+> **Stale-reference note:** `adv-review-methodology`, `adv-harden-methodology`, and `global-verify` are not shipped command skills. Calls to `skill("adv-review-methodology")`, `skill("adv-apply-methodology")`, or `skill("global-verify")` are stale/hallucinated command references — use the command's embedded protocol instead. `prioritizer` remains an optional inline skill/protocol outside command skill loading; command files use the embedded Tradeoff Prioritizer Protocol instead of a command-level `skill("prioritizer")` reference.
 
 ### Constraints
 

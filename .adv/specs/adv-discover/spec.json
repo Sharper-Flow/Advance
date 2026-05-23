@@ -716,7 +716,7 @@
     {
       "id": "rq-discOpportunityScout01",
       "title": "Mandatory Discovery Opportunity Scout",
-      "body": "/adv-discover MUST execute a bounded Discovery Opportunity Scout pass (Phase 3.5) for every full proposal workflow after current-state research (Phase 3) and before agreement formation (Phase 4). The scout uses the adv-opportunity-scout skill in discovery mode, spawns adv-researcher, and returns \u22645 structured candidates. The scout phase MUST include an INCONCLUSIVE degradation path (skill unavailable, sub-agent failure, empty output). Trivially scoped changes MAY skip the scout with documented rationale. The orchestrator routes adoption per the skill's taxonomy: auto-adopt only when contract-tied, low risk, and no user-value tradeoff; surface all others to user.",
+      "body": "/adv-discover MUST execute a bounded Discovery Opportunity Scout pass (Phase 3.5) for every full proposal workflow after current-state research (Phase 3) and before agreement formation (Phase 4). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in discovery mode for worker methodology. It returns \u22645 structured candidates. The scout phase MUST include an INCONCLUSIVE degradation path (worker skill-load unavailable, sub-agent failure, empty output). Trivially scoped changes MAY skip the scout with documented rationale. The orchestrator routes adoption per the skill's taxonomy: auto-adopt only when contract-tied, low risk, and no user-value tradeoff; surface all others to user.",
       "priority": "must",
       "tags": [
         "discover",
@@ -734,8 +734,8 @@
           ],
           "when": "Phase 3.5 executes",
           "then": [
-            "The adv-opportunity-scout skill is loaded in discovery mode",
-            "adv-researcher is spawned with discovery-mode prompt",
+            "The orchestrator prepares schema, routing, fallback/degradation, and adoption rules",
+            "adv-researcher is spawned with discovery-mode prompt and may load adv-opportunity-scout in worker context",
             "\u22645 candidates are returned with 8-field ScoutCandidate schema",
             "Candidates are sorted by payoff/risk ratio",
             "Adoption is routed per taxonomy (auto-adopt narrow, surface others)"
@@ -745,7 +745,7 @@
           "id": "rq-discOpportunityScout01.2",
           "title": "Scout degradation proceeds without blocking",
           "given": [
-            "The scout skill is unavailable",
+            "Worker skill-load is unavailable",
             "Or adv-researcher returns empty/malformed output",
             "Or adv-researcher times out"
           ],
@@ -772,7 +772,7 @@
     {
       "id": "rq-discOpportunityScout02",
       "title": "Scout Uses Existing adv-researcher",
-      "body": "The Discovery Opportunity Scout MUST use the existing adv-researcher sub-agent for research execution. No new sub-agent identity MAY be introduced for scouting. The scout skill provides methodology (output schema, routing taxonomy, prompt templates) as read-only guidance; commands retain workflow and state ownership.",
+      "body": "The Discovery Opportunity Scout MUST use the existing adv-researcher sub-agent for research execution. No new sub-agent identity MAY be introduced for scouting. The scout skill provides read-only worker methodology; commands retain workflow, schema, routing, fallback, adoption, and state ownership.",
       "priority": "must",
       "tags": [
         "discover",

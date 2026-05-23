@@ -50,9 +50,9 @@ Run a mandatory bounded leverage-scout pass after draft design and before indepe
 
 ### Execution
 
-1. **Load scout skill** — `skill("adv-opportunity-scout")` with mode `design`. If skill unavailable, record "Scout skill unavailable; skipping leverage scan" and proceed.
+1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
 2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, draft design content (Phase 2 output), and prior-consideration data from discovery's conflict scan.
-3. **Spawn adv-researcher** — use the design-mode prompt template from the skill. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
+3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `design` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
 4. **Sort candidates** — by payoff/risk ratio (highest first).
 5. **Route adoption** per the skill's routing taxonomy:
    - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
@@ -65,7 +65,7 @@ The scout phase may be skipped with rationale for trivially scoped changes where
 
 ### Degradation
 
-If adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
 
 ### Output
 

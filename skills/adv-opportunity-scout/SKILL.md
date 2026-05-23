@@ -21,7 +21,7 @@ metadata:
 
 ## Purpose
 
-Bounded scout methodology for `/adv-discover` Phase 3.5 and `/adv-design` Phase 2.5. Owns protocol, schema, routing, prompt templates, degradation. Commands own workflow/state/gates.
+Bounded scout methodology for `/adv-discover` Phase 3.5 and `/adv-design` Phase 2.5. Split-load pattern: commands own workflow/state/gates, schemas, routing, fallback, adoption, and mutations; worker context may load this skill for methodology detail.
 
 ## Modes
 
@@ -33,7 +33,7 @@ Bounded scout methodology for `/adv-discover` Phase 3.5 and `/adv-design` Phase 
 ## Execution Protocol
 
 1. **Load context** — proposal, agreement (objectives, AC, constraints, avoidances), current-state findings or draft design, conflict-scan prior_consideration, change ID.
-2. **Spawn adv-researcher** — existing `adv-researcher` with mode prompt below.
+2. **Spawn adv-researcher** — existing `adv-researcher`; worker loads `skill("adv-opportunity-scout")` when available or uses command-embedded schema/routing fallback.
 3. **Collect candidates** — structured output schema; hard cap ≤5.
 4. **Sort** — payoff/risk ratio; high payoff + low risk first.
 5. **Route** — taxonomy below.
