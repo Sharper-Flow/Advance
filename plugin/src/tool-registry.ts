@@ -19,7 +19,10 @@
 import { tool, type ToolContext, type ToolResult } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
-import { formatToolArgPreflightError } from "./utils/tool-arg-preflight";
+import {
+  formatToolArgPreflightError,
+  preflightToolArgs,
+} from "./utils/tool-arg-preflight";
 import { formatAdvToolTitle } from "./utils/tool-title";
 import type { Store } from "./storage/store-types";
 import type { OpencodeClient } from "./utils/opencode-types";
@@ -131,15 +134,16 @@ export function registerTool(
       };
     };
 
+    let argsForExecute = rawArgs;
     if (toolName) {
-      const validationError = formatToolArgPreflightError(
-        toolName,
-        args,
-        rawArgs,
-      );
+      const preflight = preflightToolArgs(toolName, args, rawArgs);
+      const validationError = preflight.ok
+        ? undefined
+        : formatToolArgPreflightError(toolName, args, rawArgs);
       if (validationError) return wrapResult(validationError);
+      argsForExecute = preflight.normalizedArgs;
     }
-    return wrapResult(await execute(rawArgs, contextOrExtra));
+    return wrapResult(await execute(argsForExecute, contextOrExtra));
   };
 
   return tool({

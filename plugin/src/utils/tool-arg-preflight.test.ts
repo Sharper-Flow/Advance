@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import {
   formatToolArgPreflightError,
+  preflightToolArgs,
   validateToolArgsBeforeExecute,
 } from "./tool-arg-preflight";
 
@@ -21,7 +22,44 @@ describe("tool arg preflight", () => {
       ok: false,
       missing: ["requiredName"],
       invalid: [],
+      normalizedArgs: {},
     });
+  });
+
+  test("returns normalized args for omission-equivalent placeholder policies", () => {
+    const result = preflightToolArgs(
+      "adv_change_create",
+      {
+        summary: z.string(),
+        scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
+      },
+      { summary: "Add rate limiting", scope_repos: [] },
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      missing: [],
+      invalid: [],
+      normalizedArgs: { summary: "Add rate limiting" },
+    });
+  });
+
+  test("keeps reject-only placeholder policies out of normalized args", () => {
+    const result = preflightToolArgs(
+      "adv_run_test",
+      {
+        taskId: z.string(),
+        command: z.string(),
+      },
+      { taskId: "tk-1", command: "   " },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.invalid).toContainEqual({
+      field: "command",
+      message: "command must be a non-blank string.",
+    });
+    expect(result.normalizedArgs).toEqual({ taskId: "tk-1", command: "   " });
   });
 
   test("reports nested field validation errors for present objects", () => {

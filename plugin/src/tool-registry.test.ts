@@ -202,6 +202,30 @@ describe("createDegradedToolMap parity with createToolMap", () => {
       }),
     );
   });
+
+  test("registry passes normalized preflight args into execute", async () => {
+    let receivedArgs: unknown;
+    const execute = async (args: unknown) => {
+      receivedArgs = args;
+      return JSON.stringify({ ok: true });
+    };
+    (execute as { __advToolName?: string }).__advToolName = "adv_change_create";
+    const registered = registerTool(
+      "test",
+      {
+        summary: z.string(),
+        scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
+      },
+      execute,
+    );
+
+    await registered.execute(
+      { summary: "Add rate limiting", scope_repos: [] },
+      {} as any,
+    );
+
+    expect(receivedArgs).toEqual({ summary: "Add rate limiting" });
+  });
 });
 
 describe("KD-8 worktree + session tool registrations", () => {

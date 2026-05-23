@@ -255,7 +255,7 @@ describe("ensureWorktreeForMutation — block_only mode", () => {
 // ===========================================================================
 
 describe("ensureWorktreeForMutation — auto_manage mode (existing worktree)", () => {
-  it("BLOCK with expectedWorktreePath when lookup returns an existing path", async () => {
+  it("ALLOW when lookup returns an existing path (worktree ready, no CWD block needed)", async () => {
     const attachments: unknown[] = [];
     const result = await ensureWorktreeForMutation({
       change: autoManagedChange(),
@@ -269,13 +269,8 @@ describe("ensureWorktreeForMutation — auto_manage mode (existing worktree)", (
       },
     });
     expect(result).toMatchObject({
-      decision: "BLOCK",
-      errorClass: "WorktreeIsolationViolation",
-      mainCheckoutPath: "/repo/main",
-      expectedWorktreePath: "/repo/wt/autoManagedChange",
+      decision: "ALLOW",
     });
-    expect(result.remediation).toContain("/repo/wt/autoManagedChange");
-    expect(result.remediation).not.toContain("adv_gate_complete");
     // Existing-path lookup also fires the attachment hook so the projection
     // re-syncs even if a peer session created the worktree out-of-band.
     expect(attachments).toEqual([
@@ -306,7 +301,7 @@ describe("ensureWorktreeForMutation — auto_manage mode (auto-create success)",
     return { resume: vi.fn().mockResolvedValue(expected), expected };
   }
 
-  it("BLOCK with expectedWorktreePath after advWorktreeResume succeeds", async () => {
+  it("ALLOW after advWorktreeResume succeeds (worktree ready, no CWD block needed)", async () => {
     const { resume } = makeResumeOk();
     const attachments: unknown[] = [];
     const result = await ensureWorktreeForMutation({
@@ -327,10 +322,7 @@ describe("ensureWorktreeForMutation — auto_manage mode (auto-create success)",
       fakeRuntime,
     );
     expect(result).toMatchObject({
-      decision: "BLOCK",
-      errorClass: "WorktreeIsolationViolation",
-      mainCheckoutPath: "/repo/main",
-      expectedWorktreePath: "/repo/wt/freshly-created",
+      decision: "ALLOW",
     });
     expect(attachments).toEqual([
       {
@@ -362,9 +354,7 @@ describe("ensureWorktreeForMutation — auto_manage mode (auto-create success)",
         },
       },
     });
-    expect(result.expectedWorktreePath).toBe(
-      "/target-project/wt/autoManagedChange",
-    );
+    expect(result.decision).toBe("ALLOW");
     expect(attachments[0]).toMatchObject({ role: "target" });
   });
 
@@ -396,7 +386,7 @@ describe("ensureWorktreeForMutation — auto_manage mode (auto-create success)",
     });
   });
 
-  it("ALLOW result blocking still works when onAttached throws (warns, does not regress to ALLOW)", async () => {
+  it("ALLOW result when onAttached throws (warns, still allows since worktree is ready)", async () => {
     const { resume } = makeResumeOk();
     const warnings: string[] = [];
     const result = await ensureWorktreeForMutation({
@@ -412,8 +402,7 @@ describe("ensureWorktreeForMutation — auto_manage mode (auto-create success)",
         onWarning: (msg) => warnings.push(msg),
       },
     });
-    expect(result.decision).toBe("BLOCK");
-    expect(result.expectedWorktreePath).toBe("/repo/wt/freshly-created");
+    expect(result.decision).toBe("ALLOW");
     expect(warnings.some((w) => w.includes("onAttached hook"))).toBe(true);
   });
 });

@@ -197,7 +197,7 @@ describe("evaluateTaskUpdateWorktreeIsolation", () => {
 // =============================================================================
 
 describe("evaluateTaskAddWorktreeIsolation (auto_manage mode, AC5)", () => {
-  test("auto-managed change BLOCKs with expectedWorktreePath on auto-create", async () => {
+  test("auto-managed change ALLOWs after auto-create succeeds", async () => {
     const resume = vi.fn().mockResolvedValue({
       ok: true,
       branch: "change/autoManaged",
@@ -215,9 +215,7 @@ describe("evaluateTaskAddWorktreeIsolation (auto_manage mode, AC5)", () => {
       autoManageDeps: { resume, resumeRuntime: fakeRuntime },
     });
     expect(result).toMatchObject({
-      decision: "BLOCK",
-      errorClass: "WorktreeIsolationViolation",
-      expectedWorktreePath: "/repo/wt/autoManaged",
+      decision: "ALLOW",
     });
   });
 
@@ -258,7 +256,7 @@ describe("evaluateTaskAddWorktreeIsolation (auto_manage mode, AC5)", () => {
 });
 
 describe("evaluateTaskUpdateWorktreeIsolation (auto_manage mode, AC5)", () => {
-  test("auto-managed change BLOCKs in_progress mutation with expectedWorktreePath", async () => {
+  test("auto-managed change ALLOWs in_progress mutation after auto-create", async () => {
     const resume = vi.fn().mockResolvedValue({
       ok: true,
       branch: "change/autoManaged",
@@ -277,9 +275,7 @@ describe("evaluateTaskUpdateWorktreeIsolation (auto_manage mode, AC5)", () => {
       autoManageDeps: { resume, resumeRuntime: fakeRuntime },
     });
     expect(result).toMatchObject({
-      decision: "BLOCK",
-      errorClass: "WorktreeIsolationViolation",
-      expectedWorktreePath: "/repo/wt/autoManaged",
+      decision: "ALLOW",
     });
   });
 
@@ -294,7 +290,7 @@ describe("evaluateTaskUpdateWorktreeIsolation (auto_manage mode, AC5)", () => {
     expect(result).toEqual({ decision: "ALLOW" });
   });
 
-  test("auto-managed change BLOCKs done update with expectedWorktreePath", async () => {
+  test("auto-managed change ALLOWs done update after auto-create", async () => {
     const resume = vi.fn().mockResolvedValue({
       ok: true,
       branch: "change/autoManaged",
@@ -312,8 +308,7 @@ describe("evaluateTaskUpdateWorktreeIsolation (auto_manage mode, AC5)", () => {
       getSessionContext: mainCtx,
       autoManageDeps: { resume, resumeRuntime: fakeRuntime },
     });
-    expect(result.decision).toBe("BLOCK");
-    expect(result.expectedWorktreePath).toBe("/repo/wt/autoManaged");
+    expect(result.decision).toBe("ALLOW");
   });
 });
 
@@ -351,7 +346,7 @@ describe("evaluateTask*WorktreeIsolation (AC4 D1/D2 role propagation)", () => {
         },
       },
     });
-    expect(result.expectedWorktreePath).toBe("/target-project/wt/autoManaged");
+    expect(result.decision).toBe("ALLOW");
     expect(attachments[0]).toMatchObject({
       changeId: "autoManaged",
       role: "target",

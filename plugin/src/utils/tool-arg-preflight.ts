@@ -13,7 +13,17 @@ export interface ToolArgPreflightResult {
   ok: boolean;
   missing: string[];
   invalid: ToolArgPreflightIssue[];
+  normalizedArgs: Record<string, unknown>;
 }
+
+type PlaceholderPolicyAction = "reject" | "omit" | "allow";
+
+interface PlaceholderFieldPolicy {
+  blank?: PlaceholderPolicyAction;
+  emptyArray?: PlaceholderPolicyAction;
+}
+
+type FieldPolicyMap = Record<string, PlaceholderFieldPolicy>;
 
 type CrossFieldValidator = (
   args: Record<string, unknown>,
@@ -34,8 +44,57 @@ const BLANK_ARTIFACT_FIELD_MESSAGE =
 const BLANK_SOURCE_ARTIFACT_MESSAGE =
   "origin_source_artifact must be a non-blank string; omit it when there is no source artifact.";
 
+// rq-toolPlaceholderPolicy01 / rq-toolArgPreflightSingleSource01: preflight is
+// the pure/synchronous tool-boundary policy executor. Keep this table limited
+// to structural placeholder decisions; no fs/store/Temporal lookups here.
+const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
+  adv_change_create: {
+    scope_repos: { emptyArray: "omit" },
+  },
+  adv_run_test: {
+    command: { blank: "reject" },
+  },
+};
+
 function isBlankProvidedString(value: unknown): boolean {
   return typeof value === "string" && value.trim().length === 0;
+}
+
+function applyFieldPolicies(
+  toolName: string,
+  args: Record<string, unknown>,
+): {
+  invalid: ToolArgPreflightIssue[];
+  normalizedArgs: Record<string, unknown>;
+} {
+  const policies = FIELD_POLICIES[toolName] ?? {};
+  const invalid: ToolArgPreflightIssue[] = [];
+  const normalizedArgs: Record<string, unknown> = { ...args };
+
+  for (const [field, policy] of Object.entries(policies)) {
+    if (!(field in args)) continue;
+    const value = args[field];
+    if (isBlankProvidedString(value)) {
+      if (policy.blank === "omit") delete normalizedArgs[field];
+      if (policy.blank === "reject") {
+        invalid.push({
+          field,
+          message: `${field} must be a non-blank string.`,
+        });
+      }
+    }
+    if (Array.isArray(value) && value.length === 0) {
+      if (policy.emptyArray === "omit") delete normalizedArgs[field];
+      if (policy.emptyArray === "reject") {
+        invalid.push({
+          field,
+          message: `${field} must not be an empty array; omit it when there are no entries.`,
+        });
+      }
+    }
+  }
+
+  return { invalid, normalizedArgs };
 }
 
 const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
@@ -169,9 +228,20 @@ export function validateToolArgsBeforeExecute(
   argsSchema: ToolArgsSchema,
   rawArgs: unknown,
 ): ToolArgPreflightResult {
+  return preflightToolArgs(toolName, argsSchema, rawArgs);
+}
+
+// rq-toolArgPreflightSingleSource01: callers that need execution-safe args use
+// this entry point; formatToolArgPreflightError is only the presentation layer.
+export function preflightToolArgs(
+  toolName: string,
+  argsSchema: ToolArgsSchema,
+  rawArgs: unknown,
+): ToolArgPreflightResult {
   const args = asRecord(rawArgs);
+  const policyResult = applyFieldPolicies(toolName, args);
   const missing: string[] = [];
-  const invalid: ToolArgPreflightIssue[] = [];
+  const invalid: ToolArgPreflightIssue[] = [...policyResult.invalid];
 
   for (const [field, schema] of Object.entries(argsSchema)) {
     const isRequired = !schema.safeParse(undefined).success;
@@ -189,9 +259,16 @@ export function validateToolArgsBeforeExecute(
     }
   }
 
-  invalid.push(...(CROSS_FIELD_VALIDATORS[toolName]?.(args) ?? []));
+  invalid.push(
+    ...(CROSS_FIELD_VALIDATORS[toolName]?.(policyResult.normalizedArgs) ?? []),
+  );
 
-  return { ok: missing.length === 0 && invalid.length === 0, missing, invalid };
+  return {
+    ok: missing.length === 0 && invalid.length === 0,
+    missing,
+    invalid,
+    normalizedArgs: policyResult.normalizedArgs,
+  };
 }
 
 export function formatToolArgPreflightError(
@@ -199,7 +276,7 @@ export function formatToolArgPreflightError(
   argsSchema: ToolArgsSchema,
   rawArgs: unknown,
 ): string | undefined {
-  const result = validateToolArgsBeforeExecute(toolName, argsSchema, rawArgs);
+  const result = preflightToolArgs(toolName, argsSchema, rawArgs);
   if (result.ok) return undefined;
 
   return formatToolOutput({

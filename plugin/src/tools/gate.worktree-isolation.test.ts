@@ -141,7 +141,7 @@ describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
     expect(resume).not.toHaveBeenCalled();
   });
 
-  test("auto-manages BLOCK with expectedWorktreePath when no worktree yet", async () => {
+  test("auto-managed change allows when worktree is created via resume", async () => {
     const resume = vi.fn().mockResolvedValue({
       ok: true,
       branch: "change/autoManaged",
@@ -172,12 +172,8 @@ describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
       },
     });
     expect(result).toMatchObject({
-      decision: "BLOCK",
-      errorClass: "WorktreeIsolationViolation",
-      mainCheckoutPath: "/repo/main",
-      expectedWorktreePath: "/repo/wt/autoManaged",
+      decision: "ALLOW",
     });
-    expect(result.remediation).not.toContain("adv_gate_complete");
     expect(resume).toHaveBeenCalledOnce();
   });
 

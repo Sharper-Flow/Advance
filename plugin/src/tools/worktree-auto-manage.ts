@@ -239,9 +239,12 @@ export async function ensureWorktreeForMutation(
   }
 
   // auto_manage mode: try to surface an existing worktree path, else
-  // call advWorktreeResume to materialize one. Either way, the agent
-  // gets BLOCKED with `expectedWorktreePath` so it MUST re-run with
-  // workdir set — never silently proceed from main (KD-1a).
+  // call advWorktreeResume to materialize one. When the worktree already
+  // exists, ALLOW the mutation — the isolation purpose is to ensure mutations
+  // land in the right git context, and MCP tool callers cannot change their
+  // CWD mid-session. Blocking when the worktree is ready serves no purpose
+  // for state-transition operations (gate completion, task status updates).
+  // File-write operations (task checkpoint) have their own workdir handling.
   //
   // change is guaranteed defined here: activation === "auto_manage" implies
   // change.worktree_auto_managed === true, so change cannot be undefined.
@@ -249,11 +252,7 @@ export async function ensureWorktreeForMutation(
   const existing = await Promise.resolve(deps?.lookupExistingPath?.(changeId));
   if (existing) {
     await fireAttachment(deps, changeId, role, repoId, existing);
-    return blockWithExpectedPath({
-      mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
-      expectedWorktreePath: existing,
-      errorClass: "WorktreeIsolationViolation",
-    });
+    return { decision: "ALLOW" } as const;
   }
 
   const resumeImpl = deps?.resume ?? advWorktreeResume;
@@ -283,11 +282,7 @@ export async function ensureWorktreeForMutation(
 
   if (result.ok) {
     await fireAttachment(deps, changeId, role, repoId, result.path);
-    return blockWithExpectedPath({
-      mainCheckoutPath: ctx.mainCheckoutPath ?? cwd,
-      expectedWorktreePath: result.path,
-      errorClass: "WorktreeIsolationViolation",
-    });
+    return { decision: "ALLOW" } as const;
   }
 
   // Map advWorktreeResume failure variants to AC6 errorClass + code.
@@ -309,21 +304,6 @@ async function fireAttachment(
       `worktree-auto-manage: onAttached hook threw for ${changeId} ${role}${repoId ? `:${repoId}` : ""}: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
-}
-
-function blockWithExpectedPath(input: {
-  mainCheckoutPath: string;
-  expectedWorktreePath: string;
-  errorClass: WorktreeIsolationErrorClass;
-}): WorktreeIsolationResult {
-  return {
-    decision: "BLOCK",
-    errorClass: input.errorClass,
-    mainCheckoutPath: input.mainCheckoutPath,
-    expectedWorktreePath: input.expectedWorktreePath,
-    reason: `Worktree isolation: auto-managed change requires worktree mutation, not main checkout (${input.mainCheckoutPath}).`,
-    remediation: AUTO_MANAGE_REMEDIATION(input.expectedWorktreePath),
-  };
 }
 
 function autoCreateFailure(input: {
