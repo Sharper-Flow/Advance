@@ -42,6 +42,7 @@ It combines:
 - **7-gate delivery** — proposal → discovery → design → planning → execution → acceptance → release
 - **Temporal-backed orchestration** — durable change/task workflows that survive process and context loss
 - **MCP tool surface** — structured state mutation and inspection, not hidden chat memory
+- **Context engineering** — one coherent orchestrator, focused sub-agent packets for deep work
 - **TDD evidence capture** — red/green proof recorded on tasks
 - **Worktree isolation** — branch-local specs, shared external change state, safe parallel implementation
 - **Task checkpoint commits** — local rollback/audit commits before task completion
@@ -73,6 +74,10 @@ Many tools solve one slice of this problem. Some provide durable workflows. Some
 
 Advance is different because it balances all of those parts in one loop.
 
+The efficiency comes from **context engineering**. The user works with one primary `adv` agent that carries the full change contract. Deeper work is shed to sequential, bounded sub-agents with their own focused instructions, tool access, and output schemas. The orchestrator keeps the state, gates, user checkpoints, and final decisions.
+
+That is the harness engineering layer: not a bigger prompt, but a stronger operating harness around the agent.
+
 | Single-aspect approach               | What it helps with             | What it still misses                                              | Advance adds                                                         |
 | ------------------------------------ | ------------------------------ | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
 | Durable functions / workflow engines | Process survival               | Requirements, review, TDD proof, acceptance, archive              | Temporal-backed workflows bound to specs, gates, tasks, and evidence |
@@ -102,16 +107,16 @@ That combination is the product.
 
 Advance is an original implementation, but it is not an isolated idea. It owes a lot to projects that made agentic engineering more structured, durable, and spec-driven.
 
-| Project | What inspired Advance | How Advance builds on it |
+| Inspo tool | Technique / idea | Upgrade with Advance |
 | --- | --- | --- |
-| [Beads](https://github.com/steveyegge/beads) | Agent-friendly task memory, dependency-aware work graphs, ready-task discovery, and structured issue state instead of disposable Markdown plans. | Advance keeps the task graph idea, then binds tasks to a 7-gate change contract, TDD evidence, checkpoint commits, worktree isolation, and Temporal-backed workflows so task state survives crashes, context loss, and long-running execution. |
-| [Spec Kit](https://github.com/github/spec-kit) | Spec-driven development as a first-class workflow: define what to build, plan the implementation, generate tasks, then implement against structured artifacts. | Advance keeps the spec → design → task discipline, then adds durable gates, user checkpoints, typed MCP tools, contract review matrices, archive-time spec promotion, and runtime enforcement around planning, execution, acceptance, and release. |
-| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Lightweight proposal/change folders, agreed-before-build behavior, delta specs, design notes, task checklists, and archive as the moment where proposed behavior becomes durable specification. | Advance keeps the proposal/design/archive lineage, then makes the lifecycle stateful and auditable with Temporal orchestration, artifact-backed gate readiness, external ADV state shared across worktrees, and explicit review/harden/release controls. |
-| [OpenCode](https://github.com/anomalyco/opencode) | The host environment: local coding agents, slash-command workflows, plugins, sub-agents, and tool-mediated development inside the editor/terminal loop. | Advance runs inside OpenCode but narrows agent autonomy with spec law, gate contracts, tool-only state mutation, bounded delegation, worktree routing, and auditable evidence rather than relying on chat memory. |
-| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Zero-friction git worktrees for OpenCode agent sessions, including isolated directories, terminal spawning, sync, and cleanup. | Advance adopts the same core insight — agents need isolated workspaces — then binds worktrees to change gates, Temporal state, task checkpoints, branch-local specs, and archive-time merge safety. |
-| [Temporal](https://temporal.io/) | Durable workflow execution: long-running state machines, signal/query surfaces, recovery after process failure, and replay-safe orchestration. | Advance uses Temporal as the persistence spine for changes, tasks, gates, and recovery state, making agent work resumable across OpenCode restarts, compaction, failed workers, and multi-session handoffs. |
+| [Beads](https://github.com/steveyegge/beads) | Agent-friendly task memory, dependency graphs, ready-task discovery, structured issue state. | Binds tasks to gates, contracts, TDD evidence, checkpoint commits, worktrees, and Temporal recovery. |
+| [Spec Kit](https://github.com/github/spec-kit) | Spec-driven flow: define, plan, task, implement. | Adds durable gates, user checkpoints, MCP tools, contract review matrices, spec promotion, and release governance. |
+| [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Proposal/change folders, agreed-before-build behavior, deltas, design notes, archive-as-spec-promotion. | Makes the lifecycle stateful and auditable with Temporal, artifact readiness, shared ADV state, review, harden, and release controls. |
+| [OpenCode](https://github.com/anomalyco/opencode) | Local agent host, plugins, slash commands, sub-agents, tool-mediated development. | Adds context engineering: one primary orchestrator, bounded sub-agents, structured tools, gate contracts, and evidence capture. |
+| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Isolated OpenCode agent worktrees with terminal spawning, sync, and cleanup. | Makes worktrees part of the delivery contract: gate ownership, Temporal state, task checkpoints, branch-local specs, and safe archive merge. |
+| [Temporal](https://temporal.io/) | Durable workflow execution, signal/query state, replay-safe orchestration. | Uses Temporal as the persistence spine for changes, tasks, gates, recovery state, and multi-session handoffs. |
 
-The pattern is deliberate: take the strongest idea from each predecessor, then make it durable, inspectable, and enforceable enough for autonomous agents to use safely.
+The pattern is deliberate: take strong primitives from each predecessor, then vertically integrate them into one enforceable agent harness.
 
 ## Unique technical stack
 
@@ -122,6 +127,7 @@ Advance is intentionally unusual. It is not just commands around an LLM.
 | Host                  | OpenCode plugin                                     | Runs where coding agents already work                                              |
 | Runtime               | Bun host + Node worker path                         | Matches OpenCode runtime while supporting worker code that needs Node              |
 | Durable orchestration | Temporal workflows                                  | Recovers task/change state across crashes, compaction, and long-running work       |
+| Context engineering   | Primary orchestrator + bounded sub-agent packets    | Keeps user interaction coherent while shedding deep work to focused workers        |
 | Tool API              | MCP-style ADV tools                                 | State changes are explicit, typed, inspectable, and auditable                      |
 | Contracts             | `.adv/specs/` + proposal/agreement/design artifacts | Requirements become durable law, not chat context                                  |
 | Validation            | Zod v4 schemas + spec validators                    | Tool inputs and change state stay structured                                       |
@@ -225,11 +231,11 @@ Every `/adv-apply` task with file changes creates a local checkpoint through `ad
 Mutating work runs in per-change worktrees. ADV state is external and shared across worktrees; specs remain git-tracked and branch-local. That gives isolation without losing coordination.
 
 > [!TIP]
-> Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. The pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize; Advance adds gate ownership, Temporal-backed state, task checkpoints, branch-local specs, and archive finalization.
+> Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. This pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize. Advance adds gate ownership, Temporal state, task checkpoints, branch-local specs, and archive finalization.
 
 ### ACP-first roadmap
 
-An ACP-first version is planned, with [Zed](https://zed.dev/) as the editor surface we are most excited to use. We have not focused there first because OpenCode ACP still has blocking interaction bugs for ADV-style workflows — especially [`anomalyco/opencode#17920`](https://github.com/anomalyco/opencode/issues/17920), where the `question` tool hangs in ACP mode. Advance uses explicit human checkpoints for proposal, agreement, prep, acceptance, archive, and cancellation, so ACP needs reliable question/permission round-trips before it can be the primary path.
+An ACP-first version is planned, with [Zed](https://zed.dev/) as the editor surface we are most excited to use. OpenCode ACP still has blocking interaction bugs for ADV-style workflows — especially [`anomalyco/opencode#17920`](https://github.com/anomalyco/opencode/issues/17920), where the `question` tool hangs in ACP mode. Advance depends on reliable human checkpoints for proposal, agreement, prep, acceptance, archive, and cancellation, so ACP needs reliable question/permission round-trips first.
 
 Shoutout Zed editor. Can't wait to use you.
 
@@ -247,7 +253,7 @@ Optional CI-isolated conformance checks can verify specs from outside the agent�
 
 ### Prioritizer protocol
 
-When 2+ viable approaches depend on user values, Advance runs the prioritizer before asking. The tradeoff Prioritizer protocol is inline by default — the orchestrator agent researches tradeoffs, drafts criteria questions, and surfaces them via the prioritizer skill or inline question tool. Delegated sub-agents use the same protocol for task-level decisions.
+When 2+ viable approaches depend on user values, Advance runs the prioritizer before asking. The inline protocol researches tradeoffs, drafts criteria questions, and surfaces a concise choice through the orchestrator. Delegated sub-agents use the same protocol for task-level decisions.
 
 ## Command + skill architecture
 
@@ -262,11 +268,11 @@ This keeps methodology reusable without letting random helper prompts mutate wor
 
 ## Why one ADV agent, not one agent per role
 
-Advance exposes one canonical orchestrator agent (`adv`) instead of role-based agents like `planner`, `coder`, or `reviewer`. This is deliberate.
+Advance exposes one canonical orchestrator agent (`adv`) instead of role-based lifecycle agents like `planner`, `coder`, or `reviewer`. This is deliberate.
 
-**The problem with role agents:** Splitting the 7-gate lifecycle across agents means each agent only sees a slice of the workflow. The planner never sees how its design survives implementation. The coder never sees the acceptance criteria that govern review. The reviewer never sees the discovery evidence that shaped the agreement. Every handoff loses context — and context loss is the exact problem Advance exists to solve.
+**The problem with role agents:** Splitting the 7-gate lifecycle across agents means each agent only sees a slice of the workflow. The planner never sees how its design survives implementation. The coder never sees the acceptance criteria that govern review. The reviewer never sees the discovery evidence that shaped the agreement. Every handoff loses context.
 
-**The ADV orchestrator model:** A single ADV agent carries the full change lifecycle from proposal through archive. The agent sees the problem statement, the agreement, the design, the task graph, the implementation evidence, and the review findings in one continuous context. Provider-specific guidance is injected at runtime from structured provider/model identity, not from separate provider-named agents. When specialized work is needed, the orchestrator delegates to bounded sub-agents for a single task — not for an entire lifecycle phase.
+**The ADV orchestrator model:** A single ADV agent carries the full change lifecycle from proposal through archive. It sees the problem statement, agreement, design, task graph, implementation evidence, and review findings. Provider-specific guidance is injected at runtime from structured provider/model identity. When specialized work is needed, the orchestrator delegates to bounded sub-agents for one task — not an entire lifecycle phase.
 
 | Aspect | Role agents (planner / coder / reviewer) | Single ADV orchestrator |
 | --- | --- | --- |
@@ -276,11 +282,11 @@ Advance exposes one canonical orchestrator agent (`adv`) instead of role-based a
 | Model comparison | Hard — different agents run different phases | Same workflow, different models, directly comparable |
 | User model | "Which agent handles this phase?" | Use `adv`, get the full lifecycle |
 | Tool surface | Per-role tool subsets to maintain | Shared MCP tools, one policy layer |
-| Delegation | Role-to-role handoffs, no recovery | Scoped sub-agent tasks within a workflow |
+| Delegation | Role-to-role handoffs, no recovery | Scoped sub-agent tasks with structured reports |
 
-The sub-agent system still exists — `adv-engineer` handles delegated implementation, `adv-researcher` handles docs/examples and architecture validation, and `explore` scans code. But these are scoped tasks, not lifecycle phases. The orchestrator stays in the loop from start to finish.
+The sub-agent system still exists: `adv-engineer` implements, `adv-researcher` validates architecture/docs/examples, `adv-reviewer` remediates review/harden findings, and `explore` scans code. They are context-engineering tools, not owners of the lifecycle.
 
-This design also enables model competition: run the same change on two models and compare results. The gates, specs, tools, and evidence format are identical — only the reasoning varies.
+This also enables model comparison: run the same change on two models and compare outputs. Gates, specs, tools, and evidence stay identical; only the reasoning varies.
 
 ## Command reference
 
