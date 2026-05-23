@@ -52,14 +52,43 @@ const BLANK_SOURCE_ARTIFACT_MESSAGE =
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_create: {
     target_path: { blank: "reject" },
+    source_project: { blank: "reject" },
+    source_change_id: { blank: "reject" },
     parent_change_id: { blank: "reject", sentinels: "reject" },
     scope_repos: { emptyArray: "omit" },
   },
+  adv_change_list: {
+    target_path: { blank: "reject" },
+  },
+  adv_change_show: {
+    target_path: { blank: "reject" },
+  },
+  adv_change_update: {
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
+  },
   adv_run_test: {
     command: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
+  },
+  adv_task_show: {
+    target_path: { blank: "reject" },
+  },
+  adv_task_list: {
+    target_path: { blank: "reject" },
+  },
+  adv_task_ready: {
+    target_path: { blank: "reject" },
+  },
+  adv_task_update: {
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
   },
   adv_task_add: {
     content: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
   },
   adv_wisdom_add: {
     content: { blank: "reject" },
@@ -74,17 +103,26 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_task_cancel: {
     approvalEvidence: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
     reasons: { recordValuesBlank: "reject" },
     supersededBy: { recordValuesBlank: "reject" },
   },
   adv_task_reclassify_tdd: {
     reason: { blank: "reject" },
     approvalEvidence: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
+  },
+  adv_gate_status: {
+    target_path: { blank: "reject" },
   },
   adv_gate_complete: {
     completedBy: { blank: "reject" },
     notes: { blank: "reject" },
     compatibilityReason: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
   },
   adv_worktree_create: {
     branch: { blank: "reject" },
@@ -121,16 +159,27 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_contract_mint: {
     approvedAt: { blank: "reject" },
     recoveryEvidence: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
   },
   adv_contract_review_matrix_set: {
     reviewedAt: { blank: "reject" },
     recoveryEvidence: { blank: "reject" },
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
   },
   adv_temporal_register_search_attributes: {
     approvalEvidence: { blank: "reject" },
   },
+  adv_temporal_reconnect: {
+    target_path: { blank: "reject" },
+    confirmationEvidence: { blank: "reject" },
+  },
   adv_temporal_worker_restart: {
     approvalEvidence: { blank: "reject" },
+  },
+  adv_status: {
+    target_path: { blank: "reject" },
   },
 };
 

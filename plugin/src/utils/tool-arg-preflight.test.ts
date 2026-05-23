@@ -123,6 +123,30 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["source_change_id"],
   },
   {
+    label: "blank source project rejected even with target path",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Add source guard",
+      target_path: "/repo/target",
+      source_project: " ",
+    },
+    ok: false,
+    fields: ["source_project"],
+  },
+  {
+    label: "blank source change rejected even with target path",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Add source guard",
+      target_path: "/repo/target",
+      source_change_id: " ",
+    },
+    ok: false,
+    fields: ["source_change_id"],
+  },
+  {
     label: "parent sentinel rejected",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
@@ -228,6 +252,27 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     rawArgs: { recoveryEvidence: " " },
     ok: false,
     fields: ["recoveryEvidence"],
+  },
+  {
+    label: "blank target path rejected for target-aware read tool",
+    toolName: "adv_change_show",
+    rawArgs: { changeId: "c", target_path: " " },
+    ok: false,
+    fields: ["target_path"],
+  },
+  {
+    label: "blank target path rejected for target-aware mutation tool",
+    toolName: "adv_task_update",
+    rawArgs: { taskId: "tk-1", status: "done", target_path: " " },
+    ok: false,
+    fields: ["target_path"],
+  },
+  {
+    label: "blank target confirmation evidence rejected",
+    toolName: "adv_change_update",
+    rawArgs: { changeId: "c", proposal: "real", confirmationEvidence: " " },
+    ok: false,
+    fields: ["confirmationEvidence"],
   },
 ];
 
@@ -348,6 +393,11 @@ describe("tool arg preflight", () => {
       { changeId: "c", gateId: "design", completedBy: " " },
       "completedBy",
     ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", target_path: " " },
+      "target_path",
+    ],
     ["adv_worktree_create", { branch: " " }, "branch"],
     ["adv_worktree_resume", { changeId: " " }, "changeId"],
     ["adv_worktree_delete", { branch: " " }, "branch"],
@@ -356,6 +406,14 @@ describe("tool arg preflight", () => {
     ["adv_agenda_add", { title: " " }, "title"],
     ["adv_agenda_cancel", { itemId: "ag-1", reason: " " }, "reason"],
     ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
+    ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
+    [
+      "adv_run_test",
+      { taskId: "tk-1", command: "test", target_path: " " },
+      "target_path",
+    ],
+    ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
+    ["adv_status", { target_path: " " }, "target_path"],
     [
       "adv_temporal_register_search_attributes",
       { approvedByUser: true, approvalEvidence: " " },
