@@ -37,8 +37,6 @@ describe("gate worktree-impact classification", () => {
     ];
 
     expect(mutationGates.every(isWorktreeMutationGate)).toBe(true);
-    expect(mutationGates.every((gate) => !isMetadataOnlyGate(gate))).toBe(
-      true,
-    );
+    expect(mutationGates.every((gate) => !isMetadataOnlyGate(gate))).toBe(true);
   });
 });

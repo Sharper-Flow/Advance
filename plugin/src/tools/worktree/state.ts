@@ -662,6 +662,16 @@ function materializeChangeWorktreeRecord(
   };
 }
 
+function collectTouchedFilesFromState(state: ChangeWorkflowState): string[] {
+  const touched = new Set<string>();
+  for (const task of state.tasks ?? []) {
+    for (const file of task.touched_files ?? task.filesTouched ?? []) {
+      if (typeof file === "string" && file.length > 0) touched.add(file);
+    }
+  }
+  return [...touched];
+}
+
 export async function listWorktreesAcrossChanges(
   access: WorktreeStateAccess,
 ): Promise<WorktreesAcrossChangesResult> {
@@ -842,11 +852,10 @@ export async function getWorktreeRegistrySnapshot(
     }
 
     const changeId = state.changeId || listedChangeId;
+    const touchedFiles = collectTouchedFilesFromState(state);
     changeSummaries[changeId] = {
       ...(typeof state.status === "string" ? { status: state.status } : {}),
-      ...(Array.isArray(state.touched_files)
-        ? { touched_files: [...state.touched_files] }
-        : {}),
+      ...(touchedFiles.length > 0 ? { touched_files: touchedFiles } : {}),
     };
 
     for (const [branch, record] of Object.entries(state.worktrees ?? {})) {

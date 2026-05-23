@@ -42,10 +42,7 @@ vi.mock("../../utils/stale-head", () => ({
 }));
 
 import { triageWorktrees } from "./triage";
-import {
-  getWorktreeRegistrySnapshot,
-  getPendingDeletes,
-} from "./state";
+import { getWorktreeRegistrySnapshot, getPendingDeletes } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 
 const mockedRegistrySnapshot = vi.mocked(getWorktreeRegistrySnapshot);

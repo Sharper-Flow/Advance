@@ -11,7 +11,10 @@
  * - rq-multiSessionCoordination01 (Temporal serializes peer-session writes via signals)
  */
 
-import { initStateDb, getWorktreeRegistrySnapshot } from "../tools/worktree/state";
+import {
+  initStateDb,
+  getWorktreeRegistrySnapshot,
+} from "../tools/worktree/state";
 
 export interface MergeOrderEntry {
   changeId: string;

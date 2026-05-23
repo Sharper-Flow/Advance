@@ -234,7 +234,14 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     changeWorkflowQuery.mockResolvedValue({
       changeId: "change-a",
       status: "active",
-      touched_files: ["src/a.ts", "src/b.ts"],
+      tasks: [
+        {
+          id: "tk-a",
+          title: "Task A",
+          status: "done",
+          touched_files: ["src/a.ts", "src/b.ts"],
+        },
+      ],
       worktrees: {
         "change/change-a": {
           branch: "change/change-a",
