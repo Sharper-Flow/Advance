@@ -86,7 +86,9 @@ describe("release installation docs", () => {
     expect(readme).toContain("releases/latest/download/install.sh");
     expect(readme).toContain("| bash");
     expect(readme).toContain("downloads the latest GitHub Release artifact");
-    expect(readme).not.toContain("git clone https://github.com/Sharper-Flow/Advance.git\ncd Advance\n./scripts/deploy-local.sh --fix");
+    expect(readme).not.toContain(
+      "git clone https://github.com/Sharper-Flow/Advance.git\ncd Advance\n./scripts/deploy-local.sh --fix",
+    );
   });
 
   test("SETUP separates user install from maintainer setup and fallback paths", () => {
