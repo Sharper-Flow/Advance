@@ -140,6 +140,7 @@ Protocol: retry once → if still fails → inline analysis for that dimension �
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
+ATTEMPT: {attempt-number, starting at 1 for this spawned worker}
 AFFECTED FILES:
   - {file}: {one-line change summary}
   - ...
@@ -230,8 +231,8 @@ If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
 1. **Fix all blockers/issues** — no partial fix mode. Use the review step's conditional remediation routing; do not introduce ad-hoc workers.
-   - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect a fenced `REVIEWER_REPORT` JSON payload per `.opencode/agents/adv-reviewer.md`.
-   - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`.
+   - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect persisted `REVIEWER_REPORT` state submitted via `adv_subagent_report_submit` per `.opencode/agents/adv-reviewer.md`.
+   - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect persisted `ENGINEER_REPORT` state submitted via `adv_subagent_report_submit` per `.opencode/agents/adv-engineer.md`.
    - **Non-trivial fix research** (control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches) → spawn `adv-researcher` first, then implement through the appropriate remediation worker above.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 

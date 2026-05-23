@@ -477,11 +477,12 @@ Heuristic, not a hard rule. Prefer delegation when heavy; inline is fine otherwi
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
+ATTEMPT: {attempt-number, starting at 1 for this task delegation}
 AFFECTED FILES: {file list from task description — use VERIFIED paths from Phase 0.1 path verification, not assumed paths}
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
 ACCEPTANCE CRITERIA: {criteria relevant to this task}
-EXPECTED OUTPUT: implement the task, run tests, emit a fenced ENGINEER_REPORT JSON block per .opencode/agents/adv-engineer.md
+EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
 ```
 
 `PROJECT STRUCTURE` provides the sub-agent with a ground-truth file manifest so it can self-correct path assumptions. Populate it from the Phase 0.1 path verification output. Example: `"Directories: repositories/, api/schemas/, services/; Pattern files: repositories/base.py, api/schemas/analytics.py"`.

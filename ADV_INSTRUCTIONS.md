@@ -734,15 +734,15 @@ ADV code-writing → `adv-engineer` (not `general`). Verify-burst/non-ADV → `g
 
 ### Context Packet Standards
 
-Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
+Apply packet includes: WORKING DIRECTORY, CHANGE, TASK, ATTEMPT, AFFECTED FILES, DESIGN EXCERPT, ACCEPTANCE CRITERIA, EXPECTED OUTPUT.
 
 `WORKING DIRECTORY` required. `adv-engineer` passes it as `workdir` to every `bash`, `read`, `write`, `edit`, `morph_edit`, `adv_run_test`. See `.opencode/agents/adv-engineer.md § Working Directory Lock`.
 
-EXPECTED OUTPUT: implement, test, emit fenced `ENGINEER_REPORT` JSON per `.opencode/agents/adv-engineer.md`.
+EXPECTED OUTPUT: implement, test, call `adv_subagent_report_submit` with typed `ENGINEER_REPORT` per `.opencode/agents/adv-engineer.md`.
 
 #### ENGINEER_REPORT Payload
 
-Required keys: `schema_version`, `change_id`, `task_id`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (`what_ads_needs_to_know`, `suggested_next_action`). `agent` MUST equal `"adv-engineer"`. Schema: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
+Required keys: `schema_version`, `change_id`, `task_id`, `attempt`, `agent`, `scope`, `status`, `files_touched`, `verification`, `decisions`, `blockers`, `follow_ups`, `related_scan`, `workdir_used`, `context_update_for_adv` (`what_ads_needs_to_know`, `suggested_next_action`). `agent` MUST equal `"adv-engineer"`. Schema: `.opencode/agents/adv-engineer.md` § ENGINEER_REPORT Payload.
 
 ### Structured Sub-Agent Prompt Protocol
 
@@ -768,8 +768,8 @@ Primary agents: `adv`, `plan`, `build`, `adv-atc` (not spawnable). Spawnable: gl
 | --- | --- |
 | `explore` | Code navigation, scoped read-only scans |
 | `adv-researcher` | Docs/API/examples research + architecture validation; independent validator |
-| `adv-engineer` | Delegated ADV code-writing; must use packet `workdir` |
-| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; emits `REVIEWER_REPORT` |
+| `adv-engineer` | Delegated ADV code-writing; must use packet `workdir`; submits typed report |
+| `adv-reviewer` | `/adv-review` and `/adv-harden` analysis/remediation; submits typed report |
 | `general` | Verify bursts + generic multi-step work |
 | `adv-tron` | Recon + hotspots (repo-local) |
 

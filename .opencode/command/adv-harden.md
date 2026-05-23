@@ -209,6 +209,7 @@ Protocol: retry once → if still fails → inline fallback analysis → never s
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
+ATTEMPT: {attempt-number, starting at 1 for this spawned worker}
 AFFECTED FILES:
   - {file}: {one-line change summary}
   - ...
@@ -354,8 +355,8 @@ Hardening has two delegated lanes: scanner workers (`adv-reviewer`/`explore`) fo
 
 | Fix shape | Worker | Returns |
 |---|---|---|
-| Scoped review-style (single file or local subsystem; no architectural risk) | `adv-reviewer` | fenced `REVIEWER_REPORT` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
-| Primary implementation or multi-file refactor | `adv-engineer` | fenced `ENGINEER_REPORT` |
+| Scoped review-style (single file or local subsystem; no architectural risk) | `adv-reviewer` | persisted `REVIEWER_REPORT` via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| Primary implementation or multi-file refactor | `adv-engineer` | persisted `ENGINEER_REPORT` via `adv_subagent_report_submit` |
 
 Both workers honor the drift detection rule and `stop_and_report` on scope drift. The orchestrator ingests verdict + findings from whichever report shape is returned.
 
