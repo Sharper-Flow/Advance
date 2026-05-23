@@ -6,7 +6,256 @@ import {
   validateToolArgsBeforeExecute,
 } from "./tool-arg-preflight";
 
+type RegressionMatrixCase = {
+  label: string;
+  toolName: string;
+  schema?: Record<string, z.ZodTypeAny>;
+  rawArgs: Record<string, unknown>;
+  ok: boolean;
+  fields?: string[];
+  normalizedArgs?: Record<string, unknown>;
+};
+
+const CREATE_SCHEMA = {
+  summary: z.string(),
+  proposal: z.string().optional(),
+  problemStatement: z.string().optional(),
+  agreement: z.string().optional(),
+  design: z.string().optional(),
+  executiveSummary: z.string().optional(),
+  origin_kind: z.enum(["roadmap", "discovery", "triage", "adhoc"]).optional(),
+  origin_issue_number: z.number().int().positive().optional(),
+  origin_source_artifact: z.string().optional(),
+  target_path: z.string().optional(),
+  source_project: z.string().optional(),
+  source_change_id: z.string().optional(),
+  parent_change_id: z.string().optional(),
+  scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
+};
+
+const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
+  {
+    label: "minimal valid ad hoc payload",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add rate limiting" },
+    ok: true,
+  },
+  {
+    label: "ad hoc rejects blank/zero origin placeholders",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Add placeholder guard",
+      origin_kind: "adhoc",
+      origin_issue_number: 0,
+      origin_source_artifact: "",
+    },
+    ok: false,
+    fields: ["origin_issue_number", "origin_source_artifact"],
+  },
+  {
+    label: "blank create artifact rejected",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add artifact guard", proposal: "valid", design: " " },
+    ok: false,
+    fields: ["design"],
+  },
+  {
+    label: "roadmap requires issue number",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Promote roadmap", origin_kind: "roadmap" },
+    ok: false,
+    fields: ["origin_issue_number"],
+  },
+  {
+    label: "roadmap rejects source artifact",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Promote roadmap",
+      origin_kind: "roadmap",
+      origin_issue_number: 7,
+      origin_source_artifact: "ag-1",
+    },
+    ok: false,
+    fields: ["origin_source_artifact"],
+  },
+  {
+    label: "triage permits source artifact",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Promote triage",
+      origin_kind: "triage",
+      origin_source_artifact: "ag-1",
+    },
+    ok: true,
+  },
+  {
+    label: "discovery rejects issue number",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: {
+      summary: "Promote discovery",
+      origin_kind: "discovery",
+      origin_issue_number: 7,
+    },
+    ok: false,
+    fields: ["origin_issue_number"],
+  },
+  {
+    label: "blank target path rejected",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add target path guard", target_path: " " },
+    ok: false,
+    fields: ["target_path"],
+  },
+  {
+    label: "source linkage requires target path",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add source guard", source_change_id: "abc" },
+    ok: false,
+    fields: ["source_change_id"],
+  },
+  {
+    label: "parent sentinel rejected",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add parent guard", parent_change_id: "none" },
+    ok: false,
+    fields: ["parent_change_id"],
+  },
+  {
+    label: "empty scope repos normalizes to omitted",
+    toolName: "adv_change_create",
+    schema: CREATE_SCHEMA,
+    rawArgs: { summary: "Add scope guard", scope_repos: [] },
+    ok: true,
+    normalizedArgs: { summary: "Add scope guard" },
+  },
+  {
+    label: "blank task content rejected",
+    toolName: "adv_task_add",
+    rawArgs: { content: " " },
+    ok: false,
+    fields: ["content"],
+  },
+  {
+    label: "blank wisdom content rejected",
+    toolName: "adv_wisdom_add",
+    rawArgs: { content: " " },
+    ok: false,
+    fields: ["content"],
+  },
+  {
+    label: "blank run-test command rejected",
+    toolName: "adv_run_test",
+    rawArgs: { command: " " },
+    ok: false,
+    fields: ["command"],
+  },
+  {
+    label: "blank gate actor rejected",
+    toolName: "adv_gate_complete",
+    rawArgs: { completedBy: " " },
+    ok: false,
+    fields: ["completedBy"],
+  },
+  {
+    label: "blank gate notes rejected",
+    toolName: "adv_gate_complete",
+    rawArgs: { notes: " " },
+    ok: false,
+    fields: ["notes"],
+  },
+  {
+    label: "blank approval evidence rejected",
+    toolName: "adv_change_close",
+    rawArgs: { approvalEvidence: " " },
+    ok: false,
+    fields: ["approvalEvidence"],
+  },
+  {
+    label: "blank cancellation reason rejected",
+    toolName: "adv_task_cancel",
+    rawArgs: { reasons: { "tk-1": " " } },
+    ok: false,
+    fields: ["reasons.tk-1"],
+  },
+  {
+    label: "blank worktree branch rejected",
+    toolName: "adv_worktree_create",
+    rawArgs: { branch: " " },
+    ok: false,
+    fields: ["branch"],
+  },
+  {
+    label: "blank worktree base rejected",
+    toolName: "adv_worktree_create",
+    rawArgs: { base: " " },
+    ok: false,
+    fields: ["base"],
+  },
+  {
+    label: "blank conformance audit reason rejected",
+    toolName: "adv_conformance",
+    rawArgs: { reason: " " },
+    ok: false,
+    fields: ["reason"],
+  },
+  {
+    label: "blank agenda title rejected",
+    toolName: "adv_agenda_add",
+    rawArgs: { title: " " },
+    ok: false,
+    fields: ["title"],
+  },
+  {
+    label: "blank agenda cancellation reason rejected",
+    toolName: "adv_agenda_cancel",
+    rawArgs: { reason: " " },
+    ok: false,
+    fields: ["reason"],
+  },
+  {
+    label: "blank contract recovery evidence rejected",
+    toolName: "adv_contract_mint",
+    rawArgs: { recoveryEvidence: " " },
+    ok: false,
+    fields: ["recoveryEvidence"],
+  },
+];
+
 describe("tool arg preflight", () => {
+  test("executes data-driven placeholder regression matrix", () => {
+    expect(PLACEHOLDER_POLICY_REGRESSION_MATRIX.length).toBeGreaterThan(20);
+
+    for (const entry of PLACEHOLDER_POLICY_REGRESSION_MATRIX) {
+      const result = validateToolArgsBeforeExecute(
+        entry.toolName,
+        entry.schema ?? {},
+        entry.rawArgs,
+      );
+      expect(result.ok, entry.label).toBe(entry.ok);
+      for (const field of entry.fields ?? []) {
+        expect(
+          [...result.missing, ...result.invalid.map((issue) => issue.field)],
+          entry.label,
+        ).toContain(field);
+      }
+      if (entry.normalizedArgs) {
+        expect(result.normalizedArgs, entry.label).toEqual(
+          entry.normalizedArgs,
+        );
+      }
+    }
+  });
+
   test("reports missing required fields while allowing optional/default fields", () => {
     const result = validateToolArgsBeforeExecute(
       "test_tool",
