@@ -180,7 +180,18 @@ describe("tool arg preflight", () => {
         .optional(),
       origin_issue_number: z.number().int().positive().optional(),
       origin_source_artifact: z.string().optional(),
+      target_path: z.string().optional(),
+      source_project: z.string().optional(),
+      source_change_id: z.string().optional(),
+      parent_change_id: z.string().optional(),
+      scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
     };
+
+    expect(
+      validateToolArgsBeforeExecute("adv_change_create", schema, {
+        summary: "Add rate limiting",
+      }).ok,
+    ).toBe(true);
 
     const blankArtifacts = validateToolArgsBeforeExecute(
       "adv_change_create",
@@ -240,6 +251,58 @@ describe("tool arg preflight", () => {
       },
     );
     expect(validTriage.ok).toBe(true);
+
+    const blankTargetPath = validateToolArgsBeforeExecute(
+      "adv_change_create",
+      schema,
+      { summary: "Add target path guard", target_path: "   " },
+    );
+    expect(blankTargetPath.invalid).toContainEqual({
+      field: "target_path",
+      message: "target_path must be a non-blank string.",
+    });
+
+    const sourceWithoutTarget = validateToolArgsBeforeExecute(
+      "adv_change_create",
+      schema,
+      { summary: "Add source guard", source_change_id: "abc" },
+    );
+    expect(sourceWithoutTarget.invalid).toContainEqual({
+      field: "source_change_id",
+      message: "source_change_id requires target_path to be set.",
+    });
+
+    const placeholderParent = validateToolArgsBeforeExecute(
+      "adv_change_create",
+      schema,
+      { summary: "Add parent guard", parent_change_id: "none" },
+    );
+    expect(placeholderParent.invalid).toContainEqual({
+      field: "parent_change_id",
+      message:
+        "parent_change_id must reference a real change ID; omit it when there is no parent change.",
+    });
+
+    expect(
+      validateToolArgsBeforeExecute("adv_change_create", schema, {
+        summary: "Add scope guard",
+        scope_repos: [],
+      }).normalizedArgs,
+    ).toEqual({ summary: "Add scope guard" });
+  });
+
+  test("includes canonical minimal payload for adv_change_create repair", () => {
+    const output = JSON.parse(
+      formatToolArgPreflightError(
+        "adv_change_create",
+        { summary: z.string(), target_path: z.string().optional() },
+        { summary: "Add rate limiting", target_path: " " },
+      ) ?? "{}",
+    );
+
+    expect(output.canonical_minimal_payload).toEqual({
+      summary: "Add rate limiting",
+    });
   });
 
   test("redacts sensitive received args in preflight errors", () => {

@@ -20,6 +20,7 @@ type PlaceholderPolicyAction = "reject" | "omit" | "allow";
 
 interface PlaceholderFieldPolicy {
   blank?: PlaceholderPolicyAction;
+  sentinels?: PlaceholderPolicyAction;
   emptyArray?: PlaceholderPolicyAction;
 }
 
@@ -49,6 +50,8 @@ const BLANK_SOURCE_ARTIFACT_MESSAGE =
 // to structural placeholder decisions; no fs/store/Temporal lookups here.
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_create: {
+    target_path: { blank: "reject" },
+    parent_change_id: { blank: "reject", sentinels: "reject" },
     scope_repos: { emptyArray: "omit" },
   },
   adv_run_test: {
@@ -56,8 +59,27 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
 };
 
+const KNOWN_OMISSION_SENTINELS = new Set([
+  "none",
+  "n/a",
+  "na",
+  "null",
+  "transcript",
+]);
+
+const CANONICAL_MINIMAL_PAYLOADS: Record<string, Record<string, unknown>> = {
+  adv_change_create: { summary: "Add rate limiting" },
+};
+
 function isBlankProvidedString(value: unknown): boolean {
   return typeof value === "string" && value.trim().length === 0;
+}
+
+function isOmissionSentinel(value: unknown): boolean {
+  return (
+    typeof value === "string" &&
+    KNOWN_OMISSION_SENTINELS.has(value.trim().toLowerCase())
+  );
 }
 
 function applyFieldPolicies(
@@ -80,6 +102,15 @@ function applyFieldPolicies(
         invalid.push({
           field,
           message: `${field} must be a non-blank string.`,
+        });
+      }
+    }
+    if (isOmissionSentinel(value)) {
+      if (policy.sentinels === "omit") delete normalizedArgs[field];
+      if (policy.sentinels === "reject") {
+        invalid.push({
+          field,
+          message: `${field} must reference a real change ID; omit it when there is no parent change.`,
         });
       }
     }
@@ -120,6 +151,25 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     }
 
     const originKind = args.origin_kind;
+    const hasTargetPath = args.target_path !== undefined;
+    if (!hasTargetPath && args.source_project !== undefined) {
+      invalid.push({
+        field: "source_project",
+        message: "source_project requires target_path to be set.",
+      });
+    }
+    if (!hasTargetPath && args.source_change_id !== undefined) {
+      invalid.push({
+        field: "source_change_id",
+        message: "source_change_id requires target_path to be set.",
+      });
+    }
+    if (hasTargetPath && args.parent_change_id !== undefined) {
+      invalid.push({
+        field: "parent_change_id",
+        message: "parent_change_id cannot be combined with target_path.",
+      });
+    }
     // rq-backlogCoord08: validate creation-origin linkage structurally before
     // adv_change_create execution can seed workflow state or claim metadata.
     if (originKind === "roadmap") {
@@ -285,6 +335,9 @@ export function formatToolArgPreflightError(
     tool: toolName,
     missing: result.missing,
     invalid: result.invalid,
+    ...(CANONICAL_MINIMAL_PAYLOADS[toolName]
+      ? { canonical_minimal_payload: CANONICAL_MINIMAL_PAYLOADS[toolName] }
+      : {}),
     received_args: redactSensitiveArgs(rawArgs ?? {}),
   });
 }
