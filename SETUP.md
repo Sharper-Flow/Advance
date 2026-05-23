@@ -1089,6 +1089,7 @@ delegates to `bash scripts/deploy-local.sh --fix`. Common failures:
 | `jq not found` | Install jq (`sudo apt-get install -y jq`, `sudo dnf install jq`, or `brew install jq`) so `deploy-local.sh --fix` can patch `opencode.json`. |
 | `rsync not found` | Install rsync (`sudo apt-get install -y rsync`, `sudo dnf install rsync`, or `brew install rsync`) so the runtime plugin can sync to `~/.local/share/Advance/plugin/`. |
 | `pnpm not found` | Install pnpm (`corepack enable pnpm`, `npm install -g pnpm`, or your package manager). Release artifacts include built `plugin/dist`, but pnpm is still needed for source rebuilds and ADV worktree hooks. |
+| `sha256sum not found` | Install GNU coreutils (`sudo apt-get install -y coreutils`, `sudo dnf install coreutils`, or `brew install coreutils`) so release checksums can be verified. |
 | `Permission denied: ./install.sh` | Run `chmod +x install.sh`, or invoke it as `bash install.sh`. |
 | `Release artifact is incomplete` | The downloaded archive is missing required installer assets. Delete the partial download, retry the latest release, or use the source-checkout maintainer path until a corrected release is published. |
 

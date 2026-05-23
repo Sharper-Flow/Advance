@@ -19,7 +19,10 @@ die() {
 
 need_cmd() {
 	if ! command -v "$1" >/dev/null 2>&1; then
-		die "$1 not found. Install it, then rerun this installer."
+		case "$1" in
+		sha256sum) die "sha256sum not found. Install GNU coreutils, then rerun this installer." ;;
+		*) die "$1 not found. Install it, then rerun this installer." ;;
+		esac
 	fi
 }
 
@@ -58,6 +61,19 @@ resolve_version() {
 	printf '%s\n' "${tag}"
 }
 
+validate_archive_paths() {
+	local contents_file entry
+	contents_file="${TMP_DIR}/archive.contents"
+	tar -tzf "${ASSET}" >"${contents_file}" || die "Archive validation failed for ${ASSET}"
+	while IFS= read -r entry; do
+		case "${entry}" in
+		"" | /* | .. | ../* | */../* | */..)
+			die "Archive contains unsafe path: ${entry}"
+			;;
+		esac
+	done <"${contents_file}"
+}
+
 for cmd in curl tar sha256sum mktemp bash; do
 	need_cmd "${cmd}"
 done
@@ -67,6 +83,7 @@ ASSET="advance-${ADV_VERSION}.tar.gz"
 DOWNLOAD_BASE="${BASE_URL}/releases/download/${ADV_VERSION}"
 
 TMP_DIR="$(mktemp -d)"
+[ -n "${TMP_DIR}" ] && [ -d "${TMP_DIR}" ] || die "mktemp failed"
 cd "${TMP_DIR}"
 
 log "Downloading Advance ${ADV_VERSION}"
@@ -74,8 +91,11 @@ curl -fsSLO "${DOWNLOAD_BASE}/${ASSET}" || die "Could not download ${ASSET}"
 curl -fsSLO "${DOWNLOAD_BASE}/SHA256SUMS.txt" || die "Could not download SHA256SUMS.txt"
 
 checksum_entry_found=false
-while IFS= read -r checksum filename; do
+while read -r checksum filename; do
 	if [ -n "${checksum}" ] && { [ "${filename:-}" = "${ASSET}" ] || [ "${filename:-}" = "*${ASSET}" ]; }; then
+		if [[ ! "${checksum}" =~ ^[0-9a-fA-F]{64}$ ]]; then
+			die "Malformed checksum for ${ASSET}"
+		fi
 		checksum_entry_found=true
 		break
 	fi
@@ -86,18 +106,24 @@ if [ "${checksum_entry_found}" != true ]; then
 fi
 
 log "Verifying checksum"
-sha256sum --check --ignore-missing SHA256SUMS.txt
+sha256sum --check --ignore-missing SHA256SUMS.txt || die "Checksum verification failed for ${ASSET}"
 
 log "Validating archive"
-tar -tzf "${ASSET}" >/dev/null
+validate_archive_paths
 
 log "Extracting ${ASSET}"
 tar -xzf "${ASSET}"
 
 RELEASE_ROOT="${TMP_DIR}/advance-${ADV_VERSION}"
-if [ ! -f "${RELEASE_ROOT}/scripts/deploy-local.sh" ]; then
-	die "Release artifact is incomplete: scripts/deploy-local.sh missing"
-fi
+for required_path in \
+	scripts/deploy-local.sh \
+	plugin/dist/index.js \
+	plugin/package.json \
+	SETUP.md; do
+	if [ ! -e "${RELEASE_ROOT}/${required_path}" ]; then
+		die "Release artifact is incomplete: ${required_path} missing"
+	fi
+done
 
 log "Installing Advance"
 cd "${RELEASE_ROOT}"

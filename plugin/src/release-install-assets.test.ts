@@ -47,6 +47,15 @@ describe("GitHub release installer artifact", () => {
     expect(workflow).toContain("dist/install.sh");
     expect(workflow).not.toContain("dist/checksums.txt");
   });
+
+  test("release workflow guards adjacent versioning and concurrency edge cases", () => {
+    expect(workflow).toContain("concurrency:");
+    expect(workflow).toContain(
+      "auto-release-${{ github.event.workflow_run.head_branch }}",
+    );
+    expect(workflow).toContain('if [ -z "$COMMITS" ]; then');
+    expect(workflow).toContain('CURRENT="${CURRENT%%-*}"');
+  });
 });
 
 describe("latest-release installer", () => {
@@ -68,6 +77,11 @@ describe("latest-release installer", () => {
       "SHA256SUMS.txt",
       "sha256sum --check --ignore-missing SHA256SUMS.txt",
       "tar -tzf",
+      "validate_archive_paths",
+      "Archive contains unsafe path",
+      "Malformed checksum",
+      "Checksum verification failed for ${ASSET}",
+      "plugin/dist/index.js",
       "scripts/deploy-local.sh",
       "--fix",
       "mktemp -d",
@@ -75,6 +89,8 @@ describe("latest-release installer", () => {
     ]) {
       expect(installer).toContain(requiredSnippet);
     }
+    expect(installer).toContain("while read -r checksum filename");
+    expect(installer).not.toContain("while IFS= read -r checksum filename");
   });
 });
 
@@ -84,10 +100,10 @@ describe("release installation docs", () => {
 
   test("README presents one primary user install path", () => {
     expect(readme).toContain("releases/latest/download/install.sh");
-    expect(readme).toContain("| bash");
+    expect(readme).toContain("releases/latest/download/install.sh | bash");
     expect(readme).toContain("downloads the latest GitHub Release artifact");
-    expect(readme).not.toContain(
-      "git clone https://github.com/Sharper-Flow/Advance.git\ncd Advance\n./scripts/deploy-local.sh --fix",
+    expect(readme).not.toMatch(
+      /git clone.*Advance\.git[\s\S]*deploy-local\.sh --fix/,
     );
   });
 
@@ -110,6 +126,7 @@ describe("release installation docs", () => {
       "jq not found",
       "rsync not found",
       "pnpm not found",
+      "sha256sum not found",
       "chmod +x install.sh",
       "Release artifact is incomplete",
     ]) {
