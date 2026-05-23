@@ -62,6 +62,86 @@ describe("tool arg preflight", () => {
     expect(result.normalizedArgs).toEqual({ taskId: "tk-1", command: "   " });
   });
 
+  test.each([
+    ["adv_task_add", { changeId: "c", content: " " }, "content"],
+    [
+      "adv_wisdom_add",
+      { changeId: "c", type: "pattern", content: " " },
+      "content",
+    ],
+    [
+      "adv_change_bulk_close",
+      {
+        selector: { kind: "ids", changeIds: ["c"] },
+        reason: "cancelled",
+        approvedByUser: true,
+        approvalEvidence: " ",
+      },
+      "approvalEvidence",
+    ],
+    [
+      "adv_change_close",
+      {
+        changeId: "c",
+        reason: "cancelled",
+        approvedByUser: true,
+        approvalEvidence: " ",
+      },
+      "approvalEvidence",
+    ],
+    [
+      "adv_task_reclassify_tdd",
+      { taskId: "tk-1", toIntent: "inline", reason: " " },
+      "reason",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", completedBy: " " },
+      "completedBy",
+    ],
+    ["adv_worktree_create", { branch: " " }, "branch"],
+    ["adv_worktree_resume", { changeId: " " }, "changeId"],
+    ["adv_worktree_delete", { branch: " " }, "branch"],
+    ["adv_worktree_cleanup", { reason: " " }, "reason"],
+    ["adv_conformance", { action: "unlock", user: " " }, "user"],
+    ["adv_agenda_add", { title: " " }, "title"],
+    ["adv_agenda_cancel", { itemId: "ag-1", reason: " " }, "reason"],
+    ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
+    [
+      "adv_temporal_register_search_attributes",
+      { approvedByUser: true, approvalEvidence: " " },
+      "approvalEvidence",
+    ],
+  ])(
+    "rejects representative blank placeholder for %s.%s",
+    (toolName, rawArgs, field) => {
+      const result = preflightToolArgs(toolName, {}, rawArgs);
+
+      expect(result.invalid).toContainEqual({
+        field,
+        message: `${field} must be a non-blank string.`,
+      });
+    },
+  );
+
+  test("rejects blank record values for task cancellation reasons", () => {
+    const result = preflightToolArgs(
+      "adv_task_cancel",
+      {},
+      {
+        taskIds: ["tk-1"],
+        reasons: { "tk-1": " " },
+        approvedByUser: true,
+        approvalEvidence: "approved",
+      },
+    );
+
+    expect(result.invalid).toContainEqual({
+      field: "reasons.tk-1",
+      message: "reasons values must be non-blank strings.",
+    });
+  });
+
   test("reports nested field validation errors for present objects", () => {
     const result = validateToolArgsBeforeExecute(
       "adv_change_show",

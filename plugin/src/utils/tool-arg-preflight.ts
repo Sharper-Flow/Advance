@@ -22,6 +22,7 @@ interface PlaceholderFieldPolicy {
   blank?: PlaceholderPolicyAction;
   sentinels?: PlaceholderPolicyAction;
   emptyArray?: PlaceholderPolicyAction;
+  recordValuesBlank?: "reject" | "allow";
 }
 
 type FieldPolicyMap = Record<string, PlaceholderFieldPolicy>;
@@ -56,6 +57,80 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   },
   adv_run_test: {
     command: { blank: "reject" },
+  },
+  adv_task_add: {
+    content: { blank: "reject" },
+  },
+  adv_wisdom_add: {
+    content: { blank: "reject" },
+  },
+  adv_change_bulk_close: {
+    approvalEvidence: { blank: "reject" },
+    supersededBy: { blank: "reject" },
+  },
+  adv_change_close: {
+    approvalEvidence: { blank: "reject" },
+    supersededBy: { blank: "reject" },
+  },
+  adv_task_cancel: {
+    approvalEvidence: { blank: "reject" },
+    reasons: { recordValuesBlank: "reject" },
+    supersededBy: { recordValuesBlank: "reject" },
+  },
+  adv_task_reclassify_tdd: {
+    reason: { blank: "reject" },
+    approvalEvidence: { blank: "reject" },
+  },
+  adv_gate_complete: {
+    completedBy: { blank: "reject" },
+    notes: { blank: "reject" },
+    compatibilityReason: { blank: "reject" },
+  },
+  adv_worktree_create: {
+    branch: { blank: "reject" },
+    base: { blank: "reject" },
+  },
+  adv_worktree_resume: {
+    changeId: { blank: "reject" },
+    branch: { blank: "reject" },
+    base: { blank: "reject" },
+  },
+  adv_worktree_delete: {
+    branch: { blank: "reject" },
+  },
+  adv_worktree_cleanup: {
+    reason: { blank: "reject" },
+  },
+  adv_conformance: {
+    user: { blank: "reject" },
+    reason: { blank: "reject" },
+    spec: { blank: "reject" },
+    artifact_path: { blank: "reject" },
+  },
+  adv_agenda_add: {
+    title: { blank: "reject" },
+    description: { blank: "reject" },
+    category: { blank: "reject" },
+  },
+  adv_agenda_complete: {
+    notes: { blank: "reject" },
+  },
+  adv_agenda_cancel: {
+    reason: { blank: "reject" },
+  },
+  adv_contract_mint: {
+    approvedAt: { blank: "reject" },
+    recoveryEvidence: { blank: "reject" },
+  },
+  adv_contract_review_matrix_set: {
+    reviewedAt: { blank: "reject" },
+    recoveryEvidence: { blank: "reject" },
+  },
+  adv_temporal_register_search_attributes: {
+    approvalEvidence: { blank: "reject" },
+  },
+  adv_temporal_worker_restart: {
+    approvalEvidence: { blank: "reject" },
   },
 };
 
@@ -121,6 +196,23 @@ function applyFieldPolicies(
           field,
           message: `${field} must not be an empty array; omit it when there are no entries.`,
         });
+      }
+    }
+    if (
+      policy.recordValuesBlank === "reject" &&
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      for (const [key, recordValue] of Object.entries(
+        value as Record<string, unknown>,
+      )) {
+        if (isBlankProvidedString(recordValue)) {
+          invalid.push({
+            field: `${field}.${key}`,
+            message: `${field} values must be non-blank strings.`,
+          });
+        }
       }
     }
   }
