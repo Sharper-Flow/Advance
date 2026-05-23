@@ -5,7 +5,7 @@
  * Used by tool-layer code to fire signals and run queries against
  * change workflows, replacing the old executeUpdate-based mutation path.
  *
- * Design: docs/decisions/2026-05-04-signal-driven-change-workflows.md § Section 6
+ * Requirement anchors: rq-changeWorkflowSignalOnly01 and rq-cacheRefresh01.
  */
 
 import { buildChangeWorkflowId } from "../temporal/client";

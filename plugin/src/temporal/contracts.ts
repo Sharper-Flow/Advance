@@ -280,7 +280,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
 /**
  * Worktree registry record. Per-change context only in the signal-driven
  * architecture; peer sessions read via change workflow queries or Temporal
- * visibility search attributes.
+ * visibility search attributes. rq-wl-branchRegistry01
  */
 export type WorktreeRecordStatus =
   | "unmaterialized"

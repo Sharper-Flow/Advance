@@ -44,9 +44,8 @@ pnpm run lint                 # eslint src/
 pnpm run lint:fix             # eslint --fix
 pnpm run format               # prettier --write
 pnpm run format:check         # prettier --check
-# Note: `pnpm run validate:temporal` and its harness were retired by the
-# `migrateAdvStateTemporalRetire` change (D3). The Temporal cutover has shipped;
-# `docs/decisions/temporal-readiness-decision.md` is preserved as the historical record.
+# Note: `pnpm run validate:temporal` and its harness were retired after the
+# Temporal cutover shipped. Current Temporal guidance lives in docs/temporal-recovery.md.
 # Note: no `generate:schemas` or `generate:docs` scripts exist.
 # plugin/schemas/ contains $ref stub files only — Zod types in src/types.ts
 # are the authoritative source. When extending Zod schemas, no separate

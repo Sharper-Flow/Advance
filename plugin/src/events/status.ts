@@ -43,8 +43,8 @@ let state: StatusState = {
  * when no ADV change is active instead of dynamically changing to the
  * worktree basename.
  *
- * See change `fixWorktreeSessionRoot` task `tk-f96182eff2ad` and the audit at
- * docs/spikes/module-singleton-audit.md Part A.
+ * Source invariant: status initialization is idempotent across duplicate
+ * OpenCode plugin instances created by worktree/warp session roots.
  */
 let initialized = false;
 

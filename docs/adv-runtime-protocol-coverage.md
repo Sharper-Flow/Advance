@@ -1,6 +1,6 @@
 # ADV Runtime Protocol Coverage
 
-> Change artifact for `refactorAdvPrompt`. This inventory is separate from `docs/prose-load-inventory.md`: prose-load rows classify compression style; this file proves runtime-protocol preservation while removing wholesale `ADV_INSTRUCTIONS.md` append.
+> Source-of-truth coverage matrix for the lean runtime ADV agent. It proves runtime-protocol preservation without appending `ADV_INSTRUCTIONS.md` wholesale into the agent prompt.
 
 ## Coverage Rules
 

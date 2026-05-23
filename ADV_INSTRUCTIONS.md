@@ -278,7 +278,7 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 
 - `adv_change_update` — always pass `changeId` + at least one of `proposal`, `problemStatement`, `agreement`, `design`, `executiveSummary`. Zero-args calls hit a 10s safety-net timeout and return `errorClass: ToolExecutionTimeout`. Confirm the target with `adv_change_show` or `adv_change_list` first.
 - `adv_task_add` — before passing `blockedBy`, call `adv_task_list changeId: <id>` to fetch current task IDs. Unknown IDs are rejected with the list of valid IDs so you can self-correct, but this costs a round trip.
-- `adv_task_add` — `metadata.tdd_intent` defaults to `"inline"` when omitted. Pass it explicitly for `"separate_verification"` (cross-cutting verify tasks) or `"not_applicable"` (docs/config/verification-only tasks). The validator's logic-heavy heuristic flags missing TDD evidence on tasks defaulted to `inline` regardless of content prose; set explicit metadata at creation time.
+- `adv_task_add` — `metadata.tdd_intent` defaults to `"inline"` when omitted. Pass it explicitly for `"separate_verification"` (cross-cutting verify tasks) or `"not_applicable"` (docs/config/verification-only tasks). The validator's logic-heavy heuristic flags missing TDD evidence on tasks defaulted to `inline` regardless of content prose; set explicit metadata at creation time. <!-- rq-TDD002sep rq-TDD003na -->
 - `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, NO task is cancelled. Verify with `adv_task_list` before calling.
 - `adv_change_archive` — when archiving from a worktree, pass `worktreePath: <worktree-root>` so the in-repo bundle lands inside the worktree's `.adv/archive/` (where `/adv-archive` Phase 9 Step 1 stages it on the change branch). Omitting the arg defaults to `store.paths.root` (main checkout) and the bundle ends up untracked in main, requiring a separate trunk commit.
 - `adv_run_test` — pass `timeoutMs` (range `[1000, 300_000]` ms, default `30_000`) for slow commands like `pnpm run check` or full suites. Without it, commands taking >30s SIGTERM and the tool returns `errorClass: TestExecutionTimeout`.
@@ -335,7 +335,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 - **Trivial:** Note `(trivial: docs change)`, skip TDD
 - **Cross-cutting:** Separate verification tasks OK → mark `metadata.tdd_intent: "separate_verification"`
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`.
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`. <!-- rq-ADVEXEC04 rq-ADVEXEC05 -->
 
 ### Reflection Protocol
 

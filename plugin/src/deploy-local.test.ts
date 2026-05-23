@@ -568,9 +568,7 @@ describe("deploy-local.sh", () => {
         expect(coverageDoc).toContain(required);
       }
 
-      expect(coverageDoc).toContain(
-        "separate from `docs/prose-load-inventory.md`",
-      );
+      expect(coverageDoc).toContain("Source-of-truth coverage matrix");
       expect(coverageDoc).not.toContain("| planned |");
       expect(advAgent).toContain("## Slash Command Boundary");
       expect(advAgent).toContain("## Step 3: Gate Machine");

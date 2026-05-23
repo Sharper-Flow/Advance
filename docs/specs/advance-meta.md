@@ -512,41 +512,42 @@ plugin/src/manifest-doc-drift.test.ts MUST contain structural assertions that ve
 
 ---
 
-### Category Classification Inventory
+### Category Classification Source of Truth
 
 **ID:** `rq-proseReduction03` | **Priority:** **[MUST]**
 
-When a change executes prose-load reduction work, an inventory document MUST be produced and committed during execution that records every section being reclassified, its enforcement class, target compression format, code reference (for fully/partially-enforced classes), and gap rationale (for partially-enforced class). The inventory is a working document during execution; after compression completes it is marked as a post-compression archive and is not maintained thereafter. Durable invariants live in this spec, not in the inventory document.
+Prose-load reduction work MUST classify instruction sections by enforcement class using this spec and docs/command-voice-standard.md as the source of truth. Long-lived inventory or audit-trail documents are not required; durable invariants live in specs, tests, command contracts, and the voice standard.
 
-**Tags:** `prose-reduction`, `audit-trail`, `inventory`
+**Tags:** `prose-reduction`, `source-of-truth`, `classification`
 
 #### Scenarios
 
-**Inventory captures classification rows** (`rq-proseReduction03.1`)
+**Classification uses canonical framework** (`rq-proseReduction03.1`)
 
 **Given:**
 
 - A change executes prose-load reduction work
 
-**When:** The inventory document is inspected after the inventory pass completes
+**When:** The edited instruction surface is inspected
 
 **Then:**
 
-- Every reclassified section appears as a row
-- Each row records: surface, section, line count, class (full/partial/inherent), target format, code reference (for full/partial), gap rationale (for partial), status
+- Every edited section follows the full, partial, or inherent enforcement-class framework
+- Fully and partially enforced sections cite code/spec/test anchors when applicable
+- Partially enforced sections state the agent-side gap when prose remains necessary
 
-**Inventory marked archive after compression** (`rq-proseReduction03.2`)
+**No standing audit inventory required** (`rq-proseReduction03.2`)
 
 **Given:**
 
-- All compression passes for a prose-reduction change have completed
+- A prose-reduction change has completed
 
-**When:** The inventory document header is inspected
+**When:** The repository documentation is inspected
 
 **Then:**
 
-- The header records POST-COMPRESSION ARCHIVE status
-- No maintenance owner is assigned to the inventory thereafter
+- No repository doc is required solely to preserve the change's audit trail
+- Current behavior is recoverable from specs, tests, command contracts, and source comments
 
 ---
 
@@ -593,7 +594,7 @@ Sections classified inherently-prose (agent-side judgment, narration, or domain 
 
 **ID:** `rq-skillProseCompression01` | **Priority:** **[MUST]**
 
-Skill files under skills/\*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must be classified as full, partial, or inherent in docs/prose-load-inventory.md and compressed accordingly before archive.
+Skill files under skills/\*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must follow the full, partial, or inherent class rules in docs/command-voice-standard.md and keep durable invariants in specs, tests, or command contracts rather than standing audit inventories.
 
 **Tags:** `prose-reduction`, `skills`, `compression`
 
@@ -610,7 +611,7 @@ Skill files under skills/\*/SKILL.md MUST use the same enforcement-class compres
 **Then:**
 
 - The skill is compressed per the same enforcement-class framework as command files
-- The applicable class is full, partial, or inherent per docs/prose-load-inventory.md
+- The applicable class is full, partial, or inherent per docs/command-voice-standard.md
 - Contract tokens, code blocks, tool names, enum values, and quoted errors remain intact
 
 ---

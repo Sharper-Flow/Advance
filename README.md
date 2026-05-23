@@ -253,7 +253,7 @@ Optional CI-isolated conformance checks can verify specs from outside the agentâ
 
 ### Prioritizer protocol
 
-When 2+ viable approaches depend on user values, Advance runs the prioritizer before asking. The inline protocol researches tradeoffs, drafts criteria questions, and surfaces a concise choice through the orchestrator. Delegated sub-agents use the same protocol for task-level decisions.
+When 2+ viable approaches depend on user values, Advance runs the prioritizer before asking. The protocol runs inline by default: it researches tradeoffs, drafts criteria questions, and surfaces a concise choice through the orchestrator. Delegated sub-agents use the same protocol for task-level decisions.
 
 ## Command + skill architecture
 
