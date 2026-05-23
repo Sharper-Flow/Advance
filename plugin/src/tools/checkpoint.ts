@@ -346,6 +346,18 @@ async function resolveChangeId(
   return result?.changeId ?? null;
 }
 
+async function taskHasPersistedSubagentReports(
+  store: Store,
+  taskId: string,
+): Promise<boolean> {
+  try {
+    const result = await store.tasks.show(taskId);
+    return (result?.task.subagent_reports?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function getHandleForChangeId(
   store: Store,
   changeId: string,
@@ -378,7 +390,12 @@ async function fireTaskCompletedFromCheckpoint(
       };
     }
     const handle = await getHandleForChangeId(store, changeId);
-    const structuredOutput = extractStructuredOutput(verification);
+    const structuredOutput = (await taskHasPersistedSubagentReports(
+      store,
+      taskId,
+    ))
+      ? null
+      : extractStructuredOutput(verification);
     // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
     // changeCache is invalidated after the signal fires — without this,
     // the very next adv_change_show / adv_change_archive read returns

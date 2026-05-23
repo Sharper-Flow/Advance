@@ -1818,6 +1818,12 @@ export const changeTools = {
             .describe(
               "When true, attaches raw executive-summary.md content as `_executiveSummary`.",
             ),
+          subagentReports: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches persisted task sub-agent reports as `_subagentReports`.",
+            ),
         })
         .optional()
         .describe(
@@ -1846,6 +1852,7 @@ export const changeTools = {
           agreement?: boolean;
           design?: boolean;
           executiveSummary?: boolean;
+          subagentReports?: boolean;
         };
       },
       store: Store,
@@ -1958,6 +1965,14 @@ export const changeTools = {
 
             if (include.ledger) {
               output._ledger = null;
+            }
+
+            if (include.subagentReports) {
+              const reports = change.tasks.flatMap((task) =>
+                (task.subagent_reports ?? []).map((report) => report),
+              );
+              output._subagentReports = reports;
+              output._subagentReportsMeta = { total: reports.length };
             }
 
             // Ready tasks — unblocked queue, sliced to top-N. Avoids the
