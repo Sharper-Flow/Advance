@@ -10,7 +10,7 @@ overrides:
   flatted: '>=3.4.2'
   vite: '>=8.0.5'
   picomatch: '>=4.0.4'
-  brace-expansion: '>=5.0.5'
+  brace-expansion: '>=5.0.6'
   protobufjs: '>=7.5.5'
   uuid: '>=14.0.0'
   fast-uri: '>=3.1.2'
@@ -22,7 +22,7 @@ importers:
     dependencies:
       '@opencode-ai/plugin':
         specifier: latest
-        version: 1.15.6
+        version: 1.15.7
       '@temporalio/client':
         specifier: ^1.16.0
         version: 1.16.0
@@ -518,8 +518,8 @@ packages:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
 
-  '@opencode-ai/plugin@1.15.6':
-    resolution: {integrity: sha512-yucBZCA+Hsru6J+LZ7321OkTyRi7v1bqs5qEyIRJBO+xcFiFHOf+JDMJtZ5xJnjn7E2t5wcdeH4784QgukShgg==}
+  '@opencode-ai/plugin@1.15.7':
+    resolution: {integrity: sha512-FqmEMGsXWNx4JWFOu2j5qecxmfo7ASRXfN+cqdkljXuUyVM3aZSrGId3nmL9ELvJUAnRL/6aonggtfSEHjlTsA==}
     peerDependencies:
       '@opentui/core': '>=0.2.15'
       '@opentui/keymap': '>=0.2.15'
@@ -532,8 +532,8 @@ packages:
       '@opentui/solid':
         optional: true
 
-  '@opencode-ai/sdk@1.15.6':
-    resolution: {integrity: sha512-zeMyjgf7jjp4ge7Y9mp1oza1nHsKZAmOg9RIFixRtrM9S1IPwgNMEybMlJR+wBwPTv2ZDgjvcJasuD0z4XjSDA==}
+  '@opencode-ai/sdk@1.15.7':
+    resolution: {integrity: sha512-fNwx2coNzA8VAv4hazG9REGdBuUtV1UYjK3hxMo8+/9SZakOgdjihH1xzoTESJA0e0d0JJIKBCJ7FZVF2WVSXg==}
 
   '@oxc-project/types@0.124.0':
     resolution: {integrity: sha512-VBFWMTBvHxS11Z5Lvlr3IWgrwhMTXV+Md+EQF0Xf60+wAdsGFTBx7X7K/hP4pi8N7dcm1RvcHwDxZ16Qx8keUg==}
@@ -1180,8 +1180,8 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  brace-expansion@5.0.5:
-    resolution: {integrity: sha512-VZznLgtwhn+Mact9tfiwx64fA9erHH/MCXEUfB/0bX/6Fz6ny5EGTXYltMocqg4xFAQZtnO3DHWWXi8RiuN7cQ==}
+  brace-expansion@5.0.6:
+    resolution: {integrity: sha512-kLpxurY4Z4r9sgMsyG0Z9uzsBlgiU/EFKhj/h91/8yHu0edo7XuixOIH3VcJ8kkxs6/jPzoI6U9Vj3WqbMQ94g==}
     engines: {node: 18 || 20 || >=22}
 
   browserslist@4.28.2:
@@ -2568,13 +2568,13 @@ snapshots:
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@opencode-ai/plugin@1.15.6':
+  '@opencode-ai/plugin@1.15.7':
     dependencies:
-      '@opencode-ai/sdk': 1.15.6
+      '@opencode-ai/sdk': 1.15.7
       effect: 4.0.0-beta.66
       zod: 4.3.6
 
-  '@opencode-ai/sdk@1.15.6':
+  '@opencode-ai/sdk@1.15.7':
     dependencies:
       cross-spawn: 7.0.6
 
@@ -3204,7 +3204,7 @@ snapshots:
 
   baseline-browser-mapping@2.10.18: {}
 
-  brace-expansion@5.0.5:
+  brace-expansion@5.0.6:
     dependencies:
       balanced-match: 4.0.4
 
@@ -3664,11 +3664,11 @@ snapshots:
 
   minimatch@10.2.4:
     dependencies:
-      brace-expansion: 5.0.5
+      brace-expansion: 5.0.6
 
   minimatch@10.2.5:
     dependencies:
-      brace-expansion: 5.0.5
+      brace-expansion: 5.0.6
 
   mlly@1.8.1:
     dependencies:
