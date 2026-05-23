@@ -1,3 +1,9 @@
+## 2026-05-23 (v0.11.13)
+
+### Changed
+
+- clarify non-blocking semantics in security gates pilot (docs: ci)
+
 ## 2026-05-23 (v0.11.12)
 
 ### Fixed
