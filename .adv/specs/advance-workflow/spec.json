@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.11.0",
-  "updated_at": "2026-05-22T00:00:00.000Z",
+  "version": "1.12.0",
+  "updated_at": "2026-05-23T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -2212,6 +2212,72 @@
           ],
           "when": "The preflight error response is formatted",
           "then": ["Sensitive values in `received_args` are redacted"]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolPlaceholderPolicy01",
+      "title": "Placeholder-Safe ADV Tool Arguments",
+      "body": "ADV tool invocation preflight MUST centrally classify placeholder-sensitive arguments before tool execution. Blank or whitespace-only strings, omission sentinels such as 'none'/'n/a'/'null'/'transcript', and empty arrays/objects MUST be rejected or normalized only by an explicit field policy. Required content, durable audit, path, lineage, origin, approval-evidence, command, and worktree branch/base fields MUST reject blank placeholders when provided. Omission-equivalent normalization is allowed only for fields whose schema and semantics make omission equivalent, such as scope_repos: [] on adv_change_create. Preflight MUST return deterministic field-level diagnostics and execute tools with normalized arguments so tool execution, workflow state, persistence, and spec compliance are not governed by heuristic caller interpretation.",
+      "priority": "must",
+      "tags": [
+        "tools",
+        "validation",
+        "placeholders",
+        "preflight",
+        "structural-correctness"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-toolPlaceholderPolicy01.1",
+          "title": "Required content placeholders fail before execution",
+          "given": [
+            "An ADV tool receives a blank required content field such as task content, wisdom content, run-test command, agenda title, or worktree branch"
+          ],
+          "when": "Tool argument preflight runs",
+          "then": [
+            "The invocation returns INVALID_TOOL_ARGS before tool execution",
+            "The response names the offending field",
+            "No workflow signal, shell command, artifact write, git worktree operation, or durable state mutation occurs"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.2",
+          "title": "Audit and linkage placeholders are rejected",
+          "given": [
+            "An ADV mutation tool receives a blank or sentinel audit, approval-evidence, target path, origin, parent, source, supersession, recovery-evidence, or cancellation-reason value"
+          ],
+          "when": "Tool argument preflight runs",
+          "then": [
+            "The invocation fails before mutation",
+            "The diagnostic names each invalid field or record entry",
+            "Placeholder strings are not persisted as workflow or audit facts"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.3",
+          "title": "Omission-equivalent placeholders require explicit normalization policy",
+          "given": [
+            "An ADV tool receives an empty array or other placeholder that might mean omitted"
+          ],
+          "when": "The field has no explicit omit policy",
+          "then": [
+            "The placeholder is rejected or left to schema validation rather than silently normalized",
+            "Only explicitly whitelisted fields such as adv_change_create scope_repos: [] may be removed from normalizedArgs"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.4",
+          "title": "Normalized arguments are the execute payload",
+          "given": [
+            "Preflight applies a field policy that omits or otherwise normalizes a placeholder"
+          ],
+          "when": "The tool registry calls the tool implementation",
+          "then": [
+            "The tool receives normalizedArgs rather than the raw caller payload",
+            "Execute paths contain only defensive safety checks needed for bypass resilience",
+            "Preflight and execute behavior do not diverge for placeholder-sensitive fields"
+          ]
         }
       ]
     },
