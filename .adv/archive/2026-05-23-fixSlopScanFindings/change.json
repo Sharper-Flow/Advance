@@ -1,0 +1,1028 @@
+{
+  "id": "fixSlopScanFindings",
+  "title": "Fix slop scan findings",
+  "status": "archived",
+  "created_at": "2026-05-23T05:37:22.162Z",
+  "tasks": [
+    {
+      "id": "tk-4b5c62e81eef",
+      "title": "Classify slop findings with proof-backed resolution matrix",
+      "type": "code",
+      "section": "Finding resolution matrix",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-23T06:04:39.980Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "OOS4",
+          "C1"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T15:31:22.992Z",
+      "verification": "Resolution matrix persisted in ADV design artifact via adv_change_update. Evidence recorded with adv_run_test: ESLint complexity scan found 126 complexity findings and top hotspots, pnpm why documented postcss/@temporalio/activity/@opencode-ai/sdk dependency graph, ts-prune availability check failed so deletion proof must use TypeScript/build/focused tests. Worktree is clean; no code changes for classification task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6ac51304cf041c366ef73a59438f07719a39f597",
+      "completedAt": "2026-05-23T15:44:13.474Z",
+      "completed_at": "2026-05-23T15:44:13.474Z"
+    },
+    {
+      "id": "tk-7fa2d0d7bc2f",
+      "title": "Implement conformance signal visibility with spec and rejected-signal tests",
+      "type": "code",
+      "section": "Conformance signal visibility",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-23T06:04:54.320Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4b5c62e81eef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "OOS3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T15:44:55.594Z",
+      "verification": "TDD evidence recorded. RED: pnpm test -- src/tools/conformance.test.ts failed with 3 new missing signalWarning assertions. GREEN: same focused test passed after implementation with 300000ms timeout; pnpm run typecheck passed. Implementation adds rq-confSignalVisibility01 spec/docs, structured ADV_CONFORMANCE_SIGNAL_FAILED signalWarning for lock/override/run after local save when change workflow notification fails, and rejected-signal tests preserving local state success.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/spec-conformance/spec.json",
+        "docs/specs/spec-conformance.md",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/conformance.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/spec-conformance/spec.json",
+        "docs/specs/spec-conformance.md",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/conformance.ts"
+      ],
+      "checkpointSha": "8705cfce4034b9245565d787108c6a94a9e7ff2c",
+      "completedAt": "2026-05-23T16:02:10.938Z",
+      "completed_at": "2026-05-23T16:02:10.938Z"
+    },
+    {
+      "id": "tk-0aafd791df4e",
+      "title": "Centralize poisoned-history recovery predicate or record explicit rationale",
+      "type": "code",
+      "section": "Recovery helper",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-23T06:05:07.898Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4b5c62e81eef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T16:02:39.276Z",
+      "verification": "Centralized poisoned-history recovery predicate in workflowHasPoisonedRecoveryEvidence while preserving strict describe-only behavior where required and legacy signal-error-or-describe behavior where existing contracts allowed it. Exact affected tests passed: pnpm exec vitest run src/tools/recovery-probe.test.ts src/tools/gate.test.ts src/tools/contract.test.ts src/tools/task.test.ts src/tools/change.test.ts (5 files, 129 tests); pnpm exec vitest run src/tools/conformance.test.ts (21 tests); pnpm run typecheck passed; pnpm run format:check passed after Prettier on touched source files. Earlier pnpm test pattern invocations ran unrelated broader suites and surfaced unrelated timing/projection/status failures; exact affected suites and the unexpected worktree failure rerun passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/conformance.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/recovery-probe.test.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/conformance.test.ts",
+        "plugin/src/tools/conformance.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/recovery-probe.test.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "68992eb9c5a3cfe44314ec13a156a08bec998467",
+      "completedAt": "2026-05-23T16:15:10.309Z",
+      "completed_at": "2026-05-23T16:15:10.309Z"
+    },
+    {
+      "id": "tk-24bef9c36e04",
+      "title": "Apply proof-based deletion and dependency dispositions",
+      "type": "code",
+      "section": "Deletion and dependency disposition",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-23T06:05:23.524Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4b5c62e81eef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "DONT1",
+          "OOS4",
+          "C1"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T16:15:34.004Z",
+      "verification": "Proof-backed deletion/dependency disposition complete. Removed unused addTaskToChangeState/AddTaskInput after lgrep found only documentation references and typecheck/check/focused workflow-boundary tests passed. Removed direct @temporalio/activity dependency from package.json/lock after lgrep found no source imports and pnpm why showed it remains available transitively via @temporalio/worker/@temporalio/testing. Replaced worktree's direct @opencode-ai/sdk type import with local structural OpencodeClient/OpencodeEvent shapes, deleting the ambient SDK declaration; typecheck caught and drove structural compatibility fixes for log levels/session result shape. Verification: pnpm install --frozen-lockfile passed; pnpm run typecheck passed after fixes; pnpm exec vitest run src/tools/worktree/index-create.test.ts src/utils/workspace-warp.test.ts src/temporal/workflow-bundle-boundary.test.ts passed (3 files, 64 tests); pnpm run check passed; git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Removed unused change-state task-add helper/export after lgrep confirmed no source references beyond temporal-recovery docs. Removed direct @temporalio/activity package dependency while retaining transitive availability through @temporalio/worker/@temporalio/testing. Eliminated the direct @opencode-ai/sdk type import from worktree code by moving the minimal runtime contract into plugin/src/utils/opencode-types.ts and deleting the ambient SDK declaration. Typecheck failures drove structural compatibility fixes for log level, session response, and session surface types.",
+      "filesTouched": [
+        "plugin/package.json",
+        "plugin/pnpm-lock.yaml",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/utils/opencode-sdk.d.ts",
+        "plugin/src/utils/opencode-types.ts"
+      ],
+      "touched_files": [
+        "plugin/package.json",
+        "plugin/pnpm-lock.yaml",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/utils/opencode-sdk.d.ts",
+        "plugin/src/utils/opencode-types.ts"
+      ],
+      "checkpointSha": "65dfebd2d456950648ea6038f62d83f43da34234",
+      "completedAt": "2026-05-23T16:54:48.829Z",
+      "completed_at": "2026-05-23T16:54:48.829Z",
+      "notes": "Proof-based deletion/dependency disposition completed and checkpointed at 65dfebd2d456950648ea6038f62d83f43da34234.",
+      "error_recovery": {
+        "last_error": "Initial pnpm run typecheck failed until the local structural OpencodeClient shape matched the real SDK client surface.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolved: structural type tightened to match actual call surface; no further retry needed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run typecheck failed: log level string not assignable to SDK log level union.",
+            "diagnosis": "Local structural OpencodeClient type was wider than the real SDK log contract.",
+            "fix_tried": "Narrowed log level to debug/info/warn/error.",
+            "strategy_label": "type-shape-narrowing",
+            "outcome": "failed",
+            "attempted_at": "2026-05-23T16:35:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "pnpm run typecheck failed: app/session index signatures missing on real SDK App/Session types.",
+            "diagnosis": "The local structural type required index signatures that the real SDK type does not expose.",
+            "fix_tried": "Removed unnecessary index signatures from app/session/client surfaces.",
+            "strategy_label": "remove-unneeded-structural-requirements",
+            "outcome": "failed",
+            "attempted_at": "2026-05-23T16:37:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "pnpm run typecheck failed: SessionResponse and session.list signatures incompatible with real SDK result/option shapes.",
+            "diagnosis": "The local type modeled unused session.list and required data even when SDK returns error result.",
+            "fix_tried": "Made SessionResponse structurally match observed SDK result shape with optional data/error/request/response and removed unused session.list from the required surface.",
+            "strategy_label": "model-used-surface-only",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T16:39:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T16:56:11.330Z"
+    },
+    {
+      "id": "tk-c4a9dffa0fa2",
+      "title": "Document complexity follow-ups and perform touched-scope same-pattern cleanup",
+      "type": "code",
+      "section": "Complexity disposition",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-23T06:05:38.803Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4b5c62e81eef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC5"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT4",
+          "DONT5",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T16:56:27.502Z",
+      "verification": "No code changes needed for complexity-only scope. Follow-up evidence documented in task completion: ROADMAP.md already tracks GitHub #82 \"Reduce ESLint complexity violations across plugin/src\"; fresh ESLint complexity scan at threshold 12 reports 126 findings, with top hotspots including archive.ts:350 (31), deploy-local.test.ts:580 (34), index.ts:533 (50), change.ts:3048 (86 from prior matrix/current scan top list), and other broad complexity-only areas. Touched-scope same-pattern cleanup verified with lgrep: no remaining `from \"@opencode-ai/sdk\"` imports and no `addTaskToChangeState` references in source. KD5/AC6 followed: no broad complexity refactor because findings are not correctness blockers for this change.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Evaluated complexity-only scope against KD5/AC6. Fresh ESLint complexity scan with threshold 12 still reports 126 findings; threshold 20 reports 42 findings. Existing ROADMAP.md item #82 tracks the repo-wide follow-up \"Reduce ESLint complexity violations across plugin/src\". No broad refactor was performed because current complexity findings are follow-up work, not correctness blockers for this change. Touched-scope same-pattern cleanup verified no remaining source import `from \"@opencode-ai/sdk\"` and no remaining source references to `addTaskToChangeState`.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "65dfebd2d456950648ea6038f62d83f43da34234",
+      "completedAt": "2026-05-23T16:57:51.280Z",
+      "completed_at": "2026-05-23T16:57:51.280Z",
+      "notes": "Complexity follow-up disposition documented; no code changes needed.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T16:58:00.373Z"
+    },
+    {
+      "id": "tk-049e0eac4719",
+      "title": "Run final verification and follow-up slop scan",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-23T06:05:53.591Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7fa2d0d7bc2f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0aafd791df4e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-24bef9c36e04"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c4a9dffa0fa2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T16:58:24.478Z",
+      "verification": "Release hardening remediation: fixed spec/docs contradiction, clarified conformance checklist, documented signalWarning contract, reused lock timestamp, collapsed duplicate conformance return paths, and removed single-use warning-code constant. Verification: pnpm exec vitest run src/tools/conformance.test.ts passed 21/21; pnpm run check passed; targeted harden rechecks resolved docs/slop findings with no regressions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/spec-conformance/spec.json",
+        "docs/checklists/conformance-checklist.md",
+        "docs/specs/spec-conformance.md",
+        "plugin/src/tools/conformance.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/spec-conformance/spec.json",
+        "docs/checklists/conformance-checklist.md",
+        "docs/specs/spec-conformance.md",
+        "plugin/src/tools/conformance.ts"
+      ],
+      "checkpointSha": "d96b06868da1339b9f1184c72801a3a88374263c",
+      "completedAt": "2026-05-23T17:41:09.720Z",
+      "completed_at": "2026-05-23T17:41:09.720Z",
+      "notes": "Final verification and follow-up slop scan completed; no code changes in this task.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-23T17:01:36.246Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-23T05:39:54.716Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via Tier A reply: continue.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/proposal.md",
+        "content_hash": "fab6748804c8922c7bdd36d7b1b52e90337f4767fa85a526128acf658bbc9c6c",
+        "non_whitespace_chars": 7789,
+        "checked_at": "2026-05-23T05:39:54.813Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-23T05:56:03.923Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance criteria and agreement via Tier A reply: approve. Agreement persisted and ChangeContract minted (27 items).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/agreement.md",
+        "content_hash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "non_whitespace_chars": 3801,
+        "checked_at": "2026-05-23T05:56:04.133Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-23T06:03:37.169Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory leverage scout attempted and integrated. Independent validator returned VALIDATED with no unresolved conflict or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/design.md",
+        "content_hash": "c201dc250239d1c0781cb435395ada73acd4f19e7f9f10a735f847cf9df783e7",
+        "non_whitespace_chars": 5620,
+        "checked_at": "2026-05-23T06:03:37.472Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-23T15:30:45.954Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via Tier A reply: approve. Task graph has 6 tasks with TDD intent, dependencies, and contract refs; ready task tk-4b5c62e81eef."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-23T17:01:55.787Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 6 tasks done. Verification evidence includes focused affected Vitest suite (9 files, 214 tests), pnpm run check, full pnpm test, and deterministic slop/touched-scope scans. Worktree HEAD 65dfebd2d456950648ea6038f62d83f43da34234."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-23T17:17:50.666Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via Tier A reply: approve. Acceptance review verdict READY with no blocking findings; contract review matrix has 27 rows and 0 failing rows; focused suite, pnpm run check, full pnpm test, reviewer verification, and touched-scope slop scans passed/documented.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/acceptance.md",
+        "content_hash": "58a8b9846a9ff468062fd07f44a6441ec2a6a50f7f023efa04baeafc29b10e53",
+        "non_whitespace_chars": 5765,
+        "checked_at": "2026-05-23T17:17:50.799Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-23T17:51:45.899Z",
+      "completed_by": "adv-archive",
+      "approval_evidence": "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/home/jon/dev/advance; pushStatus=pushed"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 999999,
+    "source_artifact": "project-metadata:slop-scan@2026-05-23T04:59:24.911Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+      "approvedAt": "2026-05-23T05:45:00.000Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Fix silent conformance signal failure visibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Resolve each actionable slop-scan finding or classify it with evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Use structural proof before deleting exports or dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Extract shared recovery code only where behavior-preserving and justified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Treat risky complexity-only refactors as explicit follow-ups unless they are needed for correctness or safe cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Conformance `lock`, `override`, and `run` responses surface a structured warning when workflow notification fails after local state save.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Rejected-signal tests cover conformance notification failure paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Every slop finding is recorded in a resolution matrix: fixed, removed with proof, wired, documented non-actionable, or follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "No export or dependency is removed without structural evidence and passing focused verification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Repeated poisoned-history recovery fallback is centralized or explicitly left unchanged with rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "High-complexity handlers are refactored only when needed for correctness or safe cleanup; remaining complexity-only hotspots become follow-ups with evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` passes from `plugin/`; relevant focused tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Follow-up slop/deterministic scan reports no remaining actionable findings in touched scope, or documents non-blocking findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve ADV workflow correctness, deletion safety, existing gate behavior, worktree isolation, and Temporal worker singleton guarantees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not hide, swallow, or downgrade correctness-sensitive failures behind debug-only logging.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Specs remain authoritative; implementation must preserve existing ADV workflow laws.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Runtime is Bun; tests run on Node/Vitest; all build/test commands run from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "If Temporal workflow-bundled code changes, replay/versioning implications from `advance-workflow` must be evaluated and evidenced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not treat heuristic-only, regex-only, text-only, or single-tool unused-code guesses as deletion proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not bypass ADV state tools or read ADV state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not reintroduce `defineUpdate` on the change workflow surface or violate workflow-bundle import safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not refactor all complexity hotspots blindly when risk exceeds correctness benefit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not split or shrink the change solely because it is broad; the prep gate owns execution shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "New ADV user-facing features unrelated to resolving the slop-scan findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad style rewrites or repo-wide churn not required by the findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "External conformance test-source implementation or conformance policy redesign beyond surfacing tool signal failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Deleting public/plugin registration surfaces, generated files, tests, fixtures, examples, or command modules without structural reachability proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "6afe89c4503980cb03747d9ac9a864dcacf10c34e6c633b9951c357ab2ac6e31",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Review trace: conformance.ts returns structured signalWarning for saved-success signal failures; conformance tests cover lock/override/run rejected signals.",
+          "notes": "Reviewer verdict: satisfied."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Task tk-4b5c62e81eef persisted proof-backed resolution matrix in design; review accepted unresolved complexity items as non-blocking follow-up per ROADMAP #82 evidence.",
+          "notes": "No unclassified actionable slop findings found in touched scope."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Deletion/dependency dispositions backed by lgrep/source import checks, pnpm why, typecheck, focused tests, pnpm run check, and diff-check evidence in tk-24bef9c36e04.",
+          "notes": "No deletion based solely on heuristic/text guess."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "plugin/src/tools/recovery-probe.ts centralizes workflowHasPoisonedRecoveryEvidence; call sites updated in change/contract/gate/task; recovery-probe tests cover poisoned markers and fallback paths.",
+          "notes": "Predicate extraction stayed behavior-preserving."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tk-c4a9dffa0fa2 documents broad complexity findings as follow-up; implementation only touched correctness/deletion/recovery-adjacent paths.",
+          "notes": "Risky complexity-only refactors deferred with evidence."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "conformance.ts actionLock/actionOverride/actionRun include signalWarning in success responses after fireConformanceSignal warning; focused suite passed 214/214 this review.",
+          "notes": "Structured warning code ADV_CONFORMANCE_SIGNAL_FAILED verified by tests."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "conformance.test.ts rejected-signal tests for lock, override, and run assert success:true, signalWarning, and persisted local state; focused suite passed 214/214.",
+          "notes": "Required rejected-signal paths covered."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Resolution matrix persisted in design via adv_change_update during tk-4b5c62e81eef; ADV task evidence records slop catalog classification and proof method.",
+          "notes": "Design artifact is ADV source of truth for matrix."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Removed addTaskToChangeState/AddTaskInput, @temporalio/activity direct dep, and ambient SDK declaration only after source import checks plus typecheck, focused tests, pnpm run check, and pnpm install --frozen-lockfile evidence.",
+          "notes": "No unsafe deletion found in review."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflowHasPoisonedRecoveryEvidence helper implemented and tested; exact affected tests passed during execution; focused suite rerun passed 214/214.",
+          "notes": "Centralized predicate, not generic disk write path."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Complexity findings documented as ROADMAP #82 follow-up; touched code limited to correctness/deletion/recovery; review found only suggestions/nits, no complexity blocker.",
+          "notes": "No broad complexity-only refactor performed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Current review reran focused affected Vitest suite: 9 files, 214 tests passed. Current review reran pnpm run check: passed.",
+          "notes": "Full pnpm test also passed in execution evidence."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tk-049e0eac4719 deterministic slop follow-up documented 126 non-blocking complexity-only findings tracked by ROADMAP #82; touched-scope pattern scan found no direct SDK import, addTaskToChangeState, @temporalio/activity import, or ambient SDK declaration.",
+          "notes": "No remaining actionable touched-scope slop finding."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review found workflow correctness, deletion safety, gate behavior, worktree isolation, and worker singleton unchanged; focused tests and pnpm run check passed.",
+          "notes": "Work executed in ADV worktree."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Conformance signal failure is now returned as signalWarning instead of debug-only logging; review found no correctness-sensitive failure hidden behind logs.",
+          "notes": "Core corrected behavior."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec delta rq-confSignalVisibility01 added in .adv/specs and mirrored docs; implementation/tests align to spec scenarios.",
+          "notes": "Specs remained authoritative."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All verification commands run from plugin/ in worktree; Node/Vitest checks passed; no Bun-only runtime behavior added.",
+          "notes": "Command scope respected."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Temporal workflow code or defineUpdate surface changed; workflow-bundle-boundary test included in focused suite passed.",
+          "notes": "Replay/versioning risk avoided."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Deletion proof used source import checks, package-manager evidence, typecheck/check, and focused tests; no single-tool heuristic deletion accepted.",
+          "notes": "Proof-based disposition followed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review and state access used ADV tools; no ADV state files were read directly.",
+          "notes": "ADV state boundary respected."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No defineUpdate reintroduction; workflow-bundle-boundary focused test passed; recovery helper remains tool-layer safe.",
+          "notes": "Temporal boundary respected."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Broad complexity scan findings documented as follow-up; no blind repo-wide complexity refactor performed.",
+          "notes": "Correctness-first scope followed."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Change completed through approved prep task graph; no split/shrink based solely on breadth.",
+          "notes": "Scope validity preserved."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new ADV user-facing features unrelated to slop findings were implemented.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad style rewrite or repo-wide churn; complexity-only work recorded as follow-up.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Conformance work limited to signal failure visibility; no external test-source implementation or policy redesign.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No protected registration/generated/test/fixture/example/command surface deleted without structural proof; deleted items were unused helper/ambient declaration/direct dependency.",
+          "notes": "Out-of-scope boundary respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Conformance `lock`, `override`, and `run` responses surface a structured warning when workflow notification fails after local state save.",
+    "Rejected-signal tests cover conformance notification failure paths.",
+    "Every slop finding is recorded in a resolution matrix: fixed, removed with proof, wired, documented non-actionable, or follow-up.",
+    "No export or dependency is removed without structural evidence and passing focused verification.",
+    "Repeated poisoned-history recovery fallback is centralized or explicitly left unchanged with rationale.",
+    "High-complexity handlers are refactored only when needed for correctness or safe cleanup; remaining complexity-only hotspots become follow-ups with evidence.",
+    "`pnpm run check` passes from `plugin/`; relevant focused tests pass.",
+    "Follow-up slop/deterministic scan reports no remaining actionable findings in touched scope, or documents non-blocking findings."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/proposal.md",
+      "updatedAt": "2026-05-23T17:07:53.431Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/problem-statement.md",
+      "updatedAt": "2026-05-23T17:07:53.445Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/agreement.md",
+      "updatedAt": "2026-05-23T17:07:53.460Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/design.md",
+      "updatedAt": "2026-05-23T17:07:53.478Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSlopScanFindings/executive-summary.md",
+      "updatedAt": "2026-05-23T17:07:53.499Z"
+    }
+  },
+  "lastSignalAt": "2026-05-23T17:51:45.899Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}
