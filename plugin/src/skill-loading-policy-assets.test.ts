@@ -160,7 +160,10 @@ function agentFrontmatter(agent: string): string {
 
 describe("skill loading policy assets", () => {
   test("ADV_INSTRUCTIONS documents load-site taxonomy values", () => {
-    const content = readFileSync(join(REPO_ROOT, "ADV_INSTRUCTIONS.md"), "utf8");
+    const content = readFileSync(
+      join(REPO_ROOT, "ADV_INSTRUCTIONS.md"),
+      "utf8",
+    );
 
     expect(content).toContain("Load site");
     expect(content).toContain("orchestrator-only");
@@ -188,18 +191,22 @@ describe("skill loading policy assets", () => {
 
   test("literal command skill refs resolve to shipped repo skills", () => {
     const shipped = repoSkillNames();
-    const missing = SKILL_REF_INVENTORY
-      .filter((entry) => !shipped.has(entry.skill))
-      .map((entry) => `${entry.commandFile}:${entry.skill}`);
+    const missing = SKILL_REF_INVENTORY.filter(
+      (entry) => !shipped.has(entry.skill),
+    ).map((entry) => `${entry.commandFile}:${entry.skill}`);
 
     expect(missing).toEqual([]);
   });
 
   test("skill-backed command refs include fallback or degradation path", () => {
-    const missingFallback = SKILL_REF_INVENTORY
-      .filter((entry) => entry.fallbackRequired)
+    const missingFallback = SKILL_REF_INVENTORY.filter(
+      (entry) => entry.fallbackRequired,
+    )
       .filter((entry) => {
-        const content = readFileSync(join(COMMAND_DIR, entry.commandFile), "utf8");
+        const content = readFileSync(
+          join(COMMAND_DIR, entry.commandFile),
+          "utf8",
+        );
         return !/fallback|unavailable|inconclusive|degradation|otherwise continue/i.test(
           content,
         );
@@ -213,7 +220,9 @@ describe("skill loading policy assets", () => {
     const denied = SKILL_REF_INVENTORY.flatMap((entry) =>
       (entry.workerAgents ?? [])
         .filter((agent) => !["explore", "general"].includes(agent))
-        .filter((agent) => /^\s*skill:\s*false\s*$/m.test(agentFrontmatter(agent)))
+        .filter((agent) =>
+          /^\s*skill:\s*false\s*$/m.test(agentFrontmatter(agent)),
+        )
         .map((agent) => `${entry.commandFile}:${entry.skill}->${agent}`),
     );
 
@@ -239,12 +248,16 @@ describe("skill loading policy assets", () => {
     for (const command of [discover, design]) {
       expect(command).toContain("Prepare split-load contract");
       expect(command).toContain("orchestrator owns ScoutCandidate schema");
-      expect(command).toContain('prompt worker to load `skill("adv-opportunity-scout")`');
+      expect(command).toContain(
+        'prompt worker to load `skill("adv-opportunity-scout")`',
+      );
       expect(command).toContain("If worker skill-load is unavailable");
     }
 
     expect(scoutSkill).toContain("Split-load pattern");
-    expect(scoutSkill).toContain("worker loads `skill(\"adv-opportunity-scout\")`");
+    expect(scoutSkill).toContain(
+      'worker loads `skill("adv-opportunity-scout")`',
+    );
     expect(discoverSpec).toContain("split-load contract");
     expect(discoverSpec).toContain("worker skill-load unavailable");
     expect(workflowSpec).toContain("split-load contract");
