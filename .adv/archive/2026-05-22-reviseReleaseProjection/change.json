@@ -277,7 +277,7 @@
       "approval_evidence": "Proposal created as fast-follow to fixArchiveReleaseOrdering after user confirmed cleanup and requested use of existing archived change context. Problem statement confirmed: archive must not return success unless release gate projection is durably done, or must return blocked/recoverable error before retiring. Strict validation passed with expected pre-prep warnings NO_TASKS and NO_DELTAS.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/proposal.md",
         "content_hash": "cd20189e7880efc06bd9f37a4ff3a89e880ba34bf9dbf226634da84af87efe1b",
         "non_whitespace_chars": 3087,
         "checked_at": "2026-05-22T15:25:35.244Z"
@@ -290,7 +290,7 @@
       "approval_evidence": "Discovery completed. Agreement approved inline by user reply `approve`. User decisions: prevent archive false-success with blocked/recoverable outcome when durable proof cannot be established; add advance-workflow spec requirement; require gate-status-equivalent read proof; keep seven gates while enforcing ordered internal archive substeps: archive sign-off -> Phase 9 finalize -> release-gate durable projection proof -> archive retirement/cleanup/issue closure. Contract minted with standard rigor. Validation after contract mint reports expected pre-prep coverage errors because tasks do not exist yet; prep will add task coverage.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/agreement.md",
         "content_hash": "50f199216eab2e567b0b060707af4a31e05e7feca58698f19a3e8ab05a300569",
         "non_whitespace_chars": 3359,
         "checked_at": "2026-05-22T15:37:57.372Z"
@@ -303,7 +303,7 @@
       "approval_evidence": "Design completed. Architecture keeps the seven-gate model and strengthens archive internals as ordered terminal substeps: archive sign-off -> Phase 9 finalization -> release-gate durable projection proof -> archive retirement/cleanup/issue closure. Independent validator verdict VALIDATED with implementation caution: durable proof helper must use the store-backed `store.gates.get(changeId)` path used by `adv_gate_status`, not another direct workflow poll, and must assert Phase 9 evidence in release approval_evidence.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/design.md",
         "content_hash": "e53b278dec84966017174d04b6961bddf7bb918a6cf3e2a166881ecb347bd710",
         "non_whitespace_chars": 9758,
         "checked_at": "2026-05-22T15:42:57.079Z"
@@ -328,7 +328,7 @@
       "approval_evidence": "User accepted delivered work inline by replying `accept`. Review verdict APPROVED, executive summary persisted, contract review matrix has 21 rows with 0 failed/violated/unknown, all tasks done and verification passed.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/acceptance.md",
         "content_hash": "43b7629168358c678973296df96d21f6af8b44025d69d943e50c9a7858a79212",
         "non_whitespace_chars": 5087,
         "checked_at": "2026-05-22T16:31:16.685Z"
@@ -753,19 +753,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/proposal.md",
       "updatedAt": "2026-05-22T16:18:46.002Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/problem-statement.md",
       "updatedAt": "2026-05-22T16:18:46.014Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/agreement.md",
       "updatedAt": "2026-05-22T16:18:46.030Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/reviseReleaseProjection/design.md",
       "updatedAt": "2026-05-22T16:18:46.046Z"
     }
   },

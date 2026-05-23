@@ -24,9 +24,9 @@ const BACKEND_ID = "b".repeat(40);
 describe("ProjectConfigSchema product linking", () => {
   test("parses optional product metadata and related repo product fields", () => {
     const parsed = ProjectConfigSchema.parse({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",
@@ -42,7 +42,7 @@ describe("ProjectConfigSchema product linking", () => {
     });
 
     expect(parsed.product).toMatchObject({
-      id: "pokeedge",
+      id: "example-product",
       role: "secondary",
       repo_id: "web",
       primary_repo_id: "backend",
@@ -80,9 +80,9 @@ describe("resolveProductContext", () => {
 
   test("resolves primary product context", async () => {
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge",
+      name: "example-product",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "primary",
         repo_id: "backend",
         primary_repo_id: "backend",
@@ -102,9 +102,9 @@ describe("resolveProductContext", () => {
 
   test("resolves secondary product context through related_repos", async () => {
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",
@@ -131,9 +131,9 @@ describe("resolveProductContext", () => {
       path === ROOT ? WEB_ID : null,
     );
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",
@@ -153,9 +153,9 @@ describe("resolveProductContext", () => {
       path === ROOT ? WEB_ID : null,
     );
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",
@@ -181,9 +181,9 @@ describe("resolveProductContext", () => {
       path === ROOT ? WEB_ID : null,
     );
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",
@@ -207,9 +207,9 @@ describe("resolveProductContext", () => {
 
   test("rejects duplicate related repo IDs", async () => {
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",
@@ -225,9 +225,9 @@ describe("resolveProductContext", () => {
 
   test("rejects product primary_repo_id that is not current or related", async () => {
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "missing",
@@ -242,9 +242,9 @@ describe("resolveProductContext", () => {
 
   test("rejects secondary primary repo without primary product role", async () => {
     mocks.loadProjectConfig.mockResolvedValue({
-      name: "pokeedge-web",
+      name: "example-web",
       product: {
-        id: "pokeedge",
+        id: "example-product",
         role: "secondary",
         repo_id: "web",
         primary_repo_id: "backend",

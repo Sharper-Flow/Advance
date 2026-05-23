@@ -17,7 +17,7 @@ fix that on its own.
 ## Install
 
 ```bash
-/home/jon/toolbox/plugins/acp-mux/bin/acp-mux install
+/home/dev/toolbox/plugins/acp-mux/bin/acp-mux install
 ```
 
 This symlinks the launcher into `~/.local/bin/acp-mux`. Then register the
@@ -26,7 +26,7 @@ plugin in `~/.config/opencode/opencode.jsonc`:
 ```jsonc
 {
   "plugin": [
-    "/home/jon/toolbox/plugins/acp-mux/plugin.js"
+    "/home/dev/toolbox/plugins/acp-mux/plugin.js"
   ]
 }
 ```
@@ -43,7 +43,7 @@ Then restart Zed/OpenCode ACP.
       "command": "acp-mux",
       "args": ["acp"],
       "env": {
-        "PATH": "/home/jon/.local/bin:/home/jon/.opencode/bin:/home/jon/.bun/bin:/home/jon/.cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin",
+        "PATH": "/home/dev/.local/bin:/home/dev/.opencode/bin:/home/dev/.bun/bin:/home/dev/.cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin",
         "SHELL": "/usr/bin/zsh",
         "COLORTERM": "truecolor"
       }
@@ -124,7 +124,7 @@ acp-mux env
 ## Tests
 
 ```bash
-cd /home/jon/toolbox/plugins/acp-mux
+cd /home/dev/toolbox/plugins/acp-mux
 npm test                # smoke.sh + unit tests
 npm run test:unit       # node --test test/*.test.js
 npm run test:smoke      # bash test/smoke.sh

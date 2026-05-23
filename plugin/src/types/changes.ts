@@ -191,8 +191,8 @@ export type ClarifyFindingSnapshot = z.infer<
 
 /**
  * Provenance metadata for changes created from another project.
- * Set when project A creates a follow-up change in project B (e.g. pokeedge
- * backend creating a follow-up in pokeedge-web).
+ * Set when project A creates a follow-up change in project B (e.g. example-product
+ * backend creating a follow-up in example-web).
  */
 export const CrossProjectOriginSchema = z.object({
   /** Name of the source project that created this follow-up change */

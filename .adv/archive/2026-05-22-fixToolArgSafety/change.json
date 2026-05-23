@@ -441,7 +441,7 @@
       "approval_evidence": "User approved proposal with reply: continue. Problem statement and proposal persisted; scope includes blank optional arg guard, origin validation, and Temporal-authoritative origin persistence.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/proposal.md",
         "content_hash": "0c0d56930538c5ac320e4ed708629f7fa734120294f77752c520d3e8054d23d7",
         "non_whitespace_chars": 4816,
         "checked_at": "2026-05-22T06:02:01.384Z"
@@ -454,7 +454,7 @@
       "approval_evidence": "Discovery complete. User approved acceptance criteria/agreement with reply: approve. Agreement persisted; contract minted with 19 items. Decisions: origin_issue_number roadmap/triage only; blank strictness artifact/linkage fields; broader all-tool blank policy deferred to agenda ag-IvWj2x1e; repair path deferred to design.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/agreement.md",
         "content_hash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
         "non_whitespace_chars": 3138,
         "checked_at": "2026-05-22T06:22:51.081Z"
@@ -467,7 +467,7 @@
       "approval_evidence": "Design recorded and independently validated. Validator verdict: VALIDATED. No user-value tradeoff, no unresolved conflict, no contract-compromise risk. Key design: layered blank validation, origin matrix, creation-time initialMetadata seed, no dedicated repair tool in this change.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/design.md",
         "content_hash": "bc1d22471845e898c7fae56e52e04133ff0756afcaea9b8a9c17a38759e0ff20",
         "non_whitespace_chars": 9392,
         "checked_at": "2026-05-22T06:42:45.907Z"
@@ -492,7 +492,7 @@
       "approval_evidence": "User accepted delivered work with reply: accept. Review verdict APPROVED after remediation. Contract matrix persisted with 19/19 required rows passed/respected. Verification: targeted remediation tests passed (86), pnpm run check passed, pnpm test passed (226 files, 2920 tests), adv_change_validate strict passed with NO_DELTAS warning only. Executive summary persisted.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/acceptance.md",
         "content_hash": "93d7742d659436e9237be4dd0c4f6ca07a124a741bb2e9e4da7aa6e52fb56473",
         "non_whitespace_chars": 5264,
         "checked_at": "2026-05-22T15:46:22.201Z"
@@ -875,19 +875,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/proposal.md",
       "updatedAt": "2026-05-22T16:07:23.131Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/problem-statement.md",
       "updatedAt": "2026-05-22T16:07:23.145Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/agreement.md",
       "updatedAt": "2026-05-22T16:07:23.154Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/design.md",
       "updatedAt": "2026-05-22T16:07:23.161Z"
     }
   },

@@ -22,7 +22,7 @@ Implementation: `delete_orphan_bare_repos` applies to both orphan modern-layout 
 Rationale:
 - Matches `adv_change_bulk_close` pattern: one approval call, scoped repairs applied atomically.
 - Per-project confirmation would require N sequential `question` calls — poor UX, especially for the common case (global scan finds 2-3 orphans).
-- The `approvalEvidence` string must contain a human-readable summary of what will be repaired (e.g., `"Repair 3 orphan bare repos across 2 projects: advance/old-branch, pokeedge-web/stale-session, orphan-project/legacy"`).
+- The `approvalEvidence` string must contain a human-readable summary of what will be repaired (e.g., `"Repair 3 orphan bare repos across 2 projects: advance/old-branch, example-web/stale-session, orphan-project/legacy"`).
 - Implementation: `scope: "global"` + `action: "repair"` validates all projects, collects repair candidates, applies only after single `approvedByUser: true`.
 
 ### Q3: Detect missing expected bare repos?

@@ -118,7 +118,7 @@
       "approval_evidence": "User explicitly requested immediate fix: \"this is a bigger deal -- fix this and fully wire this up now\". Proposal includes scope and success criteria for urgent production wiring bug.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/proposal.md",
         "content_hash": "df88c2676943bb4538086f8640e1cd3a53263c1ef6c3044435fefd2b94206cc6",
         "non_whitespace_chars": 2244,
         "checked_at": "2026-05-21T05:34:12.099Z"
@@ -132,7 +132,7 @@
       "started_at": "2026-05-21T20:56:04.092Z",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/agreement.md",
         "content_hash": "3734a0983bb2cb34179802d5014d85c4ebce5973ff6b3293cf4acfd83460099c",
         "non_whitespace_chars": 3495,
         "checked_at": "2026-05-21T20:59:13.272Z"
@@ -145,7 +145,7 @@
       "approval_evidence": "Design artifact persisted and independently validated by adv-researcher with verdict VALIDATED. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk detected.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixGateAutoWorktree/design.md",
         "content_hash": "e1a5afaca9855dc0c628b666cfd88183ce52042eea97ba97df7fd1173db877d5",
         "non_whitespace_chars": 3794,
         "checked_at": "2026-05-21T20:59:18.363Z"

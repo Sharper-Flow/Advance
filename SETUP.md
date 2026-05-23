@@ -296,7 +296,7 @@ unavailable:
 
 | MCP server | Allowlist prefix / callable examples                                                          | Used by                                       | Degradation if missing                                                      |
 | ---------- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep      | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`   | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| [lgrep](https://github.com/Sharper-Flow/lgrep) | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text` | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
 | Firecrawl  | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
 | Context7   | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
 | Exa        | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |

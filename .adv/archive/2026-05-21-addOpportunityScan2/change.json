@@ -79,7 +79,7 @@
       "approval_evidence": "Proposal recreated from prior session commit 7c410cc. Scope: add opportunity scout skill integrating into discovery (Phase 3.5) and design (Phase 2.5) workflows.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/proposal.md",
         "content_hash": "4b5e4839aeeb782186a27acef2eb5595e607f2eb01bad7b5d87379fb18da741b",
         "non_whitespace_chars": 1411,
         "checked_at": "2026-05-21T01:27:13.669Z"
@@ -93,7 +93,7 @@
       "approval_evidence": "Discovery complete. ScoutCandidate schema, fate routing, spec deltas all defined.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/agreement.md",
         "content_hash": "a8af86cfdb2efccda7b7c52a9f0721f0aea9cff03958def50cae2cba5dc178f7",
         "non_whitespace_chars": 1329,
         "checked_at": "2026-05-21T01:28:02.724Z"
@@ -106,7 +106,7 @@
       "approval_evidence": "Design complete. Two-mode skill (discovery/design), 8-field schema, 5-fate routing, command integration points defined.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/design.md",
         "content_hash": "1706c84ac97beee4157dad5ec99ad4c09fa3b94a3b81486bda7742d1e10901ad",
         "non_whitespace_chars": 1829,
         "checked_at": "2026-05-21T01:28:07.118Z"
@@ -132,7 +132,7 @@
       "approval_evidence": "Contract + review matrix set via Temporal signals. Independent review: READY. All 10 AC pass, 4 constraints respected, 3 avoidances respected. All 2512 tests pass.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/acceptance.md",
         "content_hash": "84fb63289013846e833270b70f1750a8d1e544c0879196f151ee9949f911f4c3",
         "non_whitespace_chars": 1752,
         "checked_at": "2026-05-21T01:41:40.048Z"

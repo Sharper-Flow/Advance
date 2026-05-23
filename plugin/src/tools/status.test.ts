@@ -307,7 +307,7 @@ describe("Status Tools", () => {
         currentRoot: tempDir,
         currentRepoId: "web",
         repoProjectId: "w".repeat(40),
-        productId: "pokeedge",
+        productId: "example-product",
         productProjectId: "b".repeat(40),
         primaryRoot: "/repo/backend",
         primaryRepoId: "backend",
@@ -351,7 +351,7 @@ describe("Status Tools", () => {
         repoScoped.changes.recent.map((c: { id: string }) => c.id),
       ).not.toContain("backendScoped");
       expect(repoScoped.product_context).toMatchObject({
-        productId: "pokeedge",
+        productId: "example-product",
         currentRepoId: "web",
         scope: "repo",
       });

@@ -317,7 +317,7 @@
       "approval_evidence": "User instructed: \"lets fix that separate bug and the followups you created all now\". Proposal created from the four audited agenda follow-ups and confirmed problem framing from prior investigation.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/proposal.md",
         "content_hash": "6d01adff15559436c08bd2538973124a3dd3f941f78d97f54ba30a4f7f2fd653",
         "non_whitespace_chars": 2984,
         "checked_at": "2026-05-23T00:11:53.451Z"
@@ -331,7 +331,7 @@
       "approval_evidence": "Discovery completed from machine audit, ADV state tools, spec/code searches, and source inspection. User instructed to fix the separate bug plus all four created follow-ups now; agreement persisted and typed contract minted (AC1-AC7, C1-C4, DONT1-DONT3).",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/agreement.md",
         "content_hash": "ff3028e72ef780e1469f7169abf03988da1bd31677db8d6d1ed4ba0744e6f5ba",
         "non_whitespace_chars": 4805,
         "checked_at": "2026-05-23T00:14:54.111Z"
@@ -344,7 +344,7 @@
       "approval_evidence": "Design completed and validated. Independent adv-researcher validator returned CAUTION, no conflict. Tightened design per validator: delete memo fast-path, use AdvWorktreeBranches IS NOT NULL, explicit DB fallback rule, preserve worktree poison evidence for true owners.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/design.md",
         "content_hash": "e3290eece36d1535a1db786250f65c7c5876a78a4f45e514ef71b757aa921e84",
         "non_whitespace_chars": 1947,
         "checked_at": "2026-05-23T00:19:54.003Z"
@@ -369,7 +369,7 @@
       "approval_evidence": "User accepted delivered work via reply: accept. Acceptance review verdict APPROVED after remediation. Contract matrix persisted with 14/14 rows passed/respected; executive summary persisted; verification passed: targeted remediation tests, pnpm run check, pnpm test, pnpm run build, session doctor dry-run.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/acceptance.md",
         "content_hash": "bbb16a60fd92013623a2a66e3e58e4eb5e20456d635b2c3b35d9a046fbf71f1d",
         "non_whitespace_chars": 3473,
         "checked_at": "2026-05-23T01:21:34.969Z"
@@ -666,23 +666,23 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/proposal.md",
       "updatedAt": "2026-05-23T01:44:59.862Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/problem-statement.md",
       "updatedAt": "2026-05-23T01:44:59.901Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/agreement.md",
       "updatedAt": "2026-05-23T01:44:59.933Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/design.md",
       "updatedAt": "2026-05-23T01:44:59.963Z"
     },
     "executiveSummary": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/executive-summary.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAuditHygiene/executive-summary.md",
       "updatedAt": "2026-05-23T01:44:59.996Z"
     }
   },

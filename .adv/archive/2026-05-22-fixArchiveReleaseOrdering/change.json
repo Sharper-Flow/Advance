@@ -313,7 +313,7 @@
       "approval_evidence": "User approved proposal via chat: `approve`; added consideration to include post-archive return-to-base/trunk guidance in discovery/design.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/proposal.md",
         "content_hash": "ffb3b58d4ea5aae3b376be3abfdb9ac4346efb47db04cab6dd9d069e0d928754",
         "non_whitespace_chars": 2455,
         "checked_at": "2026-05-22T05:25:27.284Z"
@@ -326,7 +326,7 @@
       "approval_evidence": "User approved agreement via chat: `approve`. Discovery scoped release-gate/archive ordering, retry, cleanup, and post-archive main-checkout wayfinding constraints.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/agreement.md",
         "content_hash": "a80e022ff8aa92bbdc805a547c7cdfc74008d25d02a04747db9b17f654264aad",
         "non_whitespace_chars": 2081,
         "checked_at": "2026-05-22T05:30:29.019Z"
@@ -339,7 +339,7 @@
       "approval_evidence": "Design validator returned PASS_WITH_NOTES. Incorporated required adjustments: poll for release gate done before archive status, do not reuse completeGateViaRecovery for archived retry, use completedBy adv-archive, and keep Warp guidance optional.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/design.md",
         "content_hash": "f4066520a742d6dc7801b1954a6925596a75dd87a8a549c53ced3b280fbdca9c",
         "non_whitespace_chars": 5025,
         "checked_at": "2026-05-22T05:42:26.288Z"
@@ -364,7 +364,7 @@
       "approval_evidence": "User accepted delivered work via chat: `accept`. Review verdict APPROVED; executive summary and contract review matrix persisted; verification passed: targeted archive recovery tests, pnpm run check, pnpm run build, full pnpm test, adv_change_validate strict:true with expected NO_DELTAS.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/acceptance.md",
         "content_hash": "3cd688c688b4c0cb7cd1288457836ef0c805a3c28e82dad3549b1d4e1e193ff3",
         "non_whitespace_chars": 4097,
         "checked_at": "2026-05-22T07:11:05.572Z"
@@ -677,19 +677,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/proposal.md",
       "updatedAt": "2026-05-22T07:08:46.421Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/problem-statement.md",
       "updatedAt": "2026-05-22T07:08:46.436Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/agreement.md",
       "updatedAt": "2026-05-22T07:08:46.458Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixArchiveReleaseOrdering/design.md",
       "updatedAt": "2026-05-22T07:08:46.473Z"
     }
   },

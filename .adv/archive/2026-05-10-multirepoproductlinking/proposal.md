@@ -7,7 +7,7 @@ Investigate and design a model for linking multiple git repos into one logical A
 ## Scope
 
 ### In Scope
-- Product linking model for PokeEdge backend/frontend and future secondaries.
+- Product linking model for ExampleProduct backend/frontend and future secondaries.
 - Migration/adoption story for existing per-repo state.
 - Product identity/state routing model.
 - Per-change `scope_repos` semantics.
@@ -22,7 +22,7 @@ Investigate and design a model for linking multiple git repos into one logical A
 
 ## Success Criteria
 
-1. PokeEdge can declare `pokeedge` primary and `pokeedge-web` secondary using one config/tool path.
+1. ExampleProduct can declare `example-product` primary and `example-web` secondary using one config/tool path.
 2. Cross-cutting change can be created once with `scope_repos: ["backend", "web"]` and seen from either repo.
 3. Wisdom captured in one linked repo is visible from another linked repo without manual `target_path`.
 4. Adding future secondaries requires only config declaration; no migration to existing primary state.

@@ -66,9 +66,9 @@ describe("github-project-config", () => {
       expect(
         GitHubProjectConfigSchema.parse({
           ...SAMPLE_CONFIG,
-          repository_filter: "PokeEdge-Web",
+          repository_filter: "Example-Web",
         }).repository_filter,
-      ).toBe("PokeEdge-Web");
+      ).toBe("Example-Web");
     });
 
     test("preserves backcompat when repository_filter is absent", () => {

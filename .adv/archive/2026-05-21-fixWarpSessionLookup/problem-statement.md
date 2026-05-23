@@ -36,7 +36,7 @@ The live `adv_worktree_create` tool path (registered in `tool-registry.ts:597`) 
 
 ## Why the 2026-05-20 validation passed but live use fails
 
-`docs/spikes/warp-live-validation.md` validated warp via `opencode run --attach --dir /home/jon/dev/repos/advance` in both scenarios. The `--dir` flag pins a consistent directory context, so the server's project-id resolution matched the session's storage namespace. Live fresh sessions in varied directory contexts (worktree subdirs, multi-project layouts, sessions whose directory resolution drifts) hit the bug.
+`docs/spikes/warp-live-validation.md` validated warp via `opencode run --attach --dir /home/dev/dev/repos/advance` in both scenarios. The `--dir` flag pins a consistent directory context, so the server's project-id resolution matched the session's storage namespace. Live fresh sessions in varied directory contexts (worktree subdirs, multi-project layouts, sessions whose directory resolution drifts) hit the bug.
 
 ## Observability gap
 

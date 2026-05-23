@@ -191,7 +191,7 @@
       "approval_evidence": "Proposal confirmed via inline approval. Problem statement derived from live investigation of 5-session multi-worker setup showing ghost workers and false degraded diagnostics.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/proposal.md",
         "content_hash": "f4ae158c8fa75a3918d0dabedc5dc247af6ae59ae1483e4b320a0449b11685a3",
         "non_whitespace_chars": 4441,
         "checked_at": "2026-05-22T06:47:24.543Z"
@@ -204,7 +204,7 @@
       "approval_evidence": "Discovery findings confirmed: worker_role is purely diagnostic, lock classification is dead code in production, health monitor restart is already singleton-agnostic. No blockers.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/agreement.md",
         "content_hash": "1f3f7017376b74d86e89607b110dd044584522060162fb115a320398336adc55",
         "non_whitespace_chars": 3471,
         "checked_at": "2026-05-22T06:56:24.284Z"
@@ -217,7 +217,7 @@
       "approval_evidence": "Design complete. Validator CAUTION resolved inline — spec scope expanded to include rq-advcfg01.2 and rq-temporalConcurrentLoad01. No architectural changes, no user-value tradeoffs, no contract-compromise risk.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/design.md",
         "content_hash": "1e4bedcc8d0a9fc1240069a81cccb5b5935f7cec80b79c8a87d905e73bb8e142",
         "non_whitespace_chars": 5751,
         "checked_at": "2026-05-22T07:09:32.001Z"
@@ -242,7 +242,7 @@
       "approval_evidence": "All 12 contract items pass/respected. 2916/2917 tests pass (1 pre-existing). Executive summary persisted.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/acceptance.md",
         "content_hash": "5335698bff02cc3fdbbc5e10cc8ff2a815a160efc54a4de7168b54aad3dd22a1",
         "non_whitespace_chars": 3091,
         "checked_at": "2026-05-22T07:31:29.106Z"
@@ -487,15 +487,15 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/proposal.md",
       "updatedAt": "2026-05-22T06:47:15.288Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/agreement.md",
       "updatedAt": "2026-05-22T06:54:12.468Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/flipWorkerSingletonMultiWorker/design.md",
       "updatedAt": "2026-05-22T07:09:18.722Z"
     }
   },

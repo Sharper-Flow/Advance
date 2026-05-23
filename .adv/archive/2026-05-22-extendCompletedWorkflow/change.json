@@ -98,7 +98,7 @@
       "completed_by": "agent",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/proposal.md",
         "content_hash": "2695fa6fa674cb1fde1d0f9d01a5de01565e94983889b87337c111d6f48dad45",
         "non_whitespace_chars": 1294,
         "checked_at": "2026-05-22T03:54:55.356Z"
@@ -111,7 +111,7 @@
       "approval_evidence": "Reuses existing isWorkflowCompletedError detector.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/agreement.md",
         "content_hash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
         "non_whitespace_chars": 969,
         "checked_at": "2026-05-22T03:55:00.054Z"
@@ -124,7 +124,7 @@
       "approval_evidence": "Tight extension of existing recovery branch.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/design.md",
         "content_hash": "cf21a57211d2482a275e783eb90ede1bc3ea140c50c46e0aa096a6529a9aadf5",
         "non_whitespace_chars": 1309,
         "checked_at": "2026-05-22T03:55:02.124Z"
@@ -148,7 +148,7 @@
       "approval_evidence": "User approved acceptance via chat: `approve`. Review matrix rows all pass/respected; tests/check/build/full suite green.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/acceptance.md",
         "content_hash": "10ba963f7486e69eb081ee61dd122b83b98dac3bcc8060b86d9cba8a9ff882a4",
         "non_whitespace_chars": 2076,
         "checked_at": "2026-05-22T04:15:48.366Z"
@@ -330,19 +330,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/proposal.md",
       "updatedAt": "2026-05-22T04:13:02.727Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/problem-statement.md",
       "updatedAt": "2026-05-22T04:13:02.739Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/agreement.md",
       "updatedAt": "2026-05-22T04:13:02.754Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/design.md",
       "updatedAt": "2026-05-22T04:13:02.770Z"
     }
   },

@@ -29,7 +29,7 @@ AND suspect-live cases (alive PID + unserviceable queue) require explicit approv
 GIVEN an ADV change with status `active` (post-proposal)
 WHEN `adv_gate_complete` is invoked for any gate ∈ {`discovery`, `design`, `planning`, `execution`, `acceptance`, `release`} OR `adv_task_add` is invoked OR `adv_task_update` is invoked with `status: 'in_progress' | 'done' | 'cancelled'`
 AND the resolved `cwd` of the invoking session is the project's main checkout (`resolveGitSessionContext().isMainCheckout === true`)
-AND `feature_flags.worktree_guard_enforce` is true (this repo opted in from day 0; `pokeedge-web` opts in via documented archive step; broad default flips after one minor release)
+AND `feature_flags.worktree_guard_enforce` is true (this repo opted in from day 0; `example-web` opts in via documented archive step; broad default flips after one minor release)
 THEN the tool MUST return a structured BLOCK response:
   - `errorClass: "WorktreeIsolationViolation"`
   - `mainCheckoutPath: <resolved-path>`
@@ -57,7 +57,7 @@ GIVEN the three components have different risk profiles
 WHEN they ship
 THEN:
   - **AC-1** SHALL be gated by `feature_flags.worker_singleton_enforce` (default `true`); flag is a WSL2/NFS escape hatch, not a canary gate. `ADV_FORCE_IN_PROCESS_WORKER` remains the more-aggressive escape per `rq-workerSingleton01.4`.
-  - **AC-2** SHALL be gated by `feature_flags.worktree_guard_enforce` (default `false` for the first release; this repo + `pokeedge-web` opt in from day 0; default flips to `true` in next minor release after canary period clean).
+  - **AC-2** SHALL be gated by `feature_flags.worktree_guard_enforce` (default `false` for the first release; this repo + `example-web` opt in from day 0; default flips to `true` in next minor release after canary period clean).
   - **AC-3** SHALL have no flag — the cache is always active because its failure mode (cache miss → direct probe) is functionally identical to current behavior. Revert requires PR revert if needed.
 AND the rationale per component is documented in design and in `rq-advcfg01.2` scenarios.
 
@@ -124,7 +124,7 @@ THEN coverage exists for:
 ### P4 — Verification floor
 
 - Every AC has a corresponding test type, location, and assertion shape declared (see AC-6).
-- Manual smoke under multi-session `pokeedge-web` load is REQUIRED as part of archive sign-off (this is the canary scenario that motivated the change).
+- Manual smoke under multi-session `example-web` load is REQUIRED as part of archive sign-off (this is the canary scenario that motivated the change).
 - TDD intent per task (set at prep gate): inline red/green for guard logic; separate verification task for the integration spawn test (cross-cutting).
 
 ### P5 — Rollout discipline (REVISED, addresses verification-gap challenge)
@@ -134,7 +134,7 @@ Risk-tiered defaults per component. **Defaults-off would hide the very signals u
 | Component | Flag | Default | Rationale |
 |---|---|---|---|
 | Worker singleton (AC-1) | `worker_singleton_enforce` | **`true`** | Existing spec; lock primitive battle-tested in `git-worktree-flock.ts`. Flag is the WSL2/NFS escape hatch, not the canary gate. Off-path is the bug we are fixing — defaulting off keeps the bug shipping. |
-| Worktree guard (AC-2) | `worktree_guard_enforce` | **`false` (one release)** then **`true`** | Only guard that BLOCKS calls succeeding today. Risk: surprise refusals on existing in-flight changes in main checkout. Mitigation: canary opt-in on this repo + `pokeedge-web` from day 0; flip default after one minor release. |
+| Worktree guard (AC-2) | `worktree_guard_enforce` | **`false` (one release)** then **`true`** | Only guard that BLOCKS calls succeeding today. Risk: surprise refusals on existing in-flight changes in main checkout. Mitigation: canary opt-in on this repo + `example-web` from day 0; flip default after one minor release. |
 | Probe cache (AC-3) | **none** | always on | Failure mode functionally identical to current code (cache miss → direct probe). Flag would be cargo-cult — maintains two paths forever for zero risk reduction. |
 
 Wisdom captured at archive: final TTL values (may have tuned during canary), heartbeat grace window stability, any false-positive isolation-guard refusals from canary period.
@@ -170,6 +170,6 @@ Coverage: B:C F:C S:C M:C D:C X:C Q:P I:C E:C C:N/A T:N/A
 Findings: 0 CRITICAL, 0 HIGH
 
 Note Q:P (Quality Attributes — partial):
-- AC-3 p95 ≤ 2000ms latency target is set, but observed pokeedge-web baseline p95 not measured pre-change.
+- AC-3 p95 ≤ 2000ms latency target is set, but observed example-web baseline p95 not measured pre-change.
   Resolution: collect baseline as first apply task (cheap: 5x adv_status invocations under current load). Not a clarify-blocker — design proceeds.
 ```

@@ -44,7 +44,7 @@
       "approval_evidence": "All AC verified. Contract + review matrix in seed state. projectionChangesDir set. Tests green.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addQuestionNoteDocs/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addQuestionNoteDocs/acceptance.md",
         "content_hash": "4df1190ae42a8c2cfdc8e325f3127f4248a01d93c408b372ccf44e0c6af37881",
         "non_whitespace_chars": 705,
         "checked_at": "2026-05-21T02:26:16.403Z"

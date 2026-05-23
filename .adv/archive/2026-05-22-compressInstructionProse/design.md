@@ -12,7 +12,7 @@ The governing mechanism remains the existing prose-load framework:
 
 Implementation runs from the existing worktree:
 
-`/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/compressInstructionProse`
+`/home/dev/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/compressInstructionProse`
 
 Current worktree already contains prose-only edits across active instruction/test files. Planning must capture, audit, verify, and checkpoint those edits instead of ignoring them.
 

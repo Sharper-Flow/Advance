@@ -249,7 +249,7 @@
       "approval_evidence": "User approved problem framing and proposal direction inline: save detailed questions for discovery/design; telemetry should start very minimal.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/proposal.md",
         "content_hash": "56b7c6279d36a1c664d652bdaaf7cb2795c72a1d9ef778aff03e36f8b1805395",
         "non_whitespace_chars": 5692,
         "checked_at": "2026-05-22T05:03:20.152Z"
@@ -262,7 +262,7 @@
       "approval_evidence": "User approved agreement inline with reply: approve. Contract minted with 19 items. AC approved and detailed design questions deferred to design per user direction.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/agreement.md",
         "content_hash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
         "non_whitespace_chars": 7810,
         "checked_at": "2026-05-22T05:08:01.497Z"
@@ -275,7 +275,7 @@
       "approval_evidence": "Design completed and independently validated with verdict VALIDATED. No unresolved conflict, user-value tradeoff, or contract-compromise risk. Validator cautions integrated into design: ledger terminology, adv-apply step 3d, minimal telemetry.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/design.md",
         "content_hash": "5f3539c71238b2862b55c2ea35f40727a342450e08963fc5ade69397bbcec5e4",
         "non_whitespace_chars": 9395,
         "checked_at": "2026-05-22T05:19:49.275Z"
@@ -300,7 +300,7 @@
       "approval_evidence": "User accepted delivered work inline with reply: accept. Review verdict APPROVED after remediation. Executive summary persisted and verified present. Contract review matrix has 19 rows: 15 required passed/respected, 4 out-of-scope not_applicable, 0 failing/unknown. Verification: pnpm run check passed; targeted suite passed with 55 tests. Worktree clean.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/acceptance.md",
         "content_hash": "86df32e54f5a4191771b19153152d2dc405fee3fbd80a4015332b4d12f7c663b",
         "non_whitespace_chars": 4947,
         "checked_at": "2026-05-22T06:11:48.936Z"
@@ -685,19 +685,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/proposal.md",
       "updatedAt": "2026-05-22T06:35:13.146Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/problem-statement.md",
       "updatedAt": "2026-05-22T06:35:13.159Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/agreement.md",
       "updatedAt": "2026-05-22T06:35:13.178Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/design.md",
       "updatedAt": "2026-05-22T06:35:13.189Z"
     }
   },
