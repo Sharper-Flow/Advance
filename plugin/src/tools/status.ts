@@ -1240,10 +1240,10 @@ export const statusTools = {
           const opencodeSessionDebt = await scanOpenCodeSessionDebt();
           if (
             opencodeSessionDebt.available &&
-            opencodeSessionDebt.repairable_stale.length > 0
+            opencodeSessionDebt.orphan_ghost.length > 0
           ) {
             status.recommendations.push(
-              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.repairable_stale.length} repairable sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
+              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.orphan_ghost.length} orphan ghost sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
             );
           }
 
@@ -1334,8 +1334,7 @@ export const statusTools = {
             opencodeSessionDebt: opencodeSessionDebt.available
               ? {
                   available: true,
-                  repairableStaleCount:
-                    opencodeSessionDebt.repairable_stale.length,
+                  orphanGhostCount: opencodeSessionDebt.orphan_ghost.length,
                   liveInFlightCount: opencodeSessionDebt.live_in_flight.length,
                 }
               : {

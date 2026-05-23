@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   classifyBlankAssistantRows,
+  createSessionActivityLivenessResolver,
   getDeletableBlankAssistantIds,
   getDefaultOpenCodeDbPath,
   scanOpenCodeSessionDebt,
@@ -82,6 +83,58 @@ describe("opencode-session-debt", () => {
     expect(getDeletableBlankAssistantIds(result)).toEqual(["msg-orphan-ghost"]);
     expect(result.repairable_stale.map((row) => row.id)).toEqual([
       "msg-orphan-ghost",
+    ]);
+  });
+
+  test("builds deletable ids from stale session activity liveness", () => {
+    const rows: BlankAssistantRow[] = [
+      {
+        id: "msg-stale-session",
+        session_id: "ses-stale",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 10,
+        part_count: 0,
+      },
+      {
+        id: "msg-recent-session",
+        session_id: "ses-recent",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 10,
+        part_count: 0,
+      },
+      {
+        id: "msg-missing-session",
+        session_id: "ses-missing",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 10,
+        part_count: 0,
+      },
+    ];
+
+    const result = classifyBlankAssistantRows(rows, {
+      nowMs,
+      resolveSessionLiveness: createSessionActivityLivenessResolver(
+        [
+          {
+            session_id: "ses-stale",
+            time_updated_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 1,
+          },
+          {
+            session_id: "ses-recent",
+            time_updated_ms: nowMs - 1,
+          },
+        ],
+        { nowMs },
+      ),
+    });
+
+    expect(result.live_in_flight.map((row) => row.id)).toEqual([
+      "msg-recent-session",
+    ]);
+    expect(result.orphan_ghost.map((row) => row.id)).toEqual([
+      "msg-stale-session",
+      "msg-missing-session",
+    ]);
+    expect(getDeletableBlankAssistantIds(result)).toEqual([
+      "msg-stale-session",
+      "msg-missing-session",
     ]);
   });
 
@@ -209,7 +262,17 @@ describe("opencode-session-debt", () => {
         constructorArgs.push(args);
       }
 
-      query() {
+      query(sql: string) {
+        if (sql.includes("FROM session")) {
+          return {
+            all: () => [
+              {
+                session_id: "ses-valid",
+                time_updated_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 1,
+              },
+            ],
+          };
+        }
         return {
           all: () => [
             {
@@ -240,8 +303,8 @@ describe("opencode-session-debt", () => {
     expect(constructorArgs).toEqual([[dbPath, { readonly: true }]]);
     expect(result.available).toBe(true);
     expect(result.total_blank).toBe(1);
-    expect(result.repairable_stale).toHaveLength(0);
-    expect(result.idle_active_session).toHaveLength(1);
-    expect(result.idle_active_session[0]?.id).toBe("msg-valid");
+    expect(result.repairable_stale).toHaveLength(1);
+    expect(result.orphan_ghost).toHaveLength(1);
+    expect(result.orphan_ghost[0]?.id).toBe("msg-valid");
   });
 });

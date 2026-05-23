@@ -141,7 +141,7 @@ ADV health and recovery diagnostics that probe Temporal, task queues, worker dia
 
 **ID:** `rq-opencodeDebt01` | **Priority:** **[MUST]**
 
-ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows from repairable stale debt, and require dry-run plus backup before any repair deletes rows.
+ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows, idle active-session rows, and orphan-ghost repair candidates, and require dry-run plus backup before any repair deletes rows.
 
 **Tags:** `diagnostics`, `opencode`, `session-debt`, `doctor`
 
@@ -172,7 +172,8 @@ ADV diagnostics must safely detect stale blank assistant messages in the shared 
 **Then:**
 
 - Younger rows are classified as live or in-flight
-- Younger rows are not counted as repairable stale debt
+- Older rows attached to sessions without orphan proof are classified as idle active-session debt
+- Only orphan-ghost rows are counted as repairable stale debt
 - No repair recommendation is emitted solely because of younger rows
 
 **Repair requires dry-run and backup** (`rq-opencodeDebt01.3`)
@@ -187,7 +188,7 @@ ADV diagnostics must safely detect stale blank assistant messages in the shared 
 
 - The utility refuses deletion unless apply mode is explicit
 - The utility refuses deletion unless a backup destination is provided and populated before deletion
-- Only assistant messages with finish null, zero parts, and age at or above the stale threshold are deleted
+- Only assistant messages with finish null, zero parts, age at or above the stale threshold, and orphan-ghost liveness are deleted
 
 **Unavailable database degrades safely** (`rq-opencodeDebt01.4`)
 
@@ -644,7 +645,7 @@ Commands backed by dedicated or shared skills MUST be listed in ADV_INSTRUCTIONS
 
 **ID:** `rq-noSourceChecklistReads01` | **Priority:** **[MUST]**
 
-ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/* remains maintainer/reference documentation only.
+ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/\* remains maintainer/reference documentation only.
 
 **Tags:** `commands`, `skills`, `runtime-guidance`, `checklists`
 
@@ -661,14 +662,14 @@ ADV runtime command guidance MUST NOT require agents to read Advance source or i
 **Then:**
 
 - The command provides the methodology through embedded runtime guidance or a loaded trusted skill
-- The command does not instruct the agent to read docs/checklists/* files
-- The command does not instruct the agent to search or read ~/.local/share/Advance/** for methodology
+- The command does not instruct the agent to read docs/checklists/\* files
+- The command does not instruct the agent to search or read ~/.local/share/Advance/\*\* for methodology
 
 **Checklist docs remain maintainer references** (`rq-noSourceChecklistReads01.2`)
 
 **Given:**
 
-- Maintainer-facing docs/checklists/* files exist in the Advance repository
+- Maintainer-facing docs/checklists/\* files exist in the Advance repository
 
 **When:** Runtime command guidance is authored or synced
 

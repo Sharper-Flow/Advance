@@ -14,6 +14,11 @@ export interface BlankAssistantRow {
   part_count: number;
 }
 
+export interface OpenCodeSessionActivityRow {
+  session_id: string;
+  time_updated_ms: number;
+}
+
 export interface ClassifiedBlankAssistantRow extends BlankAssistantRow {
   age_ms: number;
 }
@@ -90,6 +95,26 @@ type BunSqliteDatabaseConstructor = new (
   query: (sql: string) => { all: () => unknown[] };
   close: () => void;
 };
+
+export const BLANK_ASSISTANT_ROWS_SQL = `
+  SELECT
+    m.id AS id,
+    m.session_id AS session_id,
+    json_extract(m.data, '$.time.created') AS created_ms,
+    (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) AS part_count
+  FROM message m
+  WHERE json_extract(m.data, '$.role') = 'assistant'
+    AND json_extract(m.data, '$.finish') IS NULL
+    AND (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) = 0
+  ORDER BY json_extract(m.data, '$.time.created') DESC
+`;
+
+export const SESSION_ACTIVITY_ROWS_SQL = `
+  SELECT
+    s.id AS session_id,
+    s.time_updated AS time_updated_ms
+  FROM session s
+`;
 
 export function getDefaultOpenCodeDbPath(env?: OpenCodeDbEnv): ResolvedDbPath {
   const canonicalPath = join(
@@ -187,6 +212,28 @@ export function getDeletableBlankAssistantIds(
   return classification.orphan_ghost.map((row) => row.id);
 }
 
+export function createSessionActivityLivenessResolver(
+  sessions: OpenCodeSessionActivityRow[],
+  options: Pick<ClassifyOptions, "nowMs" | "thresholdMs"> = {},
+): (row: BlankAssistantRow) => BlankAssistantLiveness {
+  const nowMs = options.nowMs ?? Date.now();
+  const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
+  const bySessionId = new Map(
+    sessions.map((session) => [session.session_id, session.time_updated_ms]),
+  );
+
+  return (row) => {
+    const sessionUpdatedMs = bySessionId.get(row.session_id);
+    if (sessionUpdatedMs === undefined || !Number.isFinite(sessionUpdatedMs)) {
+      return "orphan_ghost";
+    }
+
+    const latestKnownActivityMs = Math.max(row.created_ms, sessionUpdatedMs);
+    if (nowMs - latestKnownActivityMs < thresholdMs) return "live_in_flight";
+    return "orphan_ghost";
+  };
+}
+
 export async function scanOpenCodeSessionDebt(
   options: ScanOptions = {},
 ): Promise<OpenCodeSessionDebtScan> {
@@ -195,7 +242,8 @@ export async function scanOpenCodeSessionDebt(
     : getDefaultOpenCodeDbPath(options.env);
   const dbPath = resolved.dbPath;
   const thresholdMs = options.thresholdMs ?? STALE_BLANK_ASSISTANT_THRESHOLD_MS;
-  const checkedAt = new Date().toISOString();
+  const nowMs = options.nowMs ?? Date.now();
+  const checkedAt = new Date(nowMs).toISOString();
 
   if (!existsSync(dbPath)) {
     const diagnostics = buildPathDiagnostics(resolved, false);
@@ -224,30 +272,30 @@ export async function scanOpenCodeSessionDebt(
 
     db = new sqlite.Database(dbPath, { readonly: true });
     const rows = db
-      .query(
-        `
-          SELECT
-            m.id AS id,
-            m.session_id AS session_id,
-            json_extract(m.data, '$.time.created') AS created_ms,
-            (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) AS part_count
-          FROM message m
-          WHERE json_extract(m.data, '$.role') = 'assistant'
-            AND json_extract(m.data, '$.finish') IS NULL
-            AND (SELECT COUNT(*) FROM part p WHERE p.message_id = m.id) = 0
-          ORDER BY json_extract(m.data, '$.time.created') DESC
-        `,
-      )
+      .query(BLANK_ASSISTANT_ROWS_SQL)
       .all()
-      .map(normalizeRow)
+      .map(normalizeBlankAssistantRow)
       .filter((row): row is BlankAssistantRow => row !== null);
+    const sessions = db
+      .query(SESSION_ACTIVITY_ROWS_SQL)
+      .all()
+      .map(normalizeSessionActivityRow)
+      .filter((row): row is OpenCodeSessionActivityRow => row !== null);
+    const classifyOptions: ClassifyOptions = {
+      ...options,
+      nowMs,
+      thresholdMs,
+      resolveSessionLiveness:
+        options.resolveSessionLiveness ??
+        createSessionActivityLivenessResolver(sessions, { nowMs, thresholdMs }),
+    };
 
     return {
       available: true,
       db_path: dbPath,
       checked_at: checkedAt,
       diagnostics: buildPathDiagnostics(resolved, true),
-      ...classifyBlankAssistantRows(rows, options),
+      ...classifyBlankAssistantRows(rows, classifyOptions),
     };
   } catch (err) {
     return unavailable(
@@ -266,7 +314,9 @@ function pushSample<T>(items: T[], item: T, limit: number): void {
   if (items.length < limit) items.push(item);
 }
 
-function normalizeRow(row: unknown): BlankAssistantRow | null {
+export function normalizeBlankAssistantRow(
+  row: unknown,
+): BlankAssistantRow | null {
   if (!row || typeof row !== "object") return null;
   const candidate = row as Record<string, unknown>;
   const id = String(candidate.id ?? "");
@@ -290,6 +340,19 @@ function normalizeRow(row: unknown): BlankAssistantRow | null {
     created_ms: createdMs,
     part_count: Number.isFinite(partCount) ? partCount : 0,
   };
+}
+
+export function normalizeSessionActivityRow(
+  row: unknown,
+): OpenCodeSessionActivityRow | null {
+  if (!row || typeof row !== "object") return null;
+  const candidate = row as Record<string, unknown>;
+  const sessionId = String(candidate.session_id ?? "");
+  const timeUpdatedMs = Number(candidate.time_updated_ms);
+  if (!sessionId || !Number.isFinite(timeUpdatedMs) || timeUpdatedMs <= 0) {
+    return null;
+  }
+  return { session_id: sessionId, time_updated_ms: timeUpdatedMs };
 }
 
 function unavailable(

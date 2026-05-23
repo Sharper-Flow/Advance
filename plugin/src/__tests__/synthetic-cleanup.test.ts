@@ -4,10 +4,7 @@ import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { cleanupTempDir } from "./setup";
-import {
-  listSyntheticAdvDirs,
-  cleanupNewSyntheticAdvDirs,
-} from "./synthetic-cleanup";
+import { cleanupSyntheticAdvDirs } from "./synthetic-cleanup";
 
 describe("synthetic ADV cleanup guard", () => {
   test("removes stale and newly created synthetic dirs while preserving real project IDs", async () => {
@@ -27,12 +24,10 @@ describe("synthetic ADV cleanup guard", () => {
       );
 
       await mkdir(stale, { recursive: true });
-      const baseline = await listSyntheticAdvDirs(dataHome);
-
       await mkdir(created, { recursive: true });
       await mkdir(real, { recursive: true });
 
-      const removed = await cleanupNewSyntheticAdvDirs(dataHome, baseline);
+      const removed = await cleanupSyntheticAdvDirs(dataHome);
 
       expect(removed.sort()).toEqual([created, stale].sort());
       expect(existsSync(stale)).toBe(false);
@@ -59,9 +54,7 @@ describe("synthetic ADV cleanup guard", () => {
       await writeFile(join(staleOwned, ".adv-test-owner"), "other-run");
       await mkdir(staleUnowned, { recursive: true });
 
-      const baseline = await listSyntheticAdvDirs(dataHome);
-
-      const removed = await cleanupNewSyntheticAdvDirs(dataHome, baseline, {
+      const removed = await cleanupSyntheticAdvDirs(dataHome, {
         runId: "this-run",
       });
 
@@ -83,7 +76,7 @@ describe("synthetic ADV cleanup guard", () => {
       await mkdir(created, { recursive: true });
       await writeFile(join(created, ".adv-test-owner"), "other-run");
 
-      const removed = await cleanupNewSyntheticAdvDirs(dataHome, new Set(), {
+      const removed = await cleanupSyntheticAdvDirs(dataHome, {
         runId: "this-run",
       });
 
