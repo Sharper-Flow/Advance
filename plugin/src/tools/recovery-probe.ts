@@ -12,6 +12,8 @@
  * projection.
  */
 
+import { isPoisonedHistoryError } from "../temporal/recovery-classification";
+
 // Keep the core markers aligned with `temporal/recovery-classification.ts`.
 // This probe intentionally accepts richer `describe()` output shapes while the
 // workflow-safe classifier owns plain error/evidence text.
@@ -36,6 +38,26 @@ export async function workflowHasPoisonedDescription(
   handle: PoisonedDescribeProbeTarget,
 ): Promise<boolean> {
   return (await workflowPoisonedDescriptionEvidence(handle)) !== null;
+}
+
+/**
+ * Shared tool-layer predicate for poisoned-history recovery decisions.
+ *
+ * Pass `signalError` only for call sites whose existing contract accepts either
+ * legacy signal-error text OR workflow describe evidence. Omit it for stricter
+ * call sites that require describe-confirmed poisoned history.
+ */
+export async function workflowHasPoisonedRecoveryEvidence(
+  handle: PoisonedDescribeProbeTarget,
+  options: { signalError?: unknown } = {},
+): Promise<boolean> {
+  if (
+    options.signalError !== undefined &&
+    isPoisonedHistoryError(options.signalError)
+  ) {
+    return true;
+  }
+  return workflowHasPoisonedDescription(handle);
 }
 
 /**

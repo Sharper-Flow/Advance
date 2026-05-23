@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   workflowHasPoisonedDescription,
   workflowPoisonedDescriptionEvidence,
+  workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
 
 describe("workflow poisoned description probe", () => {
@@ -74,5 +75,27 @@ describe("workflow poisoned description probe", () => {
         describe: async () => ({ status: "RUNNING", lastFailure: null }),
       }),
     ).resolves.toBeNull();
+  });
+
+  it("centralizes legacy signal-error and describe-based recovery evidence", async () => {
+    await expect(
+      workflowHasPoisonedRecoveryEvidence(
+        {},
+        { signalError: new Error("TMPRL1100 nondeterminism") },
+      ),
+    ).resolves.toBe(true);
+
+    await expect(
+      workflowHasPoisonedRecoveryEvidence({
+        describe: async () => ({ memo: { lastError: "Nondeterminism" } }),
+      }),
+    ).resolves.toBe(true);
+
+    await expect(
+      workflowHasPoisonedRecoveryEvidence(
+        { describe: async () => ({ status: "RUNNING" }) },
+        { signalError: new Error("network unavailable") },
+      ),
+    ).resolves.toBe(false);
   });
 });

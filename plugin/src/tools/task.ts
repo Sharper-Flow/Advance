@@ -67,7 +67,7 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
   isPrecisePoisonedHistoryEvidence,
 } from "../temporal/recovery-classification";
-import { workflowHasPoisonedDescription } from "./recovery-probe";
+import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
 import {
   saveRecoveredTaskAdd,
   saveRecoveredTaskMutation,
@@ -791,7 +791,7 @@ export const taskTools = {
           // evidence + describe-confirmed signature.
           if (
             args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedDescription(handle))
+            (await workflowHasPoisonedRecoveryEvidence(handle))
           ) {
             const changeResult = await activeStore.changes.get(changeId);
             if (!changeResult.success || !changeResult.data) {
@@ -1103,7 +1103,7 @@ export const taskTools = {
           // rq-extend-poisoned-recovery AC2: disk-projection fallback for add.
           if (
             args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedDescription(handle))
+            (await workflowHasPoisonedRecoveryEvidence(handle))
           ) {
             const changeResult = await activeStore.changes.get(changeId);
             if (!changeResult.success || !changeResult.data) {
@@ -1339,7 +1339,7 @@ export const taskTools = {
               // for cancel when workflow is poisoned.
               if (
                 args.recoveryMode === "poisoned_history" &&
-                (await workflowHasPoisonedDescription(handle))
+                (await workflowHasPoisonedRecoveryEvidence(handle))
               ) {
                 const changeResult = await activeStore.changes.get(changeId);
                 if (!changeResult.success || !changeResult.data) {

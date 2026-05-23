@@ -23,11 +23,10 @@ import { buildContractFromAgreement } from "../validator/contract-mint";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
-  isPoisonedHistoryError,
   isPrecisePoisonedHistoryEvidence,
 } from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import { workflowHasPoisonedDescription } from "./recovery-probe";
+import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -318,8 +317,9 @@ export const contractTools = {
             // workflow's own describe carries poisoned evidence.
             if (
               args.recoveryMode === "poisoned_history" &&
-              (isPoisonedHistoryError(signalError) ||
-                (await workflowHasPoisonedDescription(handle)))
+              (await workflowHasPoisonedRecoveryEvidence(handle, {
+                signalError,
+              }))
             ) {
               await saveRecoveredContract({
                 store: activeStore,
@@ -343,7 +343,7 @@ export const contractTools = {
           // the contract to the disk projection so subsequent reads see it.
           if (
             args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedDescription(handle))
+            (await workflowHasPoisonedRecoveryEvidence(handle))
           ) {
             await saveRecoveredContract({
               store: activeStore,
@@ -484,8 +484,9 @@ export const contractTools = {
             // also runs when describe carries poisoned evidence.
             if (
               args.recoveryMode === "poisoned_history" &&
-              (isPoisonedHistoryError(signalError) ||
-                (await workflowHasPoisonedDescription(handle)))
+              (await workflowHasPoisonedRecoveryEvidence(handle, {
+                signalError,
+              }))
             ) {
               await saveRecoveredReviewMatrix({
                 store: activeStore,
@@ -510,7 +511,7 @@ export const contractTools = {
           // but workflow is in fact poisoned.
           if (
             args.recoveryMode === "poisoned_history" &&
-            (await workflowHasPoisonedDescription(handle))
+            (await workflowHasPoisonedRecoveryEvidence(handle))
           ) {
             await saveRecoveredReviewMatrix({
               store: activeStore,

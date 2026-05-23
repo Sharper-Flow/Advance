@@ -65,6 +65,10 @@ beforeEach(async () => {
   await mkdir(projectDir, { recursive: true });
   await mkdir(externalRoot, { recursive: true });
   vi.clearAllMocks();
+  mocks.signal.mockReset();
+  mocks.signal.mockImplementation(async () => {});
+  mocks.query.mockReset();
+  mocks.query.mockImplementation(async () => undefined);
 });
 
 afterEach(async () => {
@@ -87,6 +91,20 @@ function makeStore() {
       external: externalRoot,
     },
   } as unknown as Parameters<typeof tool.execute>[1];
+}
+
+function expectSignalWarning(
+  parsed: Record<string, unknown>,
+  changeId: string,
+): void {
+  expect(parsed.signalWarning).toMatchObject({
+    code: "ADV_CONFORMANCE_SIGNAL_FAILED",
+    changeId,
+    recoverable: true,
+  });
+  expect((parsed.signalWarning as { reason?: string }).reason).toContain(
+    "Temporal unavailable",
+  );
 }
 
 async function seedRequiredSpec(spec = "advance-workflow"): Promise<void> {
@@ -225,6 +243,38 @@ describe("adv_conformance action: lock", () => {
     });
   });
 
+  test("surfaces signal warning when lock state saves but notification fails", async () => {
+    await tool.execute({ action: "init" }, makeStore());
+    const state = await loadConformanceState(externalRoot, projectDir);
+    state.specs["my-spec"] = {
+      conformance_required: true,
+      locked: false,
+      overrides: [],
+    };
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(state),
+    );
+    mocks.signal.mockRejectedValue(new Error("Temporal unavailable"));
+
+    const result = await tool.execute(
+      {
+        action: "lock",
+        spec: "my-spec",
+        change_id: "myChange",
+      },
+      makeStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expectSignalWarning(parsed, "myChange");
+    const updated = await loadConformanceState(externalRoot, projectDir);
+    expect(updated.specs["my-spec"]?.locked).toBe(true);
+    expect(updated.specs["my-spec"]?.locked_at_archive).toBe("myChange");
+    expect(mocks.signal).toHaveBeenCalled();
+  });
+
   test("rejects lock on missing spec", async () => {
     await tool.execute({ action: "init" }, makeStore());
     const result = await tool.execute(
@@ -359,6 +409,40 @@ describe("adv_conformance action: override", () => {
     });
   });
 
+  test("surfaces signal warning when override audit saves but notification fails", async () => {
+    await tool.execute({ action: "init" }, makeStore());
+    const state = await loadConformanceState(externalRoot, projectDir);
+    state.specs["my-spec"] = {
+      conformance_required: true,
+      locked: true,
+      locked_at_archive: "originalChange",
+      overrides: [],
+    };
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(state),
+    );
+    mocks.signal.mockRejectedValue(new Error("Temporal unavailable"));
+
+    const result = await tool.execute(
+      {
+        action: "override",
+        spec: "my-spec",
+        user: "jrede",
+        reason: "CI cluster outage 2026-05-15",
+        re_verify_deadline: "2026-05-22T00:00:00Z",
+      },
+      makeStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expectSignalWarning(parsed, "originalChange");
+    const updated = await loadConformanceState(externalRoot, projectDir);
+    expect(updated.specs["my-spec"]?.overrides).toHaveLength(1);
+    expect(mocks.signal).toHaveBeenCalled();
+  });
+
   test("records override without signal when locked_at_archive is absent", async () => {
     await tool.execute({ action: "init" }, makeStore());
     const state = await loadConformanceState(externalRoot, projectDir);
@@ -486,6 +570,46 @@ describe("adv_conformance action: run", () => {
         { rq_id: "rq-confLock01", summary: "lock state did not persist" },
       ],
     });
+  });
+
+  test("surfaces signal warning when run verdict saves but notification fails", async () => {
+    await tool.execute({ action: "init" }, makeStore());
+    await seedRequiredSpec();
+    const artifactPath = join(externalRoot, "verdict.json");
+    await writeFile(
+      artifactPath,
+      JSON.stringify({
+        passed: ["rq-confSource01"],
+        failed: [
+          { rq_id: "rq-confLock01", summary: "lock state did not persist" },
+        ],
+      }),
+    );
+    const preState = await loadConformanceState(externalRoot, projectDir);
+    preState.specs["advance-workflow"].locked_at_archive = "testChange";
+    await writeFile(
+      join(externalRoot, "conformance.json"),
+      JSON.stringify(preState),
+    );
+    mocks.signal.mockRejectedValue(new Error("Temporal unavailable"));
+
+    const result = await tool.execute(
+      {
+        action: "run",
+        spec: "advance-workflow",
+        artifact_path: artifactPath,
+      },
+      makeStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.verdict).toBe("DRIFT");
+    expectSignalWarning(parsed, "testChange");
+    const updated = await loadConformanceState(externalRoot, projectDir);
+    expect(updated.specs["advance-workflow"]?.last_verdict?.verdict).toBe(
+      "DRIFT",
+    );
+    expect(mocks.signal).toHaveBeenCalled();
   });
 
   test("returns PASS verdict when artifact has empty failed array", async () => {

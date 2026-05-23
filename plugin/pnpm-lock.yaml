@@ -23,9 +23,6 @@ importers:
       '@opencode-ai/plugin':
         specifier: latest
         version: 1.15.6
-      '@temporalio/activity':
-        specifier: ^1.16.0
-        version: 1.16.0
       '@temporalio/client':
         specifier: ^1.16.0
         version: 1.16.0

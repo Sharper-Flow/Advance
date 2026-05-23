@@ -65,11 +65,8 @@ import {
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
 import { evaluateGateReadiness } from "../temporal/gate-readiness";
 import { changeToWorkflowState } from "../temporal/change-state";
-import {
-  RECOVERY_RECONCILIATION_WARNING,
-  isPoisonedHistoryError,
-} from "../temporal/recovery-classification";
-import { workflowHasPoisonedDescription } from "./recovery-probe";
+import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
+import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
 const GATE_COMPLETION_POLL_DELAY_MS = 25;
@@ -646,7 +643,7 @@ export const gateTools = {
                 // projection when the workflow describe carries poisoned
                 // evidence, instead of propagating the generic
                 // "Failed to query Workflow" error.
-                if (await workflowHasPoisonedDescription(handle)) {
+                if (await workflowHasPoisonedRecoveryEvidence(handle)) {
                   poisonedFallback = true;
                 } else {
                   throw queryError;
@@ -852,8 +849,9 @@ export const gateTools = {
           // inside completeGateViaRecovery.
           if (
             (gateId === "acceptance" || gateId === "release") &&
-            (isPoisonedHistoryError(error) ||
-              (await workflowHasPoisonedDescription(handle)))
+            (await workflowHasPoisonedRecoveryEvidence(handle, {
+              signalError: error,
+            }))
           ) {
             const boundaryWarning = validateGateBoundary(gateId, completedBy);
             return completeGateViaRecovery({
@@ -1025,8 +1023,9 @@ export const gateTools = {
           // poisoned evidence.
           if (
             (gateId === "acceptance" || gateId === "release") &&
-            (isPoisonedHistoryError(error) ||
-              (await workflowHasPoisonedDescription(handle)))
+            (await workflowHasPoisonedRecoveryEvidence(handle, {
+              signalError: error,
+            }))
           ) {
             return completeGateViaRecovery({
               store: activeStore,
