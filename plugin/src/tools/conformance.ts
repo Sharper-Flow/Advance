@@ -83,6 +83,16 @@ const ConformanceArgsSchema = z.object({
 
 type ConformanceArgs = z.infer<typeof ConformanceArgsSchema>;
 
+interface ConformanceSignalWarning {
+  code: "ADV_CONFORMANCE_SIGNAL_FAILED";
+  message: string;
+  reason: string;
+  recoverable: true;
+  changeId: string;
+}
+
+const CONFORMANCE_SIGNAL_WARNING_CODE = "ADV_CONFORMANCE_SIGNAL_FAILED";
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -105,6 +115,24 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function signalFailureReason(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function makeSignalWarning(
+  changeId: string,
+  reason: string,
+): ConformanceSignalWarning {
+  return {
+    code: CONFORMANCE_SIGNAL_WARNING_CODE,
+    message:
+      "Local conformance state was saved, but change workflow notification failed.",
+    reason,
+    recoverable: true,
+    changeId,
+  };
+}
+
 async function getChangeHandleForProjectDir(
   projectDir: string,
   changeId: string,
@@ -122,8 +150,10 @@ async function fireConformanceSignal(
   changeId: string | undefined,
   signal: unknown,
   payload: unknown,
-): Promise<void> {
-  if (!changeId) return;
+): Promise<ConformanceSignalWarning | undefined> {
+  // rq-confSignalVisibility01: local conformance state may already be saved;
+  // notification failures must be caller-visible, not debug-log-only.
+  if (!changeId) return undefined;
   try {
     const handle = await getChangeHandleForProjectDir(projectDir, changeId);
     if (handle) {
@@ -131,12 +161,18 @@ async function fireConformanceSignal(
       // next adv_change_show / adv_change_archive call sees the
       // conformance state change reflected in the change workflow.
       await fireSignalAndRefresh(handle, store, changeId, signal, payload);
+      return undefined;
     }
+    const reason = "Change workflow handle unavailable";
+    appendDebugLog("conformance", `conformance signal failed: ${reason}`);
+    return makeSignalWarning(changeId, reason);
   } catch (err) {
+    const reason = signalFailureReason(err);
     appendDebugLog(
       "conformance",
-      `conformance signal failed: ${err instanceof Error ? err.message : String(err)}`,
+      `conformance signal failed: ${reason}`,
     );
+    return makeSignalWarning(changeId, reason);
   }
 }
 
@@ -218,7 +254,7 @@ async function actionLock(
   await saveConformanceState(externalRoot, next);
 
   // Signal-driven: notify change workflow that spec was locked
-  await fireConformanceSignal(
+  const signalWarning = await fireConformanceSignal(
     projectDir,
     store,
     args.change_id,
@@ -233,6 +269,7 @@ async function actionLock(
     success: true,
     spec: args.spec,
     locked: true,
+    ...(signalWarning ? { signalWarning } : {}),
   });
 }
 
@@ -315,7 +352,7 @@ async function actionOverride(
   // Signal-driven: notify the change workflow that locked this spec
   const changeId = state.specs[args.spec]?.locked_at_archive;
   if (changeId) {
-    await fireConformanceSignal(
+    const signalWarning = await fireConformanceSignal(
       projectDir,
       store,
       changeId,
@@ -327,6 +364,12 @@ async function actionOverride(
         overriddenAt: nowIso(),
       },
     );
+    return formatToolOutput({
+      success: true,
+      spec: args.spec,
+      overrides: next.specs[args.spec]?.overrides.length ?? 0,
+      ...(signalWarning ? { signalWarning } : {}),
+    });
   }
 
   return formatToolOutput({
@@ -385,7 +428,7 @@ async function actionRun(
   // Signal-driven: notify the change workflow that locked this spec
   const changeId = entry.locked_at_archive;
   if (changeId) {
-    await fireConformanceSignal(
+    const signalWarning = await fireConformanceSignal(
       projectDir,
       store,
       changeId,
@@ -397,6 +440,12 @@ async function actionRun(
         recordedAt: ranAt,
       },
     );
+    return formatToolOutput({
+      verdict,
+      run_id: runId,
+      failed: parsed.failed,
+      ...(signalWarning ? { signalWarning } : {}),
+    });
   }
 
   return formatToolOutput({
