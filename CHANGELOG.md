@@ -1,3 +1,10 @@
+## 2026-05-23 (v0.11.6)
+
+### Changed
+
+- sanitize public repository references (docs)
+- highlight Advance context engineering (docs)
+
 ## 2026-05-23 (v0.11.3)
 
 
