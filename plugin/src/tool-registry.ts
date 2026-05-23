@@ -33,6 +33,7 @@ import { backlogTools } from "./tools/backlog";
 import { changeTools } from "./tools/change";
 import { contractTools } from "./tools/contract";
 import { taskTools } from "./tools/task";
+import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
 import { agendaTools } from "./tools/agenda";
@@ -393,6 +394,13 @@ export function createToolMap(
       ),
     ),
 
+    // Sub-agent Report Tools
+    adv_subagent_report_submit: bindTool(
+      subagentReportTools.adv_subagent_report_submit,
+      "adv_subagent_report_submit",
+      store,
+    ),
+
     // Wisdom Tools
     adv_wisdom_add: bindTool(
       wisdomTools.adv_wisdom_add,
@@ -725,6 +733,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_task_add",
   "adv_task_cancel",
   "adv_task_reclassify_tdd",
+  "adv_subagent_report_submit",
   "adv_wisdom_add",
   "adv_wisdom_list",
   "adv_project_wisdom_list",
