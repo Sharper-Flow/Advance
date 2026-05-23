@@ -1,0 +1,25 @@
+# Acceptance
+
+Reviewed at: 2026-05-23T07:30:00.000Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| AC1 | acceptance_criterion | GitHub Release asset `advance-v*.tar.gz` contains all assets required for user installation: plugin runtime, `scripts/deploy-local.sh`, `.opencode/command`, `.opencode/agents`, `.opencode/overlays`, `skills`, README/SETUP, and required root metadata. | pass | release-install-assets.test.ts asserts full artifact paths; local archive smoke verified plugin/dist, plugin/src, deploy-local, .opencode command/agents/overlays, skills, README/SETUP, ADV_INSTRUCTIONS, AGENTS, project.md, project.json in advance-v0.0.0-smoke.tar.gz. |
+| AC2 | acceptance_criterion | Current plugin-only tarball shape is removed or renamed so users are not offered a misleading install artifact. | pass | release-install-assets.test.ts asserts old plugin-only tar command is absent and dist/checksums.txt is absent; workflow now builds advance-${VERSION}.tar.gz from full payload and uploads SHA256SUMS.txt. |
+| AC3 | acceptance_criterion | Latest-release installer exists and resolves the latest GitHub Release without per-version edits. | pass | install.sh resolves ADV_VERSION or GitHub /releases/latest url_effective redirect; tests assert no hardcoded ADV_VERSION and required latest-resolution snippets; bash -n install.sh passed. |
+| AC4 | acceptance_criterion | README presents one primary user install path using the release artifact/installer. | pass | README quick start uses https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh | bash; tests assert release installer path and reject old git-clone deploy-local block. |
+| AC5 | acceptance_criterion | SETUP distinguishes user install from maintainer/developer setup. | pass | SETUP contains User install (recommended), Manual release artifact install, and Maintainer/developer setup sections; tests assert all section markers and source-checkout developer path. |
+| AC6 | acceptance_criterion | Verification checks prove documented install commands match release artifact contents. | pass | release-install-assets.test.ts plus local archive smoke prove docs/workflow artifact paths and SHA256SUMS coverage; pnpm run check, pnpm run build, and targeted tests passed after remediation. |
+| AC7 | acceptance_criterion | Failure/troubleshooting docs cover missing `jq`, `rsync`, `pnpm`, executable-bit issues, and incomplete artifact fallback. | pass | SETUP troubleshooting covers jq not found, rsync not found, pnpm not found, sha256sum not found, chmod +x install.sh, Release artifact is incomplete, and checksum failure; tests assert required failure-mode strings. |
+| C1 | constraint | Documentation must match actual release artifact contents. | respected | Docs reference latest/download/install.sh; workflow uploads dist/install.sh and full tar; local smoke verified artifact contents match documented manual install paths. |
+| C2 | constraint | Existing source clone install guidance must remain available and accurate for maintainers/developers. | respected | SETUP Maintainer/developer setup retains git clone, plugin pnpm install/build/test, and ./scripts/deploy-local.sh --fix. |
+| C3 | constraint | Do not change ADV runtime behavior, gate semantics, Temporal state, or tool behavior. | respected | Touched files are release workflow, install.sh, README.md, SETUP.md, and release-install asset tests; no ADV runtime/gate/Temporal/tool implementation files changed. pnpm run check and build passed. |
+| C4 | constraint | Do not publish to npm, Homebrew, or another package registry in this change. | respected | No npm/Homebrew/registry publishing config added; release remains GitHub Release assets only. |
+| C5 | constraint | Keep Claude Code distribution work out of scope. | respected | Review scope and touched files contain no Claude Code distribution work or docs beyond existing note. |
+| DONT1 | avoidance | Do not document commands that cannot work from the downloaded artifact. | respected | README command downloads release installer asset; SETUP manual commands download archive and SHA256SUMS files published by workflow; local smoke verified required archive layout. |
+| DONT2 | avoidance | Do not imply the custom release tarball contains repo-level assets unless packaging is changed to include them. | respected | Workflow now includes repo-level assets in archive and verifies them before publish; docs state full artifact contents only after packaging changed. |
+| DONT3 | avoidance | Do not leave a plugin-only `advance-v*.tar.gz` artifact that appears to be the primary user install download. | respected | Old plugin-only tar command removed; tests assert absence. Primary README path uses install.sh asset that downloads full archive. |
+| DONT4 | avoidance | Do not make maintainers manually copy release-only files outside the release workflow. | respected | Workflow copies install.sh into dist, builds full tar, generates SHA256SUMS, and uploads assets automatically; no maintainer copy step documented or required. |
+

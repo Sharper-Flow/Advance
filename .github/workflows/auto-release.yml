@@ -6,6 +6,10 @@ on:
     types: [completed]
     branches: [main, trunk]
 
+concurrency:
+  group: auto-release-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -36,8 +40,7 @@ jobs:
           echo "Commits since ${LAST_TAG}:"
           echo "$COMMITS"
 
-          COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
-          if [ "$COUNT" -eq 0 ]; then
+          if [ -z "$COMMITS" ]; then
             echo "No new commits since last tag. Skipping."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -65,6 +68,7 @@ jobs:
           done <<< "$COMMITS"
 
           CURRENT="${LAST_TAG#v}"
+          CURRENT="${CURRENT%%-*}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
           if [ "$HAS_BREAKING" = true ]; then
@@ -195,9 +199,54 @@ jobs:
         if: steps.bump.outputs.skip != 'true'
         run: |
           VERSION="${{ steps.bump.outputs.new_tag }}"
+          ARCHIVE_ROOT="advance-${VERSION}"
+          ARCHIVE="advance-${VERSION}.tar.gz"
+          rm -rf dist
           mkdir -p dist
-          tar -czf "dist/advance-${VERSION}.tar.gz" -C plugin dist/ src/ package.json pnpm-lock.yaml
-          cd dist && sha256sum *.tar.gz > checksums.txt
+          tar -czf "dist/${ARCHIVE}" \
+            --transform "s,^,${ARCHIVE_ROOT}/," \
+            README.md \
+            SETUP.md \
+            ADV_INSTRUCTIONS.md \
+            AGENTS.md \
+            project.md \
+            project.json \
+            install.sh \
+            scripts \
+            .opencode/command \
+            .opencode/agents \
+            .opencode/overlays \
+            skills \
+            plugin/dist \
+            plugin/src \
+            plugin/package.json \
+            plugin/pnpm-lock.yaml \
+            plugin/tsconfig.json \
+            plugin/tsup.config.ts \
+            plugin/vitest.config.ts
+          tar -tzf "dist/${ARCHIVE}" > "dist/${ARCHIVE}.contents.txt"
+          for required in \
+            "${ARCHIVE_ROOT}/plugin/dist/index.js" \
+            "${ARCHIVE_ROOT}/plugin/src/index.ts" \
+            "${ARCHIVE_ROOT}/plugin/package.json" \
+            "${ARCHIVE_ROOT}/plugin/pnpm-lock.yaml" \
+            "${ARCHIVE_ROOT}/scripts/deploy-local.sh" \
+            "${ARCHIVE_ROOT}/install.sh" \
+            "${ARCHIVE_ROOT}/.opencode/command/" \
+            "${ARCHIVE_ROOT}/.opencode/agents/" \
+            "${ARCHIVE_ROOT}/.opencode/overlays/" \
+            "${ARCHIVE_ROOT}/skills/" \
+            "${ARCHIVE_ROOT}/README.md" \
+            "${ARCHIVE_ROOT}/SETUP.md" \
+            "${ARCHIVE_ROOT}/ADV_INSTRUCTIONS.md" \
+            "${ARCHIVE_ROOT}/AGENTS.md" \
+            "${ARCHIVE_ROOT}/project.md" \
+            "${ARCHIVE_ROOT}/project.json"
+          do
+            grep -qxF "$required" "dist/${ARCHIVE}.contents.txt"
+          done
+          cp install.sh dist/install.sh
+          (cd dist && sha256sum "${ARCHIVE}" install.sh > SHA256SUMS.txt)
 
       - name: Create Release
         if: steps.bump.outputs.skip != 'true'
@@ -206,7 +255,8 @@ jobs:
           tag_name: ${{ steps.bump.outputs.new_tag }}
           files: |
             dist/*.tar.gz
-            dist/checksums.txt
+            dist/install.sh
+            dist/SHA256SUMS.txt
           generate_release_notes: true
 
       - name: Summary
