@@ -1,14 +1,14 @@
-# PokeEdge Product Linking
+# ExampleProduct Product Linking
 
-PokeEdge backend is primary. PokeEdge Web is secondary. Product-linked ADV state lives in primary product project id; repo-local git/spec/worktree mechanics stay per repo.
+ExampleProduct backend is primary. ExampleProduct Web is secondary. Product-linked ADV state lives in primary product project id; repo-local git/spec/worktree mechanics stay per repo.
 
 ## Backend `project.json`
 
 ```json
 {
-  "name": "pokeedge",
+  "name": "example-product",
   "product": {
-    "id": "pokeedge",
+    "id": "example-product",
     "role": "primary",
     "repo_id": "backend",
     "primary_repo_id": "backend",
@@ -17,9 +17,9 @@ PokeEdge backend is primary. PokeEdge Web is secondary. Product-linked ADV state
   "related_repos": [
     {
       "id": "web",
-      "path": "/path/to/pokeedge-web",
+      "path": "/path/to/example-web",
       "product_role": "secondary",
-      "repo_project_id": "<pokeedge-web repo project id>",
+      "repo_project_id": "<example-web repo project id>",
       "trusted": true
     }
   ]
@@ -30,9 +30,9 @@ PokeEdge backend is primary. PokeEdge Web is secondary. Product-linked ADV state
 
 ```json
 {
-  "name": "pokeedge-web",
+  "name": "example-web",
   "product": {
-    "id": "pokeedge",
+    "id": "example-product",
     "role": "secondary",
     "repo_id": "web",
     "primary_repo_id": "backend",
@@ -41,9 +41,9 @@ PokeEdge backend is primary. PokeEdge Web is secondary. Product-linked ADV state
   "related_repos": [
     {
       "id": "backend",
-      "path": "/path/to/pokeedge",
+      "path": "/path/to/example-product",
       "product_role": "primary",
-      "repo_project_id": "<pokeedge backend repo project id>",
+      "repo_project_id": "<example-product backend repo project id>",
       "trusted": true
     }
   ]
@@ -52,7 +52,7 @@ PokeEdge backend is primary. PokeEdge Web is secondary. Product-linked ADV state
 
 ## Operator notes
 
-- From `pokeedge-web`, ADV resolves canonical product state automatically. No manual `target_path` for product changes.
+- From `example-web`, ADV resolves canonical product state automatically. No manual `target_path` for product changes.
 - New linked changes default `scope_repos` to current repo. Cross-cutting changes should set backend + web entries and `merge_order`.
 - `adv_status` and `adv_change_list` default to current repo scope. Use `scope: "product"` for all product changes.
 - Wisdom/reflection entries keep `product_id`, `origin_repo_id`, `origin_repo_project_id`, and `origin_repo_path`.

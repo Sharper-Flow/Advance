@@ -21,7 +21,7 @@ This pack evaluates two scanner improvements: expanding `/adv-slop-scan` from ge
 
 ### Testing
 
-- HIGH — Existing asset tests guard that `/adv-slop-scan` documents dead-code and structural-correctness behavior, and `/adv-arch-scan` documents P33 boundaries, but there is no asset/spec evidence for uncallable path detection or per-technology anti-pattern packs. Evidence: `plugin/src/adv-slop-scan-assets.test.ts:68-86`, `88-104`; `plugin/src/adv-arch-scan-assets.test.ts:28-49`; `lgrep_search_text("Temporal", path="/home/jon/dev/advance/.opencode/command")` returned no results.
+- HIGH — Existing asset tests guard that `/adv-slop-scan` documents dead-code and structural-correctness behavior, and `/adv-arch-scan` documents P33 boundaries, but there is no asset/spec evidence for uncallable path detection or per-technology anti-pattern packs. Evidence: `plugin/src/adv-slop-scan-assets.test.ts:68-86`, `88-104`; `plugin/src/adv-arch-scan-assets.test.ts:28-49`; `lgrep_search_text("Temporal", path="/home/dev/dev/advance/.opencode/command")` returned no results.
 
 ### Observability
 
@@ -33,7 +33,7 @@ This pack evaluates two scanner improvements: expanding `/adv-slop-scan` from ge
 
 ### Code Quality
 
-- HIGH — The dead-code model is present but too narrow for the requested “code paths that aren’t ever used or potentially even able to be called” goal. Current guidance covers unreferenced symbols/files and warns about false positives; it does not specify call graph, entrypoint reachability, feature-flag truthiness, or impossible branch analysis. Evidence: `skills/adv-slop-detection/DEAD_CODE.md:13-24`; `slop-smells.yaml:458-467`; `lgrep_search_text("reachable", path="/home/jon/dev/advance/skills")` found only `DEAD_CODE.md:23`.
+- HIGH — The dead-code model is present but too narrow for the requested “code paths that aren’t ever used or potentially even able to be called” goal. Current guidance covers unreferenced symbols/files and warns about false positives; it does not specify call graph, entrypoint reachability, feature-flag truthiness, or impossible branch analysis. Evidence: `skills/adv-slop-detection/DEAD_CODE.md:13-24`; `slop-smells.yaml:458-467`; `lgrep_search_text("reachable", path="/home/dev/dev/advance/skills")` found only `DEAD_CODE.md:23`.
 
 ## LBP / Reference Comparison
 

@@ -425,7 +425,7 @@
       "approval_evidence": "User approved proposal via inline Tier A reply: \"continue\". Proposal includes problem statement, scope, must-not constraints, success criteria, discovery agenda, and B/F/S scan PASS.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/proposal.md",
         "content_hash": "3de1715c4ddc46d92dde7e073bf7f6bae0a2c692a0392f196598e02fcec59e12",
         "non_whitespace_chars": 3620,
         "checked_at": "2026-05-22T20:23:27.765Z"
@@ -438,7 +438,7 @@
       "approval_evidence": "Discovery completed after user AC approval reply `approve`. Agreement persisted and ChangeContract minted with 25 items. Discovery checklist PASS; no ambiguity findings; no spec deltas required.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/agreement.md",
         "content_hash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
         "non_whitespace_chars": 3204,
         "checked_at": "2026-05-22T20:34:34.100Z"
@@ -451,7 +451,7 @@
       "approval_evidence": "Design recorded. Mandatory independent validator returned VALIDATED with no conflicts, no user-value tradeoff, and no contract-compromise risk. Auto-continue to planning/prep per design workflow.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/design.md",
         "content_hash": "b375cf5db64046dd151f7169087220d061c26f930a1a8c78ae4614e3eaf8ef92",
         "non_whitespace_chars": 7230,
         "checked_at": "2026-05-22T20:44:07.507Z"
@@ -476,7 +476,7 @@
       "approval_evidence": "User accepted acceptance summary with reply `accept`. Review verdict APPROVED after remediation; contract matrix persisted with 25 rows and 0 failing; executive summary persisted; tests passed (focused Vitest 71 tests, pnpm run check, stale-label grep).",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/acceptance.md",
         "content_hash": "0bd803e9aa6817ce2e6770564675cf220c938a780d0b18977856fef357d44fc9",
         "non_whitespace_chars": 5798,
         "checked_at": "2026-05-22T21:26:22.090Z"
@@ -970,23 +970,23 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/proposal.md",
       "updatedAt": "2026-05-22T21:47:52.238Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/problem-statement.md",
       "updatedAt": "2026-05-22T21:47:52.262Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/agreement.md",
       "updatedAt": "2026-05-22T21:47:52.307Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/design.md",
       "updatedAt": "2026-05-22T21:47:52.332Z"
     },
     "executiveSummary": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/executive-summary.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/executive-summary.md",
       "updatedAt": "2026-05-22T21:47:52.356Z"
     }
   },

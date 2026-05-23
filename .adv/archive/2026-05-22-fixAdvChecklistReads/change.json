@@ -323,7 +323,7 @@
       "approval_evidence": "User approved proposal with reply: approve cleanup and proposal. Duplicates closed as superseded. B/F/S scan PASS; no critical findings.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/proposal.md",
         "content_hash": "f755a9632d747b8bd51c435eaa02a590fba7d53cd020c7f47ca52bffe954b283",
         "non_whitespace_chars": 5618,
         "checked_at": "2026-05-22T07:58:38.949Z"
@@ -336,7 +336,7 @@
       "approval_evidence": "User approved agreement with reply: continue. Agreement persisted, ChangeContract minted with 23 items. Discovery checklist complete; no critical ambiguity findings. Follow-up agenda item ag-wg8YdGFm added for duplicate proposal prevention.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/agreement.md",
         "content_hash": "fe8126f57e8cfc94adc0a860cc973a4428cfbd3cdba029e859f295843f9f3acf",
         "non_whitespace_chars": 6473,
         "checked_at": "2026-05-22T08:06:01.408Z"
@@ -349,7 +349,7 @@
       "approval_evidence": "Revised design resolves prior conflict by preserving embedded methodology and stripping source-checklist pointers. Independent validator returned CAUTION only; cautions carried into prep tasks: update existing Canonical source assertion and resolve adv-improve skill/checklist wording.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/design.md",
         "content_hash": "5bcf4dda84da32a1dc538559f04e0f5d02f09b112d7c109c63eec5582ac15f08",
         "non_whitespace_chars": 7082,
         "checked_at": "2026-05-22T14:41:54.730Z"
@@ -374,7 +374,7 @@
       "approval_evidence": "User accepted delivered work with reply: accept. Independent reviewer APPROVED/READY with no findings; contract review matrix has 23 rows and no failing rows; targeted tests and pnpm run check passed.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/acceptance.md",
         "content_hash": "28cc918ca7f22189df5ba93892a14c75143a389660fac64ff3b4e713f3d9b963",
         "non_whitespace_chars": 4939,
         "checked_at": "2026-05-22T15:04:27.198Z"
@@ -830,19 +830,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/proposal.md",
       "updatedAt": "2026-05-22T15:02:10.838Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/problem-statement.md",
       "updatedAt": "2026-05-22T15:02:10.870Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/agreement.md",
       "updatedAt": "2026-05-22T15:02:10.906Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAdvChecklistReads/design.md",
       "updatedAt": "2026-05-22T15:02:10.921Z"
     }
   },

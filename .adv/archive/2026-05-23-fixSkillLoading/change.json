@@ -460,7 +460,7 @@
       "approval_evidence": "User approved proposal inline with Tier A reply: continue.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/proposal.md",
         "content_hash": "bf554e16e389cb75593063fb19ddb9a9d073f2da81a746087597f652eb024bb0",
         "non_whitespace_chars": 6321,
         "checked_at": "2026-05-23T03:04:18.136Z"
@@ -473,7 +473,7 @@
       "approval_evidence": "Discovery findings persisted; acceptance criteria approved by user reply `approve`; agreement persisted and ChangeContract minted.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/agreement.md",
         "content_hash": "72236491e6b534c234676060c62c18f76507f960bf61f2459229b1dbb8383c47",
         "non_whitespace_chars": 3224,
         "checked_at": "2026-05-23T03:21:51.835Z"
@@ -486,7 +486,7 @@
       "approval_evidence": "Design persisted; design leverage scout executed; independent validator returned CAUTION; caution findings incorporated; no unresolved conflict, user-value tradeoff, or contract-compromise risk.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/design.md",
         "content_hash": "3e6d00468cb519762dbd185daadc87ac20302b506e4cec28a626032ad787b75c",
         "non_whitespace_chars": 8579,
         "checked_at": "2026-05-23T03:32:05.089Z"
@@ -511,7 +511,7 @@
       "approval_evidence": "User accepted delivered work with Tier A reply `accept`. Review verdict APPROVED; contract review matrix has 28 rows with 0 failing; executive summary persisted and verified.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/acceptance.md",
         "content_hash": "7fe288b2fa42848c2ead8b416ca81f1b45581df63199d4f84e35675fa65abf9f",
         "non_whitespace_chars": 6227,
         "checked_at": "2026-05-23T04:10:27.881Z"
@@ -1064,23 +1064,23 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/proposal.md",
       "updatedAt": "2026-05-23T04:09:40.698Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/problem-statement.md",
       "updatedAt": "2026-05-23T04:09:40.713Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/agreement.md",
       "updatedAt": "2026-05-23T04:09:40.741Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/design.md",
       "updatedAt": "2026-05-23T04:09:40.777Z"
     },
     "executiveSummary": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/executive-summary.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSkillLoading/executive-summary.md",
       "updatedAt": "2026-05-23T04:09:40.827Z"
     }
   },

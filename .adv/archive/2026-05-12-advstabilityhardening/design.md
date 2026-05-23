@@ -26,7 +26,7 @@ Three additive guards, each mirroring an existing battle-tested precedent in the
 │      (mutation modes)        └─ BLOCK   → structured refusal       │
 │                                                                     │
 │   Flag: worktree_guard_enforce (DEFAULT FALSE for one release;      │
-│         canary opt-in on this repo + pokeedge-web from day 0;       │
+│         canary opt-in on this repo + example-web from day 0;       │
 │         flip default to TRUE in next minor release)                 │
 └─────────────────────────────────────────────────────────────────────┘
 
@@ -48,7 +48,7 @@ Three additive guards, each mirroring an existing battle-tested precedent in the
 | Component | Flag exists? | Default | Verification signal | Canary opt-in? |
 |---|---|---|---|---|
 | Worker singleton | `worker_singleton_enforce` | `true` | `worker_role: host/client` in `adv_status`; `ps` shows 1 worker per project | n/a — on by default |
-| Worktree guard | `worktree_guard_enforce` | `false` (one release) | `errorClass: WorktreeIsolationViolation` on `adv_gate_complete` from main checkout | YES — this repo + `pokeedge-web` from day 0 |
+| Worktree guard | `worktree_guard_enforce` | `false` (one release) | `errorClass: WorktreeIsolationViolation` on `adv_gate_complete` from main checkout | YES — this repo + `example-web` from day 0 |
 | Probe cache | none (no flag) | always on | `_freshness.cached_at` in `view: health` output; p95 latency drop | n/a — always on |
 
 ### Rationale
@@ -156,7 +156,7 @@ When explicitly set `false` in `project.json`: existing `shouldSpawnWorker = tru
 | `plugin/src/tools/task.ts` `adv_task_update` execute | Insert guard check when `status` transitions to mutating value (`in_progress`, `done`, `cancelled`) | +20 |
 | `plugin/src/tools/apply-helpers/pre-rebase.ts:245-252` | Fix `defaultIsWorktree`: replace `git rev-parse --git-dir` existence with `--git-common-dir` vs `--show-toplevel` comparison | +10 (drive-by) |
 | `oc-plugins/advance/project.json` | Set `feature_flags.worktree_guard_enforce: true` (self-canary) | +1 |
-| `pokeedge-web/project.json` | Set `feature_flags.worktree_guard_enforce: true` — operator-side step documented in archive notes (cross-project; not modified in this change) | docs only |
+| `example-web/project.json` | Set `feature_flags.worktree_guard_enforce: true` — operator-side step documented in archive notes (cross-project; not modified in this change) | docs only |
 
 ### Guard shape
 
@@ -414,7 +414,7 @@ Append three sections: § Worktree Policy (machine enforcement note), § Multi-S
 
 - **Worker singleton enforce defaults TRUE.** Every session on every project starts using the lock-acquire path on first run after upgrade. Verification signal (`worker_role` in `adv_status`) immediately visible.
 - **Probe cache always on.** `_freshness` field immediately visible in `view: health` output.
-- **Worktree guard enforce defaults FALSE** broadly, but `oc-plugins/advance/project.json` is updated as part of this change to set `feature_flags.worktree_guard_enforce: true` (self-canary). `pokeedge-web` operator-side opt-in is documented in archive notes (separate cross-repo step).
+- **Worktree guard enforce defaults FALSE** broadly, but `oc-plugins/advance/project.json` is updated as part of this change to set `feature_flags.worktree_guard_enforce: true` (self-canary). `example-web` operator-side opt-in is documented in archive notes (separate cross-repo step).
 
 ### Day 0 + 1 minor release — flip worktree guard default
 

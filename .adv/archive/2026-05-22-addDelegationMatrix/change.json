@@ -353,7 +353,7 @@
       "approval_evidence": "User approved proposal with Tier A reply: continue. Proposal persisted with problem statement, scope, success criteria, constraints, failure handling, and discovery agenda.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/proposal.md",
         "content_hash": "3f7c008661dfa406787c4d358766f17761588641bb77c7e65f3609fe8671dc9f",
         "non_whitespace_chars": 6039,
         "checked_at": "2026-05-22T06:14:41.936Z"
@@ -366,7 +366,7 @@
       "approval_evidence": "Discovery completed after user approved acceptance criteria with `approve`. Agreement persisted and ChangeContract minted successfully with 27 items. Discovery findings resolved field-agent boundary: matrix is an Advance repo source/evaluation artifact, not a downstream runtime lookup dependency. Retried from ADV worktree after worktree isolation block and worker restart.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/agreement.md",
         "content_hash": "df654c34f0b1482a928bcf49cc385e65bf268e773e0d9fe57414b8e340412bea",
         "non_whitespace_chars": 4283,
         "checked_at": "2026-05-22T06:41:17.401Z"
@@ -379,7 +379,7 @@
       "approval_evidence": "Design completed and persisted. Design uses two-plane model (Advance implementation source/evaluation vs downstream field runtime), includes D6 remediation-subagent alignment, mandatory design scout, and independent validator result CAUTION. Validator caution was resolved by adding explicit spec-law sequencing for rq-delDefaults03.4 before matrix/test updates. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk remains.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/design.md",
         "content_hash": "9e30ea44ca6b03e0caea5fa2e8f7570e864559c5e7184f692bcd5fc142b3ed6a",
         "non_whitespace_chars": 8691,
         "checked_at": "2026-05-22T06:54:04.711Z"
@@ -404,7 +404,7 @@
       "approval_evidence": "Acceptance review complete. Independent reviewer verdict: NEEDS_WORK → one non-blocking finding remediated (SETUP.md bundled-agent overview). Review matrix: 27/27 pass. 193 tests pass, pnpm run check clean. Executive summary persisted.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/acceptance.md",
         "content_hash": "75577b2211510197530646f617d371b00726dbb002d9d30394a5d7f282db9d94",
         "non_whitespace_chars": 5437,
         "checked_at": "2026-05-22T07:33:03.288Z"
@@ -911,19 +911,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/proposal.md",
       "updatedAt": "2026-05-22T07:27:37.263Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/problem-statement.md",
       "updatedAt": "2026-05-22T07:27:37.280Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/agreement.md",
       "updatedAt": "2026-05-22T07:27:37.305Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationMatrix/design.md",
       "updatedAt": "2026-05-22T07:27:37.325Z"
     }
   },

@@ -187,7 +187,7 @@ export function withStabilityFeatureDefaults(
 // =============================================================================
 
 export const ProductLinkSchema = z.object({
-  /** Logical product identifier, e.g. "pokeedge". */
+  /** Logical product identifier, e.g. "example-product". */
   id: z.string().min(1),
   /** Role this repo plays inside the product. */
   role: z.enum(["primary", "secondary"]),

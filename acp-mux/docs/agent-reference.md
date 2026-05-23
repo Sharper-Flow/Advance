@@ -52,7 +52,7 @@ acp-mux sync-db --dry-run --all
 acp-mux thread-close --help              # see usage
 acp-mux thread-close                     # close newest live instance
 acp-mux thread-close --instance ID       # close specific instance
-/home/jon/.opencode/bin/opencode --version
+/home/dev/.opencode/bin/opencode --version
 sqlite3 "$XDG_DATA_HOME/opencode/opencode.db" 'pragma integrity_check;'
 ```
 

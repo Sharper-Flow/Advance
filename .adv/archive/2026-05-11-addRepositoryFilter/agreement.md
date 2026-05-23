@@ -40,11 +40,11 @@ Inline `<!-- rq-... -->` doc anchors in the modified files (schema, roadmap.ts, 
 
 ### AC1 — Filter scopes live reads
 
-Given Sharper-Flow Project #1 (shared) and a config with `repository_filter: "PokeEdge-Web"`, `adv_roadmap source: "live"` returns only PokeEdge-Web items. Probe-confirmed: `gh project item-list 1 --owner Sharper-Flow --format json --limit 2 --query "repo:Sharper-Flow/PokeEdge"` returns only PokeEdge items (68 of 123 total).
+Given Sharper-Flow Project #1 (shared) and a config with `repository_filter: "Example-Web"`, `adv_roadmap source: "live"` returns only Example-Web items. Probe-confirmed: `gh project item-list 1 --owner Sharper-Flow --format json --limit 2 --query "repo:Sharper-Flow/ExampleProduct"` returns only ExampleProduct items (68 of 123 total).
 
 ### AC2 — Filter scopes file reads through pre-filtered snapshot
 
-Given `/adv-triage` writes a snapshot with `repository_filter: "PokeEdge-Web"`, `adv_roadmap source: "file"` returns only PokeEdge-Web items.
+Given `/adv-triage` writes a snapshot with `repository_filter: "Example-Web"`, `adv_roadmap source: "file"` returns only Example-Web items.
 
 ### AC3 — Backwards compat
 
@@ -52,7 +52,7 @@ Given a config with NO `repository_filter`, `adv_roadmap source: "live"` and `so
 
 ### AC4 — Bootstrap auto-detect
 
-Given `git remote get-url origin` returns `git@github.com:Sharper-Flow/PokeEdge-Web.git` and the project owner is `Sharper-Flow` with title `Sharper-Flow` (not `ADV: PokeEdge-Web`), `/adv-triage --execute` first-run writes `repository_filter: "PokeEdge-Web"`. Re-run with existing filter does not overwrite.
+Given `git remote get-url origin` returns `git@github.com:Sharper-Flow/Example-Web.git` and the project owner is `Sharper-Flow` with title `Sharper-Flow` (not `ADV: Example-Web`), `/adv-triage --execute` first-run writes `repository_filter: "Example-Web"`. Re-run with existing filter does not overwrite.
 
 ### AC5 — Bootstrap skip on per-repo board
 
@@ -78,7 +78,7 @@ Filter implementation is server-side via `gh ... --query "repo:..."`. Client-sid
 
 ### C2 — Bare-name semantics
 
-`repository_filter` value is the bare repo name (e.g. `"PokeEdge-Web"`). Owner is inherited from `config.owner`. Avoids cross-owner ambiguity.
+`repository_filter` value is the bare repo name (e.g. `"Example-Web"`). Owner is inherited from `config.owner`. Avoids cross-owner ambiguity.
 
 ### C3 — Single-repo per linkage
 
@@ -132,7 +132,7 @@ Migrating existing FE (#6) and BE configs from dedicated ADV-only project boards
 
 Closing/archiving `#6` etc. on GitHub after migration. Out-of-band cleanup.
 
-### OOS3 — Public `/roadmap` page in `pokeedge-web`
+### OOS3 — Public `/roadmap` page in `example-web`
 
 Separate code path using `ROADMAP_GITHUB_TOKEN`. Not ADV.
 

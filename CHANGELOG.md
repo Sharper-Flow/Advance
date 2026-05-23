@@ -805,7 +805,7 @@ Improves the deterministic project shortname generator to restore meaning for co
   - `advanceplugin → AP` (segments `advance`+`plugin`, over cap → acronym)
   - `opencode → Opencode` (segments `open`+`code`, at cap → compact)
   - `advance → Advance` (previously `Advanc`)
-  - `pokeedge → Pokeedge` (segments `poke`+`edge`, at cap → compact)
+  - `example-product → ExampleProduct` (segments `poke`+`edge`, at cap → compact)
   - `xyzzyabcdef → Xyzzyabc` (opaque, truncate to 8)
 - **Unchanged behaviour:** names with explicit boundaries (`my-cool-project → MCP`, `opencode-morph-fast-apply → OMFA`, `morph-plugin → Morph`). Acronym cap scaled from 6 to 8 along with the main limit.
 - **Tests**: 9 new `segmentToken` unit tests, 5 new `SHORTNAME_DICTIONARY` invariant tests (lowercase / no-dupes / size), 7 new `generateProjectShortname` table-driven tests for segmentation + cap-bump cases. 3 existing assertions updated for new cap (111 total events tests pass).
@@ -879,7 +879,7 @@ Tool count: 40 → 42 (`adv_investment_report` + `adv_change_reenter` — the la
   - Strips common suffixes: `-plugin`, `-plugins`, `-app`, `-cli`, `-server`, `-client`, `-mcp`, `.js`, `.ts`
   - Multi-word names with combined length > 6 → acronym (e.g. `my-cool-project` → `MCP`, `opencode-morph-fast-apply` → `OMFA`)
   - Single words ≤ 6 chars → title-cased as-is (e.g. `plugin` → `Plugin`)
-  - Single words > 6 chars → truncate + title-case (e.g. `advance` → `Advanc`, `pokeedge` → `Pokeed`)
+  - Single words > 6 chars → truncate + title-case (e.g. `advance` → `Advanc`, `example-product` → `Example`)
   - Case-insensitive prefix/suffix matching, only first match stripped
 - **`buildTabTitle(emoji, projectName, changeId)`** updated to thread `projectName` through `generateProjectShortname` and use the `·` separator. Previously ignored the project name argument.
 - **Public exports** added from the events module: `generateProjectShortname`, `buildTabTitle`, `normalizeChangeCode`.

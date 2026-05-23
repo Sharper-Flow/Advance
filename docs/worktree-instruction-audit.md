@@ -79,7 +79,7 @@ Effect: when an agent does skill discovery via filesystem scan, this repo's skil
 
 This session uncovered three classes of stale worktrees:
 
-1. **Worktree on a branch whose remote was deleted after PR merge** (`hotfix/release-body-file` in pokeedge-web). User reported "opencode immediately went to a hotfix branch" because HEAD pointed at a now-dead branch. opencode just opened to whatever HEAD was.
+1. **Worktree on a branch whose remote was deleted after PR merge** (`hotfix/release-body-file` in example-web). User reported "opencode immediately went to a hotfix branch" because HEAD pointed at a now-dead branch. opencode just opened to whatever HEAD was.
 2. **Worktree on a branch with no ADV record** (`improveadvfromcompresearch`). 10 commits, 4 days old, ADV change deleted/never finalized. No documented detection or cleanup path.
 3. **Worktree for an archived change still on disk** (`change/showtranslationpanelprice`, `change/removeLegacyCollectionEndpoint`). Phase 9 deleted them only when run; manual archives left them.
 
@@ -150,11 +150,11 @@ Verify the actual implementation in `worktree_create` aligns with this.
 ### F7 — Multiple-active-worktrees scaling is undocumented (P3)
 
 When 5–10 changes are active simultaneously, you get 5–10 worktrees. Current docs assume 1–2 at a time:
-- Disk usage: each worktree is a full checkout (~100MB for ADV, ~1GB for pokeedge-web)
+- Disk usage: each worktree is a full checkout (~100MB for ADV, ~1GB for example-web)
 - Switching between worktrees: undocumented (worktree path is long, no shortcut alias)
 - Coordination: when both worktrees touch related files (e.g. plugin/src/types.ts), no preflight detection
 
-In this session, advance had 4 active worktrees (alignFrontendBackend, alignFrontendBackendFeature, improveBrandLogoContrastSystem, etc. in pokeedge-web). All sharing the same project state, all potentially conflicting on shared files.
+In this session, advance had 4 active worktrees (alignFrontendBackend, alignFrontendBackendFeature, improveBrandLogoContrastSystem, etc. in example-web). All sharing the same project state, all potentially conflicting on shared files.
 
 **Improvement:** Add to ADV_INSTRUCTIONS.md:
 
@@ -221,7 +221,7 @@ The Phase 9 docs in adv-archive.md handle both ("$MAIN equals the current workin
 
 ### F11 — Stale HEAD detection at session start (P0)
 
-The triggering complaint of this audit: user opened opencode in pokeedge-web, landed on `hotfix/release-body-file` (merged + remote-deleted). No instruction tells agents to detect this.
+The triggering complaint of this audit: user opened opencode in example-web, landed on `hotfix/release-body-file` (merged + remote-deleted). No instruction tells agents to detect this.
 
 **Improvement:** Add to ADV plugin init (or a new utility):
 
@@ -289,4 +289,4 @@ These could be a separate audit if relevant.
 
 ---
 
-*Generated 2026-05-02. Authored after the multi-hour pokeedge cleanup session that surfaced these failure modes.*
+*Generated 2026-05-02. Authored after the multi-hour example-product cleanup session that surfaced these failure modes.*

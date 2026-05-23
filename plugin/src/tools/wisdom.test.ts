@@ -125,7 +125,7 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
       currentRoot: "/repo/web",
       currentRepoId: "web",
       repoProjectId: "w".repeat(40),
-      productId: "pokeedge",
+      productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: "/repo/backend",
       primaryRepoId: "backend",
@@ -157,7 +157,7 @@ describe("adv_wisdom_add — rq-cacheRefresh01 contract", () => {
       expect.objectContaining({ name: expect.any(String) }),
       expect.objectContaining({
         entry: expect.objectContaining({
-          product_id: "pokeedge",
+          product_id: "example-product",
           origin_repo_id: "web",
           origin_repo_project_id: "w".repeat(40),
           origin_repo_path: "/repo/web",
@@ -174,7 +174,7 @@ describe("adv_wisdom_list — product-linked filtering", () => {
       currentRoot: "/repo/web",
       currentRepoId: "web",
       repoProjectId: "w".repeat(40),
-      productId: "pokeedge",
+      productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: "/repo/backend",
       primaryRepoId: "backend",
@@ -196,7 +196,7 @@ describe("adv_wisdom_list — product-linked filtering", () => {
         content: "web scoped",
         recorded_at: "2026-01-01T00:00:00.000Z",
         scope: "change",
-        product_id: "pokeedge",
+        product_id: "example-product",
         origin_repo_id: "web",
       },
       {
@@ -205,7 +205,7 @@ describe("adv_wisdom_list — product-linked filtering", () => {
         content: "backend scoped",
         recorded_at: "2026-01-01T00:00:00.000Z",
         scope: "change",
-        product_id: "pokeedge",
+        product_id: "example-product",
         origin_repo_id: "backend",
       },
       {
@@ -221,7 +221,7 @@ describe("adv_wisdom_list — product-linked filtering", () => {
         content: "promoted backend knowledge",
         recorded_at: "2026-01-01T00:00:00.000Z",
         scope: "project",
-        product_id: "pokeedge",
+        product_id: "example-product",
         origin_repo_id: "backend",
       },
     ]);

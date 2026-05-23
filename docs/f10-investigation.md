@@ -27,7 +27,7 @@ Supported paths until upstream changes:
 
 ## Problem
 
-Cross-project ADV ops via `opencode run --dir <other> --agent build --dangerously-skip-permissions "..."` incur 60–300s LLM-loop overhead even for verification calls that just need to invoke a single MCP tool and exit. Observed during 2026-05-02 pokeedge cleanup: 8 sequential `adv_workflow_repair` calls cost ~30 minutes of agent loop time when the actual work was 8 single-tool invocations totaling <10s of compute.
+Cross-project ADV ops via `opencode run --dir <other> --agent build --dangerously-skip-permissions "..."` incur 60–300s LLM-loop overhead even for verification calls that just need to invoke a single MCP tool and exit. Observed during 2026-05-02 example-product cleanup: 8 sequential `adv_workflow_repair` calls cost ~30 minutes of agent loop time when the actual work was 8 single-tool invocations totaling <10s of compute.
 
 ## Investigation findings
 

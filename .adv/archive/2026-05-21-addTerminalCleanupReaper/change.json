@@ -243,7 +243,7 @@
       "approval_evidence": "Proposal approved by user exact reply: \"continue\" after problem statement confirmation and proposal summary.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/proposal.md",
         "content_hash": "18a7f50a0fed4d0944773f3818ee1f3c23ed1fbb632a2684d65c515ad3f780a5",
         "non_whitespace_chars": 2067,
         "checked_at": "2026-05-21T05:20:50.929Z"
@@ -256,7 +256,7 @@
       "approval_evidence": "Discovery findings persisted in proposal.md; agreement.md preserved with user-approved acceptance criteria. User approval already recorded in agreement Sign-Off: exact reply `approve`.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/agreement.md",
         "content_hash": "1b2f210453445ec5331094bb5de31a24554415bf0444609e845f5db2b94eb9d1",
         "non_whitespace_chars": 5125,
         "checked_at": "2026-05-21T05:23:59.775Z"
@@ -269,7 +269,7 @@
       "approval_evidence": "Design persisted with validator result VALIDATED. Straightforward technical design; no user-value tradeoff, no unresolved conflict, no contract-compromise risk.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/design.md",
         "content_hash": "1b9d3902a31d0721302c9843144603f2db081ab60d670bb36dbeefc87af84c61",
         "non_whitespace_chars": 5027,
         "checked_at": "2026-05-21T05:38:48.035Z"
@@ -295,7 +295,7 @@
       "approval_evidence": "Acceptance approved by user exact reply `approve`. Typed ChangeContract and review matrix minted after readiness blocker; independent reviewer verdict PASS; final verification passed: pnpm run check, pnpm test, pnpm run build.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addTerminalCleanupReaper/acceptance.md",
         "content_hash": "e3ae4d8026b1ab0216fb90fe0df15acb81cf71225c40010146b4b99343673b73",
         "non_whitespace_chars": 7734,
         "checked_at": "2026-05-21T06:58:59.656Z"

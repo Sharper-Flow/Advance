@@ -427,7 +427,7 @@
       "approval_evidence": "User approved proposal/problem statement via reply: approve",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/proposal.md",
         "content_hash": "64c6a9947ab4f0e5d8f98612b1c8f6b202cc2c9decce119601145ed97a1aa2ee",
         "non_whitespace_chars": 4076,
         "checked_at": "2026-05-21T05:16:12.866Z"
@@ -440,7 +440,7 @@
       "approval_evidence": "User approved agreement via reply: approve. Discovery findings and agreement persisted; design can proceed.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/agreement.md",
         "content_hash": "31b4b9325ace2f4cf441217e8154e2d4bc4e21dd7323d1d911ca0f157ece5ee3",
         "non_whitespace_chars": 3739,
         "checked_at": "2026-05-21T05:21:11.780Z"
@@ -453,7 +453,7 @@
       "approval_evidence": "Re-entry design addendum persisted to fix acceptance-contract miss prevention. User requested fixing all identified points now; no product tradeoff or validator conflict introduced.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addContractMintTool/design.md",
         "content_hash": "08ba828ce7815fa73c1e64c32d3941d2c14929734407dd46e10303a727930306",
         "non_whitespace_chars": 2180,
         "checked_at": "2026-05-21T06:16:43.825Z"

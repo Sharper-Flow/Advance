@@ -1,6 +1,6 @@
 # Snapshot Health Diagnostics
 
-`adv_snapshot_health` detects and remediates OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts that historically caused recurring agent freezes (notably pokeedge-web index.lock contention).
+`adv_snapshot_health` detects and remediates OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts that historically caused recurring agent freezes (notably example-web index.lock contention).
 
 The tool is **read-only by default**. Repairs require explicit user approval, are restricted to a closed whitelist, and write audit entries to the ADV agenda.
 

@@ -157,7 +157,7 @@ Status: candidate; prep should decide whether to materialize.
    - `rq-dryRunMutation01`
    - `rq-nonLlmToolExec01`
 2. Update ADV instructions/tool matrix.
-3. Dogfood with pokeedge ↔ pokeedge-web:
+3. Dogfood with example-product ↔ example-web:
    - activate product link config outside this repo
    - run real cross-project dryRun and task mutation
    - capture evidence before archive
@@ -190,7 +190,7 @@ Status: candidate; prep should decide whether to materialize.
 | dryRun validation diverges from real-run validation | share validation path before mutation branch |
 | target_path dryRun uses stale disk snapshot | mutation override allows Temporal-backed read without mutation trust |
 | direct CLI scope creeps into runtime clone | AC4 + design explicitly allow documented deferral; prep tasks separate investigation from implementation |
-| dogfood depends on external PokeEdge repo readiness | make dogfood an acceptance/harden task; if blocked, archive blocks with clear external dependency |
+| dogfood depends on external ExampleProduct repo readiness | make dogfood an acceptance/harden task; if blocked, archive blocks with clear external dependency |
 
 ## Validator Result
 

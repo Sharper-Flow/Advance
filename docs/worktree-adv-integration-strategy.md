@@ -13,7 +13,7 @@
 **Date:** 2026-05-02
 **Status:** Superseded historical proposal — Option B shipped with updated state
 authority and merge semantics
-**Origin:** Multi-hour pokeedge cleanup session surfaced four classes of friction that all trace back to weak coordination between ADV and the worktree plugin: (1) concurrent-session git thrashing, (2) stale HEAD on dead branches at session start, (3) Phase 9 archive merge conflicts when parallel sessions touched same files, (4) orphan branches/worktrees with no ADV record.
+**Origin:** Multi-hour example-product cleanup session surfaced four classes of friction that all trace back to weak coordination between ADV and the worktree plugin: (1) concurrent-session git thrashing, (2) stale HEAD on dead branches at session start, (3) Phase 9 archive merge conflicts when parallel sessions touched same files, (4) orphan branches/worktrees with no ADV record.
 
 ---
 
@@ -63,7 +63,7 @@ Both use the same `project-id` (root commit SHA from `kdco-primitives/get-projec
 | Symptom                                                                                                   | Root cause                                                                                                      |
 | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Concurrent-session git reset wiped uncommitted .adv deletions                                             | Worktree plugin is unaware of ADV-mutating ops; ADV doesn't lock against parallel sessions                      |
-| Pokeedge-web HEAD stuck on dead `hotfix/release-body-file` after PR #56 merged + branch deleted on remote | No detection: neither plugin nor ADV checks "is HEAD on a still-valid branch" at session start                  |
+| Example-web HEAD stuck on dead `hotfix/release-body-file` after PR #56 merged + branch deleted on remote | No detection: neither plugin nor ADV checks "is HEAD on a still-valid branch" at session start                  |
 | `improveadvfromcompresearch` — branch + worktree existed, ADV record gone                                 | Worktree plugin tracked the session in its state DB; ADV had no record. Neither side reconciles                 |
 | Phase 9 archive merge conflicts on parallel work to same files (boundParent vs my repairTemporal)         | No file-level overlap detection at /adv-prep time; conflicts only surface at archive                            |
 | 12 stale `change/*` session-snapshot branches accumulated in advance repo                                 | `worktree_cleanup` retries delete, but doesn't garbage-collect orphan refs whose worktrees were already removed |
@@ -185,7 +185,7 @@ Reasoning:
 3. `worktree_delete` checks ADV gate status before allowing delete (refuses if release gate not done UNLESS `force: true`)
 4. `adv_status` worktree section pulls from internal state (no longer shells `git worktree list`)
 5. New `adv_worktree_triage` tool: enumerates orphan worktrees (branch with no ADV change, change archived but worktree not deleted, etc.) with recommended actions
-6. New session-init hook detects stale HEAD on dead branch (the pokeedge-web case) and emits `[ADV:WARN]`
+6. New session-init hook detects stale HEAD on dead branch (the example-web case) and emits `[ADV:WARN]`
 
 ---
 
@@ -361,4 +361,4 @@ Estimated scope: ~30 tasks across 2–3 weeks. Sized similar to `repairTemporalM
 
 ---
 
-_Generated 2026-05-02. Authored after the multi-hour pokeedge cleanup session and the worktree-instruction audit (`docs/worktree-instruction-audit.md`)._
+_Generated 2026-05-02. Authored after the multi-hour example-product cleanup session and the worktree-instruction audit (`docs/worktree-instruction-audit.md`)._

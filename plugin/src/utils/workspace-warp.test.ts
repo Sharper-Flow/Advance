@@ -613,15 +613,15 @@ describe("workspace-warp", () => {
       await createAdvWorkspace(
         baseDeps({
           fetchImpl,
-          directory: "/home/jon/My Code/repo",
+          directory: "/home/dev/My Code/repo",
         }),
-        { directory: "/home/jon/My Code/repo", branch: "change/test" },
+        { directory: "/home/dev/My Code/repo", branch: "change/test" },
       );
 
       const [, init] = getCall(fetchImpl);
       expect(
         (init?.headers as Record<string, string>)["x-opencode-directory"],
-      ).toBe("%2Fhome%2Fjon%2FMy%20Code%2Frepo");
+      ).toBe("%2Fhome%2Fdev%2FMy%20Code%2Frepo");
     });
 
     it("preserves content-type header on POST endpoints", async () => {

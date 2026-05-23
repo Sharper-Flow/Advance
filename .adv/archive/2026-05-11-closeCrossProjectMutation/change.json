@@ -1,6 +1,6 @@
 {
   "id": "closeCrossProjectMutation",
-  "title": "Close cross-project mutation safety + ergonomics gaps: fix structural target_path routing on holdout task tools, add uniform dryRun preview, and ship non-LLM CLI for ergonomic cross-project ADV tool execution. Establishes the operational completeness of the multirepoproductlinking foundation so ADV agents can safely + fluently work across linked-product repos (e.g. pokeedge-web ↔ pokeedge) without context loss or per-call LLM tax.",
+  "title": "Close cross-project mutation safety + ergonomics gaps: fix structural target_path routing on holdout task tools, add uniform dryRun preview, and ship non-LLM CLI for ergonomic cross-project ADV tool execution. Establishes the operational completeness of the multirepoproductlinking foundation so ADV agents can safely + fluently work across linked-product repos (e.g. example-web ↔ example-product) without context loss or per-call LLM tax.",
   "status": "archived",
   "created_at": "2026-05-11T20:41:59.191Z",
   "tasks": [
@@ -267,8 +267,8 @@
       "assignedTo": "agent",
       "started_at": "2026-05-11T22:45:42.590Z",
       "verification": "T10 complete. Checkpoint d90da443190fbce1d9ce1a6809dd4f03b0a7ad45. Live target_path dryRun mutation E2E needs fresh OpenCode session because current host cached pre-build dist; source integration/build passed.",
-      "summary": "Ran cross-project/product dogfood reads against `/home/jrede/dev/pokeedge` and `/home/jrede/dev/pokeedge-web` using target_path/product scope; both returned target project context and active changes/tasks. Ran full `pnpm run check`, targeted changed-surface Vitest suite (151 tests), instruction asset suite (70 tests), and `pnpm run build`. Repaired compressed ADV target_path matrix asset test and formatted source files flagged by repo check. Isolated remaining full-suite failure to known unrelated overlay runtime-canary environment test. Built plugin/worker dist successfully; live tool mutation E2E must be re-run in fresh host due OpenCode plugin dist caching.",
-      "implementation_summary": "Ran cross-project/product dogfood reads against `/home/jrede/dev/pokeedge` and `/home/jrede/dev/pokeedge-web` using target_path/product scope; both returned target project context and active changes/tasks. Ran full `pnpm run check`, targeted changed-surface Vitest suite (151 tests), instruction asset suite (70 tests), and `pnpm run build`. Repaired compressed ADV target_path matrix asset test and formatted source files flagged by repo check. Isolated remaining full-suite failure to known unrelated overlay runtime-canary environment test. Built plugin/worker dist successfully; live tool mutation E2E must be re-run in fresh host due OpenCode plugin dist caching.",
+      "summary": "Ran cross-project/product dogfood reads against `/home/jrede/dev/example-product` and `/home/jrede/dev/example-web` using target_path/product scope; both returned target project context and active changes/tasks. Ran full `pnpm run check`, targeted changed-surface Vitest suite (151 tests), instruction asset suite (70 tests), and `pnpm run build`. Repaired compressed ADV target_path matrix asset test and formatted source files flagged by repo check. Isolated remaining full-suite failure to known unrelated overlay runtime-canary environment test. Built plugin/worker dist successfully; live tool mutation E2E must be re-run in fresh host due OpenCode plugin dist caching.",
+      "implementation_summary": "Ran cross-project/product dogfood reads against `/home/jrede/dev/example-product` and `/home/jrede/dev/example-web` using target_path/product scope; both returned target project context and active changes/tasks. Ran full `pnpm run check`, targeted changed-surface Vitest suite (151 tests), instruction asset suite (70 tests), and `pnpm run build`. Repaired compressed ADV target_path matrix asset test and formatted source files flagged by repo check. Isolated remaining full-suite failure to known unrelated overlay runtime-canary environment test. Built plugin/worker dist successfully; live tool mutation E2E must be re-run in fresh host due OpenCode plugin dist caching.",
       "filesTouched": [],
       "touched_files": [],
       "completedAt": "2026-05-11T22:51:54.814Z",
@@ -314,13 +314,13 @@
       "status": "done",
       "completed_at": "2026-05-11T22:52:06.968Z",
       "completed_by": "adv-gpt",
-      "approval_evidence": "Execution complete: 10/10 tasks done with checkpoint commits. Verification: `pnpm run check` passed; targeted changed-surface suite passed (151 tests); instruction asset suite passed; `pnpm run build` passed. Full `pnpm test` has one known unrelated overlay runtime-canary environment failure; source integration/build passed. Cross-project read dogfood against pokeedge and pokeedge-web succeeded; live mutation E2E requires fresh OpenCode host due cached dist."
+      "approval_evidence": "Execution complete: 10/10 tasks done with checkpoint commits. Verification: `pnpm run check` passed; targeted changed-surface suite passed (151 tests); instruction asset suite passed; `pnpm run build` passed. Full `pnpm test` has one known unrelated overlay runtime-canary environment failure; source integration/build passed. Cross-project read dogfood against example-product and example-web succeeded; live mutation E2E requires fresh OpenCode host due cached dist."
     },
     "acceptance": {
       "status": "done",
       "completed_at": "2026-05-11T23:20:23.578Z",
       "completed_by": "adv-gpt",
-      "approval_evidence": "User accepted delivered execution with reply `accept`. Review findings: no blockers; one known unrelated full-suite environment failure in overlay-sync runtime-canary test; live same-session target_path mutation E2E limited by cached pre-build plugin dist, with source tests/build passing and fresh-session E2E noted. Verification passed: pnpm run check, targeted changed-surface suite (151 tests), instruction asset suites (70 tests), pnpm run build, cross-project read dogfood against pokeedge and pokeedge-web."
+      "approval_evidence": "User accepted delivered execution with reply `accept`. Review findings: no blockers; one known unrelated full-suite environment failure in overlay-sync runtime-canary test; live same-session target_path mutation E2E limited by cached pre-build plugin dist, with source tests/build passing and fresh-session E2E noted. Verification passed: pnpm run check, targeted changed-surface suite (151 tests), instruction asset suites (70 tests), pnpm run build, cross-project read dogfood against example-product and example-web."
     },
     "release": {
       "status": "done",

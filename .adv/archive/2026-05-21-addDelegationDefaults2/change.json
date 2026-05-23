@@ -134,7 +134,7 @@
       "approval_evidence": "User approved proposal via reply: approve cleanup and continue",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/proposal.md",
         "content_hash": "6a2b8fd459c85a726255ec0e101c5c07f42d6e38f80799e4932071e54422fd1d",
         "non_whitespace_chars": 5385,
         "checked_at": "2026-05-21T01:03:52.892Z"
@@ -147,7 +147,7 @@
       "approval_evidence": "Re-completing discovery gate after re-entry. Contract needs to be minted from agreement AC1-AC6 before acceptance.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/agreement.md",
         "content_hash": "59d6cf9e03a745c81b3f1f3831edfabcaad63f374690c75416c9d5fbe55f0850",
         "non_whitespace_chars": 1841,
         "checked_at": "2026-05-21T02:46:06.074Z"
@@ -160,7 +160,7 @@
       "approval_evidence": "Design re-confirmed after re-entry. Same design as before — no changes needed.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/design.md",
         "content_hash": "9ddc0a146c6217d0b75c962c36521f01947246ad8c6b63d6f0614c5b059e0b2b",
         "non_whitespace_chars": 6685,
         "checked_at": "2026-05-21T02:46:17.171Z"
@@ -186,7 +186,7 @@
       "approval_evidence": "User accepted delivered work via reply: accept. Review verdict APPROVED; contract matrix 17/17 rows pass/respected; executive summary persisted.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/acceptance.md",
         "content_hash": "7107d6e50e24fd764dc34fe747f36b517bde681e94aef8e1624a2dbfa69782d0",
         "non_whitespace_chars": 3975,
         "checked_at": "2026-05-21T06:19:53.750Z"

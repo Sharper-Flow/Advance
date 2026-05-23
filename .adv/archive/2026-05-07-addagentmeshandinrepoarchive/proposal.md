@@ -24,7 +24,7 @@
 
 **Auth surface:**
 - `runGit` (checkpoint.ts:56-95) — execFile pattern with GIT_TERMINAL_PROMPT=0, timeout, maxBuffer — reusable pattern for `gh` subprocess
-- `gh auth status` confirmed working locally (gh 2.92.0, JRedeker account)
+- `gh auth status` confirmed working locally (gh 2.92.0, authenticated account)
 - No token management in ADV codebase — `gh` CLI is the trust boundary
 
 ### Conflict Scan

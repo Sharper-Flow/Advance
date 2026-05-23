@@ -365,7 +365,7 @@
       "approval_evidence": "User approved proposal via Tier A whitelist reply: \"continue\". B/F/S scan had no CRITICAL findings; proposal validation passed with expected pre-planning warnings only.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/proposal.md",
         "content_hash": "022cdec77ba71b310de45ae68c2f20f175d8d75047946ae7b47f35d972824e1b",
         "non_whitespace_chars": 8762,
         "checked_at": "2026-05-21T05:16:38.480Z"
@@ -378,7 +378,7 @@
       "approval_evidence": "Resumed after prior agreement artifact sign-off. ChangeContract present with 19 approved items (AC1-AC8, C1-C5, DONT1-DONT6).",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/agreement.md",
         "content_hash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
         "non_whitespace_chars": 4030,
         "checked_at": "2026-05-22T07:43:56.305Z"
@@ -391,7 +391,7 @@
       "approval_evidence": "Design persisted with Design Leverage Scout and mandatory independent validator result VALIDATED. No unresolved CONFLICT, no user-value tradeoff, and no contract-compromise risk identified; auto-proceeding to planning per design workflow.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/design.md",
         "content_hash": "58cc3c79bd70c2d18addd1d47a3ba90f10a4cb1e5430f39b64260d2c2ad10ed3",
         "non_whitespace_chars": 8555,
         "checked_at": "2026-05-22T07:56:46.465Z"
@@ -416,7 +416,7 @@
       "approval_evidence": "User accepted delivered work via Tier A whitelist reply: \"accept\". Acceptance review verdict APPROVED; 0 unresolved blockers/issues after remediation. Executive summary persisted and verified. Contract matrix has 19 required rows passed/respected, 0 failing/unknown. Verification passed: targeted scanner/manifest suite (73 tests) and pnpm run check. Worktree clean at checkpoint 315d1c4bd9e83ecdc5de8d546d804d915500ff59.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/acceptance.md",
         "content_hash": "b5c4a00058fa3c3e117ee810dca9ff7fdc169878a04086a168c4223f6590a77b",
         "non_whitespace_chars": 5214,
         "checked_at": "2026-05-22T13:37:31.404Z"
@@ -799,19 +799,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/proposal.md",
       "updatedAt": "2026-05-22T14:01:44.869Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/problem-statement.md",
       "updatedAt": "2026-05-22T14:01:44.878Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/agreement.md",
       "updatedAt": "2026-05-22T14:01:44.890Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/design.md",
       "updatedAt": "2026-05-22T14:01:44.895Z"
     }
   },

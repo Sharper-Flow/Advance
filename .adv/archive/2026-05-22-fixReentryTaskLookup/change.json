@@ -102,7 +102,7 @@
       "approval_evidence": "Proposal confirmed by user resume of remaining crash-recovery follow-ups.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/proposal.md",
         "content_hash": "80453c212b9dcf8e290d772440de315f564deb40f089b3785c0fa41c57c5f0ee",
         "non_whitespace_chars": 1124,
         "checked_at": "2026-05-22T04:30:39.754Z"
@@ -115,7 +115,7 @@
       "approval_evidence": "Discovery: inspected task-id resolution, taskChangeIndex, taskAddedSignal, change refresh, and task show/update paths. Root cause is stale/missing reverse task index for workflow-visible tasks.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/agreement.md",
         "content_hash": "bb0f02bfb715d4a78f21fd8eb945d749d3129f234b8bd5b46bc655569d384ca6",
         "non_whitespace_chars": 1043,
         "checked_at": "2026-05-22T04:31:00.975Z"
@@ -128,7 +128,7 @@
       "approval_evidence": "Design validator returned PASS_WITH_NOTES; incorporated primary setCachedChange indexing fix plus bounded fallback scan constraints.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/design.md",
         "content_hash": "80f92c1fdeb2d0a2c19c9bf4c38b37767cbb69c209afa19aab5e1775fa005933",
         "non_whitespace_chars": 1601,
         "checked_at": "2026-05-22T04:42:31.101Z"
@@ -153,7 +153,7 @@
       "approval_evidence": "User approved acceptance via chat: `approve`. Review matrix rows all pass/respected; targeted tests, check, build, and full suite are green.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/acceptance.md",
         "content_hash": "d940d0636adf764aca7321861e6169b2cf0c5aed7f3f481f06b4931c6e0d8ba5",
         "non_whitespace_chars": 2179,
         "checked_at": "2026-05-22T05:07:55.112Z"
@@ -353,19 +353,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/proposal.md",
       "updatedAt": "2026-05-22T05:04:25.224Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/problem-statement.md",
       "updatedAt": "2026-05-22T05:04:25.238Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/agreement.md",
       "updatedAt": "2026-05-22T05:04:25.246Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixReentryTaskLookup/design.md",
       "updatedAt": "2026-05-22T05:04:25.254Z"
     }
   },

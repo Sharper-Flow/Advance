@@ -9,7 +9,7 @@
  *   bun scripts/migrate-openspec.ts <openspec-dir> [output-dir]
  *
  * Example:
- *   bun scripts/migrate-openspec.ts ~/dev/pokeedge/openspec ./specs
+ *   bun scripts/migrate-openspec.ts ~/dev/example-product/openspec ./specs
  */
 
 import { readdir, readFile, mkdir, writeFile } from "fs/promises";
@@ -818,7 +818,7 @@ Arguments:
   output-dir    Output directory for ADV specs (default: ./specs)
 
 Example:
-  bun scripts/migrate-openspec.ts ~/dev/pokeedge/openspec ./specs
+  bun scripts/migrate-openspec.ts ~/dev/example-product/openspec ./specs
 `);
     process.exit(1);
   }

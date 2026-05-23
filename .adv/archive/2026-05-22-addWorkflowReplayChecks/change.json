@@ -501,7 +501,7 @@
       "approval_evidence": "Proposal approved inline by user reply `continue`; proceeding to discovery. B/F/S scan was clean and strict validation passed with expected pre-prep warnings only.",
       "artifact_evidence": {
         "kind": "proposal",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/proposal.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/proposal.md",
         "content_hash": "0604783cf8079b1f70e733ff364851332726b274f1b6e146153fe06485004352",
         "non_whitespace_chars": 8048,
         "checked_at": "2026-05-22T06:13:37.932Z"
@@ -514,7 +514,7 @@
       "approval_evidence": "Discovery findings persisted; user approved acceptance criteria/agreement with reply `approve`; contract minted with 32 items. Decisions: quarantine-first recovery, blocking replay checks, warning metadata optimized for automation/agent triage.",
       "artifact_evidence": {
         "kind": "agreement",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/agreement.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/agreement.md",
         "content_hash": "dec588e00bc46c328d7236e93d98303e0974b983b51a873bd91a976c29baabaf",
         "non_whitespace_chars": 4788,
         "checked_at": "2026-05-22T07:05:00.614Z"
@@ -527,7 +527,7 @@
       "approval_evidence": "Design persisted. Mandatory independent validator returned CAUTION, no CONFLICT; cautions incorporated: single structured listWorktreesAcrossChanges result, simplified design planes, fixture-vs-live replay tradeoff, Worker Versioning rationale. No user-value tradeoff or contract-compromise risk.",
       "artifact_evidence": {
         "kind": "design",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/design.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/design.md",
         "content_hash": "6103a571a349ced915b047de365344d4f883f9da0045f8da611befc6b3e9aecf",
         "non_whitespace_chars": 8252,
         "checked_at": "2026-05-22T07:20:35.247Z"
@@ -552,7 +552,7 @@
       "approval_evidence": "User accepted delivered work with reply `accept`. Acceptance review APPROVED after remediation. Fixed continue-as-new seed preservation issue, strengthened visibility escaping, expanded recovery-probe tests. Contract review matrix persisted with 32 rows and zero failing rows. Executive summary persisted. Verification passed: targeted tests, pnpm run check, pnpm run build, full pnpm test, strict validation with expected NO_DELTAS warning.",
       "artifact_evidence": {
         "kind": "acceptance",
-        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/acceptance.md",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/acceptance.md",
         "content_hash": "b337a08a055b52d879042746bd6985d1a3398ef799b7a0838350e31066379449",
         "non_whitespace_chars": 7368,
         "checked_at": "2026-05-22T14:38:09.917Z"
@@ -1179,19 +1179,19 @@
   "documents": {},
   "artifacts": {
     "proposal": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/proposal.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/proposal.md",
       "updatedAt": "2026-05-22T15:01:11.976Z"
     },
     "problemStatement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/problem-statement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/problem-statement.md",
       "updatedAt": "2026-05-22T15:01:12.015Z"
     },
     "agreement": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/agreement.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/agreement.md",
       "updatedAt": "2026-05-22T15:01:12.062Z"
     },
     "design": {
-      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/design.md",
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addWorkflowReplayChecks/design.md",
       "updatedAt": "2026-05-22T15:01:12.077Z"
     }
   },
