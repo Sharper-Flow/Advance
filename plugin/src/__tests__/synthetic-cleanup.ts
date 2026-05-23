@@ -41,13 +41,11 @@ async function markerMatches(path: string, runId?: string): Promise<boolean> {
 
 export async function cleanupNewSyntheticAdvDirs(
   dataHome: string,
-  baseline: Set<string>,
+  _baseline: Set<string>,
   options: { runId?: string } = {},
 ): Promise<string[]> {
   const current = await listSyntheticAdvDirs(dataHome);
-  const candidates = [...current]
-    .filter((path) => !baseline.has(path))
-    .sort((a, b) => a.localeCompare(b));
+  const candidates = [...current].sort((a, b) => a.localeCompare(b));
   const removed: string[] = [];
 
   for (const path of candidates) {
