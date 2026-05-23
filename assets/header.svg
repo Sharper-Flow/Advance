@@ -1,38 +1,75 @@
-<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Advance README banner</title>
+  <desc id="desc">Advance: spec-driven engineering infrastructure for AI agents.</desc>
+
   <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05291f" />
+      <stop offset="0.58" stop-color="#052023" />
+      <stop offset="1" stop-color="#061827" />
+    </linearGradient>
+
+    <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M80 0H0V80" fill="none" stroke="#64ffda" stroke-opacity="0.07" stroke-width="1" />
+    </pattern>
+
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&amp;display=swap');
-      .adv-text {
-        font-family: 'Geist Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
-        font-weight: 500;
-        letter-spacing: 0.15em;
+      .sans {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .mono {
+        font-family: ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+      .brand {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+      .title-word {
+        font-size: 146px;
+        font-weight: 850;
+        letter-spacing: -0.015em;
+      }
+      .subtitle {
+        font-size: 34px;
+        font-weight: 650;
+      }
+      .chip {
+        font-size: 22px;
+        font-weight: 650;
+      }
+      .footer {
+        font-size: 18px;
+        letter-spacing: 0.04em;
       }
     </style>
   </defs>
-  
-  <!-- Black background -->
-  <rect width="100%" height="100%" fill="#000000"/>
-  
-  <!-- Sharp text -->
-  <text 
-    x="640" 
-    y="340" 
-    class="adv-text"
-    font-size="140"
-    fill="rgba(255,255,255,1)"
-    text-anchor="middle">
-    ADVANCE
-  </text>
-  
-  <!-- Subtle tagline -->
-  <text 
-    x="640" 
-    y="420" 
-    class="adv-text"
-    font-size="24"
-    fill="rgba(255,255,255,0.4)"
-    text-anchor="middle"
-    letter-spacing="0.3em">
-    SPEC-DRIVEN DEVELOPMENT
-  </text>
+
+  <rect width="1280" height="640" fill="url(#bg)" />
+  <rect width="1280" height="640" fill="url(#grid)" />
+  <rect x="28" y="28" width="1224" height="584" rx="34" fill="none" stroke="#64ffda" stroke-opacity="0.09" />
+
+  <g class="sans" text-anchor="middle">
+    <text class="brand" x="640" y="132" fill="#45f5bf">SHARPERFLOW OPEN SOURCE</text>
+    <text class="title-word" x="640" y="268" fill="#ecfffb">ADVANCE</text>
+
+    <text class="subtitle" x="640" y="338" fill="#d6fff6">Spec-driven engineering infrastructure for AI agents.</text>
+    <text class="subtitle" x="640" y="384" fill="#d6fff6">Seven gates. TDD evidence. Durable handoff.</text>
+  </g>
+
+  <g class="mono chip" text-anchor="middle" fill="#d7fffa">
+    <rect x="288" y="438" width="154" height="46" rx="23" fill="#0a7f73" />
+    <text x="365" y="468">specs</text>
+
+    <rect x="462" y="438" width="150" height="46" rx="23" fill="#0c5970" />
+    <text x="537" y="468">7 gates</text>
+
+    <rect x="632" y="438" width="190" height="46" rx="23" fill="#0a7f73" />
+    <text x="727" y="468">tdd evidence</text>
+
+    <rect x="842" y="438" width="150" height="46" rx="23" fill="#0c5970" />
+    <text x="917" y="468">archive</text>
+  </g>
+
+  <text class="mono footer" x="640" y="570" text-anchor="middle" fill="#47f4f3">sharperflow.com/projects/advance</text>
 </svg>

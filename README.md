@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://sharperflow.com/projects/advance">
-    <img src="https://sharperflow.com/og/advance-preview.png" alt="Advance preview banner showing spec-driven development workflow for OpenCode" width="640" />
+    <img src="assets/header.svg" alt="Advance banner with a simplified spec-driven workflow summary" width="640" />
   </a>
 </p>
 
