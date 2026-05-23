@@ -274,9 +274,8 @@ describe("ensureWorktreeForMutation — auto_manage mode (existing worktree)", (
       mainCheckoutPath: "/repo/main",
       expectedWorktreePath: "/repo/wt/autoManagedChange",
     });
-    expect(result.remediation).toContain(
-      'workdir="/repo/wt/autoManagedChange"',
-    );
+    expect(result.remediation).toContain("/repo/wt/autoManagedChange");
+    expect(result.remediation).not.toContain("adv_gate_complete");
     // Existing-path lookup also fires the attachment hook so the projection
     // re-syncs even if a peer session created the worktree out-of-band.
     expect(attachments).toEqual([

@@ -183,7 +183,7 @@ export interface EnsureWorktreeForMutationInput {
 }
 
 const AUTO_MANAGE_REMEDIATION = (workdir: string) =>
-  `ADV auto-managed change requires worktree isolation. Re-run with workdir="${workdir}".`;
+  `ADV auto-managed change requires worktree isolation. Resume or enter the ADV worktree at ${workdir}, then retry from inside that worktree.`;
 
 export async function ensureWorktreeForMutation(
   input: EnsureWorktreeForMutationInput,

@@ -40,9 +40,29 @@ function autoManagedChange(): Change {
 }
 
 describe("evaluateGateWorktreeIsolation (block_only mode preserved)", () => {
-  test("blocks non-proposal gates from main checkout when flag is enabled", async () => {
+  test("allows metadata-only gates from main checkout when flag is enabled", async () => {
+    await expect(
+      evaluateGateWorktreeIsolation({
+        gateId: "discovery",
+        features: { worktree_guard_enforce: true },
+        cwd: "/repo/main",
+        getSessionContext: mainCtx,
+      }),
+    ).resolves.toEqual({ decision: "ALLOW" });
+
+    await expect(
+      evaluateGateWorktreeIsolation({
+        gateId: "design",
+        features: { worktree_guard_enforce: true },
+        cwd: "/repo/main",
+        getSessionContext: mainCtx,
+      }),
+    ).resolves.toEqual({ decision: "ALLOW" });
+  });
+
+  test("blocks worktree-mutation gates from main checkout when flag is enabled", async () => {
     const result = await evaluateGateWorktreeIsolation({
-      gateId: "discovery",
+      gateId: "planning",
       features: { worktree_guard_enforce: true },
       cwd: "/repo/main",
       getSessionContext: mainCtx,
@@ -53,6 +73,7 @@ describe("evaluateGateWorktreeIsolation (block_only mode preserved)", () => {
       errorClass: "WorktreeIsolationViolation",
       mainCheckoutPath: "/repo/main",
     });
+    expect(result.remediation).not.toContain("workdir=");
     // block_only path: no auto-create-specific fields
     expect(result.code).toBeUndefined();
     expect(result.expectedWorktreePath).toBeUndefined();
@@ -92,6 +113,34 @@ describe("evaluateGateWorktreeIsolation (block_only mode preserved)", () => {
 });
 
 describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
+  test("auto-managed metadata gates allow without resuming a worktree", async () => {
+    const resume = vi.fn();
+
+    await expect(
+      evaluateGateWorktreeIsolation({
+        gateId: "design",
+        features: undefined,
+        cwd: "/repo/main",
+        change: autoManagedChange(),
+        getSessionContext: mainCtx,
+        autoManageDeps: {
+          resume,
+          resumeRuntime: {
+            projectRoot: "/repo/main",
+            database: {},
+            log: {
+              debug: vi.fn(),
+              info: vi.fn(),
+              warn: vi.fn(),
+              error: vi.fn(),
+            },
+          } as never,
+        },
+      }),
+    ).resolves.toEqual({ decision: "ALLOW" });
+    expect(resume).not.toHaveBeenCalled();
+  });
+
   test("auto-manages BLOCK with expectedWorktreePath when no worktree yet", async () => {
     const resume = vi.fn().mockResolvedValue({
       ok: true,
@@ -103,7 +152,7 @@ describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
       materialized: true,
     });
     const result = await evaluateGateWorktreeIsolation({
-      gateId: "design",
+      gateId: "planning",
       features: undefined,
       cwd: "/repo/main",
       change: autoManagedChange(),
@@ -128,6 +177,7 @@ describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
       mainCheckoutPath: "/repo/main",
       expectedWorktreePath: "/repo/wt/autoManaged",
     });
+    expect(result.remediation).not.toContain("adv_gate_complete");
     expect(resume).toHaveBeenCalledOnce();
   });
 
