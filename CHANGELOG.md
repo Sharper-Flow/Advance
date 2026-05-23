@@ -1,3 +1,13 @@
+## 2026-05-23 (v0.11.12)
+
+### Fixed
+
+- bump brace-expansion override to >=5.0.6 (GHSA-jxxr-4gwj-5jf2)
+### Changed
+
+- add security gates pilot workflow (ci)
+- add missing fixSlopScanFindings archive (chore)
+
 ## 2026-05-23 (v0.11.11)
 
 
