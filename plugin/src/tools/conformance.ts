@@ -83,6 +83,11 @@ const ConformanceArgsSchema = z.object({
 
 type ConformanceArgs = z.infer<typeof ConformanceArgsSchema>;
 
+/**
+ * rq-confSignalVisibility01: caller-visible warning returned after local
+ * conformance state was saved but change-workflow notification failed.
+ * The code is stable so callers can branch on recoverable sync drift.
+ */
 interface ConformanceSignalWarning {
   code: "ADV_CONFORMANCE_SIGNAL_FAILED";
   message: string;
@@ -90,8 +95,6 @@ interface ConformanceSignalWarning {
   recoverable: true;
   changeId: string;
 }
-
-const CONFORMANCE_SIGNAL_WARNING_CODE = "ADV_CONFORMANCE_SIGNAL_FAILED";
 
 // =============================================================================
 // Helpers
@@ -124,7 +127,7 @@ function makeSignalWarning(
   reason: string,
 ): ConformanceSignalWarning {
   return {
-    code: CONFORMANCE_SIGNAL_WARNING_CODE,
+    code: "ADV_CONFORMANCE_SIGNAL_FAILED",
     message:
       "Local conformance state was saved, but change workflow notification failed.",
     reason,
@@ -243,9 +246,10 @@ async function actionLock(
         `Use 'init' to add the spec first.`,
     );
   }
+  const lockedAt = nowIso();
   const next = upsertSpecEntry(state, args.spec, {
     locked: true,
-    locked_at: nowIso(),
+    locked_at: lockedAt,
     locked_at_archive: args.change_id,
   });
   await saveConformanceState(externalRoot, next);
@@ -258,7 +262,7 @@ async function actionLock(
     conformanceLockedSignal,
     {
       specs: [args.spec],
-      lockedAt: nowIso(),
+      lockedAt,
     },
   );
 
@@ -348,31 +352,26 @@ async function actionOverride(
 
   // Signal-driven: notify the change workflow that locked this spec
   const changeId = state.specs[args.spec]?.locked_at_archive;
-  if (changeId) {
-    const signalWarning = await fireConformanceSignal(
-      projectDir,
-      store,
-      changeId,
-      conformanceOverriddenSignal,
-      {
-        user: args.user,
-        reason: args.reason,
-        reVerifyDeadline: args.re_verify_deadline,
-        overriddenAt: nowIso(),
-      },
-    );
-    return formatToolOutput({
-      success: true,
-      spec: args.spec,
-      overrides: next.specs[args.spec]?.overrides.length ?? 0,
-      ...(signalWarning ? { signalWarning } : {}),
-    });
-  }
+  const signalWarning = changeId
+    ? await fireConformanceSignal(
+        projectDir,
+        store,
+        changeId,
+        conformanceOverriddenSignal,
+        {
+          user: args.user,
+          reason: args.reason,
+          reVerifyDeadline: args.re_verify_deadline,
+          overriddenAt: nowIso(),
+        },
+      )
+    : undefined;
 
   return formatToolOutput({
     success: true,
     spec: args.spec,
     overrides: next.specs[args.spec]?.overrides.length ?? 0,
+    ...(signalWarning ? { signalWarning } : {}),
   });
 }
 
@@ -424,31 +423,26 @@ async function actionRun(
 
   // Signal-driven: notify the change workflow that locked this spec
   const changeId = entry.locked_at_archive;
-  if (changeId) {
-    const signalWarning = await fireConformanceSignal(
-      projectDir,
-      store,
-      changeId,
-      conformanceVerdictSignal,
-      {
-        verdict,
-        runId,
-        failed: parsed.failed,
-        recordedAt: ranAt,
-      },
-    );
-    return formatToolOutput({
-      verdict,
-      run_id: runId,
-      failed: parsed.failed,
-      ...(signalWarning ? { signalWarning } : {}),
-    });
-  }
+  const signalWarning = changeId
+    ? await fireConformanceSignal(
+        projectDir,
+        store,
+        changeId,
+        conformanceVerdictSignal,
+        {
+          verdict,
+          runId,
+          failed: parsed.failed,
+          recordedAt: ranAt,
+        },
+      )
+    : undefined;
 
   return formatToolOutput({
     verdict,
     run_id: runId,
     failed: parsed.failed,
+    ...(signalWarning ? { signalWarning } : {}),
   });
 }
 

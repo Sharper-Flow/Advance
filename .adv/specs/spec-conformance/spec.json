@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "spec-conformance",
   "title": "Spec Conformance",
-  "purpose": "Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; tiered visibility. Pure opt-in per spec.",
+  "purpose": "Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; single-structured verdict visibility. Pure opt-in per spec.",
   "version": "1.0.0",
   "updated_at": "2026-05-23T00:00:00.000Z",
   "requirements": [
@@ -106,7 +106,7 @@
     {
       "id": "rq-confSignalVisibility01",
       "title": "Saved State Notification Failure Visibility",
-      "body": "When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object with stable code, reason, recoverability, and change-id. The warning MUST NOT be debug-log-only.",
+      "body": "When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object: { code: 'ADV_CONFORMANCE_SIGNAL_FAILED', message: string, reason: string, recoverable: true, changeId: string }. The warning MUST NOT be debug-log-only.",
       "priority": "must",
       "tags": ["conformance", "visibility", "signals"],
       "scenarios": [
