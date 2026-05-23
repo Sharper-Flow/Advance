@@ -108,6 +108,7 @@ Advance is an original implementation, but it is not an isolated idea. It owes a
 | [Spec Kit](https://github.com/github/spec-kit) | Spec-driven development as a first-class workflow: define what to build, plan the implementation, generate tasks, then implement against structured artifacts. | Advance keeps the spec → design → task discipline, then adds durable gates, user checkpoints, typed MCP tools, contract review matrices, archive-time spec promotion, and runtime enforcement around planning, execution, acceptance, and release. |
 | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Lightweight proposal/change folders, agreed-before-build behavior, delta specs, design notes, task checklists, and archive as the moment where proposed behavior becomes durable specification. | Advance keeps the proposal/design/archive lineage, then makes the lifecycle stateful and auditable with Temporal orchestration, artifact-backed gate readiness, external ADV state shared across worktrees, and explicit review/harden/release controls. |
 | [OpenCode](https://github.com/anomalyco/opencode) | The host environment: local coding agents, slash-command workflows, plugins, sub-agents, and tool-mediated development inside the editor/terminal loop. | Advance runs inside OpenCode but narrows agent autonomy with spec law, gate contracts, tool-only state mutation, bounded delegation, worktree routing, and auditable evidence rather than relying on chat memory. |
+| [opencode-worktree](https://github.com/kdcokenny/opencode-worktree) | Zero-friction git worktrees for OpenCode agent sessions, including isolated directories, terminal spawning, sync, and cleanup. | Advance adopts the same core insight — agents need isolated workspaces — then binds worktrees to change gates, Temporal state, task checkpoints, branch-local specs, and archive-time merge safety. |
 | [Temporal](https://temporal.io/) | Durable workflow execution: long-running state machines, signal/query surfaces, recovery after process failure, and replay-safe orchestration. | Advance uses Temporal as the persistence spine for changes, tasks, gates, and recovery state, making agent work resumable across OpenCode restarts, compaction, failed workers, and multi-session handoffs. |
 
 The pattern is deliberate: take the strongest idea from each predecessor, then make it durable, inspectable, and enforceable enough for autonomous agents to use safely.
@@ -222,6 +223,9 @@ Every `/adv-apply` task with file changes creates a local checkpoint through `ad
 ### Worktree-aware execution
 
 Mutating work runs in per-change worktrees. ADV state is external and shared across worktrees; specs remain git-tracked and branch-local. That gives isolation without losing coordination.
+
+> [!TIP]
+> Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. The pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize; Advance adds gate ownership, Temporal-backed state, task checkpoints, branch-local specs, and archive finalization.
 
 ### ACP-first roadmap
 
