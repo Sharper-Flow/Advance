@@ -129,7 +129,7 @@ export interface WorktreesAcrossChangesResult {
 export interface WorktreeRegistrySnapshot extends WorktreesAcrossChangesResult {
   changeSummaries: Record<
     string,
-    { touched_files?: string[]; status?: string }
+    { branch?: string; touched_files?: string[]; status?: string }
   >;
 }
 
@@ -855,7 +855,13 @@ export async function getWorktreeRegistrySnapshot(
         branch,
         record as WorktreeRecord,
       );
-      if (materialized) records.push(materialized);
+      if (materialized) {
+        records.push(materialized);
+        changeSummaries[changeId] = {
+          ...changeSummaries[changeId],
+          branch: changeSummaries[changeId]?.branch ?? branch,
+        };
+      }
     }
   }
 
@@ -921,7 +927,9 @@ export async function updateWorktreeRecord(
 
 export async function getChangeSummaries(
   access: WorktreeStateAccess,
-): Promise<Record<string, { touched_files?: string[]; status?: string }>> {
+): Promise<
+  Record<string, { branch?: string; touched_files?: string[]; status?: string }>
+> {
   const snapshot = await getWorktreeRegistrySnapshot(access);
   return snapshot.changeSummaries;
 }

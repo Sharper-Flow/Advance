@@ -17,10 +17,9 @@
 import { execFileGitCb } from "./git-binary";
 import { getDefaultBranch } from "./git";
 import {
-  getChangeSummaries,
+  getWorktreeRegistrySnapshot,
   getWorktreePath,
   initStateDb,
-  listWorktrees,
 } from "../tools/worktree/state";
 
 // =============================================================================
@@ -67,14 +66,24 @@ export async function verifyBranchIntegration(
   let registryEntry:
     | { branch: string; changeId?: string; path: string }
     | undefined;
+  let registrySnapshot:
+    | Awaited<ReturnType<typeof getWorktreeRegistrySnapshot>>
+    | undefined;
 
   if (deps?.registry) {
     registryEntry = deps.registry.find((r) => r.branch === branch);
   } else {
     try {
       const access = await initStateDb(repoRoot);
-      const registry = await listWorktrees(access);
-      registryEntry = registry.find((r) => r.branch === branch);
+      registrySnapshot = await getWorktreeRegistrySnapshot(access);
+      if (registrySnapshot.unavailable) {
+        return fail(
+          "git_failed",
+          "Failed to read worktree registry: Temporal worktree registry snapshot unavailable.",
+          "Verify Temporal project workflow is reachable and the worktree registry is populated.",
+        );
+      }
+      registryEntry = registrySnapshot.records.find((r) => r.branch === branch);
     } catch (err) {
       return fail(
         "git_failed",
@@ -119,9 +128,18 @@ export async function verifyBranchIntegration(
     changeStatus = await deps.changeStatusReader(changeId);
   } else {
     try {
-      const access = await initStateDb(repoRoot);
-      const summaries = await getChangeSummaries(access);
-      changeStatus = summaries[changeId]?.status;
+      if (!registrySnapshot) {
+        const access = await initStateDb(repoRoot);
+        registrySnapshot = await getWorktreeRegistrySnapshot(access);
+      }
+      if (registrySnapshot.unavailable) {
+        return fail(
+          "git_failed",
+          "Failed to query change summaries: Temporal worktree registry snapshot unavailable.",
+          "Verify Temporal project workflow is reachable.",
+        );
+      }
+      changeStatus = registrySnapshot.changeSummaries[changeId]?.status;
     } catch (err) {
       return fail(
         "git_failed",

@@ -276,6 +276,7 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     ]);
     await expect(getChangeSummaries(access)).resolves.toEqual({
       "change-a": {
+        branch: "change/change-a",
         status: "active",
         touched_files: ["src/a.ts", "src/b.ts"],
       },

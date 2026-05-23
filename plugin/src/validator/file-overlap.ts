@@ -12,8 +12,7 @@
 
 import {
   initStateDb,
-  listWorktrees,
-  getChangeSummaries,
+  getWorktreeRegistrySnapshot,
 } from "../tools/worktree/state";
 
 export interface OverlapMatch {
@@ -66,12 +65,12 @@ export async function scanFileOverlaps(
   } else {
     try {
       const access = await initStateDb(projectRoot);
-      const [wt, cs] = await Promise.all([
-        listWorktrees(access),
-        getChangeSummaries(access),
-      ]);
-      registry = wt;
-      summaries = cs as Record<
+      const snapshot = await getWorktreeRegistrySnapshot(access);
+      if (snapshot.unavailable) {
+        return { overlaps: [], scannedPeers: 0, unavailable: true };
+      }
+      registry = snapshot.records;
+      summaries = snapshot.changeSummaries as Record<
         string,
         { touched_files?: string[]; status?: string }
       >;
