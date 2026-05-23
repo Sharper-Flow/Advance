@@ -3,6 +3,11 @@ name: Security Gates Pilot
 # Non-required pilot for Sharper Flow reusable security gates. Use this to
 # measure false positives, suppressions, runtime, and failure modes before
 # considering required branch protection.
+#
+# Non-blocking semantics come from NOT being in branch protection's required
+# checks list — failures are visible signals, not merge blockers. Do not add
+# `continue-on-error: true` to the reusable-workflow job: GitHub rejects it as
+# invalid syntax for `uses:` jobs and the entire workflow refuses to start.
 on:
   workflow_dispatch:
   pull_request:
