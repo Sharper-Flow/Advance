@@ -2473,7 +2473,7 @@
     {
       "id": "rq-designOpportunityScout01",
       "title": "Mandatory Design Leverage Scout",
-      "body": "/adv-design MUST execute a bounded Design Leverage Scout pass (Phase 2.5) for every full proposal workflow after draft design (Phase 2) and before independent validation (Phase 3.5). The scout uses the adv-opportunity-scout skill in design mode, spawns adv-researcher, and returns \u22645 structured candidates. The scout identifies leverage points: shortcuts, reusable components, parallelism, simplification paths. The scout phase MUST include an INCONCLUSIVE degradation path. Trivially scoped changes MAY skip with rationale. Auto-adopted candidates are incorporated into the design before the validator runs.",
+      "body": "/adv-design MUST execute a bounded Design Leverage Scout pass (Phase 2.5) for every full proposal workflow after draft design (Phase 2) and before independent validation (Phase 3.5). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in design mode for worker methodology. It returns \u22645 structured candidates. The scout identifies leverage points: shortcuts, reusable components, parallelism, simplification paths. The scout phase MUST include an INCONCLUSIVE degradation path. Trivially scoped changes MAY skip with rationale. Auto-adopted candidates are incorporated into the design before the validator runs.",
       "priority": "must",
       "tags": ["design", "scout", "leverage", "mandatory"],
       "scenarios": [
@@ -2486,8 +2486,8 @@
           ],
           "when": "Phase 2.5 executes",
           "then": [
-            "The adv-opportunity-scout skill is loaded in design mode",
-            "adv-researcher is spawned with design-mode prompt",
+            "The orchestrator prepares schema, routing, fallback/degradation, and adoption rules",
+            "adv-researcher is spawned with design-mode prompt and may load adv-opportunity-scout in worker context",
             "\u22645 candidates are returned with 8-field ScoutCandidate schema",
             "Candidates are sorted by payoff/risk ratio",
             "Auto-adopted candidates are integrated into design before validator"

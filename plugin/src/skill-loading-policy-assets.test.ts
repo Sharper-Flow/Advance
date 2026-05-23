@@ -219,4 +219,35 @@ describe("skill loading policy assets", () => {
 
     expect(denied).toEqual([]);
   });
+
+  test("opportunity scout commands use split-load contract language", () => {
+    const discover = readFileSync(join(COMMAND_DIR, "adv-discover.md"), "utf8");
+    const design = readFileSync(join(COMMAND_DIR, "adv-design.md"), "utf8");
+    const scoutSkill = readFileSync(
+      join(SKILLS_DIR, "adv-opportunity-scout", "SKILL.md"),
+      "utf8",
+    );
+    const discoverSpec = readFileSync(
+      join(REPO_ROOT, ".adv/specs/adv-discover/spec.json"),
+      "utf8",
+    );
+    const workflowSpec = readFileSync(
+      join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+      "utf8",
+    );
+
+    for (const command of [discover, design]) {
+      expect(command).toContain("Prepare split-load contract");
+      expect(command).toContain("orchestrator owns ScoutCandidate schema");
+      expect(command).toContain('prompt worker to load `skill("adv-opportunity-scout")`');
+      expect(command).toContain("If worker skill-load is unavailable");
+    }
+
+    expect(scoutSkill).toContain("Split-load pattern");
+    expect(scoutSkill).toContain("worker loads `skill(\"adv-opportunity-scout\")`");
+    expect(discoverSpec).toContain("split-load contract");
+    expect(discoverSpec).toContain("worker skill-load unavailable");
+    expect(workflowSpec).toContain("split-load contract");
+    expect(workflowSpec).toContain("worker context");
+  });
 });
