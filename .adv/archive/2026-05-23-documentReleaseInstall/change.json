@@ -1,0 +1,794 @@
+{
+  "id": "documentReleaseInstall",
+  "title": "Document release install",
+  "status": "archived",
+  "created_at": "2026-05-23T04:59:40.632Z",
+  "tasks": [
+    {
+      "id": "tk-4decc6241419",
+      "title": "Add release artifact contract tests and packaging workflow",
+      "type": "code",
+      "section": "Release packaging",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-23T05:27:44.826Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T05:31:48.196Z",
+      "verification": "pnpm test -- src/release-install-assets.test.ts exited 0 after initial RED failure proved plugin-only workflow and checksums drift.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added plugin/src/release-install-assets.test.ts to assert the GitHub Release archive is a full install payload, not plugin-only, and publishes SHA256SUMS.txt. Updated .github/workflows/auto-release.yml to archive README/SETUP/root metadata, install.sh, scripts, .opencode command/agent/overlay assets, skills, plugin dist/src/package files, verify required entries via tar listing, and upload SHA256SUMS.txt.",
+      "filesTouched": [
+        ".github/workflows/auto-release.yml",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "touched_files": [
+        ".github/workflows/auto-release.yml",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "checkpointSha": "e851e216319529bdda58215ff86f44e77bc49c56",
+      "completedAt": "2026-05-23T05:38:53.231Z",
+      "completed_at": "2026-05-23T05:38:53.231Z",
+      "notes": "Implemented release artifact packaging contract tests and workflow. Checkpoint e851e216319529bdda58215ff86f44e77bc49c56 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because workflow still used plugin-only tar command and checksums.txt.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; updated workflow satisfied contract test.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/release-install-assets.test.ts exited 1: workflow still contained plugin-only tar command and lacked SHA256SUMS.txt.",
+            "diagnosis": "Release packaging still reflected old plugin-only artifact shape.",
+            "fix_tried": "Changed release workflow to build full installer archive, verify required contents, and publish SHA256SUMS.txt.",
+            "strategy_label": "TDD red-green packaging contract",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T05:38:02.946Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T05:39:04.833Z"
+    },
+    {
+      "id": "tk-47c3b40d5bcf",
+      "title": "Add latest-release installer script",
+      "type": "code",
+      "section": "Installer",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-23T05:27:57.757Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC7"
+        ],
+        "verifies": [
+          "AC3",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T05:39:23.220Z",
+      "verification": "RED: pnpm test -- src/release-install-assets.test.ts failed because install.sh was missing. GREEN: pnpm test -- src/release-install-assets.test.ts exited 0; bash -n install.sh exited 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added executable root install.sh. It resolves ADV_VERSION from the environment or the GitHub /releases/latest redirect using curl url_effective, validates version shape, downloads advance-${ADV_VERSION}.tar.gz plus SHA256SUMS.txt, checks the target asset is covered by checksums, runs sha256sum --check --ignore-missing, validates/extracts the tarball, verifies scripts/deploy-local.sh exists, and delegates installation via bash scripts/deploy-local.sh --fix. Extended release-install asset tests to cover installer existence, latest resolution, no hardcoded version, checksum/tar validation, temp cleanup, and deploy-local delegation.",
+      "filesTouched": [
+        "install.sh",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "touched_files": [
+        "install.sh",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "checkpointSha": "7bce533d612722e511dd6190a1fc38b4ea838863",
+      "completedAt": "2026-05-23T05:47:17.062Z",
+      "completed_at": "2026-05-23T05:47:17.062Z",
+      "notes": "Implemented latest-release installer script. Checkpoint 7bce533d612722e511dd6190a1fc38b4ea838863 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because root install.sh did not exist.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; installer and tests are green.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/release-install-assets.test.ts exited 1: install.sh missing and installer snippets absent.",
+            "diagnosis": "Latest-release installer had not been implemented yet.",
+            "fix_tried": "Added install.sh with latest-release resolution, ADV_VERSION override, checksum/archive validation, and deploy-local delegation; extended tests.",
+            "strategy_label": "TDD red-green installer implementation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T05:45:55.968Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T05:47:32.700Z"
+    },
+    {
+      "id": "tk-2fb3afdf6d0e",
+      "title": "Update user and developer installation docs",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-23T05:28:09.168Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T05:47:53.131Z",
+      "verification": "RED: pnpm test -- src/release-install-assets.test.ts failed on missing release-install docs and installer release asset upload. GREEN: pnpm test -- src/release-install-assets.test.ts exited 0 after README/SETUP/workflow updates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated README quick start to one primary user install path via https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh | bash and explained that it downloads/verifies the latest GitHub Release artifact. Reworked SETUP Installation into User install, Manual release artifact install, and Maintainer/developer setup sections. Added release installer troubleshooting for jq, rsync, pnpm, executable-bit, incomplete artifact, and checksum failures. Updated release workflow to upload dist/install.sh and include it in SHA256SUMS.txt. Extended release-install asset tests to lock README/SETUP docs and installer asset upload behavior.",
+      "filesTouched": [
+        ".github/workflows/auto-release.yml",
+        "README.md",
+        "SETUP.md",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "touched_files": [
+        ".github/workflows/auto-release.yml",
+        "README.md",
+        "SETUP.md",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "checkpointSha": "05424daa223690e0978a04e624c1d9ef36d968d8",
+      "completedAt": "2026-05-23T05:53:42.737Z",
+      "completed_at": "2026-05-23T05:53:42.737Z",
+      "notes": "Updated README/SETUP installation documentation and release workflow installer asset upload. Checkpoint 05424daa223690e0978a04e624c1d9ef36d968d8 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed because README/SETUP lacked release install docs and workflow did not upload dist/install.sh.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; docs and workflow tests are green.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/release-install-assets.test.ts exited 1: missing releases/latest installer docs, missing SETUP sections/failure modes, and missing dist/install.sh in workflow.",
+            "diagnosis": "Install docs were still source-checkout-first and release workflow did not expose installer as a release asset.",
+            "fix_tried": "Updated README/SETUP, added release installer troubleshooting, and uploaded install.sh as a release asset with checksum coverage.",
+            "strategy_label": "TDD red-green install documentation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T05:52:50.297Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T05:53:55.478Z"
+    },
+    {
+      "id": "tk-f677e27ed635",
+      "title": "Run release install verification and readiness checks",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-23T05:28:24.788Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4decc6241419"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-47c3b40d5bcf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2fb3afdf6d0e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T05:54:15.864Z",
+      "verification": "Post-review remediation: pnpm test -- src/release-install-assets.test.ts exited 0; bash -n install.sh exited 0; pnpm run check failed on Prettier, fixed with pnpm exec prettier --write, rerun pnpm run check exited 0; rerun targeted test exited 0; pnpm run build exited 0; local release archive smoke exited 0; targeted logic/security re-verification agents returned resolved with one accepted caveat on same-origin checksum provenance.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final verification for all acceptance criteria and remediated review findings. Confirmed release-install tests pass, project check passes after Prettier remediation, build passes, and local release archive smoke creates advance-v0.0.0-smoke.tar.gz with required paths plus SHA256SUMS coverage for archive/install.sh. Post-review fixes: corrected install.sh checksum parsing (removed null IFS), added checksum shape validation and friendly checksum failure, added tar path traversal validation, verified critical files after extraction, checked mktemp output, added sha256sum troubleshooting, added auto-release concurrency plus pre-release/empty-commit guards, and strengthened static tests.",
+      "filesTouched": [
+        ".github/workflows/auto-release.yml",
+        "SETUP.md",
+        "install.sh",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "touched_files": [
+        ".github/workflows/auto-release.yml",
+        "SETUP.md",
+        "install.sh",
+        "plugin/src/release-install-assets.test.ts"
+      ],
+      "checkpointSha": "9c8a2fa8dc5f63336ca3a3971804d7508bbc7a44",
+      "completedAt": "2026-05-23T07:28:37.402Z",
+      "completed_at": "2026-05-23T07:28:37.402Z",
+      "notes": "Completed final verification plus post-review remediation. Checkpoints 35a1bdad032672a1f032f03b9249fa243eba88d1 and 9c8a2fa8dc5f63336ca3a3971804d7508bbc7a44 recorded.",
+      "error_recovery": {
+        "last_error": "All verification and review remediation succeeded. Remaining caveat: SHA256SUMS.txt and tarball share GitHub Release origin; detached signing is deferred outside current release packaging scope.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "No further recovery needed; targeted logic/security re-verification agents returned resolved with one documented caveat.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm run check exited 1: prettier --check reported src/release-install-assets.test.ts.",
+            "diagnosis": "Formatting issue introduced by docs test assertion line wrap.",
+            "fix_tried": "Ran pnpm exec prettier --write src/release-install-assets.test.ts.",
+            "strategy_label": "format remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T05:56:45.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "pnpm test -- src/release-install-assets.test.ts timed out at 120000ms with no assertion failure in output.",
+            "diagnosis": "Targeted test suite sometimes needs longer than 120s due Temporal worker/test startup noise; same command had passed before formatting and showed no failure diagnostics.",
+            "fix_tried": "Reran same command with timeoutMs=300000.",
+            "strategy_label": "timeout rerun with larger bound",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T06:00:17.525Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Review found checksum parsing blocker from `while IFS= read -r checksum filename`, tar path traversal risk, weak checksum validation/error handling, weak critical-file validation, and adjacent release workflow edge cases.",
+            "diagnosis": "Static checks did not exercise runtime shell parsing; review uncovered real installer blocker and adjacent release workflow hardening gaps.",
+            "fix_tried": "Removed null IFS, validated checksum field, wrapped checksum failure, added archive path guard and critical-file checks, added mktemp guard, sha256sum troubleshooting, workflow concurrency and pre-release/empty-commit guards, stronger tests, and reran verification plus targeted re-review.",
+            "strategy_label": "review remediation and targeted re-verification",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T07:26:01.295Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T07:29:23.531Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-UZ07Xy",
+      "type": "pattern",
+      "content": "Release artifact shape can be kept structurally correct with asset tests that inspect workflow packaging commands and require an explicit tar contents verification loop plus conventional SHA256SUMS.txt upload.",
+      "source_task": "tk-4decc6241419",
+      "recorded_at": "2026-05-23T05:39:11.198Z"
+    },
+    {
+      "id": "ws-drpmu0",
+      "type": "gotcha",
+      "content": "Latest-release installer should not trust ADV_VERSION or checksum filenames heuristically: normalize/validate tag shape before building URLs and confirm SHA256SUMS.txt contains the exact target asset before running sha256sum --check --ignore-missing.",
+      "source_task": "tk-47c3b40d5bcf",
+      "recorded_at": "2026-05-23T05:47:38.381Z"
+    },
+    {
+      "id": "ws-YbUYtG",
+      "type": "pattern",
+      "content": "For user-facing release installs, upload the installer itself as a latest-release asset and include it in SHA256SUMS.txt; docs can then use releases/latest/download/install.sh while the installer downloads the full tarball.",
+      "source_task": "tk-2fb3afdf6d0e",
+      "recorded_at": "2026-05-23T05:54:03.551Z"
+    },
+    {
+      "id": "ws-f8-fGX",
+      "type": "success",
+      "content": "Final release-readiness evidence is strongest when it combines static asset/doc tests, pnpm run check, pnpm run build, and a local tarball smoke that checks required paths plus SHA256SUMS coverage for both archive and installer asset.",
+      "source_task": "tk-f677e27ed635",
+      "recorded_at": "2026-05-23T06:02:51.849Z"
+    },
+    {
+      "id": "ws-1qu8oU",
+      "type": "gotcha",
+      "content": "Bash `while IFS= read -r a b` disables field splitting, so `b` stays empty. For checksum manifests that need hash+filename fields, use default IFS (`while read -r checksum filename`) or an explicit parser; static substring tests can miss this runtime bug.",
+      "source_task": "tk-f677e27ed635",
+      "recorded_at": "2026-05-23T07:29:43.270Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-23T05:02:56.775Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: \"continue\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/proposal.md",
+        "content_hash": "183c3281437fb10818402b16f9b0da6100fad2708c77035cc00855c9a567f4a9",
+        "non_whitespace_chars": 4508,
+        "checked_at": "2026-05-23T05:02:56.861Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-23T05:20:24.853Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded; agreement approved by user via reply `approve`; contract minted with AC/C/DONT spine.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/agreement.md",
+        "content_hash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "non_whitespace_chars": 2662,
+        "checked_at": "2026-05-23T05:20:25.108Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-23T05:26:55.666Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Validator verdict VALIDATED; caution on latest resolution resolved by redirect-derived tag design. No unresolved conflict or user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/design.md",
+        "content_hash": "22b9d8bfcbf0829e18758b7e48d4eca93f0734fb5110ab6c855d6382c256a0e1",
+        "non_whitespace_chars": 8696,
+        "checked_at": "2026-05-23T05:26:55.760Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-23T05:30:48.223Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision with reply `approve`. Task graph has 4 tasks with TDD intent, dependencies, and contract refs covering AC1-AC7."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-23T06:03:14.449Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 planned tasks done with checkpoints: e851e216319529bdda58215ff86f44e77bc49c56, 7bce533d612722e511dd6190a1fc38b4ea838863, 05424daa223690e0978a04e624c1d9ef36d968d8, 35a1bdad032672a1f032f03b9249fa243eba88d1. Verification: targeted release-install tests passed, pnpm run check passed, pnpm run build passed, local archive smoke verified required tar contents and SHA256SUMS coverage."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-23T15:30:43.024Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with inline Tier A reply `accept`. Review verdict APPROVED after remediation. Contract review matrix has 16 rows passed/respected, 0 failed/violated/unknown. Executive summary persisted and verified present. Remaining caveat: same-origin GitHub Release checksum provenance; detached signing/cosign out of scope.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/acceptance.md",
+        "content_hash": "760c8119073c5d9a65fd3d087b09a7a40c34d9d5aa7db3a60dd9dcf9c12bd37b",
+        "non_whitespace_chars": 4402,
+        "checked_at": "2026-05-23T15:30:43.257Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 1,
+    "source_artifact": "user-question-release-install-docs"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+      "approvedAt": "2026-05-23T05:19:42.926Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "GitHub Release asset `advance-v*.tar.gz` contains all assets required for user installation: plugin runtime, `scripts/deploy-local.sh`, `.opencode/command`, `.opencode/agents`, `.opencode/overlays`, `skills`, README/SETUP, and required root metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Current plugin-only tarball shape is removed or renamed so users are not offered a misleading install artifact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Latest-release installer exists and resolves the latest GitHub Release without per-version edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "README presents one primary user install path using the release artifact/installer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "SETUP distinguishes user install from maintainer/developer setup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Verification checks prove documented install commands match release artifact contents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Failure/troubleshooting docs cover missing `jq`, `rsync`, `pnpm`, executable-bit issues, and incomplete artifact fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Documentation must match actual release artifact contents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Existing source clone install guidance must remain available and accurate for maintainers/developers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not change ADV runtime behavior, gate semantics, Temporal state, or tool behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not publish to npm, Homebrew, or another package registry in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep Claude Code distribution work out of scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not document commands that cannot work from the downloaded artifact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not imply the custom release tarball contains repo-level assets unless packaging is changed to include them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not leave a plugin-only `advance-v*.tar.gz` artifact that appears to be the primary user install download.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not make maintainers manually copy release-only files outside the release workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "281627ce4c118bd0afc373a0f5e02346bbfcd680ab1130fe237970d135a325e0",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-23T07:30:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "release-install-assets.test.ts asserts full artifact paths; local archive smoke verified plugin/dist, plugin/src, deploy-local, .opencode command/agents/overlays, skills, README/SETUP, ADV_INSTRUCTIONS, AGENTS, project.md, project.json in advance-v0.0.0-smoke.tar.gz.",
+          "notes": "Workflow also verifies required tar listing before publishing."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "release-install-assets.test.ts asserts old plugin-only tar command is absent and dist/checksums.txt is absent; workflow now builds advance-${VERSION}.tar.gz from full payload and uploads SHA256SUMS.txt.",
+          "notes": "No plugin-only primary tarball remains in workflow."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "install.sh resolves ADV_VERSION or GitHub /releases/latest url_effective redirect; tests assert no hardcoded ADV_VERSION and required latest-resolution snippets; bash -n install.sh passed.",
+          "notes": "ADV_VERSION is normalized and regex-validated."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "README quick start uses https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh | bash; tests assert release installer path and reject old git-clone deploy-local block.",
+          "notes": "Alternatives moved to SETUP."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "SETUP contains User install (recommended), Manual release artifact install, and Maintainer/developer setup sections; tests assert all section markers and source-checkout developer path.",
+          "notes": "Developer flow preserves git clone, pnpm install/build/test, deploy-local --fix."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "release-install-assets.test.ts plus local archive smoke prove docs/workflow artifact paths and SHA256SUMS coverage; pnpm run check, pnpm run build, and targeted tests passed after remediation.",
+          "notes": "Workflow has tar contents verification loop."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "SETUP troubleshooting covers jq not found, rsync not found, pnpm not found, sha256sum not found, chmod +x install.sh, Release artifact is incomplete, and checksum failure; tests assert required failure-mode strings.",
+          "notes": "Added GNU coreutils guidance for sha256sum."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Docs reference latest/download/install.sh; workflow uploads dist/install.sh and full tar; local smoke verified artifact contents match documented manual install paths.",
+          "notes": "No documented command depends on absent files."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "SETUP Maintainer/developer setup retains git clone, plugin pnpm install/build/test, and ./scripts/deploy-local.sh --fix.",
+          "notes": "README points maintainers to SETUP."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Touched files are release workflow, install.sh, README.md, SETUP.md, and release-install asset tests; no ADV runtime/gate/Temporal/tool implementation files changed. pnpm run check and build passed.",
+          "notes": "No runtime semantics changed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No npm/Homebrew/registry publishing config added; release remains GitHub Release assets only.",
+          "notes": "Only GitHub Release artifact workflow changed."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review scope and touched files contain no Claude Code distribution work or docs beyond existing note.",
+          "notes": "Out of scope preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "README command downloads release installer asset; SETUP manual commands download archive and SHA256SUMS files published by workflow; local smoke verified required archive layout.",
+          "notes": "No impossible artifact command remains."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Workflow now includes repo-level assets in archive and verifies them before publish; docs state full artifact contents only after packaging changed.",
+          "notes": "Avoidance satisfied by packaging change."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Old plugin-only tar command removed; tests assert absence. Primary README path uses install.sh asset that downloads full archive.",
+          "notes": "No misleading plugin-only artifact shape remains."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Workflow copies install.sh into dist, builds full tar, generates SHA256SUMS, and uploads assets automatically; no maintainer copy step documented or required.",
+          "notes": "Release-only files are produced by workflow."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "GitHub Release asset `advance-v*.tar.gz` contains all assets required for user installation: plugin runtime, `scripts/deploy-local.sh`, `.opencode/command`, `.opencode/agents`, `.opencode/overlays`, `skills`, README/SETUP, and required root metadata.",
+    "Current plugin-only tarball shape is removed or renamed so users are not offered a misleading install artifact.",
+    "Latest-release installer exists and resolves the latest GitHub Release without per-version edits.",
+    "README presents one primary user install path using the release artifact/installer.",
+    "SETUP distinguishes user install from maintainer/developer setup.",
+    "Verification checks prove documented install commands match release artifact contents.",
+    "Failure/troubleshooting docs cover missing `jq`, `rsync`, `pnpm`, executable-bit issues, and incomplete artifact fallback."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/proposal.md",
+      "updatedAt": "2026-05-23T07:32:51.267Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/problem-statement.md",
+      "updatedAt": "2026-05-23T07:32:51.279Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/agreement.md",
+      "updatedAt": "2026-05-23T07:32:51.294Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/design.md",
+      "updatedAt": "2026-05-23T07:32:51.310Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/documentReleaseInstall/executive-summary.md",
+      "updatedAt": "2026-05-23T07:32:51.326Z"
+    }
+  },
+  "lastSignalAt": "2026-05-23T15:30:43.024Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-23T16:48:00.900Z"
+    }
+  ]
+}
