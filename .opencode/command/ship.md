@@ -170,7 +170,7 @@ Cleanup is automatic — no user confirmation needed (branch is merged, worktree
 
 Run verification (equivalent to `/check`):
 
-1. Load `skill("global-verify")`
+1. Use the embedded Global Verification Contract below
 2. Detect stack from repo files
 3. Run appropriate: lint, typecheck, tests, build
 4. Report results
@@ -333,6 +333,6 @@ If feature branch was not cleaned up during Phase 3 (e.g., merge conflict), offe
 | Stage and commit | `git add -A`, `git commit -m` |
 | Merge to default | `git merge --no-edit`, `git checkout` |
 | Worktree cleanup | `git worktree remove`, `git branch -d` |
-| Quality gate | `skill("global-verify")` + stack detection |
+| Quality gate | Embedded Global Verification Contract + stack detection |
 | Push | `git push origin <default-branch>` |
 | Deploy detection | `bash` (ls, jq, grep for deploy targets) |

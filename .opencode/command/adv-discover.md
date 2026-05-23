@@ -254,7 +254,7 @@ Each open design question MUST include:
 
 ### LBP and Tradeoffs
 
-If 2+ viable approaches have user-value tradeoffs, load `skill("prioritizer")` and run criteria-based comparison. If only one viable approach remains after evidence, record why.
+If 2+ viable approaches have user-value tradeoffs, run the inline Tradeoff Prioritizer Protocol from `ADV_INSTRUCTIONS.md` and produce criteria-based comparison before asking the user. If only one viable approach remains after evidence, record why.
 
 ### External-Solution Check (gated)
 <!-- rq-disc10 -->
