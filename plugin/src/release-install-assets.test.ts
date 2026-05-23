@@ -8,6 +8,8 @@ const AUTO_RELEASE_WORKFLOW_PATH = join(
   ".github/workflows/auto-release.yml",
 );
 const INSTALL_SCRIPT_PATH = join(REPO_ROOT, "install.sh");
+const README_PATH = join(REPO_ROOT, "README.md");
+const SETUP_PATH = join(REPO_ROOT, "SETUP.md");
 
 describe("GitHub release installer artifact", () => {
   const workflow = readFileSync(AUTO_RELEASE_WORKFLOW_PATH, "utf8");
@@ -42,6 +44,7 @@ describe("GitHub release installer artifact", () => {
   test("release publishes conventional SHA256 checksums", () => {
     expect(workflow).toContain("SHA256SUMS.txt");
     expect(workflow).toContain("dist/SHA256SUMS.txt");
+    expect(workflow).toContain("dist/install.sh");
     expect(workflow).not.toContain("dist/checksums.txt");
   });
 });
@@ -71,6 +74,44 @@ describe("latest-release installer", () => {
       "trap cleanup EXIT",
     ]) {
       expect(installer).toContain(requiredSnippet);
+    }
+  });
+});
+
+describe("release installation docs", () => {
+  const readme = readFileSync(README_PATH, "utf8");
+  const setup = readFileSync(SETUP_PATH, "utf8");
+
+  test("README presents one primary user install path", () => {
+    expect(readme).toContain("releases/latest/download/install.sh");
+    expect(readme).toContain("| bash");
+    expect(readme).toContain("downloads the latest GitHub Release artifact");
+    expect(readme).not.toContain("git clone https://github.com/Sharper-Flow/Advance.git\ncd Advance\n./scripts/deploy-local.sh --fix");
+  });
+
+  test("SETUP separates user install from maintainer setup and fallback paths", () => {
+    for (const requiredSnippet of [
+      "### User install (recommended)",
+      "releases/latest/download/install.sh",
+      "### Manual release artifact install",
+      "ADV_VERSION=",
+      "### Maintainer/developer setup",
+      "git clone https://github.com/Sharper-Flow/Advance.git",
+      "./scripts/deploy-local.sh --fix",
+    ]) {
+      expect(setup).toContain(requiredSnippet);
+    }
+  });
+
+  test("SETUP documents release-install failure modes", () => {
+    for (const requiredSnippet of [
+      "jq not found",
+      "rsync not found",
+      "pnpm not found",
+      "chmod +x install.sh",
+      "Release artifact is incomplete",
+    ]) {
+      expect(setup).toContain(requiredSnippet);
     }
   });
 });

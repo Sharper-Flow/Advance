@@ -241,7 +241,8 @@ jobs:
           do
             grep -qxF "$required" "dist/${ARCHIVE}.contents.txt"
           done
-          (cd dist && sha256sum "${ARCHIVE}" > SHA256SUMS.txt)
+          cp install.sh dist/install.sh
+          (cd dist && sha256sum "${ARCHIVE}" install.sh > SHA256SUMS.txt)
 
       - name: Create Release
         if: steps.bump.outputs.skip != 'true'
@@ -250,6 +251,7 @@ jobs:
           tag_name: ${{ steps.bump.outputs.new_tag }}
           files: |
             dist/*.tar.gz
+            dist/install.sh
             dist/SHA256SUMS.txt
           generate_release_notes: true
 

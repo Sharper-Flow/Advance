@@ -326,31 +326,77 @@ slower without lgrep and Context7, but they will not fail.
 
 ## Installation
 
-### Step 1: Clone the Repository
+### User install (recommended)
+
+Install the latest published GitHub Release into OpenCode:
+
+```bash
+curl -fsSL https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh | bash
+```
+
+The installer resolves the latest Release, downloads `advance-v*.tar.gz`, verifies
+`SHA256SUMS.txt`, validates the archive, then runs
+`bash scripts/deploy-local.sh --fix` from the extracted artifact. That release
+artifact contains the plugin runtime, command contracts, bundled agents,
+overlays, skills, docs, and root metadata required for user installation.
+
+To pin a version, download the installer and set `ADV_VERSION=`:
+
+```bash
+curl -fsSL https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh -o /tmp/advance-install.sh
+ADV_VERSION=v0.11.8 bash /tmp/advance-install.sh
+```
+
+### Manual release artifact install
+
+Use this path when you want to inspect files before running the sync script:
+
+```bash
+VERSION=v0.11.8
+curl -fsSLO "https://github.com/Sharper-Flow/Advance/releases/download/${VERSION}/advance-${VERSION}.tar.gz"
+curl -fsSLO "https://github.com/Sharper-Flow/Advance/releases/download/${VERSION}/SHA256SUMS.txt"
+sha256sum --check --ignore-missing SHA256SUMS.txt
+tar -xzf "advance-${VERSION}.tar.gz"
+cd "advance-${VERSION}"
+bash scripts/deploy-local.sh --fix
+```
+
+### Maintainer/developer setup
+
+Use a source checkout when you are changing Advance itself or need local tests.
+
+#### Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/Sharper-Flow/Advance.git
 cd Advance
 ```
 
-### Step 2: Install Plugin Dependencies
+#### Step 2: Install plugin dependencies
 
 ```bash
 cd plugin
 pnpm install
 ```
 
-### Step 3: Build the Plugin
+#### Step 3: Build the plugin
 
 ```bash
 pnpm build
 ```
 
-### Step 4: Verify Installation
+#### Step 4: Verify the source checkout
 
 ```bash
 pnpm test
 # Expected: 1356+ tests passing
+```
+
+#### Step 5: Sync the local checkout into OpenCode
+
+```bash
+cd ..
+./scripts/deploy-local.sh --fix
 ```
 
 ---
@@ -1032,6 +1078,22 @@ Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors. See `adv --help` f
 ---
 
 ## Troubleshooting
+
+### Release installer errors
+
+The release installer downloads a full `advance-v*.tar.gz` artifact and then
+delegates to `bash scripts/deploy-local.sh --fix`. Common failures:
+
+| Error text | Fix |
+| ---------- | --- |
+| `jq not found` | Install jq (`sudo apt-get install -y jq`, `sudo dnf install jq`, or `brew install jq`) so `deploy-local.sh --fix` can patch `opencode.json`. |
+| `rsync not found` | Install rsync (`sudo apt-get install -y rsync`, `sudo dnf install rsync`, or `brew install rsync`) so the runtime plugin can sync to `~/.local/share/Advance/plugin/`. |
+| `pnpm not found` | Install pnpm (`corepack enable pnpm`, `npm install -g pnpm`, or your package manager). Release artifacts include built `plugin/dist`, but pnpm is still needed for source rebuilds and ADV worktree hooks. |
+| `Permission denied: ./install.sh` | Run `chmod +x install.sh`, or invoke it as `bash install.sh`. |
+| `Release artifact is incomplete` | The downloaded archive is missing required installer assets. Delete the partial download, retry the latest release, or use the source-checkout maintainer path until a corrected release is published. |
+
+If checksum verification fails, do not run the archive. Delete both downloaded
+files and retry from the GitHub Release page.
 
 ### Consolidated Agents (scout → plan, refine → build)
 

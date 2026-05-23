@@ -325,12 +325,12 @@ This also enables model comparison: run the same change on two models and compar
 ### Install into OpenCode
 
 ```bash
-git clone https://github.com/Sharper-Flow/Advance.git
-cd Advance
-./scripts/deploy-local.sh --fix
+curl -fsSL https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh | bash
 ```
 
-That syncs the plugin, commands, overlays, bundled agents, and skills into the local OpenCode setup.
+That downloads the latest GitHub Release artifact, verifies `SHA256SUMS.txt`, and syncs the plugin, commands, overlays, bundled agents, and skills into the local OpenCode setup.
+
+For pinned versions and source-checkout maintainer setup, see [`SETUP.md`](SETUP.md).
 
 Then, inside an OpenCode project:
 
