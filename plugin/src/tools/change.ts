@@ -3401,7 +3401,7 @@ export const changeTools = {
                 const completedWorkflow = isWorkflowCompletedError(saveError);
                 let poisoned = false;
                 if (!completedWorkflow) {
-                  const { workflowHasPoisonedDescription } =
+                  const { workflowHasPoisonedRecoveryEvidence } =
                     await import("./recovery-probe");
                   const { getService } = await import("../temporal/service");
                   const { getChangeHandle } = await import("./_adapters");
@@ -3415,7 +3415,7 @@ export const changeTools = {
                       ? getChangeHandle(bundle.client, projectId, changeId)
                       : undefined;
                   poisoned = handle
-                    ? await workflowHasPoisonedDescription(handle)
+                    ? await workflowHasPoisonedRecoveryEvidence(handle)
                     : false;
                 }
                 if (completedWorkflow || poisoned) {

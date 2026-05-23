@@ -102,9 +102,9 @@ function expectSignalWarning(
     changeId,
     recoverable: true,
   });
-  expect(
-    (parsed.signalWarning as { reason?: string }).reason,
-  ).toContain("Temporal unavailable");
+  expect((parsed.signalWarning as { reason?: string }).reason).toContain(
+    "Temporal unavailable",
+  );
 }
 
 async function seedRequiredSpec(spec = "advance-workflow"): Promise<void> {

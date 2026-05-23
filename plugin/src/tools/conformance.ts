@@ -168,10 +168,7 @@ async function fireConformanceSignal(
     return makeSignalWarning(changeId, reason);
   } catch (err) {
     const reason = signalFailureReason(err);
-    appendDebugLog(
-      "conformance",
-      `conformance signal failed: ${reason}`,
-    );
+    appendDebugLog("conformance", `conformance signal failed: ${reason}`);
     return makeSignalWarning(changeId, reason);
   }
 }
