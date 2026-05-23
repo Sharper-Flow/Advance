@@ -110,6 +110,33 @@ export type GateReadinessBlocker = z.infer<typeof GateReadinessBlockerSchema>;
  */
 export const GATE_ORDER: GateId[] = GATE_DEFS.map((g) => g.id) as GateId[];
 
+export type GateWorktreeImpact = "metadata" | "worktree_mutation";
+
+/**
+ * Worktree-impact classification for gate completion.
+ *
+ * Metadata gates only record workflow state/artifact decisions and do not
+ * require code or git mutations in the current checkout. Worktree-mutation
+ * gates can run prep/apply/review/harden/archive behavior that mutates files,
+ * git state, or task execution state, so they remain guarded by worktree
+ * isolation.
+ */
+export const GATE_WORKTREE_IMPACT: Record<GateId, GateWorktreeImpact> = {
+  proposal: "metadata",
+  discovery: "metadata",
+  design: "metadata",
+  planning: "worktree_mutation",
+  execution: "worktree_mutation",
+  acceptance: "worktree_mutation",
+  release: "worktree_mutation",
+};
+
+export const isMetadataOnlyGate = (gateId: GateId): boolean =>
+  GATE_WORKTREE_IMPACT[gateId] === "metadata";
+
+export const isWorktreeMutationGate = (gateId: GateId): boolean =>
+  GATE_WORKTREE_IMPACT[gateId] === "worktree_mutation";
+
 /**
  * Gate status values.
  * - pending: Not yet started

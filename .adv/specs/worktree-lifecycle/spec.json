@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
-  "version": "1.3.0",
-  "updated_at": "2026-05-22T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-05-23T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -326,18 +326,32 @@
     {
       "id": "rq-worktreeMutationGuard01",
       "title": "Machine-Enforced ADV Worktree Mutation Guard",
-      "body": "ADV mutating tools that advance gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. The proposal gate remains exempt so a change can be created before a worktree exists. For auto-managed changes, the guard MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
+      "body": "ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. For auto-managed changes, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
       "priority": "must",
       "tags": ["worktree", "safety", "mutation-guard"],
       "scenarios": [
         {
           "id": "rq-worktreeMutationGuard01.1",
-          "title": "Gate completion blocks from main checkout",
+          "title": "Metadata gate completion is allowed from main checkout",
           "given": [
             "feature_flags.worktree_guard_enforce is true",
             "The current session is in the main checkout"
           ],
-          "when": "adv_gate_complete is called for discovery, design, planning, execution, acceptance, or release",
+          "when": "adv_gate_complete is called for discovery or design",
+          "then": [
+            "The tool allows the metadata-only gate completion",
+            "No worktree materialization is required",
+            "Code and git mutation paths remain unaffected"
+          ]
+        },
+        {
+          "id": "rq-worktreeMutationGuard01.1b",
+          "title": "Worktree-mutation gate completion blocks from main checkout",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
+            "The current session is in the main checkout"
+          ],
+          "when": "adv_gate_complete is called for planning, execution, acceptance, or release",
           "then": [
             "The tool returns WorktreeIsolationViolation before any state mutation",
             "The response includes mainCheckoutPath and remediation",
