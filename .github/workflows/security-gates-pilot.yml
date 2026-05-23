@@ -26,7 +26,7 @@ jobs:
     name: Security gates pilot
     # SHA pinning doesn't work cross-repo with private repos + GITHUB_TOKEN scope;
     # use @main until the reusable workflow is stable enough for branch protection.
-    uses: Sharper-Flow/sharperflow-security-gates/.github/workflows/javascript-security-gate.yml@main
+    uses: Sharper-Flow/sharperflow-security-gates/.github/workflows/javascript-security-gate.yml@v0
     permissions:
       contents: read
     with:
