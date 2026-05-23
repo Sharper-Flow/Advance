@@ -1,3 +1,10 @@
+## 2026-05-23 (v0.11.9)
+
+### Changed
+
+- refresh README banner artwork as a simplified local SVG asset
+- bump plugin package version to 0.11.9 after the v0.11.8 release
+
 ## 2026-05-23 (v0.11.8)
 
 ### Changed

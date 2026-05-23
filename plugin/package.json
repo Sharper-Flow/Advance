@@ -1,6 +1,6 @@
 {
   "name": "@sharperflow/advance",
-  "version": "0.11.8",
+  "version": "0.11.9",
   "description": "Advance (ADV) - Spec-driven development plugin for OpenCode where specs become enforceable laws",
   "type": "module",
   "main": "src/index.ts",
