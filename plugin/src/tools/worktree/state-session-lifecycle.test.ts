@@ -169,13 +169,18 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       })(),
     );
     changeWorkflowQuery.mockResolvedValueOnce({
-      "change/owner": {
-        branch: "change/owner",
-        path: "/work/owner",
-        baseRef: "main",
-        headSha: "abc123",
-        status: "created",
-        createdAt: "2026-05-01T00:00:00.000Z",
+      changeId: "owner",
+      status: "active",
+      tasks: [],
+      worktrees: {
+        "change/owner": {
+          branch: "change/owner",
+          path: "/work/owner",
+          baseRef: "main",
+          headSha: "abc123",
+          status: "created",
+          createdAt: "2026-05-01T00:00:00.000Z",
+        },
       },
     });
 
@@ -196,18 +201,23 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       })(),
     );
     changeWorkflowQuery.mockResolvedValueOnce({
-      "change/change-a": {
-        branch: "change/change-a",
-        path: "/work/change-a",
-        baseRef: "main",
-        headSha: "abc123",
-        status: "created",
-        createdAt: "2026-05-01T00:00:00.000Z",
-      },
-      "change/deleted": {
-        branch: "change/deleted",
-        path: "/work/deleted",
-        status: "deleted",
+      changeId: "change-a",
+      status: "active",
+      tasks: [],
+      worktrees: {
+        "change/change-a": {
+          branch: "change/change-a",
+          path: "/work/change-a",
+          baseRef: "main",
+          headSha: "abc123",
+          status: "created",
+          createdAt: "2026-05-01T00:00:00.000Z",
+        },
+        "change/deleted": {
+          branch: "change/deleted",
+          path: "/work/deleted",
+          status: "deleted",
+        },
       },
     });
 
@@ -299,16 +309,21 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     );
     changeWorkflowQuery
       .mockResolvedValueOnce({
-        "change/healthy": {
-          branch: "change/healthy",
-          path: "/work/healthy",
-          baseRef: "main",
-          headSha: "abc123",
-          status: "created",
-          createdAt: "2026-05-01T00:00:00.000Z",
-          lastSeenAt: "2026-05-01T00:00:00.000Z",
-          source: "tool",
-          sourceVersion: 1,
+        changeId: "healthy",
+        status: "active",
+        tasks: [],
+        worktrees: {
+          "change/healthy": {
+            branch: "change/healthy",
+            path: "/work/healthy",
+            baseRef: "main",
+            headSha: "abc123",
+            status: "created",
+            createdAt: "2026-05-01T00:00:00.000Z",
+            lastSeenAt: "2026-05-01T00:00:00.000Z",
+            source: "tool",
+            sourceVersion: 1,
+          },
         },
       })
       .mockRejectedValueOnce(new Error("Failed to query Workflow"));
