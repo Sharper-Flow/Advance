@@ -1,3 +1,9 @@
+## 2026-05-23 (v0.11.7)
+
+### Changed
+
+- retire stale audit trail documents (docs)
+
 ## 2026-05-23 (v0.11.6)
 
 ### Changed
