@@ -1,3 +1,9 @@
+## 2026-05-23 (v0.11.8)
+
+### Changed
+
+- bump plugin package version to 0.11.8 after the v0.11.7 docs release
+
 ## 2026-05-23 (v0.11.7)
 
 ### Changed
