@@ -1,3 +1,9 @@
+## 2026-05-23 (v0.11.14)
+
+### Fixed
+
+- pin sharperflow-security-gates to @v0 floating major tag
+
 ## 2026-05-23 (v0.11.13)
 
 ### Changed
