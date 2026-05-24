@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { SubagentConsumerWarningSchema } from "../types";
 import type { Change, EngineerSubagentReport } from "../types";
 import type { Store } from "../storage/store-types";
 import {
@@ -300,6 +301,67 @@ describe("subagentReportTools", () => {
       }),
     );
     expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+  });
+
+  test("rejects malformed caller-supplied consumer_warnings before signaling", async () => {
+    const store = storeFor(change());
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        {
+          report: {
+            ...engineerReport(),
+            consumer_warnings: [{ kind: "not_a_warning", message: "bad" }],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toBe("Invalid sub-agent report payload");
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
+    );
+  });
+
+  test("consumer warnings emitted by tool consumers keep schema shape", async () => {
+    const store = storeFor(change());
+    mocks.addAgendaItem.mockRejectedValueOnce(new Error("agenda down"));
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport() },
+        store,
+      ),
+    );
+
+    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      report: EngineerSubagentReport;
+    };
+    const warnings = [
+      ...(signalPayload.report.consumer_warnings ?? []),
+      ...output.consumerResults.verification.warnings,
+    ];
+
+    expect(warnings.length).toBeGreaterThan(0);
+    for (const warning of warnings) {
+      expect(SubagentConsumerWarningSchema.safeParse(warning).success).toBe(
+        true,
+      );
+    }
+    expect(output.consumerResults.verification.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "consumer_failure",
+          message: expect.stringContaining("agenda down"),
+        }),
+      ]),
+    );
   });
 
   test("records task error_recovery when report persistence signal fails", async () => {

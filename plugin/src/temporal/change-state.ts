@@ -343,36 +343,49 @@ export function applyTaskCompletedToState(
   return state;
 }
 
+function assertNeverSubagentReport(report: never): never {
+  throw new Error(`Unsupported sub-agent report in blocker summary: ${report}`);
+}
+
 function blockerSummary(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): { summary: string; diagnosis: string } | null {
-  if (report.agent === "adv-engineer") {
-    if (report.blockers.length === 0) return null;
-    return {
-      summary: report.blockers
-        .map((blocker) =>
-          [blocker.file, blocker.line ? `:${blocker.line}` : "", blocker.what]
-            .filter(Boolean)
-            .join(" "),
-        )
-        .join("; "),
-      diagnosis: report.blockers.map((blocker) => blocker.diagnosis).join("; "),
-    };
-  }
+  switch (report.agent) {
+    case "adv-engineer":
+      if (report.blockers.length === 0) return null;
+      return {
+        summary: report.blockers
+          .map((blocker) =>
+            [blocker.file, blocker.line ? `:${blocker.line}` : "", blocker.what]
+              .filter(Boolean)
+              .join(" "),
+          )
+          .join("; "),
+        diagnosis: report.blockers
+          .map((blocker) => blocker.diagnosis)
+          .join("; "),
+      };
 
-  if (report.blocking_findings.length === 0) return null;
-  return {
-    summary: report.blocking_findings
-      .map((finding) =>
-        [finding.file, finding.line ? `:${finding.line}` : "", finding.what]
-          .filter(Boolean)
-          .join(" "),
-      )
-      .join("; "),
-    diagnosis: report.blocking_findings
-      .map((finding) => finding.why)
-      .join("; "),
-  };
+    case "adv-reviewer":
+      if (report.blocking_findings.length === 0) return null;
+      return {
+        summary: report.blocking_findings
+          .map((finding) =>
+            [finding.file, finding.line ? `:${finding.line}` : "", finding.what]
+              .filter(Boolean)
+              .join(" "),
+          )
+          .join("; "),
+        diagnosis: report.blocking_findings
+          .map((finding) => finding.why)
+          .join("; "),
+      };
+
+    default: {
+      const exhaustive: never = report;
+      return assertNeverSubagentReport(exhaustive);
+    }
+  }
 }
 
 export function applySubagentReportSubmittedToState(

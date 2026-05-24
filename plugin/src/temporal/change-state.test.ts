@@ -25,6 +25,14 @@ describe("change-state pure mutation helpers", () => {
     expect(source).not.toContain("node:");
   });
 
+  it("uses an exhaustive agent switch for sub-agent blocker summaries", () => {
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source).toContain("function assertNeverSubagentReport");
+    expect(source).toContain("switch (report.agent)");
+    expect(source).toContain("const exhaustive: never = report");
+  });
+
   it("records task lifecycle mutations without task-run ledger state", () => {
     const state = createChangeWorkflowState({
       changeId: "change-state-test",
