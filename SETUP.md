@@ -283,8 +283,8 @@ invocation, which is slower and less specialized.
 | `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, scoped read-only scans                                                                     |
 | `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
 | `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                         |
-| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT payload for ADV ingestion                                                            |
-| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT               |
+| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                           |
+| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT submitted via `adv_subagent_report_submit` |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 

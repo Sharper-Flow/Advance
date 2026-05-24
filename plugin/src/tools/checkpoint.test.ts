@@ -279,6 +279,72 @@ describe("checkpoint tools — signal-driven", () => {
       });
     });
 
+    test("does not extract legacy structured_output when task has persisted sub-agent report", async () => {
+      const store = createMockStore();
+      vi.mocked(store.tasks.show).mockResolvedValue({
+        task: {
+          id: "tk-abc",
+          title: "Test Task",
+          status: "in_progress",
+          priority: 0,
+          created_at: "2026-01-01T00:00:00Z",
+          subagent_reports: [
+            {
+              schema_version: "1.0",
+              change_id: "test-change",
+              task_id: "tk-abc",
+              attempt: 1,
+              agent: "adv-engineer",
+              status: "complete",
+              scope: "Implement",
+              workdir_used: "/tmp/test",
+              files_touched: ["src/file.ts"],
+              verification: [
+                {
+                  command: "pnpm test",
+                  exit_code: 0,
+                  summary: "passed",
+                },
+              ],
+              decisions: [],
+              blockers: [],
+              follow_ups: [],
+              related_scan: "No related issues",
+              context_update_for_adv: {
+                what_ads_needs_to_know: "Typed report exists",
+                suggested_next_action: "Skip legacy extraction",
+              },
+            },
+          ],
+        } as import("../types").Task,
+        changeId: "test-change",
+      });
+      mockGitResponses({});
+
+      const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/baz.ts", "linesAdded": 3}],\n  "testsAdded": 1\n}\n</adv-output>`;
+      mockRecordedTask({ verification });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification,
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.status).toBe("committed");
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        verification,
+      });
+      expect(signalCall[4]).not.toHaveProperty("structured_output");
+    });
+
     test("fires taskCompletedSignal on clean tree in complete mode", async () => {
       const store = createMockStore();
       mockGitResponses({

@@ -97,6 +97,7 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_task_cancel: () => write("Cancel tasks"),
   adv_task_reclassify_tdd: (args) =>
     write(`Reclassify TDD${suffix(args, "taskId")}`),
+  adv_subagent_report_submit: () => write("Submit subagent report"),
   adv_wisdom_add: (args) => write(`Add wisdom${suffix(args, "changeId")}`),
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
   adv_snapshot_health: (args) =>

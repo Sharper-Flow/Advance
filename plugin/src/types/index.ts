@@ -60,6 +60,30 @@ export {
 } from "./tasks";
 
 // =============================================================================
+// Sub-agent Reports
+// =============================================================================
+export {
+  SUBAGENT_REPORT_SCHEMA_VERSION,
+  SubagentAgentSchema,
+  type SubagentAgent,
+  SubagentVerificationEntrySchema,
+  SubagentDecisionSchema,
+  SubagentBlockerSchema,
+  SubagentConsumerWarningSchema,
+  EngineerSubagentReportSchema,
+  ReviewerFindingSchema,
+  ReviewerChangeMadeSchema,
+  ReviewerScopeDriftSchema,
+  ReviewerSubagentReportSchema,
+  SupportedSubagentReportSchema,
+  type EngineerSubagentReport,
+  type ReviewerSubagentReport,
+  type SupportedSubagentReport,
+  SubagentReportSchema,
+  type SubagentReport,
+} from "./subagent-reports";
+
+// =============================================================================
 // Gates
 // =============================================================================
 export {

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import { EngineerSubagentReportSchema } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-engineer.md");
@@ -67,6 +68,12 @@ describe("adv-engineer assets", () => {
     expect(frontmatter).toMatch(/adv_agenda_\w+:\s*false/);
   });
 
+  test("allows typed sub-agent report submission tool", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const frontmatter = content.split("---")[1] ?? "";
+    expect(frontmatter).toContain("adv_subagent_report_submit: true");
+  });
+
   test("contains required contract section headings", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const required = [
@@ -92,6 +99,7 @@ describe("adv-engineer assets", () => {
       "schema_version",
       "change_id",
       "task_id",
+      "attempt",
       "agent",
       "scope",
       "status",
@@ -180,6 +188,28 @@ describe("adv-engineer assets", () => {
     expect(exampleBlock).toContain("workdir_used");
   });
 
+  test("ENGINEER_REPORT example JSON parses through Zod schema", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    const jsonBlocks = reportSection.match(/```json\s*\n([\s\S]*?)```/g);
+    expect(jsonBlocks, "No JSON example blocks found").not.toBeNull();
+    const exampleBlock = (jsonBlocks![1] ?? "")
+      .replace(/^```json\s*/, "")
+      .replace(/```$/, "")
+      .trim();
+
+    expect(() =>
+      EngineerSubagentReportSchema.parse(JSON.parse(exampleBlock)),
+    ).not.toThrow();
+  });
+
+  test("ENGINEER_REPORT transport is tool-call based, not final fenced JSON", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain("adv_subagent_report_submit");
+    expect(reportSection).not.toContain("final element of your final response");
+  });
+
   test("adv-apply.md Apply Context Packet starts with WORKING DIRECTORY", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
     // Find the Apply Context Packet section
@@ -193,5 +223,12 @@ describe("adv-engineer assets", () => {
     ).not.toBeNull();
     const firstLine = codeBlock![1].trim().split("\n")[0];
     expect(firstLine).toMatch(/^WORKING DIRECTORY:/);
+  });
+
+  test("adv-apply.md Apply Context Packet includes ATTEMPT anchor", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packetSection =
+      content.split("#### Apply Context Packet")[1]?.split("### ")[0] ?? "";
+    expect(packetSection).toContain("ATTEMPT:");
   });
 });

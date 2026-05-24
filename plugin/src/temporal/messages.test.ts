@@ -31,6 +31,7 @@ import {
   ProblemStatementUpdatedSignalPayloadSchema,
   ProposalUpdatedSignalPayloadSchema,
   ReflectionRecordedSignalPayloadSchema,
+  SubagentReportSubmittedSignalPayloadSchema,
   TaskAddedSignalPayloadSchema,
   TaskAssignedSignalPayloadSchema,
   TaskBlockedSignalPayloadSchema,
@@ -59,6 +60,7 @@ const designSignalKeys = [
   "taskRemoved",
   "taskAssigned",
   "taskCompleted",
+  "subagentReportSubmitted",
   "taskBlocked",
   "taskCancelled",
   "gateInProgress",
@@ -91,11 +93,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 34 signal surface", () => {
+  it("defines the 35 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(34);
+    expect(surfacedKeys).toHaveLength(35);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -223,6 +225,39 @@ describe("change workflow message contract", () => {
           verification: "tests pass",
           summary: "done",
           completedAt: timestamp,
+        },
+      ],
+      [
+        SubagentReportSubmittedSignalPayloadSchema,
+        {
+          taskId: "tk-1",
+          submittedAt: timestamp,
+          report: {
+            schema_version: "1.0",
+            change_id: "change-1",
+            task_id: "tk-1",
+            attempt: 1,
+            agent: "adv-engineer",
+            scope: "Add typed report",
+            status: "complete",
+            files_touched: ["plugin/src/types/subagent-reports.ts"],
+            verification: [
+              {
+                command: "pnpm test",
+                exit_code: 0,
+                summary: "tests pass",
+              },
+            ],
+            decisions: [],
+            blockers: [],
+            follow_ups: [],
+            related_scan: "none",
+            workdir_used: "/tmp/worktree",
+            context_update_for_adv: {
+              what_ads_needs_to_know: "report persisted",
+              suggested_next_action: "continue",
+            },
+          },
         },
       ],
       [

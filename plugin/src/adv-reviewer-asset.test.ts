@@ -18,9 +18,12 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import { ReviewerSubagentReportSchema } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-reviewer.md");
+const REVIEW_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
+const HARDEN_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-harden.md");
 
 /**
  * Split a frontmatter+markdown file into { frontmatter, body }.
@@ -107,6 +110,7 @@ const REQUIRED_ALLOWED_TOOLS = [
   // Evidence + wisdom emission
   "adv_run_test",
   "adv_wisdom_add",
+  "adv_subagent_report_submit",
 ];
 
 // BLOCKED — anything that would give the reviewer ADV orchestration authority,
@@ -148,7 +152,6 @@ const REQUIRED_BLOCKED_TOOLS = [
 // Body anchor strings — pin the system prompt's required sections.
 const REQUIRED_BODY_ANCHORS = [
   "REVIEWER_REPORT",
-  "END_REVIEWER_REPORT",
   "scope_drift",
   "required_main_agent_actions",
   "no nested delegation",
@@ -228,6 +231,7 @@ describe("adv-reviewer agent asset", () => {
     // Per design Decision 3 schema.
     const requiredFields = [
       '"agent"',
+      '"attempt"',
       '"phase"',
       '"verdict"',
       '"blocking_findings"',
@@ -266,5 +270,39 @@ describe("adv-reviewer agent asset", () => {
   test("body cites scope-discovery-protocol.md for escalation", () => {
     const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
     expect(body).toContain("docs/scope-discovery-protocol.md");
+  });
+
+  test("REVIEWER_REPORT examples parse through Zod schema", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    const blocks = [...body.matchAll(/```json\s*\n([\s\S]*?)```/g)].map(
+      (match) => match[1].trim(),
+    );
+    const reportBlocks = blocks
+      .map((block) => JSON.parse(block) as Record<string, unknown>)
+      .filter(
+        (parsed) =>
+          parsed.agent === "adv-reviewer" &&
+          typeof parsed.change_id === "string" &&
+          !parsed.change_id.includes("{"),
+      );
+
+    expect(reportBlocks.length).toBeGreaterThanOrEqual(2);
+    for (const report of reportBlocks) {
+      expect(() => ReviewerSubagentReportSchema.parse(report)).not.toThrow();
+    }
+  });
+
+  test("REVIEWER_REPORT transport is tool-call based, not sentinel based", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    expect(body).toContain("adv_subagent_report_submit");
+    expect(body).not.toContain("REVIEWER_REPORT:");
+    expect(body).not.toContain("END_REVIEWER_REPORT");
+  });
+
+  test("review and harden context packets include ATTEMPT anchor", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+    expect(review).toContain("ATTEMPT:");
+    expect(harden).toContain("ATTEMPT:");
   });
 });

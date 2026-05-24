@@ -688,6 +688,11 @@ export const taskTools = {
           // not block the normal signal mutation path.
         }
         const currentStatus = taskRecord?.task.status;
+        const existingTaskReports =
+          taskRecord?.task.subagent_reports ??
+          changeForGuard?.tasks.find((task) => task.id === args.taskId)
+            ?.subagent_reports ??
+          [];
         const shouldPatchExistingDoneTask =
           Boolean(args.contract_refs) &&
           args.status === "done" &&
@@ -739,7 +744,10 @@ export const taskTools = {
             const combinedText = [args.implementation_summary, args.notes]
               .filter(Boolean)
               .join("\n");
-            const structuredOutput = extractStructuredOutput(combinedText);
+            const structuredOutput =
+              existingTaskReports.length > 0
+                ? null
+                : extractStructuredOutput(combinedText);
             await fireSignalAndRefresh(
               handle,
               activeStore,

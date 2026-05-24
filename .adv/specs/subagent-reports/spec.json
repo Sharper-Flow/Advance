@@ -1,0 +1,134 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
+  "name": "subagent-reports",
+  "title": "Sub-Agent Reports",
+  "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, signal persistence on tasks, deterministic dedupe, and machine-readable downstream consumers.",
+  "version": "1.0.0",
+  "updated_at": "2026-05-23T00:00:00.000Z",
+  "conformance_required": false,
+  "requirements": [
+    {
+      "id": "rq-subagentReports01",
+      "title": "Typed tool-call report ingest",
+      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer and adv-reviewer payloads, reserves adv-researcher and adv-tron discriminator literals for future extension, and rejects malformed or unsupported payloads before persistence.",
+      "priority": "must",
+      "tags": ["subagents", "reports", "zod", "ingest"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports01.1",
+          "title": "Malformed report rejected",
+          "given": ["A caller submits a report missing required fields"],
+          "when": "adv_subagent_report_submit validates the payload",
+          "then": [
+            "The tool returns INVALID_REPORT",
+            "No workflow signal is fired",
+            "No agenda follow-up is written"
+          ]
+        },
+        {
+          "id": "rq-subagentReports01.2",
+          "title": "Reserved agent rejected until schema populated",
+          "given": ["A report uses agent adv-researcher or adv-tron"],
+          "when": "adv_subagent_report_submit runs in v1",
+          "then": [
+            "The tool returns UNSUPPORTED_AGENT",
+            "The reserved literal remains part of the agent discriminator surface",
+            "No workflow signal is fired"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports02",
+      "title": "Signal-persisted task report state",
+      "body": "Accepted reports MUST persist via subagentReportSubmittedSignal on the owning task as task.subagent_reports[]. The workflow MUST dedupe repeated submissions by (change_id, task_id, agent, attempt) using deterministic workflow state, and MUST map report blockers into task error_recovery without defineUpdate-based mutations.",
+      "priority": "must",
+      "tags": ["temporal", "signals", "dedupe", "tasks"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports02.1",
+          "title": "Duplicate report key is idempotent",
+          "given": ["A task already stores a report for change_id, task_id, agent, and attempt"],
+          "when": "The same report is submitted again",
+          "then": [
+            "No duplicate task.subagent_reports entry is appended",
+            "The workflow records the key in seenReportIds if needed",
+            "The tool response reports duplicate true"
+          ]
+        },
+        {
+          "id": "rq-subagentReports02.2",
+          "title": "Blockers feed error recovery",
+          "given": ["A submitted engineer blocker or reviewer blocking finding exists"],
+          "when": "The workflow applies subagentReportSubmittedSignal",
+          "then": [
+            "The task error_recovery.last_error summarizes blocker location and issue",
+            "The error_recovery attempt records the report attempt number",
+            "No tool-layer heuristic owns persistence correctness"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports03",
+      "title": "Queryable reports and consumers",
+      "body": "adv_change_show include.subagentReports MUST return persisted report data. Reports MUST remain on task.subagent_reports[]. Tool-layer consumers MUST process follow_ups into agenda items and surface verification cross-check warnings without rolling back an already persisted report.",
+      "priority": "must",
+      "tags": ["read-surface", "agenda", "verification", "consumers"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports03.1",
+          "title": "Reports are queryable by change",
+          "given": ["A task has one or more persisted sub-agent reports"],
+          "when": "adv_change_show is called with include.subagentReports true",
+          "then": [
+            "The response includes _subagentReports",
+            "The response includes _subagentReportsMeta.total",
+            "The task entry still includes subagent_reports"
+          ]
+        },
+        {
+          "id": "rq-subagentReports03.2",
+          "title": "Follow-ups become agenda items after persistence",
+          "given": ["An engineer report contains follow_ups"],
+          "when": "adv_subagent_report_submit succeeds",
+          "then": [
+            "The report signal is fired before agenda writes",
+            "Each follow-up is added with category subagent-followup",
+            "Consumer failures are returned as warnings"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports04",
+      "title": "No ADV worker fenced-report transport",
+      "body": "ADV worker contracts MUST instruct adv-engineer and adv-reviewer to call adv_subagent_report_submit before exit. Apply, review, and harden context packets MUST include ATTEMPT so the report key is stable. Legacy TaskStructuredOutput extraction remains available for non-ADV callers but MUST short-circuit for tasks that already have persisted sub-agent reports.",
+      "priority": "must",
+      "tags": ["agents", "contracts", "legacy", "attempt"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports04.1",
+          "title": "Worker contracts use tool-call transport",
+          "given": ["adv-engineer or adv-reviewer is spawned by ADV"],
+          "when": "The worker completes its scope",
+          "then": [
+            "The worker builds an ENGINEER_REPORT or REVIEWER_REPORT object",
+            "The worker calls adv_subagent_report_submit with that object",
+            "The worker does not rely on final-message fenced JSON as the ADV report transport"
+          ]
+        },
+        {
+          "id": "rq-subagentReports04.2",
+          "title": "Legacy extraction skips persisted report tasks",
+          "given": ["A task already has task.subagent_reports[]"],
+          "when": "adv_task_checkpoint or compatible task completion sees legacy adv-output text",
+          "then": [
+            "The completion signal omits structured_output extracted from the legacy text",
+            "Existing non-ADV structured_output behavior remains unchanged for tasks without subagent_reports"
+          ]
+        }
+      ]
+    }
+  ]
+}

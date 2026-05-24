@@ -249,8 +249,8 @@
     },
     {
       "id": "rq-delDefaults05",
-      "title": "Structured Worker Report Fields",
-      "body": "Sub-agents used in delegation MUST return structured reports that include: evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. Existing report schemas (ENGINEER_REPORT, REVIEWER_REPORT, adv-researcher format, TRON report) already satisfy these fields. Future sub-agent additions MUST include reports with these 4 field categories.",
+      "title": "Typed and Persisted Worker Reports",
+      "body": "Sub-agents used in ADV delegation MUST provide typed, ingest-validated, durable reports. adv-engineer and adv-reviewer reports MUST be submitted through adv_subagent_report_submit and persisted on task.subagent_reports[]; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. Future sub-agent additions MUST include these 4 field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
       "priority": "must",
       "tags": ["delegation", "reports", "structured-output"],
       "scenarios": [
@@ -260,8 +260,8 @@
           "given": ["The 4 sub-agents with structured reports"],
           "when": "Report field coverage is validated",
           "then": [
-            "adv-engineer (ENGINEER_REPORT) includes verification (evidence), scope, blockers, context_update_for_adv.suggested_next_action (next action)",
-            "adv-reviewer (REVIEWER_REPORT) includes verification (evidence), scope, blocking_findings (blockers), required_main_agent_actions (next action)",
+            "adv-engineer (ENGINEER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blockers, context_update_for_adv.suggested_next_action (next action), and persists to task.subagent_reports[]",
+            "adv-reviewer (REVIEWER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blocking_findings (blockers), required_main_agent_actions (next action), and persists to task.subagent_reports[]",
             "adv-researcher format includes SOURCES (evidence), ARCHITECTURE ASSESSMENT (impact), VALIDATION (blockers/assessment), RECOMMENDATION (next action)",
             "adv-tron format includes Evidence: file:line (evidence), FINDINGS/HOTSPOTS/RISKS (impact), OPEN QUESTIONS (blockers), SUGGESTED NEXT COMMANDS (next action)"
           ]
@@ -275,7 +275,8 @@
             "The report includes an evidence references field",
             "The report includes a scope/impact assessment field",
             "The report includes a blockers field",
-            "The report includes a recommended next action field"
+            "The report includes a recommended next action field",
+            "The report is typed, ingest-validated, and persisted before orchestrator consumption"
           ]
         }
       ]

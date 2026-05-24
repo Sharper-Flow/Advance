@@ -23,6 +23,7 @@ import type {
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
@@ -40,6 +41,7 @@ import type {
   WorktreeDeletedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
+import { subagentReportKey } from "./contracts";
 import type {
   ArtifactKind,
   ArtifactMetadata,
@@ -125,6 +127,8 @@ export function changeSeedStateFromChange(
     worktree_auto_managed: change.worktree_auto_managed,
     target_worktree_path: change.target_worktree_path,
     scope_worktrees: change.scope_worktrees,
+    seenReportIds: (change as unknown as { seenReportIds?: string[] })
+      .seenReportIds,
   };
 }
 
@@ -336,6 +340,98 @@ export function applyTaskCompletedToState(
     task.structured_output = payload.structured_output;
   }
   setLastSignalAt(state, payload.completedAt);
+  return state;
+}
+
+function blockerSummary(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): { summary: string; diagnosis: string } | null {
+  if (report.agent === "adv-engineer") {
+    if (report.blockers.length === 0) return null;
+    return {
+      summary: report.blockers
+        .map((blocker) =>
+          [blocker.file, blocker.line ? `:${blocker.line}` : "", blocker.what]
+            .filter(Boolean)
+            .join(" "),
+        )
+        .join("; "),
+      diagnosis: report.blockers.map((blocker) => blocker.diagnosis).join("; "),
+    };
+  }
+
+  if (report.blocking_findings.length === 0) return null;
+  return {
+    summary: report.blocking_findings
+      .map((finding) =>
+        [finding.file, finding.line ? `:${finding.line}` : "", finding.what]
+          .filter(Boolean)
+          .join(" "),
+      )
+      .join("; "),
+    diagnosis: report.blocking_findings
+      .map((finding) => finding.why)
+      .join("; "),
+  };
+}
+
+export function applySubagentReportSubmittedToState(
+  state: ChangeWorkflowState,
+  payload: SubagentReportSubmittedSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  const reportId = subagentReportKey({
+    changeId: payload.report.change_id,
+    taskId: payload.report.task_id,
+    agent: payload.report.agent,
+    attempt: payload.report.attempt,
+  });
+  const seenReportIds = state.seenReportIds ?? [];
+  const alreadyStored = (task.subagent_reports ?? []).some(
+    (report) =>
+      subagentReportKey({
+        changeId: report.change_id,
+        taskId: report.task_id,
+        agent: report.agent,
+        attempt: report.attempt,
+      }) === reportId,
+  );
+
+  if (seenReportIds.includes(reportId) || alreadyStored) {
+    state.seenReportIds = seenReportIds.includes(reportId)
+      ? seenReportIds
+      : [...seenReportIds, reportId];
+    setLastSignalAt(state, payload.submittedAt);
+    return state;
+  }
+
+  task.subagent_reports = [...(task.subagent_reports ?? []), payload.report];
+  state.seenReportIds = [...seenReportIds, reportId];
+
+  const blockers = blockerSummary(payload.report);
+  if (blockers) {
+    task.error_recovery = {
+      last_error: blockers.summary,
+      retry_count: payload.report.attempt,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+      next_strategy: "Resolve sub-agent reported blocker",
+      attempts: [
+        ...(task.error_recovery?.attempts ?? []),
+        {
+          attempt_number: payload.report.attempt,
+          error: blockers.summary,
+          diagnosis: blockers.diagnosis,
+          fix_tried: "Sub-agent report submission recorded blocker",
+          strategy_label: `${payload.report.agent}-reported-blocker`,
+          outcome: "failed",
+          attempted_at: payload.submittedAt,
+        },
+      ],
+    };
+  }
+
+  setLastSignalAt(state, payload.submittedAt);
   return state;
 }
 

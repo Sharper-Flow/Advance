@@ -270,8 +270,8 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
-| `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
-| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + persisted ENGINEER_REPORT via `adv_subagent_report_submit` |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |

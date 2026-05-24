@@ -15,6 +15,7 @@ import {
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
+import { SupportedSubagentReportSchema } from "./subagent-reports";
 import {
   ChangeContractSchema,
   ContractAmendmentSchema,
@@ -129,6 +130,15 @@ export const TaskCompletedSignalPayloadSchema = z.object({
 });
 export type TaskCompletedSignalPayload = z.infer<
   typeof TaskCompletedSignalPayloadSchema
+>;
+
+export const SubagentReportSubmittedSignalPayloadSchema = z.object({
+  taskId: z.string(),
+  report: SupportedSubagentReportSchema,
+  submittedAt: IsoTimestampSchema,
+});
+export type SubagentReportSubmittedSignalPayload = z.infer<
+  typeof SubagentReportSubmittedSignalPayloadSchema
 >;
 
 export const TaskBlockedSignalPayloadSchema = z.object({

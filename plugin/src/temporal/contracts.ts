@@ -2,6 +2,7 @@ import type {
   ChangeClosure,
   ChangeContract,
   ChangeOrigin,
+  SubagentAgent,
   FastFollowOf,
   Gates,
 } from "../types";
@@ -54,6 +55,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   taskRemoved: "adv.change.taskRemoved",
   taskAssigned: "adv.change.taskAssigned",
   taskCompleted: "adv.change.taskCompleted",
+  subagentReportSubmitted: "adv.change.subagentReportSubmitted",
   taskBlocked: "adv.change.taskBlocked",
   taskCancelled: "adv.change.taskCancelled",
   gateInProgress: "adv.change.gateInProgress",
@@ -76,6 +78,15 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
 } as const;
+
+export function subagentReportKey(input: {
+  changeId: string;
+  taskId: string;
+  agent: SubagentAgent;
+  attempt: number;
+}): string {
+  return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+}
 
 export interface ChangeSummaryPayload {
   changeId: string;
@@ -161,6 +172,7 @@ export interface ChangeWorkflowInput {
       | "worktree_auto_managed"
       | "target_worktree_path"
       | "scope_worktrees"
+      | "seenReportIds"
     >
   >;
 }
@@ -250,6 +262,8 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * search attribute (rq-backlogCoord01).
    */
   origin?: ChangeOrigin;
+  /** Deterministic idempotency keys for submitted sub-agent reports. */
+  seenReportIds?: string[];
 
   /**
    * Per-change worktree-auto-managed marker (rq-autoManageAdvWorktrees AC3).
