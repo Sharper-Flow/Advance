@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.10.0
-> **Updated:** 2026-05-22
+> **Version:** 1.13.0
+> **Updated:** 2026-05-24
 
 ## Purpose
 
@@ -1782,6 +1782,74 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 
 - The guidance does not classify worker restart as sufficient repair
 - Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate
+
+---
+
+### Front-End Acceptance Preview URL
+
+**ID:** `rq-acceptancePreviewUrl01` | **Priority:** **[MUST]**
+
+/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a dev-environment URL and reachability evidence. A bare unverified URL MUST NOT satisfy acceptance proof. Missing URL, missing reachability evidence, or unknown applicability MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof.
+
+**Tags:** `workflow`, `acceptance`, `preview-url`, `front-end`
+
+#### Scenarios
+
+**Discovery records preview applicability** (`rq-acceptancePreviewUrl01.1`)
+
+**Given:**
+
+- A change is being finalized through /adv-discover
+
+**When:** The agreement is drafted and persisted
+
+**Then:**
+
+- The agreement records visual_surface as true, false, or unknown
+- The agreement records rationale for the preview applicability value
+- visual_surface unknown is carried forward as an acceptance blocker until clarified
+
+**Applicable visual work shows reachable preview before acceptance** (`rq-acceptancePreviewUrl01.2`)
+
+**Given:**
+
+- A change has visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work
+
+**When:** /adv-review presents the acceptance summary before the Inline Approval prompt
+
+**Then:**
+
+- The summary includes Preview URL: {url}
+- The summary includes reachability evidence with verification method, result, and reviewed timestamp or equivalent context
+- The contract review evidence records the preview proof
+
+**Missing applicable preview blocks acceptance** (`rq-acceptancePreviewUrl01.3`)
+
+**Given:**
+
+- A change requires preview proof because visual_surface is true or visual-output work is detected
+
+**When:** No dev-environment URL or reachability evidence is available
+
+**Then:**
+
+- /adv-review reports Preview URL: blocked with a concrete reason
+- The acceptance checkpoint is not presented
+- The acceptance gate remains pending
+
+**Non-visual work may mark preview not applicable** (`rq-acceptancePreviewUrl01.4`)
+
+**Given:**
+
+- A change has visual_surface false and no implementation evidence of front-end, browser-visible, or visual-output work
+
+**When:** /adv-review presents the acceptance summary
+
+**Then:**
+
+- The summary may include Preview URL: not_applicable
+- The not_applicable state includes rationale
+- Preview URL absence does not block acceptance for the non-visual change
 
 ---
 
