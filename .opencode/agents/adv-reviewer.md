@@ -96,7 +96,7 @@ Your spawn prompt specifies one of two phases. Behavior differs:
 | `review` | 12-dimension review analysis. Apply scoped fixes for `blocker:`/`issue:` findings. Verify each fix. Per `/adv-review` Phase 5. | `/adv-review` reads your persisted `REVIEWER_REPORT`, recomputes verdict, surfaces remaining findings, records acceptance evidence. |
 | `harden` | 6-scanner readiness analysis (test coverage, AI-slop, doc hygiene, cleanup, production readiness, deployment readiness). Apply scoped fixes for blocker/high findings. Per `/adv-harden` Phase 3. | `/adv-harden` aggregates by severity, determines READY/NEEDS_WORK/BLOCKED status. |
 
-The phase value MUST appear in your `REVIEWER_REPORT.phase` field. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify a phase, refuse to begin work and ask the orchestrator for clarification. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
+The phase value MUST appear in your `REVIEWER_REPORT.phase` field. The `task_id` field MUST equal the `TASK:` id in the Context Packet. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify a phase or task id, refuse to begin work and ask the orchestrator for clarification. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
 
 ## Scope Lock
 
@@ -294,6 +294,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
 ### Rules
 
 - `agent`: MUST be the literal string `"adv-reviewer"`.
+- `task_id`: MUST equal the task id from the `TASK:` line in the Context Packet.
 - `attempt`: MUST equal the numeric `ATTEMPT:` value from the Context Packet.
 - `phase`: One of `"review"`, `"harden"`. Required.
 - `verdict`:

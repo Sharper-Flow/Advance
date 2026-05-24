@@ -1,12 +1,29 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
-import { EngineerSubagentReportSchema } from "./types";
+import {
+  EngineerSubagentReportSchema,
+  getSubagentReportPacketAnchors,
+} from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-engineer.md");
 const APPLY_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-apply.md");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
+
+function sectionAfterHeading(content: string, heading: string): string {
+  const marker = `#### ${heading}`;
+  const start = content.indexOf(marker);
+  if (start === -1) return "";
+
+  const rest = content.slice(start + marker.length);
+  const nextHeading = rest.search(/\n#{3,4} /);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+}
+
+function firstFencedBlock(section: string): string {
+  return section.match(/```\n([\s\S]*?)```/)?.[1] ?? "";
+}
 
 describe("adv-engineer assets", () => {
   test("ships adv-engineer.md agent definition", () => {
@@ -225,10 +242,14 @@ describe("adv-engineer assets", () => {
     expect(firstLine).toMatch(/^WORKING DIRECTORY:/);
   });
 
-  test("adv-apply.md Apply Context Packet includes ATTEMPT anchor", () => {
+  test("adv-apply.md Apply Context Packet includes all ENGINEER_REPORT packet anchors", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
-    const packetSection =
-      content.split("#### Apply Context Packet")[1]?.split("### ")[0] ?? "";
-    expect(packetSection).toContain("ATTEMPT:");
+    const packet = firstFencedBlock(sectionAfterHeading(content, "Apply Context Packet"));
+
+    for (const anchor of getSubagentReportPacketAnchors("adv-engineer")) {
+      expect(packet, `Apply Context Packet missing ${anchor}`).toContain(
+        `${anchor}:`,
+      );
+    }
   });
 });

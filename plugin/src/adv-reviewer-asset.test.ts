@@ -18,7 +18,10 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
-import { ReviewerSubagentReportSchema } from "./types";
+import {
+  getSubagentReportPacketAnchors,
+  ReviewerSubagentReportSchema,
+} from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-reviewer.md");
@@ -67,6 +70,30 @@ function getToolGrant(frontmatter: string, toolName: string): boolean | null {
   const match = frontmatter.match(re);
   if (!match) return null;
   return match[1] === "true";
+}
+
+function sectionAfterHeading(content: string, heading: string): string {
+  const marker = `#### ${heading}`;
+  const start = content.indexOf(marker);
+  if (start === -1) return "";
+
+  const rest = content.slice(start + marker.length);
+  const nextHeading = rest.search(/\n#{3,4} /);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+}
+
+function firstFencedBlock(section: string): string {
+  return section.match(/```\n([\s\S]*?)```/)?.[1] ?? "";
+}
+
+function expectPacketAnchors(
+  packet: string,
+  anchors: string[],
+  label: string,
+): void {
+  for (const anchor of anchors) {
+    expect(packet, `${label} missing ${anchor}`).toContain(`${anchor}:`);
+  }
 }
 
 // Tool boundary per design Decision 1.
@@ -299,10 +326,54 @@ describe("adv-reviewer agent asset", () => {
     expect(body).not.toContain("END_REVIEWER_REPORT");
   });
 
-  test("review and harden context packets include ATTEMPT anchor", () => {
+  test("review and harden scanner context packets stay explore-only", () => {
     const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
-    expect(review).toContain("ATTEMPT:");
-    expect(harden).toContain("ATTEMPT:");
+
+    const scannerPackets = [
+      firstFencedBlock(sectionAfterHeading(review, "Review Scanner Context Packet")),
+      firstFencedBlock(sectionAfterHeading(harden, "Harden Scanner Context Packet")),
+    ];
+
+    for (const packet of scannerPackets) {
+      expect(packet).toContain("EXPECTED OUTPUT: {dimension-specific JSON schema}");
+      expect(packet).not.toContain("adv_subagent_report_submit");
+      expect(packet).not.toContain("ENGINEER_REPORT");
+      expect(packet).not.toContain("REVIEWER_REPORT");
+    }
+  });
+
+  test("review and harden reviewer remediation packets include REVIEWER_REPORT packet anchors", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+    const reviewerAnchors = getSubagentReportPacketAnchors("adv-reviewer");
+
+    expectPacketAnchors(
+      firstFencedBlock(sectionAfterHeading(review, "Review Reviewer Remediation Packet")),
+      reviewerAnchors,
+      "Review Reviewer Remediation Packet",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(sectionAfterHeading(harden, "Harden Reviewer Remediation Packet")),
+      reviewerAnchors,
+      "Harden Reviewer Remediation Packet",
+    );
+  });
+
+  test("review and harden engineer remediation packets include ENGINEER_REPORT packet anchors", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+    const engineerAnchors = getSubagentReportPacketAnchors("adv-engineer");
+
+    expectPacketAnchors(
+      firstFencedBlock(sectionAfterHeading(review, "Review Engineer Remediation Packet")),
+      engineerAnchors,
+      "Review Engineer Remediation Packet",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(sectionAfterHeading(harden, "Harden Engineer Remediation Packet")),
+      engineerAnchors,
+      "Harden Engineer Remediation Packet",
+    );
   });
 });
