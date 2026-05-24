@@ -29,7 +29,9 @@ import {
 type ConsumerWarning = z.infer<typeof SubagentConsumerWarningSchema>;
 const ConsumerWarningsSchema = z.array(SubagentConsumerWarningSchema);
 
-function validateConsumerWarnings(warnings: ConsumerWarning[]): ConsumerWarning[] {
+function validateConsumerWarnings(
+  warnings: ConsumerWarning[],
+): ConsumerWarning[] {
   return ConsumerWarningsSchema.parse(warnings);
 }
 

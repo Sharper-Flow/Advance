@@ -225,7 +225,9 @@ export function getSubagentReportPacketAnchors(
           field as keyof typeof SUBAGENT_REPORT_PACKET_ANCHORS
         ];
       if (!anchor) {
-        throw new Error(`Missing packet anchor for sub-agent report field ${field}`);
+        throw new Error(
+          `Missing packet anchor for sub-agent report field ${field}`,
+        );
       }
       return anchor;
     })

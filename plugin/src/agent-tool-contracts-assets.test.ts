@@ -4,10 +4,7 @@ import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DOC_PATH = join(REPO_ROOT, "docs/agent-tool-contracts.md");
-const SKILL_PATH = join(
-  REPO_ROOT,
-  "skills/adv-agent-tool-contracts/SKILL.md",
-);
+const SKILL_PATH = join(REPO_ROOT, "skills/adv-agent-tool-contracts/SKILL.md");
 const SKILL_AUTHOR_PATH = join(REPO_ROOT, "skills/adv-skill-author/SKILL.md");
 const DEPLOY_LOCAL = join(REPO_ROOT, "scripts/deploy-local.sh");
 

@@ -244,7 +244,9 @@ describe("adv-engineer assets", () => {
 
   test("adv-apply.md Apply Context Packet includes all ENGINEER_REPORT packet anchors", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
-    const packet = firstFencedBlock(sectionAfterHeading(content, "Apply Context Packet"));
+    const packet = firstFencedBlock(
+      sectionAfterHeading(content, "Apply Context Packet"),
+    );
 
     for (const anchor of getSubagentReportPacketAnchors("adv-engineer")) {
       expect(packet, `Apply Context Packet missing ${anchor}`).toContain(

@@ -151,9 +151,10 @@ describe("Subagent report schemas", () => {
         const fieldSources = SUBAGENT_REPORT_FIELD_SOURCES[agent];
 
         for (const key of requiredTopLevelKeys(schema)) {
-          expect(fieldSources, `${agent} missing field source for ${key}`).toHaveProperty(
-            key,
-          );
+          expect(
+            fieldSources,
+            `${agent} missing field source for ${key}`,
+          ).toHaveProperty(key);
         }
       });
 

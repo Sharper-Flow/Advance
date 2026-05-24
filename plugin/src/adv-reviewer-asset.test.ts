@@ -331,12 +331,18 @@ describe("adv-reviewer agent asset", () => {
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
 
     const scannerPackets = [
-      firstFencedBlock(sectionAfterHeading(review, "Review Scanner Context Packet")),
-      firstFencedBlock(sectionAfterHeading(harden, "Harden Scanner Context Packet")),
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Scanner Context Packet"),
+      ),
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Scanner Context Packet"),
+      ),
     ];
 
     for (const packet of scannerPackets) {
-      expect(packet).toContain("EXPECTED OUTPUT: {dimension-specific JSON schema}");
+      expect(packet).toContain(
+        "EXPECTED OUTPUT: {dimension-specific JSON schema}",
+      );
       expect(packet).not.toContain("adv_subagent_report_submit");
       expect(packet).not.toContain("ENGINEER_REPORT");
       expect(packet).not.toContain("REVIEWER_REPORT");
@@ -349,12 +355,16 @@ describe("adv-reviewer agent asset", () => {
     const reviewerAnchors = getSubagentReportPacketAnchors("adv-reviewer");
 
     expectPacketAnchors(
-      firstFencedBlock(sectionAfterHeading(review, "Review Reviewer Remediation Packet")),
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+      ),
       reviewerAnchors,
       "Review Reviewer Remediation Packet",
     );
     expectPacketAnchors(
-      firstFencedBlock(sectionAfterHeading(harden, "Harden Reviewer Remediation Packet")),
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+      ),
       reviewerAnchors,
       "Harden Reviewer Remediation Packet",
     );
@@ -366,12 +376,16 @@ describe("adv-reviewer agent asset", () => {
     const engineerAnchors = getSubagentReportPacketAnchors("adv-engineer");
 
     expectPacketAnchors(
-      firstFencedBlock(sectionAfterHeading(review, "Review Engineer Remediation Packet")),
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Engineer Remediation Packet"),
+      ),
       engineerAnchors,
       "Review Engineer Remediation Packet",
     );
     expectPacketAnchors(
-      firstFencedBlock(sectionAfterHeading(harden, "Harden Engineer Remediation Packet")),
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Engineer Remediation Packet"),
+      ),
       engineerAnchors,
       "Harden Engineer Remediation Packet",
     );
