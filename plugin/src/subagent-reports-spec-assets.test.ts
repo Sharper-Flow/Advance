@@ -31,6 +31,7 @@ describe("subagent reports spec assets", () => {
       "rq-subagentReports02",
       "rq-subagentReports03",
       "rq-subagentReports04",
+      "rq-subagentReports05",
     ]);
   });
 
@@ -60,5 +61,23 @@ describe("subagent reports spec assets", () => {
     expect(JSON.stringify(requirement)).toContain(
       "persists to task.subagent_reports[]",
     );
+  });
+
+  test("subagent-reports law pins strict packet anchors and scanner lane separation", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const requirement = spec.requirements.find(
+      (req) => req.id === "rq-subagentReports05",
+    );
+    expect(requirement).toBeDefined();
+
+    const text = JSON.stringify(requirement);
+    for (const anchor of ["TASK", "PHASE", "ATTEMPT"]) {
+      expect(text).toContain(anchor);
+    }
+    expect(text).toContain("adv-engineer");
+    expect(text).toContain("adv-reviewer");
+    expect(text).toContain("scanner");
+    expect(text).toContain("worker");
+    expect(text).toContain("INVALID_REPORT");
   });
 });

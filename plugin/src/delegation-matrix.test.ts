@@ -86,6 +86,13 @@ interface DelegatedSubstep {
   name: string;
   mode: DelegatedSubstepMode;
   allowedAgents: string[];
+  packetContracts?: PacketContract[];
+}
+
+interface PacketContract {
+  agent: string;
+  reportTransport: string;
+  requiredPacketAnchors: string[];
 }
 
 interface DelegationMatrixEntry {
@@ -98,6 +105,11 @@ interface DelegationMatrixEntry {
     name: string;
     mode: string;
     allowed_subagents: string[];
+    packet_contracts?: {
+      agent: string;
+      report_transport: string;
+      required_packet_anchors: string[];
+    }[];
   }[];
 }
 
@@ -135,6 +147,11 @@ function loadDelegationMatrix(): MatrixRow[] {
       name: substep.name,
       mode: substep.mode as DelegatedSubstepMode,
       allowedAgents: substep.allowed_subagents,
+      packetContracts: substep.packet_contracts?.map((contract) => ({
+        agent: contract.agent,
+        reportTransport: contract.report_transport,
+        requiredPacketAnchors: contract.required_packet_anchors,
+      })),
     })),
   }));
 }
@@ -228,6 +245,28 @@ function expectSubstep(
       }),
     ]),
   );
+}
+
+function expectPacketContract(
+  row: MatrixRow,
+  substepName: string,
+  agent: string,
+  reportTransport: string,
+  requiredPacketAnchors: string[],
+): void {
+  const substep = row.delegatedSubsteps?.find(
+    (candidate) => candidate.name === substepName,
+  );
+  expect(substep, `${row.step}/${substepName} must exist`).toBeDefined();
+  const contract = substep?.packetContracts?.find(
+    (candidate) => candidate.agent === agent,
+  );
+  expect(
+    contract,
+    `${row.step}/${substepName} must define packet contract for ${agent}`,
+  ).toBeDefined();
+  expect(contract?.reportTransport).toBe(reportTransport);
+  expect(contract?.requiredPacketAnchors).toEqual(requiredPacketAnchors);
 }
 
 describe("delegation matrix coverage", () => {
@@ -424,6 +463,63 @@ describe("delegation matrix coverage", () => {
       "Hardening Remediation Fixes",
       "delegate_allowed",
       ["adv-reviewer", "adv-engineer"],
+    );
+  });
+
+  // rq-delDefaults05: scanner lanes and typed worker lanes have different packet contracts
+  test("delegated scanner and worker lanes pin report transport and packet anchors", () => {
+    const rows = Object.fromEntries(
+      EXPECTED_MATRIX.map((row) => [row.step, row]),
+    );
+
+    expectPacketContract(
+      rows.apply,
+      "Context-Shed Implementation",
+      "adv-engineer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+    );
+    expectPacketContract(
+      rows.review,
+      "Scoped Evidence Scan",
+      "explore",
+      "non_persisted_scanner",
+      ["WORKING DIRECTORY", "CHANGE", "ATTEMPT"],
+    );
+    expectPacketContract(
+      rows.review,
+      "Review Remediation Fixes",
+      "adv-reviewer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
+    );
+    expectPacketContract(
+      rows.review,
+      "Review Remediation Fixes",
+      "adv-engineer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+    );
+    expectPacketContract(
+      rows.harden,
+      "Six-Scanner Hardening Pass",
+      "explore",
+      "non_persisted_scanner",
+      ["WORKING DIRECTORY", "CHANGE", "ATTEMPT"],
+    );
+    expectPacketContract(
+      rows.harden,
+      "Hardening Remediation Fixes",
+      "adv-reviewer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
+    );
+    expectPacketContract(
+      rows.harden,
+      "Hardening Remediation Fixes",
+      "adv-engineer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
     );
   });
 

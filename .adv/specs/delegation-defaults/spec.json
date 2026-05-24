@@ -4,7 +4,7 @@
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
   "version": "1.0.0",
-  "updated_at": "2026-05-22T00:00:00.000Z",
+  "updated_at": "2026-05-24T00:00:00.000Z",
   "delegation_matrix": [
     {
       "step": "proposal",
@@ -48,7 +48,18 @@
       "allowed_subagents": ["adv-engineer", "general"],
       "inline_boundaries": ["task selection", "ADV state mutation", "scope-drift handling", "TDD evidence acceptance", "task completion"],
       "delegated_substeps": [
-        { "name": "Context-Shed Implementation", "mode": "delegate_allowed", "allowed_subagents": ["adv-engineer"] },
+        {
+          "name": "Context-Shed Implementation",
+          "mode": "delegate_allowed",
+          "allowed_subagents": ["adv-engineer"],
+          "packet_contracts": [
+            {
+              "agent": "adv-engineer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"]
+            }
+          ]
+        },
         { "name": "Verify-Only Burst", "mode": "delegate_allowed", "allowed_subagents": ["general"] }
       ]
     },
@@ -60,8 +71,35 @@
       "inline_boundaries": ["finding verdict synthesis", "user acceptance", "ADV state mutation", "scope-drift handling"],
       "delegated_substeps": [
         { "name": "Independent Review Analysis", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer"] },
-        { "name": "Scoped Evidence Scan", "mode": "delegate_allowed", "allowed_subagents": ["explore"] },
-        { "name": "Review Remediation Fixes", "mode": "delegate_allowed", "allowed_subagents": ["adv-reviewer", "adv-engineer"] },
+        {
+          "name": "Scoped Evidence Scan",
+          "mode": "delegate_allowed",
+          "allowed_subagents": ["explore"],
+          "packet_contracts": [
+            {
+              "agent": "explore",
+              "report_transport": "non_persisted_scanner",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "ATTEMPT"]
+            }
+          ]
+        },
+        {
+          "name": "Review Remediation Fixes",
+          "mode": "delegate_allowed",
+          "allowed_subagents": ["adv-reviewer", "adv-engineer"],
+          "packet_contracts": [
+            {
+              "agent": "adv-reviewer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"]
+            },
+            {
+              "agent": "adv-engineer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"]
+            }
+          ]
+        },
         { "name": "Non-Trivial Fix Research", "mode": "delegate_allowed", "allowed_subagents": ["adv-researcher"] }
       ]
     },
@@ -72,8 +110,35 @@
       "allowed_subagents": ["adv-reviewer", "adv-engineer", "explore"],
       "inline_boundaries": ["readiness verdict synthesis", "release decision", "ADV state mutation", "scope-drift handling"],
       "delegated_substeps": [
-        { "name": "Six-Scanner Hardening Pass", "mode": "subagent_primary", "allowed_subagents": ["adv-reviewer", "explore"] },
-        { "name": "Hardening Remediation Fixes", "mode": "delegate_allowed", "allowed_subagents": ["adv-reviewer", "adv-engineer"] }
+        {
+          "name": "Six-Scanner Hardening Pass",
+          "mode": "subagent_primary",
+          "allowed_subagents": ["adv-reviewer", "explore"],
+          "packet_contracts": [
+            {
+              "agent": "explore",
+              "report_transport": "non_persisted_scanner",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "ATTEMPT"]
+            }
+          ]
+        },
+        {
+          "name": "Hardening Remediation Fixes",
+          "mode": "delegate_allowed",
+          "allowed_subagents": ["adv-reviewer", "adv-engineer"],
+          "packet_contracts": [
+            {
+              "agent": "adv-reviewer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"]
+            },
+            {
+              "agent": "adv-engineer",
+              "report_transport": "typed_persisted_worker",
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"]
+            }
+          ]
+        }
       ]
     },
     {
@@ -250,7 +315,7 @@
     {
       "id": "rq-delDefaults05",
       "title": "Typed and Persisted Worker Reports",
-      "body": "Sub-agents used in ADV delegation MUST provide typed, ingest-validated, durable reports. adv-engineer and adv-reviewer reports MUST be submitted through adv_subagent_report_submit and persisted on task.subagent_reports[]; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. Future sub-agent additions MUST include these 4 field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
+      "body": "Delegated worker lanes that produce ADV task evidence MUST provide typed, ingest-validated, durable reports. adv-engineer and adv-reviewer worker reports MUST be submitted through adv_subagent_report_submit and persisted on task.subagent_reports[]; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. Worker packet contracts MUST pin schema-derived anchors: TASK and ATTEMPT for typed workers, plus PHASE for adv-reviewer. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Future persisted worker additions MUST include these 4 field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
       "priority": "must",
       "tags": ["delegation", "reports", "structured-output"],
       "scenarios": [
@@ -268,6 +333,17 @@
         },
         {
           "id": "rq-delDefaults05.2",
+          "title": "Matrix pins scanner and worker packet contracts",
+          "given": ["A delegated sub-step uses a typed persisted worker or a scanner worker"],
+          "when": "The delegation matrix row is evaluated",
+          "then": [
+            "typed_persisted_worker packet contracts include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
+            "adv-reviewer typed_persisted_worker packet contracts also include PHASE",
+            "non_persisted_scanner packet contracts include WORKING DIRECTORY, CHANGE, and ATTEMPT without adv_subagent_report_submit persistence"
+          ]
+        },
+        {
+          "id": "rq-delDefaults05.3",
           "title": "Future agents must include structured reports",
           "given": ["A new sub-agent is added to the ADV system"],
           "when": "The agent's report schema is evaluated",
