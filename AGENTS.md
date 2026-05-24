@@ -5,7 +5,7 @@
 
 ## Repository Layout
 
-This is an OpenCode plugin repo, not a monorepo. All buildable code lives in `plugin/`.
+This is an OpenCode plugin repo, not a monorepo. All supported buildable code lives in `plugin/`. `acp-mux/` is an archived ACP experiment kept for reference only; do not treat it as a supported package, release surface, or current install path until upstream OpenCode ACP blockers are fixed.
 
 ```
 plugin/              # TypeScript plugin (the only buildable package)
@@ -29,6 +29,7 @@ plugin/              # TypeScript plugin (the only buildable package)
 skills/              # Bundled methodology skills synced to ~/.config/opencode/skills/
 scripts/             # deploy-local.sh (main), migrate-openspec.ts, recover-db.js, model-blind-test
 docs/                # Gate contracts, workflow diagram, checklists, spec docs
+acp-mux/             # Archived ACP experiment; reference only, not supported/released
 ```
 
 ## Development Commands
