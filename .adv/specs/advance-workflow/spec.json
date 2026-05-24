@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.12.0",
-  "updated_at": "2026-05-23T00:00:00.000Z",
+  "version": "1.12.1",
+  "updated_at": "2026-05-24T04:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -2278,13 +2278,26 @@
             "Execute paths contain only defensive safety checks needed for bypass resilience",
             "Preflight and execute behavior do not diverge for placeholder-sensitive fields"
           ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.5",
+          "title": "Strict-mode optional fields normalize blanks to omitted",
+          "given": [
+            "A strict-mode provider sends adv_change_create with optional fields filled with blank strings or zero"
+          ],
+          "when": "Tool argument preflight runs",
+          "then": [
+            "Blank optional fields are normalized to omitted",
+            "The invocation succeeds with normalizedArgs",
+            "Required-when-present fields still reject blank values"
+          ]
         }
       ]
     },
     {
       "id": "rq-toolArgBlankArtifactLinkage01",
       "title": "Blank Artifact and Linkage Mutation Arguments",
-      "body": "ADV mutation tools MUST reject provided blank or whitespace-only strings for fields that write durable narrative artifacts or origin linkage metadata. For adv_change_update this applies to proposal, problemStatement, agreement, design, and executiveSummary, including mixed payloads where another artifact field is non-blank. For adv_change_create this applies to provided narrative artifact fields and origin_source_artifact. Omitted fields preserve existing omission/default semantics. Rejection MUST occur before writes or workflow signals, name every offending field, and tell callers to omit fields they do not intend to change. Storage artifact write boundaries MUST also reject blank artifact content so bypassing preflight cannot erase an artifact.",
+      "body": "ADV mutation tools MUST normalize provided blank or whitespace-only strings to omitted for fields that write durable narrative artifacts or origin linkage metadata. Required-when-present audit, evidence, and identity fields MUST still reject blank values. For adv_change_update this applies to proposal, problemStatement, agreement, design, and executiveSummary, including mixed payloads where another artifact field is non-blank. For adv_change_create this applies to provided narrative artifact fields and origin_source_artifact. Omitted fields preserve existing omission/default semantics. Normalization MUST occur before writes or workflow signals. Storage artifact write boundaries MUST also reject blank artifact content so bypassing preflight cannot erase an artifact.",
       "priority": "must",
       "tags": [
         "tools",
@@ -2295,15 +2308,15 @@
       "scenarios": [
         {
           "id": "rq-toolArgBlankArtifactLinkage01.1",
-          "title": "Mixed update payload rejects blank artifact field",
+          "title": "Mixed update payload normalizes blank field to omitted; only writes provided non-blank artifacts",
           "given": [
             "adv_change_update receives a payload with proposal: 'real content' and design: ''"
           ],
           "when": "The tool invocation is validated",
           "then": [
-            "The invocation fails before writes or workflow signals",
-            "The response names design as an offending field",
-            "The response tells the caller to omit fields not intended to change"
+            "design is normalized to omitted",
+            "The invocation succeeds",
+            "Only proposal is written"
           ]
         },
         {
@@ -2320,14 +2333,14 @@
         },
         {
           "id": "rq-toolArgBlankArtifactLinkage01.3",
-          "title": "Create rejects blank provided narrative artifacts",
+          "title": "Create normalizes blank provided narrative artifacts to omitted",
           "given": [
             "adv_change_create receives agreement: '   '"
           ],
           "when": "The create invocation is validated",
           "then": [
-            "The invocation fails before the change workflow is started",
-            "The response names agreement as an offending field",
+            "agreement is normalized to omitted",
+            "The invocation succeeds",
             "Omitted narrative artifact fields still use create defaults or skip behavior"
           ]
         },
@@ -2345,14 +2358,26 @@
         },
         {
           "id": "rq-toolArgBlankArtifactLinkage01.5",
-          "title": "Blank origin source artifact is invalid when provided",
+          "title": "Blank origin source artifact is normalized to omitted",
           "given": [
             "adv_change_create receives origin_source_artifact: '   '"
           ],
           "when": "The create invocation is validated",
           "then": [
-            "The invocation fails before the change workflow is started",
-            "The response names origin_source_artifact as an offending field"
+            "origin_source_artifact is normalized to omitted",
+            "The invocation succeeds"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.6",
+          "title": "Required-when-present audit fields still reject blank",
+          "given": [
+            "adv_change_update receives confirmationEvidence: ''"
+          ],
+          "when": "The update invocation is validated",
+          "then": [
+            "The invocation fails before writes or workflow signals",
+            "The response names confirmationEvidence as an offending field"
           ]
         }
       ]

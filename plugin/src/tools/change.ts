@@ -258,6 +258,11 @@ function buildSyntheticValidationDraftError(
   };
 }
 
+// Defensive bypass-resilience guard. Preflight in tool-arg-preflight.ts now
+// normalizes blank artifact / origin_source_artifact placeholders to omitted
+// before tool execution (rq-toolPlaceholderPolicy01.5), so this guard is a
+// no-op on the normal preflighted path. It remains active for direct
+// callers that bypass preflight (e.g. legacy or test harnesses).
 function collectBlankCreateArtifactOrLinkageFields(input: {
   proposal?: string;
   problemStatement?: string;
@@ -283,6 +288,13 @@ function collectBlankCreateArtifactOrLinkageFields(input: {
     .map(({ field }) => field);
 }
 
+// Defensive bypass-resilience guard. Preflight in tool-arg-preflight.ts now
+// normalizes blank-string and zero placeholders for origin_issue_number /
+// origin_source_artifact to omitted before tool execution
+// (rq-toolPlaceholderPolicy01.5). This function therefore no-ops for
+// strict-mode-style placeholder fills, but remains active for non-strict
+// callers that emit real origin-matrix violations (e.g. roadmap origin
+// without origin_issue_number, adhoc origin with linkage fields).
 function validateCreateOriginLinkage(input: {
   origin_kind?: ChangeOrigin["kind"];
   origin_issue_number?: number;

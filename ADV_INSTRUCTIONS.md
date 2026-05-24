@@ -285,6 +285,8 @@ Peer-session visibility (`adv_status`, `adv_session_list`) assumes same project 
 - `adv_gate_complete` — planning gate requires `userApproved: true`. Other gates accept the flag but only planning enforces it.
 - Tool `describe()` text documents relational constraints (which other tool to call first, at-least-one-of patterns, valid enum values). Read field descriptions before constructing calls.
 
+**Strict-mode tolerance.** OpenAI Responses API (GPT-5 / reasoning models) auto-applies `strict: true`, causing placeholder fills (`""`, `0`, `[]`) in every optional field. Preflight normalizes these automatically: optional content, path, and lineage blanks are omitted, and `origin_issue_number: 0` is treated as omitted. Required-when-present audit, evidence, reason, command, branch, and identity fields still reject blanks. This is a safety-net workaround for Vercel AI SDK issue #12200. Agents should still aim to omit fields they do not intend to set.
+
 ### Question Tool UX
 
 Write-in option enforced by P26 (`rules.yaml`). ADV notes:

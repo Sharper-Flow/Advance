@@ -140,6 +140,8 @@ Invoke ADV tools with explicit required args — never with empty parameter sets
 - `adv_task_cancel` — all `taskIds` must exist in the same change. Cancellations are atomic: if any ID is unknown, no task is cancelled.
 - Read each tool's field `describe()` text before constructing calls — it documents relational constraints (source-of-truth tool, at-least-one-of patterns, valid enum values).
 
+**Strict-mode tolerance.** OpenAI Responses API (GPT-5 / reasoning models) auto-applies `strict: true`, causing placeholder fills (`""`, `0`, `[]`) in every optional parameter. Preflight normalizes these automatically: optional content, path, and lineage blanks are omitted, and `origin_issue_number: 0` is treated as omitted. Required-when-present audit, evidence, reason, command, branch, and identity fields still reject blanks. This is a safety-net workaround for Vercel AI SDK issue #12200. Agents should still aim to omit fields they do not intend to set.
+
 See `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` for the full protocol.
 
 ### Overlay sync model
