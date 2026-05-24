@@ -1,0 +1,1 @@
+Deploy-local tool drift validation treats every registered ADV tool as required for primary orchestrators. This incorrectly flags `adv_subagent_report_submit`, a leaf-subagent report submission tool, as missing from `adv.md` and `adv-atc.md`. The false warning undermines deploy validation and tempts incorrect allowlist expansion.
