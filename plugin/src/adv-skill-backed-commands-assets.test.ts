@@ -548,11 +548,14 @@ describe("thin-command shape enforcement", () => {
     expect(review).toContain("Preview URL");
     expect(review).toContain("reachability evidence");
     expect(review).toContain("contract.reviewMatrix");
-    expect(review).toContain("live");
-    expect(review).toContain("not_applicable");
-    expect(review).toContain("blocked");
+    expect(review).toContain("`live` | `visual_surface: true`");
+    expect(review).toContain("Preview URL: not_applicable");
+    expect(review).toContain("Preview URL: blocked");
     expect(review).toContain("Do not fabricate URLs");
     expect(review).toContain("bare unverified URL");
+    expect(review).toContain("Sanitize URLs");
+    expect(review).toContain("Do not perform arbitrary HTTP probing");
+    expect(review).toContain("visual-surface drift");
 
     const previewIdx = review.indexOf("Preview URL");
     const checkpointIdx = review.indexOf("Inline Approval prompt");
