@@ -679,8 +679,13 @@ describe("advisory line ceiling baselines", () => {
     const warnThreshold = 650;
     // 2026-05-03: bumped from 925 → 950 to accommodate intentional
     // long-term-practice rule docs plus multi-session coordination docs.
+    // 2026-05-24: bumped 950 → 960 (softenStrictModeOptionals AC10) to
+    // accommodate the strict-mode tolerance note in § ADV MCP Tool
+    // Invocation. The paragraph documents provider-asymmetric preflight
+    // normalization behavior that future maintainers need to see; it cites
+    // Vercel AI SDK #12200 inline.
     // Ratchet up only when adding intentional documented content.
-    const failThreshold = 950;
+    const failThreshold = 960;
 
     if (lines > warnThreshold) {
       console.warn(

@@ -42,11 +42,12 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     ok: true,
   },
   {
-    // T1 (rq-toolPlaceholderPolicy01.5): origin_issue_number: 0 now normalizes
-    // out via { zero: "omit" } policy, so it is no longer surfaced as a field
-    // error. The blank origin_source_artifact is still rejected by the
-    // cross-field validator at this point (T2 will flip that to blank: "omit").
-    label: "ad hoc normalizes zero issue number; blank source artifact still rejected (T1 state)",
+    // T2 (rq-toolPlaceholderPolicy01.5 + rq-toolArgBlankArtifactLinkage01.5
+    // revised): strict-mode GPT payload — origin_issue_number: 0 normalizes
+    // via { zero: "omit" }, origin_source_artifact: "" normalizes via
+    // { blank: "omit" }. Cross-field origin matrix sees only origin_kind:
+    // "adhoc" and accepts. THIS IS THE BUG FIX.
+    label: "ad hoc normalizes zero issue number and blank source artifact (strict-mode GPT payload)",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: {
@@ -55,16 +56,21 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       origin_issue_number: 0,
       origin_source_artifact: "",
     },
-    ok: false,
-    fields: ["origin_source_artifact"],
+    ok: true,
+    normalizedArgs: {
+      summary: "Add placeholder guard",
+      origin_kind: "adhoc",
+    },
   },
   {
-    label: "blank create artifact rejected",
+    // T2 (rq-toolArgBlankArtifactLinkage01.3 revised): blank design normalizes
+    // to omitted; proposal is written; design artifact stays untouched.
+    label: "blank create artifact normalizes to omitted",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: { summary: "Add artifact guard", proposal: "valid", design: " " },
-    ok: false,
-    fields: ["design"],
+    ok: true,
+    normalizedArgs: { summary: "Add artifact guard", proposal: "valid" },
   },
   {
     label: "roadmap requires issue number",
@@ -111,12 +117,15 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["origin_issue_number"],
   },
   {
-    label: "blank target path rejected",
+    // T2 (rq-toolPlaceholderPolicy01.5): blank target_path now normalizes to
+    // omitted via { blank: "omit" } policy. The change creates as if no
+    // target_path was sent.
+    label: "blank target path normalizes to omitted",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: { summary: "Add target path guard", target_path: " " },
-    ok: false,
-    fields: ["target_path"],
+    ok: true,
+    normalizedArgs: { summary: "Add target path guard" },
   },
   {
     label: "source linkage requires target path",
@@ -127,7 +136,10 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["source_change_id"],
   },
   {
-    label: "blank source project rejected even with target path",
+    // T2: blank source_project normalizes to omitted. With target_path set,
+    // the cross-field source_project-requires-target check no longer fires
+    // (source_project was stripped). This is the GPT-correct outcome.
+    label: "blank source project normalizes to omitted (target path retained)",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: {
@@ -135,11 +147,16 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       target_path: "/repo/target",
       source_project: " ",
     },
-    ok: false,
-    fields: ["source_project"],
+    ok: true,
+    normalizedArgs: {
+      summary: "Add source guard",
+      target_path: "/repo/target",
+    },
   },
   {
-    label: "blank source change rejected even with target path",
+    // T2: blank source_change_id normalizes to omitted. Same rationale as
+    // source_project above.
+    label: "blank source change normalizes to omitted (target path retained)",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: {
@@ -147,8 +164,11 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       target_path: "/repo/target",
       source_change_id: " ",
     },
-    ok: false,
-    fields: ["source_change_id"],
+    ok: true,
+    normalizedArgs: {
+      summary: "Add source guard",
+      target_path: "/repo/target",
+    },
   },
   {
     label: "parent sentinel rejected",
@@ -195,11 +215,12 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["completedBy"],
   },
   {
-    label: "blank gate notes rejected",
+    // T2: gate notes are optional-descriptive — blank normalizes to omitted.
+    label: "blank gate notes normalize to omitted",
     toolName: "adv_gate_complete",
-    rawArgs: { notes: " " },
-    ok: false,
-    fields: ["notes"],
+    rawArgs: { changeId: "c", gateId: "design", notes: " " },
+    ok: true,
+    normalizedArgs: { changeId: "c", gateId: "design" },
   },
   {
     label: "blank approval evidence rejected",
@@ -258,18 +279,20 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     fields: ["recoveryEvidence"],
   },
   {
-    label: "blank target path rejected for target-aware read tool",
+    // T2: target_path is optional on read tools — blank normalizes to omitted.
+    label: "blank target path normalizes to omitted on read tools",
     toolName: "adv_change_show",
     rawArgs: { changeId: "c", target_path: " " },
-    ok: false,
-    fields: ["target_path"],
+    ok: true,
+    normalizedArgs: { changeId: "c" },
   },
   {
-    label: "blank target path rejected for target-aware mutation tool",
+    // T2: target_path is optional on mutation tools too — blank normalizes.
+    label: "blank target path normalizes to omitted on mutation tools",
     toolName: "adv_task_update",
     rawArgs: { taskId: "tk-1", status: "done", target_path: " " },
-    ok: false,
-    fields: ["target_path"],
+    ok: true,
+    normalizedArgs: { taskId: "tk-1", status: "done" },
   },
   {
     label: "blank target confirmation evidence rejected",
@@ -411,11 +434,12 @@ describe("tool arg preflight", () => {
       { changeId: "c", gateId: "design", completedBy: " " },
       "completedBy",
     ],
-    [
-      "adv_gate_complete",
-      { changeId: "c", gateId: "design", target_path: " " },
-      "target_path",
-    ],
+    // T2: adv_gate_complete.target_path, adv_gate_complete.notes,
+    // adv_gate_complete.compatibilityReason flipped to blank: "omit".
+    // adv_run_test.target_path, adv_status.target_path,
+    // adv_temporal_reconnect.target_path, adv_contract_mint.{approvedAt,target_path}
+    // similarly flipped. Coverage of the omit semantics for these fields
+    // lives in `normalizes representative blank placeholder` below.
     ["adv_worktree_create", { branch: " " }, "branch"],
     ["adv_worktree_resume", { changeId: " " }, "changeId"],
     ["adv_worktree_delete", { branch: " " }, "branch"],
@@ -423,15 +447,6 @@ describe("tool arg preflight", () => {
     ["adv_conformance", { action: "unlock", user: " " }, "user"],
     ["adv_agenda_add", { title: " " }, "title"],
     ["adv_agenda_cancel", { itemId: "ag-1", reason: " " }, "reason"],
-    ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
-    ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
-    [
-      "adv_run_test",
-      { taskId: "tk-1", command: "test", target_path: " " },
-      "target_path",
-    ],
-    ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
-    ["adv_status", { target_path: " " }, "target_path"],
     [
       "adv_temporal_register_search_attributes",
       { approvedByUser: true, approvalEvidence: " " },
@@ -446,6 +461,75 @@ describe("tool arg preflight", () => {
         field,
         message: `${field} must be a non-blank string.`,
       });
+    },
+  );
+
+  // T2 (rq-toolPlaceholderPolicy01.5): flipped-to-omit optional fields.
+  // Coverage that these fields are NORMALIZED rather than rejected.
+  test.each([
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", target_path: " " },
+      "target_path",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", notes: " " },
+      "notes",
+    ],
+    [
+      "adv_gate_complete",
+      { changeId: "c", gateId: "design", compatibilityReason: " " },
+      "compatibilityReason",
+    ],
+    [
+      "adv_contract_mint",
+      { changeId: "c", approvedAt: " " },
+      "approvedAt",
+    ],
+    [
+      "adv_contract_mint",
+      { changeId: "c", target_path: " " },
+      "target_path",
+    ],
+    [
+      "adv_run_test",
+      { taskId: "tk-1", command: "test", target_path: " " },
+      "target_path",
+    ],
+    ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
+    ["adv_status", { target_path: " " }, "target_path"],
+    [
+      "adv_agenda_add",
+      { title: "real", description: " " },
+      "description",
+    ],
+    [
+      "adv_agenda_add",
+      { title: "real", category: " " },
+      "category",
+    ],
+    [
+      "adv_change_close",
+      {
+        changeId: "c",
+        reason: "cancelled",
+        approvedByUser: true,
+        approvalEvidence: "ok",
+        supersededBy: " ",
+      },
+      "supersededBy",
+    ],
+  ])(
+    "normalizes blank placeholder to omitted for %s.%s",
+    (toolName, rawArgs, field) => {
+      const result = preflightToolArgs(toolName, {}, rawArgs);
+      // Field must be normalized OUT — not present in normalizedArgs.
+      expect(result.normalizedArgs).not.toHaveProperty(field);
+      // No reject error fires for this specific field.
+      expect(
+        result.invalid.find((i) => i.field === field && /must be a non-blank/.test(i.message)),
+      ).toBeUndefined();
     },
   );
 
@@ -509,7 +593,7 @@ describe("tool arg preflight", () => {
     expect(output.error).not.toContain("timeout");
   });
 
-  test("enforces adv_change_update artifact cross-field constraints", () => {
+  test("enforces adv_change_update artifact cross-field constraints (post-T2 omit semantics)", () => {
     const schema = {
       changeId: z.string(),
       proposal: z.string().optional(),
@@ -518,20 +602,27 @@ describe("tool arg preflight", () => {
       design: z.string().optional(),
     };
 
+    // No artifact provided at all → at-least-one-of guard fires.
     expect(
       validateToolArgsBeforeExecute("adv_change_update", schema, {
         changeId: "abc",
       }).invalid[0]?.message,
     ).toContain("At least one artifact field");
 
+    // T2 (rq-toolArgBlankArtifactLinkage01.1 revised): all blanks normalize
+    // to omitted; the at-least-one-of guard then fires because no artifact
+    // survived normalization. Result: same error message as "no artifact
+    // provided" — semantically correct ("you didn't send anything to
+    // change").
     expect(
       validateToolArgsBeforeExecute("adv_change_update", schema, {
         changeId: "abc",
         proposal: "",
         agreement: "   ",
       }).invalid[0]?.message,
-    ).toContain("non-blank strings");
+    ).toContain("At least one artifact field");
 
+    // Valid case unchanged: real content → ok.
     expect(
       validateToolArgsBeforeExecute("adv_change_update", schema, {
         changeId: "abc",
@@ -539,6 +630,9 @@ describe("tool arg preflight", () => {
       }).ok,
     ).toBe(true);
 
+    // T2 (GPT-style mixed payload): blank artifact normalizes out; the
+    // non-blank artifact remains. Result: ok: true with only the real
+    // artifact in normalizedArgs.
     const mixedBlank = validateToolArgsBeforeExecute(
       "adv_change_update",
       schema,
@@ -548,14 +642,11 @@ describe("tool arg preflight", () => {
         design: "",
       },
     );
-    expect(mixedBlank.ok).toBe(false);
-    expect(mixedBlank.invalid).toEqual([
-      {
-        field: "design",
-        message:
-          "Provided artifact fields must be non-blank strings; omit fields you do not want to change.",
-      },
-    ]);
+    expect(mixedBlank.ok).toBe(true);
+    expect(mixedBlank.normalizedArgs).toEqual({
+      changeId: "abc",
+      proposal: "real content",
+    });
 
     // fixWarpSessionLookup regression: executiveSummary must be recognized
     // as a valid artifact field (see plugin/src/utils/tool-arg-preflight.ts
@@ -598,6 +689,9 @@ describe("tool arg preflight", () => {
       }).ok,
     ).toBe(true);
 
+    // T2 (rq-toolArgBlankArtifactLinkage01.3 revised): blank artifact
+    // normalizes to omitted; create proceeds with only the non-blank
+    // artifact persisted.
     const blankArtifacts = validateToolArgsBeforeExecute(
       "adv_change_create",
       schema,
@@ -607,13 +701,15 @@ describe("tool arg preflight", () => {
         design: " ",
       },
     );
-    expect(blankArtifacts.ok).toBe(false);
-    expect(blankArtifacts.invalid).toContainEqual({
-      field: "design",
-      message:
-        "Provided artifact fields must be non-blank strings; omit fields you do not want to change.",
+    expect(blankArtifacts.ok).toBe(true);
+    expect(blankArtifacts.normalizedArgs).toEqual({
+      summary: "Add blank guard",
+      proposal: "valid",
     });
 
+    // T2 (rq-toolArgBlankArtifactLinkage01.5 revised): blank
+    // origin_source_artifact normalizes to omitted. Triage origin recorded
+    // with no source artifact metadata; cross-field validator accepts.
     const blankSource = validateToolArgsBeforeExecute(
       "adv_change_create",
       schema,
@@ -623,12 +719,13 @@ describe("tool arg preflight", () => {
         origin_source_artifact: "   ",
       },
     );
-    expect(blankSource.invalid).toContainEqual({
-      field: "origin_source_artifact",
-      message:
-        "origin_source_artifact must be a non-blank string; omit it when there is no source artifact.",
+    expect(blankSource.ok).toBe(true);
+    expect(blankSource.normalizedArgs).toEqual({
+      summary: "Promote finding",
+      origin_kind: "triage",
     });
 
+    // Origin matrix violations (non-blank wrong-kind values) still reject.
     const invalidRoadmapSource = validateToolArgsBeforeExecute(
       "adv_change_create",
       schema,
@@ -657,14 +754,15 @@ describe("tool arg preflight", () => {
     );
     expect(validTriage.ok).toBe(true);
 
+    // T2: blank target_path normalizes to omitted.
     const blankTargetPath = validateToolArgsBeforeExecute(
       "adv_change_create",
       schema,
       { summary: "Add target path guard", target_path: "   " },
     );
-    expect(blankTargetPath.invalid).toContainEqual({
-      field: "target_path",
-      message: "target_path must be a non-blank string.",
+    expect(blankTargetPath.ok).toBe(true);
+    expect(blankTargetPath.normalizedArgs).toEqual({
+      summary: "Add target path guard",
     });
 
     const sourceWithoutTarget = validateToolArgsBeforeExecute(
@@ -697,11 +795,14 @@ describe("tool arg preflight", () => {
   });
 
   test("includes canonical minimal payload for adv_change_create repair", () => {
+    // T2: target_path: " " no longer errors (normalized out). Use a payload
+    // that still errors — missing required `summary` — so the canonical
+    // payload diagnostic surfaces.
     const output = JSON.parse(
       formatToolArgPreflightError(
         "adv_change_create",
         { summary: z.string(), target_path: z.string().optional() },
-        { summary: "Add rate limiting", target_path: " " },
+        { target_path: " " },
       ) ?? "{}",
     );
 
@@ -721,6 +822,209 @@ describe("tool arg preflight", () => {
 
     expect(output.received_args.apiKey).toBe("[REDACTED]");
     expect(output.received_args.nested.token).toBe("[REDACTED]");
+  });
+
+  // rq-toolPlaceholderPolicy01.5: GPT strict-mode comprehensive payloads.
+  // These tests exercise the FULL placeholder fill pattern produced by
+  // OpenAI Responses API auto-strict mode (Vercel AI SDK #12200): every
+  // optional field gets a default ("", 0, []) rather than being omitted.
+  describe("GPT strict-mode comprehensive payloads", () => {
+    const CREATE_FULL_SCHEMA = {
+      summary: z.string(),
+      proposal: z.string().optional(),
+      problemStatement: z.string().optional(),
+      agreement: z.string().optional(),
+      design: z.string().optional(),
+      executiveSummary: z.string().optional(),
+      origin_kind: z
+        .enum(["roadmap", "discovery", "triage", "adhoc"])
+        .optional(),
+      origin_issue_number: z.number().int().positive().optional(),
+      origin_source_artifact: z.string().optional(),
+      target_path: z.string().optional(),
+      source_project: z.string().optional(),
+      source_change_id: z.string().optional(),
+      parent_change_id: z.string().optional(),
+      scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
+    };
+
+    test("full GPT create payload normalizes to minimal valid", () => {
+      // Real strict-mode fill: model emits every optional with default.
+      const result = preflightToolArgs(
+        "adv_change_create",
+        CREATE_FULL_SCHEMA,
+        {
+          summary: "Add rate limiting",
+          proposal: "real proposal content",
+          problemStatement: "",
+          agreement: "",
+          design: "",
+          executiveSummary: "",
+          origin_kind: "adhoc",
+          origin_issue_number: 0,
+          origin_source_artifact: "",
+          target_path: "",
+          source_project: "",
+          source_change_id: "",
+          parent_change_id: "",
+          scope_repos: [],
+        },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({
+        summary: "Add rate limiting",
+        proposal: "real proposal content",
+        origin_kind: "adhoc",
+      });
+      expect(result.invalid).toEqual([]);
+      expect(result.missing).toEqual([]);
+    });
+
+    test("full GPT update payload (all artifacts blank) triggers at-least-one-of", () => {
+      const schema = {
+        changeId: z.string(),
+        proposal: z.string().optional(),
+        problemStatement: z.string().optional(),
+        agreement: z.string().optional(),
+        design: z.string().optional(),
+        executiveSummary: z.string().optional(),
+        target_path: z.string().optional(),
+      };
+      const result = preflightToolArgs("adv_change_update", schema, {
+        changeId: "c",
+        proposal: "",
+        problemStatement: "",
+        agreement: "",
+        design: "",
+        executiveSummary: "",
+        target_path: "",
+      });
+      expect(result.ok).toBe(false);
+      expect(result.invalid[0]?.message).toContain(
+        "At least one artifact field must be provided",
+      );
+      // All blanks normalized out.
+      expect(result.normalizedArgs).toEqual({ changeId: "c" });
+    });
+
+    test("mixed GPT update payload normalizes blanks and accepts non-blank", () => {
+      const schema = {
+        changeId: z.string(),
+        proposal: z.string().optional(),
+        problemStatement: z.string().optional(),
+        agreement: z.string().optional(),
+        design: z.string().optional(),
+      };
+      const result = preflightToolArgs("adv_change_update", schema, {
+        changeId: "c",
+        proposal: "real content",
+        problemStatement: "",
+        agreement: "",
+        design: "",
+      });
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({
+        changeId: "c",
+        proposal: "real content",
+      });
+    });
+
+    test("sentinel placeholders still reject even after blank-omit flip", () => {
+      // KD8: sentinels are agent-typed mistakes, not strict-mode artifacts.
+      for (const sentinel of ["none", "n/a", "null", "transcript"]) {
+        const result = preflightToolArgs(
+          "adv_change_create",
+          CREATE_FULL_SCHEMA,
+          { summary: "X", parent_change_id: sentinel },
+        );
+        expect(result.ok, `sentinel "${sentinel}"`).toBe(false);
+        expect(
+          result.invalid.find((i) => i.field === "parent_change_id"),
+          `sentinel "${sentinel}" rejection`,
+        ).toBeDefined();
+      }
+    });
+  });
+
+  // AC12: required-when-present audit/identity/content/command fields keep
+  // blank: "reject" semantics. Parametrized matrix asserts the full
+  // protected set.
+  describe("audit-and-required fields still reject blank (AC12)", () => {
+    test.each([
+      ["adv_task_add", { content: " " }, "content"],
+      ["adv_wisdom_add", { content: " " }, "content"],
+      ["adv_run_test", { taskId: "tk-1", command: " " }, "command"],
+      [
+        "adv_change_close",
+        { changeId: "c", reason: "cancelled", approvedByUser: true, approvalEvidence: " " },
+        "approvalEvidence",
+      ],
+      [
+        "adv_change_bulk_close",
+        {
+          selector: { kind: "ids", changeIds: ["c"] },
+          reason: "cancelled",
+          approvedByUser: true,
+          approvalEvidence: " ",
+        },
+        "approvalEvidence",
+      ],
+      [
+        "adv_task_cancel",
+        { taskIds: ["t"], approvedByUser: true, approvalEvidence: " " },
+        "approvalEvidence",
+      ],
+      [
+        "adv_task_reclassify_tdd",
+        { taskId: "t", toIntent: "inline", reason: " " },
+        "reason",
+      ],
+      [
+        "adv_task_reclassify_tdd",
+        { taskId: "t", toIntent: "inline", approvalEvidence: " " },
+        "approvalEvidence",
+      ],
+      ["adv_gate_complete", { changeId: "c", gateId: "design", completedBy: " " }, "completedBy"],
+      [
+        "adv_gate_complete",
+        { changeId: "c", gateId: "design", confirmationEvidence: " " },
+        "confirmationEvidence",
+      ],
+      ["adv_change_update", { changeId: "c", proposal: "real", confirmationEvidence: " " }, "confirmationEvidence"],
+      ["adv_worktree_create", { branch: " " }, "branch"],
+      ["adv_worktree_create", { branch: "x", base: " " }, "base"],
+      ["adv_worktree_resume", { changeId: " " }, "changeId"],
+      ["adv_worktree_delete", { branch: " " }, "branch"],
+      ["adv_worktree_cleanup", { reason: " " }, "reason"],
+      ["adv_conformance", { action: "unlock", user: " " }, "user"],
+      ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
+      ["adv_agenda_add", { title: " " }, "title"],
+      ["adv_agenda_cancel", { itemId: "a", reason: " " }, "reason"],
+      ["adv_contract_mint", { changeId: "c", recoveryEvidence: " " }, "recoveryEvidence"],
+      ["adv_contract_mint", { changeId: "c", confirmationEvidence: " " }, "confirmationEvidence"],
+      [
+        "adv_contract_review_matrix_set",
+        { changeId: "c", recoveryEvidence: " " },
+        "recoveryEvidence",
+      ],
+      [
+        "adv_temporal_register_search_attributes",
+        { approvedByUser: true, approvalEvidence: " " },
+        "approvalEvidence",
+      ],
+      ["adv_temporal_reconnect", { confirmationEvidence: " " }, "confirmationEvidence"],
+      [
+        "adv_temporal_worker_restart",
+        { approvedLockReclaim: true, approvalEvidence: " " },
+        "approvalEvidence",
+      ],
+    ])("%s.%s blank still rejects", (toolName, rawArgs, field) => {
+      const result = preflightToolArgs(toolName, {}, rawArgs);
+      expect(result.invalid).toContainEqual({
+        field,
+        message: `${field} must be a non-blank string.`,
+      });
+    });
   });
 
   // rq-toolPlaceholderPolicy01.5: zero-policy axis for strict-mode int placeholders.

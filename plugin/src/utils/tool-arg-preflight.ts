@@ -56,10 +56,18 @@ const BLANK_SOURCE_ARTIFACT_MESSAGE =
 // no fs/store/Temporal lookups here.
 const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_create: {
-    target_path: { blank: "reject" },
-    source_project: { blank: "reject" },
-    source_change_id: { blank: "reject" },
-    parent_change_id: { blank: "reject", sentinels: "reject" },
+    // Optional artifact content — strict-mode providers fill with "" defaults.
+    proposal: { blank: "omit" },
+    problemStatement: { blank: "omit" },
+    agreement: { blank: "omit" },
+    design: { blank: "omit" },
+    executiveSummary: { blank: "omit" },
+    // Optional path / lineage / origin metadata.
+    target_path: { blank: "omit" },
+    source_project: { blank: "omit" },
+    source_change_id: { blank: "omit" },
+    parent_change_id: { blank: "omit", sentinels: "reject" },
+    origin_source_artifact: { blank: "omit" },
     scope_repos: { emptyArray: "omit" },
     // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
     // .positive() int placeholders with 0. Normalize to omitted so cross-
@@ -67,128 +75,137 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     origin_issue_number: { zero: "omit" },
   },
   adv_change_list: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
   adv_change_show: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
   adv_change_update: {
-    target_path: { blank: "reject" },
+    // Optional artifact content — strict-mode providers fill with "" defaults.
+    // Cross-field at-least-one-of guard still fires when ALL artifacts are
+    // normalized out.
+    proposal: { blank: "omit" },
+    problemStatement: { blank: "omit" },
+    agreement: { blank: "omit" },
+    design: { blank: "omit" },
+    executiveSummary: { blank: "omit" },
+    target_path: { blank: "omit" },
+    // Audit field — blank assertion is a semantic violation, stay strict.
     confirmationEvidence: { blank: "reject" },
   },
   adv_run_test: {
-    command: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    command: { blank: "reject" }, // required-when-present
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_task_show: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
   adv_task_list: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
   adv_task_ready: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
   adv_task_update: {
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_task_add: {
-    content: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    content: { blank: "reject" }, // required-when-present
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_wisdom_add: {
-    content: { blank: "reject" },
+    content: { blank: "reject" }, // required-when-present
   },
   adv_change_bulk_close: {
-    approvalEvidence: { blank: "reject" },
-    supersededBy: { blank: "reject" },
+    approvalEvidence: { blank: "reject" }, // audit
+    supersededBy: { blank: "omit" }, // optional reference
   },
   adv_change_close: {
-    approvalEvidence: { blank: "reject" },
-    supersededBy: { blank: "reject" },
+    approvalEvidence: { blank: "reject" }, // audit
+    supersededBy: { blank: "omit" }, // optional reference
   },
   adv_task_cancel: {
-    approvalEvidence: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
-    reasons: { recordValuesBlank: "reject" },
-    supersededBy: { recordValuesBlank: "reject" },
+    approvalEvidence: { blank: "reject" }, // audit
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
+    reasons: { recordValuesBlank: "reject" }, // per-task audit
+    supersededBy: { recordValuesBlank: "reject" }, // required-when-present
   },
   adv_task_reclassify_tdd: {
-    reason: { blank: "reject" },
-    approvalEvidence: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    reason: { blank: "reject" }, // audit
+    approvalEvidence: { blank: "reject" }, // audit
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_gate_status: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
   adv_gate_complete: {
-    completedBy: { blank: "reject" },
-    notes: { blank: "reject" },
-    compatibilityReason: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    completedBy: { blank: "reject" }, // audit identity
+    notes: { blank: "omit" }, // optional descriptive
+    compatibilityReason: { blank: "omit" }, // optional descriptive
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_worktree_create: {
-    branch: { blank: "reject" },
-    base: { blank: "reject" },
+    branch: { blank: "reject" }, // required-when-present
+    base: { blank: "reject" }, // required-when-present
   },
   adv_worktree_resume: {
-    changeId: { blank: "reject" },
-    branch: { blank: "reject" },
-    base: { blank: "reject" },
+    changeId: { blank: "reject" }, // required-when-present
+    branch: { blank: "omit" }, // optional (resume by changeId OR branch)
+    base: { blank: "omit" }, // optional
   },
   adv_worktree_delete: {
-    branch: { blank: "reject" },
+    branch: { blank: "reject" }, // required-when-present
   },
   adv_worktree_cleanup: {
-    reason: { blank: "reject" },
+    reason: { blank: "reject" }, // audit
   },
   adv_conformance: {
-    user: { blank: "reject" },
-    reason: { blank: "reject" },
-    spec: { blank: "reject" },
-    artifact_path: { blank: "reject" },
+    user: { blank: "reject" }, // audit identity
+    reason: { blank: "reject" }, // audit
+    spec: { blank: "omit" }, // optional per-action
+    artifact_path: { blank: "omit" }, // optional per-action
   },
   adv_agenda_add: {
-    title: { blank: "reject" },
-    description: { blank: "reject" },
-    category: { blank: "reject" },
+    title: { blank: "reject" }, // required-when-present
+    description: { blank: "omit" }, // optional
+    category: { blank: "omit" }, // optional
   },
   adv_agenda_complete: {
-    notes: { blank: "reject" },
+    notes: { blank: "omit" }, // optional descriptive
   },
   adv_agenda_cancel: {
-    reason: { blank: "reject" },
+    reason: { blank: "reject" }, // audit
   },
   adv_contract_mint: {
-    approvedAt: { blank: "reject" },
-    recoveryEvidence: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    approvedAt: { blank: "omit" }, // optional ISO timestamp
+    recoveryEvidence: { blank: "reject" }, // audit
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_contract_review_matrix_set: {
-    reviewedAt: { blank: "reject" },
-    recoveryEvidence: { blank: "reject" },
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    reviewedAt: { blank: "omit" }, // optional ISO timestamp
+    recoveryEvidence: { blank: "reject" }, // audit
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_temporal_register_search_attributes: {
-    approvalEvidence: { blank: "reject" },
+    approvalEvidence: { blank: "reject" }, // audit
   },
   adv_temporal_reconnect: {
-    target_path: { blank: "reject" },
-    confirmationEvidence: { blank: "reject" },
+    target_path: { blank: "omit" },
+    confirmationEvidence: { blank: "reject" }, // audit
   },
   adv_temporal_worker_restart: {
-    approvalEvidence: { blank: "reject" },
+    approvalEvidence: { blank: "reject" }, // audit
   },
   adv_status: {
-    target_path: { blank: "reject" },
+    target_path: { blank: "omit" },
   },
 };
 
@@ -292,24 +309,14 @@ function applyFieldPolicies(
 const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
   adv_change_create: (args) => {
     const invalid: ToolArgPreflightIssue[] = [];
-    const blankArtifacts = ARTIFACT_FIELDS.filter(
-      (field) => field in args && isBlankProvidedString(args[field]),
-    );
-    invalid.push(
-      ...blankArtifacts.map((field) => ({
-        field,
-        message: BLANK_ARTIFACT_FIELD_MESSAGE,
-      })),
-    );
 
+    // rq-toolArgBlankArtifactLinkage01.1/.3/.5 (revised): blank artifact and
+    // blank origin_source_artifact placeholders are now normalized to omitted
+    // via the FIELD_POLICIES table. This validator only enforces structural
+    // origin-matrix and target/source/parent mutual-exclusion rules on the
+    // post-normalization args view.
     const hasIssueNumber = args.origin_issue_number !== undefined;
     const hasSourceArtifact = args.origin_source_artifact !== undefined;
-    if (isBlankProvidedString(args.origin_source_artifact)) {
-      invalid.push({
-        field: "origin_source_artifact",
-        message: BLANK_SOURCE_ARTIFACT_MESSAGE,
-      });
-    }
 
     const originKind = args.origin_kind;
     const hasTargetPath = args.target_path !== undefined;
@@ -386,6 +393,12 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
     return invalid;
   },
   adv_change_update: (args) => {
+    // rq-toolArgBlankArtifactLinkage01.1 (revised): per-field blank: "omit"
+    // policies normalize each blank artifact to omitted before this validator
+    // runs. The remaining job is to ensure at least one artifact was actually
+    // provided post-normalization — equivalent to "you sent something to
+    // change". Sending all blanks naturally trips this check because every
+    // artifact gets normalized out.
     const provided = ARTIFACT_FIELDS.filter((field) => field in args);
     if (provided.length === 0) {
       return [
@@ -395,34 +408,6 @@ const CROSS_FIELD_VALIDATORS: Record<string, CrossFieldValidator> = {
         },
       ];
     }
-
-    // rq-toolArgBlankArtifactLinkage01: blank provided artifact fields are
-    // invalid even when another artifact field in the same payload is valid.
-    const blank = provided.filter((field) =>
-      isBlankProvidedString(args[field]),
-    );
-    if (blank.length > 0) {
-      return blank.map((field) => ({
-        field,
-        message: BLANK_ARTIFACT_FIELD_MESSAGE,
-      }));
-    }
-
-    const nonEmpty = provided.filter((field) => {
-      const value = args[field];
-      return typeof value === "string" && value.trim().length > 0;
-    });
-
-    if (nonEmpty.length === 0) {
-      return [
-        {
-          field: provided.join("|"),
-          message:
-            "At least one provided artifact field must be a non-empty string; omit fields you do not want to change.",
-        },
-      ];
-    }
-
     return [];
   },
 };
