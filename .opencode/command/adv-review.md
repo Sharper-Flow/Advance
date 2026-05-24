@@ -343,7 +343,7 @@ Verify execution work is complete enough to review. If implementation/execution 
 
 ### Preview URL Proof
 
-Before acceptance summary or **Inline Approval prompt**, determine the preview state from `agreement.md`, task evidence, and implementation evidence:
+Before acceptance summary or acceptance approval prompt, determine the preview state from `agreement.md`, task evidence, and implementation evidence:
 
 | State | Required evidence | Acceptance effect |
 |---|---|---|
