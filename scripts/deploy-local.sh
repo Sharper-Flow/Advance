@@ -547,11 +547,12 @@ PY
 
 # Agent Tool Allowlist Drift Check
 #
-# Cross-references the `adv` agent's `tools:` allowlist in
-# .opencode/agents/adv.md against the plugin's canonical ADV_TOOL_NAMES
-# in plugin/src/tool-registry.ts. Reports tools registered but not allowed
-# (= will be invisible to the agent) and tools allowed but not registered
-# (= stale allowlist entries). Both are build-time-detectable drift causes.
+# Cross-references an agent's `tools:` allowlist against the plugin's
+# canonical ADV_TOOL_NAMES in plugin/src/tool-registry.ts. Reports tools
+# registered but not allowed (= will be invisible to the agent) and tools
+# allowed but not registered (= stale allowlist entries). Both are
+# build-time-detectable drift causes. Primary agents are not required to expose
+# leaf-subagent-only tools.
 # ---------------------------------------------------------------------------
 check_tool_drift() {
 	local agent_file="${1:-$REPO_AGENTS/adv.md}"
@@ -573,7 +574,7 @@ from pathlib import Path
 
 agent_path, registry_path = sys.argv[1], sys.argv[2]
 
-# Extract adv_* keys from YAML frontmatter `tools:` block
+# Extract agent mode and adv_* keys from YAML frontmatter `tools:` block
 agent_text = Path(agent_path).read_text()
 if not agent_text.startswith("---\n"):
     print("    ✗  tool drift: agent file missing YAML frontmatter")
@@ -583,6 +584,13 @@ if end == -1:
     print("    ✗  tool drift: agent file frontmatter not terminated")
     sys.exit(1)
 fm = agent_text[4:end]
+agent_mode = ""
+for line in fm.splitlines():
+    m = re.match(r"^mode\s*:\s*([A-Za-z0-9_-]+)\s*$", line)
+    if m:
+        agent_mode = m.group(1)
+        break
+
 allowed = set()
 in_tools = False
 for line in fm.splitlines():
@@ -606,7 +614,12 @@ if not m:
     sys.exit(1)
 registered = set(re.findall(r'"(adv_[a-z_]+)"', m.group(1)))
 
-missing = sorted(registered - allowed)   # registered but not allowed
+# Leaf subagents submit reports through this tool; primary orchestrators consume
+# those reports via change state instead of submitting reports themselves.
+LEAF_ONLY_TOOLS = {"adv_subagent_report_submit"}
+primary_exemptions = LEAF_ONLY_TOOLS if agent_mode == "primary" else set()
+
+missing = sorted(registered - primary_exemptions - allowed)   # registered but not allowed
 extras = sorted(allowed - registered)    # allowed but not registered
 
 issues = 0
@@ -625,7 +638,8 @@ if extras:
         print(f"         - {t}")
 
 if issues == 0:
-    print(f"    ✓  tool drift: {agent_name} allowlist matches plugin registry ({len(registered)} tools)")
+    required_count = len(registered - primary_exemptions)
+    print(f"    ✓  tool drift: {agent_name} allowlist matches plugin registry ({required_count} tools)")
 
 sys.exit(1 if issues > 0 else 0)
 PY
