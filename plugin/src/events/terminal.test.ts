@@ -139,12 +139,12 @@ describe("tmux rename-window safety", () => {
 
   test("title with BEL and ESC is sanitized before debug logging", async () => {
     const originalDebug = process.env.ADV_DEBUG;
-    const originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
+    const originalCacheDir = process.env.ADV_CACHE_DIR;
     const tempDir = mkdtempSync(join(tmpdir(), "adv-terminal-log-"));
 
     try {
       process.env.ADV_DEBUG = "1";
-      process.env.OPEN_CHAD_CACHE_DIR = tempDir;
+      process.env.ADV_CACHE_DIR = tempDir;
       vi.resetModules();
 
       const term = await import("./terminal");
@@ -161,9 +161,9 @@ describe("tmux rename-window safety", () => {
         process.env.ADV_DEBUG = originalDebug;
       }
       if (originalCacheDir === undefined) {
-        delete process.env.OPEN_CHAD_CACHE_DIR;
+        delete process.env.ADV_CACHE_DIR;
       } else {
-        process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+        process.env.ADV_CACHE_DIR = originalCacheDir;
       }
       rmSync(tempDir, { recursive: true, force: true });
     }

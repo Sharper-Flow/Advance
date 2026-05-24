@@ -249,10 +249,10 @@ Typical outcomes:
 - **`true` / `false`** — worker registered but the child process exited and
   cannot be restarted (exponential-backoff exhausted). Follow the Node-install
   steps above and restart opencode. Check the debug log at
-  `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the crash reason.
+  `$ADV_CACHE_DIR/adv-debug.log` for the crash reason.
 - **`false` / `false`** — no worker registered (init failure or Temporal
   not yet started). Temporal workflows are not running; check init logs at
-  `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the failure reason.
+  `$ADV_CACHE_DIR/adv-debug.log` for the failure reason.
 
 > The OOP worker uses exponential backoff (1s / 3s / 10s, max 3 attempts)
 > before marking the queue dead.
@@ -278,12 +278,12 @@ are external shared agents supplied by your broader OpenCode install. If any
 are missing, commands fall back to inline execution or generic `explore`
 invocation, which is slower and less specialized.
 
-| Agent            | Used by                                                                       | What it does                                                                                                    |
-| ---------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, scoped read-only scans                                                                     |
-| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
-| `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                         |
-| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                           |
+| Agent            | Used by                                                                       | What it does                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, scoped read-only scans                                                                                                  |
+| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation                              |
+| `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                                                      |
+| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                                                        |
 | `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT submitted via `adv_subagent_report_submit` |
 
 ### Optional MCP servers (referenced by agent tool blocks)
@@ -294,14 +294,14 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server | Allowlist prefix / callable examples                                                          | Used by                                       | Degradation if missing                                                      |
-| ---------- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
-| [lgrep](https://github.com/Sharper-Flow/lgrep) | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text` | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl  | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
-| Context7   | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
-| Exa        | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
-| searchcode | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
-| arXiv MCP  | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
+| MCP server                                     | Allowlist prefix / callable examples                                                          | Used by                                       | Degradation if missing                                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| [lgrep](https://github.com/Sharper-Flow/lgrep) | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`   | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl                                      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
+| Context7                                       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
+| Exa                                            | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
+| searchcode                                     | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
+| arXiv MCP                                      | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
 
 Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `searchcode_code_search` to `code_search`.
 
@@ -1084,14 +1084,14 @@ Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors. See `adv --help` f
 The release installer downloads a full `advance-v*.tar.gz` artifact and then
 delegates to `bash scripts/deploy-local.sh --fix`. Common failures:
 
-| Error text | Fix |
-| ---------- | --- |
-| `jq not found` | Install jq (`sudo apt-get install -y jq`, `sudo dnf install jq`, or `brew install jq`) so `deploy-local.sh --fix` can patch `opencode.json`. |
-| `rsync not found` | Install rsync (`sudo apt-get install -y rsync`, `sudo dnf install rsync`, or `brew install rsync`) so the runtime plugin can sync to `~/.local/share/Advance/plugin/`. |
-| `pnpm not found` | Install pnpm (`corepack enable pnpm`, `npm install -g pnpm`, or your package manager). Release artifacts include built `plugin/dist`, but pnpm is still needed for source rebuilds and ADV worktree hooks. |
-| `sha256sum not found` | Install GNU coreutils (`sudo apt-get install -y coreutils`, `sudo dnf install coreutils`, or `brew install coreutils`) so release checksums can be verified. |
-| `Permission denied: ./install.sh` | Run `chmod +x install.sh`, or invoke it as `bash install.sh`. |
-| `Release artifact is incomplete` | The downloaded archive is missing required installer assets. Delete the partial download, retry the latest release, or use the source-checkout maintainer path until a corrected release is published. |
+| Error text                        | Fix                                                                                                                                                                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jq not found`                    | Install jq (`sudo apt-get install -y jq`, `sudo dnf install jq`, or `brew install jq`) so `deploy-local.sh --fix` can patch `opencode.json`.                                                               |
+| `rsync not found`                 | Install rsync (`sudo apt-get install -y rsync`, `sudo dnf install rsync`, or `brew install rsync`) so the runtime plugin can sync to `~/.local/share/Advance/plugin/`.                                     |
+| `pnpm not found`                  | Install pnpm (`corepack enable pnpm`, `npm install -g pnpm`, or your package manager). Release artifacts include built `plugin/dist`, but pnpm is still needed for source rebuilds and ADV worktree hooks. |
+| `sha256sum not found`             | Install GNU coreutils (`sudo apt-get install -y coreutils`, `sudo dnf install coreutils`, or `brew install coreutils`) so release checksums can be verified.                                               |
+| `Permission denied: ./install.sh` | Run `chmod +x install.sh`, or invoke it as `bash install.sh`.                                                                                                                                              |
+| `Release artifact is incomplete`  | The downloaded archive is missing required installer assets. Delete the partial download, retry the latest release, or use the source-checkout maintainer path until a corrected release is published.     |
 
 If checksum verification fails, do not run the archive. Delete both downloaded
 files and retry from the GitHub Release page.
@@ -1241,15 +1241,15 @@ ls ~/.local/share/Advance/plugin/dist/index.js
 
 ## Environment Variables
 
-| Variable                               | Default                      | Description                                                                                                                           |
-| -------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `ADV_DEBUG`                            | `"0"`                        | Set to `"1"` for debug logging                                                                                                        |
-| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$OPEN_CHAD_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use) |
-| `OPEN_CHAD_CACHE_DIR`                  | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                   |
-| `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                             |
-| `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                              |
-| `OPENCODE_EXPERIMENTAL_WORKSPACES`     | unset                        | Set to `true` and restart OpenCode to enable native workspace warp for ADV worktrees; otherwise ADV downgrades to terminal mode       |
-| `OPENCODE_EXPERIMENTAL`                | unset                        | Broader OpenCode experimental opt-in that also enables workspace warp; prefer `OPENCODE_EXPERIMENTAL_WORKSPACES=true` when possible   |
+| Variable                               | Default                      | Description                                                                                                                         |
+| -------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `ADV_DEBUG`                            | `"0"`                        | Set to `"1"` for debug logging                                                                                                      |
+| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$ADV_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use)     |
+| `ADV_CACHE_DIR`                        | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                 |
+| `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                           |
+| `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                            |
+| `OPENCODE_EXPERIMENTAL_WORKSPACES`     | unset                        | Set to `true` and restart OpenCode to enable native workspace warp for ADV worktrees; otherwise ADV downgrades to terminal mode     |
+| `OPENCODE_EXPERIMENTAL`                | unset                        | Broader OpenCode experimental opt-in that also enables workspace warp; prefer `OPENCODE_EXPERIMENTAL_WORKSPACES=true` when possible |
 
 ---
 
@@ -1326,17 +1326,17 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Changes**
 
-| Tool                       | Purpose                                                                 |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)    |
-| `adv_change_show`          | Get full change details including tasks and deltas                      |
-| `adv_change_create`        | Create a new change proposal                                            |
+| Tool                       | Purpose                                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)                                              |
+| `adv_change_show`          | Get full change details including tasks and deltas                                                                |
+| `adv_change_create`        | Create a new change proposal                                                                                      |
 | `adv_change_update`        | Update narrative artifacts (proposal/problem-statement/agreement/design/executive-summary) for an existing change |
-| `adv_change_validate`      | Validate change against specs and check for conflicts                   |
-| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)               |
-| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter) |
-| `adv_change_archive`       | Archive a completed change (applies spec deltas)                        |
-| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                         |
+| `adv_change_validate`      | Validate change against specs and check for conflicts                                                             |
+| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)                                                         |
+| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter)                                           |
+| `adv_change_archive`       | Archive a completed change (applies spec deltas)                                                                  |
+| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                                                                   |
 
 **Tasks**
 
@@ -1346,7 +1346,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
 | `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
 | `adv_task_add`            | Add a new task to a change                                    |
-| `adv_task_update`         | Update task status (done is checkpoint/recovery-only)          |
+| `adv_task_update`         | Update task status (done is checkpoint/recovery-only)         |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 | `adv_task_checkpoint`     | Create task checkpoint commit before completion/cancellation  |

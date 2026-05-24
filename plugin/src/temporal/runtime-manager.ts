@@ -194,8 +194,8 @@ export function getTemporalRuntimeLockPath(
   projectId: string,
   env: TemporalEnv = process.env,
 ): string {
-  const baseDir = env.OPEN_CHAD_CACHE_DIR
-    ? join(env.OPEN_CHAD_CACHE_DIR, "advance-temporal")
+  const baseDir = env.ADV_CACHE_DIR
+    ? join(env.ADV_CACHE_DIR, "advance-temporal")
     : env.XDG_RUNTIME_DIR
       ? join(env.XDG_RUNTIME_DIR, "advance-temporal")
       : join(tmpdir(), "advance-temporal");
@@ -275,7 +275,7 @@ function buildSafeSpawnEnv(
     LC_TELEPHONE: env.LC_TELEPHONE,
     LC_MEASUREMENT: env.LC_MEASUREMENT,
     LC_IDENTIFICATION: env.LC_IDENTIFICATION,
-    OPEN_CHAD_CACHE_DIR: env.OPEN_CHAD_CACHE_DIR,
+    ADV_CACHE_DIR: env.ADV_CACHE_DIR,
     XDG_RUNTIME_DIR: env.XDG_RUNTIME_DIR,
     TMPDIR: env.TMPDIR,
     TMP: env.TMP,

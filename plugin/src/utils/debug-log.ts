@@ -40,14 +40,12 @@ const isDebugEnabled = (): boolean => process.env.ADV_DEBUG === "1";
 const isProfileEnabled = (): boolean => process.env.ADV_PROFILE === "1";
 
 const getDebugLogPath = (): string => {
-  const debugDir =
-    process.env.OPEN_CHAD_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
+  const debugDir = process.env.ADV_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
   return join(debugDir, "adv-debug.log");
 };
 
 const getProfileLogPath = (): string => {
-  const debugDir =
-    process.env.OPEN_CHAD_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
+  const debugDir = process.env.ADV_CACHE_DIR ?? process.env.TMPDIR ?? tmpdir();
   return join(debugDir, "adv-profile.log");
 };
 

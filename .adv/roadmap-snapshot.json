@@ -29,7 +29,7 @@
   "features": [
     {
       "number": 129,
-      "title": "Refactor adv-worktree skill — remove openchad, evaluate tmux",
+      "title": "Refactor adv-worktree skill navigation guidance",
       "value": 5,
       "time_criticality": 2,
       "rroe": 3,
