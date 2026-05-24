@@ -2,7 +2,10 @@ import { z } from "zod";
 import type { Store } from "../storage/store-types";
 import { addAgendaItem } from "../storage/agenda";
 import { getService } from "../temporal/service";
-import { subagentReportSubmittedSignal } from "../temporal/messages";
+import {
+  subagentReportSubmittedSignal,
+  taskUpdatedSignal,
+} from "../temporal/messages";
 import { subagentReportKey } from "../temporal/contracts";
 import {
   SUBAGENT_REPORT_SCHEMA_VERSION,
@@ -10,6 +13,7 @@ import {
   SubagentConsumerWarningSchema,
   SupportedSubagentReportSchema,
   type Change,
+  type ErrorRecovery,
   type SupportedSubagentReport,
   type Task,
 } from "../types";
@@ -49,6 +53,15 @@ const reportAgentProbeSchema = z
   .object({
     schema_version: z.literal(SUBAGENT_REPORT_SCHEMA_VERSION),
     agent: SubagentAgentSchema,
+  })
+  .passthrough();
+
+const reportIdentitySchema = z
+  .object({
+    change_id: z.string().min(1).optional(),
+    task_id: z.string().min(1).optional(),
+    agent: SubagentAgentSchema.optional(),
+    attempt: z.number().int().min(1).optional(),
   })
   .passthrough();
 
@@ -123,6 +136,95 @@ function parseReport(
   }
 
   return { ok: true, report: parsed.data };
+}
+
+function reportIdentity(rawReport: unknown): {
+  changeId: string;
+  taskId: string;
+  agent?: string;
+  attempt: number;
+} | null {
+  const parsed = reportIdentitySchema.safeParse(rawReport);
+  if (!parsed.success) return null;
+  if (!parsed.data.change_id || !parsed.data.task_id) return null;
+  return {
+    changeId: parsed.data.change_id,
+    taskId: parsed.data.task_id,
+    agent: parsed.data.agent,
+    attempt: parsed.data.attempt ?? 1,
+  };
+}
+
+function submitFailureRecovery(input: {
+  code: string;
+  message: string;
+  identity: NonNullable<ReturnType<typeof reportIdentity>>;
+  recordedAt: string;
+}): ErrorRecovery {
+  const agent = input.identity.agent ?? "unknown-agent";
+  return {
+    last_error: input.message.slice(0, 200),
+    retry_count: input.identity.attempt,
+    max_retries: 3,
+    error_class: "SEMANTIC",
+    next_strategy:
+      "Fix sub-agent report payload or Temporal submission path and retry",
+    attempts: [
+      {
+        attempt_number: input.identity.attempt,
+        error: input.message,
+        diagnosis: input.code,
+        fix_tried: "adv_subagent_report_submit",
+        strategy_label: `${agent}-report-submit-failure`,
+        outcome: "failed",
+        attempted_at: input.recordedAt,
+      },
+    ],
+  };
+}
+
+async function recordSubmitFailure(input: {
+  store: Store;
+  rawReport: unknown;
+  code: string;
+  message: string;
+}): Promise<{ recorded: boolean; reason?: string }> {
+  const identity = reportIdentity(input.rawReport);
+  if (!identity) {
+    return { recorded: false, reason: "report identity unavailable" };
+  }
+
+  const recordedAt = new Date().toISOString();
+  try {
+    const handle = await getChangeHandleForChangeId(
+      input.store,
+      identity.changeId,
+    );
+    await fireSignalAndRefresh(
+      handle,
+      input.store,
+      identity.changeId,
+      taskUpdatedSignal,
+      {
+        taskId: identity.taskId,
+        partial: {
+          error_recovery: submitFailureRecovery({
+            code: input.code,
+            message: input.message,
+            identity,
+            recordedAt,
+          }),
+        },
+        updatedAt: recordedAt,
+      },
+    );
+    return { recorded: true };
+  } catch (error) {
+    return {
+      recorded: false,
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 function reportId(report: SupportedSubagentReport): string {
@@ -265,11 +367,21 @@ async function executeSubmit(
 ): Promise<string> {
   const parsedReport = parseReport(args.report);
   if (!parsedReport.ok) {
+    const failureRecord =
+      !args.dryRun && parsedReport.code === "INVALID_REPORT"
+        ? await recordSubmitFailure({
+            store,
+            rawReport: args.report,
+            code: parsedReport.code,
+            message: parsedReport.message,
+          })
+        : undefined;
     return appendProjectContext(
       formatToolOutput({
         error: parsedReport.message,
         code: parsedReport.code,
         details: parsedReport.details,
+        ...(failureRecord ? { failureRecord } : {}),
       }),
       projectContext,
     );
@@ -300,17 +412,39 @@ async function executeSubmit(
 
   if (!args.dryRun) {
     const handle = await getChangeHandleForChangeId(store, report.change_id);
-    await fireSignalAndRefresh(
-      handle,
-      store,
-      report.change_id,
-      subagentReportSubmittedSignal,
-      {
-        taskId: report.task_id,
-        report,
-        submittedAt: new Date().toISOString(),
-      },
-    );
+    try {
+      await fireSignalAndRefresh(
+        handle,
+        store,
+        report.change_id,
+        subagentReportSubmittedSignal,
+        {
+          taskId: report.task_id,
+          report,
+          submittedAt: new Date().toISOString(),
+        },
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to persist sub-agent report";
+      const failureRecord = await recordSubmitFailure({
+        store,
+        rawReport: report,
+        code: "SUBMIT_SIGNAL_FAILED",
+        message,
+      });
+      return appendProjectContext(
+        formatToolOutput({
+          error: message,
+          code: "SUBMIT_SIGNAL_FAILED",
+          reportId: id,
+          failureRecord,
+        }),
+        projectContext,
+      );
+    }
   }
 
   const followUps = await consumeFollowUps({

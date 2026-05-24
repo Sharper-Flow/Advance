@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Change, EngineerSubagentReport } from "../types";
 import type { Store } from "../storage/store-types";
-import { subagentReportSubmittedSignal } from "../temporal/messages";
+import {
+  subagentReportSubmittedSignal,
+  taskUpdatedSignal,
+} from "../temporal/messages";
 
 const mocks = vi.hoisted(() => {
   const fireSignalAndRefresh = vi.fn(async () => undefined);
@@ -253,7 +256,7 @@ describe("subagentReportTools", () => {
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("rejects malformed reports at the Zod boundary", async () => {
+  test("rejects malformed reports at the Zod boundary and records task error_recovery", async () => {
     const store = storeFor(change());
 
     const output = parse(
@@ -273,8 +276,69 @@ describe("subagentReportTools", () => {
 
     expect(output.error).toBe("Invalid sub-agent report payload");
     expect(output.code).toBe("INVALID_REPORT");
+    expect(output.failureRecord).toEqual({ recorded: true });
     expect(output.details).toEqual(expect.any(Array));
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      taskUpdatedSignal,
+      expect.objectContaining({
+        taskId: "tk-1",
+        partial: {
+          error_recovery: expect.objectContaining({
+            last_error: "Invalid sub-agent report payload",
+            error_class: "SEMANTIC",
+            attempts: expect.arrayContaining([
+              expect.objectContaining({
+                diagnosis: "INVALID_REPORT",
+                strategy_label: "adv-engineer-report-submit-failure",
+              }),
+            ]),
+          }),
+        },
+      }),
+    );
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+  });
+
+  test("records task error_recovery when report persistence signal fails", async () => {
+    const store = storeFor(change());
+    mocks.fireSignalAndRefresh
+      .mockRejectedValueOnce(new Error("Temporal signal failed"))
+      .mockResolvedValueOnce(undefined);
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport() },
+        store,
+      ),
+    );
+
+    expect(output.error).toBe("Temporal signal failed");
+    expect(output.code).toBe("SUBMIT_SIGNAL_FAILED");
+    expect(output.failureRecord).toEqual({ recorded: true });
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
+      subagentReportSubmittedSignal,
+    );
+    expect(mocks.fireSignalAndRefresh.mock.calls[1]).toEqual([
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      taskUpdatedSignal,
+      expect.objectContaining({
+        taskId: "tk-1",
+        partial: {
+          error_recovery: expect.objectContaining({
+            last_error: "Temporal signal failed",
+            attempts: expect.arrayContaining([
+              expect.objectContaining({ diagnosis: "SUBMIT_SIGNAL_FAILED" }),
+            ]),
+          }),
+        },
+      }),
+    ]);
     expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
