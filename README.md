@@ -30,7 +30,7 @@
 ---
 
 > [!NOTE]
-> Advance targets OpenCode. Claude Code and ACP-first versions are coming soon.
+> Advance targets OpenCode. Claude Code support remains future work. ACP-first work is paused until upstream OpenCode ACP fixes land.
 
 ## What Advance is
 
@@ -233,9 +233,11 @@ Mutating work runs in per-change worktrees. ADV state is external and shared acr
 > [!TIP]
 > Use worktrees for any agent run that will edit files. Advance materializes or resumes a `change/<change-id>` worktree, routes mutating tools there, and leaves the main checkout available for review, merge, and release. This pattern is inspired by [opencode-worktree](https://github.com/kdcokenny/opencode-worktree), which showed how worktrees make OpenCode agent sessions safer and easier to parallelize. Advance adds gate ownership, Temporal state, task checkpoints, branch-local specs, and archive finalization.
 
-### ACP-first roadmap
+### ACP-first work paused
 
-An ACP-first version is planned, with [Zed](https://zed.dev/) as the editor surface we are most excited to use. OpenCode ACP still has blocking interaction bugs for ADV-style workflows — especially [`anomalyco/opencode#17920`](https://github.com/anomalyco/opencode/issues/17920), where the `question` tool hangs in ACP mode. Advance depends on reliable human checkpoints for proposal, agreement, prep, acceptance, archive, and cancellation, so ACP needs reliable question/permission round-trips first.
+ACP-first work, including the local `acp-mux/` experiment, is archived for now. Do not install, document as current setup, or build new workflow around it until upstream OpenCode ACP fixes land. The main blocker for ADV-style workflows remains reliable human checkpoint round-trips — especially [`anomalyco/opencode#17920`](https://github.com/anomalyco/opencode/issues/17920), where the `question` tool hangs in ACP mode.
+
+`acp-mux/` stays in the repository as historical design material and a possible restart point after ACP is viable again. It is not part of the supported Advance install path or release surface.
 
 Shoutout Zed editor. Can't wait to use you.
 

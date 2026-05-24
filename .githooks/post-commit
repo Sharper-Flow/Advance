@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# post-commit: auto-deploy ADV assets + binaries to the local install when the
+# post-commit: auto-deploy supported ADV assets to the local install when the
 # commit touches anything that the local install mirrors.
 #
 # Prevents the drift class this hook was created to fix: a commit lands in
@@ -16,7 +16,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 DEPLOY_SCRIPT="$REPO_ROOT/scripts/deploy-local.sh"
 
-# Paths that deploy-local mirrors to ~/.config/opencode and ~/.local/bin.
+# Paths that deploy-local mirrors to ~/.config/opencode.
 # Keep in sync with scripts/deploy-local.sh.
 DEPLOYED_PATHS=(
   ".opencode/command/"
@@ -24,7 +24,6 @@ DEPLOYED_PATHS=(
   ".opencode/overlays/"
   "ADV_INSTRUCTIONS.md"
   "skills/"
-  "acp-mux/bin/"
 )
 
 # Look at the diff introduced by HEAD (the commit that just landed).

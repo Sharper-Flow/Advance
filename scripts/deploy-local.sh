@@ -5,12 +5,13 @@
 #   - Runtime plugin -> ~/.local/share/Advance/plugin
 #   - Slash commands, agents, skills -> ~/.config/opencode/
 #   - Stale ADV instruction registrations are removed from opencode.json
-#   - Companion binaries (acp-mux) -> ~/.local/bin/
+#   - Archived ACP companion binaries are intentionally not deployed
 #
 # Single source of truth for "what's installed on this machine from this repo".
 # Run via pre-push hook so deployed copy never drifts from dev repo HEAD.
-# Replaced the legacy config-sync script (2026-05-19) to reflect that it also
-# deploys binaries, not just OpenCode config assets.
+# Replaced the legacy config-sync script (2026-05-19). It now deploys supported
+# Advance plugin/config assets only; archived experiments such as acp-mux are not
+# installed.
 #
 # Usage:
 #   ./scripts/deploy-local.sh           # Deploy assets + check config (report only)
@@ -28,11 +29,10 @@
 #   5. Copies skills/adv-*/SKILL.md  -> ~/.config/opencode/skills/adv-*/
 #   6. Validates opencode.json has ADV plugin entries and no stale ADV instruction entry
 #   7. (--fix only) Patches opencode.json to add missing ADV plugin entries and remove stale ADV instruction entries
-#   8. Deploys acp-mux/bin/acp-mux  -> ~/.local/bin/acp-mux (real file, no symlink)
+#   8. Skips archived acp-mux local binary deployment
 #
-# Deploy semantics: every binary is a real file copy. NO SYMLINKS — a stale
-# bin link is worse than a stale copy because it fails in surprising ways.
-# Re-run deploy-local.sh whenever you change a deployed asset.
+# Deploy semantics: only supported Advance assets are mirrored locally. Re-run
+# deploy-local.sh whenever you change a deployed asset.
 #
 # It does NOT touch non-ADV commands, agents, skills, or config entries,
 # except removing legacy assets/config previously installed by this repo
@@ -1212,65 +1212,13 @@ else
 fi
 
 # ===========================================================================
-# Local binaries deployment
+# Archived local binaries
 # ===========================================================================
-# Deploy companion binaries (acp-mux, future tools) into ~/.local/bin/ as
-# REAL FILES — never symlinks. Symlinks across a dev/install boundary fail in
-# surprising ways (broken when dev path moves, ambiguous under realpath,
-# invisible to backup tools). Idempotent: only writes when source differs.
+# acp-mux used to deploy into ~/.local/bin. It is parked until upstream OpenCode
+# ACP fixes land, so deploy-local must not install or refresh it.
 echo ""
-echo "==> Deploying local binaries"
-
-LOCAL_BIN="$HOME/.local/bin"
-if [ "$DRY_RUN" = true ]; then
-	echo "    dry-run: would ensure local bin directory $LOCAL_BIN"
-else
-	mkdir -p "$LOCAL_BIN"
-fi
-
-bin_deployed=0
-bin_skipped=0
-
-deploy_bin() {
-	local src="$1" name="$2"
-	local dst="$LOCAL_BIN/$name"
-	if [ ! -f "$src" ]; then
-		echo "    skip: $name (source missing at $src)"
-		return 0
-	fi
-
-	# If dst exists as a symlink, remove it — we deploy real files only.
-	local was_symlink=0
-	if [ -L "$dst" ]; then
-		was_symlink=1
-		if [ "$DRY_RUN" = true ]; then
-			echo "    dry-run remove symlink: $dst"
-		else
-			rm "$dst"
-			echo "    removed legacy symlink: $dst"
-		fi
-	fi
-
-	# If dst is a real file with identical content, skip (idempotent).
-	# Don't take this branch if dst was a symlink — that would falsely
-	# report "unchanged" because the symlink dereferences to the same file.
-	if [ "$was_symlink" = 0 ] && [ -f "$dst" ] && cmp -s "$src" "$dst"; then
-		((bin_skipped++)) || true
-		return 0
-	fi
-
-	if [ "$DRY_RUN" = true ]; then
-		echo "    dry-run deploy: $src -> $dst"
-	else
-		install -m 0755 "$src" "$dst"
-		echo "    deployed: $name"
-		((bin_deployed++)) || true
-	fi
-}
-
-deploy_bin "$REPO_ROOT/acp-mux/bin/acp-mux" "acp-mux"
-
-echo "    $bin_deployed binary(ies) deployed, $bin_skipped unchanged"
+echo "==> Skipping archived local binaries"
+echo "    acp-mux: archived; not deployed"
 
 # ===========================================================================
 # Summary
@@ -1281,7 +1229,7 @@ echo ""
 echo "    Commands in global: $(ls "$GLOBAL_COMMANDS"/adv-*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Agents in global:  $(ls "$GLOBAL_AGENTS"/*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l | tr -d ' ')"
-echo "    Local bins:        $(ls "$LOCAL_BIN"/acp-mux 2>/dev/null | wc -l | tr -d ' ')"
+echo "    Local bins:        acp-mux archived/skipped"
 
 if [ "$MODE" = "fix" ]; then
 	echo "    Config: patched (if needed)"
