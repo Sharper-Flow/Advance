@@ -47,7 +47,8 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     // via { zero: "omit" }, origin_source_artifact: "" normalizes via
     // { blank: "omit" }. Cross-field origin matrix sees only origin_kind:
     // "adhoc" and accepts. THIS IS THE BUG FIX.
-    label: "ad hoc normalizes zero issue number and blank source artifact (strict-mode GPT payload)",
+    label:
+      "ad hoc normalizes zero issue number and blank source artifact (strict-mode GPT payload)",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: {
@@ -482,16 +483,8 @@ describe("tool arg preflight", () => {
       { changeId: "c", gateId: "design", compatibilityReason: " " },
       "compatibilityReason",
     ],
-    [
-      "adv_contract_mint",
-      { changeId: "c", approvedAt: " " },
-      "approvedAt",
-    ],
-    [
-      "adv_contract_mint",
-      { changeId: "c", target_path: " " },
-      "target_path",
-    ],
+    ["adv_contract_mint", { changeId: "c", approvedAt: " " }, "approvedAt"],
+    ["adv_contract_mint", { changeId: "c", target_path: " " }, "target_path"],
     [
       "adv_run_test",
       { taskId: "tk-1", command: "test", target_path: " " },
@@ -499,16 +492,8 @@ describe("tool arg preflight", () => {
     ],
     ["adv_temporal_reconnect", { target_path: " " }, "target_path"],
     ["adv_status", { target_path: " " }, "target_path"],
-    [
-      "adv_agenda_add",
-      { title: "real", description: " " },
-      "description",
-    ],
-    [
-      "adv_agenda_add",
-      { title: "real", category: " " },
-      "category",
-    ],
+    ["adv_agenda_add", { title: "real", description: " " }, "description"],
+    ["adv_agenda_add", { title: "real", category: " " }, "category"],
     [
       "adv_change_close",
       {
@@ -528,7 +513,9 @@ describe("tool arg preflight", () => {
       expect(result.normalizedArgs).not.toHaveProperty(field);
       // No reject error fires for this specific field.
       expect(
-        result.invalid.find((i) => i.field === field && /must be a non-blank/.test(i.message)),
+        result.invalid.find(
+          (i) => i.field === field && /must be a non-blank/.test(i.message),
+        ),
       ).toBeUndefined();
     },
   );
@@ -956,7 +943,12 @@ describe("tool arg preflight", () => {
       ["adv_run_test", { taskId: "tk-1", command: " " }, "command"],
       [
         "adv_change_close",
-        { changeId: "c", reason: "cancelled", approvedByUser: true, approvalEvidence: " " },
+        {
+          changeId: "c",
+          reason: "cancelled",
+          approvedByUser: true,
+          approvalEvidence: " ",
+        },
         "approvalEvidence",
       ],
       [
@@ -984,13 +976,21 @@ describe("tool arg preflight", () => {
         { taskId: "t", toIntent: "inline", approvalEvidence: " " },
         "approvalEvidence",
       ],
-      ["adv_gate_complete", { changeId: "c", gateId: "design", completedBy: " " }, "completedBy"],
+      [
+        "adv_gate_complete",
+        { changeId: "c", gateId: "design", completedBy: " " },
+        "completedBy",
+      ],
       [
         "adv_gate_complete",
         { changeId: "c", gateId: "design", confirmationEvidence: " " },
         "confirmationEvidence",
       ],
-      ["adv_change_update", { changeId: "c", proposal: "real", confirmationEvidence: " " }, "confirmationEvidence"],
+      [
+        "adv_change_update",
+        { changeId: "c", proposal: "real", confirmationEvidence: " " },
+        "confirmationEvidence",
+      ],
       ["adv_worktree_create", { branch: " " }, "branch"],
       ["adv_worktree_create", { branch: "x", base: " " }, "base"],
       ["adv_worktree_resume", { changeId: " " }, "changeId"],
@@ -1000,8 +1000,16 @@ describe("tool arg preflight", () => {
       ["adv_conformance", { action: "unlock", reason: " " }, "reason"],
       ["adv_agenda_add", { title: " " }, "title"],
       ["adv_agenda_cancel", { itemId: "a", reason: " " }, "reason"],
-      ["adv_contract_mint", { changeId: "c", recoveryEvidence: " " }, "recoveryEvidence"],
-      ["adv_contract_mint", { changeId: "c", confirmationEvidence: " " }, "confirmationEvidence"],
+      [
+        "adv_contract_mint",
+        { changeId: "c", recoveryEvidence: " " },
+        "recoveryEvidence",
+      ],
+      [
+        "adv_contract_mint",
+        { changeId: "c", confirmationEvidence: " " },
+        "confirmationEvidence",
+      ],
       [
         "adv_contract_review_matrix_set",
         { changeId: "c", recoveryEvidence: " " },
@@ -1012,7 +1020,11 @@ describe("tool arg preflight", () => {
         { approvedByUser: true, approvalEvidence: " " },
         "approvalEvidence",
       ],
-      ["adv_temporal_reconnect", { confirmationEvidence: " " }, "confirmationEvidence"],
+      [
+        "adv_temporal_reconnect",
+        { confirmationEvidence: " " },
+        "confirmationEvidence",
+      ],
       [
         "adv_temporal_worker_restart",
         { approvedLockReclaim: true, approvalEvidence: " " },
@@ -1100,9 +1112,7 @@ describe("tool arg preflight", () => {
           // Note: real schema is z.number().int().positive(); using union here
           // to allow string "0" through to confirm the zero policy is
           // type-narrow (only numeric 0).
-          origin_issue_number: z
-            .union([z.number(), z.string()])
-            .optional(),
+          origin_issue_number: z.union([z.number(), z.string()]).optional(),
         },
         {
           summary: "X",

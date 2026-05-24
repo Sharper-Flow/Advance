@@ -36,7 +36,12 @@ type CrossFieldValidator = (
   args: Record<string, unknown>,
 ) => ToolArgPreflightIssue[];
 
-// rq-toolArgBlankArtifactLinkage01: all artifact fields accepted by create/update tools.
+// rq-toolArgBlankArtifactLinkage01 (revised): all artifact fields accepted
+// by create/update tools. After T2 (softenStrictModeOptionals), per-field
+// FIELD_POLICIES entries with blank: "omit" normalize blank values to
+// omitted before the at-least-one-of cross-field guard runs. The CROSS_FIELD
+// validator for adv_change_update uses this constant to compute the
+// "provided" set against normalizedArgs.
 const ARTIFACT_FIELDS = [
   "proposal",
   "problemStatement",
@@ -44,12 +49,6 @@ const ARTIFACT_FIELDS = [
   "design",
   "executiveSummary",
 ];
-
-const BLANK_ARTIFACT_FIELD_MESSAGE =
-  "Provided artifact fields must be non-blank strings; omit fields you do not want to change.";
-
-const BLANK_SOURCE_ARTIFACT_MESSAGE =
-  "origin_source_artifact must be a non-blank string; omit it when there is no source artifact.";
 
 // rq-toolPlaceholderPolicy01: preflight is the pure/synchronous tool-boundary
 // policy executor. Keep this table limited to structural placeholder decisions;
