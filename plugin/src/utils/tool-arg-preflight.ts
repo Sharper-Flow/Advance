@@ -23,6 +23,11 @@ interface PlaceholderFieldPolicy {
   sentinels?: PlaceholderPolicyAction;
   emptyArray?: PlaceholderPolicyAction;
   recordValuesBlank?: "reject" | "allow";
+  // rq-toolPlaceholderPolicy01.5: optional positive-integer placeholders. Strict-
+  // mode providers (e.g. OpenAI Responses API) fill optional `.positive()` Zod
+  // ints with `0` instead of omitting them; `zero: "omit"` lets those fills be
+  // normalized to omitted before Zod sees them.
+  zero?: PlaceholderPolicyAction;
 }
 
 type FieldPolicyMap = Record<string, PlaceholderFieldPolicy>;
@@ -56,6 +61,10 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     source_change_id: { blank: "reject" },
     parent_change_id: { blank: "reject", sentinels: "reject" },
     scope_repos: { emptyArray: "omit" },
+    // rq-toolPlaceholderPolicy01.5: strict-mode providers fill optional
+    // .positive() int placeholders with 0. Normalize to omitted so cross-
+    // field origin matrix and Zod .positive() never see the placeholder.
+    origin_issue_number: { zero: "omit" },
   },
   adv_change_list: {
     target_path: { blank: "reject" },
@@ -247,6 +256,17 @@ function applyFieldPolicies(
         });
       }
     }
+    // rq-toolPlaceholderPolicy01.5: zero-valued optional ints (strict-mode
+    // provider fills) handled symmetrically with blank/sentinels/emptyArray.
+    if (typeof value === "number" && value === 0) {
+      if (policy.zero === "omit") delete normalizedArgs[field];
+      if (policy.zero === "reject") {
+        invalid.push({
+          field,
+          message: `${field} must be a positive number; omit it when there is no value.`,
+        });
+      }
+    }
     if (
       policy.recordValuesBlank === "reject" &&
       value &&
@@ -434,14 +454,19 @@ export function preflightToolArgs(
   const missing: string[] = [];
   const invalid: ToolArgPreflightIssue[] = [...policyResult.invalid];
 
+  // rq-toolPlaceholderPolicy01.4: Zod validation reads from normalizedArgs so
+  // fields normalized out by field policies are invisible to schema checks and
+  // to cross-field validators. A required field accidentally normalized out
+  // surfaces as `missing` (defensive: required fields should never carry a
+  // blank/zero/sentinel/emptyArray "omit" policy).
   for (const [field, schema] of Object.entries(argsSchema)) {
     const isRequired = !schema.safeParse(undefined).success;
-    if (!(field in args)) {
+    if (!(field in policyResult.normalizedArgs)) {
       if (isRequired) missing.push(field);
       continue;
     }
 
-    const parsed = schema.safeParse(args[field]);
+    const parsed = schema.safeParse(policyResult.normalizedArgs[field]);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
         const path = [field, ...issue.path].join(".");

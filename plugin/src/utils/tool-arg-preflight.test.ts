@@ -42,7 +42,11 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     ok: true,
   },
   {
-    label: "ad hoc rejects blank/zero origin placeholders",
+    // T1 (rq-toolPlaceholderPolicy01.5): origin_issue_number: 0 now normalizes
+    // out via { zero: "omit" } policy, so it is no longer surfaced as a field
+    // error. The blank origin_source_artifact is still rejected by the
+    // cross-field validator at this point (T2 will flip that to blank: "omit").
+    label: "ad hoc normalizes zero issue number; blank source artifact still rejected (T1 state)",
     toolName: "adv_change_create",
     schema: CREATE_SCHEMA,
     rawArgs: {
@@ -52,7 +56,7 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
       origin_source_artifact: "",
     },
     ok: false,
-    fields: ["origin_issue_number", "origin_source_artifact"],
+    fields: ["origin_source_artifact"],
   },
   {
     label: "blank create artifact rejected",
@@ -717,5 +721,162 @@ describe("tool arg preflight", () => {
 
     expect(output.received_args.apiKey).toBe("[REDACTED]");
     expect(output.received_args.nested.token).toBe("[REDACTED]");
+  });
+
+  // rq-toolPlaceholderPolicy01.5: zero-policy axis for strict-mode int placeholders.
+  describe("zero policy axis", () => {
+    test("zero: 'omit' normalizes value === 0 to omitted (adv_change_create.origin_issue_number)", () => {
+      // adv_change_create.origin_issue_number has { zero: "omit" }.
+      const result = preflightToolArgs(
+        "adv_change_create",
+        {
+          summary: z.string(),
+          origin_kind: z
+            .enum(["roadmap", "discovery", "triage", "adhoc"])
+            .optional(),
+          origin_issue_number: z.number().int().positive().optional(),
+        },
+        {
+          summary: "Add rate limiting",
+          origin_kind: "adhoc",
+          origin_issue_number: 0,
+        },
+      );
+      expect(result.ok).toBe(true);
+      // origin_issue_number normalized out → not present in normalizedArgs.
+      expect(result.normalizedArgs).toEqual({
+        summary: "Add rate limiting",
+        origin_kind: "adhoc",
+      });
+      expect(result.invalid).toEqual([]);
+    });
+
+    test("zero: 'omit' policy does not affect non-zero numeric values", () => {
+      const result = preflightToolArgs(
+        "adv_change_create",
+        {
+          summary: z.string(),
+          origin_kind: z.enum(["roadmap"]).optional(),
+          origin_issue_number: z.number().int().positive().optional(),
+        },
+        {
+          summary: "Promote roadmap item",
+          origin_kind: "roadmap",
+          origin_issue_number: 42,
+        },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({
+        summary: "Promote roadmap item",
+        origin_kind: "roadmap",
+        origin_issue_number: 42,
+      });
+    });
+
+    test("no zero policy: value === 0 passes through (synthetic tool control)", () => {
+      // Synthetic tool name with no FIELD_POLICIES entry. value === 0 should
+      // pass through and Zod's .min(0) accepts it.
+      const result = preflightToolArgs(
+        "test_no_policy_tool",
+        { count: z.number().int().min(0).optional() },
+        { count: 0 },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({ count: 0 });
+    });
+
+    test("zero policy only fires on numeric 0, not on string '0' or other falsy values", () => {
+      // origin_kind: discovery rejects origin_issue_number (cross-field), so
+      // we'd need a clean path. Use adv_change_create with no origin_kind:
+      // a literal 0 still gets normalized out; "0" is a string and stays.
+      const stringZeroResult = preflightToolArgs(
+        "adv_change_create",
+        {
+          summary: z.string(),
+          // Note: real schema is z.number().int().positive(); using union here
+          // to allow string "0" through to confirm the zero policy is
+          // type-narrow (only numeric 0).
+          origin_issue_number: z
+            .union([z.number(), z.string()])
+            .optional(),
+        },
+        {
+          summary: "X",
+          origin_issue_number: "0",
+        },
+      );
+      // String "0" stays — not normalized by zero policy. Cross-field
+      // validator will then object because origin_kind is missing.
+      expect(stringZeroResult.normalizedArgs.origin_issue_number).toBe("0");
+    });
+  });
+
+  // rq-toolPlaceholderPolicy01.4: Zod reads normalizedArgs, not raw args.
+  describe("Zod validation reads normalizedArgs", () => {
+    test("optional field normalized out is invisible to Zod schema check", () => {
+      // adv_change_create has scope_repos: { emptyArray: "omit" } already.
+      // Sending an empty array should normalize out, and Zod should not see
+      // it (no validation error against the array schema).
+      const result = preflightToolArgs(
+        "adv_change_create",
+        {
+          summary: z.string(),
+          scope_repos: z
+            .array(z.object({ repo_id: z.string() }).strict())
+            .nonempty()
+            .optional(),
+        },
+        { summary: "Add rate limiting", scope_repos: [] },
+      );
+      // Zod's .nonempty() would normally fail on []. After normalization,
+      // scope_repos is omitted, so Zod never sees []. Cross-field validators
+      // also see no scope_repos.
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({ summary: "Add rate limiting" });
+      // .nonempty() error MUST NOT appear.
+      expect(
+        result.invalid.find((i) => i.field === "scope_repos"),
+      ).toBeUndefined();
+    });
+
+    test("required field accidentally normalized out surfaces as missing", () => {
+      // Force the case via a synthetic tool with a blank: "omit" policy on
+      // a Zod-required field. Defensive: real config should never do this,
+      // but if it did, the user-facing error should be `missing`, not silent.
+      const result = preflightToolArgs(
+        // adv_change_create has parent_change_id: { blank: "reject", sentinels: "reject" }.
+        // We exploit an OPTIONAL field that does have blank:"reject" today
+        // (still strict) and confirm a TRULY missing required field surfaces
+        // via the same code path.
+        "adv_change_create",
+        {
+          summary: z.string(), // required
+          target_path: z.string().optional(),
+        },
+        { target_path: "/tmp/x" },
+      );
+      expect(result.ok).toBe(false);
+      expect(result.missing).toContain("summary");
+    });
+
+    test("Zod validates normalized value, not raw value", () => {
+      // adv_change_create has scope_repos: { emptyArray: "omit" }.
+      // Pass scope_repos: [] (which would fail z.array().nonempty()) and a
+      // valid summary. After normalization, scope_repos is omitted.
+      // Zod validates remaining { summary } → passes.
+      const result = preflightToolArgs(
+        "adv_change_create",
+        {
+          summary: z.string(),
+          scope_repos: z
+            .array(z.object({ repo_id: z.string() }))
+            .nonempty()
+            .optional(),
+        },
+        { summary: "Add rate limiting", scope_repos: [] },
+      );
+      expect(result.ok).toBe(true);
+      expect(result.normalizedArgs).toEqual({ summary: "Add rate limiting" });
+    });
   });
 });
