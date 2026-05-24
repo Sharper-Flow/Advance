@@ -269,6 +269,30 @@ describe("deploy-local.sh", () => {
       ).toEqual([]);
     });
 
+    test("tool drift validation exempts leaf-only report submit from primary agents", () => {
+      const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
+      const advAtcAgent = readFileSync(ADV_ATC_AGENT_PATH, "utf8");
+
+      expect(advAgent).toContain("mode: primary");
+      expect(advAtcAgent).toContain("mode: primary");
+      expect(advAgent).not.toContain("  adv_subagent_report_submit:");
+      expect(advAtcAgent).not.toContain("  adv_subagent_report_submit:");
+
+      expect(content).toContain("LEAF_ONLY_TOOLS");
+      expect(content).toContain('"adv_subagent_report_submit"');
+      expect(content).toContain("agent_mode");
+      expect(content).toContain('agent_mode == "primary"');
+      expect(content).toContain("registered - primary_exemptions - allowed");
+    });
+
+    test("tool drift validation remains strict for ordinary primary-agent tools", () => {
+      expect(content).toContain("primary_exemptions");
+      expect(content).toContain("missing = sorted(");
+      expect(content).toContain("extras = sorted(allowed - registered)");
+      expect(content).not.toContain("missing = []");
+      expect(content).not.toContain("registered = registered - allowed");
+    });
+
     test("handles tilde-expanded paths in json_array_contains", () => {
       // The function should check both exact and tilde-expanded forms
       expect(content).toContain("tilde_value=");
