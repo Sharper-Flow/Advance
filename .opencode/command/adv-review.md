@@ -341,13 +341,36 @@ Status rules: `unresolved` at emission time. Terminal states are `fixed` or `rej
 
 Verify execution work is complete enough to review. If implementation/execution work is still incomplete, stop and direct user to `/adv-apply` first.
 
+### Preview URL Proof
+
+Before acceptance summary or acceptance approval prompt, determine the preview state from `agreement.md`, task evidence, and implementation evidence:
+
+| State | Required evidence | Acceptance effect |
+|---|---|---|
+| `live` | `visual_surface: true` or visual-output work detected; `Preview URL: {url}` sanitized for durable evidence; reachability evidence with verification method, result/status, and reviewed timestamp/context; matching `contract.reviewMatrix` evidence | Acceptance may proceed |
+| `not_applicable` | `visual_surface: false`; no front-end, browser-visible, or visual-output work detected; rationale recorded in `contract.reviewMatrix` | Acceptance may proceed |
+| `blocked` | `visual_surface: unknown`, visual-output drift, missing URL, missing reachability evidence, or missing matrix evidence | Stop before acceptance checkpoint |
+
+Rules:
+
+- Use front-end, browser-visible, or any visual output as the applicability scope.
+- File-path heuristics may assist drift detection, but they are advisory only; do not use heuristics as the sole authority to mark `not_applicable`.
+- If implementation evidence contradicts `visual_surface`, actual implementation evidence wins for safety. Report `Preview URL: blocked` with a visual-surface drift reason and re-enter or clarify the agreement before acceptance.
+- Valid preview URLs target user-facing visual output only. Internal services, CI dashboards, databases, admin panels, Temporal UI, and other non-visual infrastructure URLs are invalid.
+- Do not fabricate URLs. A bare unverified URL is insufficient.
+- Sanitize URLs before recording durable evidence: strip token, key, session, and auth query parameters; record origin + path + non-sensitive params only.
+- Acceptable reachability evidence: agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface. Do not perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement.
+- `blocked` requires a concrete reason and remediation hint. Produce the acceptance summary with `Preview URL: blocked`, but do not present the acceptance approval prompt or complete the acceptance gate.
+- The acceptance summary MUST include `Preview URL: {url}`, `Preview URL: not_applicable`, or `Preview URL: blocked` before the user acceptance prompt.
+
 ### Build Acceptance Summary
 Using `agreement.md`, produce:
 1. **Delivered work summary**
 2. **Acceptance Criteria checklist**
 3. **Constraints respected / avoidances honored**
-4. **Outstanding caveats**
-5. **Investment summary** — call `adv_investment_report changeId: {id}`; include one line: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Informational only; not a gate.
+4. **Preview URL** — report `live`, `not_applicable`, or `blocked` state from Preview URL Proof. For `live`, include URL + reachability evidence. For `not_applicable`, include rationale. For `blocked`, stop before asking for acceptance.
+5. **Outstanding caveats**
+6. **Investment summary** — call `adv_investment_report changeId: {id}`; include one line: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Informational only; not a gate.
 
 Keep concise; user-facing.
 
@@ -370,10 +393,11 @@ Before acceptance prompt, persist durable executive summary:
    1. {ordered list from change.tasks, using implementation_summary}
 
    ## What Was Verified
-   - Verdict: {verdict} with {N} findings ({severity breakdown})
-   - Tests: {pass/fail summary}
-   - Investment: {N tasks / M retries / T min / tier}
-   - Contract matrix: {required rows passed/respected, if contract exists}
+    - Verdict: {verdict} with {N} findings ({severity breakdown})
+    - Tests: {pass/fail summary}
+    - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
+    - Investment: {N tasks / M retries / T min / tier}
+    - Contract matrix: {required rows passed/respected, if contract exists}
 
    ## Remaining Concerns
    {open items or "None".}
@@ -389,6 +413,7 @@ Before acceptance summary or **Inline Approval prompt**, load `adv_change_show`;
 
 - `change.contract` exists.
 - `contract.reviewMatrix` exists when contract items require it.
+- Preview proof has matching `contract.reviewMatrix` evidence when `visual_surface` is true or false. `visual_surface: unknown` or visual-surface drift blocks before acceptance and must be clarified or re-entered before a matrix pass row is expected.
 - Required rows have no `fail`, `violated`, `unknown`, or missing evidence.
 - Required new MCP tool is callable in current session. If source registered it but live registry lacks it, stop: tell user to build/reload plugin and open fresh OpenCode session. Do not ask for acceptance until proof path exists.
 

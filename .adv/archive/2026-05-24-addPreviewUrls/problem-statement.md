@@ -1,0 +1,1 @@
+Acceptance-stage sign-off can be incomplete when delivered work includes front-end or browser-visible elements but the user is not given a dev-environment URL to inspect the result. Users need a concrete preview link during acceptance so visual and interactive changes can be verified before accepting the work.

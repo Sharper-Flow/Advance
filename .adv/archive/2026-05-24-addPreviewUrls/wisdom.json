@@ -1,0 +1,26 @@
+{
+  "entries": [
+    {
+      "id": "ws-V8F_V_",
+      "type": "pattern",
+      "content": "For workflow-contract changes, `plugin/src/adv-skill-backed-commands-assets.test.ts` is the right asset-test surface to pin command/spec strings and ordering before checkpoint prompts; existing tests use `indexOf(...)` ordering checks that are easy to extend for new preflight-before-approval requirements.",
+      "source_task": "tk-ecce30eead65",
+      "recorded_at": "2026-05-24T22:08:50.614Z"
+    },
+    {
+      "id": "ws-9tXi_v",
+      "type": "gotcha",
+      "content": "When editing markdown code blocks inside command docs, watch indentation after list/code-block patches: added bullets inside fenced templates can accidentally gain an extra leading space while still passing string-based asset tests. Format/check pass should catch if markdown formatting is enforced.",
+      "source_task": "tk-bb8418e169cf",
+      "recorded_at": "2026-05-24T22:12:40.372Z"
+    },
+    {
+      "id": "ws-4-_cqv",
+      "type": "gotcha",
+      "content": "String-order asset tests can use generic anchors like `Inline Approval prompt`; adding the same phrase earlier in command docs can break unrelated ordering assertions. Prefer alternate wording before the canonical checkpoint anchor unless the new section is meant to become the ordering target.",
+      "source_task": "tk-74497b201380",
+      "recorded_at": "2026-05-24T22:15:40.405Z"
+    }
+  ],
+  "count": 3
+}

@@ -516,6 +516,53 @@ describe("thin-command shape enforcement", () => {
     expect(checkpointIdx).toBeGreaterThan(preflightIdx);
   });
 
+  test("acceptance preview URL contract is wired across discovery, review, and specs", () => {
+    const workflowSpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+        "utf8",
+      ),
+    ) as { requirements: Array<{ id: string; title?: string }> };
+    const workflowDoc = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-workflow.md"),
+      "utf8",
+    );
+    const discover = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+      "utf8",
+    );
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+
+    expect(workflowSpec.requirements.map((rq) => rq.id)).toContain(
+      "rq-acceptancePreviewUrl01",
+    );
+    expect(workflowDoc).toContain("Front-End Acceptance Preview URL");
+
+    expect(discover).toContain("visual_surface");
+    expect(discover).toContain("true|false|unknown");
+    expect(discover).toContain("preview applicability");
+
+    expect(review).toContain("Preview URL");
+    expect(review).toContain("reachability evidence");
+    expect(review).toContain("contract.reviewMatrix");
+    expect(review).toContain("`live` | `visual_surface: true`");
+    expect(review).toContain("Preview URL: not_applicable");
+    expect(review).toContain("Preview URL: blocked");
+    expect(review).toContain("Do not fabricate URLs");
+    expect(review).toContain("bare unverified URL");
+    expect(review).toContain("Sanitize URLs");
+    expect(review).toContain("Do not perform arbitrary HTTP probing");
+    expect(review).toContain("visual-surface drift");
+
+    const previewIdx = review.indexOf("Preview URL");
+    const checkpointIdx = review.indexOf("Inline Approval prompt");
+    expect(previewIdx).toBeGreaterThanOrEqual(0);
+    expect(checkpointIdx).toBeGreaterThan(previewIdx);
+  });
+
   test("prep checklist requires reload checkpoint for new MCP tools", () => {
     const checklist = readFileSync(
       join(REPO_ROOT, "docs/checklists/prep-checklist.md"),

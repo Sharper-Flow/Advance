@@ -1,0 +1,770 @@
+{
+  "id": "addPreviewUrls",
+  "title": "Add preview URLs",
+  "status": "archived",
+  "created_at": "2026-05-24T21:48:49.748Z",
+  "tasks": [
+    {
+      "id": "tk-ecce30eead65",
+      "title": "Add preview URL contract asset coverage",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-24T22:02:21.306Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:07:10.037Z",
+      "verification": "RED evidence captured: `pnpm test -- src/adv-skill-backed-commands-assets.test.ts` exits 1 because `rq-acceptancePreviewUrl01` is absent. This is expected for the TDD asset-coverage task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added asset test `acceptance preview URL contract is wired across discovery, review, and specs` covering spec/docs, `/adv-discover` visual_surface applicability, `/adv-review` Preview URL states, reachability evidence, no fabricated/bare URL, and ordering before Inline Approval prompt. RED run fails on missing `rq-acceptancePreviewUrl01`, as intended.",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "bb98901f8fb47ce3faae358c45380247f210d41f",
+      "completedAt": "2026-05-24T22:08:35.667Z",
+      "completed_at": "2026-05-24T22:08:35.667Z",
+      "notes": "RED asset test added and expected failure captured. Checkpoint commit bb98901 records test coverage.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-24T22:08:43.515Z"
+    },
+    {
+      "id": "tk-13ecd65b36f3",
+      "title": "Encode preview URL workflow spec law and docs mirror",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-24T22:02:40.983Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ecce30eead65"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:09:05.653Z",
+      "verification": "GREEN task-scope verification: node assertion confirmed `.adv/specs/advance-workflow/spec.json` contains `rq-acceptancePreviewUrl01` and `docs/specs/advance-workflow.md` contains `Front-End Acceptance Preview URL`.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `advance-workflow` to v1.13.0 with new `rq-acceptancePreviewUrl01` covering discovery applicability, reachable preview proof, blocked applicable previews, and non-visual `not_applicable`. Mirrored the requirement in `docs/specs/advance-workflow.md`.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "checkpointSha": "ee7383d1159118783d76c683c32cde67e69c3ae2",
+      "completedAt": "2026-05-24T22:10:16.880Z",
+      "completed_at": "2026-05-24T22:10:16.880Z",
+      "notes": "Spec law and docs mirror added. Task-scope verification passed. Checkpoint commit ee7383d records changes.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-24T22:10:24.542Z"
+    },
+    {
+      "id": "tk-5c811e52cf07",
+      "title": "Add preview applicability to discovery agreement",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-24T22:02:41.052Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ecce30eead65"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:10:39.548Z",
+      "verification": "GREEN task-scope verification: node assertion confirmed `/adv-discover` contains `visual_surface`, `true|false|unknown`, and preview applicability agreement language.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `/adv-discover` agreement flow to include `Preview applicability` and a mandatory `visual_surface: true|false|unknown` value with rationale in persisted agreements. `unknown` is explicitly carried forward as an acceptance blocker until clarified.",
+      "filesTouched": [
+        ".opencode/command/adv-discover.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-discover.md"
+      ],
+      "checkpointSha": "fae4e5c5e4a4b1552bf052dc4f1f34564b069464",
+      "completedAt": "2026-05-24T22:11:19.621Z",
+      "completed_at": "2026-05-24T22:11:19.621Z",
+      "notes": "Discovery agreement preview applicability instructions added and verified. Checkpoint commit fae4e5c records changes.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-24T22:11:27.006Z"
+    },
+    {
+      "id": "tk-bb8418e169cf",
+      "title": "Add preview proof to review acceptance flow",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-24T22:02:42.790Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ecce30eead65"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:11:42.375Z",
+      "verification": "GREEN task-scope verification: node assertion confirmed `/adv-review` contains Preview URL, reachability evidence, contract.reviewMatrix backing, live/not_applicable/blocked states, no fabricated/bare URL language, and preview proof before Inline Approval prompt.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `/adv-review` Phase 7 with Preview URL Proof before acceptance, tri-state `live`/`not_applicable`/`blocked` behavior, reachability evidence requirements, matrix-backed proof, explicit no-fabrication/no-bare-URL rules, acceptance summary line, and executive-summary evidence line.",
+      "filesTouched": [
+        ".opencode/command/adv-review.md"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-review.md"
+      ],
+      "checkpointSha": "7ea1c69549c8d00a04d7c75eeed6c95889a810f9",
+      "completedAt": "2026-05-24T22:12:24.451Z",
+      "completed_at": "2026-05-24T22:12:24.451Z",
+      "notes": "Review acceptance preview proof instructions added and verified. Checkpoint commit 7ea1c69 records changes.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-24T22:12:33.370Z"
+    },
+    {
+      "id": "tk-74497b201380",
+      "title": "Verify preview URL acceptance contract",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-24T22:02:54.909Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-13ecd65b36f3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5c811e52cf07"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bb8418e169cf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:12:59.857Z",
+      "verification": "Review remediation checkpoint: fixed logic/security/quality findings from review. Verification after remediation: `pnpm test -- src/adv-skill-backed-commands-assets.test.ts` exit 0 and `pnpm run check` exit 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Verified preview URL acceptance contract. After review findings, strengthened URL security/sanitization, visual-surface drift handling, `unknown` handling, blocked-summary behavior, and asset-test assertions. Final verification: targeted asset test passed and `pnpm run check` passed.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-review.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-review.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "2cc9e22f2cb420f18c07778a6714641cf42e0033",
+      "completedAt": "2026-05-24T22:27:49.646Z",
+      "completed_at": "2026-05-24T22:27:49.646Z",
+      "notes": "Final targeted test/check passed. Review remediation fixes checkpointed in commit 2cc9e22.",
+      "error_recovery": {
+        "last_error": "Initial targeted asset test failed due command-string anchor ordering and case-sensitive discovery wording; review later found logic/security/test-quality gaps.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolved by wording patch plus review remediation; no further retries needed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Asset test failures in adv-review preflight ordering and adv-discover lowercase string assertion.",
+            "diagnosis": "The implementation introduced the exact anchor `Inline Approval prompt` too early and used capitalized wording not matching test expectation.",
+            "fix_tried": "Reworded early `/adv-review` preview proof line to avoid exact prompt anchor and added lowercase `preview applicability` phrase in `/adv-discover`; later hardened URL safety and drift handling from review findings.",
+            "strategy_label": "anchor-wording-and-review-hardening",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-24T22:24:20.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-24T22:28:02.121Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-V8F_V_",
+      "type": "pattern",
+      "content": "For workflow-contract changes, `plugin/src/adv-skill-backed-commands-assets.test.ts` is the right asset-test surface to pin command/spec strings and ordering before checkpoint prompts; existing tests use `indexOf(...)` ordering checks that are easy to extend for new preflight-before-approval requirements.",
+      "source_task": "tk-ecce30eead65",
+      "recorded_at": "2026-05-24T22:08:50.614Z"
+    },
+    {
+      "id": "ws-9tXi_v",
+      "type": "gotcha",
+      "content": "When editing markdown code blocks inside command docs, watch indentation after list/code-block patches: added bullets inside fenced templates can accidentally gain an extra leading space while still passing string-based asset tests. Format/check pass should catch if markdown formatting is enforced.",
+      "source_task": "tk-bb8418e169cf",
+      "recorded_at": "2026-05-24T22:12:40.372Z"
+    },
+    {
+      "id": "ws-4-_cqv",
+      "type": "gotcha",
+      "content": "String-order asset tests can use generic anchors like `Inline Approval prompt`; adding the same phrase earlier in command docs can break unrelated ordering assertions. Prefer alternate wording before the canonical checkpoint anchor unless the new section is meant to become the ordering target.",
+      "source_task": "tk-74497b201380",
+      "recorded_at": "2026-05-24T22:15:40.405Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-24T21:49:45.186Z",
+      "completed_by": "agent",
+      "approval_evidence": "Problem statement confirmed by user reply: approve. Proposal captures preview URL acceptance-stage rule, scope boundaries, success criteria, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/proposal.md",
+        "content_hash": "6adec2b2645bfaf986a16549d166263458a049652830afa92d7b0cb437be2536",
+        "non_whitespace_chars": 3711,
+        "checked_at": "2026-05-24T21:49:45.294Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-24T21:56:34.949Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement persisted and typed contract minted after user AC approval. User decisions: URL + reachability, block acceptance when applicable preview missing, trigger any visual output.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/agreement.md",
+        "content_hash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "non_whitespace_chars": 2112,
+        "checked_at": "2026-05-24T21:56:35.040Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:01:39.385Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Independent validator returned CAUTION; cautions addressed by making preview proof matrix-backed and applicability agreement-level via visual_surface. No user-value tradeoff, conflict, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/design.md",
+        "content_hash": "74a767a12340d9d0bdcf768d9e365dd414897f4d6f9b2b5dd346ff12dc5a3c7d",
+        "non_whitespace_chars": 7299,
+        "checked_at": "2026-05-24T22:01:39.437Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:06:39.240Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision and task graph with reply `approve`."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:16:31.519Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks completed with checkpoint commits. Verification: `pnpm test -- src/adv-skill-backed-commands-assets.test.ts` passed, `pnpm run format:check` passed, `pnpm run check` passed. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:33:15.954Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with reply `approve`. Acceptance review verdict APPROVED. Verification passed: `pnpm test -- src/adv-skill-backed-commands-assets.test.ts`, `pnpm run check`, contract review matrix 15/15 pass/respected. Preview URL: not_applicable — workflow/spec/command/test asset change with no visual runtime surface.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/acceptance.md",
+        "content_hash": "3cc262cc0eb61d1c722eec14fa2a62ccd4c84566ce547c6f67c5f41f368eaf5a",
+        "non_whitespace_chars": 3307,
+        "checked_at": "2026-05-24T22:33:16.179Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+      "approvedAt": "2026-05-24T21:56:30.733Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-review` detects applicable front-end/browser-visible work, defined broadly as any visual output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "If applicable, the acceptance summary includes `Preview URL: {url}` before user acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Preview URL must include reachability evidence; a bare unverified URL is insufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If applicable work lacks URL or reachability evidence, acceptance is blocked before user sign-off.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "If not applicable, the acceptance summary may state `Preview URL: not_applicable`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The rule is encoded in durable workflow contract surfaces: spec, `/adv-review` command, and tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Preview proof is included in durable acceptance or executive-summary evidence when applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve the seven-gate ADV workflow and existing acceptance checkpoint semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Use structural contract surfaces (spec, command doc, tests) rather than heuristic-only prompting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not require public deployment when local or equivalent dev preview is sufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep non-front-end changes unblocked by preview URL requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not fabricate URLs from assumptions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not accept a bare unverified URL for applicable visual work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not move the requirement to archive/release; it must run before user acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not build a new dev server manager as part of this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "45d236a68b32256a9b790bee093f77a23be78d82b5f6e21d98ae0f78634ce141",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-24T22:28:30.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec rq-acceptancePreviewUrl01 + /adv-discover visual_surface language + /adv-review applicability rules; `pnpm test -- src/adv-skill-backed-commands-assets.test.ts` passed.",
+          "notes": "Visual-output applicability encoded and tested."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "/adv-review Build Acceptance Summary includes Preview URL before acceptance prompt; asset test asserts Preview URL precedes Inline Approval prompt.",
+          "notes": "User-facing line required before acceptance."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "/adv-review requires reachability evidence and says bare unverified URL is insufficient; spec mirrors this; asset test passed.",
+          "notes": "Review remediation added bounded verification methods and no arbitrary HTTP probing."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec and /adv-review define blocked state for missing URL/evidence, unknown applicability, and visual-surface drift; asset test passed.",
+          "notes": "Acceptance checkpoint withheld for blocked state."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec scenario rq-acceptancePreviewUrl01.5 and /adv-review table define Preview URL: not_applicable with rationale; asset test passed.",
+          "notes": "Non-visual changes remain unblocked."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Touched `.adv/specs/advance-workflow/spec.json`, `.opencode/command/adv-review.md`, `.opencode/command/adv-discover.md`, docs mirror, and asset test; targeted test and `pnpm run check` passed.",
+          "notes": "Durable contract surfaces updated."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "/adv-review executive-summary template includes Preview URL evidence; preflight requires matrix evidence for visual_surface true/false; asset test passed.",
+          "notes": "Durable proof path is matrix + executive summary."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new gate/tool added; /adv-review acceptance checkpoint remains owner; `adv_gate_status` shows seven-gate flow preserved.",
+          "notes": "Workflow semantics preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec law, command docs, contract matrix wording, and asset tests own the rule. No heuristic-only acceptance authority added.",
+          "notes": "Review remediation made heuristics advisory only."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Spec/review wording allows local/equivalent dev preview and does not require public deployment.",
+          "notes": "Also restricts invalid internal non-visual URLs."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "/adv-review and spec include Preview URL: not_applicable with rationale for non-visual changes.",
+          "notes": "Non-front-end changes not blocked by missing preview URL."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "/adv-review says Do not fabricate URLs and requires observed/user/log/browser evidence; asset test passed.",
+          "notes": "No fabricated URL path introduced."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "/adv-review and spec state a bare unverified URL is insufficient; reachability evidence required.",
+          "notes": "Security remediation tightened acceptable evidence."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Rule is in /adv-review Phase 7 before acceptance; no archive/release relocation.",
+          "notes": "Pre-acceptance timing preserved."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No dev server manager/tool code added; changed only spec/docs/command/test assets.",
+          "notes": "Scope stayed to workflow contract."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`/adv-review` detects applicable front-end/browser-visible work, defined broadly as any visual output.",
+    "If applicable, the acceptance summary includes `Preview URL: {url}` before user acceptance.",
+    "Preview URL must include reachability evidence; a bare unverified URL is insufficient.",
+    "If applicable work lacks URL or reachability evidence, acceptance is blocked before user sign-off.",
+    "If not applicable, the acceptance summary may state `Preview URL: not_applicable`.",
+    "The rule is encoded in durable workflow contract surfaces: spec, `/adv-review` command, and tests.",
+    "Preview proof is included in durable acceptance or executive-summary evidence when applicable."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/proposal.md",
+      "updatedAt": "2026-05-24T21:54:37.761Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/agreement.md",
+      "updatedAt": "2026-05-24T21:56:22.321Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/design.md",
+      "updatedAt": "2026-05-24T22:01:32.993Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addPreviewUrls/executive-summary.md",
+      "updatedAt": "2026-05-24T22:30:10.292Z"
+    }
+  },
+  "lastSignalAt": "2026-05-24T22:33:15.954Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-24T21:48:56.803Z",
+      "resolved": true,
+      "resolved_at": "2026-05-24T21:49:33.690Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
