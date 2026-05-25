@@ -472,6 +472,9 @@ export async function changeWorkflow(
   if (input.seedState) {
     if (input.seedState.status) state.status = input.seedState.status;
     if (input.seedState.tasks) state.tasks = input.seedState.tasks;
+    if (input.seedState.subagent_reports) {
+      state.subagent_reports = input.seedState.subagent_reports;
+    }
     if (input.seedState.deltas) state.deltas = input.seedState.deltas;
     if (input.seedState.wisdom) state.wisdom = input.seedState.wisdom;
     if (input.seedState.gates) state.gates = input.seedState.gates;
@@ -1175,6 +1178,7 @@ export async function changeWorkflow(
     seedState: {
       status: state.status,
       tasks: state.tasks,
+      subagent_reports: state.subagent_reports,
       deltas: state.deltas,
       wisdom: state.wisdom,
       gates: state.gates,

@@ -12,6 +12,7 @@
 
 import { z } from "zod";
 import { TaskSchema } from "./tasks";
+import { ScopedSubagentReportSchema } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
 import { GatesSchema, GateIdSchema } from "./gates";
@@ -477,6 +478,8 @@ export const ChangeSchema = z
     // Output type stays non-optional via .default() — callers continue to see
     // Task[] / Record<string, Delta[]>.
     tasks: z.array(TaskSchema).optional().default([]),
+    /** Canonical sidecar store for compact persisted sub-agent reports. */
+    subagent_reports: z.array(ScopedSubagentReportSchema).optional(),
     deltas: z.record(z.string(), z.array(DeltaSchema)).optional().default({}),
     validation: ValidationResultSchema.optional(),
     /** Accumulated wisdom/learnings for this change (optional, backwards compatible) */

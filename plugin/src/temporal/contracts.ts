@@ -3,6 +3,8 @@ import type {
   ChangeContract,
   ChangeOrigin,
   SubagentAgent,
+  SubagentReportScope,
+  ScopedSubagentReport,
   FastFollowOf,
   Gates,
 } from "../types";
@@ -81,11 +83,20 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
 
 export function subagentReportKey(input: {
   changeId: string;
-  taskId: string;
+  taskId?: string;
+  scope?: SubagentReportScope;
   agent: SubagentAgent;
   attempt: number;
 }): string {
-  return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+  if (input.taskId) {
+    return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+  }
+  const scopeId = input.scope
+    ? input.scope.kind === "task"
+      ? `task:${input.scope.task_id}`
+      : `change:${input.scope.scope_key}`
+    : "unknown-scope";
+  return `${input.changeId}|${scopeId}|${input.agent}|${input.attempt}`;
 }
 
 export interface ChangeSummaryPayload {
@@ -150,6 +161,7 @@ export interface ChangeWorkflowInput {
       ChangeWorkflowState,
       | "status"
       | "tasks"
+      | "subagent_reports"
       | "deltas"
       | "wisdom"
       | "gates"
@@ -184,6 +196,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   status: import("../types").ChangeStatus;
   createdAt: string;
   tasks: import("../types").Task[];
+  subagent_reports?: ScopedSubagentReport[];
   deltas: import("../types").Change["deltas"];
   wisdom: import("../types").WisdomEntry[];
   gates: Gates;

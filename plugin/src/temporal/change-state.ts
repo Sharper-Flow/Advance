@@ -93,6 +93,7 @@ export function createChangeWorkflowState(input: {
     initializedAt: input.createdAt,
     createdAt: input.createdAt,
     tasks: [],
+    subagent_reports: [],
     deltas: {},
     wisdom: [],
     gates: createDefaultGates(),
@@ -111,6 +112,7 @@ export function changeSeedStateFromChange(
   return {
     status: change.status,
     tasks: change.tasks ?? [],
+    subagent_reports: change.subagent_reports ?? [],
     deltas: change.deltas ?? {},
     wisdom: change.wisdom ?? [],
     gates: change.gates ?? createDefaultGates(),
@@ -381,6 +383,11 @@ function blockerSummary(
           .join("; "),
       };
 
+    case "adv-researcher":
+    case "adv-tron":
+    case "adv-scanner-bundle":
+      return null;
+
     default: {
       const exhaustive: never = report;
       return assertNeverSubagentReport(exhaustive);
@@ -388,41 +395,70 @@ function blockerSummary(
   }
 }
 
+function taskIdFromReport(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): string | undefined {
+  if (typeof report.scope !== "string" && report.scope.kind === "task") {
+    return report.scope.task_id;
+  }
+  return "task_id" in report ? report.task_id : undefined;
+}
+
+function reportKey(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): string {
+  return subagentReportKey({
+    changeId: report.change_id,
+    taskId: taskIdFromReport(report),
+    scope: typeof report.scope === "string" ? undefined : report.scope,
+    agent: report.agent,
+    attempt: report.attempt,
+  });
+}
+
 export function applySubagentReportSubmittedToState(
   state: ChangeWorkflowState,
   payload: SubagentReportSubmittedSignalPayload,
 ): ChangeWorkflowState {
-  const task = getMutableTask(state, payload.taskId);
-  const reportId = subagentReportKey({
-    changeId: payload.report.change_id,
-    taskId: payload.report.task_id,
-    agent: payload.report.agent,
-    attempt: payload.report.attempt,
-  });
+  const taskId = payload.taskId ?? taskIdFromReport(payload.report);
+  const task = taskId ? getMutableTask(state, taskId) : undefined;
+  const taskScoped =
+    typeof payload.report.scope === "string" ||
+    payload.report.scope.kind === "task";
+  const reportId = reportKey(payload.report);
   const seenReportIds = state.seenReportIds ?? [];
-  const alreadyStored = (task.subagent_reports ?? []).some(
-    (report) =>
-      subagentReportKey({
-        changeId: report.change_id,
-        taskId: report.task_id,
-        agent: report.agent,
-        attempt: report.attempt,
-      }) === reportId,
+  const alreadyStoredInSidecar = (state.subagent_reports ?? []).some(
+    (report) => reportKey(report) === reportId,
+  );
+  const alreadyStoredOnTask = (task?.subagent_reports ?? []).some(
+    (report) => reportKey(report) === reportId,
   );
 
-  if (seenReportIds.includes(reportId) || alreadyStored) {
+  if (seenReportIds.includes(reportId) || alreadyStoredInSidecar) {
     state.seenReportIds = seenReportIds.includes(reportId)
       ? seenReportIds
       : [...seenReportIds, reportId];
+    if (task && taskScoped && !alreadyStoredOnTask) {
+      task.subagent_reports = [
+        ...(task.subagent_reports ?? []),
+        payload.report as NonNullable<Task["subagent_reports"]>[number],
+      ];
+    }
     setLastSignalAt(state, payload.submittedAt);
     return state;
   }
 
-  task.subagent_reports = [...(task.subagent_reports ?? []), payload.report];
+  state.subagent_reports = [...(state.subagent_reports ?? []), payload.report];
+  if (task && taskScoped && !alreadyStoredOnTask) {
+    task.subagent_reports = [
+      ...(task.subagent_reports ?? []),
+      payload.report as NonNullable<Task["subagent_reports"]>[number],
+    ];
+  }
   state.seenReportIds = [...seenReportIds, reportId];
 
   const blockers = blockerSummary(payload.report);
-  if (blockers) {
+  if (task && blockers) {
     task.error_recovery = {
       last_error: blockers.summary,
       retry_count: payload.report.attempt,
