@@ -1,16 +1,16 @@
 ---
 name: adv-task
-description: Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off
+description: Fast-track small changes: assess spec-law impact, prep, and hand off
 ---
 <!-- manifest: adv-task · requiresChangeId: false · scope: reads[specs, codebase] -->
 # ADV Task — Fast-Track a Discussed Change
-Fast-track a discussed change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing.
+Fast-track a small, well-understood durable change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing and need tracked change/task state before implementation.
 ## Command Boundary
-**Produces:** Change scaffold, validated approach (Context7), complete task graph.
+**Produces:** Change scaffold, spec-law impact assessment, validated approach (Context7), complete task graph.
 
 **Crosses boundaries intentionally** (fast-track exemption): creates tasks (normally prep-only), completes proposal + discovery + design + planning gates.
 
-**Pipeline:** Quick Contract → proposal → discovery → agreement → design → present → prep → hand off
+**Pipeline:** Quick Contract → proposal → discovery → spec-law impact → agreement → design → present → prep → hand off
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -47,6 +47,34 @@ Ask via `question`: Confirmed — execute (Recommended), Modify contract, Abort.
 ## Phase 2: Discovery + Design Validation
 ### Load Context
 `adv_project_context` → full tech stack.
+
+### Spec-Law Impact Assessment
+Before task generation, `/adv-task` MUST determine whether the fast-tracked change needs durable spec-law updates. Use `adv_spec action: "list"` plus targeted `adv_spec action: "search"` / `adv_spec action: "show"` for affected capabilities inferred from the Quick Contract and proposal.
+
+Classify **Spec-law impact** as exactly one:
+
+| Outcome | Meaning | Required action |
+|---------|---------|-----------------|
+| **Add** | New durable behavior, capability, or requirement is introduced | Persist draft spec-delta obligations |
+| **Modify** | Existing spec law needs behavior, acceptance, or constraint changes | Persist draft spec-delta obligations |
+| **Remove** | Existing durable behavior or requirement is removed/subtracted | Persist draft spec-delta obligations |
+| **No spec law update required** | Implementation-only change preserves existing law | Persist explicit no-delta rationale |
+| **Uncertain** | Impact cannot be resolved quickly | Stop fast-track; route to `/adv-proposal` or deeper discovery |
+
+For **Add**, **Modify**, or **Remove**, persist draft spec-delta obligations via `adv_change_update` before planning:
+
+- affected capability/spec
+- delta kind: add, modify, or remove
+- concrete `rq-*` requirement IDs
+- at least one Given/When/Then scenario per obligation
+- rationale linking the obligation to the agreed change
+
+For **No spec law update required**, persist `No spec law update required: {rationale}` in the proposal/design context before planning.
+
+For **Uncertain**, `/adv-task` MUST NOT complete planning or create implementation tasks for the uncertain scope. Route to `/adv-proposal` or keep investigating until impact is clear.
+
+This phase is the crash-safe fast-path guard: durable change/task state and spec-law intent must exist before implementation begins.
+
 ### Spawn Research Sub-Agent
 Spawn `adv-researcher` for docs/API/examples + architecture validation in a single message:
 | Target Type | Agent |
@@ -95,6 +123,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 
 ## Delivered
 - Change scaffold created
+- Spec-law impact: {Add|Modify|Remove|No spec law update required|Uncertain}
 - LBP validation: {Confirmed|Caution|Conflict}
 - Task graph synthesized
 - Proposal + agreement + design artifacts produced

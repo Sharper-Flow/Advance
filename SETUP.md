@@ -1300,7 +1300,7 @@ New changes start directly in the 7-gate model.
 
 | Command                   | Purpose                                                                                                                            |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `/adv-task`               | Fast-track a discussed change through proposal → planning                                                                          |
+| `/adv-task`               | Fast-track small changes: assess spec-law impact, prep, and hand off                                                               |
 | `/adv-validate <id>`      | Validate change against specs                                                                                                      |
 | `/adv-clarify`            | Clarify ambiguous requirements                                                                                                     |
 | `/adv-audit [capability]` | Spec/implementation drift check                                                                                                    |

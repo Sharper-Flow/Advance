@@ -294,7 +294,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-task": {
     name: "adv-task",
     description:
-      "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
+      "Fast-track small changes: assess spec-law impact, prep, and hand off",
     phase: "implementation",
     requiresChangeId: false,
     prerequisites: [],

@@ -309,7 +309,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-validate`   | Validate change compliance against specs; block archive on failure                |
 | `/adv-clarify`    | Ask clarifying questions to resolve ambiguous requirements                        |
 | `/adv-research`   | Produce a defined, fully-researched proposed plan ready for user approval         |
-| `/adv-task`       | Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off |
+| `/adv-task`       | Fast-track small changes: assess spec-law impact, prep, and hand off |
 | `/adv-atc`  | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-audit`      | Detect drift between specs and current implementation                             |
 | `/adv-slop-scan`  | Scan slop, deletion safety, and detector coverage                                |

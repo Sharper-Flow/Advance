@@ -153,7 +153,8 @@ Before doing anything, classify what the user is asking for:
 | --------------------- | -------------------------------- | ---------------------------------------------- |
 | **Idea shaping**      | rough idea, fuzzy goal           | Start collaborative `/adv-idea` loop           |
 | **Problem triage**    | bug details, issue symptoms      | Start collaborative `/adv-problem` loop        |
-| **Start a change**    | "let's build X", idea discussion | Clarify scope → `/adv-proposal` workflow       |
+| **Start a change**    | "let's build X", idea discussion; larger or ambiguous scope | Clarify scope → `/adv-proposal` workflow       |
+| **Small tracked change** | well-understood durable change where full proposal ceremony is not worth it, but spec-law check and crash-safe tracking are still needed | Use /adv-task workflow — ensure change/task state exists before implementation |
 | **Complete a change** | "complete {id}", "finish {id}"   | Load state → resume from first incomplete gate |
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
 | **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; or `/adv-status` for project-wide health |

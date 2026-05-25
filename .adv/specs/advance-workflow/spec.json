@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.13.0",
-  "updated_at": "2026-05-24T04:00:00.000Z",
+  "version": "1.14.0",
+  "updated_at": "2026-05-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -47,6 +47,54 @@
           "then": [
             "It does not create or mutate changes, tasks, gates, or spec files",
             "It hands off to /adv-proposal for artifact creation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-taskSpecLaw01",
+      "title": "Fast-Track Tasks Preserve Spec-Law Intent and Crash-Safe Tracking",
+      "body": "/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.",
+      "priority": "must",
+      "tags": ["workflow", "adv-task", "spec-law", "tracking"],
+      "scenarios": [
+        {
+          "id": "rq-taskSpecLaw01.1",
+          "title": "Fast-track spec delta obligations are concrete",
+          "given": [
+            "A small well-understood durable change is routed through /adv-task"
+          ],
+          "when": "The spec-law impact assessment classifies the change as add, modify, or remove",
+          "then": [
+            "The change artifacts include draft spec-delta obligations before planning completes",
+            "Each obligation has a concrete rq-* requirement ID",
+            "Each obligation has at least one Given/When/Then scenario"
+          ]
+        },
+        {
+          "id": "rq-taskSpecLaw01.2",
+          "title": "No-delta fast-track records rationale",
+          "given": [
+            "A small well-understood durable change is routed through /adv-task"
+          ],
+          "when": "The spec-law impact assessment determines no spec law update is required",
+          "then": [
+            "The change artifacts state No spec law update required",
+            "The change artifacts include the no-delta rationale",
+            "Planning may complete only after the rationale is persisted"
+          ]
+        },
+        {
+          "id": "rq-taskSpecLaw01.3",
+          "title": "Small durable changes use tracked fast path",
+          "given": [
+            "A user asks for a small well-understood durable change"
+          ],
+          "when": "Full /adv-proposal ceremony is not warranted but implementation work is needed",
+          "then": [
+            "ADV agent routing prefers /adv-task over ad hoc/direct implementation",
+            "Durable change/task state exists before implementation begins",
+            "A crash can resume from tracked change/task state"
           ]
         }
       ]
