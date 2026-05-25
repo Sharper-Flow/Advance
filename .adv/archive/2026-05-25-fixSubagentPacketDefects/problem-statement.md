@@ -1,0 +1,1 @@
+A typed ADV sub-agent (`adv-reviewer`) surfaced a user-facing question asking for missing Context Packet fields (`TASK` id and `ATTEMPT` number). The orchestrator owns these fields and must provide or repair them internally. Asking the user breaks the recently added sub-agent context contract and creates repeated workflow interruptions.

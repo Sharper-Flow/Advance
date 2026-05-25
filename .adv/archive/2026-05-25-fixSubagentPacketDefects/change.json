@@ -1,0 +1,414 @@
+{
+  "id": "fixSubagentPacketDefects",
+  "title": "Fix subagent packet defects",
+  "status": "archived",
+  "created_at": "2026-05-25T02:21:49.770Z",
+  "tasks": [
+    {
+      "id": "tk-0d3678a17f9e",
+      "title": "Patch ADV sub-agent packet-defect prompt policy",
+      "type": "code",
+      "section": "Prompt contracts",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-25T02:23:32.889Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T02:24:07.126Z",
+      "verification": "RED: pnpm exec vitest run src/adv-task-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-engineer-assets.test.ts failed because top-level ADV lacked typed worker packet policy and leaf agents lacked packet_defect handling. GREEN: same command passed (3 files, 110 tests) after adding orchestrator-owned packet identity policy and leaf structured packet-defect failure instructions.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/adv-task-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/adv-task-assets.test.ts"
+      ],
+      "checkpointSha": "cad7e8072ae87743721cf3b884fb6ef74a0ebed3",
+      "completedAt": "2026-05-25T02:27:25.465Z",
+      "completed_at": "2026-05-25T02:27:25.465Z"
+    },
+    {
+      "id": "tk-dbecbbe3f54e",
+      "title": "Run focused verification and full check",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-25T02:23:45.617Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d3678a17f9e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-25T02:27:36.142Z",
+      "verification": "Focused verification passed: pnpm exec vitest run src/adv-task-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-engineer-assets.test.ts (3 files, 110 tests). Initial pnpm run check failed on Prettier formatting in two tests; ran pnpm run format. Rerun focused verification passed (110 tests). Final pnpm run check passed: typecheck, test-isolation, lockfile policy, lint, format:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "checkpointSha": "f53a6390fa0da3570664d0e22ef21511fe7af477",
+      "completedAt": "2026-05-25T02:31:18.114Z",
+      "completed_at": "2026-05-25T02:31:18.114Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-25T02:23:02.846Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal/plan with reply `approve` after repeated repro; proposal includes success criteria and scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentPacketDefects/proposal.md",
+        "content_hash": "59bf9b9fb060968f20592c6442e04df86fc5a44ff837dc5f269fad5d99ae84e1",
+        "non_whitespace_chars": 1150,
+        "checked_at": "2026-05-25T02:23:02.966Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-25T02:23:10.231Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement artifact persisted. User approved with reply `approve`. Acceptance criteria AC1-AC5, constraints C1-C3, avoidances DONT1-DONT2.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentPacketDefects/agreement.md",
+        "content_hash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "non_whitespace_chars": 1333,
+        "checked_at": "2026-05-25T02:23:10.670Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-25T02:23:22.831Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design is small instruction-contract hardening. No product tradeoff or validator conflict. Scope limited to ADV prompts/tests; no delegation routing redesign.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentPacketDefects/design.md",
+        "content_hash": "88777ae84800c61916c5ab16d45e28597fda526bde78ab40597103758827db3f",
+        "non_whitespace_chars": 780,
+        "checked_at": "2026-05-25T02:23:22.972Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-25T02:23:58.854Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved implementation plan with reply `approve`. Task graph: prompt policy patch + focused/full verification. adv_change_validate strict passed with non-blocking NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-25T02:31:45.486Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both tasks completed with checkpoints. Focused asset tests passed (3 files, 110 tests). pnpm run check passed after formatting-only remediation. adv_change_validate strict passed with non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-25T02:36:13.575Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with reply `approve`. Contract review matrix has 10 rows, 0 failing. Focused tests and pnpm run check passed. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentPacketDefects/acceptance.md",
+        "content_hash": "d8d8c2e11183e3016a451d7bec652478b0e9a6e4f0458df602bd59b67af199b6",
+        "non_whitespace_chars": 2616,
+        "checked_at": "2026-05-25T02:36:13.897Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "ag-p9pnGrXg"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+      "approvedAt": "2026-05-25T02:23:15.898Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Top-level ADV instructions state typed worker spawns must include `WORKING DIRECTORY`, `CHANGE`, `TASK`, and `ATTEMPT`; `adv-reviewer` typed workers must also include `PHASE`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Top-level ADV instructions state missing typed-worker packet identity fields are orchestrator defects handled internally by corrected retry or inline fallback, never by user `question`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv-reviewer` and `adv-engineer` prompts do not instruct leaf workers to ask the user/orchestrator via `question` for missing `TASK`, `PHASE`, `ATTEMPT`, or `WORKING DIRECTORY`; they return structured packet-defect failure for orchestrator recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Asset tests fail if user-facing `question` wording returns for missing packet identity fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Focused asset tests and `pnpm run check` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken `adv_subagent_report_submit` schemas.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add persisted report support for `adv-researcher` or `adv-tron`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not redesign delegation routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make users provide `TASK`, `PHASE`, `ATTEMPT`, `sessionID`, or other packet identity values.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not rely on prose-only guidance without tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14ba334474a48e5b230bcf40a930a0177ddc1fa18eebbb9e9ce3baceb43e39de",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-25T02:32:05.989Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/adv-task-assets.test.ts asserts top-level ADV contains Typed worker packet contract with WORKING DIRECTORY, CHANGE, TASK, ATTEMPT, adv-reviewer PHASE, orchestrator-owned, never ask user, corrected retry, inline fallback.",
+          "notes": "Top-level policy added."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/adv-task-assets.test.ts asserts missing typed-worker packet fields are orchestrator-owned and handled by retry with corrected packet or continue inline, never ask user.",
+          "notes": "Internal defect handling pinned."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/adv-reviewer-asset.test.ts and src/adv-engineer-assets.test.ts assert missing packet identity fields produce packet_defect structured failure and forbid question/ask-orchestrator wording in relevant sections.",
+          "notes": "Leaf prompts patched."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED evidence: focused tests failed before prompt changes because policy/packet_defect wording was absent. GREEN evidence: same tests passed after patch.",
+          "notes": "Regression tests prove recurrence guard."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: pnpm exec vitest run src/adv-task-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-engineer-assets.test.ts (3 files, 110 tests). Passed: pnpm run check.",
+          "notes": "Verification complete."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No changes to plugin/src/types/subagent-reports.ts or adv_subagent_report_submit schemas.",
+          "notes": "Strict ingest untouched."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No persisted report schema/support added for adv-researcher or adv-tron.",
+          "notes": "Reserved agents unchanged."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes limited to ADV prompt policy and asset tests; no delegation routing code changed.",
+          "notes": "No redesign."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompts now explicitly say packet identity values are not user questions; top-level says never ask user for them.",
+          "notes": "User-owned packet fields avoided."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompt guidance backed by asset tests in adv-task-assets, adv-reviewer-asset, and adv-engineer-assets.",
+          "notes": "Not prose-only."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Top-level ADV instructions state typed worker spawns must include `WORKING DIRECTORY`, `CHANGE`, `TASK`, and `ATTEMPT`; `adv-reviewer` typed workers must also include `PHASE`.",
+    "Top-level ADV instructions state missing typed-worker packet identity fields are orchestrator defects handled internally by corrected retry or inline fallback, never by user `question`.",
+    "`adv-reviewer` and `adv-engineer` prompts do not instruct leaf workers to ask the user/orchestrator via `question` for missing `TASK`, `PHASE`, `ATTEMPT`, or `WORKING DIRECTORY`; they return structured packet-defect failure for orchestrator recovery.",
+    "Asset tests fail if user-facing `question` wording returns for missing packet identity fields.",
+    "Focused asset tests and `pnpm run check` pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentPacketDefects/proposal.md",
+      "updatedAt": "2026-05-25T02:22:05.576Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentPacketDefects/executive-summary.md",
+      "updatedAt": "2026-05-25T02:32:19.520Z"
+    }
+  },
+  "lastSignalAt": "2026-05-25T02:36:13.575Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
