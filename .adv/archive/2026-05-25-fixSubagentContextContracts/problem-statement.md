@@ -1,0 +1,1 @@
+Recent typed sub-agent report work added strict required fields, but command context packets and scanner output contracts did not stay structurally aligned. The combined fix should repair the current `phase` / `attempt` / identity gaps and add structural guardrails so future report-schema changes cannot silently drift away from command packets and worker instructions.
