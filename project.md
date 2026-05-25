@@ -27,7 +27,6 @@ OpenCode plugin repo implementing ADV — a spec-driven development orchestrator
 plugin/src/
   tools/        # MCP tool implementations (spec, change, task, gate, wisdom, agenda, project, status, test)
   storage/      # JSON projections, Temporal adapters, migrations, external state paths
-  guards/       # Runtime policy: bash sanitization, sub-agent nesting depth (hard limit: 1)
   validator/    # Spec compliance, prep-readiness checks, task classification
   events/       # Terminal UI helpers, status markers
   utils/        # project-id (root commit SHA), debug-log, safe-execute, banner

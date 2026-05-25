@@ -390,7 +390,6 @@ plugin/              TypeScript OpenCode plugin implementation
   src/tools/         MCP tool implementations
   src/storage/       persistence, migrations, Temporal integration, external state
   src/temporal/      workflows, worker bootstrap, recovery helpers
-  src/guards/        bash and sub-agent policy enforcement
   src/validator/     spec validation, prep readiness, task classification
   src/events/        terminal UI/status helpers
   src/utils/         project IDs, debug logs, context snapshots, safe helpers

@@ -752,7 +752,7 @@ Every sub-agent spawn must include: ROLE:, OUTPUT_SCHEMA:, BUDGET:, STOP_WHEN:. 
 
 ### Orchestration Token-Budget Policy
 
-When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (`enforceTaskPolicy`). Batch: spawn 3 → wait → next batch. Cap total sub-agents per command at 6 across batches. Inline for sequential/context-dependent work.
+When to spawn: 3+ independent scan dimensions. Max parallel workers: 3 (agent-self-enforced; no runtime guard). Batch: spawn 3 → wait → next batch. Cap total sub-agents per command at 6 across batches. Inline for sequential/context-dependent work.
 
 ### Phase Summary Pattern
 
