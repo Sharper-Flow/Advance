@@ -1,0 +1,1 @@
+Small durable changes need both spec-law assessment and durable task/change tracking without requiring the full `/adv-proposal` cycle. Current guidance lets agents skip both for small changes, risking missing spec updates and losing work on crash.
