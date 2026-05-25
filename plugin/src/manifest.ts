@@ -280,7 +280,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     gate: "execution",
     requiresChangeId: true,
     prerequisites: ["adv-prep"],
-    successors: ["adv-review", "adv-harden"],
+    successors: ["adv-apply"],
     scope: {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
@@ -298,7 +298,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     phase: "implementation",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-review", "adv-harden"],
+    successors: ["adv-apply"],
     scope: {
       creates: ["change", "proposal", "tasks"],
       reads: ["specs", "codebase"],

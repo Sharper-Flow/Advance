@@ -45,6 +45,7 @@ describe("Command Manifest", () => {
       "adv-improve",
       "adv-slop-scan",
       "adv-task",
+      "adv-atc",
       "adv-tron",
       "adv-reflect",
       "adv-cleanup",
@@ -352,6 +353,7 @@ describe("Command Manifest", () => {
 
     test("adv-task scope reflects fast-track artifact updates", () => {
       const def = getCommandDef("adv-task");
+      expect(def!.successors).toEqual(["adv-apply"]);
       expect(def!.scope!.creates).toEqual(["change", "proposal", "tasks"]);
       expect(def!.scope!.modifies).toEqual(["proposal", "design"]);
       expect(def!.scope!.gates).toEqual([
