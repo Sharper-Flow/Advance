@@ -32,14 +32,19 @@ describe("subagent reports spec assets", () => {
       "rq-subagentReports03",
       "rq-subagentReports04",
       "rq-subagentReports05",
+      "rq-subagentReports06",
+      "rq-subagentReports07",
+      "rq-subagentReports08",
+      "rq-subagentReports09",
     ]);
   });
 
-  test("subagent-reports law pins tool-call persistence and legacy short-circuit", () => {
+  test("subagent-reports law pins sidecar report persistence and legacy short-circuit", () => {
     const content = readFileSync(SUBAGENT_REPORTS_SPEC, "utf8");
     for (const anchor of [
       "adv_subagent_report_submit",
-      "task.subagent_reports[]",
+      "sidecar",
+      "scope",
       "include.subagentReports",
       "ATTEMPT",
       "short-circuit",
@@ -47,6 +52,7 @@ describe("subagent reports spec assets", () => {
     ]) {
       expect(content).toContain(anchor);
     }
+    expect(content).not.toContain("UNSUPPORTED_AGENT");
   });
 
   test("delegation-defaults rq-delDefaults05 requires typed persisted reports", () => {
@@ -57,9 +63,9 @@ describe("subagent reports spec assets", () => {
     expect(requirement).toBeDefined();
     expect(requirement!.body).toContain("typed, ingest-validated, durable");
     expect(requirement!.body).toContain("adv_subagent_report_submit");
-    expect(requirement!.body).toContain("task.subagent_reports[]");
+    expect(requirement!.body).toContain("sidecar");
     expect(JSON.stringify(requirement)).toContain(
-      "persists to task.subagent_reports[]",
+      "orchestrator-submitted scanner bundle",
     );
   });
 
@@ -79,5 +85,34 @@ describe("subagent reports spec assets", () => {
     expect(text).toContain("scanner");
     expect(text).toContain("worker");
     expect(text).toContain("INVALID_REPORT");
+  });
+
+  test("subagent-reports law defines researcher tron scanner sidecar variants", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const text = JSON.stringify(spec);
+
+    for (const anchor of [
+      "adv-researcher",
+      "adv-tron",
+      "adv-scanner-bundle",
+      "source metadata",
+      "follow_ups[]",
+      "agent/scope pairing",
+      "Temporal replay",
+    ]) {
+      expect(text).toContain(anchor);
+    }
+  });
+
+  test("delegation-defaults law preserves scanner isolation while allowing bundles", () => {
+    const spec = SpecSchema.parse(readJson(DELEGATION_DEFAULTS_SPEC));
+    const requirement = spec.requirements.find(
+      (req) => req.id === "rq-delDefaults05",
+    );
+    const text = JSON.stringify(requirement);
+
+    expect(text).toContain("non_persisted_scanner");
+    expect(text).toContain("orchestrator-submitted scanner bundle");
+    expect(text).toContain("without ADV tool access");
   });
 });

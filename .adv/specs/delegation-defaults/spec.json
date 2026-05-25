@@ -315,7 +315,7 @@
     {
       "id": "rq-delDefaults05",
       "title": "Typed and Persisted Worker Reports",
-      "body": "Delegated worker lanes that produce ADV task evidence MUST provide typed, ingest-validated, durable reports. adv-engineer and adv-reviewer worker reports MUST be submitted through adv_subagent_report_submit and persisted on task.subagent_reports[]; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. Worker packet contracts MUST pin schema-derived anchors: TASK and ATTEMPT for typed workers, plus PHASE for adv-reviewer. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Future persisted worker additions MUST include these 4 field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
+      "body": "Delegated worker lanes that produce ADV evidence MUST provide typed, ingest-validated, durable reports through sidecar report persistence. adv-engineer and adv-reviewer task-scoped reports MUST be submitted through adv_subagent_report_submit and remain backward-compatible with task.subagent_reports[] readers; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. adv-researcher and adv-tron change-scoped optimized handoff reports MUST use the same strict tool-call transport with source metadata. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport, without ADV tool access, and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Only an orchestrator-submitted scanner bundle MAY persist scanner findings. Worker packet contracts MUST pin schema-derived anchors: WORKING DIRECTORY, CHANGE, scope identity, and ATTEMPT, plus PHASE where required. Future persisted worker additions MUST include these 4 field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
       "priority": "must",
       "tags": ["delegation", "reports", "structured-output"],
       "scenarios": [
@@ -325,10 +325,10 @@
           "given": ["The 4 sub-agents with structured reports"],
           "when": "Report field coverage is validated",
           "then": [
-            "adv-engineer (ENGINEER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blockers, context_update_for_adv.suggested_next_action (next action), and persists to task.subagent_reports[]",
-            "adv-reviewer (REVIEWER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blocking_findings (blockers), required_main_agent_actions (next action), and persists to task.subagent_reports[]",
-            "adv-researcher format includes SOURCES (evidence), ARCHITECTURE ASSESSMENT (impact), VALIDATION (blockers/assessment), RECOMMENDATION (next action)",
-            "adv-tron format includes Evidence: file:line (evidence), FINDINGS/HOTSPOTS/RISKS (impact), OPEN QUESTIONS (blockers), SUGGESTED NEXT COMMANDS (next action)"
+            "adv-engineer (ENGINEER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blockers, context_update_for_adv.suggested_next_action (next action), and persists through sidecar report storage with task.subagent_reports[] compatibility",
+            "adv-reviewer (REVIEWER_REPORT via adv_subagent_report_submit) includes verification (evidence), scope, blocking_findings (blockers), required_main_agent_actions (next action), and persists through sidecar report storage with task.subagent_reports[] compatibility",
+            "adv-researcher optimized handoff includes SOURCES (evidence), ARCHITECTURE ASSESSMENT (impact), VALIDATION (blockers/assessment), RECOMMENDATION (next action), and source metadata",
+            "adv-tron optimized handoff includes Evidence: file:line (evidence), FINDINGS/HOTSPOTS/RISKS (impact), OPEN QUESTIONS (blockers), SUGGESTED NEXT COMMANDS (next action), and source metadata"
           ]
         },
         {
@@ -337,9 +337,11 @@
           "given": ["A delegated sub-step uses a typed persisted worker or a scanner worker"],
           "when": "The delegation matrix row is evaluated",
           "then": [
-            "typed_persisted_worker packet contracts include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
-            "adv-reviewer typed_persisted_worker packet contracts also include PHASE",
-            "non_persisted_scanner packet contracts include WORKING DIRECTORY, CHANGE, and ATTEMPT without adv_subagent_report_submit persistence"
+            "task-scoped typed_persisted_worker packet contracts include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
+            "adv-reviewer task-scoped typed_persisted_worker packet contracts also include PHASE",
+            "change-scoped optimized handoff packet contracts include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT",
+            "non_persisted_scanner packet contracts include WORKING DIRECTORY, CHANGE, and ATTEMPT without adv_subagent_report_submit persistence or ADV tool access",
+            "orchestrator-submitted scanner bundle packet contracts include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT"
           ]
         },
         {

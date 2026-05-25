@@ -2,15 +2,15 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "subagent-reports",
   "title": "Sub-Agent Reports",
-  "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, signal persistence on tasks, deterministic dedupe, and machine-readable downstream consumers.",
+  "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
   "version": "1.0.0",
-  "updated_at": "2026-05-24T00:00:00.000Z",
+  "updated_at": "2026-05-25T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
       "id": "rq-subagentReports01",
       "title": "Typed tool-call report ingest",
-      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer and adv-reviewer payloads, reserves adv-researcher and adv-tron discriminator literals for future extension, and rejects malformed or unsupported payloads before persistence.",
+      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer, adv-reviewer, adv-researcher, adv-tron, and adv-scanner-bundle payload variants, and rejects malformed or unsupported payloads before persistence.",
       "priority": "must",
       "tags": ["subagents", "reports", "zod", "ingest"],
       "scenarios": [
@@ -27,31 +27,31 @@
         },
         {
           "id": "rq-subagentReports01.2",
-          "title": "Reserved agent rejected until schema populated",
-          "given": ["A report uses agent adv-researcher or adv-tron"],
+          "title": "Known optimized handoff agents validate structurally",
+          "given": ["A report uses agent adv-researcher, adv-tron, or adv-scanner-bundle with its required fields"],
           "when": "adv_subagent_report_submit runs in v1",
           "then": [
-            "The tool returns UNSUPPORTED_AGENT",
-            "The reserved literal remains part of the agent discriminator surface",
-            "No workflow signal is fired"
+            "The strict payload schema validates the agent-specific object",
+            "The report carries explicit source metadata",
+            "The workflow signal is fired only after schema validation succeeds"
           ]
         }
       ]
     },
     {
       "id": "rq-subagentReports02",
-      "title": "Signal-persisted task report state",
-      "body": "Accepted reports MUST persist via subagentReportSubmittedSignal on the owning task as task.subagent_reports[]. The workflow MUST dedupe repeated submissions by (change_id, task_id, agent, attempt) using deterministic workflow state, and MUST map report blockers into task error_recovery without defineUpdate-based mutations.",
+      "title": "Signal-persisted sidecar report state",
+      "body": "Accepted reports MUST persist via subagentReportSubmittedSignal into a change-level sidecar report store. Task-scoped adv-engineer and adv-reviewer reports keep legacy task.subagent_reports[] read compatibility, but new canonical persistence MUST be scope-aware sidecar storage. The workflow MUST dedupe repeated submissions by (change_id, scope, agent, attempt) using deterministic workflow state, and MUST map task-scoped report blockers into task error_recovery without defineUpdate-based mutations.",
       "priority": "must",
       "tags": ["temporal", "signals", "dedupe", "tasks"],
       "scenarios": [
         {
           "id": "rq-subagentReports02.1",
           "title": "Duplicate report key is idempotent",
-          "given": ["A task already stores a report for change_id, task_id, agent, and attempt"],
+          "given": ["The sidecar already stores a report for change_id, scope, agent, and attempt"],
           "when": "The same report is submitted again",
           "then": [
-            "No duplicate task.subagent_reports entry is appended",
+            "No duplicate sidecar report entry is appended",
             "The workflow records the key in seenReportIds if needed",
             "The tool response reports duplicate true"
           ]
@@ -72,19 +72,19 @@
     {
       "id": "rq-subagentReports03",
       "title": "Queryable reports and consumers",
-      "body": "adv_change_show include.subagentReports MUST return persisted report data. Reports MUST remain on task.subagent_reports[]. Tool-layer consumers MUST process follow_ups into agenda items and surface verification cross-check warnings without rolling back an already persisted report.",
+      "body": "adv_change_show include.subagentReports MUST return persisted sidecar report data with explicit source metadata. Legacy reports that still live on task.subagent_reports[] MUST remain readable through the same opt-in readback. Tool-layer consumers MUST process follow_ups[] into bounded agenda items and surface verification cross-check warnings without rolling back an already persisted report.",
       "priority": "must",
       "tags": ["read-surface", "agenda", "verification", "consumers"],
       "scenarios": [
         {
           "id": "rq-subagentReports03.1",
           "title": "Reports are queryable by change",
-          "given": ["A task has one or more persisted sub-agent reports"],
+          "given": ["A change has one or more persisted sidecar or legacy sub-agent reports"],
           "when": "adv_change_show is called with include.subagentReports true",
           "then": [
             "The response includes _subagentReports",
             "The response includes _subagentReportsMeta.total",
-            "The task entry still includes subagent_reports"
+            "The response preserves task.subagent_reports[] only for legacy/task compatibility"
           ]
         },
         {
@@ -94,7 +94,7 @@
           "when": "adv_subagent_report_submit succeeds",
           "then": [
             "The report signal is fired before agenda writes",
-            "Each follow-up is added with category subagent-followup",
+            "Each follow-up is added with category subagent-followup and source metadata",
             "Consumer failures are returned as warnings"
           ]
         }
@@ -103,7 +103,7 @@
     {
       "id": "rq-subagentReports04",
       "title": "No ADV worker fenced-report transport",
-      "body": "ADV worker contracts MUST instruct adv-engineer and adv-reviewer to call adv_subagent_report_submit before exit. Apply, review, and harden context packets MUST include ATTEMPT so the report key is stable. Legacy TaskStructuredOutput extraction remains available for non-ADV callers but MUST short-circuit for tasks that already have persisted sub-agent reports.",
+      "body": "ADV worker contracts MUST instruct persisted worker lanes to call adv_subagent_report_submit before exit. Apply, review, and harden context packets MUST include ATTEMPT so the report key is stable. Legacy TaskStructuredOutput extraction remains available for non-ADV callers but MUST short-circuit for tasks that already have persisted sub-agent reports.",
       "priority": "must",
       "tags": ["agents", "contracts", "legacy", "attempt"],
       "scenarios": [
@@ -113,7 +113,7 @@
           "given": ["adv-engineer or adv-reviewer is spawned by ADV"],
           "when": "The worker completes its scope",
           "then": [
-            "The worker builds an ENGINEER_REPORT or REVIEWER_REPORT object",
+            "The worker builds a schema-specific report object",
             "The worker calls adv_subagent_report_submit with that object",
             "The worker does not rely on final-message fenced JSON as the ADV report transport"
           ]
@@ -133,7 +133,7 @@
     {
       "id": "rq-subagentReports05",
       "title": "Schema-aligned worker context packets",
-      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT anchors. adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT anchors. Missing schema-derived identity anchors (task_id from TASK, phase from PHASE, attempt from ATTEMPT) produce malformed reports and MUST remain INVALID_REPORT. Scanner lanes are separate non-persisted analysis workers: review/harden explore scanner packets may include WORKING DIRECTORY, CHANGE, and ATTEMPT, but MUST NOT claim worker report transport or call adv_subagent_report_submit.",
+      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. Task-scoped adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT anchors. Task-scoped adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT anchors. Change-scoped adv-researcher and adv-tron worker packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT anchors. Orchestrator-submitted scanner bundle packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT anchors. Missing schema-derived identity anchors produce malformed reports and MUST remain INVALID_REPORT. Individual scanner lanes are separate non-persisted analysis workers and MUST NOT claim worker report transport or call adv_subagent_report_submit.",
       "priority": "must",
       "tags": ["subagents", "packets", "schema", "scanners"],
       "scenarios": [
@@ -143,9 +143,9 @@
           "given": ["ADV spawns adv-engineer or adv-reviewer for implementation or remediation work"],
           "when": "The worker builds ENGINEER_REPORT or REVIEWER_REPORT for adv_subagent_report_submit",
           "then": [
-            "adv-engineer packets provide WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
-            "adv-reviewer packets provide WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT",
-            "Missing TASK, PHASE, or ATTEMPT is rejected as INVALID_REPORT instead of inferred heuristically"
+            "task-scoped packets provide WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
+            "change-scoped packets provide WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT",
+            "Missing TASK, SCOPE KEY, PHASE, or ATTEMPT is rejected as INVALID_REPORT instead of inferred heuristically"
           ]
         },
         {
@@ -156,7 +156,131 @@
           "then": [
             "The scanner packet is classified as scanner, not worker",
             "The scanner is not instructed to call adv_subagent_report_submit",
-            "The scanner result is consumed by the orchestrator and is not persisted to task.subagent_reports[]"
+            "The scanner result is consumed by the orchestrator and is not persisted directly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports06",
+      "title": "Strict report scope model",
+      "body": "Persisted reports MUST carry structural scope metadata. Task evidence reports use scope.kind task with task_id. Optimized handoff reports use scope.kind change with a structural scope_key. The schema MUST enforce agent/scope pairing: adv-engineer and adv-reviewer reports are task-scoped; adv-researcher, adv-tron, and adv-scanner-bundle reports are change-scoped.",
+      "priority": "must",
+      "tags": ["schema", "scope", "structural-correctness"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports06.1",
+          "title": "Invalid agent scope pair rejected",
+          "given": ["A report pairs adv-researcher with scope.kind task or adv-engineer with scope.kind change"],
+          "when": "adv_subagent_report_submit validates the payload",
+          "then": [
+            "The schema rejects the report as INVALID_REPORT",
+            "No tool-layer heuristic repairs the scope",
+            "No workflow signal is fired"
+          ]
+        },
+        {
+          "id": "rq-subagentReports06.2",
+          "title": "Source metadata preserved",
+          "given": ["A valid change-scoped report is submitted"],
+          "when": "The report is read through include.subagentReports",
+          "then": [
+            "The response includes agent, scope, workdir_used, attempt, and submitted_at source metadata",
+            "The response identifies whether the report came from sidecar or legacy task storage",
+            "The ordinary change/task read remains compact unless include.subagentReports is true"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports07",
+      "title": "Optimized handoff variants",
+      "body": "adv-researcher and adv-tron reports MUST persist compact optimized handoff fields instead of raw transcripts. adv-scanner-bundle reports MUST be orchestrator-submitted scanner bundle summaries; individual scanners keep no ADV tool access and cannot submit reports directly.",
+      "priority": "must",
+      "tags": ["research", "recon", "scanner", "handoff"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports07.1",
+          "title": "Research and recon reports stay compact",
+          "given": ["A researcher or tron worker returns findings"],
+          "when": "The report is submitted",
+          "then": [
+            "The payload includes evidence, assessment, blockers or open questions, and recommended next action",
+            "Raw transcript persistence is not required",
+            "The sidecar stores the compact handoff"
+          ]
+        },
+        {
+          "id": "rq-subagentReports07.2",
+          "title": "Scanner bundle isolation",
+          "given": ["Review or harden scanners produce dimension-specific analysis"],
+          "when": "Scanner output is persisted",
+          "then": [
+            "Only the orchestrator-submitted scanner bundle can be persisted",
+            "Individual scanners have no ADV tool access",
+            "The bundle records phase and scanner_count"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports08",
+      "title": "Bounded follow-up agenda handling",
+      "body": "Persisted report follow_ups[] MUST create bounded, source-tagged agenda items with category subagent-followup. Harden MUST inspect report-created agenda items and fix those that are safe, adjacent, and campsite/touched-scope applicable; non-applicable report-created agenda items MUST get rationale instead of silent ignore.",
+      "priority": "must",
+      "tags": ["agenda", "follow-ups", "harden", "campsite"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports08.1",
+          "title": "Follow-up generation is bounded",
+          "given": ["A submitted report contains more follow_ups[] than the configured bound"],
+          "when": "Report consumers create agenda items",
+          "then": [
+            "Only the bounded number of follow-ups is written",
+            "Each item records report agent, scope, and attempt source metadata",
+            "The response warns when follow-ups are truncated"
+          ]
+        },
+        {
+          "id": "rq-subagentReports08.2",
+          "title": "Harden inspects report-created agenda",
+          "given": ["Report-created agenda items exist during harden"],
+          "when": "Harden evaluates local safe fixes",
+          "then": [
+            "Safe adjacent campsite items are fixed",
+            "Non-applicable items receive rationale",
+            "Unrelated or unsafe work is not silently expanded into the release gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports09",
+      "title": "Temporal replay and legacy compatibility",
+      "body": "Sub-agent report persistence MUST preserve Temporal replay safety. Key-shape changes from legacy task_id keys to scope-aware sidecar keys MUST be versioned or compatibility-preserved. Existing adv-engineer and adv-reviewer behavior remains backward-compatible, including task/checkpoint consumers that detect legacy task.subagent_reports[].",
+      "priority": "must",
+      "tags": ["temporal", "replay", "compatibility", "legacy"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports09.1",
+          "title": "Legacy report history replays",
+          "given": ["A workflow history contains legacy task-scoped report submissions"],
+          "when": "New workflow code replays the history",
+          "then": [
+            "Temporal replay does not fail due to report key shape changes",
+            "Legacy task-scoped reports remain queryable",
+            "New sidecar reports use deterministic scope-aware keys"
+          ]
+        },
+        {
+          "id": "rq-subagentReports09.2",
+          "title": "Task/checkpoint compatibility remains intact",
+          "given": ["A task has either sidecar task-scoped reports or legacy task.subagent_reports[]"],
+          "when": "Task completion and checkpoint consumers evaluate persisted reports",
+          "then": [
+            "The consumer recognizes persisted report evidence from both sources",
+            "Existing adv-engineer and adv-reviewer report behavior stays backward-compatible",
+            "No duplicate legacy structured_output is extracted for already-reported tasks"
           ]
         }
       ]
