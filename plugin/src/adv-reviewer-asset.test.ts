@@ -329,11 +329,13 @@ describe("adv-reviewer agent asset", () => {
   test("missing ADV packet identity fields are structured defects, not user questions", () => {
     const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
     const phaseModes =
-      body.split("## Phase-Aware Operating Modes")[1]?.split("## Scope Lock")[0] ??
-      "";
+      body
+        .split("## Phase-Aware Operating Modes")[1]
+        ?.split("## Scope Lock")[0] ?? "";
     const workdirLock =
-      body.split("## Working Directory Lock")[1]?.split("## Iteration Loop")[0] ??
-      "";
+      body
+        .split("## Working Directory Lock")[1]
+        ?.split("## Iteration Loop")[0] ?? "";
     const defectPolicy = `${phaseModes}\n${workdirLock}`;
 
     expect(defectPolicy).toContain("packet_defect");

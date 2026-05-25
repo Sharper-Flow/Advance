@@ -229,8 +229,14 @@ describe("adv-engineer assets", () => {
 
   test("missing ADV packet identity fields are structured defects, not user questions", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
-    const scopeSection = content.split("## Scope Lock")[1]?.split("## Working Directory Lock")[0] ?? "";
-    const workdirSection = content.split("## Working Directory Lock")[1]?.split("## Iteration Loop")[0] ?? "";
+    const scopeSection =
+      content
+        .split("## Scope Lock")[1]
+        ?.split("## Working Directory Lock")[0] ?? "";
+    const workdirSection =
+      content
+        .split("## Working Directory Lock")[1]
+        ?.split("## Iteration Loop")[0] ?? "";
     const defectPolicy = `${scopeSection}\n${workdirSection}`;
 
     expect(defectPolicy).toContain("packet_defect");
