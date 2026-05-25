@@ -293,6 +293,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Context-bound problem | Keep inline; don't delegate context understanding |
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
+| Typed worker packet contract | For `adv-engineer` and `adv-reviewer`, always include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT. `adv-reviewer` typed workers must also include PHASE. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
 | Nesting | Forbidden — `enforceTaskPolicy` blocks |
 
 ### Failure Handling

@@ -326,6 +326,27 @@ describe("adv-reviewer agent asset", () => {
     expect(body).not.toContain("END_REVIEWER_REPORT");
   });
 
+  test("missing ADV packet identity fields are structured defects, not user questions", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    const phaseModes =
+      body.split("## Phase-Aware Operating Modes")[1]?.split("## Scope Lock")[0] ??
+      "";
+    const workdirLock =
+      body.split("## Working Directory Lock")[1]?.split("## Iteration Loop")[0] ??
+      "";
+    const defectPolicy = `${phaseModes}\n${workdirLock}`;
+
+    expect(defectPolicy).toContain("packet_defect");
+    expect(defectPolicy).toContain("structured packet-defect failure");
+    expect(defectPolicy).toContain("Do NOT call `question`");
+    expect(defectPolicy).toContain("TASK");
+    expect(defectPolicy).toContain("PHASE");
+    expect(defectPolicy).toContain("ATTEMPT");
+    expect(defectPolicy).toContain("WORKING DIRECTORY");
+    expect(defectPolicy).not.toMatch(/ask the orchestrator/i);
+    expect(defectPolicy).not.toMatch(/ask .*clarification/i);
+  });
+
   test("review and harden scanner context packets stay explore-only", () => {
     const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");

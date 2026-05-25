@@ -92,17 +92,19 @@ Before touching anything, establish scope:
 
 1. **Identify the target**: Read the task, prompt, or Apply Context Packet for exactly what needs doing. Extract the **WORKING DIRECTORY** from the Apply Context Packet's first line (`WORKING DIRECTORY: /absolute/path`).
 2. **State the scope**: "Scope: [specific thing] in [specific file(s)]"
-3. **Confirm if ambiguous**: If scope is unclear, ask a clarifying question. Do NOT guess.
+3. **Confirm if ambiguous**: If task scope is unclear after packet identity is valid, ask a clarifying question. Do NOT guess. Missing `TASK` or `ATTEMPT` is not user ambiguity; it is a packet defect.
 4. **Path Preflight**: Before reading any file referenced in AFFECTED FILES or DESIGN EXCERPT, verify it exists in the workdir:
    - For each read-reference path (files you need to READ, not create): `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` (pass `workdir`).
    - If MISSING and the file should already exist (pattern file, existing code to extend):
      - Discover actual structure: `glob pattern: "**/{basename}"` with `workdir`, or `bash "ls {workdir}/"` with `workdir`.
-     - If found at a different path → use the corrected path for all subsequent operations.
-      - If not found at all → report in ENGINEER_REPORT `blockers` with the missing path and what you tried. Ask the orchestrator via `question` if this blocks your scope.
+      - If found at a different path → use the corrected path for all subsequent operations.
+      - If not found at all → report in ENGINEER_REPORT `blockers` with the missing path and what you tried. Do NOT call `question`; return the blocker for orchestrator recovery.
    - If MISSING and the file is a create-target (new file to write) → skip verification; proceed normally.
    - Use the `PROJECT STRUCTURE` line from the Apply Context Packet as a guide if available — it contains verified paths from the orchestrator's Phase 0.1 path verification.
 
 You may not begin work until the scope is locked AND path preflight is complete.
+
+If the Apply or remediation Context Packet omits `TASK` or `ATTEMPT`, return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values.
 
 ## Working Directory Lock
 
@@ -110,7 +112,7 @@ Every tool call you make MUST target the working directory specified in the Appl
 
 **Directive:** Extract `WORKING DIRECTORY` from the Apply Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
 
-**If WORKING DIRECTORY is missing or empty:** Refuse to begin work. Ask the orchestrator to provide it.
+**If WORKING DIRECTORY is missing or empty:** Refuse to begin work. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 
 **Backward compatibility:** If you are spawned by a prompt that does not include a WORKING DIRECTORY line (e.g., a non-ADV caller), proceed using your default cwd. Submit `"<unspecified>"` as the `workdir_used` value in your ENGINEER_REPORT and include a warning note in `context_update_for_adv.what_ads_needs_to_know`.
 

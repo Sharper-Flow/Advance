@@ -227,6 +227,22 @@ describe("adv-engineer assets", () => {
     expect(reportSection).not.toContain("final element of your final response");
   });
 
+  test("missing ADV packet identity fields are structured defects, not user questions", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const scopeSection = content.split("## Scope Lock")[1]?.split("## Working Directory Lock")[0] ?? "";
+    const workdirSection = content.split("## Working Directory Lock")[1]?.split("## Iteration Loop")[0] ?? "";
+    const defectPolicy = `${scopeSection}\n${workdirSection}`;
+
+    expect(defectPolicy).toContain("packet_defect");
+    expect(defectPolicy).toContain("structured packet-defect failure");
+    expect(defectPolicy).toContain("Do NOT call `question`");
+    expect(defectPolicy).toContain("TASK");
+    expect(defectPolicy).toContain("ATTEMPT");
+    expect(defectPolicy).toContain("WORKING DIRECTORY");
+    expect(defectPolicy).not.toMatch(/ask the orchestrator/i);
+    expect(defectPolicy).not.toMatch(/Ask the orchestrator/i);
+  });
+
   test("adv-apply.md Apply Context Packet starts with WORKING DIRECTORY", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
     // Find the Apply Context Packet section

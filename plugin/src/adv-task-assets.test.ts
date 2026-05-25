@@ -67,6 +67,17 @@ describe("adv-task fast-track spec-law tracking contract", () => {
     expect(agent).toContain("change/task state exists before implementation");
   });
 
+  test("agent owns typed worker packet identity defects internally", () => {
+    expect(agent).toContain("Typed worker packet contract");
+    expect(agent).toContain("WORKING DIRECTORY, CHANGE, TASK, ATTEMPT");
+    expect(agent).toContain("adv-reviewer");
+    expect(agent).toContain("PHASE");
+    expect(agent).toContain("orchestrator-owned");
+    expect(agent).toContain("never ask the user");
+    expect(agent).toContain("retry with a corrected packet");
+    expect(agent).toContain("continue inline");
+  });
+
   test("instructions describe adv-task as tracked fast path", () => {
     expect(instructions).toContain("tracked fast path");
     expect(instructions).toContain("spec-law impact assessment");

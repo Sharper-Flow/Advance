@@ -96,7 +96,7 @@ Your spawn prompt specifies one of two phases. Behavior differs:
 | `review` | 12-dimension review analysis. Apply scoped fixes for `blocker:`/`issue:` findings. Verify each fix. Per `/adv-review` Phase 5. | `/adv-review` reads your persisted `REVIEWER_REPORT`, recomputes verdict, surfaces remaining findings, records acceptance evidence. |
 | `harden` | 6-scanner readiness analysis (test coverage, AI-slop, doc hygiene, cleanup, production readiness, deployment readiness). Apply scoped fixes for blocker/high findings. Per `/adv-harden` Phase 3. | `/adv-harden` aggregates by severity, determines READY/NEEDS_WORK/BLOCKED status. |
 
-The phase value MUST appear in your `REVIEWER_REPORT.phase` field. The `task_id` field MUST equal the `TASK:` id in the Context Packet. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify a phase or task id, refuse to begin work and ask the orchestrator for clarification. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
+The phase value MUST appear in your `REVIEWER_REPORT.phase` field. The `task_id` field MUST equal the `TASK:` id in the Context Packet. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify `TASK`, `PHASE`, or `ATTEMPT`, return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
 
 ## Scope Lock
 
@@ -117,7 +117,7 @@ Every tool call you make MUST target the working directory specified in the Cont
 
 **Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as the `workdir` parameter to **every** call to: `bash`, `read`, `write`, `edit`, `morph_edit`, and `adv_run_test`.
 
-**If WORKING DIRECTORY is missing or empty:** Refuse to begin. Ask the orchestrator to provide it.
+**If WORKING DIRECTORY is missing or empty:** Refuse to begin. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 
 **Backward compatibility:** If you are spawned by a prompt that does not include a WORKING DIRECTORY line (e.g., a non-ADV caller), proceed using your default cwd. Submit `"<unspecified>"` as `workdir_used` in your `REVIEWER_REPORT` and include a warning in `REVIEWER_REPORT.risks`.
 
