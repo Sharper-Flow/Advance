@@ -2,8 +2,8 @@
 name: adv-task
 description: Fast-track small changes: assess spec-law impact, prep, and hand off
 ---
-<!-- manifest: adv-task · requiresChangeId: false · scope: reads[specs, codebase] -->
-# ADV Task — Fast-Track a Discussed Change
+<!-- manifest: adv-task · requiresChangeId: false · scope: creates[change, proposal, tasks] reads[specs, codebase] modifies[proposal, design] gates[proposal, discovery, design, planning] -->
+# ADV Task — Fast-Track Small Changes
 Fast-track a small, well-understood durable change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing and need tracked change/task state before implementation.
 ## Command Boundary
 **Produces:** Change scaffold, spec-law impact assessment, validated approach (Context7), complete task graph.
@@ -59,7 +59,7 @@ Classify **Spec-law impact** as exactly one:
 | **Modify** | Existing spec law needs behavior, acceptance, or constraint changes | Persist draft spec-delta obligations |
 | **Remove** | Existing durable behavior or requirement is removed/subtracted | Persist draft spec-delta obligations |
 | **No spec law update required** | Implementation-only change preserves existing law | Persist explicit no-delta rationale |
-| **Uncertain** | Impact cannot be resolved quickly | Stop fast-track; route to `/adv-proposal` or deeper discovery |
+| **Uncertain** | Impact cannot be resolved quickly | Stop fast-track; continue the same change through `/adv-proposal` or deeper discovery |
 
 For **Add**, **Modify**, or **Remove**, persist draft spec-delta obligations via `adv_change_update` before planning:
 
@@ -71,7 +71,7 @@ For **Add**, **Modify**, or **Remove**, persist draft spec-delta obligations via
 
 For **No spec law update required**, persist `No spec law update required: {rationale}` in the proposal/design context before planning.
 
-For **Uncertain**, `/adv-task` MUST NOT complete planning or create implementation tasks for the uncertain scope. Route to `/adv-proposal` or keep investigating until impact is clear.
+For **Uncertain**, `/adv-task` MUST NOT complete planning or create implementation tasks for the uncertain scope. Carry the same change forward into `/adv-proposal` or keep investigating until impact is clear. Do not create a duplicate change for the same scope; if the user chooses to abandon the created change instead, closure requires explicit user approval through the owning ADV cleanup/cancel path.
 
 This phase is the crash-safe fast-path guard: durable change/task state and spec-law intent must exist before implementation begins.
 
@@ -123,7 +123,7 @@ Use the fast-track variant of the Gate Handoff Voice spine (see `docs/command-vo
 
 ## Delivered
 - Change scaffold created
-- Spec-law impact: {Add|Modify|Remove|No spec law update required|Uncertain}
+- Spec-law impact: {Add|Modify|Remove|No spec law update required}
 - LBP validation: {Confirmed|Caution|Conflict}
 - Task graph synthesized
 - Proposal + agreement + design artifacts produced

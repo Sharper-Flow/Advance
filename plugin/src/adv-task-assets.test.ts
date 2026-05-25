@@ -20,13 +20,24 @@ describe("adv-task fast-track spec-law tracking contract", () => {
     }>;
   };
 
-  test("command requires explicit spec-law impact assessment", () => {
+  test("command requires explicit spec-law impact assessment table", () => {
     expect(command).toContain("Spec-Law Impact Assessment");
-    expect(command).toContain("Add");
-    expect(command).toContain("Modify");
-    expect(command).toContain("Remove");
-    expect(command).toContain("No spec law update required");
-    expect(command).toContain("Uncertain");
+    expect(command).toContain("| Outcome | Meaning | Required action |");
+    expect(command).toContain(
+      "| **Add** | New durable behavior, capability, or requirement is introduced | Persist draft spec-delta obligations |",
+    );
+    expect(command).toContain(
+      "| **Modify** | Existing spec law needs behavior, acceptance, or constraint changes | Persist draft spec-delta obligations |",
+    );
+    expect(command).toContain(
+      "| **Remove** | Existing durable behavior or requirement is removed/subtracted | Persist draft spec-delta obligations |",
+    );
+    expect(command).toContain(
+      "| **No spec law update required** | Implementation-only change preserves existing law | Persist explicit no-delta rationale |",
+    );
+    expect(command).toContain(
+      "| **Uncertain** | Impact cannot be resolved quickly | Stop fast-track; continue the same change through `/adv-proposal` or deeper discovery |",
+    );
   });
 
   test("command requires concrete delta obligations or no-delta rationale before planning", () => {
@@ -34,6 +45,19 @@ describe("adv-task fast-track spec-law tracking contract", () => {
     expect(command).toContain("concrete `rq-*` requirement IDs");
     expect(command).toContain("Given/When/Then scenario");
     expect(command).toContain("MUST NOT complete planning");
+  });
+
+  test("command routes uncertain scope without duplicate changes or handoff", () => {
+    expect(command).toContain(
+      "Carry the same change forward into `/adv-proposal` or keep investigating until impact is clear",
+    );
+    expect(command).toContain("Do not create a duplicate change");
+    expect(command).toContain(
+      "- Spec-law impact: {Add|Modify|Remove|No spec law update required}",
+    );
+    expect(command).not.toContain(
+      "- Spec-law impact: {Add|Modify|Remove|No spec law update required|Uncertain}",
+    );
   });
 
   test("agent routes small durable changes to tracked fast path", () => {
@@ -68,6 +92,16 @@ describe("adv-task fast-track spec-law tracking contract", () => {
       "rq-taskSpecLaw01.1",
       "rq-taskSpecLaw01.2",
       "rq-taskSpecLaw01.3",
+      "rq-taskSpecLaw01.4",
+    ]);
+    expect(
+      requirement?.scenarios?.find(
+        (scenario) => scenario.id === "rq-taskSpecLaw01.4",
+      )?.then,
+    ).toEqual([
+      "/adv-task does not complete planning for the uncertain scope",
+      "/adv-task creates no implementation tasks for the uncertain scope",
+      "The change routes to /adv-proposal or deeper discovery before implementation planning resumes",
     ]);
   });
 });

@@ -96,6 +96,20 @@
             "Durable change/task state exists before implementation begins",
             "A crash can resume from tracked change/task state"
           ]
+        },
+        {
+          "id": "rq-taskSpecLaw01.4",
+          "title": "Uncertain fast-track scope routes deeper before planning",
+          "given": [
+            "A small durable change is routed through /adv-task",
+            "The spec-law impact assessment cannot resolve whether spec law must be added, modified, removed, or left unchanged"
+          ],
+          "when": "The assessment classifies the impact as Uncertain",
+          "then": [
+            "/adv-task does not complete planning for the uncertain scope",
+            "/adv-task creates no implementation tasks for the uncertain scope",
+            "The change routes to /adv-proposal or deeper discovery before implementation planning resumes"
+          ]
         }
       ]
     },

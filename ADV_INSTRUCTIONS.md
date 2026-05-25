@@ -153,7 +153,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 
 | Command                     | Purpose                                                                                              |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `/adv-task`                 | Fast-track small changes: assess spec-law impact, prep, and hand off                                     |
+| `/adv-task`                 | Fast-track small changes: assess spec-law impact, prep, and hand off                                 |
 | `/adv-atc [target]`         | Execute autonomous ROADMAP pipeline, deferring HITL to GitHub issues, stop only on safety boundaries |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
 | `/adv-cleanup`              | Triage stale, abandoned, duplicate, and ready-to-archive active changes                              |
@@ -169,7 +169,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | discover | Current-state evidence, objectives, agreement, acceptance criteria              | Create tasks, complete non-discovery gates                               | discovery            |
 | design   | Validated implementation strategy                                               | Create tasks, bypass validator                                           | design               |
 | prep     | Task graph, gap analysis, sequencing                                            | Complete non-planning gates, architecture decisions                      | planning             |
-| task     | Change + tasks + gates (tracked fast path; includes spec-law impact assessment and crash recovery through durable change/task state) | Skip spec-law add/modify/remove/no-delta assessment                      | discovery + planning |
+| task     | Change + tasks + gates (tracked fast path; includes spec-law impact assessment and crash recovery through durable change/task state) | Skip spec-law Add/Modify/Remove/No update/Uncertain assessment           | proposal + discovery + design + planning |
 | apply    | Implementation via TDD                                                          | Auto-complete discovery/planning gates                                   | execution            |
 | review   | Review findings and acceptance evidence                                         | Archive, release, or expand scope silently                               | acceptance           |
 | archive  | Spec promotion, release readiness, cleanup                                      | Skip validation, conformance, or sign-off                                | release              |

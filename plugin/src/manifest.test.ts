@@ -350,6 +350,18 @@ describe("Command Manifest", () => {
       expect(def!.scope!.creates).toContain("tasks");
     });
 
+    test("adv-task scope reflects fast-track artifact updates", () => {
+      const def = getCommandDef("adv-task");
+      expect(def!.scope!.creates).toEqual(["change", "proposal", "tasks"]);
+      expect(def!.scope!.modifies).toEqual(["proposal", "design"]);
+      expect(def!.scope!.gates).toEqual([
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+      ]);
+    });
+
     test("adv-atc scope gates cover all autonomous gates", () => {
       const def = getCommandDef("adv-atc");
       expect(def!.scope!.gates).toEqual([

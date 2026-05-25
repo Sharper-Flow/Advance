@@ -114,6 +114,21 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 - Durable change/task state exists before implementation begins
 - A crash can resume from tracked change/task state
 
+**Uncertain fast-track scope routes deeper before planning** (`rq-taskSpecLaw01.4`)
+
+**Given:**
+
+- A small durable change is routed through /adv-task
+- The spec-law impact assessment cannot resolve whether spec law must be added, modified, removed, or left unchanged
+
+**When:** The assessment classifies the impact as Uncertain
+
+**Then:**
+
+- /adv-task does not complete planning for the uncertain scope
+- /adv-task creates no implementation tasks for the uncertain scope
+- The change routes to /adv-proposal or deeper discovery before implementation planning resumes
+
 ---
 
 ### Adversarial Review Enforcement

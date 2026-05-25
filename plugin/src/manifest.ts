@@ -302,7 +302,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     scope: {
       creates: ["change", "proposal", "tasks"],
       reads: ["specs", "codebase"],
-      modifies: [],
+      modifies: ["proposal", "design"],
       gates: ["proposal", "discovery", "design", "planning"],
     },
   },
