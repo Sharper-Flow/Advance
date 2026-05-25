@@ -4,7 +4,7 @@
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, signal persistence on tasks, deterministic dedupe, and machine-readable downstream consumers.",
   "version": "1.0.0",
-  "updated_at": "2026-05-23T00:00:00.000Z",
+  "updated_at": "2026-05-24T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -126,6 +126,37 @@
           "then": [
             "The completion signal omits structured_output extracted from the legacy text",
             "Existing non-ADV structured_output behavior remains unchanged for tasks without subagent_reports"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports05",
+      "title": "Schema-aligned worker context packets",
+      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT anchors. adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT anchors. Missing schema-derived identity anchors (task_id from TASK, phase from PHASE, attempt from ATTEMPT) produce malformed reports and MUST remain INVALID_REPORT. Scanner lanes are separate non-persisted analysis workers: review/harden explore scanner packets may include WORKING DIRECTORY, CHANGE, and ATTEMPT, but MUST NOT claim worker report transport or call adv_subagent_report_submit.",
+      "priority": "must",
+      "tags": ["subagents", "packets", "schema", "scanners"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports05.1",
+          "title": "Typed worker packets provide schema-derived identity",
+          "given": ["ADV spawns adv-engineer or adv-reviewer for implementation or remediation work"],
+          "when": "The worker builds ENGINEER_REPORT or REVIEWER_REPORT for adv_subagent_report_submit",
+          "then": [
+            "adv-engineer packets provide WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
+            "adv-reviewer packets provide WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT",
+            "Missing TASK, PHASE, or ATTEMPT is rejected as INVALID_REPORT instead of inferred heuristically"
+          ]
+        },
+        {
+          "id": "rq-subagentReports05.2",
+          "title": "Scanner lanes remain non-persisted",
+          "given": ["ADV spawns explore scanners during review or harden"],
+          "when": "The scanner returns dimension-specific analysis JSON",
+          "then": [
+            "The scanner packet is classified as scanner, not worker",
+            "The scanner is not instructed to call adv_subagent_report_submit",
+            "The scanner result is consumed by the orchestrator and is not persisted to task.subagent_reports[]"
           ]
         }
       ]

@@ -27,6 +27,13 @@ import {
 } from "./target-project";
 
 type ConsumerWarning = z.infer<typeof SubagentConsumerWarningSchema>;
+const ConsumerWarningsSchema = z.array(SubagentConsumerWarningSchema);
+
+function validateConsumerWarnings(
+  warnings: ConsumerWarning[],
+): ConsumerWarning[] {
+  return ConsumerWarningsSchema.parse(warnings);
+}
 
 const targetArgs = {
   target_path: z
@@ -305,7 +312,10 @@ function withConsumerWarnings(
   report: SupportedSubagentReport,
   warnings: ConsumerWarning[],
 ): SupportedSubagentReport {
-  const merged = [...(report.consumer_warnings ?? []), ...warnings];
+  const merged = validateConsumerWarnings([
+    ...(report.consumer_warnings ?? []),
+    ...warnings,
+  ]);
   if (merged.length === 0) return report;
   return { ...report, consumer_warnings: merged } as SupportedSubagentReport;
 }
@@ -347,7 +357,11 @@ async function consumeFollowUps(input: {
     }
   }
 
-  return { previewCount: followUps.length, created, warnings };
+  return {
+    previewCount: followUps.length,
+    created,
+    warnings: validateConsumerWarnings(warnings),
+  };
 }
 
 function appendProjectContext(

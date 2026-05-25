@@ -204,7 +204,9 @@ Protocol: retry once → if still fails → inline fallback analysis → never s
 
 ## Phase 1: Spawn Analysis Sub-Agents
 
-**Harden Context Packet (inject into every sub-agent spawn prompt):**
+#### Harden Scanner Context Packet
+
+Inject into every `explore` scanner spawn prompt:
 
 ```
 WORKING DIRECTORY: {workdir}
@@ -225,9 +227,9 @@ TASK EVIDENCE SUMMARY:
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 
-Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
+Build scanner packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
 
-Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Context Packet above plus dimension-specific instructions.
+Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Scanner Context Packet above plus dimension-specific instructions.
 
 ### Sub-Agent 1: Test Coverage Scanner
 
@@ -351,7 +353,7 @@ This is the single declarative drift detection rule. It applies to every finding
 
 ### Sub-Agent Routing for Fixes
 
-Hardening has two delegated lanes: scanner workers (`adv-reviewer`/`explore`) for readiness analysis and remediation workers (`adv-reviewer`/`adv-engineer`) for validated in-scope fixes. Do not introduce ad-hoc workers.
+Hardening has two delegated lanes: scanner workers (`explore`) for readiness analysis and remediation workers (`adv-reviewer`/`adv-engineer`) for validated in-scope fixes. Do not introduce ad-hoc workers.
 
 | Fix shape | Worker | Returns |
 |---|---|---|
@@ -362,13 +364,50 @@ Both workers honor the drift detection rule and `stop_and_report` on scope drift
 
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
 
+#### Harden Reviewer Remediation Packet
+
+Use when spawning `adv-reviewer` for scoped hardening fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+PHASE: harden
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: fix only the listed in-scope hardening finding(s); honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: fix scoped hardening finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
+```
+
+#### Harden Engineer Remediation Packet
+
+Use when spawning `adv-engineer` for primary implementation or multi-file hardening fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: implement only the listed in-scope hardening fix; honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: implement the fix, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+```
+
 ---
 
 ## Phase 3.5: Post-Remediation Re-Verification
 
 After remediation fixes, re-verify affected dimensions before status determination:
 
-1. For each dimension with fixed findings, spawn a **targeted** `explore` scanner with the Harden Context Packet plus:
+1. For each dimension with fixed findings, spawn a **targeted** `explore` scanner with the Harden Scanner Context Packet plus:
    - `PRIOR FINDINGS: [{finding_id, original_issue, fix_applied}]`
    - `SCOPE: evaluate only whether the listed findings are resolved`
    - `EXPECTED OUTPUT: { finding_id, status: "resolved"|"unresolved", evidence }`

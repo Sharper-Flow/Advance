@@ -155,6 +155,85 @@ export const SupportedSubagentReportSchema = z.discriminatedUnion("agent", [
   ReviewerSubagentReportSchema,
 ]);
 
+export type PersistedSubagentReportAgent = "adv-engineer" | "adv-reviewer";
+
+export type SubagentReportFieldSource =
+  | "packet_anchor"
+  | "worker_derived"
+  | "tool_enriched";
+
+export const SUBAGENT_REPORT_PACKET_ANCHORS = {
+  change_id: "CHANGE",
+  task_id: "TASK",
+  attempt: "ATTEMPT",
+  workdir_used: "WORKING DIRECTORY",
+  phase: "PHASE",
+} as const;
+
+export const SUBAGENT_REPORT_FIELD_SOURCES = {
+  "adv-engineer": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    task_id: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    scope: "worker_derived",
+    status: "worker_derived",
+    files_touched: "worker_derived",
+    verification: "worker_derived",
+    decisions: "worker_derived",
+    blockers: "worker_derived",
+    follow_ups: "worker_derived",
+    related_scan: "worker_derived",
+    workdir_used: "packet_anchor",
+    context_update_for_adv: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
+  "adv-reviewer": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    task_id: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    scope: "worker_derived",
+    workdir_used: "packet_anchor",
+    phase: "packet_anchor",
+    verdict: "worker_derived",
+    blocking_findings: "worker_derived",
+    nonblocking_findings: "worker_derived",
+    changes_made: "worker_derived",
+    wisdom_candidates: "worker_derived",
+    verification: "worker_derived",
+    scope_drift: "worker_derived",
+    risks: "worker_derived",
+    required_main_agent_actions: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
+} as const satisfies Record<
+  PersistedSubagentReportAgent,
+  Record<string, SubagentReportFieldSource>
+>;
+
+export function getSubagentReportPacketAnchors(
+  agent: PersistedSubagentReportAgent,
+): string[] {
+  return Object.entries(SUBAGENT_REPORT_FIELD_SOURCES[agent])
+    .filter(([, source]) => source === "packet_anchor")
+    .map(([field]) => {
+      const anchor =
+        SUBAGENT_REPORT_PACKET_ANCHORS[
+          field as keyof typeof SUBAGENT_REPORT_PACKET_ANCHORS
+        ];
+      if (!anchor) {
+        throw new Error(
+          `Missing packet anchor for sub-agent report field ${field}`,
+        );
+      }
+      return anchor;
+    })
+    .sort();
+}
+
 export type EngineerSubagentReport = z.infer<
   typeof EngineerSubagentReportSchema
 >;

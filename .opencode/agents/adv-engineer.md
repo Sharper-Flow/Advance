@@ -239,7 +239,8 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 ### Rules
 
 - `status`: `"complete"` when verification passes and scope is done; `"error"` when non-empty `blockers`.
-- `attempt`: MUST equal the numeric `ATTEMPT:` value from the Apply Context Packet.
+- `task_id`: MUST equal the task id from the `TASK:` line in the Apply or remediation Context Packet.
+- `attempt`: MUST equal the numeric `ATTEMPT:` value from the Apply or remediation Context Packet.
 - `blockers`: Empty array on success. On failure, list each blocker with file/line and what prevents completion.
 - `follow_ups`: Empty array if nothing deferred. Otherwise list out-of-scope items discovered.
 - `verification`: At least one entry showing a test/build/lint command and its result.

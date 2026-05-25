@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { z } from "zod";
 
 import {
   EngineerSubagentReportSchema,
+  getSubagentReportPacketAnchors,
+  type PersistedSubagentReportAgent,
   ReviewerSubagentReportSchema,
+  SUBAGENT_REPORT_FIELD_SOURCES,
+  SUBAGENT_REPORT_PACKET_ANCHORS,
   SubagentAgentSchema,
   SupportedSubagentReportSchema,
 } from "./subagent-reports";
@@ -72,6 +77,21 @@ const reviewerReport = {
   workdir_used: "/tmp/worktree",
 };
 
+function requiredTopLevelKeys(schema: z.ZodObject<z.ZodRawShape>): string[] {
+  return Object.entries(schema.shape)
+    .filter(([, fieldSchema]) => !fieldSchema.safeParse(undefined).success)
+    .map(([key]) => key)
+    .sort();
+}
+
+const reportSchemas: Array<{
+  agent: PersistedSubagentReportAgent;
+  schema: z.ZodObject<z.ZodRawShape>;
+}> = [
+  { agent: "adv-engineer", schema: EngineerSubagentReportSchema },
+  { agent: "adv-reviewer", schema: ReviewerSubagentReportSchema },
+];
+
 describe("Subagent report schemas", () => {
   it("parses a strict engineer report", () => {
     const parsed = EngineerSubagentReportSchema.parse(engineerReport);
@@ -123,5 +143,52 @@ describe("Subagent report schemas", () => {
       "adv-researcher",
       "adv-tron",
     ]);
+  });
+
+  describe("context packet anchor contract", () => {
+    for (const { agent, schema } of reportSchemas) {
+      it(`classifies every required ${agent} report field`, () => {
+        const fieldSources = SUBAGENT_REPORT_FIELD_SOURCES[agent];
+
+        for (const key of requiredTopLevelKeys(schema)) {
+          expect(
+            fieldSources,
+            `${agent} missing field source for ${key}`,
+          ).toHaveProperty(key);
+        }
+      });
+
+      it(`maps every packet-sourced ${agent} report field to a packet anchor`, () => {
+        for (const [field, source] of Object.entries(
+          SUBAGENT_REPORT_FIELD_SOURCES[agent],
+        )) {
+          if (source !== "packet_anchor") continue;
+
+          expect(
+            SUBAGENT_REPORT_PACKET_ANCHORS,
+            `${agent} packet field ${field} has no anchor label`,
+          ).toHaveProperty(field);
+        }
+      });
+    }
+
+    it("keeps engineer packet anchors aligned with ENGINEER_REPORT identity fields", () => {
+      expect(getSubagentReportPacketAnchors("adv-engineer")).toEqual([
+        "ATTEMPT",
+        "CHANGE",
+        "TASK",
+        "WORKING DIRECTORY",
+      ]);
+    });
+
+    it("keeps reviewer packet anchors aligned with REVIEWER_REPORT identity fields", () => {
+      expect(getSubagentReportPacketAnchors("adv-reviewer")).toEqual([
+        "ATTEMPT",
+        "CHANGE",
+        "PHASE",
+        "TASK",
+        "WORKING DIRECTORY",
+      ]);
+    });
   });
 });

@@ -136,7 +136,10 @@ Protocol: retry once → if still fails → inline analysis for that dimension �
 
 ---
 ## Phase 2: Spawn Analysis Sub-Agents
-**Review Context Packet (inject into every sub-agent spawn prompt):**
+#### Review Scanner Context Packet
+
+Inject into every `explore` scanner spawn prompt:
+
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
@@ -155,9 +158,10 @@ TASK EVIDENCE SUMMARY:
   - ...
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
-This replaces the minimal one-liner and gives explore agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
 
-Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Context Packet above plus dimension-specific instructions.
+This scanner-only packet gives `explore` agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
+
+Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Scanner Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Requirement Traceability
 For each scenario → search files for implementation evidence → calculate coverage → flag untraced. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
 ### Sub-Agent 2: Logic & Edge Cases
@@ -236,6 +240,43 @@ If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
    - **Non-trivial fix research** (control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches) → spawn `adv-researcher` first, then implement through the appropriate remediation worker above.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
 
+#### Review Reviewer Remediation Packet
+
+Use when spawning `adv-reviewer` for scoped review-style fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: review
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+PHASE: review
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: fix only the listed in-scope review finding(s); honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {label} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: fix scoped review finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
+```
+
+#### Review Engineer Remediation Packet
+
+Use when spawning `adv-engineer` for primary implementation fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: review
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: implement only the listed in-scope review fix; honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {label} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: implement the fix, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+```
+
 ### Drift Detection Rule (CRITICAL)
 
 Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
@@ -261,7 +302,7 @@ If research reveals finding was incorrect → downgrade to `nit:` or reject with
 ---
 ## Phase 5.5: Post-Remediation Re-Verification
 After remediation fixes are applied, re-verify affected dimensions before recomputing verdict:
-1. For each dimension that had findings fixed, spawn a **targeted** `explore` scanner with the Review Context Packet plus:
+1. For each dimension that had findings fixed, spawn a **targeted** `explore` scanner with the Review Scanner Context Packet plus:
    - `PRIOR FINDINGS: [{finding_id, original_issue, fix_applied}]`
    - `SCOPE: evaluate only whether the listed findings are resolved`
    - `EXPECTED OUTPUT: { finding_id, status: "resolved"|"unresolved", evidence }`

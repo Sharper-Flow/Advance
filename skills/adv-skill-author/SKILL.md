@@ -129,3 +129,4 @@ When authoring skills for the ADV plugin:
 - **Agent-created skills (`~/.config/opencode/skills/agent-{domain}/`)**: Use `agent-` prefix, NOT `adv-`. Set `metadata.source: "agent-created"`, `review_status: "pending"`. See ADV_INSTRUCTIONS.md § Skill Creation Protocol.
 - **Enforcement class**: For ADV bundled skills, follow `rq-skillProseCompression01` and the Prose-Load Reduction Rules in `docs/command-voice-standard.md`.
 - **Progressive disclosure**: SKILL.md as index + core; deep-dive content in sibling `*.md` files (preferred over inline for skills with 3+ natural domains).
+- **Agent-callable tools/sub-agent reports**: Use `adv-agent-tool-contracts` and keep schema/context packet/prompt/tests/specs aligned before shipping.
