@@ -606,11 +606,13 @@ describe("deploy-local.sh", () => {
 
     test("canonical ADV prompt stays under the safe compression ceiling", () => {
       const lines = advAgent.split(/\r?\n/).length;
+      // Ceiling raised from 361 → 362 after adding explicit typed worker
+      // packet phase mapping for adv-reviewer acceptance/release use.
       // Ceiling raised from 360 → 361 after the signal-driven workflow
       // refactor exposed `adv_worktree_resume` and we added it to the
       // canonical allowlist to clear deploy-local tool-drift checks.
       // Re-ratchet here once the prompt has been audited for excess.
-      expect(lines).toBeLessThanOrEqual(361);
+      expect(lines).toBeLessThanOrEqual(362);
     });
 
     test("canonical ADV prompt keeps safety-critical markers", () => {
@@ -623,6 +625,7 @@ describe("deploy-local.sh", () => {
         "Doom-loop",
         "Cancellation",
         "Due diligence first",
+        "acceptance reviews use `review`",
       ]) {
         expect(advAgent).toContain(marker);
       }

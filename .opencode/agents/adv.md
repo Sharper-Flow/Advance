@@ -291,6 +291,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Context-bound problem | Keep inline; don't delegate context understanding |
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
+| Typed worker packet contract | Include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT, and for `adv-reviewer` PHASE; use schema phases only (`prep`, `review`, `harden`) — acceptance reviews use `review`, release hardening uses `harden` |
 | Nesting | Forbidden — `enforceTaskPolicy` blocks |
 
 ### Failure Handling
