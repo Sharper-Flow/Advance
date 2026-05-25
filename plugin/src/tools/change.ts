@@ -35,6 +35,7 @@ import {
   type Change,
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
+  type ScopedSubagentReport,
 } from "../types";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
@@ -45,10 +46,30 @@ import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
+import { subagentReportKey } from "../temporal/contracts";
 import { advWorktreeCleanup } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
 const logger = createLogger("change");
+
+function subagentReportTaskId(
+  report: ScopedSubagentReport,
+): string | undefined {
+  if (typeof report.scope !== "string" && report.scope.kind === "task") {
+    return report.scope.task_id;
+  }
+  return "task_id" in report ? report.task_id : undefined;
+}
+
+function subagentReportReadbackKey(report: ScopedSubagentReport): string {
+  return subagentReportKey({
+    changeId: report.change_id,
+    taskId: subagentReportTaskId(report),
+    scope: typeof report.scope === "string" ? undefined : report.scope,
+    agent: report.agent,
+    attempt: report.attempt,
+  });
+}
 
 /**
  * Read an artifact file from the active change directory, falling back to
@@ -1980,11 +2001,23 @@ export const changeTools = {
             }
 
             if (include.subagentReports) {
-              const reports = change.tasks.flatMap((task) =>
+              const legacyTaskReports = change.tasks.flatMap((task) =>
                 (task.subagent_reports ?? []).map((report) => report),
               );
+              const reportsByKey = new Map<string, ScopedSubagentReport>();
+              for (const report of [
+                ...(change.subagent_reports ?? []),
+                ...legacyTaskReports,
+              ]) {
+                reportsByKey.set(subagentReportReadbackKey(report), report);
+              }
+              const reports = Array.from(reportsByKey.values());
               output._subagentReports = reports;
-              output._subagentReportsMeta = { total: reports.length };
+              output._subagentReportsMeta = {
+                total: reports.length,
+                sidecar: change.subagent_reports?.length ?? 0,
+                legacyTask: legacyTaskReports.length,
+              };
             }
 
             // Ready tasks — unblocked queue, sliced to top-N. Avoids the

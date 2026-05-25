@@ -269,7 +269,52 @@ describe("change tools — signal-driven lifecycle", () => {
     });
 
     test("returns persisted task sub-agent reports when include.subagentReports is set", async () => {
+      const taskReport = {
+        schema_version: "1.0",
+        change_id: "test-change",
+        task_id: "tk-report",
+        attempt: 2,
+        agent: "adv-engineer",
+        status: "complete",
+        scope: "Implement",
+        workdir_used: "/worktree",
+        files_touched: ["src/a.ts"],
+        verification: [
+          {
+            command: "pnpm test",
+            exit_code: 0,
+            summary: "passed",
+          },
+        ],
+        decisions: [],
+        blockers: [],
+        follow_ups: [],
+        related_scan: "No related issues",
+        context_update_for_adv: {
+          what_ads_needs_to_know: "Report persisted",
+          suggested_next_action: "Continue",
+        },
+      } as const;
       const store = createMockStore({
+        subagent_reports: [
+          taskReport,
+          {
+            schema_version: "1.0",
+            change_id: "test-change",
+            attempt: 1,
+            agent: "adv-researcher",
+            scope: { kind: "change", scope_key: "researcher:docs" },
+            workdir_used: "/worktree",
+            topic: "Docs",
+            sources: [
+              { label: "docs", locator: "docs/x.md", summary: "source" },
+            ],
+            architecture_assessment: "ok",
+            validation: { status: "pass", blockers: [], notes: "ok" },
+            recommendation: "continue",
+            follow_ups: [],
+          },
+        ],
         tasks: [
           {
             id: "tk-report",
@@ -277,34 +322,7 @@ describe("change tools — signal-driven lifecycle", () => {
             status: "done",
             priority: 0,
             created_at: "2026-01-01T00:00:00Z",
-            subagent_reports: [
-              {
-                schema_version: "1.0",
-                change_id: "test-change",
-                task_id: "tk-report",
-                attempt: 2,
-                agent: "adv-engineer",
-                status: "complete",
-                scope: "Implement",
-                workdir_used: "/worktree",
-                files_touched: ["src/a.ts"],
-                verification: [
-                  {
-                    command: "pnpm test",
-                    exit_code: 0,
-                    summary: "passed",
-                  },
-                ],
-                decisions: [],
-                blockers: [],
-                follow_ups: [],
-                related_scan: "No related issues",
-                context_update_for_adv: {
-                  what_ads_needs_to_know: "Report persisted",
-                  suggested_next_action: "Continue",
-                },
-              },
-            ],
+            subagent_reports: [taskReport],
           } as Change["tasks"][number],
         ],
       });
@@ -322,8 +340,17 @@ describe("change tools — signal-driven lifecycle", () => {
           agent: "adv-engineer",
           attempt: 2,
         }),
+        expect.objectContaining({
+          change_id: "test-change",
+          agent: "adv-researcher",
+          attempt: 1,
+        }),
       ]);
-      expect(parsed._subagentReportsMeta).toEqual({ total: 1 });
+      expect(parsed._subagentReportsMeta).toEqual({
+        total: 2,
+        sidecar: 2,
+        legacyTask: 1,
+      });
       expect(parsed.tasks[0].subagent_reports).toHaveLength(1);
     });
 

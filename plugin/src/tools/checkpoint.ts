@@ -23,7 +23,7 @@ import { isAbsolute, resolve } from "path";
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
-import type { ErrorRecovery } from "../types";
+import type { ErrorRecovery, ScopedSubagentReport } from "../types";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
@@ -352,10 +352,27 @@ async function taskHasPersistedSubagentReports(
 ): Promise<boolean> {
   try {
     const result = await store.tasks.show(taskId);
-    return (result?.task.subagent_reports?.length ?? 0) > 0;
+    if ((result?.task.subagent_reports?.length ?? 0) > 0) return true;
+    const changeId = result?.changeId;
+    if (!changeId) return false;
+    const changeResult = await store.changes.get(changeId);
+    const change = changeResult.success ? changeResult.data : null;
+    return (change?.subagent_reports ?? []).some((report) =>
+      subagentReportBelongsToTask(report, taskId),
+    );
   } catch {
     return false;
   }
+}
+
+function subagentReportBelongsToTask(
+  report: ScopedSubagentReport,
+  taskId: string,
+): boolean {
+  if (typeof report.scope !== "string" && report.scope.kind === "task") {
+    return report.scope.task_id === taskId;
+  }
+  return "task_id" in report && report.task_id === taskId;
 }
 
 async function getHandleForChangeId(
