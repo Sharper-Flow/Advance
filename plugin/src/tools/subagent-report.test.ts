@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { SubagentConsumerWarningSchema } from "../types";
-import type { Change, EngineerSubagentReport } from "../types";
+import type {
+  Change,
+  EngineerSubagentReport,
+  ResearcherSubagentReport,
+  ScannerBundleSubagentReport,
+} from "../types";
 import type { Store } from "../storage/store-types";
 import {
   subagentReportSubmittedSignal,
@@ -93,6 +98,52 @@ function engineerReport(
   };
 }
 
+function researcherReport(
+  overrides: Partial<ResearcherSubagentReport> = {},
+): ResearcherSubagentReport {
+  return {
+    schema_version: "1.0",
+    change_id: "change-1",
+    attempt: 1,
+    agent: "adv-researcher",
+    scope: { kind: "change", scope_key: "researcher:temporal-docs" },
+    workdir_used: "/repo",
+    topic: "Temporal docs",
+    sources: [
+      {
+        label: "Temporal docs",
+        locator: "https://docs.temporal.io/",
+        summary: "Signals persist deterministic workflow state.",
+      },
+    ],
+    architecture_assessment: "Sidecar reports keep task reads compact.",
+    validation: { status: "pass", blockers: [], notes: "ok" },
+    recommendation: "Persist change-scoped report.",
+    follow_ups: ["Review sidecar readback"],
+    ...overrides,
+  };
+}
+
+function scannerBundleReport(
+  overrides: Partial<ScannerBundleSubagentReport> = {},
+): ScannerBundleSubagentReport {
+  return {
+    schema_version: "1.0",
+    change_id: "change-1",
+    attempt: 1,
+    agent: "adv-scanner-bundle",
+    scope: { kind: "change", scope_key: "scanner-bundle:review" },
+    workdir_used: "/repo",
+    phase: "review",
+    scanner_count: 2,
+    dimensions: ["contracts", "tests"],
+    summary: "Orchestrator synthesized scanner bundle.",
+    findings: [],
+    follow_ups: [],
+    ...overrides,
+  };
+}
+
 function change(overrides: Partial<Change> = {}): Change {
   return {
     id: "change-1",
@@ -177,6 +228,9 @@ describe("subagentReportTools", () => {
       "Add docs",
       expect.objectContaining({
         category: "subagent-followup",
+        description: expect.stringContaining(
+          "change-1/Implement feature/adv-engineer/attempt-1/task-tk-1",
+        ),
         agendaPath: "/state/agenda.jsonl",
       }),
     );
@@ -232,29 +286,93 @@ describe("subagentReportTools", () => {
     expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
-  test("rejects reserved unsupported agents before signaling", async () => {
+  test("dedupes repeated report keys from existing sidecar reports", async () => {
+    const report = researcherReport();
+    const store = storeFor(
+      change({
+        subagent_reports: [report],
+      }),
+    );
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.duplicate).toBe(true);
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
+  });
+
+  test("accepts change-scoped researcher reports before signaling", async () => {
     const store = storeFor(change());
+    const report = researcherReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.reportId).toBe(
+      "change-1|change:researcher:temporal-docs|adv-researcher|1",
+    );
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.objectContaining({
+        report: expect.objectContaining({ agent: "adv-researcher" }),
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
+      "taskId",
+    );
+    expect(mocks.addAgendaItem).toHaveBeenCalledWith(
+      "/repo",
+      "Review sidecar readback",
+      expect.objectContaining({
+        category: "subagent-followup",
+        description: expect.stringContaining(
+          "change-1/change:researcher:temporal-docs/adv-researcher/attempt-1",
+        ),
+      }),
+    );
+  });
+
+  test("bounds scanner bundle follow-up agenda creation", async () => {
+    const store = storeFor(change());
+    const followUps = Array.from(
+      { length: 12 },
+      (_, index) => `Follow ${index}`,
+    );
 
     const output = parse(
       await subagentReportTools.adv_subagent_report_submit.execute(
         {
-          report: {
-            schema_version: "1.0",
-            change_id: "change-1",
-            task_id: "tk-1",
-            attempt: 1,
-            agent: "adv-researcher",
-            scope: "Research",
-            workdir_used: "/repo",
-          },
+          report: scannerBundleReport({ follow_ups: followUps }),
         },
         store,
       ),
     );
 
-    expect(output.error).toContain("Unsupported sub-agent report type");
-    expect(output.code).toBe("UNSUPPORTED_AGENT");
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(output.success).toBe(true);
+    expect(output.consumerResults.followUps.previewCount).toBe(10);
+    expect(mocks.addAgendaItem).toHaveBeenCalledTimes(10);
+    expect(output.consumerResults.verification.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "consumer_failure",
+          message: expect.stringContaining("truncated from 12 to 10"),
+        }),
+      ]),
+    );
   });
 
   test("rejects malformed reports at the Zod boundary and records task error_recovery", async () => {
