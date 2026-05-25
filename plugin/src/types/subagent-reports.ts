@@ -17,18 +17,54 @@ export const SubagentAgentSchema = z.enum([
   "adv-reviewer",
   "adv-researcher",
   "adv-tron",
+  "adv-scanner-bundle",
 ]);
 
 export type SubagentAgent = z.infer<typeof SubagentAgentSchema>;
 
+export const ChangeReportScopeKeySchema = z
+  .string()
+  .min(1)
+  .regex(/^(researcher|tron|scanner-bundle):[a-z0-9][a-z0-9-]*$/u);
+
+export const TaskSubagentReportScopeSchema = z
+  .object({
+    kind: z.literal("task"),
+    task_id: z.string().min(1),
+  })
+  .strict();
+
+export const ChangeSubagentReportScopeSchema = z
+  .object({
+    kind: z.literal("change"),
+    scope_key: ChangeReportScopeKeySchema,
+  })
+  .strict();
+
+export const SubagentReportScopeSchema = z.discriminatedUnion("kind", [
+  TaskSubagentReportScopeSchema,
+  ChangeSubagentReportScopeSchema,
+]);
+
 const BaseSubagentReportSchema = z.object({
   schema_version: z.literal(SUBAGENT_REPORT_SCHEMA_VERSION),
   change_id: z.string().min(1),
-  task_id: z.string().min(1),
   attempt: z.number().int().min(1),
-  scope: z.string().min(1),
   workdir_used: z.string().min(1),
 });
+
+const TaskScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
+  task_id: z.string().min(1),
+  // Backward-compatible with existing adv-engineer / adv-reviewer examples and
+  // live workers that still send a prose scope string. New task-scoped reports
+  // should use { kind: "task", task_id } so later consumers can rely on
+  // structural scope metadata without breaking legacy report ingestion.
+  scope: z.union([TaskSubagentReportScopeSchema, z.string().min(1)]),
+}).strict();
+
+const ChangeScopedBaseSubagentReportSchema = BaseSubagentReportSchema.extend({
+  scope: ChangeSubagentReportScopeSchema,
+}).strict();
 
 export const SubagentVerificationEntrySchema = z
   .object({
@@ -65,23 +101,24 @@ export const SubagentConsumerWarningSchema = z
   })
   .strict();
 
-export const EngineerSubagentReportSchema = BaseSubagentReportSchema.extend({
-  agent: z.literal("adv-engineer"),
-  status: z.enum(["complete", "error"]),
-  files_touched: z.array(z.string().min(1)),
-  verification: z.array(SubagentVerificationEntrySchema).min(1),
-  decisions: z.array(SubagentDecisionSchema),
-  blockers: z.array(SubagentBlockerSchema),
-  follow_ups: z.array(z.string().min(1)),
-  related_scan: z.string().min(1),
-  context_update_for_adv: z
-    .object({
-      what_ads_needs_to_know: z.string().min(1),
-      suggested_next_action: z.string().min(1),
-    })
-    .strict(),
-  consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-}).strict();
+export const EngineerSubagentReportSchema =
+  TaskScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-engineer"),
+    status: z.enum(["complete", "error"]),
+    files_touched: z.array(z.string().min(1)),
+    verification: z.array(SubagentVerificationEntrySchema).min(1),
+    decisions: z.array(SubagentDecisionSchema),
+    blockers: z.array(SubagentBlockerSchema),
+    follow_ups: z.array(z.string().min(1)),
+    related_scan: z.string().min(1),
+    context_update_for_adv: z
+      .object({
+        what_ads_needs_to_know: z.string().min(1),
+        suggested_next_action: z.string().min(1),
+      })
+      .strict(),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
 
 export const ReviewerFindingSchema = z
   .object({
@@ -122,40 +159,122 @@ export const ReviewerScopeDriftSchema = z
   })
   .strict();
 
-export const ReviewerSubagentReportSchema = BaseSubagentReportSchema.extend({
-  agent: z.literal("adv-reviewer"),
-  phase: z.enum(["review", "harden"]),
-  verdict: z.enum(["READY", "NEEDS_WORK", "BLOCKED", "CONFLICT"]),
-  blocking_findings: z.array(ReviewerFindingSchema),
-  nonblocking_findings: z.array(ReviewerFindingSchema),
-  changes_made: z.array(ReviewerChangeMadeSchema),
-  wisdom_candidates: z.array(
-    z
+export const ReviewerSubagentReportSchema =
+  TaskScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-reviewer"),
+    phase: z.enum(["review", "harden"]),
+    verdict: z.enum(["READY", "NEEDS_WORK", "BLOCKED", "CONFLICT"]),
+    blocking_findings: z.array(ReviewerFindingSchema),
+    nonblocking_findings: z.array(ReviewerFindingSchema),
+    changes_made: z.array(ReviewerChangeMadeSchema),
+    wisdom_candidates: z.array(
+      z
+        .object({
+          type: WisdomTypeSchema,
+          content: z.string().min(1).max(2000),
+        })
+        .strict(),
+    ),
+    verification: z
       .object({
-        type: WisdomTypeSchema,
-        content: z.string().min(1).max(2000),
+        tests_run: z.array(z.string().min(1)),
+        results: z.enum(["pass", "fail", "n/a"]),
+        evidence: z.string().min(1),
       })
       .strict(),
-  ),
-  verification: z
-    .object({
-      tests_run: z.array(z.string().min(1)),
-      results: z.enum(["pass", "fail", "n/a"]),
-      evidence: z.string().min(1),
-    })
-    .strict(),
-  scope_drift: ReviewerScopeDriftSchema.nullable(),
-  risks: z.array(z.string().min(1)),
-  required_main_agent_actions: z.array(z.string().min(1)),
-  consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-}).strict();
+    scope_drift: ReviewerScopeDriftSchema.nullable(),
+    risks: z.array(z.string().min(1)),
+    required_main_agent_actions: z.array(z.string().min(1)),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
 
-export const SupportedSubagentReportSchema = z.discriminatedUnion("agent", [
+export const SubagentSourceReferenceSchema = z
+  .object({
+    label: z.string().min(1),
+    locator: z.string().min(1),
+    summary: z.string().min(1),
+  })
+  .strict();
+
+export const ResearcherValidationSchema = z
+  .object({
+    status: z.enum(["pass", "caution", "fail", "unknown"]),
+    blockers: z.array(z.string().min(1)),
+    notes: z.string().min(1),
+  })
+  .strict();
+
+export const ResearcherSubagentReportSchema =
+  ChangeScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-researcher"),
+    topic: z.string().min(1),
+    sources: z.array(SubagentSourceReferenceSchema).min(1),
+    architecture_assessment: z.string().min(1),
+    validation: ResearcherValidationSchema,
+    recommendation: z.string().min(1),
+    follow_ups: z.array(z.string().min(1)),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
+
+export const TronEvidenceSchema = z
+  .object({
+    file: z.string().min(1),
+    line: z.number().int().positive().optional(),
+    summary: z.string().min(1),
+  })
+  .strict();
+
+export const TronSubagentReportSchema =
+  ChangeScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-tron"),
+    target: z.string().min(1),
+    evidence: z.array(TronEvidenceSchema).min(1),
+    findings: z.array(z.string().min(1)),
+    hotspots: z.array(z.string().min(1)),
+    risks: z.array(z.string().min(1)),
+    open_questions: z.array(z.string().min(1)),
+    suggested_next_commands: z.array(z.string().min(1)),
+    follow_ups: z.array(z.string().min(1)),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
+
+export const ScannerBundleFindingSchema = z
+  .object({
+    scanner: z.string().min(1),
+    severity: z.enum(["blocker", "issue", "suggestion", "info"]),
+    summary: z.string().min(1),
+    evidence: z.array(SubagentSourceReferenceSchema),
+  })
+  .strict();
+
+export const ScannerBundleSubagentReportSchema =
+  ChangeScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-scanner-bundle"),
+    phase: z.enum(["review", "harden"]),
+    scanner_count: z.number().int().min(1),
+    dimensions: z.array(z.string().min(1)).min(1),
+    summary: z.string().min(1),
+    findings: z.array(ScannerBundleFindingSchema),
+    follow_ups: z.array(z.string().min(1)),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
+
+export const TaskScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   EngineerSubagentReportSchema,
   ReviewerSubagentReportSchema,
 ]);
 
-export type PersistedSubagentReportAgent = "adv-engineer" | "adv-reviewer";
+export const ScopedSubagentReportSchema = z.discriminatedUnion("agent", [
+  EngineerSubagentReportSchema,
+  ReviewerSubagentReportSchema,
+  ResearcherSubagentReportSchema,
+  TronSubagentReportSchema,
+  ScannerBundleSubagentReportSchema,
+]);
+
+export const SupportedSubagentReportSchema = TaskScopedSubagentReportSchema;
+
+export type PersistedSubagentReportAgent = z.infer<typeof SubagentAgentSchema>;
 
 export type SubagentReportFieldSource =
   | "packet_anchor"
@@ -165,6 +284,7 @@ export type SubagentReportFieldSource =
 export const SUBAGENT_REPORT_PACKET_ANCHORS = {
   change_id: "CHANGE",
   task_id: "TASK",
+  scope: "SCOPE KEY",
   attempt: "ATTEMPT",
   workdir_used: "WORKING DIRECTORY",
   phase: "PHASE",
@@ -175,9 +295,9 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     schema_version: "worker_derived",
     change_id: "packet_anchor",
     task_id: "packet_anchor",
+    scope: "worker_derived",
     attempt: "packet_anchor",
     agent: "worker_derived",
-    scope: "worker_derived",
     status: "worker_derived",
     files_touched: "worker_derived",
     verification: "worker_derived",
@@ -193,9 +313,9 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     schema_version: "worker_derived",
     change_id: "packet_anchor",
     task_id: "packet_anchor",
+    scope: "worker_derived",
     attempt: "packet_anchor",
     agent: "worker_derived",
-    scope: "worker_derived",
     workdir_used: "packet_anchor",
     phase: "packet_anchor",
     verdict: "worker_derived",
@@ -207,6 +327,53 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     scope_drift: "worker_derived",
     risks: "worker_derived",
     required_main_agent_actions: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
+  "adv-researcher": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    scope: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    workdir_used: "packet_anchor",
+    topic: "worker_derived",
+    sources: "worker_derived",
+    architecture_assessment: "worker_derived",
+    validation: "worker_derived",
+    recommendation: "worker_derived",
+    follow_ups: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
+  "adv-tron": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    scope: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    workdir_used: "packet_anchor",
+    target: "worker_derived",
+    evidence: "worker_derived",
+    findings: "worker_derived",
+    hotspots: "worker_derived",
+    risks: "worker_derived",
+    open_questions: "worker_derived",
+    suggested_next_commands: "worker_derived",
+    follow_ups: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
+  "adv-scanner-bundle": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    scope: "packet_anchor",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    workdir_used: "packet_anchor",
+    phase: "packet_anchor",
+    scanner_count: "worker_derived",
+    dimensions: "worker_derived",
+    summary: "worker_derived",
+    findings: "worker_derived",
+    follow_ups: "worker_derived",
     consumer_warnings: "tool_enriched",
   },
 } as const satisfies Record<
@@ -234,12 +401,30 @@ export function getSubagentReportPacketAnchors(
     .sort();
 }
 
+export type SubagentReportScope = z.infer<typeof SubagentReportScopeSchema>;
+export type TaskSubagentReportScope = z.infer<
+  typeof TaskSubagentReportScopeSchema
+>;
+export type ChangeSubagentReportScope = z.infer<
+  typeof ChangeSubagentReportScopeSchema
+>;
 export type EngineerSubagentReport = z.infer<
   typeof EngineerSubagentReportSchema
 >;
 export type ReviewerSubagentReport = z.infer<
   typeof ReviewerSubagentReportSchema
 >;
+export type TaskScopedSubagentReport = z.infer<
+  typeof TaskScopedSubagentReportSchema
+>;
+export type ResearcherSubagentReport = z.infer<
+  typeof ResearcherSubagentReportSchema
+>;
+export type TronSubagentReport = z.infer<typeof TronSubagentReportSchema>;
+export type ScannerBundleSubagentReport = z.infer<
+  typeof ScannerBundleSubagentReportSchema
+>;
+export type ScopedSubagentReport = z.infer<typeof ScopedSubagentReportSchema>;
 export type SupportedSubagentReport = z.infer<
   typeof SupportedSubagentReportSchema
 >;
