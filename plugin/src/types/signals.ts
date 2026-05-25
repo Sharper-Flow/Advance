@@ -15,6 +15,7 @@ import {
 import { WisdomEntrySchema } from "./wisdom";
 import { AttemptSchema, TaskSchema } from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
+import { SupportedSubagentReportSchema } from "./subagent-reports";
 import {
   ChangeContractSchema,
   ContractAmendmentSchema,
@@ -131,6 +132,15 @@ export type TaskCompletedSignalPayload = z.infer<
   typeof TaskCompletedSignalPayloadSchema
 >;
 
+export const SubagentReportSubmittedSignalPayloadSchema = z.object({
+  taskId: z.string(),
+  report: SupportedSubagentReportSchema,
+  submittedAt: IsoTimestampSchema,
+});
+export type SubagentReportSubmittedSignalPayload = z.infer<
+  typeof SubagentReportSubmittedSignalPayloadSchema
+>;
+
 export const TaskBlockedSignalPayloadSchema = z.object({
   taskId: z.string(),
   reason: z.string(),
@@ -236,6 +246,53 @@ export const WorktreeDeletedSignalPayloadSchema = z.object({
 });
 export type WorktreeDeletedSignalPayload = z.infer<
   typeof WorktreeDeletedSignalPayloadSchema
+>;
+
+/**
+ * rq-autoManageAdvWorktrees AC3 — per-change marker signal.
+ *
+ * `source: "create"` fires at change creation with `value: true`.
+ * `source: "migrate"` fires lazily on first read of a legacy change.json
+ *   without the marker, with `value: false`.
+ * Handler is sticky: once `state.worktree_auto_managed` is set to a
+ * boolean, subsequent signals are ignored (idempotent).
+ */
+export const WorktreeAutoManagedSignalPayloadSchema = z.object({
+  value: z.boolean(),
+  source: z.enum(["create", "migrate"]),
+  recordedAt: IsoTimestampSchema,
+});
+export type WorktreeAutoManagedSignalPayload = z.infer<
+  typeof WorktreeAutoManagedSignalPayloadSchema
+>;
+
+/**
+ * rq-autoManageAdvWorktrees AC4 — worktree path projection signal.
+ *
+ * Projects a created (or detached) worktree path onto the change record
+ * for cross-project routing convenience. Registry remains the canonical
+ * source per `rq-worktreeRegistry01`; this projection is a routing hint
+ * walked by archive Phase 9 cleanup and by mutation guards.
+ *
+ * Roles:
+ * - `current` — current-repo worktree (today this lives in the
+ *   per-change worktrees map; the projection writes through for
+ *   parity with target/scope roles).
+ * - `target` — sets `state.target_worktree_path`. Pass `path: null` to
+ *   clear after cleanup.
+ * - `scope` — sets `state.scope_worktrees[repoId] = path`. Pass
+ *   `path: null` to clear a single entry.
+ *
+ * Idempotent: equal payloads are no-ops; differing values overwrite.
+ */
+export const WorktreeAttachedSignalPayloadSchema = z.object({
+  role: z.enum(["current", "target", "scope"]),
+  repoId: z.string().optional(),
+  path: z.string().nullable(),
+  recordedAt: IsoTimestampSchema,
+});
+export type WorktreeAttachedSignalPayload = z.infer<
+  typeof WorktreeAttachedSignalPayloadSchema
 >;
 
 export const ConformanceLockedSignalPayloadSchema = z.object({

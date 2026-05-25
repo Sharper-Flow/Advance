@@ -1,0 +1,352 @@
+{
+  "id": "extendCompletedWorkflow",
+  "title": "Extend completed workflow recovery",
+  "status": "archived",
+  "created_at": "2026-05-22T03:54:40.551Z",
+  "tasks": [
+    {
+      "id": "tk-6994fb8bf2a9",
+      "title": "Extend adv_change_archive recovery branch to detect completed-workflow errors (isWorkflowCompletedError) and route to saveRecoveredChangeStatus; test the new path.",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T03:55:06.326Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T03:59:54.539Z",
+      "verification": "RED: pnpm test -- src/tools/change.test.ts failed before implementation on completed-workflow recovery. GREEN: pnpm test -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts; pnpm run check; pnpm run build; pnpm test.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Centralized workflow-completed error detection in recovery-classification, reused it from Temporal change ops, broadened archive recoveryEvidence validation to accept completed-workflow evidence, and extended adv_change_archive status-transition recovery to disk-project archived status when save fails with WorkflowNotFoundError/workflow already completed. Added regression tests for completed recovery, no implicit recovery without recoveryMode, and preserved poisoned-description recovery.",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "519f8f45525e4a1023d5ef72750d3361ae21380d",
+      "completedAt": "2026-05-22T04:08:44.340Z",
+      "completed_at": "2026-05-22T04:08:44.340Z",
+      "notes": "Implemented completed-workflow archive recovery and verified full suite.",
+      "error_recovery": {
+        "last_error": "Initial regression test failed as expected before implementation: completed-workflow archive recovery returned no success.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — fixed via structural classifier and targeted recovery branch.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- src/tools/change.test.ts failed at completed-workflow recovery expectation before implementation.",
+            "diagnosis": "adv_change_archive only recovered when workflowHasPoisonedDescription returned true; completed workflows do not expose poison markers and recoveryEvidence rejected terminal workflow evidence.",
+            "fix_tried": "Added completed-workflow classifier/evidence handling and recovery branch; reran targeted tests/check/build/full suite.",
+            "strategy_label": "red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T04:08:11.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T04:09:00.669Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-y_3ziY",
+      "type": "pattern",
+      "content": "When a recovery path handles both poisoned and terminal/completed workflows, centralize error/evidence classification in `temporal/recovery-classification.ts` and keep tool recovery gated by explicit recoveryMode + precise evidence. Do not depend on poisoned describe probes for completed workflows; classify the thrown save/signal error directly.",
+      "source_task": "tk-6994fb8bf2a9",
+      "recorded_at": "2026-05-22T04:09:08.048Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T03:54:55.310Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/proposal.md",
+        "content_hash": "2695fa6fa674cb1fde1d0f9d01a5de01565e94983889b87337c111d6f48dad45",
+        "non_whitespace_chars": 1294,
+        "checked_at": "2026-05-22T03:54:55.356Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T03:55:00.001Z",
+      "completed_by": "agent",
+      "approval_evidence": "Reuses existing isWorkflowCompletedError detector.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/agreement.md",
+        "content_hash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "non_whitespace_chars": 969,
+        "checked_at": "2026-05-22T03:55:00.054Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T03:55:02.084Z",
+      "completed_by": "agent",
+      "approval_evidence": "Tight extension of existing recovery branch.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/design.md",
+        "content_hash": "cf21a57211d2482a275e783eb90ede1bc3ea140c50c46e0aa096a6529a9aadf5",
+        "non_whitespace_chars": 1309,
+        "checked_at": "2026-05-22T03:55:02.124Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T03:55:08.213Z",
+      "completed_by": "agent"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:09:21.754Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task tk-6994fb8bf2a9 done; targeted tests, check, build, and full test suite passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T04:15:48.252Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance via chat: `approve`. Review matrix rows all pass/respected; tests/check/build/full suite green.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/acceptance.md",
+        "content_hash": "10ba963f7486e69eb081ee61dd122b83b98dac3bcc8060b86d9cba8a9ff882a4",
+        "non_whitespace_chars": 2076,
+        "checked_at": "2026-05-22T04:15:48.366Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+      "approvedAt": "2026-05-22T03:54:57.347Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "When `recoveryMode: poisoned_history` and `store.changes.save({status:\"archived\"})` throws a \"workflow execution already completed\" / WorkflowNotFoundError, `adv_change_archive` writes status via `saveRecoveredChangeStatus` and returns success with `_recoveryMutation: true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Healthy archive (no recoveryMode) still throws on completed-workflow errors (no implicit recovery).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Existing poisoned-history archive recovery via describe probe still works.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Regression test covers the completed-workflow path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check`, `pnpm run build`, full `pnpm test` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Recovery only activates when `recoveryMode: poisoned_history` is explicitly set with valid `recoveryEvidence`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new direct fs writes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Healthy paths unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "3abac69620edcac9431c956de665917d85e2f48857edba0c41bf46e891e85c6c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T04:10:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change.ts recovery branch detects isWorkflowCompletedError(saveError), calls saveRecoveredChangeStatus, and returns _recoveryMutation:true; regression test plugin/src/tools/change.test.ts completed-workflow recovery passed.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change.ts only enters recovery when recoveryMode='poisoned_history'; no-recovery regression test returns failure on workflow completed error.",
+          "notes": "No implicit recovery."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Non-completed save errors still run workflowHasPoisonedDescription; poisoned-description regression test passed.",
+          "notes": "Existing path preserved."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New regression tests in plugin/src/tools/change.test.ts cover completed-workflow recovery, no-recovery failure, and poisoned-description recovery.",
+          "notes": "Coverage added."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "GREEN: pnpm test -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts; pnpm run check; pnpm run build; pnpm test. Reviewer also reran targeted tests successfully.",
+          "notes": "Verification complete."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "plugin/src/tools/change.ts validates explicit recoveryMode='poisoned_history' plus non-empty precise recoveryEvidence before recovery branch.",
+          "notes": "Terminal workflow evidence accepted as precise recovery evidence."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new direct fs write path introduced; status mutation uses existing saveRecoveredChangeStatus path.",
+          "notes": "Scope respected."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Healthy path is unchanged and standard error response remains outside recovery branch.",
+          "notes": "Scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "When `recoveryMode: poisoned_history` and `store.changes.save({status:\"archived\"})` throws a \"workflow execution already completed\" / WorkflowNotFoundError, `adv_change_archive` writes status via `saveRecoveredChangeStatus` and returns success with `_recoveryMutation: true`.",
+    "Healthy archive (no recoveryMode) still throws on completed-workflow errors (no implicit recovery).",
+    "Existing poisoned-history archive recovery via describe probe still works.",
+    "Regression test covers the completed-workflow path.",
+    "`pnpm run check`, `pnpm run build`, full `pnpm test` pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/proposal.md",
+      "updatedAt": "2026-05-22T04:13:02.727Z"
+    },
+    "problemStatement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/problem-statement.md",
+      "updatedAt": "2026-05-22T04:13:02.739Z"
+    },
+    "agreement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/agreement.md",
+      "updatedAt": "2026-05-22T04:13:02.754Z"
+    },
+    "design": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/extendCompletedWorkflow/design.md",
+      "updatedAt": "2026-05-22T04:13:02.770Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T04:15:48.252Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

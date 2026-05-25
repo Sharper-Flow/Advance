@@ -32,7 +32,7 @@ describe("createStore product context", () => {
       currentRoot: "/repo/web",
       currentRepoId: "web",
       repoProjectId: "r".repeat(40),
-      productId: "pokeedge",
+      productId: "example-product",
       productProjectId: "p".repeat(40),
       primaryRoot: "/repo/backend",
       primaryRepoId: "backend",

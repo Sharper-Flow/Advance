@@ -37,7 +37,8 @@ new ADV worktrees.
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Git               | Version control, change tracking                                                                                                        |
 | Temporal CLI      | Local dev server for ADV's Temporal-backed runtime                                                                                      |
-| jq                | Required only for `deploy-local.sh --fix` (config patching)                                                                              |
+| jq                | Required only for `deploy-local.sh --fix` (config patching)                                                                             |
+| rsync             | Required for `deploy-local.sh` runtime plugin deployment                                                                                |
 | GitHub CLI (`gh`) | Required for `/adv-triage` and any ADV command that reads/writes GitHub issues or Projects v2. See **GitHub CLI authentication** below. |
 
 ### Temporal-backed storage
@@ -248,10 +249,10 @@ Typical outcomes:
 - **`true` / `false`** — worker registered but the child process exited and
   cannot be restarted (exponential-backoff exhausted). Follow the Node-install
   steps above and restart opencode. Check the debug log at
-  `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the crash reason.
+  `$ADV_CACHE_DIR/adv-debug.log` for the crash reason.
 - **`false` / `false`** — no worker registered (init failure or Temporal
   not yet started). Temporal workflows are not running; check init logs at
-  `$OPEN_CHAD_CACHE_DIR/adv-debug.log` for the failure reason.
+  `$ADV_CACHE_DIR/adv-debug.log` for the failure reason.
 
 > The OOP worker uses exponential backoff (1s / 3s / 10s, max 3 attempts)
 > before marking the queue dead.
@@ -261,8 +262,9 @@ Typical outcomes:
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
-`build`, `adv-researcher`, `adv-engineer`). The `adv-researcher` and `adv-engineer`
-agents are synced globally by `deploy-local.sh` as bundled global specialists. The `adv-tron` agent remains
+`build`, `adv-researcher`, `adv-engineer`, `adv-reviewer`). The `adv-researcher`,
+`adv-engineer`, and `adv-reviewer` agents are synced globally by `deploy-local.sh`
+as bundled global specialists. The `adv-tron` agent remains
 repo-local in `.opencode/agents/`. All ADV-shipped sub-agents use the `adv-<name>` naming convention. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
 of ADV itself. If any of these are missing, ADV still runs — commands have
@@ -276,13 +278,13 @@ are external shared agents supplied by your broader OpenCode install. If any
 are missing, commands fall back to inline execution or generic `explore`
 invocation, which is slower and less specialized.
 
-| Agent            | Used by                                                                                | What it does                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor`          | Codebase navigation, scoped read-only scans                                                   |
-| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`            | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation |
-| `general`        | `/adv-review` (cross-cutting), overlay-managed                                         | Multi-step verification                                                                       |
-| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes                  | Structured ENGINEER_REPORT payload for ADV ingestion                                          |
-| `adv-reviewer`   | `/adv-prep` pre-flight (optional), `/adv-review`, `/adv-harden`                        | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT |
+| Agent            | Used by                                                                       | What it does                                                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, scoped read-only scans                                                                                                  |
+| `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation                              |
+| `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                                                      |
+| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                                                        |
+| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT submitted via `adv_subagent_report_submit` |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -292,14 +294,14 @@ MCP servers that are not configured — the grants become no-ops. You can
 run ADV without any of these, but the following features degrade or become
 unavailable:
 
-| MCP server     | Allowlist prefix / callable examples                                                        | Used by                                       | Degradation if missing                                                      |
-| -------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
-| lgrep          | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text` | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
-| Firecrawl      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`        | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
-| Context7       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`              | `adv-researcher`                              | Library documentation lookup unavailable                                    |
-| Exa            | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
-| searchcode     | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`            | `adv-researcher`                              | Public-repo code example search unavailable                                 |
-| arXiv MCP      | `arxiv-mcp_*` grants; call exact names from active schema                                   | `adv-researcher`                              | Academic paper search unavailable                                           |
+| MCP server                                     | Allowlist prefix / callable examples                                                          | Used by                                       | Degradation if missing                                                      |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| [lgrep](https://github.com/Sharper-Flow/lgrep) | `lgrep_*` grants; call `lgrep_search_semantic`, `lgrep_search_symbols`, `lgrep_search_text`   | `plan`, `build`, `adv-researcher`, `adv-tron` | Code exploration falls back to `glob`/`grep`/`read` (slower, less semantic) |
+| Firecrawl                                      | `firecrawl_*` grants; call `firecrawl_firecrawl_scrape`, `firecrawl_firecrawl_crawl`          | `plan`, `build`                               | Web scraping unavailable; use `webfetch` instead                            |
+| Context7                                       | `context7_*` grants; call `context7_resolve-library-id`, `context7_query-docs`                | `adv-researcher`                              | Library documentation lookup unavailable                                    |
+| Exa                                            | `exa_*` grants; call `exa_web_search_exa`, `exa_web_search_advanced_exa`, `exa_web_fetch_exa` | `adv-researcher`                              | Web search unavailable                                                      |
+| searchcode                                     | `searchcode_*` grants; call `searchcode_code_search`, `searchcode_code_get_file`              | `adv-researcher`                              | Public-repo code example search unavailable                                 |
+| arXiv MCP                                      | `arxiv-mcp_*` grants; call exact names from active schema                                     | `adv-researcher`                              | Academic paper search unavailable                                           |
 
 Tool calls must use exact active-schema names. Allowlist prefixes are grants only, not callable names; do not normalize `searchcode_code_search` to `code_search`.
 
@@ -324,31 +326,77 @@ slower without lgrep and Context7, but they will not fail.
 
 ## Installation
 
-### Step 1: Clone the Repository
+### User install (recommended)
+
+Install the latest published GitHub Release into OpenCode:
+
+```bash
+curl -fsSL https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh | bash
+```
+
+The installer resolves the latest Release, downloads `advance-v*.tar.gz`, verifies
+`SHA256SUMS.txt`, validates the archive, then runs
+`bash scripts/deploy-local.sh --fix` from the extracted artifact. That release
+artifact contains the plugin runtime, command contracts, bundled agents,
+overlays, skills, docs, and root metadata required for user installation.
+
+To pin a version, download the installer and set `ADV_VERSION=`:
+
+```bash
+curl -fsSL https://github.com/Sharper-Flow/Advance/releases/latest/download/install.sh -o /tmp/advance-install.sh
+ADV_VERSION=v0.11.8 bash /tmp/advance-install.sh
+```
+
+### Manual release artifact install
+
+Use this path when you want to inspect files before running the sync script:
+
+```bash
+VERSION=v0.11.8
+curl -fsSLO "https://github.com/Sharper-Flow/Advance/releases/download/${VERSION}/advance-${VERSION}.tar.gz"
+curl -fsSLO "https://github.com/Sharper-Flow/Advance/releases/download/${VERSION}/SHA256SUMS.txt"
+sha256sum --check --ignore-missing SHA256SUMS.txt
+tar -xzf "advance-${VERSION}.tar.gz"
+cd "advance-${VERSION}"
+bash scripts/deploy-local.sh --fix
+```
+
+### Maintainer/developer setup
+
+Use a source checkout when you are changing Advance itself or need local tests.
+
+#### Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/Sharper-Flow/Advance.git
 cd Advance
 ```
 
-### Step 2: Install Plugin Dependencies
+#### Step 2: Install plugin dependencies
 
 ```bash
 cd plugin
 pnpm install
 ```
 
-### Step 3: Build the Plugin
+#### Step 3: Build the plugin
 
 ```bash
 pnpm build
 ```
 
-### Step 4: Verify Installation
+#### Step 4: Verify the source checkout
 
 ```bash
 pnpm test
 # Expected: 1356+ tests passing
+```
+
+#### Step 5: Sync the local checkout into OpenCode
+
+```bash
+cd ..
+./scripts/deploy-local.sh --fix
 ```
 
 ---
@@ -357,21 +405,24 @@ pnpm test
 
 ### Step 1: Create or Update OpenCode Config
 
-Add ADV to your global OpenCode configuration at `~/.config/opencode/opencode.json`:
+ADV is normally registered from the stable deployed runtime plugin path that
+`scripts/deploy-local.sh --fix` maintains:
 
 ```json
 {
   "instructions": ["~/.config/opencode/identity.md"],
-  "plugin": ["/path/to/Advance/plugin"]
+  "plugin": ["~/.local/share/Advance/plugin"]
 }
 ```
 
-**Important**: Replace `/path/to/Advance` with the actual path where you cloned the repository.
+For manual/dev-only setup you may point at a source checkout plugin directory,
+but the recommended flow below keeps OpenCode loading the stable deployed copy.
 
 ### Step 2: Run the Sync Script (Recommended)
 
-The easiest way to set up and update ADV is the sync script. It copies commands,
-agents, and skills to the global config, and validates (or patches) `opencode.json`:
+The easiest way to set up and update ADV is the sync script. It rebuilds and
+syncs the runtime plugin when needed, copies commands, agents, and skills to the
+global config, and validates (or patches) `opencode.json`:
 
 ```bash
 # Check what needs updating (config only, no file changes)
@@ -389,12 +440,15 @@ agents, and skills to the global config, and validates (or patches) `opencode.js
 
 The `--fix` flag will:
 
+- Rebuild `plugin/dist` when it is missing or older than plugin build inputs
+- Refuse to deploy stale dist if the build fails or freshness is still unproven
+- Sync `plugin/` to the stable runtime path `~/.local/share/Advance/plugin/`
 - Copy all `adv-*.md` commands to `~/.config/opencode/command/`
-- Copy only repo-local ADV agents where direct sync is appropriate
-- Apply repo-owned managed overlay blocks to shared global agents like `adv`, `general`, `build`, and `plan` without replacing the full file
+- Copy the repo-owned `adv` runtime agent as a full file and leave repo-local-only agents in-tree
+- Apply repo-owned managed overlay blocks to shared global agents like `general`, `build`, and `plan` without replacing the full file
 - Copy ADV skills to `~/.config/opencode/skills/` (the retained cross-cutting skills: `adv-slop-detection` and `adv-tron`)
 - Add the ADV plugin path to `opencode.json` `.plugin` array if missing
-- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions` and embed the ADV protocol into generated ADV provider prompts
+- Remove legacy global `ADV_INSTRUCTIONS.md` entries from `opencode.json` `.instructions`; the lean `adv` runtime prompt carries runtime-critical protocol without a global instruction entry
 - Back up `opencode.json` before any patches
 - Preserve all non-ADV settings (mcp, provider, permissions, etc.)
 
@@ -402,7 +456,7 @@ Top-level ADV slash commands are synced as entrypoint contracts only; they do no
 
 ### Step 2b: Install Git Hooks (Strongly Recommended for ADV Maintainers)
 
-If you are developing ADV itself (not just consuming it), install the tracked git hooks so commits that touch `.opencode/`, `ADV_INSTRUCTIONS.md`, or `skills/` automatically re-sync the global install:
+If you are developing ADV itself (not just consuming it), install the tracked git hooks so commits that touch `.opencode/`, `ADV_INSTRUCTIONS.md`, `skills/`, `plugin/src/`, or `scripts/deploy-local.sh` automatically re-sync the global install:
 
 ```bash
 ./scripts/install-git-hooks.sh            # sets core.hooksPath=.githooks, chmod +x
@@ -415,16 +469,16 @@ Hooks installed:
 - `post-commit` — runs `deploy-local.sh --fix` when the commit touched a mirrored path (idempotent, ~1s, never blocks).
 - `pre-push` — safety-net sync before pushing, in case a commit bypassed the post-commit hook.
 
-Without these, a commit that updates a command contract will land in the repo but the global `~/.config/opencode/` keeps the old copy until `deploy-local.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts.
+Without these, a commit that updates a command contract or plugin source will land in the repo but the global install keeps the old copy until `deploy-local.sh --fix` is run manually — which causes agents invoking `/adv-*` from other repos to run against stale contracts or stale runtime plugin code.
 
-Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`).
+Requires `jq` for config patching (`sudo apt-get install -y jq` or `brew install jq`) and `rsync` for runtime plugin deployment (`sudo apt-get install -y rsync` or `brew install rsync`).
 
 ### Step 2b: Manual Setup (Alternative)
 
 If you prefer manual setup, add the ADV plugin path to your `opencode.json`.
 Do **not** add `ADV_INSTRUCTIONS.md` to global `instructions[]`; `deploy-local.sh`
-scopes that protocol to generated ADV provider prompts so non-ADV agents do not
-pay the prompt cost.
+keeps that protocol scoped to the ADV runtime agent so non-ADV agents do not pay
+the prompt cost.
 
 ```json
 {
@@ -436,10 +490,10 @@ pay the prompt cost.
 Legacy migration: if your config already contains `/path/to/Advance/ADV_INSTRUCTIONS.md`
 or `~/.config/opencode/instructions/ADV_INSTRUCTIONS.md`, run
 `./scripts/deploy-local.sh --fix`. The script removes only ADV instruction paths,
-preserves unrelated global instructions, and regenerates ADV provider prompts with
-the protocol embedded. Manual setups without provider ADV variants intentionally do
-not receive the ADV operating protocol; the supported ADV-agent setup path is the
-sync script above.
+preserves unrelated global instructions, and syncs the lean `adv` runtime agent
+that carries runtime-critical ADV protocol. Manual setups that skip the sync
+script must copy `.opencode/agents/adv.md` themselves to install the supported
+ADV-agent runtime prompt.
 
 Then copy slash commands manually:
 
@@ -715,6 +769,11 @@ cat > project.json << 'EOF'
 }
 EOF
 
+# Optional archive finalization overrides (defaults shown):
+# "archive_mode": "direct" merges completed changes into the default branch.
+# Use "pr" only for repositories that require PR-based shipping.
+# "auto_push": true attempts `git push origin {default-branch}` after merge.
+
 # Create directory structure
 mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
 
@@ -743,6 +802,11 @@ cat > project.json << 'EOF'
   "docs_dir": "docs/specs"
 }
 EOF
+
+# Optional archive finalization overrides (defaults shown):
+# "archive_mode": "direct" merges completed changes into the default branch.
+# Use "pr" only for repositories that require PR-based shipping.
+# "auto_push": true attempts `git push origin {default-branch}` after merge.
 
 # Create required directories
 mkdir -p .adv/specs .adv/changes .adv/archive docs/specs
@@ -1015,6 +1079,23 @@ Flags: `--no-color` (or `NO_COLOR=1`) to disable ANSI colors. See `adv --help` f
 
 ## Troubleshooting
 
+### Release installer errors
+
+The release installer downloads a full `advance-v*.tar.gz` artifact and then
+delegates to `bash scripts/deploy-local.sh --fix`. Common failures:
+
+| Error text                        | Fix                                                                                                                                                                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jq not found`                    | Install jq (`sudo apt-get install -y jq`, `sudo dnf install jq`, or `brew install jq`) so `deploy-local.sh --fix` can patch `opencode.json`.                                                               |
+| `rsync not found`                 | Install rsync (`sudo apt-get install -y rsync`, `sudo dnf install rsync`, or `brew install rsync`) so the runtime plugin can sync to `~/.local/share/Advance/plugin/`.                                     |
+| `pnpm not found`                  | Install pnpm (`corepack enable pnpm`, `npm install -g pnpm`, or your package manager). Release artifacts include built `plugin/dist`, but pnpm is still needed for source rebuilds and ADV worktree hooks. |
+| `sha256sum not found`             | Install GNU coreutils (`sudo apt-get install -y coreutils`, `sudo dnf install coreutils`, or `brew install coreutils`) so release checksums can be verified.                                               |
+| `Permission denied: ./install.sh` | Run `chmod +x install.sh`, or invoke it as `bash install.sh`.                                                                                                                                              |
+| `Release artifact is incomplete`  | The downloaded archive is missing required installer assets. Delete the partial download, retry the latest release, or use the source-checkout maintainer path until a corrected release is published.     |
+
+If checksum verification fails, do not run the archive. Delete both downloaded
+files and retry from the GitHub Release page.
+
 ### Consolidated Agents (scout → plan, refine → build)
 
 ADV consolidated `scout` into `plan` and `refine` into `build`. If your global `~/.config/opencode/agents/` still has `scout.md` or `refine.md`, run the sync script to clean them up:
@@ -1149,27 +1230,26 @@ ls .opencode/command/adv-*.md
 Verify plugin path in `opencode.json`:
 
 ```bash
-# Check the path exists
-ls /path/to/Advance/plugin/dist/index.js
+# Check the deployed runtime path exists
+ls ~/.local/share/Advance/plugin/dist/index.js
 
-# If missing, rebuild
-cd /path/to/Advance/plugin
-pnpm build
+# If missing or stale, rebuild and sync the runtime plugin
+./scripts/deploy-local.sh --fix
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable                               | Default                      | Description                                                                                                                           |
-| -------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `ADV_DEBUG`                            | `"0"`                        | Set to `"1"` for debug logging                                                                                                        |
-| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$OPEN_CHAD_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use) |
-| `OPEN_CHAD_CACHE_DIR`                  | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                   |
-| `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                             |
-| `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                              |
-| `OPENCODE_EXPERIMENTAL_WORKSPACES`     | unset                        | Set to `true` and restart OpenCode to enable native workspace warp for ADV worktrees; otherwise ADV downgrades to terminal mode       |
-| `OPENCODE_EXPERIMENTAL`                | unset                        | Broader OpenCode experimental opt-in that also enables workspace warp; prefer `OPENCODE_EXPERIMENTAL_WORKSPACES=true` when possible   |
+| Variable                               | Default                      | Description                                                                                                                         |
+| -------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `ADV_DEBUG`                            | `"0"`                        | Set to `"1"` for debug logging                                                                                                      |
+| `ADV_PROFILE`                          | `"0"`                        | Set to `"1"` to write temporal startup profile events to `$ADV_CACHE_DIR/adv-profile.log` (diagnostic-only; clean up after use)     |
+| `ADV_CACHE_DIR`                        | `$TMPDIR` (fallback: `/tmp`) | Directory used for ADV debug log when `ADV_DEBUG=1`                                                                                 |
+| `ADV_FORCE_IN_PROCESS_WORKER`          | unset                        | Force in-process Temporal worker; rollback/debug escape hatch for worker singleton issues                                           |
+| `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` | `10000`                      | Worker restart queue-serviceability verification timeout                                                                            |
+| `OPENCODE_EXPERIMENTAL_WORKSPACES`     | unset                        | Set to `true` and restart OpenCode to enable native workspace warp for ADV worktrees; otherwise ADV downgrades to terminal mode     |
+| `OPENCODE_EXPERIMENTAL`                | unset                        | Broader OpenCode experimental opt-in that also enables workspace warp; prefer `OPENCODE_EXPERIMENTAL_WORKSPACES=true` when possible |
 
 ---
 
@@ -1220,7 +1300,7 @@ New changes start directly in the 7-gate model.
 
 | Command                   | Purpose                                                                                                                            |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `/adv-task`               | Fast-track a discussed change through proposal → planning                                                                          |
+| `/adv-task`               | Fast-track small changes: assess spec-law impact, prep, and hand off                                                               |
 | `/adv-validate <id>`      | Validate change against specs                                                                                                      |
 | `/adv-clarify`            | Clarify ambiguous requirements                                                                                                     |
 | `/adv-audit [capability]` | Spec/implementation drift check                                                                                                    |
@@ -1246,17 +1326,17 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 
 **Changes**
 
-| Tool                       | Purpose                                                                 |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)    |
-| `adv_change_show`          | Get full change details including tasks and deltas                      |
-| `adv_change_create`        | Create a new change proposal                                            |
+| Tool                       | Purpose                                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `adv_change_list`          | List active changes (with `includeArchived`/`includeClosed` filters)                                              |
+| `adv_change_show`          | Get full change details including tasks and deltas                                                                |
+| `adv_change_create`        | Create a new change proposal                                                                                      |
 | `adv_change_update`        | Update narrative artifacts (proposal/problem-statement/agreement/design/executive-summary) for an existing change |
-| `adv_change_validate`      | Validate change against specs and check for conflicts                   |
-| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)               |
-| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter) |
-| `adv_change_archive`       | Archive a completed change (applies spec deltas)                        |
-| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                         |
+| `adv_change_validate`      | Validate change against specs and check for conflicts                                                             |
+| `adv_change_close`         | Close an active change (cancelled/superseded/not_planned)                                                         |
+| `adv_change_bulk_close`    | Bulk close changes with filter-aware selection (explicit IDs or filter)                                           |
+| `adv_change_archive`       | Archive a completed change (applies spec deltas)                                                                  |
+| `adv_change_update_issues` | Add/remove GitHub issue URLs linked to a change                                                                   |
 
 **Tasks**
 
@@ -1266,7 +1346,7 @@ Parallel ADV scanners follow the same single-level delegation rule as other ADV 
 | `adv_task_show`           | Get full task details by ID (includes parent changeId)        |
 | `adv_task_ready`          | Get unblocked pending tasks ready for work                    |
 | `adv_task_add`            | Add a new task to a change                                    |
-| `adv_task_update`         | Update task status (pending/in_progress/done)                 |
+| `adv_task_update`         | Update task status (done is checkpoint/recovery-only)         |
 | `adv_task_cancel`         | Cancel tasks with required user approval                      |
 | `adv_task_reclassify_tdd` | Reclassify TDD intent after planning gate (requires approval) |
 | `adv_task_checkpoint`     | Create task checkpoint commit before completion/cancellation  |

@@ -1,0 +1,224 @@
+{
+  "id": "addDelegationDefaults2",
+  "title": "Establish delegation defaults",
+  "status": "archived",
+  "created_at": "2026-05-21T00:30:47.221Z",
+  "tasks": [
+    {
+      "id": "tk-7dace315d613",
+      "title": "Create delegation-defaults spec",
+      "type": "code",
+      "section": "Spec",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T02:05:48.120Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T02:07:50.735Z",
+      "verification": "Created .adv/specs/delegation-defaults/spec.json with 6 requirements mapping to AC1-AC6: matrix coverage, mode classification, agent/boundary spec, wide scan delegation, worker report fields, test coverage. 17 scenarios total.",
+      "summary": "Created .adv/specs/delegation-defaults/spec.json with 6 requirements mapping to AC1-AC6: matrix coverage, mode classification, agent/boundary spec, wide scan delegation, worker report fields, test coverage. 17 scenarios total.",
+      "implementation_summary": "Created .adv/specs/delegation-defaults/spec.json with 6 requirements mapping to AC1-AC6: matrix coverage, mode classification, agent/boundary spec, wide scan delegation, worker report fields, test coverage. 17 scenarios total.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T02:14:44.126Z",
+      "completed_at": "2026-05-21T02:14:44.126Z"
+    },
+    {
+      "id": "tk-8780d31ea0fe",
+      "title": "Create delegation-matrix coverage test",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T02:05:57.354Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "blockReason": "Depends on tk-7dace315d613 (spec creation) — test reads spec",
+      "attempts": [],
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T02:14:59.544Z",
+      "verification": "Created delegation-matrix.test.ts with 12 tests: 9-step coverage (rq-delDefaults01), valid mode enum (rq-delDefaults02), agent existence/boundaries (rq-delDefaults03), specific assignments matching design D2, phantom/primary exclusion, and cross-reference consistency with command contracts (rq-delDefaults06). Handles global agents (explore, general) vs repo-local agents.",
+      "summary": "Created delegation-matrix.test.ts with 12 tests: 9-step coverage (rq-delDefaults01), valid mode enum (rq-delDefaults02), agent existence/boundaries (rq-delDefaults03), specific assignments matching design D2, phantom/primary exclusion, and cross-reference consistency with command contracts (rq-delDefaults06). Handles global agents (explore, general) vs repo-local agents.",
+      "implementation_summary": "Created delegation-matrix.test.ts with 12 tests: 9-step coverage (rq-delDefaults01), valid mode enum (rq-delDefaults02), agent existence/boundaries (rq-delDefaults03), specific assignments matching design D2, phantom/primary exclusion, and cross-reference consistency with command contracts (rq-delDefaults06). Handles global agents (explore, general) vs repo-local agents.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T02:20:07.122Z",
+      "completed_at": "2026-05-21T02:20:07.122Z"
+    },
+    {
+      "id": "tk-6d2a650b3fde",
+      "title": "Extend phantom-subagent-roster test for primary agents",
+      "type": "code",
+      "section": "Tests",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T02:06:03.827Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T02:07:51.536Z",
+      "verification": "Extended phantom-subagent-roster.test.ts: added PRIMARIES constant (adv, plan, build, adv-atc), PrimaryFinding type, scanForPrimaries function with compound-name-safe regex, 11 new test cases across ACTIVE_SURFACES, pinned PRIMARIES list test. Fixed buildPatterns to use negative lookahead for compound names.",
+      "summary": "Extended phantom-subagent-roster.test.ts: added PRIMARIES constant (adv, plan, build, adv-atc), PrimaryFinding type, scanForPrimaries function with compound-name-safe regex, 11 new test cases across ACTIVE_SURFACES, pinned PRIMARIES list test. Fixed buildPatterns to use negative lookahead for compound names.",
+      "implementation_summary": "Extended phantom-subagent-roster.test.ts: added PRIMARIES constant (adv, plan, build, adv-atc), PrimaryFinding type, scanForPrimaries function with compound-name-safe regex, 11 new test cases across ACTIVE_SURFACES, pinned PRIMARIES list test. Fixed buildPatterns to use negative lookahead for compound names.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T02:14:46.759Z",
+      "completed_at": "2026-05-21T02:14:46.759Z"
+    },
+    {
+      "id": "tk-2fb3ce252fdd",
+      "title": "Consolidate ADV_INSTRUCTIONS.md delegation guidance",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-21T02:06:13.458Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "blockReason": "Depends on tk-7dace315d613 (spec creation) — update references spec",
+      "attempts": [],
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T02:15:00.021Z",
+      "verification": "Consolidated 4 scattered delegation sections in ADV_INSTRUCTIONS.md into single Delegation Defaults reference block. Replaced Sub-Agent Orchestration table, inline-only list, and redundant prose with spec reference + summary table. Kept delegation routing priority table (task-level) and agent roster table (factual inventory). Added rq-delDefaults01-04 citations. Updated inline-only list to include /adv-reflect.",
+      "summary": "Consolidated 4 scattered delegation sections in ADV_INSTRUCTIONS.md into single Delegation Defaults reference block. Replaced Sub-Agent Orchestration table, inline-only list, and redundant prose with spec reference + summary table. Kept delegation routing priority table (task-level) and agent roster table (factual inventory). Added rq-delDefaults01-04 citations. Updated inline-only list to include /adv-reflect.",
+      "implementation_summary": "Consolidated 4 scattered delegation sections in ADV_INSTRUCTIONS.md into single Delegation Defaults reference block. Replaced Sub-Agent Orchestration table, inline-only list, and redundant prose with spec reference + summary table. Kept delegation routing priority table (task-level) and agent roster table (factual inventory). Added rq-delDefaults01-04 citations. Updated inline-only list to include /adv-reflect.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T02:20:09.982Z",
+      "completed_at": "2026-05-21T02:20:09.982Z"
+    },
+    {
+      "id": "tk-e105762b6598",
+      "title": "Verify all tests pass",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-21T02:06:17.598Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "blockReason": "Depends on tk-8780d31ea0fe, tk-6d2a650b3fde, tk-2fb3ce252fdd",
+      "attempts": [],
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T02:20:20.059Z",
+      "verification": "Verified: pnpm run check passes (typecheck + lint + format all clean). 55 tests pass across all affected files. delegation-defaults spec (6 requirements) listed by adv_spec. No regressions in citation invariant or existing asset tests.",
+      "summary": "Verified: pnpm run check passes (typecheck + lint + format all clean). 55 tests pass across all affected files. delegation-defaults spec (6 requirements) listed by adv_spec. No regressions in citation invariant or existing asset tests.",
+      "implementation_summary": "Verified: pnpm run check passes (typecheck + lint + format all clean). 55 tests pass across all affected files. delegation-defaults spec (6 requirements) listed by adv_spec. No regressions in citation invariant or existing asset tests.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T02:21:51.957Z",
+      "completed_at": "2026-05-21T02:21:51.957Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-tRX_E1",
+      "type": "pattern",
+      "content": "When a spec claims to be the single source of truth for a routing matrix, tests should parse the spec’s machine-readable matrix rather than duplicating the expected matrix as a fixture.",
+      "source_task": "tk-e105762b6598",
+      "recorded_at": "2026-05-21T06:16:41.292Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:03:52.707Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via reply: approve cleanup and continue",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/proposal.md",
+        "content_hash": "6a2b8fd459c85a726255ec0e101c5c07f42d6e38f80799e4932071e54422fd1d",
+        "non_whitespace_chars": 5385,
+        "checked_at": "2026-05-21T01:03:52.892Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:46:06.011Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-completing discovery gate after re-entry. Contract needs to be minted from agreement AC1-AC6 before acceptance.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/agreement.md",
+        "content_hash": "59d6cf9e03a745c81b3f1f3831edfabcaad63f374690c75416c9d5fbe55f0850",
+        "non_whitespace_chars": 1841,
+        "checked_at": "2026-05-21T02:46:06.074Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:46:17.115Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design re-confirmed after re-entry. Same design as before — no changes needed.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/design.md",
+        "content_hash": "9ddc0a146c6217d0b75c962c36521f01947246ad8c6b63d6f0614c5b059e0b2b",
+        "non_whitespace_chars": 6685,
+        "checked_at": "2026-05-21T02:46:17.171Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:46:25.677Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning re-confirmed after re-entry. Same task graph as before — no changes needed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T02:46:35.058Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks already completed and verified. No new work needed after re-entry."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-05-21T02:46:41.445Z",
+      "completed_at": "2026-05-21T06:19:52.976Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via reply: accept. Review verdict APPROVED; contract matrix 17/17 rows pass/respected; executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addDelegationDefaults2/acceptance.md",
+        "content_hash": "7107d6e50e24fd764dc34fe747f36b517bde681e94aef8e1624a2dbfa69782d0",
+        "non_whitespace_chars": 3975,
+        "checked_at": "2026-05-21T06:19:53.750Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Contract missing: acceptance gate blocked by ACCEPTANCE_CONTRACT_MISSING. Need to mint typed contract from approved agreement (AC1-AC6) during discovery gate before fast-forwarding through downstream gates.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-21T02:43:41.255Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-21T06:02:47.786Z"
+    }
+  ]
+}

@@ -63,7 +63,7 @@ describe("cross-project coordination metadata", () => {
       currentRoot: sourceDir,
       currentRepoId: "web",
       repoProjectId: "w".repeat(40),
-      productId: "pokeedge",
+      productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
@@ -101,7 +101,7 @@ describe("cross-project coordination metadata", () => {
       currentRoot: sourceDir,
       currentRepoId: "web",
       repoProjectId: "w".repeat(40),
-      productId: "pokeedge",
+      productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
@@ -129,7 +129,7 @@ describe("cross-project coordination metadata", () => {
       currentRoot: sourceDir,
       currentRepoId: "web",
       repoProjectId: "w".repeat(40),
-      productId: "pokeedge",
+      productId: "example-product",
       productProjectId: "b".repeat(40),
       primaryRoot: targetDir,
       primaryRepoId: "backend",
@@ -184,7 +184,7 @@ describe("cross-project coordination metadata", () => {
       expect.arrayContaining(["addWebScoped", "addBackendScoped"]),
     );
     expect(productWide._productContext).toMatchObject({
-      productId: "pokeedge",
+      productId: "example-product",
       currentRepoId: "web",
       scope: "product",
     });

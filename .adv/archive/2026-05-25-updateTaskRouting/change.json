@@ -1,0 +1,442 @@
+{
+  "id": "updateTaskRouting",
+  "title": "Update task routing",
+  "status": "archived",
+  "created_at": "2026-05-25T00:33:41.945Z",
+  "tasks": [
+    {
+      "id": "tk-78f49c5a3589",
+      "title": "Update /adv-task spec-law contract",
+      "type": "code",
+      "section": "Command contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-25T00:34:22.895Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": []
+      },
+      "verification": "RED: new adv-task asset test failed before implementation. GREEN: pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts passed (60 tests). Full verification: pnpm run check passed; pnpm test passed (235 files, 3127 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-task.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-task-assets.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-task.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "SETUP.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/adv-task-assets.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "36003efbff4c8cfe526f2708e0419efa8757163d",
+      "completedAt": "2026-05-25T00:46:53.146Z",
+      "completed_at": "2026-05-25T00:46:53.146Z"
+    },
+    {
+      "id": "tk-d392b8b1b011",
+      "title": "Codify fast-track spec-law tracking requirement",
+      "type": "code",
+      "section": "Specs and tests",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-25T00:34:23.017Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": []
+      },
+      "verification": "Harden remediation fixed medium documentation/manifest findings: adv-task successor now points to adv-apply, docs/adv-workflow fast-track text updated, README adv-atc spacing fixed, manifest test includes adv-atc and successor assertion. Verification: pnpm exec vitest run src/manifest.test.ts src/manifest-doc-drift.test.ts src/adv-task-assets.test.ts passed (62 tests); pnpm run check passed; pnpm test passed (235 files, 3129 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "README.md",
+        "docs/adv-workflow.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        "README.md",
+        "docs/adv-workflow.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "eb947bdaa0eb3927b873cf088a29089998219ccc",
+      "completedAt": "2026-05-25T01:28:07.056Z",
+      "completed_at": "2026-05-25T01:28:07.056Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "updateTaskRouting",
+          "task_id": "tk-d392b8b1b011",
+          "attempt": 1,
+          "scope": "Fix listed in-scope review findings for adv-task fast-track spec-law tracking contract",
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/updateTaskRouting",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [
+            {
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "summary": "Added rq-taskSpecLaw01.4 scenario for Uncertain fast-track scope: no planning completion, no implementation tasks, route to /adv-proposal or deeper discovery.",
+              "verification": "pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts passed; pnpm run check passed."
+            },
+            {
+              "file": "docs/specs/advance-workflow.md",
+              "summary": "Mirrored rq-taskSpecLaw01.4 scenario in generated/spec documentation.",
+              "verification": "pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts passed; pnpm run check passed."
+            },
+            {
+              "file": ".opencode/command/adv-task.md",
+              "summary": "Updated H1 and manifest scope comment; clarified Uncertain carries same change forward and avoids duplicate changes; removed Uncertain from handoff Spec-law impact values.",
+              "verification": "adv-task asset tests passed, including explicit table-row and Uncertain-route assertions."
+            },
+            {
+              "file": "plugin/src/manifest.ts",
+              "summary": "Updated adv-task scope.modifies to include proposal and design artifact updates.",
+              "verification": "manifest tests and manifest-doc-drift tests passed."
+            },
+            {
+              "file": "plugin/src/adv-task-assets.test.ts",
+              "summary": "Strengthened assertions to target specific spec-law impact table rows, Uncertain routing/handoff behavior, and rq-taskSpecLaw01.4 scenario details.",
+              "verification": "pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts passed."
+            },
+            {
+              "file": "plugin/src/manifest.test.ts",
+              "summary": "Added explicit adv-task scope test for creates, modifies, and gates.",
+              "verification": "pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts passed."
+            },
+            {
+              "file": "ADV_INSTRUCTIONS.md",
+              "summary": "Updated command boundary gate column for task to proposal + discovery + design + planning and clarified spec-law outcome wording.",
+              "verification": "pnpm run check passed; manifest doc drift remained green."
+            }
+          ],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts",
+              "pnpm run check"
+            ],
+            "results": "pass",
+            "evidence": "Focused vitest: exit 0, 3 files passed, 62 tests passed. Check: exit 0; typecheck, test isolation, lockfile policy, eslint, and prettier --check all passed."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [
+            "Review and commit the scoped changes if acceptable; no remaining blocking findings from this reviewer task."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-f167660cc611",
+      "title": "Route small durable changes through /adv-task",
+      "type": "code",
+      "section": "Agent routing",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-25T00:34:24.700Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": []
+      },
+      "verification": "Agent routing implemented in checkpoint 36003ef. Verification: pnpm exec vitest run src/adv-task-assets.test.ts src/manifest-doc-drift.test.ts src/manifest.test.ts passed; pnpm run check passed; pnpm test passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "36003efbff4c8cfe526f2708e0419efa8757163d",
+      "completedAt": "2026-05-25T00:47:07.293Z",
+      "completed_at": "2026-05-25T00:47:07.293Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-25T00:47:37.739Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Fast-track proposal synthesized from explicit user request to update /adv-task spec-law checks and small-change routing.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTaskRouting/proposal.md",
+        "content_hash": "5393614263cae9b62ee8d995f953740a5b1de94fa7f8190fde3b919b9b8bf086",
+        "non_whitespace_chars": 854,
+        "checked_at": "2026-05-25T00:47:37.863Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-25T00:47:49.911Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Discovery checked existing /adv-problem spec-law pattern, /adv-task contract, manifest/doc drift rules, and affected advance-workflow spec surfaces.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTaskRouting/agreement.md",
+        "content_hash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "non_whitespace_chars": 997,
+        "checked_at": "2026-05-25T00:47:50.031Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-25T00:47:57.766Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Design chosen: extend /adv-task command contract, ADV routing table, manifest/docs mirrors, and advance-workflow capability law with asset tests.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTaskRouting/design.md",
+        "content_hash": "cafa4115f0c9720c5cbef8d1a3aa59aa46fe8c1da73f12f7fc80a9280d473074",
+        "non_whitespace_chars": 492,
+        "checked_at": "2026-05-25T00:47:57.845Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-25T00:48:04.769Z",
+      "completed_by": "adv-task",
+      "approval_evidence": "Planning used explicit user instruction as approval evidence: user requested modifying /adv-task and added crash-tracking requirement. Three tasks were created and tracked before implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-25T00:48:10.605Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Implementation completed in change worktree and checkpointed at 36003ef. All three tasks done. Verification passed: focused asset/manifest tests, pnpm run check, and full pnpm test."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-05-25T01:11:42.469Z",
+      "completed_at": "2026-05-25T01:12:32.726Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted delivered work. Review verdict APPROVED; all review findings remediated and re-verified. Contract review matrix set: 7 rows, 0 failing.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTaskRouting/acceptance.md",
+        "content_hash": "3a64cf002583257fa94982128b500198fef0078db717cf23aca9af05ceb5e24e",
+        "non_whitespace_chars": 2159,
+        "checked_at": "2026-05-25T01:12:32.939Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "conversation:adv-task-spec-law-routing"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+      "approvedAt": "2026-05-25T00:47:49.911Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-task` contract requires a Spec-law impact section with Add / Modify / Remove / No spec law update / Uncertain outcomes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "If impact is Add/Modify/Remove, `/adv-task` persists draft spec-delta obligations with concrete `rq-*` IDs and Given/When/Then scenarios in proposal/discovery/design artifacts before planning completes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "If impact is No update, `/adv-task` persists an explicit no-delta rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "If impact is Uncertain, `/adv-task` must not complete planning; it routes to deeper proposal/discovery work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "ADV agent routing says small well-understood durable changes should use `/adv-task` so change/task tracking exists before implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve `/adv-problem` read-only boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not add heuristic-only enforcement; add asset/spec tests for durable contract coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "ceda4e3fa828771583acdb379dfcc2760b6baef4792a191714946b5088369216",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-25T01:12:10.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`.opencode/command/adv-task.md` contains Spec-Law Impact Assessment table with Add/Modify/Remove/No update/Uncertain; `plugin/src/adv-task-assets.test.ts` exact table-row assertions pass.",
+          "notes": "Verified by focused vitest and full test suite."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-task.md` requires draft spec-delta obligations with concrete `rq-*` IDs and Given/When/Then scenarios before planning; asset tests assert these strings and `rq-taskSpecLaw01.1` covers delta obligations.",
+          "notes": "Verified by focused vitest and full test suite."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-task.md` requires `No spec law update required: {rationale}` before planning; `rq-taskSpecLaw01.2` and asset tests cover no-delta rationale.",
+          "notes": "Verified by focused vitest and full test suite."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`adv-task.md` says Uncertain MUST NOT complete planning/create implementation tasks and must carry same change through `/adv-proposal` or deeper discovery; `rq-taskSpecLaw01.4` and asset tests verify route.",
+          "notes": "Review remediation added explicit Uncertain scenario and re-verification passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`.opencode/agents/adv.md` adds `Small tracked change` routing to use `/adv-task workflow` so change/task state exists before implementation; asset tests assert routing strings.",
+          "notes": "Verified by focused vitest and full test suite."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No changes to `.opencode/command/adv-problem.md`; review/security scans reported no boundary regression. ADV changes only touched `/adv-task` and routing docs/tests/specs.",
+          "notes": "`/adv-problem` remains read-only."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Enforcement is structural via command contract, `.adv/specs/advance-workflow/spec.json`, docs mirror, and asset/manifest tests. No heuristic-only enforcement added.",
+          "notes": "Focused vitest, check, and full test suite passed."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`/adv-task` contract requires a Spec-law impact section with Add / Modify / Remove / No spec law update / Uncertain outcomes.",
+    "If impact is Add/Modify/Remove, `/adv-task` persists draft spec-delta obligations with concrete `rq-*` IDs and Given/When/Then scenarios in proposal/discovery/design artifacts before planning completes.",
+    "If impact is No update, `/adv-task` persists an explicit no-delta rationale.",
+    "If impact is Uncertain, `/adv-task` must not complete planning; it routes to deeper proposal/discovery work.",
+    "ADV agent routing says small well-understood durable changes should use `/adv-task` so change/task tracking exists before implementation."
+  ],
+  "documents": {},
+  "artifacts": {
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/updateTaskRouting/executive-summary.md",
+      "updatedAt": "2026-05-25T01:28:40.358Z"
+    }
+  },
+  "lastSignalAt": "2026-05-25T01:28:07.056Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

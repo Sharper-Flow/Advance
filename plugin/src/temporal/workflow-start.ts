@@ -1,6 +1,7 @@
 import type { Change } from "../types";
 import { buildChangeWorkflowId, buildProjectTaskQueue } from "./client";
-import type { ChangeWorkflowInput, ChangeWorkflowState } from "./contracts";
+import type { ChangeWorkflowInput } from "./contracts";
+import { changeSeedStateFromChange } from "./change-state";
 import { buildTemporalSearchAttributes } from "./observability";
 import { changeWorkflow } from "./workflows";
 
@@ -30,21 +31,7 @@ function isAlreadyStartedError(error: unknown): boolean {
 
 export async function ensureChangeWorkflowStarted(
   client: { workflow: WorkflowClientLike },
-  input: ChangeWorkflowInput & {
-    seedState?: Partial<
-      Pick<
-        ChangeWorkflowState,
-        | "status"
-        | "tasks"
-        | "deltas"
-        | "wisdom"
-        | "gates"
-        | "reentry_history"
-        | "artifacts"
-        | "origin"
-      >
-    >;
-  },
+  input: ChangeWorkflowInput,
 ): Promise<WorkflowHandleLike> {
   const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
   const taskQueue = buildProjectTaskQueue(input.projectId);
@@ -95,14 +82,6 @@ export async function reImportChangeState(
     initializedAt: input.initializedAt ?? input.change.created_at,
     projectionChangesDir: input.projectionChangesDir,
     archiveProjects: input.archiveProjects,
-    seedState: {
-      status: input.change.status,
-      tasks: input.change.tasks,
-      deltas: input.change.deltas,
-      wisdom: input.change.wisdom,
-      gates: input.change.gates,
-      reentry_history: input.change.reentry_history,
-      origin: input.change.origin,
-    },
+    seedState: changeSeedStateFromChange(input.change),
   });
 }

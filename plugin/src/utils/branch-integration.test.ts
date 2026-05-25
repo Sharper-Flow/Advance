@@ -45,6 +45,28 @@ describe("verifyBranchIntegration (T29)", () => {
     });
   });
 
+  it("change closed (terminal, non-archived) → ok: true", async () => {
+    // Closed is a terminal status produced by adv_change_close
+    // (cancelled, superseded, not_planned). The integration gate treats
+    // both archived and closed as "nothing left to integrate" so worktree
+    // delete can proceed when merged + clean.
+    const result = await verifyBranchIntegration(
+      "feature/test",
+      "/fake/repo",
+      {},
+      makeDeps({
+        changeStatusReader: async () => "closed",
+      }),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      branch: "feature/test",
+      changeId: "change-abc123",
+      defaultBranch: "main",
+    });
+  });
+
   it("branch not in registry → branch_not_in_registry", async () => {
     const result = await verifyBranchIntegration(
       "feature/unknown",
@@ -80,7 +102,7 @@ describe("verifyBranchIntegration (T29)", () => {
     });
   });
 
-  it("change not archived → change_not_archived", async () => {
+  it("change not in terminal set (status=active) → change_not_terminal", async () => {
     const result = await verifyBranchIntegration(
       "feature/test",
       "/fake/repo",
@@ -92,14 +114,14 @@ describe("verifyBranchIntegration (T29)", () => {
 
     expect(result).toEqual({
       ok: false,
-      reason: "change_not_archived",
+      reason: "change_not_terminal",
       detail:
-        'Change "change-abc123" has status "active" (expected "archived").',
-      hint: "Archive the change via /adv-archive before deleting its worktree.",
+        'Change "change-abc123" has status "active" (expected "archived" or "closed").',
+      hint: "Archive or close the change via /adv-archive or /adv-cancel before deleting its worktree.",
     });
   });
 
-  it("change status undefined → change_not_archived", async () => {
+  it("change status undefined → change_not_terminal", async () => {
     const result = await verifyBranchIntegration(
       "feature/test",
       "/fake/repo",
@@ -111,7 +133,7 @@ describe("verifyBranchIntegration (T29)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      reason: "change_not_archived",
+      reason: "change_not_terminal",
     });
     expect((result as Extract<typeof result, { ok: false }>).detail).toContain(
       "undefined",
@@ -206,7 +228,7 @@ describe("verifyBranchIntegration (T29)", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      reason: "change_not_archived",
+      reason: "change_not_terminal",
     });
   });
 

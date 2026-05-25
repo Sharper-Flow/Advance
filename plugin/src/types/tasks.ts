@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { DependencySchema } from "./specs";
+import { SubagentReportSchema } from "./subagent-reports";
 import { TaskStructuredOutputSchema } from "./task-output";
 
 // =============================================================================
@@ -170,9 +171,9 @@ export const TaskSchema = z
     completed_by: z.string().nullable().optional(),
     /** Structured summary of what was done and how — persisted at task completion */
     implementation_summary: z.string().optional(),
-    /** Signal-driven completion proof supplied by adv_task_completed. */
+    /** Signal-driven completion proof supplied by taskCompletedSignal. */
     verification: z.string().optional(),
-    /** Concise completion summary supplied by adv_task_completed. */
+    /** Concise completion summary supplied by taskCompletedSignal. */
     summary: z.string().optional(),
     /** Repo-relative files reported by taskCompletedSignal. */
     filesTouched: z.array(z.string()).optional(),
@@ -224,6 +225,12 @@ export const TaskSchema = z
      * Optional — most tasks won't have this. Non-blocking extraction.
      */
     structured_output: TaskStructuredOutputSchema.optional(),
+    /**
+     * Typed, durable sub-agent reports submitted through
+     * adv_subagent_report_submit. These replace ADV worker fenced-JSON report
+     * extraction while preserving structured_output for legacy callers.
+     */
+    subagent_reports: z.array(SubagentReportSchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

@@ -1,0 +1,715 @@
+{
+  "id": "fixCompletionSemantics",
+  "title": "Fix completion semantics",
+  "status": "archived",
+  "created_at": "2026-05-22T05:03:10.990Z",
+  "tasks": [
+    {
+      "id": "tk-d4f88ac07a84",
+      "title": "Make checkpoint recording truthful with workflow verification",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T05:20:39.385Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:23:19.951Z",
+      "verification": "Review remediation: routed post-signal verification query through querySignal to use the existing Temporal query timeout wrapper, and updated checkpoint tests to mock querySignal. Verification: pnpm exec vitest run src/tools/checkpoint.test.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts passed (55 tests); pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/checkpoint.test.ts",
+        "plugin/src/tools/checkpoint.ts"
+      ],
+      "checkpointSha": "3b85365d1736470f17200b4ca2890134358c0398",
+      "completedAt": "2026-05-22T06:07:48.148Z",
+      "completed_at": "2026-05-22T06:07:48.148Z"
+    },
+    {
+      "id": "tk-55045e2bfe71",
+      "title": "Make completion ownership canonical in task tools",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T05:20:50.503Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:28:49.597Z",
+      "verification": "RED: pnpm test -- src/tools/task.test.ts failed with new canonical completion expectations (exit 1). GREEN: pnpm test -- src/tools/task.test.ts passed (exit 0). Implemented adv_task_update done guard, removed unregistered adv_task_completed public path, preserved poisoned-history recovery and already-done patch path.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/task.test.ts",
+        "plugin/src/tools/task.ts"
+      ],
+      "checkpointSha": "6bfc33e7c4ef50dc6ea54b119149e13b85dae817",
+      "completedAt": "2026-05-22T05:34:22.409Z",
+      "completed_at": "2026-05-22T05:34:22.409Z"
+    },
+    {
+      "id": "tk-b9daa8c7a6c7",
+      "title": "Preserve checkpoint metadata in workflow state",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T05:21:00.087Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:34:38.734Z",
+      "verification": "RED: pnpm test -- src/temporal/workflows.signal-handlers.test.ts exposed overwrite of checkpoint verification by weaker duplicate completion. GREEN: pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts -t \"preserves checkpoint metadata\" passed. Implemented guard preserving checkpoint metadata on weaker duplicate completion payloads. Note: broad file run also surfaced unrelated concurrent-signaling gate-order flake/failure; targeted new regression passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "checkpointSha": "636c379eb3b5c776efff04979b27c0ac21bc3ff2",
+      "completedAt": "2026-05-22T05:37:44.217Z",
+      "completed_at": "2026-05-22T05:37:44.217Z"
+    },
+    {
+      "id": "tk-516a6abfd9d0",
+      "title": "Align apply workflow and evidence documentation",
+      "type": "code",
+      "section": "Docs and specs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T05:21:18.066Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d4f88ac07a84"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-55045e2bfe71"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b9daa8c7a6c7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC5"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:38:48.697Z",
+      "verification": "Harden remediation follow-up: removed unannotated active-surface adv_task_evidence references from decision docs by routing chat-output evidence wording to adv_run_test plus taskCompletedSignal.verification via adv_task_checkpoint and annotating provider-compliance references as retired fallback evidence. Verification: pnpm run check passed; targeted vitest suite passed (64 tests); targeted docs re-scan marked docs-low-decision resolved.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/decisions/chat-output-adhd-prep.md",
+        "docs/decisions/provider-compliance-change-prep.md"
+      ],
+      "touched_files": [
+        "docs/decisions/chat-output-adhd-prep.md",
+        "docs/decisions/provider-compliance-change-prep.md"
+      ],
+      "checkpointSha": "a8314cbe0bff6f6ed95f0f48505400292d8d0865",
+      "completedAt": "2026-05-22T06:34:29.919Z",
+      "completed_at": "2026-05-22T06:34:29.919Z"
+    },
+    {
+      "id": "tk-381148659d4d",
+      "title": "Set minimal telemetry posture",
+      "type": "code",
+      "section": "Telemetry",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-22T05:21:29.740Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C3",
+          "DONT4",
+          "OOS1",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T05:38:02.666Z",
+      "verification": "TDD not applicable: documentation-only telemetry posture task. Verification: node check confirmed no Prometheus/OpenTelemetry package dependencies and docs/temporal-telemetry-posture.md exists (exit 0). Documented minimal in-process telemetry posture and non-goals.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/temporal-telemetry-posture.md"
+      ],
+      "touched_files": [
+        "docs/temporal-telemetry-posture.md"
+      ],
+      "checkpointSha": "7d91ac92d23f5e11de7c851f7ca89bbe4b8b7e81",
+      "completedAt": "2026-05-22T05:38:34.257Z",
+      "completed_at": "2026-05-22T05:38:34.257Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:03:20.101Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved problem framing and proposal direction inline: save detailed questions for discovery/design; telemetry should start very minimal.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/proposal.md",
+        "content_hash": "56b7c6279d36a1c664d652bdaaf7cb2795c72a1d9ef778aff03e36f8b1805395",
+        "non_whitespace_chars": 5692,
+        "checked_at": "2026-05-22T05:03:20.152Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:08:01.446Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved agreement inline with reply: approve. Contract minted with 19 items. AC approved and detailed design questions deferred to design per user direction.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/agreement.md",
+        "content_hash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "non_whitespace_chars": 7810,
+        "checked_at": "2026-05-22T05:08:01.497Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:19:49.242Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design completed and independently validated with verdict VALIDATED. No unresolved conflict, user-value tradeoff, or contract-compromise risk. Validator cautions integrated into design: ledger terminology, adv-apply step 3d, minimal telemetry.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/design.md",
+        "content_hash": "5f3539c71238b2862b55c2ea35f40727a342450e08963fc5ade69397bbcec5e4",
+        "non_whitespace_chars": 9395,
+        "checked_at": "2026-05-22T05:19:49.275Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:23:03.628Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan inline with reply: approve. Task graph contains 5 tasks with contract refs and TDD intent; strict validation passed with NO_DELTAS warning only."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T05:45:01.762Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks complete. Final targeted suite passed: pnpm exec vitest run src/tools/checkpoint.test.ts src/tools/task.test.ts src/temporal/workflows.signal-handlers.test.ts (3 files, 50 tests). Full check passed: pnpm run check. Worktree clean after checkpoint 7747e5bb7c6e96c222e1b9e988954ddfa5de6c05. Strict validation passed with NO_DELTAS warning only."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:11:48.832Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "User accepted delivered work inline with reply: accept. Review verdict APPROVED after remediation. Executive summary persisted and verified present. Contract review matrix has 19 rows: 15 required passed/respected, 4 out-of-scope not_applicable, 0 failing/unknown. Verification: pnpm run check passed; targeted suite passed with 55 tests. Worktree clean.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/acceptance.md",
+        "content_hash": "86df32e54f5a4191771b19153152d2dc405fee3fbd80a4015332b4d12f7c663b",
+        "non_whitespace_chars": 4947,
+        "checked_at": "2026-05-22T06:11:48.936Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+      "approvedAt": "2026-05-22T05:07:18.960Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_checkpoint` returns `checkpointRecorded:false` when git checkpointing succeeds but workflow completion recording fails.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-apply` cannot proceed to task done on `checkpointRecorded:false`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Normal apply completion cannot emit a second task completion signal that overwrites stronger checkpoint metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`adv_task_update`, `adv_task_completed`, and `adv_task_checkpoint` have a clear, tested relationship in code and registry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_run_test` docs/specs no longer claim it independently persists durable workflow evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Minimal Temporal/tool telemetry is either implemented or explicitly documented as already sufficient; no Prometheus/OTel dependency is introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Keep change-workflow mutation signal-driven.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not reintroduce `defineUpdate` on change workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep agent workflow simple; do not add ceremony for its own sake.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Use tests to lock completion semantics and failure paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Discovery/design questions about exact completion-tool ownership and telemetry shape are deferred to design, per user instruction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently swallow workflow recording failures after successful git checkpointing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not keep contradictory tool guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not rely on heuristic inference for completion correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce heavyweight telemetry infrastructure for a minimal visibility need.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full observability platform integration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad Temporal workflow rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Changes to gate sequencing or non-task lifecycle semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Prometheus/OpenTelemetry integration unless design proves it is already wired or necessary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "375f857ff66059b98da4c99918cfb4626640a42a167a3e0070784b12ac55b2f5",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "checkpoint.ts fireTaskCompletedFromCheckpoint returns recorded:false on signal/query failure or mismatch; checkpoint.test.ts covers Temporal unavailable, committed signal failure, clean-tree signal failure, and status/verification/checkpointSha/filesTouched mismatches. Verification: targeted suite 55 tests passed.",
+          "notes": "Review logic issues on missing failure coverage were fixed and re-verified."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".opencode/command/adv-apply.md requires checkpointRecorded:true and treats false as blocking; task.ts rejects normal adv_task_update status:'done' with TASK_DONE_REQUIRES_CHECKPOINT. task.test.ts covers the guard.",
+          "notes": "Normal apply no longer calls adv_task_update done after checkpoint."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.ts preserves stronger checkpoint metadata against weaker duplicate taskCompletedSignal; workflows.signal-handlers.test.ts verifies duplicate signal preserves verification, summary, filesTouched, touched_files, checkpointSha, completedAt.",
+          "notes": "State-layer defense remains signal-driven."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "task.ts documents adv_task_update done as non-canonical; taskTools no longer exposes adv_task_completed; task.test.ts asserts adv_task_completed is undefined and adv_task_update done rejects normal completion.",
+          "notes": "Canonical public completion path is adv_task_checkpoint."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "ADV_INSTRUCTIONS.md, adv-apply.md, docs/specs/advance-delivery.md, docs/specs/tdd-contract.md, .adv spec JSON, and task output comments align: adv_run_test is executable run evidence; durable final proof is taskCompletedSignal.verification via checkpoint.",
+          "notes": "No independent durable workflow evidence claim remains in changed guidance/spec files."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "docs/temporal-telemetry-posture.md documents existing health/diagnostic/counter surfaces and explicit non-goals: no Prometheus, OpenTelemetry, persistent metrics DB, or cross-session aggregation. package checks show no new telemetry dependency.",
+          "notes": "Minimal posture chosen; no heavyweight telemetry added."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Mutations remain taskCompletedSignal/taskUpdatedSignal through existing signal path; no update-based change-workflow mutation was added.",
+          "notes": "fireSignalAndRefresh retained for completion signal and cache refresh."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No defineUpdate was introduced on change workflows; workflow-bundle guard remains covered by targeted workflow tests and pnpm run check.",
+          "notes": "Signal/query-only architecture preserved."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Completion flow simplified to one normal path: adv_task_checkpoint. Telemetry is documented, not expanded with infrastructure.",
+          "notes": "No additional ceremony beyond checkpoint verification and docs alignment."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Regression tests cover checkpoint false returns, canonical done guard, tool removal, metadata preservation, and query wrapper. Targeted suite passed: 55 tests.",
+          "notes": "Review-added coverage closed the identified gaps."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design resolved completion ownership and telemetry shape: checkpoint owns normal completion; telemetry posture is minimal documentation/health alignment.",
+          "notes": "No unresolved discovery/design question remains for this change."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "checkpointRecorded:false plus recordingError/remediation is returned when workflow recording fails after successful git checkpoint; tests cover committed and clean-tree paths.",
+          "notes": "Failures are surfaced, not swallowed."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-apply, ADV_INSTRUCTIONS, specs, and task comments consistently point to checkpoint completion and final verification on taskCompletedSignal; adv_task_completed is not exposed.",
+          "notes": "Contradictory guidance removed."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "design_proof",
+          "evidence": "Correctness is structural: tool guard rejects non-canonical done, checkpoint verifies workflow state by query, state reducer preserves stronger metadata, tests lock edge cases.",
+          "notes": "Heuristics only appear as deterministic defensive guard, not primary authority."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Prometheus/OpenTelemetry dependency or metrics endpoint was added; telemetry posture explicitly defers platform expansion until a concrete diagnostic gap exists.",
+          "notes": "Minimal visibility need satisfied by docs/current surfaces."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Full observability platform integration was not implemented.",
+          "notes": "Out of scope by agreement."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad Temporal workflow rewrite was performed; change is focused on checkpoint/tool/state semantics.",
+          "notes": "Out of scope by agreement."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Gate sequencing and non-task lifecycle semantics were not changed.",
+          "notes": "Out of scope by agreement."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Prometheus/OpenTelemetry integration was not introduced; telemetry doc says current surfaces are sufficient.",
+          "notes": "Out of scope by agreement."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_task_checkpoint` returns `checkpointRecorded:false` when git checkpointing succeeds but workflow completion recording fails.",
+    "`/adv-apply` cannot proceed to task done on `checkpointRecorded:false`.",
+    "Normal apply completion cannot emit a second task completion signal that overwrites stronger checkpoint metadata.",
+    "`adv_task_update`, `adv_task_completed`, and `adv_task_checkpoint` have a clear, tested relationship in code and registry.",
+    "`adv_run_test` docs/specs no longer claim it independently persists durable workflow evidence.",
+    "Minimal Temporal/tool telemetry is either implemented or explicitly documented as already sufficient; no Prometheus/OTel dependency is introduced."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/proposal.md",
+      "updatedAt": "2026-05-22T06:35:13.146Z"
+    },
+    "problemStatement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/problem-statement.md",
+      "updatedAt": "2026-05-22T06:35:13.159Z"
+    },
+    "agreement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/agreement.md",
+      "updatedAt": "2026-05-22T06:35:13.178Z"
+    },
+    "design": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixCompletionSemantics/design.md",
+      "updatedAt": "2026-05-22T06:35:13.189Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T06:34:29.919Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-22T05:16:01.061Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

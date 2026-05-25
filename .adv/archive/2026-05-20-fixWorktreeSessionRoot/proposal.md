@@ -2,7 +2,7 @@
 
 ## Origin
 
-Surfaced mid-session while working in `/home/jon/toolbox` (a non-ADV project). The symptom was observed in this repo (`advance`) during inline ADV worktree work; this change is created and executed here.
+Surfaced mid-session while working in `/home/dev/toolbox` (a non-ADV project). The symptom was observed in this repo (`advance`) during inline ADV worktree work; this change is created and executed here.
 
 ## Problem
 

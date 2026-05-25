@@ -10,6 +10,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { changeTools, closeLinkedIssue } from "./change";
 import type { Store } from "../storage/store";
 import type { Change, Spec } from "../types";
+import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -153,6 +154,7 @@ function createMockStore(
       updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
+      refresh: vi.fn(async () => undefined),
     } as Store["changes"],
     tasks: {
       ready: vi.fn(async () => ({ ready: [], blocked: [] })),
@@ -205,6 +207,9 @@ const allDoneGates: NonNullable<Change["gates"]> = {
 describe("change tools — signal-driven lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete (
+      mocks.handleMock as typeof mocks.handleMock & { describe?: unknown }
+    ).describe;
   });
 
   afterEach(() => {
@@ -261,6 +266,65 @@ describe("change tools — signal-driven lifecycle", () => {
         format: "task-id-em-dash-title",
         window: { includeCurrent: true, readyLimit: 3, omitDone: true },
       });
+    });
+
+    test("returns persisted task sub-agent reports when include.subagentReports is set", async () => {
+      const store = createMockStore({
+        tasks: [
+          {
+            id: "tk-report",
+            title: "Reported Task",
+            status: "done",
+            priority: 0,
+            created_at: "2026-01-01T00:00:00Z",
+            subagent_reports: [
+              {
+                schema_version: "1.0",
+                change_id: "test-change",
+                task_id: "tk-report",
+                attempt: 2,
+                agent: "adv-engineer",
+                status: "complete",
+                scope: "Implement",
+                workdir_used: "/worktree",
+                files_touched: ["src/a.ts"],
+                verification: [
+                  {
+                    command: "pnpm test",
+                    exit_code: 0,
+                    summary: "passed",
+                  },
+                ],
+                decisions: [],
+                blockers: [],
+                follow_ups: [],
+                related_scan: "No related issues",
+                context_update_for_adv: {
+                  what_ads_needs_to_know: "Report persisted",
+                  suggested_next_action: "Continue",
+                },
+              },
+            ],
+          } as Change["tasks"][number],
+        ],
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { subagentReports: true } },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed._subagentReports).toEqual([
+        expect.objectContaining({
+          change_id: "test-change",
+          task_id: "tk-report",
+          agent: "adv-engineer",
+          attempt: 2,
+        }),
+      ]);
+      expect(parsed._subagentReportsMeta).toEqual({ total: 1 });
+      expect(parsed.tasks[0].subagent_reports).toHaveLength(1);
     });
 
     test("returns _executiveSummary content when include.executiveSummary is set and file exists", async () => {
@@ -393,8 +457,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "problem-statement.md": "# Problem\n\nThe problem.",
         "agreement.md": "# Agreement\n\nThe agreement.",
         "design.md": "# Design\n\nThe design.",
-        "executive-summary.md":
-          "# Executive Summary\n\nThe executive summary.",
+        "executive-summary.md": "# Executive Summary\n\nThe executive summary.",
       };
       for (const [filename, content] of Object.entries(artifacts)) {
         await writeFile(pathJoin(bundleDir, filename), content, "utf-8");
@@ -453,11 +516,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
       const activeContent = "# Active Design\n\nCurrent version.";
       const archivedContent = "# Archived Design\n\nOld version.";
-      await writeFile(
-        pathJoin(changeDir, "design.md"),
-        activeContent,
-        "utf-8",
-      );
+      await writeFile(pathJoin(changeDir, "design.md"), activeContent, "utf-8");
       await writeFile(
         pathJoin(bundleDir, "design.md"),
         archivedContent,
@@ -483,6 +542,107 @@ describe("change tools — signal-driven lifecycle", () => {
       } finally {
         await rm(tempRoot, { recursive: true, force: true });
       }
+    });
+  });
+
+  describe("adv_change_update", () => {
+    test("rejects mixed real and blank artifact updates before storage writes", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          proposal: "# Valid proposal update",
+          design: "   ",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("Blank artifact fields are not allowed");
+      expect(parsed.fields).toEqual(["design"]);
+      expect(parsed.hint).toContain("omit fields you do not intend to change");
+      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+    });
+
+    test("allows omitted artifact fields to remain unchanged", async () => {
+      const store = createMockStore();
+      vi.mocked(store.changes.updateArtifacts).mockResolvedValueOnce({
+        success: true,
+        proposalPath: "/tmp/test/.adv/changes/test-change/proposal.md",
+      });
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          proposal: "# Valid proposal update",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.proposalPath).toContain("proposal.md");
+      expect(store.changes.updateArtifacts).toHaveBeenCalledWith(
+        "test-change",
+        "# Valid proposal update",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+  });
+
+  describe("adv_change_create", () => {
+    test("passes origin metadata into create seed instead of late-saving it", async () => {
+      const store = createMockStore({ id: "createOriginSeed" });
+      vi.mocked(store.changes.create).mockResolvedValueOnce({
+        changeId: "createOriginSeed",
+        path: "/tmp/test/.adv/changes/createOriginSeed/proposal.md",
+      });
+      const claimChecker = vi.fn().mockResolvedValue([]);
+
+      const result = await changeTools.adv_change_create.execute(
+        {
+          summary: "Create origin seed",
+          origin_kind: "triage",
+          origin_issue_number: 12,
+          origin_source_artifact: "ag-12",
+        },
+        store,
+        undefined,
+        { claimChecker, claimRaceCheckMs: 0 },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.origin).toEqual({
+        kind: "triage",
+        issue_number: 12,
+        source_artifact: "ag-12",
+      });
+      expect(store.changes.create).toHaveBeenCalledWith(
+        "Create origin seed",
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {
+          initialMetadata: {
+            origin: {
+              kind: "triage",
+              issue_number: 12,
+              source_artifact: "ag-12",
+            },
+          },
+        },
+      );
+      expect(store.changes.save).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          origin: expect.anything(),
+        }),
+      );
     });
   });
 
@@ -975,7 +1135,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.incompleteGates).toBeUndefined();
     });
 
-    test("blocks archive when live gate status is incomplete", async () => {
+    test("allows archive when only release gate is pending (finalization completes it)", async () => {
       const liveIncompleteGates: NonNullable<Change["gates"]> = {
         ...allDoneGates,
         release: { status: "pending" },
@@ -989,11 +1149,169 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       const parsed = JSON.parse(result);
 
+      expect(parsed.error ?? "").not.toContain("incomplete gates");
+      expect(parsed.incompleteGates).toBeUndefined();
+    });
+
+    test("blocks archive when non-release gates are incomplete", async () => {
+      const liveIncompleteGates: NonNullable<Change["gates"]> = {
+        ...allDoneGates,
+        acceptance: { status: "pending" },
+      };
+      const store = createMockStore({ gates: allDoneGates });
+      mocks.querySignal.mockResolvedValueOnce(liveIncompleteGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
       expect(parsed.error).toContain("incomplete gates");
-      expect(parsed.incompleteGates).toEqual(["release"]);
+      expect(parsed.incompleteGates).toEqual(["acceptance"]);
       expect(parsed.gateStateSource).toBe("live");
       expect(parsed.storeIncompleteGates).toEqual([]);
-      expect(parsed.liveIncompleteGates).toEqual(["release"]);
+      expect(parsed.liveIncompleteGates).toEqual(["acceptance"]);
+    });
+
+    // rq-harden-archive-flow AC1/AC2
+    test("refreshes the change from the workflow before reading for archive", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+
+      const refreshMock = store.changes.refresh as ReturnType<typeof vi.fn>;
+      const getMock = store.changes.get as ReturnType<typeof vi.fn>;
+      expect(refreshMock).toHaveBeenCalledWith("test-change");
+      const refreshOrder = refreshMock.mock.invocationCallOrder[0];
+      const firstGetOrder = getMock.mock.invocationCallOrder[0];
+      expect(refreshOrder).toBeLessThan(firstGetOrder);
+    });
+
+    // rq-harden-archive-flow AC1: refresh failure must not block archive.
+    test("tolerates refresh failures and falls through to store.changes.get", async () => {
+      const store = createMockStore({ gates: allDoneGates });
+      const refreshMock = store.changes.refresh as ReturnType<typeof vi.fn>;
+      refreshMock.mockRejectedValueOnce(new Error("Failed to query Workflow"));
+      mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error ?? "").not.toContain("Failed to query Workflow");
+      expect(store.changes.get).toHaveBeenCalledWith("test-change");
+    });
+
+    test("recovers archived status when save fails because workflow already completed", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-completed-recovery-",
+      );
+      try {
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowNotFoundError",
+          }),
+        );
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          {
+            changeId: "test-change",
+            phase9: "skip",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "workflow execution already completed | WorkflowNotFoundError",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.archivePath).toContain("test-change");
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("does not recover completed-workflow save failure without recoveryMode", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-completed-no-recovery-",
+      );
+      try {
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          Object.assign(new Error("workflow execution already completed"), {
+            name: "WorkflowNotFoundError",
+          }),
+        );
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          { changeId: "test-change", phase9: "skip" },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(false);
+        expect(parsed.error).toContain("workflow execution already completed");
+        expect(parsed._recoveryMutation).toBeUndefined();
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
+    });
+
+    test("keeps poisoned-description archive recovery path working", async () => {
+      const tempDir = await createTempDir(
+        "adv-change-archive-poisoned-recovery-",
+      );
+      try {
+        const store = createMockStore({ gates: allDoneGates });
+        store.paths.root = tempDir;
+        store.paths.changes = `${tempDir}/changes`;
+        store.paths.archive = `${tempDir}/archive`;
+        vi.mocked(store.changes.save).mockRejectedValueOnce(
+          new Error("Failed to query Workflow"),
+        );
+        (
+          mocks.handleMock as typeof mocks.handleMock & {
+            describe: ReturnType<typeof vi.fn>;
+          }
+        ).describe = vi.fn(async () => ({
+          rawDescription: "TMPRL1100 Nondeterminism error",
+        }));
+        mocks.querySignal.mockResolvedValueOnce(allDoneGates);
+
+        const result = await changeTools.adv_change_archive.execute(
+          {
+            changeId: "test-change",
+            phase9: "skip",
+            recoveryMode: "poisoned_history",
+            recoveryEvidence: "TMPRL1100 Nondeterminism error",
+          },
+          store,
+        );
+        const parsed = JSON.parse(result);
+
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+      } finally {
+        await cleanupTempDir(tempDir);
+      }
     });
   });
 

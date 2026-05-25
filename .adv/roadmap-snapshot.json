@@ -1,88 +1,42 @@
 {
-  "generated_at": "2026-05-12T02:34:44Z",
-  "source": "gh-project-v2",
+  "version": 1,
+  "generated_at": "2026-05-22T16:02:38Z",
   "project": {
     "owner": "Sharper-Flow",
     "number": 2,
     "title": "ADV: Advance"
   },
-  "repository_filter": null,
   "counts": {
     "total": 30,
-    "bugs": 7,
-    "features": 23,
-    "deferred": 0
+    "bugs": 2,
+    "features": 25,
+    "deferred": 3
   },
-  "bugs": {
-    "critical": [
-      {
-        "number": 112,
-        "title": "adv_task_add ignores target_path for cross-project writes",
-        "priority": "critical",
-        "labels": [
-          "bug",
-          "priority:critical"
-        ]
-      },
-      {
-        "number": 113,
-        "title": "adv_worktree_delete fails when default branch is not trunk",
-        "priority": "critical",
-        "labels": [
-          "bug",
-          "priority:critical"
-        ]
-      },
-      {
-        "number": 114,
-        "title": "Fix ADV worker bundle stale-cache trap (archive blocked by missing archiveChangeUpdate handler)",
-        "priority": "critical",
-        "labels": [
-          "bug",
-          "priority:critical"
-        ]
-      },
-      {
-        "number": 115,
-        "title": "ADV archive execute fails with Workflow Update failed after partial archive write",
-        "priority": "critical",
-        "labels": [
-          "bug",
-          "priority:critical"
-        ]
-      },
-      {
-        "number": 116,
-        "title": "ADV agent work becomes unreachable when change branch is deleted out-of-band; no detection or recovery",
-        "priority": "critical",
-        "labels": [
-          "bug",
-          "priority:critical"
-        ]
-      },
-      {
-        "number": 117,
-        "title": "Temporal worker singleton broken: every opencode session spawns 2 workers, not 1 per project (~2 GB waste)",
-        "priority": "critical",
-        "labels": [
-          "bug",
-          "priority:critical"
-        ]
-      }
-    ],
-    "high": [
-      {
-        "number": 118,
-        "title": "Discovery gate ran in main checkout (no worktree) \u2014 caused snapshot index.lock recurrence + agent freeze",
-        "priority": "high",
-        "labels": [
-          "bug",
-          "priority:high"
-        ]
-      }
-    ]
-  },
+  "bugs": [
+    {
+      "number": 1,
+      "title": "adv_change_create creates duplicate instead of updating existing change",
+      "priority": "high",
+      "labels": "—"
+    },
+    {
+      "number": 127,
+      "title": "Add origin repair tool",
+      "priority": "high",
+      "labels": "—"
+    }
+  ],
   "features": [
+    {
+      "number": 129,
+      "title": "Refactor adv-worktree skill navigation guidance",
+      "value": 5,
+      "time_criticality": 2,
+      "rroe": 3,
+      "effort": 1,
+      "wsjf": 10,
+      "labels": "—"
+    },
     {
       "number": 79,
       "title": "Add must-not section to future ADV proposals",
@@ -91,9 +45,7 @@
       "rroe": 2,
       "effort": 1,
       "wsjf": 8,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 80,
@@ -103,9 +55,7 @@
       "rroe": 5,
       "effort": 2,
       "wsjf": 7.5,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 109,
@@ -115,9 +65,7 @@
       "rroe": 8,
       "effort": 3,
       "wsjf": 7,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 66,
@@ -127,23 +75,17 @@
       "rroe": 8,
       "effort": 3,
       "wsjf": 6.3,
-      "labels": [
-        "enhancement",
-        "priority:medium"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 64,
-      "title": "Add adv_delta_add MCP tool \u2014 agent-facing path to encode spec deltas",
+      "title": "Add adv_delta_add MCP tool — agent-facing path to encode spec deltas",
       "value": 8,
       "time_criticality": 2,
       "rroe": 8,
       "effort": 3,
       "wsjf": 6,
-      "labels": [
-        "feature",
-        "priority:medium"
-      ]
+      "labels": "—"
     },
     {
       "number": 61,
@@ -153,10 +95,7 @@
       "rroe": 5,
       "effort": 2,
       "wsjf": 6,
-      "labels": [
-        "enhancement",
-        "priority:high"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 107,
@@ -166,9 +105,7 @@
       "rroe": 5,
       "effort": 2,
       "wsjf": 6,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 81,
@@ -178,9 +115,7 @@
       "rroe": 2,
       "effort": 1,
       "wsjf": 6,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 84,
@@ -190,9 +125,7 @@
       "rroe": 2,
       "effort": 1,
       "wsjf": 6,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 87,
@@ -202,34 +135,27 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 5.3,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 42,
-      "title": "Stub JSON schemas provide zero validation \u2014 generate from Zod or delete",
+      "title": "Stub JSON schemas provide zero validation — generate from Zod or delete",
       "value": 5,
       "time_criticality": 2,
       "rroe": 3,
       "effort": 2,
       "wsjf": 5,
-      "labels": [
-        "enhancement",
-        "priority:low"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 104,
-      "title": "Expose stable ADV read surface for OCA consumption (O2)",
+      "title": "Expose stable ADV read surface for external tooling consumption (O2)",
       "value": 8,
       "time_criticality": 8,
       "rroe": 8,
       "effort": 5,
       "wsjf": 4.8,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 93,
@@ -239,10 +165,7 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4.3,
-      "labels": [
-        "enhancement",
-        "priority:medium"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 106,
@@ -252,9 +175,7 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4.3,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 103,
@@ -264,9 +185,17 @@
       "rroe": 8,
       "effort": 5,
       "wsjf": 4.2,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
+    },
+    {
+      "number": 134,
+      "title": "Track worktree mutation stubs",
+      "value": 8,
+      "time_criticality": 5,
+      "rroe": 8,
+      "effort": 5,
+      "wsjf": 4.2,
+      "labels": "—"
     },
     {
       "number": 45,
@@ -276,23 +205,17 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4,
-      "labels": [
-        "enhancement",
-        "priority:low"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 94,
-      "title": "Add adv_friction_query MCP tool \u2014 agent-queryable reflection friction",
+      "title": "Add adv_friction_query MCP tool — agent-queryable reflection friction",
       "value": 5,
       "time_criticality": 2,
       "rroe": 5,
       "effort": 3,
       "wsjf": 4,
-      "labels": [
-        "feature",
-        "priority:medium"
-      ]
+      "labels": "—"
     },
     {
       "number": 96,
@@ -302,10 +225,7 @@
       "rroe": 5,
       "effort": 3,
       "wsjf": 4,
-      "labels": [
-        "enhancement",
-        "priority:medium"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 65,
@@ -315,10 +235,7 @@
       "rroe": 13,
       "effort": 8,
       "wsjf": 3.9,
-      "labels": [
-        "enhancement",
-        "priority:medium"
-      ]
+      "labels": "enhancement"
     },
     {
       "number": 50,
@@ -328,10 +245,7 @@
       "rroe": 8,
       "effort": 5,
       "wsjf": 3.8,
-      "labels": [
-        "feature",
-        "priority:medium"
-      ]
+      "labels": "—"
     },
     {
       "number": 82,
@@ -341,9 +255,7 @@
       "rroe": 3,
       "effort": 3,
       "wsjf": 3.3,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 83,
@@ -353,9 +265,7 @@
       "rroe": 5,
       "effort": 5,
       "wsjf": 2.4,
-      "labels": [
-        "feature"
-      ]
+      "labels": "—"
     },
     {
       "number": 90,
@@ -365,9 +275,24 @@
       "rroe": 5,
       "effort": 5,
       "wsjf": 2.4,
-      "labels": [
-        "enhancement"
-      ]
+      "labels": "enhancement"
+    }
+  ],
+  "deferred": [
+    {
+      "number": 131,
+      "title": "Investigate worktree delete timeout",
+      "reason": "missing priority"
+    },
+    {
+      "number": 132,
+      "title": "Assess checkpoint target_path support",
+      "reason": "missing Value,TimeCriticality,RROE,Effort,WSJF"
+    },
+    {
+      "number": 133,
+      "title": "Investigate blank optional strings across ADV tools",
+      "reason": "missing Value,TimeCriticality,RROE,Effort,WSJF"
     }
   ]
 }

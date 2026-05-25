@@ -20,7 +20,6 @@ Two-phase workflow: Phase 1 (problem statement agreement) → Phase 2 (full prop
 
 **Gate:** Completes `proposal`.
 
-> **CHECKLIST**: Follow [docs/checklists/proposal-checklist.md](../../docs/checklists/proposal-checklist.md).
 > <UserRequest>
 > $ARGUMENTS
 > </UserRequest>
@@ -106,7 +105,7 @@ After confirmation:
 
 ### Cross-Project Follow-up Proposals
 
-When creating change in a **different project** (e.g. pokeedge backend creating a follow-up in pokeedge-web):
+When creating change in a **different project** (e.g. example-product backend creating a follow-up in example-web):
 
 1. Pass `target_path` to `adv_change_create` with the absolute path to target project directory
 2. Optionally pass `source_project` (auto-detected from current store if omitted) and `source_change_id` to link back to the originating change

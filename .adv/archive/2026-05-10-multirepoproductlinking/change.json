@@ -172,7 +172,7 @@
     },
     {
       "id": "tk-5679e2bdda2a",
-      "title": "T7 — Update specs, command docs, and PokeEdge adoption guidance. Add advance-workflow requirements for product linking, scope_repos, product status filtering, product wisdom tags, and multi-repo archive evidence. Update adv-proposal/discover/prep/apply/archive docs. Add PokeEdge example config snippets and note additive migration/legacy state behavior.",
+      "title": "T7 — Update specs, command docs, and ExampleProduct adoption guidance. Add advance-workflow requirements for product linking, scope_repos, product status filtering, product wisdom tags, and multi-repo archive evidence. Update adv-proposal/discover/prep/apply/archive docs. Add ExampleProduct example config snippets and note additive migration/legacy state behavior.",
       "type": "code",
       "section": "Documentation / Specs",
       "status": "done",
@@ -202,8 +202,8 @@
       "assignedTo": "agent",
       "started_at": "2026-05-10T07:14:03.893Z",
       "verification": "T7 complete. Checkpoint commit 52304497b05f535a0319dd3146eac52ef9f3eba0.",
-      "summary": "Updated advance-workflow spec and rendered docs with product-linked ADV state requirements: product/repo identity planes, structural scope_repos, product-scoped list/status behavior, wisdom/reflection origin tags, and multi-repo archive evidence/preflight requirements. Updated adv-proposal, adv-discover, adv-prep, adv-apply, and adv-archive command docs with product-linked scope handoffs and archive metadata expectations. Added docs/pokeedge-product-linking.md with primary backend + secondary web project.json examples, scope behavior, wisdom/reflection origin notes, multi-repo archive evidence, and additive legacy-state behavior. Added asset tests pinning spec/doc anchors.",
-      "implementation_summary": "Updated advance-workflow spec and rendered docs with product-linked ADV state requirements: product/repo identity planes, structural scope_repos, product-scoped list/status behavior, wisdom/reflection origin tags, and multi-repo archive evidence/preflight requirements. Updated adv-proposal, adv-discover, adv-prep, adv-apply, and adv-archive command docs with product-linked scope handoffs and archive metadata expectations. Added docs/pokeedge-product-linking.md with primary backend + secondary web project.json examples, scope behavior, wisdom/reflection origin notes, multi-repo archive evidence, and additive legacy-state behavior. Added asset tests pinning spec/doc anchors.",
+      "summary": "Updated advance-workflow spec and rendered docs with product-linked ADV state requirements: product/repo identity planes, structural scope_repos, product-scoped list/status behavior, wisdom/reflection origin tags, and multi-repo archive evidence/preflight requirements. Updated adv-proposal, adv-discover, adv-prep, adv-apply, and adv-archive command docs with product-linked scope handoffs and archive metadata expectations. Added docs/example-product-product-linking.md with primary backend + secondary web project.json examples, scope behavior, wisdom/reflection origin notes, multi-repo archive evidence, and additive legacy-state behavior. Added asset tests pinning spec/doc anchors.",
+      "implementation_summary": "Updated advance-workflow spec and rendered docs with product-linked ADV state requirements: product/repo identity planes, structural scope_repos, product-scoped list/status behavior, wisdom/reflection origin tags, and multi-repo archive evidence/preflight requirements. Updated adv-proposal, adv-discover, adv-prep, adv-apply, and adv-archive command docs with product-linked scope handoffs and archive metadata expectations. Added docs/example-product-product-linking.md with primary backend + secondary web project.json examples, scope behavior, wisdom/reflection origin notes, multi-repo archive evidence, and additive legacy-state behavior. Added asset tests pinning spec/doc anchors.",
       "filesTouched": [],
       "touched_files": [],
       "completedAt": "2026-05-10T07:18:30.942Z",
@@ -211,7 +211,7 @@
     },
     {
       "id": "tk-d1e6d714f47f",
-      "title": "T8 — Run full verification and PokeEdge product-link simulation. Execute targeted tests added by T1-T7, then `pnpm run check`, full relevant test suite, and build from plugin/. Validate example PokeEdge primary/secondary configs in temp fixtures: secondary resolves product state, status filters repo scope, cross-cutting change visible from both repos, wisdom origin tags query correctly.",
+      "title": "T8 — Run full verification and ExampleProduct product-link simulation. Execute targeted tests added by T1-T7, then `pnpm run check`, full relevant test suite, and build from plugin/. Validate example ExampleProduct primary/secondary configs in temp fixtures: secondary resolves product state, status filters repo scope, cross-cutting change visible from both repos, wisdom origin tags query correctly.",
       "type": "code",
       "section": "Verification",
       "status": "done",
@@ -315,7 +315,7 @@
       "status": "done",
       "completed_at": "2026-05-10T02:21:08.805Z",
       "completed_by": "adv-gpt",
-      "approval_evidence": "Discovery agreement approved by command-as-approval: user invoked /adv-design immediately after discovery approval prompt. Agreement captures objectives O1-O7, AC1-AC9, constraints, and PokeEdge evidence."
+      "approval_evidence": "Discovery agreement approved by command-as-approval: user invoked /adv-design immediately after discovery approval prompt. Agreement captures objectives O1-O7, AC1-AC9, constraints, and ExampleProduct evidence."
     },
     "design": {
       "status": "done",

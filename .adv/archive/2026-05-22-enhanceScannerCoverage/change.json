@@ -1,0 +1,828 @@
+{
+  "id": "enhanceScannerCoverage",
+  "title": "Enhance scanner coverage",
+  "status": "archived",
+  "created_at": "2026-05-21T05:14:38.090Z",
+  "tasks": [
+    {
+      "id": "tk-21925c3f3128",
+      "title": "Extend slop-scan deletion contracts and asset coverage",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T07:57:42.588Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:59:50.050Z",
+      "verification": "RED: `pnpm test -- src/adv-slop-scan-assets.test.ts` failed on missing rq-ss010/rq-ss011/rq-ss012 expectations. GREEN: `pnpm exec vitest run src/adv-slop-scan-assets.test.ts` passed (10 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added slop-scan asset tests for rq-ss010 deletion candidate taxonomy, rq-ss011 deletion safety/user-review boundary, and rq-ss012 scanner coverage reporting. Updated slop-scan spec JSON and docs mirror, command contract, slop detection skill docs, CATEGORIES/DEAD_CODE guidance, and slop-smells MAINT-003 deletion_candidate subtypes. Preserved existing rq-ss001..rq-ss009 boundaries and low-confidence/context protections.",
+      "filesTouched": [
+        ".adv/specs/slop-scan/spec.json",
+        ".opencode/command/adv-slop-scan.md",
+        "docs/specs/slop-scan.md",
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "skills/adv-slop-detection/CATEGORIES.md",
+        "skills/adv-slop-detection/DEAD_CODE.md",
+        "skills/adv-slop-detection/SKILL.md",
+        "slop-smells.yaml"
+      ],
+      "touched_files": [
+        ".adv/specs/slop-scan/spec.json",
+        ".opencode/command/adv-slop-scan.md",
+        "docs/specs/slop-scan.md",
+        "plugin/src/adv-slop-scan-assets.test.ts",
+        "skills/adv-slop-detection/CATEGORIES.md",
+        "skills/adv-slop-detection/DEAD_CODE.md",
+        "skills/adv-slop-detection/SKILL.md",
+        "slop-smells.yaml"
+      ],
+      "checkpointSha": "7382d3d8f7cbf8717a26f10c9be8b086140748e7",
+      "completedAt": "2026-05-22T08:04:07.455Z",
+      "completed_at": "2026-05-22T08:04:07.455Z",
+      "notes": "Completed slop-scan deletion contract task. Checkpoint commit 7382d3d8f7cbf8717a26f10c9be8b086140748e7 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed as expected on missing rq-ss010/rq-ss011/rq-ss012. A package-script run also surfaced unrelated pre-existing roadmap/worktree failures; reran exact vitest target to isolate this task.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Missing rq-ss010/rq-ss011/rq-ss012 expectations in slop asset test after RED edit.",
+            "diagnosis": "Expected RED phase for new contract coverage.",
+            "fix_tried": "Implemented spec, docs mirror, command, skill docs, CATEGORIES, DEAD_CODE, slop-smells updates.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T08:03:44.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T08:04:22.160Z"
+    },
+    {
+      "id": "tk-6e80a1ead5e8",
+      "title": "Extend arch-scan stack-pack contracts and asset coverage",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T07:57:56.044Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T08:04:42.592Z",
+      "verification": "RED: `pnpm exec vitest run src/adv-arch-scan-assets.test.ts` failed on missing rq-archstack01/rq-archstack02/rq-archcov01. GREEN: same targeted command passed (6 tests) after spec/command/skill/docs updates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added arch asset tests for rq-archstack01 stack packs before fallback, rq-archstack02 initial ADV stack pack, and rq-archcov01 architecture coverage reporting. Updated arch spec JSON and docs mirror, adv-arch-scan command contract, and arch detection skill docs. The ADV stack pack cites workflow bundle boundary, command/manifest symmetry, spec/asset anchors, and command/skill methodology surfaces as structural owners.",
+      "filesTouched": [
+        ".adv/specs/arch-scan/spec.json",
+        ".opencode/command/adv-arch-scan.md",
+        "docs/specs/arch-scan.md",
+        "plugin/src/adv-arch-scan-assets.test.ts",
+        "skills/adv-arch-detection/SKILL.md"
+      ],
+      "touched_files": [
+        ".adv/specs/arch-scan/spec.json",
+        ".opencode/command/adv-arch-scan.md",
+        "docs/specs/arch-scan.md",
+        "plugin/src/adv-arch-scan-assets.test.ts",
+        "skills/adv-arch-detection/SKILL.md"
+      ],
+      "checkpointSha": "7e4e0e1ad911e2e468f2869d644b3ef8b3adbe83",
+      "completedAt": "2026-05-22T08:07:52.527Z",
+      "completed_at": "2026-05-22T08:07:52.527Z",
+      "notes": "Completed arch-scan stack-pack contract task. Checkpoint commit 7e4e0e1ad911e2e468f2869d644b3ef8b3adbe83 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed as expected on missing rq-archstack01/rq-archstack02/rq-archcov01.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Missing arch stack-pack and coverage requirements after RED edit.",
+            "diagnosis": "Expected RED phase for new arch scanner contract coverage.",
+            "fix_tried": "Implemented arch spec, docs mirror, command, and skill stack-pack/coverage updates.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T08:07:35.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T08:08:03.961Z"
+    },
+    {
+      "id": "tk-514aab6991a9",
+      "title": "Refresh scanner discoverability surfaces",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T07:58:08.397Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": "Discoverability-only text supports approved objectives but has no direct AC item beyond preserving constraints/avoidances; verification is covered by the final validation task."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T08:08:21.102Z",
+      "verification": "RED: `pnpm exec vitest run src/manifest.test.ts` failed on old scanner descriptions. GREEN: `pnpm exec vitest run src/manifest.test.ts src/manifest-doc-drift.test.ts` passed (56 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added a manifest test locking scanner descriptions to coverage-oriented wording. Updated adv-slop-scan and adv-arch-scan descriptions across manifest, command frontmatter, README, and ADV_INSTRUCTIONS. Manifest/doc drift tests now pass.",
+      "filesTouched": [
+        ".opencode/command/adv-arch-scan.md",
+        ".opencode/command/adv-slop-scan.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-arch-scan.md",
+        ".opencode/command/adv-slop-scan.md",
+        "ADV_INSTRUCTIONS.md",
+        "README.md",
+        "plugin/src/manifest.test.ts",
+        "plugin/src/manifest.ts"
+      ],
+      "checkpointSha": "11978a2bfc53c74575a56a59ce6199791e57a757",
+      "completedAt": "2026-05-22T08:09:45.556Z",
+      "completed_at": "2026-05-22T08:09:45.556Z",
+      "notes": "Completed scanner discoverability refresh. Checkpoint commit 11978a2bfc53c74575a56a59ce6199791e57a757 recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test failed on old scanner descriptions.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Scanner command descriptions still used old slop/architecture wording.",
+            "diagnosis": "Expected RED for new discoverability wording.",
+            "fix_tried": "Updated manifest, command frontmatter, README, ADV_INSTRUCTIONS, then ran manifest/doc drift tests.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T08:09:27.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T08:09:56.482Z"
+    },
+    {
+      "id": "tk-72d7d39acd8d",
+      "title": "Run scanner contract validation suite",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T07:58:19.899Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-21925c3f3128"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6e80a1ead5e8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-514aab6991a9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T08:10:17.960Z",
+      "verification": "Recorded clean checkpoint after trunk merge compatibility resolution. Merge commit 124d94aa95b5111b8f2b3fde012a262093eb451a includes origin/trunk and resolved ADV_INSTRUCTIONS.md conflict. Verification after merge passed: targeted scanner/manifest/phantom suite (163 tests) and pnpm run check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "124d94aa95b5111b8f2b3fde012a262093eb451a",
+      "completedAt": "2026-05-22T14:01:10.500Z",
+      "completed_at": "2026-05-22T14:01:10.500Z",
+      "notes": "Completed final scanner contract validation. Checkpoint clean at 11978a2bfc53c74575a56a59ce6199791e57a757.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T08:11:13.230Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-PeGbRH",
+      "type": "gotcha",
+      "content": "For targeted Vitest runs in this repo, `pnpm exec vitest run src/<file>.test.ts` gives isolated file execution; `pnpm test -- src/<file>.test.ts` can surface unrelated high-signal failures through the package script/tool output path, so use the exact vitest command when validating a single asset test.",
+      "source_task": "tk-21925c3f3128",
+      "recorded_at": "2026-05-22T08:04:33.294Z"
+    },
+    {
+      "id": "ws-tALDnK",
+      "type": "pattern",
+      "content": "Scanner contract changes are efficient when implemented as spec/command/skill/docs + asset-test anchors in one vertical slice per scanner requirement. The existing `*-assets.test.ts` pattern is enough to lock requirement IDs, command anchors, and skill methodology without adding a new runtime subsystem.",
+      "source_task": "tk-6e80a1ead5e8",
+      "recorded_at": "2026-05-22T08:08:11.915Z"
+    },
+    {
+      "id": "ws--BIwdu",
+      "type": "success",
+      "content": "Manifest/doc drift tests already enforce scanner description consistency across manifest, command frontmatter, README, and ADV_INSTRUCTIONS. For discoverability changes, add a focused manifest expectation first, then rely on `manifest-doc-drift.test.ts` to propagate exact wording.",
+      "source_task": "tk-514aab6991a9",
+      "recorded_at": "2026-05-22T08:10:04.477Z"
+    },
+    {
+      "id": "ws-EnR-QX",
+      "type": "success",
+      "content": "For scanner contract changes, a compact final verification suite can combine the two scanner asset tests with manifest and manifest-doc drift tests, then `pnpm run check` for full type/lint/format coverage. This catches spec-command-skill-doc drift without needing the full Vitest suite.",
+      "source_task": "tk-72d7d39acd8d",
+      "recorded_at": "2026-05-22T08:11:21.216Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:16:38.425Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via Tier A whitelist reply: \"continue\". B/F/S scan had no CRITICAL findings; proposal validation passed with expected pre-planning warnings only.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/proposal.md",
+        "content_hash": "022cdec77ba71b310de45ae68c2f20f175d8d75047946ae7b47f35d972824e1b",
+        "non_whitespace_chars": 8762,
+        "checked_at": "2026-05-21T05:16:38.480Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:43:56.179Z",
+      "completed_by": "agent",
+      "approval_evidence": "Resumed after prior agreement artifact sign-off. ChangeContract present with 19 approved items (AC1-AC8, C1-C5, DONT1-DONT6).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/agreement.md",
+        "content_hash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "non_whitespace_chars": 4030,
+        "checked_at": "2026-05-22T07:43:56.305Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:56:46.415Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted with Design Leverage Scout and mandatory independent validator result VALIDATED. No unresolved CONFLICT, no user-value tradeoff, and no contract-compromise risk identified; auto-proceeding to planning per design workflow.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/design.md",
+        "content_hash": "58cc3c79bd70c2d18addd1d47a3ba90f10a4cb1e5430f39b64260d2c2ad10ed3",
+        "non_whitespace_chars": 8555,
+        "checked_at": "2026-05-22T07:56:46.465Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:59:18.288Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via Tier A whitelist reply: \"approve\". Task graph has 4 tasks with contract refs covering AC1-AC8; strict validation passed with only NO_DELTAS warning."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T08:11:45.793Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 approved tasks completed with checkpoints. Verification evidence: targeted scanner contract suite passed (4 files, 72 tests) and `pnpm run check` passed. Worktree clean. adv_change_validate strict passed with only NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T13:37:31.289Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via Tier A whitelist reply: \"accept\". Acceptance review verdict APPROVED; 0 unresolved blockers/issues after remediation. Executive summary persisted and verified. Contract matrix has 19 required rows passed/respected, 0 failing/unknown. Verification passed: targeted scanner/manifest suite (73 tests) and pnpm run check. Worktree clean at checkpoint 315d1c4bd9e83ecdc5de8d546d804d915500ff59.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/acceptance.md",
+        "content_hash": "b5c4a00058fa3c3e117ee810dca9ff7fdc169878a04086a168c4223f6590a77b",
+        "non_whitespace_chars": 5214,
+        "checked_at": "2026-05-22T13:37:31.404Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+      "approvedAt": "2026-05-22T07:42:40.827Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-slop-scan` defines bloat/removal categories: unused dependency/export/file, unreachable branch, uncallable private symbol, impossible feature-flag path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Uncertain deletion candidates appear in a separate low-confidence/user-review section.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-slop-scan` never treats heuristic-only or text-only unused-code guesses as actionable removal proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-arch-scan` supports stack rule packs before generic heuristic fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Initial packs cover ADV’s known stack; newly detected relevant stack pieces dynamically get a pack or explicit missing-pack coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Skipped/degraded detectors and missing packs are always summarized, with detail in JSON/metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Specs and asset tests cover all new scanner contracts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Existing guarantees remain intact: AST-first/degraded annotations, source evidence, low-confidence grouping, context-window suppression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs remain laws; scanner contract changes must be reflected in `.adv/specs/*` and docs/spec mirrors where applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Findings must be evidence-backed with file/source/tool citations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Public exports, generated files, tests, fixtures, command modules, plugin registration surfaces, prompt context, examples, and task summaries are high false-positive or non-scannable surfaces unless target source evidence proves otherwise.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Coverage gaps must be visible without forcing users into verbose mode, but detailed payloads should live in JSON/metadata to avoid bloating normal output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Newly detected relevant stack pieces should dynamically get a pack when practical, or an explicit missing-pack/degraded coverage signal when not practical.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not auto-delete code or imply deletion is safe without structural evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not mark text-only or heuristic-only unused-code guesses as actionable removal findings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make dependency-cruiser, knip, an LLM, or any single external tool the sole authority for correctness-sensitive decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not weaken existing P33 structural-correctness protections, false-positive controls, low-confidence grouping, or source-evidence requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not replace `/adv-review`, `/adv-harden`, `/adv-audit`, or `/adv-tron` workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not require paid or runtime-only production coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d75053334ebfaf77009709203813539edf63d02862427f46a1000bec98c7ae08",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T08:43:50Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-ss010 taxonomy is present in slop spec, command, skill, CATEGORIES/DEAD_CODE, and slop-smells; adv-slop-scan-assets test verifies all six deletion subtypes and targeted suite passed (73 tests).",
+          "notes": "Covers unused dependency/export/file, unreachable branch, uncallable private symbol, impossible feature-flag path."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-ss011 deletion safety text routes uncertain deletion candidates to low-confidence/user-review; adv-slop-scan-assets test verifies command/skill/dead-code anchors and targeted suite passed.",
+          "notes": "Separate review section preserved."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Command, skill, DEAD_CODE, and rq-ss011 state heuristic-only/text-only unused-code guesses are not actionable removal proof; asset test assertion updated and passing.",
+          "notes": "No single-tool actionable removal proof."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-archstack01 and adv-arch-scan command/skill require stack packs before research/generic heuristic fallback; adv-arch-scan-assets tests passed.",
+          "notes": "Phase 1 stack packs precede Phase 2/3."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-archstack02 ADV stack pack covers TypeScript/Bun/OpenCode plugin/Temporal/spec-command-skill assets; missing packs are reported via coverage.missingPacks; asset tests passed.",
+          "notes": "Initial ADV pack and missing-pack coverage documented."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-ss012 and rq-archcov01 define normal text coverage summaries plus JSON coverage fields; asset tests verify skipped/degraded/missing coverage fields and passed.",
+          "notes": "Coverage visible without verbose; detail in JSON."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": ".adv specs, docs mirrors, command/skill assets, and asset tests were updated; targeted suite passed (73 tests) and pnpm run check passed.",
+          "notes": "Includes new Phase 3 trigger asset test and doc version alignment."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing rq-ss001/rq-ss004/rq-ss006/rq-ss007/rq-ss008/rq-ss009 contracts remain covered by asset tests; review found no weakening after remediation.",
+          "notes": "AST-first/degraded/source-evidence/low-confidence/context-window protections preserved."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes update .adv/specs/slop-scan, .adv/specs/arch-scan, and docs mirrors; docs/specs/slop-scan.md version now matches spec.json 1.2.0.",
+          "notes": "Specs remain laws and mirrors aligned."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Command/skill contracts require file/source/tool evidence for findings and structural owners for ADV stack-pack findings; review evidence cited file:line locations.",
+          "notes": "Evidence-backed reporting retained."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Deletion-safety sections list protected false-positive surfaces; context-boundary and low-confidence grouping asset tests passed.",
+          "notes": "High false-positive/non-scannable surfaces stay protected."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Coverage gaps are required in normal text summaries; detailed fields live under JSON coverage for both scanner commands.",
+          "notes": "No verbose-only gap hiding."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Arch scan stack-pack flow adds known packs and reports missing detected packs in coverage.missingPacks; Phase 3 standalone semantics and failure handling documented/tested.",
+          "notes": "Dynamic pack/missing-pack path explicit."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Slop command, skill, DEAD_CODE, and spec state deletion candidates are review inputs only and never auto-deletion actions; review found no contrary guidance.",
+          "notes": "No auto-delete."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Heuristic-only/text-only unused-code guesses are explicitly non-actionable; low-confidence/user-review path verified by tests.",
+          "notes": "Heuristic-only removal not actionable."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Slop deletion safety rejects a single external tool as sole authority; arch ADV stack pack cites tests/validators and treats tool output as evidence, not sole authority.",
+          "notes": "No dependency-cruiser/knip/LLM sole authority."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "P33 structural-correctness requirements remain in both specs; asset tests for structural correctness, context boundary, and low-confidence grouping passed.",
+          "notes": "Structural correctness protections preserved."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scanner command/skill changes do not replace review, harden, audit, or tron workflows; commands remain scanner-specific contracts.",
+          "notes": "Workflow boundaries unchanged."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Implementation uses spec/command/skill/docs/asset-test contracts and optional detector reporting; no paid or production-only coverage is required.",
+          "notes": "No paid/runtime-only dependency."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`/adv-slop-scan` defines bloat/removal categories: unused dependency/export/file, unreachable branch, uncallable private symbol, impossible feature-flag path.",
+    "Uncertain deletion candidates appear in a separate low-confidence/user-review section.",
+    "`/adv-slop-scan` never treats heuristic-only or text-only unused-code guesses as actionable removal proof.",
+    "`/adv-arch-scan` supports stack rule packs before generic heuristic fallback.",
+    "Initial packs cover ADV’s known stack; newly detected relevant stack pieces dynamically get a pack or explicit missing-pack coverage.",
+    "Skipped/degraded detectors and missing packs are always summarized, with detail in JSON/metadata.",
+    "Specs and asset tests cover all new scanner contracts.",
+    "Existing guarantees remain intact: AST-first/degraded annotations, source evidence, low-confidence grouping, context-window suppression."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/proposal.md",
+      "updatedAt": "2026-05-22T14:01:44.869Z"
+    },
+    "problemStatement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/problem-statement.md",
+      "updatedAt": "2026-05-22T14:01:44.878Z"
+    },
+    "agreement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/agreement.md",
+      "updatedAt": "2026-05-22T14:01:44.890Z"
+    },
+    "design": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/enhanceScannerCoverage/design.md",
+      "updatedAt": "2026-05-22T14:01:44.895Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T14:01:10.500Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-22T05:25:55.522Z"
+    }
+  ]
+}

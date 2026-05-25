@@ -8,7 +8,7 @@ Authoring, override, and bootstrap workflow for external CI-isolated spec confor
 2. For sibling mode: `adv_conformance action: "init" mode: "sibling" projectId: "<project-id>"`
 3. Add conformance tests in the scaffolded directory
 4. Set up GitHub Actions workflow (template below)
-5. Mark spec as `conformance_required: true` via `adv_conformance action: "lock"`
+5. Ensure the spec is tracked with `conformance_required: true`, then lock it with `adv_conformance action: "lock"`
 
 ## Authoring Conformance Tests
 

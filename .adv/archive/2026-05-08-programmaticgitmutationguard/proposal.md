@@ -19,7 +19,7 @@ On a previous change (`measuregateworktime`), the agent ran raw `git add -A`, `g
 - Documentation: `ADV_INSTRUCTIONS.md` — update enforcement layers section
 
 ### Out of Scope
-- OpenCode snapshot-index contention (tracked at Sharper-Flow/Opencode-Advance#1)
+- OpenCode snapshot-index contention (tracked at Sharper-Flow/Advance#1)
 - Guarding git operations inside Temporal workflows/activities (already in-process, not bash-mediated)
 - Guarding `execFile("git", ...)` calls from ADV tool code (these go through Node child_process, not the bash tool — separate enforcement surface for future)
 - Modifying existing `adv_task_checkpoint` internals (it already uses validated `runGit` with branch/HEAD checks)

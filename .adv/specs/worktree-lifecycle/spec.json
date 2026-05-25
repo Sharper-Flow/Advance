@@ -3,8 +3,8 @@
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
   "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
-  "version": "1.1.0",
-  "updated_at": "2026-05-12T00:00:00.000Z",
+  "version": "1.4.0",
+  "updated_at": "2026-05-23T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-wl-branchRegistry01",
@@ -28,6 +28,52 @@
           "given": ["Registry has both materialized and branch-only entries"],
           "when": "A legacy consumer requests materialized worktrees",
           "then": ["Only entries with materialized=true are returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreePoisonVisibility01",
+      "title": "Cross-change worktree reads isolate poisoned workflow queries",
+      "body": "Cross-change worktree visibility MUST query each owning change workflow independently. A failed per-change getWorktreesQuery MUST NOT abort the whole listWorktreesAcrossChanges result. The result MUST include healthy records from other workflows plus structured warnings and poisonedWorkflows metadata when describe/error evidence identifies poisoned history. When the Temporal visibility source itself is unavailable, the result MUST be marked unavailable rather than throwing to the WIP aggregator.",
+      "priority": "must",
+      "tags": ["worktree", "temporal", "poisoned-history", "visibility"],
+      "scenarios": [
+        {
+          "id": "rq-worktreePoisonVisibility01.1",
+          "title": "Per-change query failure returns partial results",
+          "given": [
+            "Visibility lists two change workflows with active worktrees",
+            "The first getWorktreesQuery succeeds",
+            "The second getWorktreesQuery fails"
+          ],
+          "when": "listWorktreesAcrossChanges runs",
+          "then": [
+            "The first workflow's materialized worktree records are returned",
+            "A warning is returned for the failed workflow",
+            "The function does not throw for the per-workflow query failure"
+          ]
+        },
+        {
+          "id": "rq-worktreePoisonVisibility01.2",
+          "title": "Poison evidence is structured",
+          "given": [
+            "The failed workflow describe output contains TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
+          ],
+          "when": "listWorktreesAcrossChanges classifies the failure",
+          "then": [
+            "poisonedWorkflows includes changeId, workflowId, recoveryReason=\"poisoned_history\", evidenceSummary, and message",
+            "No destructive recovery action is performed"
+          ]
+        },
+        {
+          "id": "rq-worktreePoisonVisibility01.3",
+          "title": "Visibility-source outage is explicit",
+          "given": ["Temporal service, workflow list, or getHandle is unavailable"],
+          "when": "listWorktreesAcrossChanges runs",
+          "then": [
+            "The result has records: [] and unavailable: true",
+            "A worktree_visibility warning explains the source failure"
+          ]
         }
       ]
     },
@@ -165,20 +211,147 @@
       ]
     },
     {
+      "id": "rq-terminalCleanupReaper01",
+      "title": "Terminal Worktree Cleanup Reaper",
+      "body": "ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. The reaper must be reachable from archive, manual cleanup, status/triage discovery, bounded startup pending-delete drain, and best-effort session.deleted. Startup behavior must drain already-known pending deletes only; full terminal discovery must not run during plugin startup. All deletion attempts must delegate to advWorktreeDelete.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "terminal", "reaper"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupReaper01.1",
+          "title": "Shared triggers reach the reaper",
+          "given": [
+            "A terminal ADV worktree exists for an archived or closed change"
+          ],
+          "when": "archive, manual cleanup, status/triage, startup, or session.deleted cleanup runs",
+          "then": [
+            "The shared terminal cleanup reaper evaluates the candidate",
+            "The actual deletion attempt delegates to advWorktreeDelete"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupReaper01.2",
+          "title": "Startup remains bounded",
+          "given": ["Plugin startup begins with pending deletes recorded"],
+          "when": "Startup cleanup runs",
+          "then": [
+            "Only already-known pending deletes are drained",
+            "Full terminal discovery is not executed during startup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupSafety01",
+      "title": "Terminal Cleanup Safety Gate",
+      "body": "Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "safety"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupSafety01.1",
+          "title": "Unsafe candidates are retained",
+          "given": [
+            "A cleanup candidate is dirty, unmerged, non-terminal, or in use"
+          ],
+          "when": "The terminal cleanup reaper evaluates it",
+          "then": [
+            "The candidate is retained with a blocker",
+            "No direct git worktree remove command is run"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupSafety01.2",
+          "title": "Census eligibility is not authority",
+          "given": ["census.cleanupEligible is true for a worktree"],
+          "when": "The reaper attempts cleanup",
+          "then": [
+            "advWorktreeDelete still verifies durable ADV state before deletion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupVisibility01",
+      "title": "Terminal Cleanup Visibility",
+      "body": "Retained terminal cleanup blockers must be visible without requiring manual git inspection. adv_status must surface aggregate retained-terminal-worktree counts/classes only. adv_worktree_triage must surface exact branches, paths, and blockers for retained terminal cleanup candidates.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "status", "triage"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupVisibility01.1",
+          "title": "Status shows aggregates",
+          "given": ["Retained terminal cleanup blockers exist"],
+          "when": "adv_status runs",
+          "then": [
+            "The output includes retained cleanup counts/classes",
+            "The normal status surface does not dump every retained path"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupVisibility01.2",
+          "title": "Triage shows exact blockers",
+          "given": ["Retained terminal cleanup blockers exist"],
+          "when": "adv_worktree_triage runs",
+          "then": ["Exact branches, paths, and blockers are returned"]
+        }
+      ]
+    },
+    {
+      "id": "rq-terminalCleanupLifecycle01",
+      "title": "Single Terminal Cleanup Lifecycle Path",
+      "body": "Terminal cleanup processing must route through one shared cleanup path instead of duplicate lifecycle loops. Concurrent cleanup triggers must be serialized or idempotent, and retained in-use worktrees must stay queued or preserved for retry. Manual cleanup must be able to retry safe terminal pending deletes even when prior automatic attempts reached an attempt cap.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "lifecycle", "concurrency"],
+      "scenarios": [
+        {
+          "id": "rq-terminalCleanupLifecycle01.1",
+          "title": "Concurrent triggers are idempotent",
+          "given": ["Two cleanup triggers process the same pending delete"],
+          "when": "Both triggers run concurrently or sequentially",
+          "then": [
+            "Processing is serialized or idempotent",
+            "At most one deletion succeeds and retained state remains consistent"
+          ]
+        },
+        {
+          "id": "rq-terminalCleanupLifecycle01.2",
+          "title": "Manual cleanup can retry exhausted safe items",
+          "given": ["A safe terminal pending delete has exhausted automatic attempts"],
+          "when": "Manual cleanup runs",
+          "then": ["The safe pending delete is retried through the shared path"]
+        }
+      ]
+    },
+    {
       "id": "rq-worktreeMutationGuard01",
       "title": "Machine-Enforced ADV Worktree Mutation Guard",
-      "body": "ADV mutating tools that advance gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true. Mutations from an ADV worktree remain allowed. The proposal gate remains exempt so a change can be created before a worktree exists. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions.",
+      "body": "ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. For auto-managed changes, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
       "priority": "must",
       "tags": ["worktree", "safety", "mutation-guard"],
       "scenarios": [
         {
           "id": "rq-worktreeMutationGuard01.1",
-          "title": "Gate completion blocks from main checkout",
+          "title": "Metadata gate completion is allowed from main checkout",
           "given": [
             "feature_flags.worktree_guard_enforce is true",
             "The current session is in the main checkout"
           ],
-          "when": "adv_gate_complete is called for discovery, design, planning, execution, acceptance, or release",
+          "when": "adv_gate_complete is called for discovery or design",
+          "then": [
+            "The tool allows the metadata-only gate completion",
+            "No worktree materialization is required",
+            "Code and git mutation paths remain unaffected"
+          ]
+        },
+        {
+          "id": "rq-worktreeMutationGuard01.1b",
+          "title": "Worktree-mutation gate completion blocks from main checkout",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
+            "The current session is in the main checkout"
+          ],
+          "when": "adv_gate_complete is called for planning, execution, acceptance, or release",
           "then": [
             "The tool returns WorktreeIsolationViolation before any state mutation",
             "The response includes mainCheckoutPath and remediation",
@@ -201,15 +374,47 @@
         },
         {
           "id": "rq-worktreeMutationGuard01.3",
-          "title": "Proposal gate and flag-off paths remain compatible",
+          "title": "Proposal gate and explicit-false paths remain compatible",
           "given": [
-            "The proposal gate is being completed or worktree_guard_enforce is false"
+            "The proposal gate is being completed or worktree_guard_enforce is explicitly false for a non-auto-managed change"
           ],
           "when": "A supported ADV mutation executes from the main checkout",
           "then": [
             "The proposal gate completion remains allowed so a worktree can be created after proposal",
-            "Flag-off behavior preserves legacy mutation flow",
+            "Explicit-false behavior preserves legacy mutation flow for non-auto-managed changes",
             "The guard remains additive and does not alter read-only tools"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-worktreeBoundedCleanup01",
+      "title": "Bounded Worktree Cleanup",
+      "body": "Worktree cleanup operations must be bounded to prevent runaway deletion. After each worktree deletion, a post-delete notification must be emitted within the default 10s timeout. Per-item cleanup must proceed sequentially with bounded retries; batch or parallel unbounded cleanup is prohibited. The cleanup tool must classify worktrees into drift groups (safe, blocked, dirty/in-use, needs-investigation) and remain report-only for worktree drift even under `--execute`. Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`.",
+      "priority": "must",
+      "tags": ["worktree", "cleanup", "bounded", "safety"],
+      "scenarios": [
+        {
+          "id": "rq-worktreeBoundedCleanup01.1",
+          "title": "Post-delete notification is bounded",
+          "given": [
+            "A worktree deletion is requested via adv_worktree_delete or adv_worktree_cleanup"
+          ],
+          "when": "The deletion completes",
+          "then": [
+            "A post-delete notification is emitted within the default 10s timeout",
+            "No unbounded wait blocks subsequent operations"
+          ]
+        },
+        {
+          "id": "rq-worktreeBoundedCleanup01.2",
+          "title": "Per-item sequential cleanup with bounded retries",
+          "given": ["Multiple worktrees are eligible for cleanup"],
+          "when": "adv_worktree_cleanup processes the queue",
+          "then": [
+            "Worktrees are processed sequentially, one at a time",
+            "Each item has a bounded retry count (max 5)",
+            "Batch or parallel unbounded deletion is not performed"
           ]
         }
       ]

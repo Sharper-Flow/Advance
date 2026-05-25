@@ -44,7 +44,7 @@
 ## Avoidances
 
 - **No replacement enforcement for `git push --force` to default branch.** Remote branch protection covers most cases. Address only if user requests in a follow-up.
-- **No fix for OpenCode#1 snapshot race.** Out of ADV's layer; tracked at sharper-flow/Opencode-Advance#1.
+- **No fix for OpenCode#1 snapshot race.** Out of ADV's layer; tracked at sharper-flow/Advance#1.
 - **No detection of indirect destructive writes** via shell-variable indirection or external scripts. Documented as accepted residual risk (same posture as current guard's shell-alias gap).
 - **No bundled implementation of port-isolation as code.** Documentation-only per AC10 — no clean ADV injection point without runtime stack knowledge.
 - **No reflection, conformance, or non-worktree-subsystem feature work.**

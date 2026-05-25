@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-mVXGoD",
+      "type": "gotcha",
+      "content": "Temporal worker non-determinism hits the `adv_run_test` signal path even when the change workflow itself is healthy. When the worker has stale `WorkflowTaskFailedCauseNonDeterministicError` on a different workflow's history, it can poison the `taskRunSummary` / activity-machine for unrelated change workflows too. Workaround that worked: terminate the change workflow via `temporal workflow terminate`, then reset to event ID 3 (`temporal workflow reset --event-id 3`) so it replays from a fresh state through whatever signals get re-applied. Going forward, prefer running tests via `pnpm vitest run <file>` in bash for the duration of the affected session and capture evidence in task-completion notes manually instead of `adv_run_test`. The classifier in `plugin/src/temporal/retry-wrapper.ts classifyTemporalError` does NOT match terminated-workflow errors as \"fallback\" — only TMPRL1100 / Nondeterminism / not_found patterns trigger re-seed. A future improvement would be to expand that classifier to include \"terminated\" / \"workflow execution terminated\".",
+      "source_task": "tk-ac7d3bba51ab",
+      "recorded_at": "2026-05-21T03:51:07.740Z"
+    },
+    {
+      "id": "ws-1xL1YA",
+      "type": "pattern",
+      "content": "When adding a new field to ChangeSchema that must be stamped at change creation, three surfaces need synchronized updates: (1) `ensureChangeWorkflowStarted` seedState so the workflow starts with the value, (2) `changeWithOwner` projection passed to `legacy.changes.save` so the disk snapshot has it on first save, (3) `updateOverlay` patch so Memo cache summary reads see it without a workflow round-trip. The same pattern applies to closure-time updates (look at `archived` status flow). For LAZY migration of legacy values, fire from `getTemporalChange` AFTER both the happy-path query AND the post-reseed query, checking both state.field AND the recently-fetched disk projection — never from the bare `loadChange` because that's pure-disk and lacks Temporal client access.",
+      "source_task": "tk-ac7d3bba51ab",
+      "recorded_at": "2026-05-21T03:51:13.655Z"
+    },
+    {
+      "id": "ws--JRitj",
+      "type": "convention",
+      "content": "For void-async fire-and-forget patterns in tests, `setImmediate × 50 + setTimeout 50ms` is the reliable settle window when the IIFE awaits `getGuardedChangeHandle` (which does a legacy disk read) before signaling. A single `setImmediate` is not enough because of the multi-hop `await input.legacy.changes.get(changeId)` → `getChangeHandle` → `handle.signal` chain.",
+      "source_task": "tk-ac7d3bba51ab",
+      "recorded_at": "2026-05-21T03:51:16.936Z"
+    },
+    {
+      "id": "ws-x4EYc4",
+      "type": "success",
+      "content": "All 13 tasks landed across A→Z. Key design wins: (1) Per-change marker (worktree_auto_managed) decoupled from global flag — clean migration story for in-flight changes via lazy stamp-on-first-read (A4). (2) Unified evaluateWorktreeGuardActivation classifier replaces 4 separate inline default-readers. (3) Auto-create-then-BLOCK pattern (Block B) keeps the guard structurally correct without adding new tools or new gate steps. (4) Atomic E-flip batch (default + spec deltas + asset assertions in one task) eliminated the moment-of-disagreement risk between code and assertions. (5) Cleanup helper (E5) is pure projection — no registry I/O — keeping rq-worktreeRegistry01's single-source-of-truth posture intact. Net test growth: +74 passing (2508 → 2582). 5 pre-existing failures (workspace-warp env-var + concurrent-signaling timing) unrelated to this change.",
+      "source_task": "tk-aa228f53b66b",
+      "recorded_at": "2026-05-21T04:28:52.318Z"
+    },
+    {
+      "id": "ws-VUPssm",
+      "type": "gotcha",
+      "content": "D1 + D2 (cross-project + scope_repos routing) landed structurally but production runtime wiring is incomplete: task call sites don't yet build the `resumeRuntime` bundle ({projectRoot, database, log, store}) needed by advWorktreeResume. The helper's defensive fallback surfaces a clean AC6 WorktreeAutoCreateFailure / GIT_FAILED error in production today, pointing the agent at the manual `adv_worktree_resume` path. Role propagation infrastructure (target / scope / current) is tested end-to-end at the evaluator level. **Fast-follow needed:** wire `resumeRuntime` in gate.ts + task.ts call sites (initWorktreeDb async + createLogger + activeStore) for full end-to-end AC4 auto-create. Same applies to scope_repos `repoId` surfacing — current target_path arg is single-target only; per-scope repoId arg isn't plumbed into adv_task_add yet.",
+      "source_task": "tk-aa228f53b66b",
+      "recorded_at": "2026-05-21T04:28:59.230Z"
+    }
+  ],
+  "count": 5
+}

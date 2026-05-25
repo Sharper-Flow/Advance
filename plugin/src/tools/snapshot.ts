@@ -27,6 +27,7 @@ const REPAIR_ACTION_ENUM = [
   "delete_stale_locks",
   "delete_zero_byte_objects",
   "delete_orphan_bare_repos",
+  "delete_fsck_corrupt_repos",
 ] as const;
 
 // =============================================================================

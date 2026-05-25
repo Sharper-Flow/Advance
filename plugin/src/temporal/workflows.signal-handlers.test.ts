@@ -32,6 +32,7 @@ import {
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
   reflectionRecordedSignal,
+  subagentReportSubmittedSignal,
   taskAddedSignal,
   taskAssignedSignal,
   taskBlockedSignal,
@@ -48,6 +49,7 @@ import { inspectArtifactActivity, writeArtifactActivity } from "./activities";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
+const contractsPath = fileURLToPath(new URL("./contracts.ts", import.meta.url));
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
@@ -74,6 +76,35 @@ function makeTask(id: string, title = id): Task {
     status: "pending",
     priority: 0,
     created_at: "2026-05-05T00:00:00.000Z",
+  };
+}
+
+function makeEngineerReport(taskId: string, attempt = 1) {
+  return {
+    schema_version: "1.0" as const,
+    change_id: "signal-handler-test-project",
+    task_id: taskId,
+    attempt,
+    agent: "adv-engineer" as const,
+    scope: "Persist report",
+    status: "complete" as const,
+    files_touched: ["plugin/src/types/subagent-reports.ts"],
+    verification: [
+      {
+        command: "pnpm test",
+        exit_code: 0,
+        summary: "tests pass",
+      },
+    ],
+    decisions: [],
+    blockers: [],
+    follow_ups: [],
+    related_scan: "none",
+    workdir_used: "/tmp/worktree",
+    context_update_for_adv: {
+      what_ads_needs_to_know: "report persisted",
+      suggested_next_action: "continue",
+    },
   };
 }
 
@@ -687,6 +718,86 @@ describe("changeWorkflow signal handlers", () => {
     });
   }, 30_000);
 
+  it("stores sub-agent reports from subagentReportSubmittedSignal on task", async () => {
+    await withSignalWorker("subagent-report", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(subagentReportSubmittedSignal, {
+        taskId: "tk-report",
+        report: makeEngineerReport("tk-report"),
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.subagent_reports).toHaveLength(1);
+      expect(task!.subagent_reports![0].agent).toBe("adv-engineer");
+      expect(task!.subagent_reports![0].attempt).toBe(1);
+    });
+  }, 30_000);
+
+  it("deduplicates repeated sub-agent report submissions by task agent and attempt", async () => {
+    await withSignalWorker("subagent-report-dedupe", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      const payload = {
+        taskId: "tk-report",
+        report: makeEngineerReport("tk-report", 2),
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      };
+      await handle.signal(subagentReportSubmittedSignal, payload);
+      await handle.signal(subagentReportSubmittedSignal, {
+        ...payload,
+        submittedAt: "2026-05-05T00:00:03.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.subagent_reports).toHaveLength(1);
+      expect(task!.subagent_reports![0].attempt).toBe(2);
+    });
+  }, 30_000);
+
+  it("maps sub-agent blockers into task error_recovery", async () => {
+    await withSignalWorker("subagent-report-blocker", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-report", "report task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(subagentReportSubmittedSignal, {
+        taskId: "tk-report",
+        report: {
+          ...makeEngineerReport("tk-report"),
+          status: "error",
+          blockers: [
+            {
+              file: "plugin/src/foo.ts",
+              line: 12,
+              what: "Type error",
+              diagnosis: "Missing export",
+            },
+          ],
+        },
+        submittedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-report");
+      expect(task).toBeDefined();
+      expect(task!.error_recovery?.error_class).toBe("SEMANTIC");
+      expect(task!.error_recovery?.last_error).toContain("Type error");
+      expect(task!.error_recovery?.attempts?.[0].diagnosis).toContain(
+        "Missing export",
+      );
+    });
+  }, 30_000);
+
   it("stores structured_output from taskCompletedSignal on task", async () => {
     await withSignalWorker("structured-output", async (handle) => {
       await handle.signal(taskAddedSignal, {
@@ -739,11 +850,77 @@ describe("changeWorkflow signal handlers", () => {
     });
   }, 30_000);
 
+  it("preserves checkpoint metadata when a weaker duplicate completion arrives", async () => {
+    await withSignalWorker("preserve-checkpoint-metadata", async (handle) => {
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-preserve", "preserve metadata task"),
+        addedAt: "2026-05-05T00:00:01.000Z",
+      });
+      await handle.signal(taskCompletedSignal, {
+        taskId: "tk-preserve",
+        verification: "checkpoint verification",
+        summary: "checkpoint summary",
+        filesTouched: ["src/strong.ts"],
+        checkpointSha: "strong-sha",
+        completedAt: "2026-05-05T00:00:02.000Z",
+      });
+      await handle.signal(taskCompletedSignal, {
+        taskId: "tk-preserve",
+        verification: "weaker duplicate",
+        summary: "weaker summary",
+        filesTouched: [],
+        completedAt: "2026-05-05T00:00:03.000Z",
+      });
+
+      const state = await queryState(handle);
+      const task = state.tasks.find((t) => t.id === "tk-preserve");
+      expect(task).toBeDefined();
+      expect(task!.verification).toBe("checkpoint verification");
+      expect(task!.summary).toBe("checkpoint summary");
+      expect(task!.filesTouched).toEqual(["src/strong.ts"]);
+      expect(task!.touched_files).toEqual(["src/strong.ts"]);
+      expect(task!.checkpointSha).toBe("strong-sha");
+      expect(task!.completedAt).toBe("2026-05-05T00:00:02.000Z");
+    });
+  }, 30_000);
+
   it("drains in-flight handlers before continuing as new", () => {
     const source = readFileSync(workflowsPath, "utf8");
 
     expect(source).toMatch(
       /await wf\.condition\(wf\.allHandlersFinished\);\s+await wf\.continueAsNew<typeof changeWorkflow>\(seed\);/,
     );
+  });
+
+  it("preserves origin and worktree projections in continue-as-new seed", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+
+    for (const assignment of [
+      "origin: state.origin",
+      "worktree_auto_managed: state.worktree_auto_managed",
+      "target_worktree_path: state.target_worktree_path",
+      "scope_worktrees: state.scope_worktrees",
+    ]) {
+      expect(source).toContain(assignment);
+    }
+  });
+
+  it("continues as new with every declared seedState field", () => {
+    const contracts = readFileSync(contractsPath, "utf8");
+    const workflows = readFileSync(workflowsPath, "utf8");
+    const seedStatePick = contracts.match(
+      /seedState\?: Partial<\s*Pick<\s*ChangeWorkflowState,\s*([\s\S]*?)\s*>\s*>/,
+    );
+
+    expect(seedStatePick).not.toBeNull();
+    const seedStateKeys = Array.from(
+      seedStatePick![1].matchAll(/\|\s*"([^"]+)"/g),
+      (match) => match[1],
+    );
+
+    expect(seedStateKeys).not.toHaveLength(0);
+    for (const key of seedStateKeys) {
+      expect(workflows).toContain(`${key}: state.${key}`);
+    }
   });
 });

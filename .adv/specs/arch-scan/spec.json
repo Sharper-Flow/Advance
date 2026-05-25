@@ -3,8 +3,8 @@
   "name": "arch-scan",
   "title": "Architecture Scan",
   "purpose": "Capability: /adv-arch-scan command — detect architecture inconsistencies with deterministic tools first, research fallback second, and low-confidence AI heuristic fallback last.",
-  "version": "1.0.0",
-  "updated_at": "2026-05-08T00:00:00.000Z",
+  "version": "1.1.0",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-archp33",
@@ -55,6 +55,101 @@
           "then": [
             "A structural-correctness or security architecture finding is emitted",
             "The recommendation moves recognition/normalization to the system boundary"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archstack01",
+      "title": "Stack Packs Before Generic Fallback",
+      "body": "/adv-arch-scan must detect relevant stack files, apply matching stack packs before research fallback or generic AI heuristic fallback, and report when a relevant stack has no applicable pack.",
+      "priority": "must",
+      "tags": ["stack-pack", "detection", "fallback", "coverage"],
+      "scenarios": [
+        {
+          "id": "rq-archstack01.1",
+          "title": "Known stack pack runs before fallback",
+          "given": ["Project files identify a stack with a known stack pack"],
+          "when": "/adv-arch-scan runs",
+          "then": [
+            "The matching stack pack is applied in Phase 1",
+            "Research fallback and AI heuristic fallback run only after known pack coverage is attempted or explicitly skipped",
+            "Skipped or degraded pack checks are reported as coverage gaps"
+          ]
+        },
+        {
+          "id": "rq-archstack01.2",
+          "title": "Unknown relevant stack reports missing pack",
+          "given": ["Project files identify a relevant stack with no known stack pack"],
+          "when": "/adv-arch-scan runs",
+          "then": [
+            "The stack is listed in coverage.missingPacks",
+            "Fallback analysis is marked as research or heuristic rather than stack-pack proof",
+            "The report does not hide the missing pack"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archstack02",
+      "title": "Initial ADV Stack Pack",
+      "body": "/adv-arch-scan must include an initial ADV stack pack for the TypeScript/Bun/OpenCode plugin/Temporal/spec-command-skill asset stack. The pack must cite existing structural enforcers as authoritative checks rather than making prose or a single external tool the sole authority.",
+      "priority": "must",
+      "tags": ["stack-pack", "advance", "typescript", "temporal", "p33"],
+      "scenarios": [
+        {
+          "id": "rq-archstack02.1",
+          "title": "ADV stack pack covers project structural boundaries",
+          "given": ["The scanned repository contains TypeScript/Bun/OpenCode plugin/Temporal/spec-command-skill assets"],
+          "when": "The ADV stack pack runs",
+          "then": [
+            "The pack covers dependency graph checks",
+            "The pack cites workflow bundle boundary checks as the structural owner for workflow safety",
+            "The pack cites command/manifest symmetry and spec/asset anchors as structural owners for command and spec coverage"
+          ]
+        },
+        {
+          "id": "rq-archstack02.2",
+          "title": "ADV stack pack does not replace structural tests",
+          "given": ["An ADV-specific architecture concern is already enforced by a test, validator, or spec asset check"],
+          "when": "/adv-arch-scan reports pack coverage",
+          "then": [
+            "The scanner cites the structural enforcer",
+            "The scanner does not treat prose-only pack wording as authoritative proof",
+            "Single-tool output remains evidence, not sole correctness authority"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-archcov01",
+      "title": "Architecture Scanner Coverage Report",
+      "body": "/adv-arch-scan must summarize detected stacks, applied packs, missing packs, skipped detectors, and degraded detectors in normal text output, and expose detailed architecture coverage in JSON metadata.",
+      "priority": "must",
+      "tags": ["coverage", "stack-pack", "output", "json"],
+      "scenarios": [
+        {
+          "id": "rq-archcov01.1",
+          "title": "Text output summarizes architecture coverage",
+          "given": ["Stacks are detected, packs are applied or missing, or detectors are skipped/degraded"],
+          "when": "Text output is generated",
+          "then": [
+            "The report includes an architecture scanner coverage summary",
+            "Detected, applied, and missing stack packs are visible without verbose mode",
+            "Skipped and degraded detectors are visible without verbose mode"
+          ]
+        },
+        {
+          "id": "rq-archcov01.2",
+          "title": "JSON output includes architecture coverage details",
+          "given": ["--json output is requested"],
+          "when": "Report output is generated",
+          "then": [
+            "The JSON object includes coverage.detectedStacks",
+            "The JSON object includes coverage.appliedPacks",
+            "The JSON object includes coverage.missingPacks",
+            "The JSON object includes coverage.skippedDetectors",
+            "The JSON object includes coverage.degradedDetectors"
           ]
         }
       ]

@@ -60,7 +60,6 @@ const STATIC_TITLES: Record<
   },
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
   adv_session_list: { title: "List sessions", titleKind: "read" },
-  worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
 };
 
@@ -87,6 +86,10 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Update change issues${suffix(args, "changeId")}`),
   adv_change_reenter: (args) =>
     write(`Re-enter change${suffix(args, "changeId")}`),
+  adv_contract_mint: (args) =>
+    write(`Mint contract${suffix(args, "changeId")}`),
+  adv_contract_review_matrix_set: (args) =>
+    write(`Set contract review${suffix(args, "changeId")}`),
   adv_task_show: (args) => read(`Show task${suffix(args, "taskId")}`),
   adv_task_list: (args) => read(`List tasks${suffix(args, "changeId")}`),
   adv_task_update: (args) => write(`Update task${suffix(args, "taskId")}`),
@@ -94,6 +97,7 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_task_cancel: () => write("Cancel tasks"),
   adv_task_reclassify_tdd: (args) =>
     write(`Reclassify TDD${suffix(args, "taskId")}`),
+  adv_subagent_report_submit: () => write("Submit subagent report"),
   adv_wisdom_add: (args) => write(`Add wisdom${suffix(args, "changeId")}`),
   adv_wisdom_list: (args) => read(`List wisdom${suffix(args, "changeId")}`),
   adv_snapshot_health: (args) =>
@@ -132,10 +136,6 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_worktree_resume: (args) =>
     operator(`Resume worktree${suffix(args, "changeId", "branch")}`),
   adv_worktree_delete: (args) =>
-    operator(`Delete worktree${suffix(args, "branch")}`),
-  worktree_create: (args) =>
-    operator(`Create worktree${suffix(args, "branch")}`),
-  worktree_delete: (args) =>
     operator(`Delete worktree${suffix(args, "branch")}`),
   adv_session_show: (args) => read(`Show session${suffix(args, "sessionId")}`),
 };

@@ -3,13 +3,15 @@
 #
 # Deploys this repo's ADV assets to the local machine:
 #   - Runtime plugin -> ~/.local/share/Advance/plugin
-#   - Slash commands, agents, skills, instructions -> ~/.config/opencode/
-#   - Companion binaries (acp-mux) -> ~/.local/bin/
+#   - Slash commands, agents, skills -> ~/.config/opencode/
+#   - Stale ADV instruction registrations are removed from opencode.json
+#   - Archived ACP companion binaries are intentionally not deployed
 #
 # Single source of truth for "what's installed on this machine from this repo".
 # Run via pre-push hook so deployed copy never drifts from dev repo HEAD.
-# Replaced the legacy config-sync script (2026-05-19) to reflect that it also
-# deploys binaries, not just OpenCode config assets.
+# Replaced the legacy config-sync script (2026-05-19). It now deploys supported
+# Advance plugin/config assets only; archived experiments such as acp-mux are not
+# installed.
 #
 # Usage:
 #   ./scripts/deploy-local.sh           # Deploy assets + check config (report only)
@@ -19,18 +21,18 @@
 #   ./scripts/deploy-local.sh --diff    # Show overlay diffs when managed blocks change
 #
 # What it does:
+#   0. Ensures plugin/dist is fresh, then syncs plugin/ -> ~/.local/share/Advance/plugin
 #   1. Copies .opencode/command/*.md  -> ~/.config/opencode/command/
 #   2. Removes stale commands from global that no longer exist in repo
 #   3. Removes legacy non-ADV commands
-#   4. Copies repo-local agents and applies managed overlays for shared agents
+#   4. Copies repo-owned agents and applies managed overlays for shared agents
 #   5. Copies skills/adv-*/SKILL.md  -> ~/.config/opencode/skills/adv-*/
-#   6. Validates opencode.json has ADV plugin + instruction entries
-#   7. (--fix only) Patches opencode.json to add missing ADV entries
-#   8. Deploys acp-mux/bin/acp-mux  -> ~/.local/bin/acp-mux (real file, no symlink)
+#   6. Validates opencode.json has ADV plugin entries and no stale ADV instruction entry
+#   7. (--fix only) Patches opencode.json to add missing ADV plugin entries and remove stale ADV instruction entries
+#   8. Skips archived acp-mux local binary deployment
 #
-# Deploy semantics: every binary is a real file copy. NO SYMLINKS — a stale
-# bin link is worse than a stale copy because it fails in surprising ways.
-# Re-run deploy-local.sh whenever you change a deployed asset.
+# Deploy semantics: only supported Advance assets are mirrored locally. Re-run
+# deploy-local.sh whenever you change a deployed asset.
 #
 # It does NOT touch non-ADV commands, agents, skills, or config entries,
 # except removing legacy assets/config previously installed by this repo
@@ -102,13 +104,34 @@ resolve_canonical_repo_root() {
 	printf '%s\n' "$candidate"
 }
 
+git_common_dir() {
+	local repo="$1" common_dir
+	common_dir="$(git -C "$repo" rev-parse --git-common-dir 2>/dev/null)" || return 1
+	case "$common_dir" in
+	/*) ;;
+	*) common_dir="$repo/$common_dir" ;;
+	esac
+	(cd "$common_dir" && pwd -P)
+}
+
+same_git_common_dir() {
+	local left="$1" right="$2" left_common right_common
+	left_common="$(git_common_dir "$left")" || return 1
+	right_common="$(git_common_dir "$right")" || return 1
+	[ "$left_common" = "$right_common" ]
+}
+
 REPO_ROOT="$(resolve_canonical_repo_root "$SCRIPT_REPO_ROOT")"
 # Asset sources must come from the script's actual checkout/worktree, not the
 # canonical primary worktree. Otherwise worktree-local edits (or restored files)
 # are invisible during sync/test runs.
 ASSET_ROOT="$SCRIPT_REPO_ROOT"
 if [ -f "$INVOKE_CWD/.opencode/agents/adv.md" ]; then
-	ASSET_ROOT="$INVOKE_CWD"
+	if same_git_common_dir "$SCRIPT_REPO_ROOT" "$INVOKE_CWD"; then
+		ASSET_ROOT="$INVOKE_CWD"
+	else
+		echo "    ⚠  Ignoring asset root from unrelated cwd: $INVOKE_CWD"
+	fi
 fi
 REPO_COMMANDS="$ASSET_ROOT/.opencode/command"
 REPO_AGENTS="$ASSET_ROOT/.opencode/agents"
@@ -143,6 +166,7 @@ LOCAL_DEPLOY_ROOT="${ADV_LOCAL_DEPLOY_ROOT:-$HOME/.local/share/Advance}"
 ADV_SOURCE_PLUGIN_PATH="$ASSET_ROOT/plugin"
 ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"
 ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"
+ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
 echo "==> ADV deploy-local ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
@@ -155,32 +179,94 @@ if [ "$SHOW_DIFF" = true ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Pre-flight: plugin build check
-#
-# OpenCode loads the plugin from $ADV_PLUGIN_PATH, which expects built output
-# at plugin/dist/index.js. plugin/dist/ is gitignored, so a fresh clone will
-# not have it until the user runs `pnpm install && pnpm build` in plugin/.
-# Warn loudly but do not abort — sync can still copy assets even if the
-# plugin itself isn't built yet.
-# ---------------------------------------------------------------------------
-ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
-if [ ! -f "$ADV_PLUGIN_DIST" ]; then
-	echo ""
-	echo "    ⚠  Plugin not built: $ADV_PLUGIN_DIST is missing"
-	echo "       OpenCode will fail to load the ADV plugin without it."
-	echo "       Run:  (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm build)"
-	echo ""
-fi
-
-# ---------------------------------------------------------------------------
 # Config check/fix functions
 # ---------------------------------------------------------------------------
 config_issues=0
+
+plugin_build_input_newer_than() {
+	local output="$1"
+
+	if [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/src" -type f -newer "$output" -print -quit)" ]; then
+		return 0
+	fi
+
+	local input
+	for input in package.json pnpm-lock.yaml tsconfig.json tsup.config.ts; do
+		if [ -f "$ADV_SOURCE_PLUGIN_PATH/$input" ] && [ "$ADV_SOURCE_PLUGIN_PATH/$input" -nt "$output" ]; then
+			return 0
+		fi
+	done
+
+	if [ -d "$ADV_SOURCE_PLUGIN_PATH/scripts" ] && [ -n "$(find "$ADV_SOURCE_PLUGIN_PATH/scripts" -type f -newer "$output" -print -quit)" ]; then
+		return 0
+	fi
+
+	return 1
+}
+
+plugin_dist_stale_reason() {
+	if [ ! -d "$ADV_SOURCE_PLUGIN_PATH/src" ]; then
+		printf '%s\n' "plugin source directory is missing"
+		return 0
+	fi
+
+	local output_rel output
+	for output_rel in dist/index.js dist/temporal/worker.js dist/temporal/workflows.js; do
+		output="$ADV_SOURCE_PLUGIN_PATH/$output_rel"
+		if [ ! -f "$output" ]; then
+			printf '%s\n' "plugin dist output is missing: $output_rel"
+			return 0
+		fi
+		if plugin_build_input_newer_than "$output"; then
+			printf '%s\n' "plugin build input is newer than $output_rel"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+ensure_plugin_dist_fresh() {
+	local rebuild_reason=""
+
+	if ! rebuild_reason="$(plugin_dist_stale_reason)"; then
+		echo "    plugin dist is fresh"
+		return 0
+	fi
+
+	if [ "$DRY_RUN" = true ]; then
+		echo "    would rebuild plugin dist: $rebuild_reason"
+		echo "    dry-run build: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build)"
+		return 0
+	fi
+
+	echo "    rebuilding plugin dist: $rebuild_reason"
+	if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run build); then
+		echo "    ✗ refusing to deploy stale dist: pnpm run build failed"
+		echo "      Run manually: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm run build)"
+		exit 1
+	fi
+
+	if rebuild_reason="$(plugin_dist_stale_reason)"; then
+		echo "    ✗ refusing to deploy stale dist after build: $rebuild_reason"
+		echo "      Run manually: (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm install && pnpm run build)"
+		exit 1
+	fi
+}
 
 check_jq() {
 	if ! command -v jq &>/dev/null; then
 		echo "    ⚠  jq not found — config validation requires jq"
 		echo "    Install: sudo apt-get install -y jq  (or brew install jq)"
+		return 1
+	fi
+	return 0
+}
+
+check_rsync() {
+	if ! command -v rsync &>/dev/null; then
+		echo "    ✗  rsync not found — runtime plugin deployment requires rsync"
+		echo "    Install: sudo apt-get install -y rsync  (or brew install rsync)"
 		return 1
 	fi
 	return 0
@@ -342,13 +428,10 @@ PROVIDER_HINT_DIR="$ASSET_ROOT/.opencode/agent-parts/providers"
 PROVIDERS=(claude gpt glm kimi)
 
 sync_adv_runtime_agent() {
-	local canonical="$REPO_AGENTS/adv.md"
-	if [ ! -f "$canonical" ]; then
-		echo "    ✗  ADV runtime agent: canonical adv.md missing at $canonical"
-		return 1
-	fi
-	if [ ! -f "$ADV_INSTRUCTION_PATH" ]; then
-		echo "    ✗  ADV runtime agent: ADV_INSTRUCTIONS.md missing at $ADV_INSTRUCTION_PATH"
+	local runtime_agent="$REPO_AGENTS/adv.md"
+	local dest="$GLOBAL_AGENTS/adv.md"
+	if [ ! -f "$runtime_agent" ]; then
+		echo "    ✗  ADV runtime agent: canonical adv.md missing at $runtime_agent"
 		return 1
 	fi
 
@@ -358,14 +441,15 @@ sync_adv_runtime_agent() {
 	fi
 
 	mkdir -p "$GLOBAL_AGENTS"
-	python3 - "$canonical" "$ADV_INSTRUCTION_PATH" "$GLOBAL_AGENTS/adv.md" <<'PY'
+	python3 - "$runtime_agent" "$dest" <<'PY'
 from pathlib import Path
 import sys
 
-canonical, instructions, dest = map(Path, sys.argv[1:4])
-canonical_text = canonical.read_text().rstrip()
-instructions_text = instructions.read_text().rstrip()
-dest.write_text(canonical_text + "\n\n" + instructions_text + "\n")
+runtime_agent, dest = map(Path, sys.argv[1:3])
+runtime_text = runtime_agent.read_text().rstrip()
+tmp = dest.with_name(dest.name + ".tmp")
+tmp.write_text(runtime_text + "\n")
+tmp.replace(dest)
 PY
 	echo "    assembled ADV runtime agent: adv.md"
 }
@@ -463,11 +547,12 @@ PY
 
 # Agent Tool Allowlist Drift Check
 #
-# Cross-references the `adv` agent's `tools:` allowlist in
-# .opencode/agents/adv.md against the plugin's canonical ADV_TOOL_NAMES
-# in plugin/src/tool-registry.ts. Reports tools registered but not allowed
-# (= will be invisible to the agent) and tools allowed but not registered
-# (= stale allowlist entries). Both are build-time-detectable drift causes.
+# Cross-references an agent's `tools:` allowlist against the plugin's
+# canonical ADV_TOOL_NAMES in plugin/src/tool-registry.ts. Reports tools
+# registered but not allowed (= will be invisible to the agent) and tools
+# allowed but not registered (= stale allowlist entries). Both are
+# build-time-detectable drift causes. Primary agents are not required to expose
+# leaf-subagent-only tools.
 # ---------------------------------------------------------------------------
 check_tool_drift() {
 	local agent_file="${1:-$REPO_AGENTS/adv.md}"
@@ -489,7 +574,7 @@ from pathlib import Path
 
 agent_path, registry_path = sys.argv[1], sys.argv[2]
 
-# Extract adv_* keys from YAML frontmatter `tools:` block
+# Extract agent mode and adv_* keys from YAML frontmatter `tools:` block
 agent_text = Path(agent_path).read_text()
 if not agent_text.startswith("---\n"):
     print("    ✗  tool drift: agent file missing YAML frontmatter")
@@ -499,6 +584,13 @@ if end == -1:
     print("    ✗  tool drift: agent file frontmatter not terminated")
     sys.exit(1)
 fm = agent_text[4:end]
+agent_mode = ""
+for line in fm.splitlines():
+    m = re.match(r"^mode\s*:\s*([A-Za-z0-9_-]+)\s*$", line)
+    if m:
+        agent_mode = m.group(1)
+        break
+
 allowed = set()
 in_tools = False
 for line in fm.splitlines():
@@ -522,7 +614,12 @@ if not m:
     sys.exit(1)
 registered = set(re.findall(r'"(adv_[a-z_]+)"', m.group(1)))
 
-missing = sorted(registered - allowed)   # registered but not allowed
+# Leaf subagents submit reports through this tool; primary orchestrators consume
+# those reports via change state instead of submitting reports themselves.
+LEAF_ONLY_TOOLS = {"adv_subagent_report_submit"}
+primary_exemptions = LEAF_ONLY_TOOLS if agent_mode == "primary" else set()
+
+missing = sorted(registered - primary_exemptions - allowed)   # registered but not allowed
 extras = sorted(allowed - registered)    # allowed but not registered
 
 issues = 0
@@ -541,7 +638,8 @@ if extras:
         print(f"         - {t}")
 
 if issues == 0:
-    print(f"    ✓  tool drift: {agent_name} allowlist matches plugin registry ({len(registered)} tools)")
+    required_count = len(registered - primary_exemptions)
+    print(f"    ✓  tool drift: {agent_name} allowlist matches plugin registry ({required_count} tools)")
 
 sys.exit(1 if issues > 0 else 0)
 PY
@@ -648,8 +746,14 @@ fix_config() {
 		return 1
 	fi
 
-	# Create config dir if needed
-	mkdir -p "$GLOBAL_CONFIG"
+	# Create config dir if needed.
+	if [ ! -d "$GLOBAL_CONFIG" ]; then
+		if [ "$DRY_RUN" = true ]; then
+			echo "    dry-run: would create config directory $GLOBAL_CONFIG"
+		else
+			mkdir -p "$GLOBAL_CONFIG"
+		fi
+	fi
 
 	# If no config file, create a minimal one (always .json for new files)
 	if [ ! -f "$GLOBAL_JSON" ]; then
@@ -719,7 +823,8 @@ fix_config() {
 	fi
 
 	# Remove canonical ADV_INSTRUCTIONS.md from global instructions if present.
-	# The protocol body is embedded into generated ADV provider prompts instead.
+	# Runtime ADV protocol is covered by the lean adv.md agent plus specs/tests,
+	# not by registering this reference file globally.
 	if json_array_contains "$tmp_json" ".instructions // []" "$ADV_INSTRUCTION_PATH"; then
 		jq --arg instr "$ADV_INSTRUCTION_PATH" \
 			'.instructions = (((.instructions // []) | if type == "array" then . else [.] end) | map(select(. != $instr)))' \
@@ -818,9 +923,11 @@ if [ ! -d "$ADV_SOURCE_PLUGIN_PATH" ]; then
 	echo "    ✗  Source plugin missing: $ADV_SOURCE_PLUGIN_PATH"
 	exit 1
 fi
+ensure_plugin_dist_fresh
 if [ "$DRY_RUN" = true ]; then
 	echo "    dry-run sync: $ADV_SOURCE_PLUGIN_PATH/ -> $ADV_RUNTIME_PLUGIN_PATH/"
 else
+	check_rsync || exit 1
 	mkdir -p "$ADV_RUNTIME_PLUGIN_PATH"
 	rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"
 	echo "    synced runtime plugin: $ADV_RUNTIME_PLUGIN_PATH"
@@ -829,7 +936,11 @@ fi
 # ---------------------------------------------------------------------------
 # 1. Ensure global command dir exists
 # ---------------------------------------------------------------------------
-mkdir -p "$GLOBAL_COMMANDS"
+if [ "$DRY_RUN" = true ]; then
+	echo "    dry-run: would ensure command directory $GLOBAL_COMMANDS"
+else
+	mkdir -p "$GLOBAL_COMMANDS"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Copy all adv-*.md commands from repo to global
@@ -887,9 +998,9 @@ done
 
 # ---------------------------------------------------------------------------
 # 4b. Remove stale global ADV_INSTRUCTIONS.md copy if it exists.
-#     The canonical copy lives at $REPO_ROOT/ADV_INSTRUCTIONS.md and is
-#     registered in opencode.json by deploy-local --fix. A duplicate in
-#     ~/.config/opencode/instructions/ wastes ~7K tokens per prompt.
+#     The canonical copy lives at $REPO_ROOT/ADV_INSTRUCTIONS.md as a repo/dev
+#     reference. A duplicate in ~/.config/opencode/instructions/ wastes prompt
+#     tokens for non-ADV agents.
 # ---------------------------------------------------------------------------
 STALE_GLOBAL_INSTR="$HOME/.config/opencode/instructions/ADV_INSTRUCTIONS.md"
 if [ -f "$STALE_GLOBAL_INSTR" ]; then
@@ -933,7 +1044,11 @@ fi
 # repo-owned overlay blocks. They should NOT be fully copied from this repo,
 # or user/global customization would be overwritten.
 # ---------------------------------------------------------------------------
-mkdir -p "$GLOBAL_AGENTS"
+if [ "$DRY_RUN" = true ]; then
+	echo "    dry-run: would ensure agent directory $GLOBAL_AGENTS"
+else
+	mkdir -p "$GLOBAL_AGENTS"
+fi
 agents_copied=0
 # Agents that must stay repo-local (not synced to global)
 REPO_LOCAL_ONLY="adv-tron.md"
@@ -1111,61 +1226,13 @@ else
 fi
 
 # ===========================================================================
-# Local binaries deployment
+# Archived local binaries
 # ===========================================================================
-# Deploy companion binaries (acp-mux, future tools) into ~/.local/bin/ as
-# REAL FILES — never symlinks. Symlinks across a dev/install boundary fail in
-# surprising ways (broken when dev path moves, ambiguous under realpath,
-# invisible to backup tools). Idempotent: only writes when source differs.
+# acp-mux used to deploy into ~/.local/bin. It is parked until upstream OpenCode
+# ACP fixes land, so deploy-local must not install or refresh it.
 echo ""
-echo "==> Deploying local binaries"
-
-LOCAL_BIN="$HOME/.local/bin"
-mkdir -p "$LOCAL_BIN"
-
-bin_deployed=0
-bin_skipped=0
-
-deploy_bin() {
-	local src="$1" name="$2"
-	local dst="$LOCAL_BIN/$name"
-	if [ ! -f "$src" ]; then
-		echo "    skip: $name (source missing at $src)"
-		return 0
-	fi
-
-	# If dst exists as a symlink, remove it — we deploy real files only.
-	local was_symlink=0
-	if [ -L "$dst" ]; then
-		was_symlink=1
-		if [ "$DRY_RUN" = true ]; then
-			echo "    dry-run remove symlink: $dst"
-		else
-			rm "$dst"
-			echo "    removed legacy symlink: $dst"
-		fi
-	fi
-
-	# If dst is a real file with identical content, skip (idempotent).
-	# Don't take this branch if dst was a symlink — that would falsely
-	# report "unchanged" because the symlink dereferences to the same file.
-	if [ "$was_symlink" = 0 ] && [ -f "$dst" ] && cmp -s "$src" "$dst"; then
-		((bin_skipped++)) || true
-		return 0
-	fi
-
-	if [ "$DRY_RUN" = true ]; then
-		echo "    dry-run deploy: $src -> $dst"
-	else
-		install -m 0755 "$src" "$dst"
-		echo "    deployed: $name"
-		((bin_deployed++)) || true
-	fi
-}
-
-deploy_bin "$REPO_ROOT/acp-mux/bin/acp-mux" "acp-mux"
-
-echo "    $bin_deployed binary(ies) deployed, $bin_skipped unchanged"
+echo "==> Skipping archived local binaries"
+echo "    acp-mux: archived; not deployed"
 
 # ===========================================================================
 # Summary
@@ -1176,7 +1243,7 @@ echo ""
 echo "    Commands in global: $(ls "$GLOBAL_COMMANDS"/adv-*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Agents in global:  $(ls "$GLOBAL_AGENTS"/*.md 2>/dev/null | wc -l | tr -d ' ')"
 echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l | tr -d ' ')"
-echo "    Local bins:        $(ls "$LOCAL_BIN"/acp-mux 2>/dev/null | wc -l | tr -d ' ')"
+echo "    Local bins:        acp-mux archived/skipped"
 
 if [ "$MODE" = "fix" ]; then
 	echo "    Config: patched (if needed)"

@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-vOeO_1",
+      "type": "pattern",
+      "content": "For task-id-only tools, keep ownership recovery structural: fast-path task→change index/disk lookup, then fallback to typed workflow task arrays over active changes. Co-locate reverse-index hydration with workflow-state cache materialization (`setCachedChange`) so gate re-entry, task add refreshes, and other workflow reads maintain the same invariant.",
+      "source_task": "tk-e893d6e4595a",
+      "recorded_at": "2026-05-22T04:54:05.270Z"
+    },
+    {
+      "id": "ws-i_362s",
+      "type": "gotcha",
+      "content": "Task lookup stale-index fallback must handle both null fast-path results and thrown fast-path lookups; an unavailable old workflow can otherwise block structural live-state resolution before the fallback scan runs.",
+      "source_task": "tk-e893d6e4595a",
+      "recorded_at": "2026-05-22T05:03:13.264Z"
+    }
+  ],
+  "count": 2
+}

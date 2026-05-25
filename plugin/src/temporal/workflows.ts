@@ -38,6 +38,7 @@ import {
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
   applyReflectionRecordedToState,
+  applySubagentReportSubmittedToState,
   applyTaskAddedToState,
   applyTaskAssignedToState,
   applyTaskBlockedToState,
@@ -46,6 +47,8 @@ import {
   applyTaskRemovedToState,
   applyTaskUpdatedToState,
   applyWisdomAddedToState,
+  applyWorktreeAttachedToState,
+  applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
   archiveChangeInChangeState,
@@ -228,6 +231,9 @@ const taskAssignedSignal = wf.defineSignal<
 const taskCompletedSignal = wf.defineSignal<
   [import("../types").TaskCompletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+const subagentReportSubmittedSignal = wf.defineSignal<
+  [import("../types").SubagentReportSubmittedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
 const taskBlockedSignal = wf.defineSignal<
   [import("../types").TaskBlockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskBlocked);
@@ -261,6 +267,12 @@ const worktreeCreatedSignal = wf.defineSignal<
 const worktreeDeletedSignal = wf.defineSignal<
   [import("../types").WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+const worktreeAutoManagedSignal = wf.defineSignal<
+  [import("../types").WorktreeAutoManagedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAutoManaged);
+const worktreeAttachedSignal = wf.defineSignal<
+  [import("../types").WorktreeAttachedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
 const conformanceLockedSignal = wf.defineSignal<
   [import("../types").ConformanceLockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);
@@ -303,14 +315,15 @@ const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
  * trying to replay the same input, fails again, and becomes
  * permanently unqueryable. A single bad input could brick an entire change.
  *
- * `wf.ApplicationFailure` is the Temporal-native way to signal
- * "this mutation failed for a domain reason, do not retry, surface to
- * the client". The workflow continues running normally; only the
- * specific call rejects with the error.
+ * `wf.ApplicationFailure` is the Temporal-native shape for "this mutation
+ * failed for a domain reason". Update-style callers observe that as a clean
+ * rejection. Signal callers are fire-and-forget, so this wrapper normalizes
+ * failure shape only; signal handlers should still avoid throwing wherever a
+ * local stuck/failed marker can preserve workflow queryability.
  *
- * Reliability rationale: this is defense-in-depth. Even if a future
- * domain validator throws, the workflow stays healthy and the agent
- * sees a clean error instead of a wedged change.
+ * Reliability rationale: this is defense-in-depth for update compatibility
+ * and diagnostics. It does not replace explicit stuck-state handling in
+ * signal-only mutation paths.
  *
  * Usage:
  * ```
@@ -346,9 +359,9 @@ function safeUpdateHandler<Args extends unknown[], R>(
       }
       return result;
     } catch (err) {
-      // Re-throw as ApplicationFailure (non-retryable) so callers observe a
-      // clean domain failure. ApplicationFailure does NOT
-      // count as a workflow task failure — the workflow keeps running.
+      // Re-throw as ApplicationFailure (non-retryable) so update callers
+      // observe a clean domain failure. Signal callers do not observe returns;
+      // signal handlers should prefer local stuck-state handling before throw.
       const message = err instanceof Error ? err.message : String(err);
       throw wf.ApplicationFailure.nonRetryable(
         message,
@@ -503,6 +516,15 @@ export async function changeWorkflow(
     }
     if (input.seedState.origin) {
       state.origin = input.seedState.origin;
+    }
+    if (typeof input.seedState.worktree_auto_managed === "boolean") {
+      state.worktree_auto_managed = input.seedState.worktree_auto_managed;
+    }
+    if (typeof input.seedState.target_worktree_path !== "undefined") {
+      state.target_worktree_path = input.seedState.target_worktree_path;
+    }
+    if (input.seedState.scope_worktrees) {
+      state.scope_worktrees = { ...input.seedState.scope_worktrees };
     }
   }
 
@@ -660,6 +682,14 @@ export async function changeWorkflow(
     });
 
   const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
+  // Patch rationale: discovery contract enforcement was added after legacy
+  // discovery gate histories already scheduled artifact inspection. During
+  // replay, histories without this marker must take the old no-contract-blocker
+  // branch so their command sequence still schedules inspectArtifactActivity.
+  // Deprecation plan: keep until pre-contract discovery gate histories are
+  // archived/closed and replay fixtures no longer cover that migration path;
+  // then replace the marker with wf.deprecatePatch before final removal.
+  const DISCOVERY_CONTRACT_READINESS_PATCH = "discovery-contract-readiness-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -697,6 +727,10 @@ export async function changeWorkflow(
   ): Promise<void> => {
     const readiness = evaluateGateReadiness(state, payload.gateId, {
       compatibilityReason: payload.compatibilityReason,
+      enforceDiscoveryContract:
+        payload.gateId === "discovery"
+          ? wf.patched(DISCOVERY_CONTRACT_READINESS_PATCH)
+          : true,
     });
     if (!readiness.ready) {
       markGateStuckForBlockers(payload, readiness.blockers);
@@ -856,6 +890,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    subagentReportSubmittedSignal,
+    signalMutation("subagentReportSubmitted", (payload) =>
+      applySubagentReportSubmittedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     taskBlockedSignal,
     signalMutation("taskBlocked", (payload) =>
       applyTaskBlockedToState(state, payload),
@@ -929,6 +969,18 @@ export async function changeWorkflow(
     worktreeDeletedSignal,
     signalMutation("worktreeDeleted", (payload) =>
       applyWorktreeDeletedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeAutoManagedSignal,
+    signalMutation("worktreeAutoManaged", (payload) =>
+      applyWorktreeAutoManagedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeAttachedSignal,
+    signalMutation("worktreeAttached", (payload) =>
+      applyWorktreeAttachedToState(state, payload),
     ),
   );
   wf.setHandler(
@@ -1141,6 +1193,11 @@ export async function changeWorkflow(
       worktrees: state.worktrees,
       conformance: state.conformance,
       archiveRequest: state.archiveRequest,
+      origin: state.origin,
+      worktree_auto_managed: state.worktree_auto_managed,
+      target_worktree_path: state.target_worktree_path,
+      scope_worktrees: state.scope_worktrees,
+      seenReportIds: state.seenReportIds,
     },
   };
   await wf.condition(wf.allHandlersFinished);

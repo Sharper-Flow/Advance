@@ -280,7 +280,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
     gate: "execution",
     requiresChangeId: true,
     prerequisites: ["adv-prep"],
-    successors: ["adv-review", "adv-harden"],
+    successors: ["adv-apply"],
     scope: {
       creates: [],
       reads: ["specs", "proposal", "tasks", "codebase"],
@@ -294,15 +294,15 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-task": {
     name: "adv-task",
     description:
-      "Fast-track a discussed change: synthesize contract, validate best practices, prep, and hand off",
+      "Fast-track small changes: assess spec-law impact, prep, and hand off",
     phase: "implementation",
     requiresChangeId: false,
     prerequisites: [],
-    successors: ["adv-review", "adv-harden"],
+    successors: ["adv-apply"],
     scope: {
       creates: ["change", "proposal", "tasks"],
       reads: ["specs", "codebase"],
-      modifies: [],
+      modifies: ["proposal", "design"],
       gates: ["proposal", "discovery", "design", "planning"],
     },
   },
@@ -379,8 +379,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   },
   "adv-slop-scan": {
     name: "adv-slop-scan",
-    description:
-      "Scan for AI slop patterns including defensive and nested code",
+    description: "Scan slop, deletion safety, and detector coverage",
     phase: "post-implementation",
     requiresChangeId: false,
     prerequisites: [],
@@ -422,7 +421,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-arch-scan": {
     name: "adv-arch-scan",
     description:
-      "Scan for architecture inconsistencies using deterministic tools, research fallback, and AI heuristic",
+      "Scan architecture stack packs, coverage, and heuristic fallbacks",
     phase: "utility",
     requiresChangeId: false,
     prerequisites: [],

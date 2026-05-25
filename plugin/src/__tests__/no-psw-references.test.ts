@@ -218,13 +218,8 @@ describe("PSW retirement denylist", () => {
       { regex: /\badv_task_tdd\b/, desc: "adv_task_tdd" },
     ];
 
-    // Exclude historical documents and decisions
-    const excludedFiles = [
-      "CHANGELOG.md",
-      "docs/decisions/",
-      "docs/audits/",
-      ".adv/archive/",
-    ];
+    // Exclude non-current history channels.
+    const excludedFiles = ["CHANGELOG.md", ".adv/archive/"];
 
     const docs = [
       "../README.md",

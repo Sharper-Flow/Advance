@@ -1,0 +1,918 @@
+{
+  "id": "fixSubagentContextContracts",
+  "title": "Fix subagent context contracts",
+  "status": "archived",
+  "created_at": "2026-05-24T22:17:16.447Z",
+  "tasks": [
+    {
+      "id": "tk-09a69e5f5fc2",
+      "title": "Add report context anchor contract helper and schema classification tests",
+      "type": "code",
+      "section": "Schema / test contracts",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-24T22:43:57.362Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:50:11.308Z",
+      "verification": "Implemented schema-adjacent sub-agent report packet anchor classification and tests. Verification passed: pnpm exec vitest run src/types/subagent-reports.test.ts (12 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "9294a0576961e996ee12bb3ef1b5b3eda083dfb7",
+      "completedAt": "2026-05-24T22:52:14.002Z",
+      "completed_at": "2026-05-24T22:52:14.002Z"
+    },
+    {
+      "id": "tk-d23496a47058",
+      "title": "Split review/harden scanner packets from remediation worker packets and pin asset tests",
+      "type": "code",
+      "section": "Command / agent packets",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-24T22:44:09.415Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-09a69e5f5fc2"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT3",
+          "DONT6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:52:54.087Z",
+      "verification": "Implemented review/harden scanner vs remediation packet split, updated engineer/reviewer prompt packet-field instructions, and pinned asset tests. RED evidence: asset tests failed before packet changes due missing scanner/remediation headings and anchors. GREEN evidence: pnpm exec vitest run src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts passed (101 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "checkpointSha": "2311127592c8c5ca3388351fab08ec4fe010e0e2",
+      "completedAt": "2026-05-24T22:56:01.802Z",
+      "completed_at": "2026-05-24T22:56:01.802Z"
+    },
+    {
+      "id": "tk-ffc0722da36f",
+      "title": "Update subagent-report and delegation specs for packet/lane contract",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-24T22:44:19.156Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C6",
+          "DONT1",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:56:19.271Z",
+      "verification": "RED: pnpm exec vitest run src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts failed with missing rq-subagentReports05 and missing packet_contracts. GREEN: same command passed (25 tests) after updating subagent-reports and delegation-defaults specs plus asset tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "48fcb4cca910c9dac63d9fda9c914023f0322622",
+      "completedAt": "2026-05-24T23:03:05.186Z",
+      "completed_at": "2026-05-24T23:03:05.186Z"
+    },
+    {
+      "id": "tk-f045bc8e7557",
+      "title": "Add durable agent-callable tool contract doc and globally synced skill guidance",
+      "type": "code",
+      "section": "Docs / skills",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-24T22:44:31.357Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "DONT5",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T23:03:25.703Z",
+      "verification": "RED: pnpm exec vitest run src/agent-tool-contracts-assets.test.ts failed while docs/agent-tool-contracts.md and skills/adv-agent-tool-contracts/SKILL.md were missing, then failed while adv-skill-author lacked the cross-link. GREEN: same command passed (4 tests) after adding durable doc, globally synced skill guidance, skill-author cross-link, and asset coverage.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/agent-tool-contracts.md",
+        "plugin/src/agent-tool-contracts-assets.test.ts",
+        "skills/adv-agent-tool-contracts/SKILL.md",
+        "skills/adv-skill-author/SKILL.md"
+      ],
+      "touched_files": [
+        "docs/agent-tool-contracts.md",
+        "plugin/src/agent-tool-contracts-assets.test.ts",
+        "skills/adv-agent-tool-contracts/SKILL.md",
+        "skills/adv-skill-author/SKILL.md"
+      ],
+      "checkpointSha": "e389fc3308c6a5300bf15ac2f17f5cd298d82bb1",
+      "completedAt": "2026-05-24T23:06:46.658Z",
+      "completed_at": "2026-05-24T23:06:46.658Z"
+    },
+    {
+      "id": "tk-bd62566b96ef",
+      "title": "Add adjacent subagent-report guardrails without changing ingest semantics",
+      "type": "code",
+      "section": "Adjacent guards",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-24T22:44:40.932Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "DONT2",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T23:06:59.255Z",
+      "verification": "RED: pnpm exec vitest run src/temporal/change-state.test.ts src/tools/subagent-report.test.ts failed because blockerSummary lacked an exhaustive agent switch and the consumer warning test initially exposed output-shape mismatch. GREEN: same command passed (19 tests) after adding an exhaustive switch/assertNever guard, consumer warning schema validation, and warning shape tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts"
+      ],
+      "checkpointSha": "c2f19ff5285e4e7c415bf3d3c3e7925e6a0c8e83",
+      "completedAt": "2026-05-24T23:12:07.072Z",
+      "completed_at": "2026-05-24T23:12:07.072Z"
+    },
+    {
+      "id": "tk-5e0da2aa39c3",
+      "title": "Run focused verification suite and full check",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-24T22:44:53.319Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d23496a47058"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ffc0722da36f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f045bc8e7557"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bd62566b96ef"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T23:12:35.727Z",
+      "verification": "Focused suite passed: pnpm exec vitest run src/types/subagent-reports.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts src/agent-tool-contracts-assets.test.ts src/temporal/change-state.test.ts src/tools/subagent-report.test.ts (8 files, 161 tests). First pnpm run check failed on Prettier formatting only; ran pnpm run format and reran. Final focused suite passed again (161 tests). Final pnpm run check passed: typecheck, isolation checks, lockfile policy, lint, format:check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/agent-tool-contracts-assets.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/agent-tool-contracts-assets.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "525bd3607478cadb7b18b6d3189acd3d7994c62e",
+      "completedAt": "2026-05-24T23:14:37.869Z",
+      "completed_at": "2026-05-24T23:14:37.869Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSubagentContextContracts",
+          "task_id": "tk-5e0da2aa39c3",
+          "attempt": 1,
+          "scope": "Read-only independent acceptance review of typed sub-agent context contracts, scanner-vs-worker lanes, strict ingest, specs/docs/skills, and structural tests",
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSubagentContextContracts",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "pnpm exec vitest run src/types/subagent-reports.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts src/agent-tool-contracts-assets.test.ts src/temporal/change-state.test.ts src/tools/subagent-report.test.ts",
+              "pnpm run check"
+            ],
+            "results": "pass",
+            "evidence": "Path preflight OK for all 21 referenced files. Reviewed schema/report ingest, command packets, agent prompts, delegation/subagent specs, docs/skills, and structural asset tests. Focused suite passed: 8 files, 161 tests. pnpm run check passed: typecheck, test-isolation check, lockfile policy, lint, format:check. git status --short produced no output after verification."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": []
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:22:24.564Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal checkpoint with reply `continue`; proposal validated and persisted.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/proposal.md",
+        "content_hash": "012cf97d474f1b0c07c9b0dc939b486134476f2820eef0b565645e6dc4ae79d4",
+        "non_whitespace_chars": 5596,
+        "checked_at": "2026-05-24T22:22:24.650Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:35:35.843Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by user reply `approve -- make sure we have a clear doc and add to relevant global skill so we dont make a similar mistake when building agent callable tools again`; agreement persisted and contract minted with AC1-AC8.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/agreement.md",
+        "content_hash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "non_whitespace_chars": 3854,
+        "checked_at": "2026-05-24T22:35:35.932Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:43:16.204Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted; leverage scout completed; independent validator verdict VALIDATED. Pre-prep validation reports CONTRACT_AC_UNCOVERED because tasks are not created until planning.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/design.md",
+        "content_hash": "3f9d084509a53164292d5bca9c8706dd40ea3f076ffbbcc91293c13b5ea2d526",
+        "non_whitespace_chars": 8180,
+        "checked_at": "2026-05-24T22:43:16.288Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:49:35.798Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph with reply `approve`. Task graph has 6 tasks, contract coverage validates, design validator VALIDATED."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-24T23:15:02.872Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six planned tasks completed with task checkpoints. Focused verification suite passed (161 tests) and pnpm run check passed after formatting-only remediation. adv_change_validate strict passed with non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-24T23:30:23.723Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with reply `approve`. Independent adv-reviewer verdict READY with 0 findings. Contract review matrix recorded 23 rows, 0 failing. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/acceptance.md",
+        "content_hash": "20ec54d065cbb3d9b551ec700608762957a7486ea521da0a061c857fe55cebb0",
+        "non_whitespace_chars": 5910,
+        "checked_at": "2026-05-24T23:30:24.050Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "conversation-2026-05-24-subagent-context-contract-gap"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+      "approvedAt": "2026-05-24T22:35:28.735Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv-reviewer` remediation packets include `WORKING DIRECTORY`, `CHANGE`, `TASK`, `PHASE`, and `ATTEMPT` anchors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv-engineer` typed-worker packets include `WORKING DIRECTORY`, `CHANGE`, `TASK`, and `ATTEMPT` anchors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-review` and `/adv-harden` scanner lanes remain non-persisted `explore` output contracts and do not claim `adv_subagent_report_submit` transport.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Asset/schema tests fail when report-required identity fields lack command-packet and agent-instruction coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`subagent-reports` and `delegation-defaults` specs pin `PHASE`, `TASK`, `ATTEMPT`, and scanner-vs-worker lane distinction where under-specified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Strict ingest remains intact: malformed persisted reports return `INVALID_REPORT`; unsupported reserved agents return `UNSUPPORTED_AGENT`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Focused asset/schema tests and `pnpm run check` pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "A clear durable doc is added for agent-callable tool / sub-agent context contracts, and the relevant globally synced skill guidance is updated so future tool/agent builders check schema, context packet, prompt, and tests together.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Use structural correctness first: Zod schemas, typed maps, parsers, asset tests, and spec anchors own enforcement where possible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not weaken required report schema fields or accept missing `phase`, `attempt`, or `task_id` for typed persisted reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep `explore` scanners useful as read-only/non-persisted analysis workers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve `adv-engineer` and `adv-reviewer` no-nested-delegation and no-ADV-orchestration-mutation boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Include only small adjacent guardrails found during discovery when local, low-risk, and same-pattern.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Update specs now when implementation reveals under-specified packet/report contracts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not redesign the full ADV delegation system.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add persisted report support for `adv-researcher` or `adv-tron` in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not migrate all scanner flows to typed persisted reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not introduce runtime packet generation unless design proves it simpler and safer than asset tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not rely on prose-only reminders as the recurrence-prevention mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not expand into unrelated review/harden verdict logic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Full delegation routing redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Persistent typed report schemas for `adv-researcher` and `adv-tron`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Changing OpenCode built-in skill source outside this repository if it is not repo-owned; if the most relevant built-in skill is not editable here, update the closest repo-owned globally synced ADV skill and cite the limitation in the doc.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e63eaf4ad15ed7a8b45e63bd597abe694a0328b44bc7a6909e359675d7f02790",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-24T23:20:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/adv-reviewer-asset.test.ts verifies Review/Harden Reviewer Remediation Packet anchors include WORKING DIRECTORY, CHANGE, TASK, PHASE, ATTEMPT.",
+          "notes": "Reviewer remediation packets pinned."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/adv-engineer-assets.test.ts and src/adv-reviewer-asset.test.ts verify adv-engineer worker packets include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT.",
+          "notes": "Engineer apply and remediation packets pinned."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/adv-reviewer-asset.test.ts scanner negative tests verify review/harden scanner packets do not mention adv_subagent_report_submit, ENGINEER_REPORT, or REVIEWER_REPORT.",
+          "notes": "Scanner lane remains non-persisted."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/types/subagent-reports.test.ts plus asset tests. Task RED evidence showed tests fail when required packet/spec anchors are missing.",
+          "notes": "Schema-required identity fields tied to packet/prompt tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/subagent-reports-spec-assets.test.ts and src/delegation-matrix.test.ts verify rq-subagentReports05 and packet_contracts for TASK, PHASE, ATTEMPT and scanner-vs-worker transport.",
+          "notes": "Specs updated and tested."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/tools/subagent-report.test.ts verifies INVALID_REPORT for malformed payloads and UNSUPPORTED_AGENT for reserved agents; strict schemas still require task_id, attempt, and reviewer phase.",
+          "notes": "Strict ingest preserved."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: focused suite 8 files/161 tests. Passed: pnpm run check (typecheck, test-isolation, lockfile policy, lint, format:check).",
+          "notes": "Verification complete."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Passed: src/agent-tool-contracts-assets.test.ts verifies docs/agent-tool-contracts.md, skills/adv-agent-tool-contracts/SKILL.md, adv-skill-author cross-link, and adv-* deploy sync.",
+          "notes": "Durable doc and globally synced skill guidance added."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses Zod schemas, typed packet anchor maps, spec JSON packet_contracts, and asset/schema tests. No heuristic ownership of ingest or persistence correctness added.",
+          "notes": "Structural correctness first."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "SupportedSubagentReport schemas still require task_id and attempt; ReviewerSubagentReport still requires phase. Tests assert malformed reports remain INVALID_REPORT.",
+          "notes": "Required fields not weakened."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review/harden scanner packets remain explore analysis lanes and tests assert no adv_subagent_report_submit or typed report transport in scanner packets.",
+          "notes": "Explore scanners preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-engineer and adv-reviewer prompt updates only add TASK/PHASE/ATTEMPT mapping; no nested delegation or ADV orchestration mutation permissions were added.",
+          "notes": "Worker boundaries preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Adjacent guardrails limited to exhaustive blockerSummary switch and consumer_warnings schema validation/tests in touched subagent-report subsystem.",
+          "notes": "Local low-risk guardrails only."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/subagent-reports/spec.json adds rq-subagentReports05; .adv/specs/delegation-defaults/spec.json adds packet_contracts and scanner-vs-worker law.",
+          "notes": "Specs updated now."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No delegation routing redesign; changes stay in packet contracts, schemas, tests, specs, docs, and small guardrails.",
+          "notes": "No full redesign."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "SupportedSubagentReportSchema still includes only adv-engineer and adv-reviewer; adv-researcher/adv-tron remain reserved and UNSUPPORTED_AGENT test remains.",
+          "notes": "No researcher/tron persistence."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Scanner packet tests and specs explicitly classify explore scanners as non_persisted_scanner; no scanner migrated to typed persisted reports.",
+          "notes": "No scanner migration."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No runtime packet generation added; recurrence prevention is asset/schema/spec tests and typed maps.",
+          "notes": "No runtime generator."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prose docs/skill were added, but enforcement is structural through tests, schemas, typed maps, and specs.",
+          "notes": "Not prose-only."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review/harden verdict logic unchanged; command edits are limited to scanner/remediation packet sections and context instructions.",
+          "notes": "No unrelated verdict changes."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No full delegation routing redesign was attempted.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No persistent typed schemas added for adv-researcher or adv-tron.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Repo-owned globally synced ADV skill guidance was added; no external/built-in OpenCode skill source was modified.",
+          "notes": "Out of scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv-reviewer` remediation packets include `WORKING DIRECTORY`, `CHANGE`, `TASK`, `PHASE`, and `ATTEMPT` anchors.",
+    "`adv-engineer` typed-worker packets include `WORKING DIRECTORY`, `CHANGE`, `TASK`, and `ATTEMPT` anchors.",
+    "`/adv-review` and `/adv-harden` scanner lanes remain non-persisted `explore` output contracts and do not claim `adv_subagent_report_submit` transport.",
+    "Asset/schema tests fail when report-required identity fields lack command-packet and agent-instruction coverage.",
+    "`subagent-reports` and `delegation-defaults` specs pin `PHASE`, `TASK`, `ATTEMPT`, and scanner-vs-worker lane distinction where under-specified.",
+    "Strict ingest remains intact: malformed persisted reports return `INVALID_REPORT`; unsupported reserved agents return `UNSUPPORTED_AGENT`.",
+    "Focused asset/schema tests and `pnpm run check` pass.",
+    "A clear durable doc is added for agent-callable tool / sub-agent context contracts, and the relevant globally synced skill guidance is updated so future tool/agent builders check schema, context packet, prompt, and tests together."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/proposal.md",
+      "updatedAt": "2026-05-24T22:31:01.222Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/agreement.md",
+      "updatedAt": "2026-05-24T22:35:16.340Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/design.md",
+      "updatedAt": "2026-05-24T22:42:58.832Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentContextContracts/executive-summary.md",
+      "updatedAt": "2026-05-24T23:21:56.001Z"
+    }
+  },
+  "lastSignalAt": "2026-05-24T23:30:23.723Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}

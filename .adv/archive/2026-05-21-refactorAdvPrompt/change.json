@@ -1,0 +1,240 @@
+{
+  "id": "refactorAdvPrompt",
+  "title": "Refactor ADV prompt",
+  "status": "archived",
+  "created_at": "2026-05-20T02:56:25.457Z",
+  "tasks": [
+    {
+      "id": "tk-4195eab61bcf",
+      "title": "Update advance-meta spec law for lean ADV runtime prompt",
+      "type": "code",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T00:13:13.424Z",
+      "started_at": "2026-05-21T00:21:15.445Z",
+      "completed_at": "2026-05-21T00:25:40.718Z",
+      "implementation_summary": "Changed `.adv/specs/advance-meta/spec.json` and `docs/specs/advance-meta.md` to remove whole-ADV_INSTRUCTIONS static-order requirements and add lean runtime prompt / coverage inventory / updated metric-plane requirements. Added a deploy-local asset test to prevent reintroducing full ADV_INSTRUCTIONS runtime append in spec law. Verification: `pnpm test -- src/deploy-local.test.ts` exit 0.",
+      "verification": "Updated advance-meta spec law and mirrored docs for lean ADV runtime prompt, coverage inventory, and coverage-first metric planes. Focused deploy-local test passed.",
+      "summary": "Changed `.adv/specs/advance-meta/spec.json` and `docs/specs/advance-meta.md` to remove whole-ADV_INSTRUCTIONS static-order requirements and add lean runtime prompt / coverage inventory / updated metric-plane requirements. Added a deploy-local asset test to prevent reintroducing full ADV_INSTRUCTIONS runtime append in spec law. Verification: `pnpm test -- src/deploy-local.test.ts` exit 0.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:25:40.718Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements/verifies AC5; respects single-agent, source-reference, no global instructions, no provider variants, no OMP, no caveman changes"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-c3dfece423b3",
+      "title": "Create runtime protocol coverage inventory and invariant tests",
+      "type": "code",
+      "section": "Coverage",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4195eab61bcf"
+        }
+      ],
+      "created_at": "2026-05-21T00:13:31.956Z",
+      "started_at": "2026-05-21T00:25:51.256Z",
+      "completed_at": "2026-05-21T00:28:59.640Z",
+      "implementation_summary": "Added `docs/adv-runtime-protocol-coverage.md` mapping critical runtime invariants to retained/enforced anchors and explicitly distinguishing it from `docs/prose-load-inventory.md`. Added `### Worktree Isolation Routing` to `.opencode/agents/adv.md` so the lean runtime prompt retains worktree-isolation guidance. Added deploy-local asset assertions for coverage rows and core runtime anchors. Verification: `pnpm test -- src/deploy-local.test.ts` exit 0.",
+      "verification": "Added runtime protocol coverage inventory, lean adv.md worktree isolation anchor, and invariant coverage test. Focused deploy-local test passed.",
+      "summary": "Added `docs/adv-runtime-protocol-coverage.md` mapping critical runtime invariants to retained/enforced anchors and explicitly distinguishing it from `docs/prose-load-inventory.md`. Added `### Worktree Isolation Routing` to `.opencode/agents/adv.md` so the lean runtime prompt retains worktree-isolation guidance. Added deploy-local asset assertions for coverage rows and core runtime anchors. Verification: `pnpm test -- src/deploy-local.test.ts` exit 0.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:28:59.640Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required",
+        "contract_refs": "implements/verifies AC2 AC3 AC4 AC8; respects runtime protocol preservation constraints"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-f1317e662d5e",
+      "title": "Refactor deploy-local ADV runtime agent assembly",
+      "type": "code",
+      "section": "Sync",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c3dfece423b3"
+        }
+      ],
+      "created_at": "2026-05-21T00:13:45.937Z",
+      "started_at": "2026-05-21T00:29:21.760Z",
+      "completed_at": "2026-05-21T00:33:33.769Z",
+      "implementation_summary": "Updated `scripts/deploy-local.sh` so `sync_adv_runtime_agent` reads only `.opencode/agents/adv.md`, writes it through a temp file and atomic replace, and no longer requires/concatenates `ADV_INSTRUCTIONS.md` as runtime payload. Updated overlay/deploy tests to assert lean global adv.md and no full ADV_INSTRUCTIONS markers. Verification: `pnpm test -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts` exit 0.",
+      "verification": "Refactored deploy-local ADV runtime assembly to write lean canonical adv.md only, atomically, while preserving stale provider cleanup. Focused overlay/deploy tests passed.",
+      "summary": "Updated `scripts/deploy-local.sh` so `sync_adv_runtime_agent` reads only `.opencode/agents/adv.md`, writes it through a temp file and atomic replace, and no longer requires/concatenates `ADV_INSTRUCTIONS.md` as runtime payload. Updated overlay/deploy tests to assert lean global adv.md and no full ADV_INSTRUCTIONS markers. Verification: `pnpm test -- src/overlay-sync-assets.test.ts src/deploy-local.test.ts` exit 0.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:33:33.769Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements/verifies AC1 AC6; respects no hand-edited global files and single-agent provider-hint constraints"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-d9d81ca2f038",
+      "title": "Update runtime prompt docs and reference-boundary wording",
+      "type": "code",
+      "section": "Docs/runtime prompt",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f1317e662d5e"
+        }
+      ],
+      "created_at": "2026-05-21T00:14:07.983Z",
+      "started_at": "2026-05-21T00:38:51.160Z",
+      "completed_at": "2026-05-21T00:42:00.887Z",
+      "implementation_summary": "Updated `docs/provider-agent-assembly.md`, `docs/provider-adv-smoke-checklist.md`, `AGENTS.md`, and `ADV_INSTRUCTIONS.md` so they no longer describe global adv.md as canonical body plus full ADV_INSTRUCTIONS append. Documented lean canonical runtime prompt, reference-only ADV_INSTRUCTIONS boundary, coverage inventory, provider hint injection, and restart/deploy implications. Added docs assertion to deploy-local tests. Verification: `pnpm test -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts` exit 0.",
+      "verification": "Updated provider/runtime docs and smoke checklist to describe lean canonical runtime prompt plus reference protocol coverage. Focused deploy/overlay tests passed.",
+      "summary": "Updated `docs/provider-agent-assembly.md`, `docs/provider-adv-smoke-checklist.md`, `AGENTS.md`, and `ADV_INSTRUCTIONS.md` so they no longer describe global adv.md as canonical body plus full ADV_INSTRUCTIONS append. Documented lean canonical runtime prompt, reference-only ADV_INSTRUCTIONS boundary, coverage inventory, provider hint injection, and restart/deploy implications. Added docs assertion to deploy-local tests. Verification: `pnpm test -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts` exit 0.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:42:00.887Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements/verifies AC2 AC3 AC6 AC8; respects source-reference and restart-documentation constraints"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-8d29c753e3ab",
+      "title": "Update provider prompt-size metrics to coverage-first planes",
+      "type": "code",
+      "section": "Metrics",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4195eab61bcf"
+        }
+      ],
+      "created_at": "2026-05-21T00:14:08.084Z",
+      "started_at": "2026-05-21T00:33:44.100Z",
+      "completed_at": "2026-05-21T00:38:42.367Z",
+      "implementation_summary": "Changed `scripts/provider-eval.ts` to compose lean runtime prompts without embedding `ADV_INSTRUCTIONS.md`, while still reporting the full reference protocol as `adv_reference_protocol`. Replaced old `canonical_adv_prompt`/`adv_protocol_instructions` model with `lean_adv_runtime_prompt`, `adv_reference_protocol`, `adv_dynamic_system_block_estimate`, `caveman_voice_contract_allowance`, `provider_hint`, `selected_agent_runtime_prompt`, and `avoided_provider_variant_duplication`. Updated provider docs, smoke checklist, and deploy-local tests. Verification: `pnpm test -- src/deploy-local.test.ts` exit 0.",
+      "verification": "Updated provider eval metric planes and docs/tests to coverage-first lean/reference/dynamic/caveman metrics. Focused deploy-local test passed.",
+      "summary": "Changed `scripts/provider-eval.ts` to compose lean runtime prompts without embedding `ADV_INSTRUCTIONS.md`, while still reporting the full reference protocol as `adv_reference_protocol`. Replaced old `canonical_adv_prompt`/`adv_protocol_instructions` model with `lean_adv_runtime_prompt`, `adv_reference_protocol`, `adv_dynamic_system_block_estimate`, `caveman_voice_contract_allowance`, `provider_hint`, `selected_agent_runtime_prompt`, and `avoided_provider_variant_duplication`. Updated provider docs, smoke checklist, and deploy-local tests. Verification: `pnpm test -- src/deploy-local.test.ts` exit 0.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:38:42.367Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "implements/verifies AC7 AC8; respects no hard prompt cap and no caveman behavior change"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-89525aa9c6d5",
+      "title": "Run integrated verification and deploy checks",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4195eab61bcf"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c3dfece423b3"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-f1317e662d5e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-d9d81ca2f038"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8d29c753e3ab"
+        }
+      ],
+      "created_at": "2026-05-21T00:14:24.329Z",
+      "started_at": "2026-05-21T00:42:09.462Z",
+      "completed_at": "2026-05-21T00:53:19.477Z",
+      "implementation_summary": "Ran final verification and review remediation. Evidence: `pnpm test -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts` exit 0; `pnpm run check` exit 0; `bash -n scripts/deploy-local.sh` exit 0; `pnpm run build` exit 0; `scripts/deploy-local.sh --check` exit 0 after build. Independent reviewer initially found two issues (coverage statuses still planned; AGENTS overlay wording contradiction) and two stale comments. Fixed all, reran focused tests/check/deploy check, and targeted reviewer returned APPROVED with no findings. No restarted OpenCode smoke was performed per agreement; docs note restart implications.",
+      "verification": "Integrated verification and post-review remediation passed. Reviewer re-check approved with no findings.",
+      "summary": "Ran final verification and review remediation. Evidence: `pnpm test -- src/deploy-local.test.ts src/overlay-sync-assets.test.ts` exit 0; `pnpm run check` exit 0; `bash -n scripts/deploy-local.sh` exit 0; `pnpm run build` exit 0; `scripts/deploy-local.sh --check` exit 0 after build. Independent reviewer initially found two issues (coverage statuses still planned; AGENTS overlay wording contradiction) and two stale comments. Fixed all, reran focused tests/check/deploy check, and targeted reviewer returned APPROVED with no findings. No restarted OpenCode smoke was performed per agreement; docs note restart implications.",
+      "filesTouched": [],
+      "completedAt": "2026-05-21T00:53:19.477Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed",
+        "contract_refs": "verifies AC1-AC9; respects all constraints and avoidances"
+      },
+      "touched_files": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T23:05:42.086Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved moving forward with 'lets execute on refactorAdvPrompt' after proposal validation; proposal contains scope, must-not constraints, error handling, discovery agenda, and protocol-preservation requirement."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:01:49.216Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings and approved agreement are present. User approved AC/agreement (`approve`) before resume; current validation passes with expected pre-planning warnings only."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:12:24.306Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Mandatory independent validator returned CAUTION with planning-stage refinements only; no unresolved conflict, no user-value tradeoff, and no contract-compromise risk identified."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:21:00.362Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep task graph with reply `approve`. Six tasks created with TDD intent and dependencies; strict validation passed with only expected NO_DELTAS warning before spec task runs."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:44:05.810Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six execution tasks are done. Verification passed: focused deploy/overlay tests, pnpm run check, pnpm run build, bash -n scripts/deploy-local.sh, and scripts/deploy-local.sh --check. Strict validation passed with one non-blocking NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:00:10.603Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Review verdict APPROVED after remediation; verification passed: focused tests, pnpm run check, pnpm run build, bash -n deploy script, deploy-local --check, targeted reviewer re-check approved."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-21T03:03:39.412Z",
+      "completed_by": "agent",
+      "approval_evidence": "User Tier B sign-off: 'sign off'. All verification passed; acceptance approved; reviewer APPROVED."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

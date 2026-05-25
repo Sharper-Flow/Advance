@@ -38,6 +38,11 @@ const mocks = vi.hoisted(() => {
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     fetchChangeContextTicker: vi.fn(async () => null),
+    resolveGitSessionContext: vi.fn(() => ({
+      isWorktree: true,
+      isMainCheckout: false,
+      mainCheckoutPath: "/repo/main",
+    })),
     withTargetPathStore: vi.fn(async (_input, fn) =>
       fn({
         context: {
@@ -59,6 +64,10 @@ const mocks = vi.hoisted(() => {
       trustSource: context.trustSource,
       stateMode: context.stateMode,
     })),
+    resolveTargetAwareMutationCwd: vi.fn(
+      ({ store, target_path }: { store: Store; target_path?: string }) =>
+        target_path ? store.paths.root : process.cwd(),
+    ),
   };
 });
 
@@ -73,6 +82,7 @@ vi.mock("./target-project", async () => {
     withTargetPathStore: mocks.withTargetPathStore,
     withOptionalTargetPathStore: mocks.withOptionalTargetPathStore,
     formatTargetProjectContext: mocks.formatTargetProjectContext,
+    resolveTargetAwareMutationCwd: mocks.resolveTargetAwareMutationCwd,
     appendTargetProjectContextOutput: vi.fn((output: string) => output),
   };
 });
@@ -102,10 +112,15 @@ vi.mock("../storage/context-snapshot-fetch", () => ({
   fetchChangeContextTicker: mocks.fetchChangeContextTicker,
 }));
 
+vi.mock("../utils/git-session", () => ({
+  resolveGitSessionContext: mocks.resolveGitSessionContext,
+}));
+
 function createMockStore(
   overrides: {
     tasks?: Partial<Store["tasks"]>;
     gates?: import("../types").Gates;
+    change?: import("../types").Change;
   } = {},
 ): Store {
   const defaultGates = {
@@ -117,6 +132,23 @@ function createMockStore(
     acceptance: { status: "pending" },
     release: { status: "pending" },
   } as import("../types").Gates;
+
+  const defaultChange = {
+    id: "test-change",
+    title: "Test Change",
+    status: "draft",
+    created_at: "2026-01-01T00:00:00Z",
+    tasks: [
+      {
+        id: "tk-current",
+        title: "Current Task",
+        status: "in_progress",
+      },
+    ],
+    deltas: {},
+    wisdom: [],
+    gates: overrides.gates ?? defaultGates,
+  } as unknown as import("../types").Change;
 
   return {
     paths: {
@@ -130,18 +162,22 @@ function createMockStore(
     flush: vi.fn(),
     specs: {} as Store["specs"],
     changes: {
+      list: vi.fn(async () => ({
+        changes: [
+          {
+            id: "test-change",
+            title: "Test Change",
+            status: "active",
+            created_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+      })),
       get: vi.fn(async () => ({
         success: true,
-        data: {
-          tasks: [
-            {
-              id: "tk-current",
-              title: "Current Task",
-              status: "in_progress",
-            },
-          ],
-        },
+        data: overrides.change ?? defaultChange,
       })),
+      save: vi.fn(async () => undefined),
+      refresh: vi.fn(async () => undefined),
     } as unknown as Store["changes"],
     tasks: {
       show: vi.fn(async (taskId: string) => ({
@@ -185,6 +221,13 @@ function createMockStore(
 describe("task tools — signal/query adapters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.querySignal.mockReset();
+    mocks.querySignal.mockResolvedValue([]);
+    mocks.resolveGitSessionContext.mockImplementation(() => ({
+      isWorktree: true,
+      isMainCheckout: false,
+      mainCheckoutPath: "/repo/main",
+    }));
     mocks.targetStore.gates.get.mockResolvedValue({
       proposal: { status: "done" },
       discovery: { status: "done" },
@@ -237,6 +280,64 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("Task not found");
+    });
+
+    test("falls back to active workflow task scan when task reverse index is stale", async () => {
+      const fallbackTask = {
+        id: "tk-reentry",
+        title: "Re-entry Task",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: { show: vi.fn(async () => null) },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce(fallbackTask);
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-reentry" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.changeId).toBe("test-change");
+      expect(parsed.task).toEqual(fallbackTask);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+      expect(mocks.querySignal).toHaveBeenCalledTimes(2);
+      expect(mocks.querySignal.mock.calls[0]?.slice(2)).toEqual([
+        undefined,
+        undefined,
+      ]);
+      expect(mocks.querySignal.mock.calls[1]?.[2]).toBe("tk-reentry");
+    });
+
+    test("falls back to active workflow task scan when stale fast path throws", async () => {
+      const fallbackTask = {
+        id: "tk-reentry-throw",
+        title: "Re-entry Task From Live State",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async () => Promise.reject(new Error("stale workflow"))),
+        },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce(fallbackTask);
+
+      const result = await taskTools.adv_task_show.execute(
+        { taskId: "tk-reentry-throw" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.changeId).toBe("test-change");
+      expect(parsed.task).toEqual(fallbackTask);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -316,11 +417,76 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
+        sessionId: "agent",
+      });
+    });
+
+    test("uses active workflow task scan fallback before mutating stale-index task", async () => {
+      const fallbackTask = {
+        id: "tk-reentry",
+        title: "Re-entry Task",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: { show: vi.fn(async () => null) },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce({ ...fallbackTask, status: "in_progress" });
+
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-reentry", status: "in_progress" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[2]).toBe("test-change");
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-reentry",
+        sessionId: "agent",
+      });
+    });
+
+    test("uses active workflow task scan fallback before mutating when stale fast path throws", async () => {
+      const fallbackTask = {
+        id: "tk-reentry-throw",
+        title: "Re-entry Task From Live State",
+        status: "pending",
+      };
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async () => Promise.reject(new Error("stale workflow"))),
+        },
+      });
+      mocks.querySignal
+        .mockResolvedValueOnce([fallbackTask])
+        .mockResolvedValueOnce({ ...fallbackTask, status: "in_progress" });
+
+      const result = await taskTools.adv_task_update.execute(
+        { taskId: "tk-reentry-throw", status: "in_progress" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(store.changes.list).toHaveBeenCalledTimes(1);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[2]).toBe("test-change");
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-reentry-throw",
         sessionId: "agent",
       });
     });
@@ -338,6 +504,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -369,12 +536,235 @@ describe("task tools — signal/query adapters", () => {
       });
     });
 
-    test("routes done status to taskCompletedSignal with verification text", async () => {
-      const store = createMockStore();
+    test("patches contract_refs on an already done task without recompleting it", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "done",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
       mocks.querySignal.mockResolvedValue({
         id: "tk-abc",
         status: "done",
+        contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
       });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[3]).toBeDefined();
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        partial: {
+          status: "done",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+        },
+      });
+      expect(signalCall[4]).not.toHaveProperty("verification");
+    });
+
+    // rq-extend-poisoned-recovery AC1
+    test("recovers via disk projection when workflow is poisoned and recoveryMode=poisoned_history", async () => {
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Done Task",
+              status: "pending",
+              type: "code",
+              section: "Implementation",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        } as import("../types").Change,
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+      (mocks.handleMock as { describe?: unknown }).describe = vi.fn(
+        async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }),
+      );
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          implementation_summary: "Recovered legacy work",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.reconciliationWarning).toContain("not healed");
+      expect(store.changes.save).toHaveBeenCalled();
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    // rq-extend-poisoned-recovery AC9: no disk-only recovery in normal mode.
+    test("rejects done in normal mode before attempting disk fallback", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("adv_task_checkpoint");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("does not expose adv_task_completed as a second public completion path", () => {
+      expect(
+        (taskTools as Record<string, unknown>).adv_task_completed,
+      ).toBeUndefined();
+    });
+
+    // rq-extend-poisoned-recovery validation
+    test("rejects poisoned_history mode without precise evidence", async () => {
+      const store = createMockStore();
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence: "some vague excuse",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("precise poisoned-history evidence");
+    });
+
+    test("rejects task contract_refs that do not reference the change contract", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Done Task",
+              status: "done",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      vi.mocked(store.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Known contract item",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "done",
+          contract_refs: { implements: ["AC404"], verifies: ["AC1"] },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("unknown contract item");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("rejects first-time done status outside recovery mode", async () => {
+      const store = createMockStore();
 
       const result = await taskTools.adv_task_update.execute(
         {
@@ -387,23 +777,13 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        verification: "Focused tests passed",
-        summary: "Implemented signal path",
-      });
-      expect(signalCall[4]).not.toHaveProperty("partial");
+      expect(parsed.error).toContain("adv_task_checkpoint");
+      expect(parsed.code).toBe("TASK_DONE_REQUIRES_CHECKPOINT");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
-    test("extracts structured_output from <adv-output> in implementation_summary when done", async () => {
+    test("does not extract structured_output by completing through adv_task_update", async () => {
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({
-        id: "tk-abc",
-        status: "done",
-      });
 
       const implementationSummary = `Implemented feature.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/foo.ts", "linesAdded": 10}],\n  "testsAdded": 2\n}\n</adv-output>`;
 
@@ -418,16 +798,8 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        structured_output: {
-          filesChanged: [{ path: "src/foo.ts", linesAdded: 10 }],
-          testsAdded: 2,
-        },
-      });
+      expect(parsed.error).toContain("adv_task_checkpoint");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("rejects direct cancellation", async () => {
@@ -442,6 +814,47 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.error).toContain("adv_task_cancel");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
+
+    test("routes target_path task update isolation through target store root", async () => {
+      const store = createMockStore();
+      mocks.targetStore.tasks.show.mockResolvedValue({
+        task: { id: "tk-abc", title: "Target task", status: "in_progress" },
+        changeId: "test-change",
+      });
+      mocks.targetStore.changes.get.mockResolvedValue({
+        success: true,
+        data: { id: "test-change", tasks: [] },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "done",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          target_path: "/tmp/target",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.resolveTargetAwareMutationCwd).toHaveBeenCalledWith({
+        store: mocks.targetStore,
+        target_path: "/tmp/target",
+      });
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        mocks.targetStore,
+        "test-change",
+        expect.anything(),
+        expect.objectContaining({ taskId: "tk-abc" }),
+      );
+    });
   });
 
   describe("adv_task_add", () => {
@@ -455,6 +868,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toBeDefined();
       expect(parsed.task).toBeDefined();
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
@@ -494,6 +908,12 @@ describe("task tools — signal/query adapters", () => {
     test("routes target_path task creation through the target store", async () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue([]);
+      vi.spyOn(process, "cwd").mockReturnValue("/repo/main");
+      mocks.resolveGitSessionContext.mockImplementation((cwd: string) => ({
+        isWorktree: cwd === "/tmp/target",
+        isMainCheckout: cwd === "/repo/main",
+        mainCheckoutPath: "/repo/main",
+      }));
 
       const result = await taskTools.adv_task_add.execute(
         {
@@ -507,6 +927,7 @@ describe("task tools — signal/query adapters", () => {
       );
 
       const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
       expect(parsed.taskId).toBeDefined();
       expect(parsed._projectContext).toMatchObject({ root: "/tmp/target" });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
@@ -520,6 +941,14 @@ describe("task tools — signal/query adapters", () => {
         expect.any(Function),
       );
       expect(mocks.targetStore.gates.get).toHaveBeenCalledWith("target-change");
+      expect(mocks.resolveGitSessionContext).toHaveBeenCalledWith(
+        "/tmp/target",
+        undefined,
+      );
+      expect(mocks.resolveTargetAwareMutationCwd).toHaveBeenCalledWith({
+        store: mocks.targetStore,
+        target_path: "/tmp/target",
+      });
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
         expect.anything(),
         mocks.targetStore,
@@ -530,61 +959,93 @@ describe("task tools — signal/query adapters", () => {
         }),
       );
     });
-  });
 
-  describe("adv_task_completed", () => {
-    test("fires taskCompletedSignal with verification", async () => {
+    test("attaches contract_refs to added tasks", async () => {
       const store = createMockStore();
 
-      const result = await taskTools.adv_task_completed.execute(
+      const result = await taskTools.adv_task_add.execute(
         {
-          taskId: "tk-abc",
-          verification: "Tests passed",
-          summary: "Implemented feature",
-          filesTouched: ["src/foo.ts"],
-          checkpointSha: "abc123",
+          changeId: "test-change",
+          content: "Implement AC1",
+          contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
         },
         store,
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        verification: "Tests passed",
-        summary: "Implemented feature",
-        filesTouched: ["src/foo.ts"],
-        checkpointSha: "abc123",
+      expect(parsed.task.contract_refs).toEqual({
+        implements: ["AC1"],
+        verifies: ["AC1"],
       });
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        store,
+        "test-change",
+        expect.anything(),
+        expect.objectContaining({
+          task: expect.objectContaining({
+            contract_refs: { implements: ["AC1"], verifies: ["AC1"] },
+          }),
+        }),
+      );
     });
 
-    test("extracts structured_output from <adv-output> in verification", async () => {
+    test("rejects added task contract_refs that do not reference the change contract", async () => {
       const store = createMockStore();
+      vi.mocked(store.changes.get).mockResolvedValue({
+        success: true,
+        data: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Known contract item",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
 
-      const verification = `Tests passed.\n\n<adv-output>\n{\n  "filesChanged": [{"path": "src/bar.ts", "linesAdded": 5}],\n  "testsAdded": 1\n}\n</adv-output>`;
-
-      const result = await taskTools.adv_task_completed.execute(
+      const result = await taskTools.adv_task_add.execute(
         {
-          taskId: "tk-abc",
-          verification,
-          summary: "Implemented feature",
+          changeId: "test-change",
+          content: "Implement AC404",
+          contract_refs: { implements: ["AC404"] },
         },
         store,
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-      expect(signalCall[4]).toMatchObject({
-        taskId: "tk-abc",
-        structured_output: {
-          filesChanged: [{ path: "src/bar.ts", linesAdded: 5 }],
-          testsAdded: 1,
-        },
-      });
+      expect(parsed.error).toContain("unknown contract item");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
   });
 

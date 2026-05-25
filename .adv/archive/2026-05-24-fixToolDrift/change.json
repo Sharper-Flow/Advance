@@ -1,0 +1,468 @@
+{
+  "id": "fixToolDrift",
+  "title": "Fix tool drift",
+  "status": "archived",
+  "created_at": "2026-05-24T22:45:16.555Z",
+  "tasks": [
+    {
+      "id": "tk-d415ea14001a",
+      "title": "Add deploy-local drift tests for leaf-only primary-agent exclusion",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-24T22:47:54.415Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:48:39.772Z",
+      "verification": "RED evidence captured: `pnpm test -- src/deploy-local.test.ts` exits 1 because `LEAF_ONLY_TOOLS` and `primary_exemptions` are absent from deploy-local drift validation. Expected failure for TDD test task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added deploy-local tests proving primary agents remain `mode: primary`, do not expose `adv_subagent_report_submit`, and requiring script support for `LEAF_ONLY_TOOLS`, `agent_mode == \"primary\"`, and strict ordinary missing-tool validation. RED run fails as expected before implementation.",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "checkpointSha": "2e508e7cc112f271865fb1785865ba122acb29a8",
+      "completedAt": "2026-05-24T22:50:17.724Z",
+      "completed_at": "2026-05-24T22:50:17.724Z",
+      "notes": "RED deploy-local drift tests added. Checkpoint commit 2e508e7 records tests.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-24T22:50:24.765Z"
+    },
+    {
+      "id": "tk-b1b10675afd2",
+      "title": "Implement role-aware deploy-local tool drift validation",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-24T22:48:04.113Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d415ea14001a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T22:50:32.125Z",
+      "verification": "GREEN verification: `pnpm test -- src/deploy-local.test.ts` passed; `pnpm exec vitest run src/adv-engineer-assets.test.ts` passed; `pnpm exec vitest run src/adv-reviewer-asset.test.ts` passed; `./scripts/deploy-local.sh --check` passed with no tool-drift warnings; `bash -n scripts/deploy-local.sh` passed; `pnpm run format:check` passed; `pnpm run check` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated `check_tool_drift()` to parse frontmatter `mode`, define `LEAF_ONLY_TOOLS = {\"adv_subagent_report_submit\"}`, and subtract leaf-only tools from required registered tools only for `mode: primary`. Extras detection and ordinary missing-tool failures remain unchanged. Verified primary `adv.md`/`adv-atc.md` no longer report false-positive drift and subagent asset tests still pass.",
+      "filesTouched": [
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "7ccdb183f074a64fe03b364aba330357a4c5109b",
+      "completedAt": "2026-05-24T22:56:33.728Z",
+      "completed_at": "2026-05-24T22:56:33.728Z",
+      "notes": "Implemented role-aware drift validation and verified. Checkpoint commit 7ccdb18 records script fix.",
+      "error_recovery": {
+        "last_error": "Initial combined `pnpm test -- ...` invocations surfaced unrelated tests because the package script/runner selected broader suites; exact `pnpm exec vitest run <file>` reruns isolated and passed the intended asset files.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Combined `pnpm test -- src/adv-engineer-assets.test.ts` / reviewer runs surfaced unrelated failures in concurrent-signaling/status/worktree tests.",
+            "diagnosis": "The selected command path did not isolate to intended asset files; failures were outside changed files and not reproduced under exact `pnpm exec vitest run <file>`.",
+            "fix_tried": "Reran exact files with `pnpm exec vitest run src/adv-engineer-assets.test.ts` and `pnpm exec vitest run src/adv-reviewer-asset.test.ts`.",
+            "strategy_label": "exact-vitest-file-run",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-24T22:55:26.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-24T22:56:48.087Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixToolDrift",
+          "task_id": "tk-b1b10675afd2",
+          "attempt": 1,
+          "scope": "Review changed files for role-aware deploy-local tool drift validation leaf-only submit exemption",
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixToolDrift",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git diff --name-status trunk...HEAD",
+              "test -e plugin/src/deploy-local.test.ts; test -e scripts/deploy-local.sh",
+              "git diff --find-renames trunk...HEAD -- plugin/src/deploy-local.test.ts scripts/deploy-local.sh",
+              "pnpm --dir plugin exec vitest run src/deploy-local.test.ts",
+              "pnpm --dir plugin exec vitest run src/adv-engineer-assets.test.ts",
+              "pnpm --dir plugin exec vitest run src/adv-reviewer-asset.test.ts",
+              "bash -n scripts/deploy-local.sh",
+              "./scripts/deploy-local.sh --check"
+            ],
+            "results": "pass",
+            "evidence": "Changed files limited to plugin/src/deploy-local.test.ts and scripts/deploy-local.sh. Path preflight OK. Focused deploy-local test passed: 1 file, 68 tests. adv-engineer asset test passed: 1 file, 22 tests. adv-reviewer asset test passed: 1 file, 77 tests. bash -n produced no output/exit 0. deploy-local --check passed and reported adv.md and adv-atc.md tool drift matches plugin registry with 54 required tools."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Context packet omitted ATTEMPT and explicit review task_id; report uses attempt 1 and attaches to implementation task tk-b1b10675afd2 for durable recovery.",
+            "Tests added are mostly static script-content checks rather than executing synthetic drift-failure fixtures, but script inspection plus deploy-local --check verification support agreement coverage."
+          ],
+          "required_main_agent_actions": [
+            "Record acceptance evidence for fixToolDrift if satisfied with independent APPROVE verdict."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --name-status trunk...HEAD"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: test -e plugin/src/deploy-local.test.ts; test -e scripts/deploy-local.sh"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --find-renames trunk...HEAD -- plugin/src/deploy-local.test.ts scripts/deploy-local.sh"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/deploy-local.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/adv-engineer-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/adv-reviewer-asset.test.ts"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-p3N1lx",
+      "type": "pattern",
+      "content": "Tool-drift validation should compare registry inventory against per-agent capability contracts, not assume every registered ADV tool belongs in every primary agent allowlist. Use structural role signals like frontmatter `mode` plus named capability sets (e.g. leaf-only tools) to avoid false positives without weakening ordinary drift checks.",
+      "source_task": "tk-b1b10675afd2",
+      "recorded_at": "2026-05-24T22:56:54.320Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:45:37.907Z",
+      "completed_by": "agent",
+      "approval_evidence": "User instructed `fix` after diagnosis that `adv_subagent_report_submit` is leaf-subagent-only and deploy-local drift warning is validator overreach. Proposal persisted with scope, success criteria, and error handling.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/proposal.md",
+        "content_hash": "1a9e81f1719663ea1f98324b32176db4594cdef683509788d724f532cd241c1c",
+        "non_whitespace_chars": 1229,
+        "checked_at": "2026-05-24T22:45:37.990Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:45:51.661Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement persisted and typed contract minted. Narrow scope: role-aware deploy-local drift validation without adding leaf-only submit tool to primary agent allowlists.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/agreement.md",
+        "content_hash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "non_whitespace_chars": 952,
+        "checked_at": "2026-05-24T22:45:51.721Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:47:37.361Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Independent validator returned APPROVE with refinements; accepted frontmatter `mode: primary` detection and named `LEAF_ONLY_TOOLS` structural set. No conflict or product tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/design.md",
+        "content_hash": "02dd26cc6b5ba23037b25c9c92ebd6d69d6da4fdbebfa934862d7d45872da6ac",
+        "non_whitespace_chars": 1435,
+        "checked_at": "2026-05-24T22:47:37.414Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:48:08.877Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep task graph approved by user instruction `fix`: 2 tasks, RED deploy-local drift tests then role-aware validator implementation. Scope is narrow and matches diagnosed false-positive."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-24T22:57:01.331Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 2 planned tasks completed with checkpoint commits 2e508e7 and 7ccdb18. Verification passed: `pnpm test -- src/deploy-local.test.ts`; exact subagent asset tests via `pnpm exec vitest run`; `./scripts/deploy-local.sh --check`; `bash -n scripts/deploy-local.sh`; `pnpm run format:check`; `pnpm run check`."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-24T23:02:32.118Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance with reply `approve`. Acceptance review verdict APPROVED. Verification passed: deploy-local test, subagent asset tests, deploy-local --check, bash -n, format:check, check. Independent reviewer APPROVE with no findings. Contract matrix 8/8 pass/respected.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/acceptance.md",
+        "content_hash": "f8f692b5eaff5e40aa1767326e63e7e57be3a79d91575375cb55fdc8758bdc23",
+        "non_whitespace_chars": 1903,
+        "checked_at": "2026-05-24T23:02:32.391Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+      "approvedAt": "2026-05-24T22:45:38.082Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`./scripts/deploy-local.sh --check` treats `adv_subagent_report_submit` as not required for `adv.md` and `adv-atc.md`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "The fix does not add `adv_subagent_report_submit` to primary agent allowlists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Existing subagent assets still require/expose `adv_subagent_report_submit` for `adv-engineer` and `adv-reviewer`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Tests cover the role-aware drift validation behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken drift validation for ordinary primary-agent ADV tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep validation structural and deterministic, not prose-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not solve by adding leaf-only submit capability to primary agents.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not disable tool drift validation globally.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9e78a1475a748937be66bac80129198217eeaf1207037875e8ed2638fb46f06d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-24T23:01:10.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`./scripts/deploy-local.sh --check` passed; adv.md and adv-atc.md report drift-clean with 54 required tools and no `adv_subagent_report_submit` warning.",
+          "notes": "Primary-agent false positive removed."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "`plugin/src/deploy-local.test.ts` asserts primary `adv.md` and `adv-atc.md` do not contain `  adv_subagent_report_submit:`; no primary allowlist files changed.",
+          "notes": "Did not add leaf-only submit tool to primary agents."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm exec vitest run src/adv-engineer-assets.test.ts` passed; `pnpm exec vitest run src/adv-reviewer-asset.test.ts` passed.",
+          "notes": "Leaf subagent exposure remains covered."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm test -- src/deploy-local.test.ts` passed; tests assert `LEAF_ONLY_TOOLS`, `agent_mode == \"primary\"`, `registered - primary_exemptions - allowed`, and ordinary strictness guards.",
+          "notes": "Role-aware drift behavior pinned."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`missing = sorted(registered - primary_exemptions - allowed)` only subtracts named primary exemptions; extras detection remains `allowed - registered`. Tests assert no global disabling.",
+          "notes": "Ordinary registered primary-agent tools remain required."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Validation uses parsed frontmatter `mode` and named `LEAF_ONLY_TOOLS` set, not prose or heuristic inference.",
+          "notes": "Structural/deterministic validation preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Primary agent files were not modified; reviewer verdict APPROVE with no findings.",
+          "notes": "No leaf-only submit capability added to primary agents."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tool drift validation still computes and reports missing/extras; reviewer confirmed no weakening; `pnpm run check` passed.",
+          "notes": "No global drift-disable path introduced."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`./scripts/deploy-local.sh --check` treats `adv_subagent_report_submit` as not required for `adv.md` and `adv-atc.md`.",
+    "The fix does not add `adv_subagent_report_submit` to primary agent allowlists.",
+    "Existing subagent assets still require/expose `adv_subagent_report_submit` for `adv-engineer` and `adv-reviewer`.",
+    "Tests cover the role-aware drift validation behavior."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/proposal.md",
+      "updatedAt": "2026-05-24T22:45:33.065Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/design.md",
+      "updatedAt": "2026-05-24T22:47:32.524Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolDrift/executive-summary.md",
+      "updatedAt": "2026-05-24T23:01:34.593Z"
+    }
+  },
+  "lastSignalAt": "2026-05-24T23:02:32.118Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-24T22:46:22.378Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

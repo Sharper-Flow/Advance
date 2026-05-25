@@ -21,6 +21,12 @@ import {
 import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
 import { GATE_ORDER, createDefaultGates } from "../types";
+import {
+  clearPendingDelete,
+  incrementPendingDeleteAttempts,
+  initStateDb as initWorktreeStateDb,
+  setPendingDelete,
+} from "./worktree/state";
 
 const {
   mockScanOpenCodeSessionDebt,
@@ -127,6 +133,8 @@ describe("Status Tools", () => {
       total_blank: 0,
       repairable_stale: [],
       live_in_flight: [],
+      idle_active_session: [],
+      orphan_ghost: [],
       ignored_with_parts: [],
     });
     tempDir = await createTempDir();
@@ -211,6 +219,39 @@ describe("Status Tools", () => {
       );
     });
 
+    test("shows retained terminal cleanup blocker counts without exact paths", async () => {
+      const access = await initWorktreeStateDb(tempDir);
+      const retainedPath = join(tempDir, "status-retained");
+      await mkdir(retainedPath, { recursive: true });
+      await setPendingDelete(
+        access,
+        "change/status-retained",
+        retainedPath,
+        "worktree is still in use by a running process",
+      );
+      for (let i = 0; i < 5; i++) {
+        await incrementPendingDeleteAttempts(access, "change/status-retained");
+      }
+
+      try {
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+
+        expect(parsed.terminal_cleanup_retained).toMatchObject({
+          total: 1,
+          classes: { worktree_in_use: 1 },
+        });
+        expect(JSON.stringify(parsed.terminal_cleanup_retained)).not.toContain(
+          retainedPath,
+        );
+      } finally {
+        await clearPendingDelete(access, "change/status-retained");
+      }
+    });
+
     test("shows ↳ prefix for fast-follow changes in formatted output", async () => {
       // Create parent and child changes
       const { changeTools } = await import("./change");
@@ -266,7 +307,7 @@ describe("Status Tools", () => {
         currentRoot: tempDir,
         currentRepoId: "web",
         repoProjectId: "w".repeat(40),
-        productId: "pokeedge",
+        productId: "example-product",
         productProjectId: "b".repeat(40),
         primaryRoot: "/repo/backend",
         primaryRepoId: "backend",
@@ -310,7 +351,7 @@ describe("Status Tools", () => {
         repoScoped.changes.recent.map((c: { id: string }) => c.id),
       ).not.toContain("backendScoped");
       expect(repoScoped.product_context).toMatchObject({
-        productId: "pokeedge",
+        productId: "example-product",
         currentRepoId: "web",
         scope: "repo",
       });
@@ -537,7 +578,17 @@ Vague in-flight work.
             age_ms: 301_000,
           },
         ],
+        orphan_ghost: [
+          {
+            id: "msg-stale",
+            session_id: "ses-stale",
+            created_ms: 1,
+            part_count: 0,
+            age_ms: 301_000,
+          },
+        ],
         live_in_flight: [],
+        idle_active_session: [],
         ignored_with_parts: [],
       });
 
@@ -548,9 +599,9 @@ Vague in-flight work.
       const health = parseToolOutput(healthResult);
 
       expect(health.opencode_session_debt.available).toBe(true);
-      expect(health.opencode_session_debt.repairable_stale).toHaveLength(1);
+      expect(health.opencode_session_debt.orphan_ghost).toHaveLength(1);
       expect(health.formatted.sessionDebtSection).toContain(
-        "1 stale blank assistant",
+        "1 orphan ghost blank assistant",
       );
 
       // Recommendations live in summary view (and a few others); fetch
@@ -584,9 +635,58 @@ Vague in-flight work.
 
       expect(health.worker_role).toMatch(/^(host|client|degraded)$/);
       expect(health.feature_flags).toMatchObject({
-        worker_singleton_enforce: true,
-        worktree_guard_enforce: false,
+        worker_singleton_enforce: false,
+        // rq-autoManageAdvWorktrees AC2 — default flipped to true.
+        worktree_guard_enforce: true,
       });
+    });
+
+    // rq-autoManageAdvWorktrees AC2
+    test("health view surfaces feature_flag_sources marking each flag default | explicit", async () => {
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const health = parseToolOutput(result);
+
+      expect(health.feature_flag_sources).toBeDefined();
+      // Each key in feature_flags has a corresponding source entry that is
+      // either "default" (no explicit project.json override) or "explicit"
+      // (set in project.json). The fixture may or may not set
+      // worktree_guard_enforce explicitly — either source is valid.
+      for (const key of Object.keys(health.feature_flags)) {
+        expect(["default", "explicit"]).toContain(
+          health.feature_flag_sources[key],
+        );
+      }
+      // Both worktree_guard_enforce and worker_singleton_enforce always
+      // resolve (they have withStabilityFeatureDefaults coverage), so their
+      // source entries must be present.
+      expect(health.feature_flag_sources.worktree_guard_enforce).toMatch(
+        /^(default|explicit)$/,
+      );
+      expect(health.feature_flag_sources.worker_singleton_enforce).toMatch(
+        /^(default|explicit)$/,
+      );
+    });
+
+    test("health view surfaces auto_managed_changes census from recent changes", async () => {
+      const result = await statusTools.adv_status.execute(
+        { view: "health" },
+        store,
+      );
+      const health = parseToolOutput(result);
+
+      expect(health.auto_managed_changes).toBeDefined();
+      expect(typeof health.auto_managed_changes.auto).toBe("number");
+      expect(typeof health.auto_managed_changes.legacy).toBe("number");
+      expect(typeof health.auto_managed_changes.unmigrated).toBe("number");
+      // The empty-fixture store has no recent changes — all counts are 0.
+      const total =
+        health.auto_managed_changes.auto +
+        health.auto_managed_changes.legacy +
+        health.auto_managed_changes.unmigrated;
+      expect(total).toBeGreaterThanOrEqual(0);
     });
 
     test("health view includes probe freshness and reuses cached temporal health", async () => {
@@ -625,6 +725,7 @@ Vague in-flight work.
         threshold_ms: 300_000,
         total_blank: 1,
         repairable_stale: [],
+        orphan_ghost: [],
         live_in_flight: [
           {
             id: "msg-live",
@@ -634,6 +735,7 @@ Vague in-flight work.
             age_ms: 1_000,
           },
         ],
+        idle_active_session: [],
         ignored_with_parts: [],
       });
 

@@ -58,6 +58,12 @@ scripts/provider-eval-results/
 
 # ADV working state (local project data - in .adv directory)
 .adv/changes/
+# Leaked-in-repo runtime files: ADV state lives outside the repo per AGENTS.md.
+# Add explicit ignores so accidental fallback writes don't get committed.
+.adv/agenda.jsonl
+.adv/wisdom.jsonl
+.adv/reflections.jsonl
+.adv/project-metadata.json
 # Allow in-repo archive bundles (date-prefixed directories) but ignore other archive files
 .adv/archive/*
 !.adv/archive/20*-*

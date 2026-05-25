@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-tRX_E1",
+      "type": "pattern",
+      "content": "When a spec claims to be the single source of truth for a routing matrix, tests should parse the spec’s machine-readable matrix rather than duplicating the expected matrix as a fixture.",
+      "source_task": "tk-e105762b6598",
+      "recorded_at": "2026-05-21T06:16:41.292Z"
+    }
+  ],
+  "count": 1
+}

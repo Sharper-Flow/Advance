@@ -9,7 +9,6 @@ tools:
   glob: true
   grep: true
   lgrep_search_semantic: true
-  lgrep_index_semantic: true
   lgrep_search_symbols: true
   lgrep_index_symbols_folder: true
   lgrep_index_symbols_repo: true
@@ -19,8 +18,6 @@ tools:
   lgrep_get_file_outline: true
   lgrep_get_repo_outline: true
   lgrep_search_text: true
-  lgrep_list_repos: true
-  lgrep_invalidate_cache: true
   # ADV tools - read-only spec/change queries
   adv_spec: true
   adv_change_list: true
@@ -72,13 +69,13 @@ Investigate the local codebase to map structure, identify hotspots, surface risk
 
 When given a target, resolve it to concrete code:
 
-| Target looks like | Resolution strategy |
-|-------------------|---------------------|
-| File path (`src/tools/task.ts`) | Read directly |
-| Directory (`src/tools/`) | Outline all files in it |
-| Symbol name (`createStore`) | `lgrep_search_symbols` |
-| Concept/theme (`error handling`) | `lgrep_search_semantic` |
-| Ambiguous | Try semantic search first, then symbol search, then text search |
+| Target looks like                | Resolution strategy                                             |
+| -------------------------------- | --------------------------------------------------------------- |
+| File path (`src/tools/task.ts`)  | Read directly                                                   |
+| Directory (`src/tools/`)         | Outline all files in it                                         |
+| Symbol name (`createStore`)      | `lgrep_search_symbols`                                          |
+| Concept/theme (`error handling`) | `lgrep_search_semantic`                                         |
+| Ambiguous                        | Try semantic search first, then symbol search, then text search |
 
 ### Search Tool Priority
 

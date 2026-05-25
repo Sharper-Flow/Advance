@@ -100,15 +100,18 @@ The diagnostic output reports:
 
 `adv_status view: "health"` also shows feature flags. `worker_singleton_enforce`
 default true; rollback/debug escape hatches are setting that flag false or
-`ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` default false during
-rollout; when omitted or false, the trunk write firewall does not block
-default-checkout file writes or classified destructive bash writes. Projects that
-want strict mode set `features.worktree_guard_enforce: true` explicitly.
+`ADV_FORCE_IN_PROCESS_WORKER=1`. `worktree_guard_enforce` default true
+post-rollout (rq-autoManageAdvWorktrees AC2); when omitted or true, the trunk
+write firewall blocks default-checkout file writes and classified destructive
+bash writes. Pre-flip behavior (omitted or false allows default-checkout file
+writes) is preserved only when `worktree_guard_enforce` is explicitly false —
+the legacy escape hatch for projects that want to keep editing in the main
+checkout.
 
 Restart verification timeout: `ADV_WORKER_RESTART_VERIFY_TIMEOUT_MS` defaults to
 10000 ms. Raise only when Temporal queue serviceability is slow but healthy.
 
-Plain anchors for drift tests: worker_singleton_enforce default true; worktree_guard_enforce default false.
+Plain anchors for drift tests: worker_singleton_enforce default false; worktree_guard_enforce default true.
 
 Stale `_freshness` values are diagnostic-only. Do not treat stale serviceability
 as proof of restart success, worker-lock reclaim safety, override safety, or
@@ -500,6 +503,31 @@ These values are compile-time constants today. If you need to adjust them for a 
 
 Treat this as a workflow-state corruption / code-history mismatch problem, not a transient retry.
 
+### Replay/versioning rule
+
+Workflow-affecting changes under `plugin/src/temporal/**` or other workflow-bundled command-producing helpers must run committed replay coverage before archive. Use `Worker.runReplayHistory` against sanitized histories in `plugin/src/temporal/__tests__/replay/histories/`.
+
+If a workflow change adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, etc.), choose one evolution strategy before shipping:
+
+| Strategy                     | Use when                                                                                                    | Requirement                                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `wf.patched`                 | Local/per-session ADV deployments where old histories must replay and new histories can take the new branch | Patch name, old branch, new branch, and deprecation plan or non-deprecation rationale are documented in code/docs |
+| Worker Versioning            | Multiple worker builds may poll the same task queue concurrently                                            | Deployment/build routing is explicit and tested                                                                   |
+| Explicit reset/recovery plan | The old history cannot safely replay and the affected workflow set is bounded                               | Exact evidence plus explicit user/operator approval before destructive action                                     |
+
+Worker restart is **not** a repair for `TMPRL1100`, `NonDeterministic`, or `WorkflowTaskFailedCauseNonDeterministicError`. Restart only after code/history compatibility is understood and only to load a fixed worker bundle.
+
+### Poisoned WIP/read-only posture
+
+Cross-change WIP and worktree readers should preserve healthy partial results and surface poisoned workflows as structured metadata (`poisoned_workflows`) plus human-readable warnings. Treat that metadata as triage input only. It must not trigger automatic terminate, reset, reseed, archive, or worktree deletion.
+
+Evidence extraction is split by bundle boundary:
+
+- `plugin/src/tools/recovery-probe.ts` owns tool-layer `describe()` probing via `workflowPoisonedDescriptionEvidence()` and returns bounded evidence summaries.
+- `plugin/src/temporal/recovery-classification.ts` owns workflow-safe plain error/evidence classification via `isPoisonedHistoryError()` and `isPrecisePoisonedHistoryEvidence()`.
+
+Keep their core poisoned-history markers aligned (`TMPRL1100`, `NonDeterministic`, `Nondeterminism`, `WorkflowTaskFailedCauseNonDeterministicError`, `No command scheduled`, `WorkflowExecutionUpdateAccepted`). The probe stays outside `temporal/` because it touches workflow handles and must not enter the workflow bundle.
+
 1. Confirm the error in logs or `last_error`.
 2. Do **not** keep restarting the same worker hoping it clears.
 3. Get explicit user approval.
@@ -570,7 +598,7 @@ temporal workflow count --query 'ExecutionStatus="Running"'
 - **2026-04-23 incident** — 5,447 `Running` workflows discovered across 21 queues with zero pollers, blocking `adv_*` tools in affected repos.
 - **`preventRecoverOrphanedTemporal`** — added the original orphaned-workflow prevention policy and `adv_status` stale-queue guardrail.
 - **`improveAdvPostCrashTemporal`** — added diagnose-first recovery, search-attribute remediation, STSL reconnect guidance, repair/orphan-sweep sequencing, and the external restart boundary.
-- **`fixStuckTemporalWorkerRecovery`** (this change) — replaced fire-and-forget worker restart with a verified 10 s-budget recovery, added approval-gated suspect live legacy v1 lock reclaim (rq-workerSingleton01.6), added queue-serviceability classification (rq-workerHealth01) using local-owner + server-poller-probe evidence, added the bounded `recovery: "once"` seam at `getBoundedProjectWorkflowAccess` for `adv_worktree_create`, and clarified that poller rows are freshness evidence — not durable worker records. Resolves [Sharper-Flow/Opencode-Advance#22, #23, #24](https://github.com/Sharper-Flow/Opencode-Advance/issues/22).
+- **`fixStuckTemporalWorkerRecovery`** (this change) — replaced fire-and-forget worker restart with a verified 10 s-budget recovery, added approval-gated suspect live legacy v1 lock reclaim (rq-workerSingleton01.6), added queue-serviceability classification (rq-workerHealth01) using local-owner + server-poller-probe evidence, added the bounded `recovery: "once"` seam at `getBoundedProjectWorkflowAccess` for `adv_worktree_create`, and clarified that poller rows are freshness evidence — not durable worker records.
 - **`terminatechangeworkflowonarchi`** — made `changeWorkflow` Complete when archive/close sets terminal status, added the `allHandlersFinished` drain before return, rejected re-entry for archived/closed changes with a domain error, and prevented disk re-seeding for terminal archived/closed changes. New `Running` terminal change workflows are no longer expected; cleanup should target only pre-existing zombies.
 
 ## Disk-full / OOM surfaces
@@ -676,6 +704,14 @@ Examples:
 | `addTask`      | `add-task-v1`      |
 | `completeGate` | `complete-gate-v1` |
 | `cancelTask`   | `cancel-task-v1`   |
+
+Active ADV patch marker:
+
+| Handler / behavior | Patch name | Purpose | Fixture |
+| ------------------ | ---------- | ------- | ------- |
+| Discovery gate contract readiness | `discovery-contract-readiness-v1` | Legacy discovery histories scheduled artifact inspection before contract-readiness enforcement; histories without the marker must replay the old no-contract-blocker branch | `fixGateAutoWorktree.discovery-gate-tmprl1100.*` |
+
+The patch is defined as `DISCOVERY_CONTRACT_READINESS_PATCH` in `plugin/src/temporal/workflows.ts`. Keep it until pre-contract discovery histories are archived/closed and the replay fixture no longer needs that migration path; then deprecate with `wf.deprecatePatch` before final removal.
 
 ### Branch structure
 

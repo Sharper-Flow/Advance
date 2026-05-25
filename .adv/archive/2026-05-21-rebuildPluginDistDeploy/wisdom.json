@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-SZwxGt",
+      "type": "gotcha",
+      "content": "Deploy-local asset tests spawn the real script against the checkout that owns the script. Once deploy-local auto-builds missing/stale plugin/dist, fresh-checkout tests may pay the real build cost, and temp worktree tests that validate unrelated path/config behavior should seed a fresh `plugin/dist/index.js` fixture to avoid accidentally testing dependency/build availability.",
+      "source_task": "tk-92465d1dd2c6",
+      "recorded_at": "2026-05-21T00:34:18.271Z"
+    },
+    {
+      "id": "ws-e4qxiM",
+      "type": "gotcha",
+      "content": "For focused Vitest verification in this repo, `pnpm exec vitest run <file>` is more reliable than `pnpm test -- <file>`; the package-script form can still behave like a broad suite run under the current pnpm/vitest invocation and surface unrelated integration prerequisites.",
+      "source_task": "tk-64a75d0ee614",
+      "recorded_at": "2026-05-21T00:39:03.074Z"
+    }
+  ],
+  "count": 2
+}

@@ -174,12 +174,14 @@ describe("tool-formatters", () => {
         temporalAlive: true,
         opencodeSessionDebt: {
           available: true,
-          repairableStaleCount: 2,
+          orphanGhostCount: 2,
           liveInFlightCount: 1,
         },
       });
 
-      expect(result.sessionDebtSection).toContain("2 stale blank assistant");
+      expect(result.sessionDebtSection).toContain(
+        "2 orphan ghost blank assistant",
+      );
       expect(result.sessionDebtSection).toContain("1 live/in-flight");
     });
 

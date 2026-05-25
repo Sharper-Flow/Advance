@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
-import { createDefaultGates, type Change } from "../../types";
+import { createDefaultGates, type Change, type Task } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
 
@@ -17,6 +17,10 @@ function workflowNotFoundError(): Error {
   return new Error(
     "Workflow execution not found for workflowId: change-project-1-test",
   );
+}
+
+function genericWorkflowQueryError(): Error {
+  return new Error("Failed to query Workflow");
 }
 
 function archivedChange(id: string): Change {
@@ -59,6 +63,69 @@ function activeChange(id: string): Change {
     reentry_history: [],
     wisdom: [],
   };
+}
+
+function contractProof(): NonNullable<Change["contract"]> {
+  return {
+    version: 1,
+    rigor: "standard",
+    source: {
+      artifact: "agreement",
+      approvedAt: "2026-05-21T00:00:00.000Z",
+    },
+    items: [
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Contract proof is preserved.",
+        sourceArtifact: "agreement",
+        verificationRequired: true,
+        evidencePolicy: "test",
+        status: "approved",
+      },
+    ],
+    reviewMatrix: {
+      reviewedAt: "2026-05-21T01:00:00.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "pass",
+          evidencePolicy: "test",
+          evidence: "passing test",
+        },
+      ],
+    },
+    amendments: [],
+  };
+}
+
+async function createPoisonedPostReseedFailureStore(root: string) {
+  const legacy = await createDiskStore(root);
+  let startArgs: unknown[] | undefined;
+  const handle = {
+    query: async () => {
+      throw poisonedHistoryError();
+    },
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async (...args: unknown[]) => {
+          startArgs = args;
+          return handle;
+        },
+      },
+    },
+  };
+
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, startArgs: () => startArgs };
 }
 
 async function createPoisonedStore(root: string) {
@@ -141,6 +208,67 @@ async function createMissingWorkflowReseedFailureStore(root: string) {
         getHandle: () => handle,
         start: async () => {
           throw new Error("Temporal start failed: namespace handshake error");
+        },
+      },
+    },
+  };
+
+  return createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+}
+
+async function createGenericQueryPoisonedReseedFailureStore(root: string) {
+  const legacy = await createDiskStore(root);
+  let startCallCount = 0;
+  const handle = {
+    query: async () => {
+      throw genericWorkflowQueryError();
+    },
+    describe: async () => ({
+      searchAttributes: {
+        TemporalReportedProblems: [
+          "category=WorkflowTaskFailed cause=WorkflowTaskFailedCauseNonDeterministicError",
+        ],
+      },
+    }),
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => {
+          startCallCount += 1;
+          throw new Error("Temporal start failed: namespace handshake error");
+        },
+      },
+    },
+  };
+
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, startCallCount: () => startCallCount };
+}
+
+async function createGenericQueryUnprovenStore(root: string) {
+  const legacy = await createDiskStore(root);
+  const handle = {
+    query: async () => {
+      throw genericWorkflowQueryError();
+    },
+    describe: async () => ({ searchAttributes: {} }),
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => {
+          throw new Error("Temporal start should not be called");
         },
       },
     },
@@ -250,6 +378,40 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(gates).toEqual(change.gates);
   });
 
+  it("seeds contract proof fields when recovering a poisoned non-terminal change", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const change = {
+      ...activeChange("activePoisonedContractSeed"),
+      contract: contractProof(),
+      acceptanceCriteria: ["Contract proof is preserved."],
+      documents: { agreement: "# Agreement" },
+    } as Change;
+    await legacy.changes.save(change);
+
+    const { store, startArgs } =
+      await createPoisonedPostReseedFailureStore(tempDir);
+    await store.changes.get("activePoisonedContractSeed");
+    const startOptions = startArgs()?.find(
+      (arg): arg is { args: unknown[] } =>
+        Boolean(arg) && typeof arg === "object" && "args" in arg,
+    );
+
+    expect(startOptions).toEqual(
+      expect.objectContaining({
+        args: [
+          expect.objectContaining({
+            seedState: expect.objectContaining({
+              contract: change.contract,
+              acceptanceCriteria: ["Contract proof is preserved."],
+              documents: { agreement: "# Agreement" },
+            }),
+          }),
+        ],
+      }),
+    );
+  });
+
   it("does NOT mask missing-workflow errors when re-seed itself fails", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
@@ -260,5 +422,377 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     await expect(store.changes.get("activeMissingReseedFail")).rejects.toThrow(
       /Workflow execution not found/,
     );
+  });
+
+  it("returns disk projection for generic query failure when visibility reports nondeterminism", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("genericPoisonedVisibility"));
+
+    const { store, startCallCount } =
+      await createGenericQueryPoisonedReseedFailureStore(tempDir);
+    const result = await store.changes.get("genericPoisonedVisibility");
+
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("genericPoisonedVisibility");
+    const recovered = result.data as Change & {
+      _source?: string;
+      _recovery?: { mode?: string; reason?: string };
+    };
+    expect(recovered._source).toBe("disk");
+    expect(recovered._recovery?.reason).toBe("poisoned_history");
+    expect(recovered._recovery?.mode).toBe("temporal_query_fallback");
+    expect(startCallCount()).toBe(1);
+  });
+
+  it("returns recovered gates for generic query failure when visibility reports nondeterminism", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const change = activeChange("genericPoisonedVisibilityGates");
+    await legacy.changes.save(change);
+
+    const { store } =
+      await createGenericQueryPoisonedReseedFailureStore(tempDir);
+    const gates = await store.gates.get("genericPoisonedVisibilityGates");
+
+    expect(gates).toEqual(change.gates);
+  });
+
+  it("does NOT recover generic query failures without poisoned-history evidence", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("genericUnproven"));
+
+    const store = await createGenericQueryUnprovenStore(tempDir);
+
+    await expect(store.changes.get("genericUnproven")).rejects.toThrow(
+      /Failed to query Workflow/,
+    );
+  });
+});
+
+/**
+ * rq-autoManageAdvWorktrees AC3 — lazy migration of legacy changes
+ * on first read. When a change.json predating this field is loaded,
+ * `getTemporalChange` fires `worktreeAutoManagedSignal` once with
+ * `value: false, source: "migrate"`. The signal handler is sticky so
+ * concurrent migrations from peer sessions are idempotent. Failure
+ * to fire (e.g., Temporal unreachable) MUST NOT block the read.
+ */
+describe("createTemporalStoreBackend worktree_auto_managed lazy migration", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  function legacyChangeWithoutMarker(id: string): Change {
+    return {
+      $schema: "https://advance.dev/schemas/change.v1.json",
+      id,
+      title: `Legacy ${id}`,
+      status: "active",
+      created_at: "2026-05-21T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      gates: createDefaultGates(),
+      reentry_history: [],
+      wisdom: [],
+    };
+  }
+
+  async function createMigrationCaptureStore(
+    root: string,
+    options: {
+      markerInWorkflowState?: boolean;
+      signalShouldFail?: boolean;
+    } = {},
+  ) {
+    const legacy = await createDiskStore(root);
+    const signalCalls: Array<{
+      signal: { name?: string };
+      args: unknown;
+    }> = [];
+    let lastHandleId: string | undefined;
+    const makeHandle = (changeId: string) => ({
+      query: async () => ({
+        id: changeId,
+        changeId,
+        title: `Legacy ${changeId}`,
+        status: "active",
+        createdAt: "2026-05-21T00:00:00.000Z",
+        initializedAt: "2026-05-21T00:00:00.000Z",
+        projectId: "project-1",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: createDefaultGates(),
+        reentry_history: [],
+        artifacts: {},
+        documents: {},
+        reflections: [],
+        worktrees: {},
+        conformance: { lockedSpecs: [], overrides: [] },
+        ...(typeof options.markerInWorkflowState === "boolean"
+          ? { worktree_auto_managed: options.markerInWorkflowState }
+          : {}),
+      }),
+      signal: async (signal: { name?: string }, args: unknown) => {
+        if (options.signalShouldFail) {
+          throw new Error("Temporal signal failed: connection refused");
+        }
+        signalCalls.push({ signal, args });
+      },
+    });
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: (workflowId: string) => {
+            // Extract change-id suffix from the constructed workflow id
+            const suffix =
+              workflowId.split("/").pop() ?? workflowId.split(":").pop() ?? "";
+            lastHandleId = suffix || workflowId;
+            return makeHandle(lastHandleId);
+          },
+          start: async () => makeHandle(lastHandleId ?? "unknown"),
+        },
+      },
+    };
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+    return { store, signalCalls: () => signalCalls };
+  }
+
+  it("fires worktreeAutoManagedSignal best-effort when state lacks marker", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("legacyChangeA"));
+
+    const { store, signalCalls } = await createMigrationCaptureStore(tempDir);
+    const result = await store.changes.get("legacyChangeA");
+
+    // Read succeeds even though the marker is missing.
+    expect(result.success).toBe(true);
+
+    // Wait several event-loop ticks for the void async fire (which awaits
+    // getGuardedChangeHandle's legacy-disk-read then handle.signal) to
+    // enqueue + complete. setImmediate × 50 + sleep allows the disk read.
+    for (let i = 0; i < 50; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const calls = signalCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].args).toMatchObject({
+      value: false,
+      source: "migrate",
+    });
+    expect(typeof (calls[0].args as { recordedAt?: string }).recordedAt).toBe(
+      "string",
+    );
+  });
+
+  it("does NOT fire migration when workflow state already has marker set", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("alreadyMigratedB"));
+
+    const { store, signalCalls } = await createMigrationCaptureStore(tempDir, {
+      markerInWorkflowState: true,
+    });
+    await store.changes.get("alreadyMigratedB");
+    for (let i = 0; i < 5; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    expect(signalCalls()).toHaveLength(0);
+  });
+
+  it("does NOT fire migration when workflow state has marker explicitly false (legacy already-migrated)", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("alreadyMigratedC"));
+
+    const { store, signalCalls } = await createMigrationCaptureStore(tempDir, {
+      markerInWorkflowState: false,
+    });
+    await store.changes.get("alreadyMigratedC");
+    for (let i = 0; i < 5; i++) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    expect(signalCalls()).toHaveLength(0);
+  });
+
+  it("read succeeds when migration signal fire fails (best-effort, non-blocking)", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(legacyChangeWithoutMarker("signalFailureD"));
+
+    const { store } = await createMigrationCaptureStore(tempDir, {
+      signalShouldFail: true,
+    });
+    const result = await store.changes.get("signalFailureD");
+
+    // Failure to fire migration MUST NOT block the read.
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("signalFailureD");
+  });
+});
+
+describe("listResolvedChanges memo fast path", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("does not omit active changes discoverable from disk when memo is warmed", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const changeA = activeChange("memoChange");
+    const changeB = activeChange("diskOnlyChange");
+    await legacy.changes.save(changeA);
+    await legacy.changes.save(changeB);
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: (workflowId: string) => {
+            const changeId =
+              workflowId.split("/").pop() ?? workflowId.split(":").pop() ?? "";
+            if (changeId === "memoChange") {
+              return {
+                query: async () => ({
+                  id: "memoChange",
+                  changeId: "memoChange",
+                  title: "Active memoChange",
+                  status: "active",
+                  createdAt: "2026-05-07T00:00:00.000Z",
+                  initializedAt: "2026-05-07T00:00:00.000Z",
+                  projectId: "project-1",
+                  tasks: [],
+                  deltas: {},
+                  wisdom: [],
+                  gates: createDefaultGates(),
+                  reentry_history: [],
+                  artifacts: {},
+                  documents: {},
+                  reflections: [],
+                  worktrees: {},
+                  conformance: { lockedSpecs: [], overrides: [] },
+                }),
+              };
+            }
+            return {
+              query: async () => {
+                throw workflowNotFoundError();
+              },
+            };
+          },
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo for changeA
+    const getA = await store.changes.get("memoChange");
+    expect(getA.success).toBe(true);
+
+    // List should include BOTH changes
+    const list = await store.changes.list();
+    const ids = list.changes.map((c) => c.id);
+    expect(ids).toContain("memoChange");
+    expect(ids).toContain("diskOnlyChange");
+  });
+
+  it("does not flatten task counts to 0/0 when memo is warmed", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    const tasks: Task[] = [
+      {
+        id: "tk-1",
+        title: "Task 1",
+        status: "done",
+        changeId: "taskedChange",
+        created_at: "2026-05-07T00:00:00.000Z",
+      },
+      {
+        id: "tk-2",
+        title: "Task 2",
+        status: "pending",
+        changeId: "taskedChange",
+        created_at: "2026-05-07T00:00:00.000Z",
+      },
+    ];
+    const changeWithTasks = {
+      ...activeChange("taskedChange"),
+      tasks,
+    } as Change;
+    await legacy.changes.save(changeWithTasks);
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => ({
+              id: "taskedChange",
+              changeId: "taskedChange",
+              title: "Active taskedChange",
+              status: "active",
+              createdAt: "2026-05-07T00:00:00.000Z",
+              initializedAt: "2026-05-07T00:00:00.000Z",
+              projectId: "project-1",
+              tasks,
+              deltas: {},
+              wisdom: [],
+              gates: createDefaultGates(),
+              reentry_history: [],
+              artifacts: {},
+              documents: {},
+              reflections: [],
+              worktrees: {},
+              conformance: { lockedSpecs: [], overrides: [] },
+            }),
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    // Warm memo for taskedChange
+    const getResult = await store.changes.get("taskedChange");
+    expect(getResult.success).toBe(true);
+
+    // List should preserve task counts
+    const list = await store.changes.list();
+    const listed = list.changes.find((c) => c.id === "taskedChange");
+    expect(listed).toBeDefined();
+    expect(listed!.taskCount).toBe(2);
+    expect(listed!.completedTasks).toBe(1);
   });
 });

@@ -1,0 +1,798 @@
+{
+  "id": "repairGuardMismatch",
+  "title": "Repair guard mismatch",
+  "status": "archived",
+  "created_at": "2026-05-23T05:57:43.425Z",
+  "tasks": [
+    {
+      "id": "tk-7b3ea7c0b053",
+      "title": "Update worktree guard spec and gate classification tests",
+      "type": "code",
+      "section": "Spec and Guard Classification",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-23T15:41:29.314Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T20:40:34.930Z",
+      "verification": "RED: `pnpm test -- src/types/gates.worktree-impact.test.ts` failed before gate worktree-impact exports existed. GREEN: same command passed after adding structural `GATE_WORKTREE_IMPACT` classification, metadata/mutation gate predicates, coverage tests, and worktree-lifecycle spec updates.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "plugin/src/types/gates.ts",
+        "plugin/src/types/gates.worktree-impact.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/worktree-lifecycle/spec.json",
+        "plugin/src/types/gates.ts",
+        "plugin/src/types/gates.worktree-impact.test.ts"
+      ],
+      "checkpointSha": "b16491dd3fcf1ee85bb327b36cffdfdd7cf90e44",
+      "completedAt": "2026-05-23T20:46:51.110Z",
+      "completed_at": "2026-05-23T20:46:51.110Z"
+    },
+    {
+      "id": "tk-f37bc1b5c66b",
+      "title": "Implement structural gate-kind classification and supported remediation",
+      "type": "code",
+      "section": "Spec and Guard Classification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-23T15:41:43.058Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7b3ea7c0b053"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T20:47:15.743Z",
+      "verification": "RED: `pnpm test -- src/tools/gate.worktree-isolation.test.ts src/types/gates.worktree-impact.test.ts` failed when discovery/design were still guarded and auto-managed design tried to resume. GREEN: focused guard/remediation suite passed: `pnpm test -- src/tools/gate.worktree-isolation.test.ts src/tools/worktree-isolation-guard.test.ts src/tools/worktree-auto-manage.test.ts src/tools/gate.test.ts src/types/gates.worktree-impact.test.ts`. Implemented metadata gate bypass, preserved worktree-mutation guard, and replaced unsupported remediation wording.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.worktree-isolation.test.ts",
+        "plugin/src/tools/worktree-auto-manage.test.ts",
+        "plugin/src/tools/worktree-auto-manage.ts",
+        "plugin/src/tools/worktree-isolation-guard.test.ts",
+        "plugin/src/tools/worktree-isolation-guard.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.worktree-isolation.test.ts",
+        "plugin/src/tools/worktree-auto-manage.test.ts",
+        "plugin/src/tools/worktree-auto-manage.ts",
+        "plugin/src/tools/worktree-isolation-guard.test.ts",
+        "plugin/src/tools/worktree-isolation-guard.ts",
+        "plugin/src/types/index.ts"
+      ],
+      "checkpointSha": "407985ea69f2019731cea08dcd854ea010cc8005",
+      "completedAt": "2026-05-23T20:55:31.243Z",
+      "completed_at": "2026-05-23T20:55:31.243Z"
+    },
+    {
+      "id": "tk-3f2f03278631",
+      "title": "Create authoritative Temporal registry snapshot helper and retire silent stubs",
+      "type": "code",
+      "section": "Registry Snapshot",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-23T15:41:55.422Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7b3ea7c0b053"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T20:55:58.917Z",
+      "verification": "Acceptance review remediation verified. Full test suite passed after updating worktree registry tests to current ChangeWorkflowState shape: `pnpm test -- src/tools/worktree/state-session-lifecycle.test.ts -t \"isolates a poisoned workflow query and keeps healthy worktrees\"` (Vitest ran all 229 files, 2990 tests passed). Quality check passed: `pnpm run check`.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts"
+      ],
+      "checkpointSha": "1446376a7947ccc8b85ee628de330344790d3349",
+      "completedAt": "2026-05-23T21:30:22.024Z",
+      "completed_at": "2026-05-23T21:30:22.024Z"
+    },
+    {
+      "id": "tk-15b0075ef675",
+      "title": "Migrate worktree triage to registry snapshot and valid fixes",
+      "type": "code",
+      "section": "Registry Consumers",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-23T15:42:10.050Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3f2f03278631"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T21:02:33.899Z",
+      "verification": "RED: `pnpm test -- src/tools/worktree/triage.test.ts` failed because missing_from_temporal still recommended unsupported `adv_worktree_create --adopt`. GREEN: same command passed after migrating triage to `getWorktreeRegistrySnapshot`, surfacing registry warnings, and replacing adopt guidance with supported `adv_worktree_resume` / `adv_worktree_delete` remediation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/tools/worktree/triage.ts"
+      ],
+      "checkpointSha": "a4f138a296413df4a49d58123007825ee795658b",
+      "completedAt": "2026-05-23T21:06:48.140Z",
+      "completed_at": "2026-05-23T21:06:48.140Z"
+    },
+    {
+      "id": "tk-aa1f38c92140",
+      "title": "Migrate file-overlap, branch-integration, and merge-order registry consumers",
+      "type": "code",
+      "section": "Registry Consumers",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-23T15:42:23.691Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3f2f03278631"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T21:08:53.934Z",
+      "verification": "RED/GREEN: consumer verification initially failed after migration because compatibility summary expectations did not include derived branch metadata; fixed expectation and reran. GREEN: `pnpm test -- src/validator/file-overlap.test.ts src/validator/merge-order.test.ts src/utils/branch-integration.test.ts src/tools/worktree/state-session-lifecycle.test.ts` passed. File-overlap, branch-integration, and merge-order now use `getWorktreeRegistrySnapshot` instead of retired listWorktrees/getChangeSummaries read pairs.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/utils/branch-integration.ts",
+        "plugin/src/validator/file-overlap.ts",
+        "plugin/src/validator/merge-order.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/utils/branch-integration.ts",
+        "plugin/src/validator/file-overlap.ts",
+        "plugin/src/validator/merge-order.ts"
+      ],
+      "checkpointSha": "06d3230a61002a57e549f14ac5ee78c5dccfad1c",
+      "completedAt": "2026-05-23T21:11:14.937Z",
+      "completed_at": "2026-05-23T21:11:14.937Z"
+    },
+    {
+      "id": "tk-b79f45cde614",
+      "title": "Run integrated validation and contract coverage checks",
+      "type": "code",
+      "section": "Validation",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-23T15:42:35.395Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f37bc1b5c66b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-15b0075ef675"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-aa1f38c92140"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T21:11:40.423Z",
+      "verification": "Integrated validation passed. `pnpm run check` initially failed on typecheck for non-existent ChangeWorkflowState.touched_files, then on format. Fixed summary touched-file derivation from workflow tasks and ran Prettier. GREEN: `pnpm run check` passed; `pnpm test` passed; `adv_change_validate strict:true` passed with warning only NO_DELTAS.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/types/gates.worktree-impact.test.ts",
+        "plugin/src/validator/merge-order.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/worktree/state-session-lifecycle.test.ts",
+        "plugin/src/tools/worktree/state.ts",
+        "plugin/src/tools/worktree/triage.test.ts",
+        "plugin/src/types/gates.worktree-impact.test.ts",
+        "plugin/src/validator/merge-order.ts"
+      ],
+      "checkpointSha": "018a20d2e3df181bdab61b677abe23c6846573a5",
+      "completedAt": "2026-05-23T21:15:45.493Z",
+      "completed_at": "2026-05-23T21:15:45.493Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-23T15:29:26.157Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "Proposal re-approved after discovery scope expansion. User approved proposal via Tier A reply `continue`; user chose `Include consumers` in question tool for related stub consumers.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/proposal.md",
+        "content_hash": "b2d5eb6bb6992517a46d0f98a8ba81a947ab5be1935d7506deb0591faab5f5dc",
+        "non_whitespace_chars": 7890,
+        "checked_at": "2026-05-23T15:29:26.229Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-23T15:32:42.814Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery completed. User approved acceptance criteria with reply `approve`; contract minted from agreement. Retried from auto-managed worktree because current guard still blocks discovery from main checkout (the issue this change will repair).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/agreement.md",
+        "content_hash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "non_whitespace_chars": 2407,
+        "checked_at": "2026-05-23T15:32:42.941Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-23T15:40:43.896Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design completed. Validator verdict VALIDATED with caution to include explicit spec-delta task; incorporated into design. No user-value tradeoff or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/design.md",
+        "content_hash": "24d44b3e65ec05eb7de05450e15b7ee9a28c2a2581ac8109508d3a02668a1a07",
+        "non_whitespace_chars": 6049,
+        "checked_at": "2026-05-23T15:40:44.020Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-23T20:39:58.441Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "Prep approved by user reply `approve`. Task graph covers all acceptance criteria; strict validation passed with warning only NO_DELTAS. Retried after Temporal worker restart."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-23T21:16:07.351Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Execution complete: 6/6 tasks done. Verification passed: pnpm run check, pnpm test, and adv_change_validate strict:true (warning only NO_DELTAS)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-23T22:00:20.141Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "Acceptance approved by user reply `approve`. Independent reviewer verdict PASS; contract review matrix persisted with 15/15 rows satisfied. Verification passed: pnpm run check; full Vitest suite 229 files / 2990 tests; adv_change_validate strict:true passed with warning only NO_DELTAS. Git worktree clean at review checkpoint 1446376.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/acceptance.md",
+        "content_hash": "b342db18704f76c5055c1d937ea6ba4116c0c30f3101e110c6df4cba5dd11a35",
+        "non_whitespace_chars": 3613,
+        "checked_at": "2026-05-23T22:00:20.253Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "proposal",
+      "reason": "Discovery related-pattern scan found same retired registry read path in file-overlap, branch-integration, and merge-order consumers; user chose to include consumers in scope.",
+      "scope_delta": "Expand registry-read repair beyond adv_worktree_triage to include same-pattern retired listWorktrees/getChangeSummaries consumers in file-overlap, branch-integration, and merge-order code where they rely on stubbed registry paths. Keep guard/remediation scope unchanged and preserve no-bypass/no-sidecar constraints.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-23T15:28:36.416Z",
+      "gates_reset": [
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 999998,
+    "source_artifact": "user request"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+      "approvedAt": "2026-05-23T15:32:08.547Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Discovery gate completion from main checkout succeeds when it only records discovery state and does not mutate repo/git.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Design gate metadata completion from main checkout succeeds when it does not mutate repo/git.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Planning, execution, acceptance, release, and task execution mutations still block from main checkout under active isolation/auto-managed changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Worktree isolation remediation for `adv_gate_complete` contains no unsupported `workdir` argument and points to supported session/worktree routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_triage` emits no `adv_worktree_create --adopt` recommendation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Triage, file-overlap, branch-integration, and merge-order registry reads use authoritative Temporal per-change worktree records or explicit unavailable/warning results, not retired/stubbed empty paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover the classification table, remediation text, triage recommendation, and same-pattern registry consumers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not add bypass flags.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not weaken code/git-mutating isolation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not restore sidecar SQLite/JSONL as authoritative registry state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep solution structurally enforced through spec, types/adapters, and tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No `--ignore-isolation`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No invalid remediation flags/arguments.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No false orphan reports from unavailable registry source.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No broad cleanup deletion-policy rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "eb0fce5d2d665c19219fc9e5cc449ca408b4d697d2b8b86a72302a2a43889488",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/types/gates.ts classifies discovery as metadata; plugin/src/tools/gate.ts allows metadata gates before isolation guard; gate isolation tests cover discovery main-checkout allow.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/types/gates.ts classifies design as metadata; plugin/src/tools/gate.worktree-isolation.test.ts covers design main-checkout allow.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/types/gates.ts classifies planning/execution/acceptance/release as worktree_mutation; plugin/src/tools/gate.ts blocks guarded gates; task mutation guards remain in plugin/src/tools/task.ts.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Remediation uses supported worktree resume/session routing; no unsupported adv_gate_complete workdir guidance found except tests asserting absence.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/worktree/triage.ts recommends adv_worktree_resume; reviewer found no `adv_worktree_create --adopt`.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/worktree/state.ts reads active worktree data through Temporal visibility and per-change workflow state; triage, file-overlap, branch-integration, and merge-order consume getWorktreeRegistrySnapshot with unavailable/warning handling.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression coverage present in gate, worktree isolation, triage, registry snapshot, file-overlap, merge-order, and branch-integration tests; Vitest passed 229 files / 2990 tests.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No bypass flag introduced; reviewer found branch integration force does not bypass integration gate.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Metadata gates allowed selectively; worktree/git/task mutation gates remain guarded.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Registry authority remains Temporal per-change workflow plus visibility; no sidecar authoritative SQLite/JSONL registry introduced.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Structural enforcement via GATE_WORKTREE_IMPACT, shared guard adapter, spec update, and regression tests.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer found no `--ignore-isolation` usage in scoped implementation.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Remediation text avoids invalid adv_gate_complete/workdir argument guidance and points to supported worktree/session routing.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Temporal registry unavailable paths return explicit unavailable/warnings; triage no longer treats unavailable registry source as empty authoritative state.",
+          "notes": "Reviewer PASS."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Changes bounded to guard classification, registry reads, and triage recommendations; no broad cleanup deletion-policy rewrite.",
+          "notes": "Reviewer PASS."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Discovery gate completion from main checkout succeeds when it only records discovery state and does not mutate repo/git.",
+    "Design gate metadata completion from main checkout succeeds when it does not mutate repo/git.",
+    "Planning, execution, acceptance, release, and task execution mutations still block from main checkout under active isolation/auto-managed changes.",
+    "Worktree isolation remediation for `adv_gate_complete` contains no unsupported `workdir` argument and points to supported session/worktree routing.",
+    "`adv_worktree_triage` emits no `adv_worktree_create --adopt` recommendation.",
+    "Triage, file-overlap, branch-integration, and merge-order registry reads use authoritative Temporal per-change worktree records or explicit unavailable/warning results, not retired/stubbed empty paths.",
+    "Regression tests cover the classification table, remediation text, triage recommendation, and same-pattern registry consumers."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/proposal.md",
+      "updatedAt": "2026-05-23T21:36:02.475Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/problem-statement.md",
+      "updatedAt": "2026-05-23T21:36:02.502Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/agreement.md",
+      "updatedAt": "2026-05-23T21:36:02.520Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/design.md",
+      "updatedAt": "2026-05-23T21:36:02.527Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/repairGuardMismatch/executive-summary.md",
+      "updatedAt": "2026-05-23T21:36:02.541Z"
+    }
+  },
+  "lastSignalAt": "2026-05-23T22:00:20.141Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-23T20:36:46.990Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-23T21:35:06.367Z",
+      "resolved": true,
+      "resolved_at": "2026-05-23T22:00:08.072Z"
+    }
+  ]
+}

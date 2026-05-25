@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { formatToolOutput } from "../utils/tool-output";
 import type { Store } from "../storage/store-types";
+import type { OpencodeClient } from "../utils/opencode-types";
 import {
   advWorktreeCreate,
   advWorktreeResume,
@@ -52,7 +53,27 @@ function createLogger(): {
 export interface AdvWorktreeCreateRuntime {
   serverUrl?: URL;
   sessionID?: string;
+  /**
+   * v1 SDK client from `PluginInput.client`. When present, session lookup
+   * routes through the SDK's interceptor pipeline so `x-opencode-directory`
+   * is attached automatically (rq-warpModeContract04).
+   */
+  client?: OpencodeClient;
 }
+
+/**
+ * Structured downgrade reason emitted on every `mode:warp → mode:terminal`
+ * fallback path. Discriminated union so agents can branch on `kind` without
+ * parsing the human-readable `warning` string (rq-warpModeContract03).
+ */
+export type DowngradeReason =
+  | { kind: "missing_server" }
+  | { kind: "missing_session" }
+  | { kind: "missing_client" }
+  | { kind: "flag_disabled" }
+  | { kind: "lookup_failed"; status?: number; detail?: string }
+  | { kind: "endpoint_unreachable" }
+  | { kind: "warp_failed"; detail: string; cleanupFailed?: boolean };
 
 async function resolveCreateRuntimeMode(
   projectRoot: string,
@@ -61,7 +82,11 @@ async function resolveCreateRuntimeMode(
 ): Promise<
   | { mode: "legacy" }
   | { mode: "warp"; warpDeps: WarpDeps }
-  | { mode: "terminal" | "spawn"; warning?: string }
+  | {
+      mode: "terminal" | "spawn";
+      warning?: string;
+      downgrade_reason?: DowngradeReason;
+    }
   | { mode: "blocked"; output: Record<string, unknown> }
 > {
   const config = await loadWorktreeConfig(projectRoot, log);
@@ -71,43 +96,74 @@ async function resolveCreateRuntimeMode(
     "mode:warp unavailable because the OpenCode tool context did not include serverUrl; falling back to mode:terminal.";
   if (!runtime?.serverUrl) {
     log.warn(`[worktree] ${warningMissingServer}`);
-    return { mode: "terminal", warning: warningMissingServer };
+    return {
+      mode: "terminal",
+      warning: warningMissingServer,
+      downgrade_reason: { kind: "missing_server" },
+    };
   }
 
   const warningMissingSession =
     "mode:warp unavailable because the OpenCode tool context did not include a sessionID; falling back to mode:terminal.";
   if (!runtime.sessionID) {
     log.warn(`[worktree] ${warningMissingSession}`);
-    return { mode: "terminal", warning: warningMissingSession };
+    return {
+      mode: "terminal",
+      warning: warningMissingSession,
+      downgrade_reason: { kind: "missing_session" },
+    };
+  }
+
+  const warningMissingClient =
+    "mode:warp unavailable because the OpenCode tool context did not include an SDK client; falling back to mode:terminal.";
+  if (!runtime.client) {
+    log.warn(`[worktree] ${warningMissingClient}`);
+    return {
+      mode: "terminal",
+      warning: warningMissingClient,
+      downgrade_reason: { kind: "missing_client" },
+    };
   }
 
   const warningFlag =
     "mode:warp unavailable because OpenCode workspace sync is not enabled. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true (or OPENCODE_EXPERIMENTAL=true) and restart OpenCode to enable workspace warp; falling back to mode:terminal.";
   if (!warpFlagEnabled()) {
     log.warn(`[worktree] ${warningFlag}`);
-    return { mode: "terminal", warning: warningFlag };
+    return {
+      mode: "terminal",
+      warning: warningFlag,
+      downgrade_reason: { kind: "flag_disabled" },
+    };
   }
 
-  const warpDeps: WarpDeps = { serverUrl: runtime.serverUrl };
-  let currentWorkspaceID: string | null;
-  try {
-    currentWorkspaceID = await getSessionWorkspaceID(
-      warpDeps,
-      runtime.sessionID,
-    );
-  } catch (error) {
-    const warningSession = `mode:warp unavailable because current session lookup failed (${error}); falling back to mode:terminal.`;
+  const warpDeps: WarpDeps = {
+    serverUrl: runtime.serverUrl,
+    directory: projectRoot,
+    client: runtime.client,
+  };
+
+  const lookup = await getSessionWorkspaceID(warpDeps, runtime.sessionID);
+  if (!lookup.ok) {
+    const warningSession = `mode:warp unavailable because current session lookup failed (${lookup.detail}); falling back to mode:terminal.`;
     log.warn(`[worktree] ${warningSession}`);
-    return { mode: "terminal", warning: warningSession };
+    return {
+      mode: "terminal",
+      warning: warningSession,
+      downgrade_reason: {
+        kind: "lookup_failed",
+        ...(lookup.status !== undefined ? { status: lookup.status } : {}),
+        detail: lookup.detail,
+      },
+    };
   }
-  if (currentWorkspaceID) {
+  if (lookup.workspaceID) {
     return {
       mode: "blocked",
       output: {
         ok: false,
         error: "SESSION_ALREADY_WARPED",
         sessionID: runtime.sessionID,
-        workspaceID: currentWorkspaceID,
+        workspaceID: lookup.workspaceID,
         hint: "Open a fresh OpenCode session from the trunk checkout to create a new worktree.",
       },
     };
@@ -117,7 +173,11 @@ async function resolveCreateRuntimeMode(
     "mode:warp unavailable because /experimental/workspace is not reachable. Set OPENCODE_EXPERIMENTAL_WORKSPACES=true and restart OpenCode, or use mode:terminal; falling back to mode:terminal.";
   if (!(await workspaceAndWarpAvailable(warpDeps))) {
     log.warn(`[worktree] ${warningEndpoint}`);
-    return { mode: "terminal", warning: warningEndpoint };
+    return {
+      mode: "terminal",
+      warning: warningEndpoint,
+      downgrade_reason: { kind: "endpoint_unreachable" },
+    };
   }
 
   return { mode: "warp", warpDeps };
@@ -126,16 +186,19 @@ async function resolveCreateRuntimeMode(
 const terminalModePayload = <T extends { path?: string }>(
   result: T,
   warning?: string,
+  downgrade_reason?: DowngradeReason,
 ): T & {
   mode: "terminal";
   workdir: string | undefined;
   warning?: string;
+  downgrade_reason?: DowngradeReason;
   message: string;
 } => ({
   ...result,
   mode: "terminal",
   workdir: result.path,
   ...(warning ? { warning } : {}),
+  ...(downgrade_reason ? { downgrade_reason } : {}),
   message: `IMPORTANT: Terminal mode is active. You MUST use workdir="${result.path}" for ALL subsequent tool calls (bash, read, edit, glob, grep, etc). Do NOT continue operating in the original directory.`,
 });
 
@@ -183,7 +246,9 @@ export const advWorktreeTools = {
       if (!result.ok || mode.mode === "legacy") return formatToolOutput(result);
 
       if (mode.mode === "terminal") {
-        return formatToolOutput(terminalModePayload(result, mode.warning));
+        return formatToolOutput(
+          terminalModePayload(result, mode.warning, mode.downgrade_reason),
+        );
       }
 
       if (mode.mode === "spawn") {
@@ -228,6 +293,11 @@ export const advWorktreeTools = {
           terminalModePayload(
             result,
             `mode:warp failed after creating the git worktree (${error}); ${cleanupMessage}. Falling back to mode:terminal.`,
+            {
+              kind: "warp_failed",
+              detail: String(error),
+              ...(workspaceCleanupFailed ? { cleanupFailed: true } : {}),
+            },
           ),
         );
       }
@@ -301,13 +371,17 @@ export const advWorktreeTools = {
     execute: async (
       args: { branch: string; force?: boolean; dryRun?: boolean },
       store: Store,
-      options: { serverUrl?: URL } = {},
+      options: { serverUrl?: URL; client?: OpencodeClient } = {},
     ) => {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
       const warpDeps: WarpDeps | undefined = options.serverUrl
-        ? { serverUrl: options.serverUrl }
+        ? {
+            serverUrl: options.serverUrl,
+            directory: projectRoot,
+            client: options.client,
+          }
         : undefined;
       const result = await advWorktreeDelete(
         args.branch,
@@ -329,19 +403,29 @@ export const advWorktreeTools = {
         .boolean()
         .optional()
         .describe("Preview cleanup retries without deleting queued worktrees"),
+      timeoutMs: z
+        .number()
+        .optional()
+        .describe(
+          "Optional wall-clock timeout for the cleanup pass. Defaults to 8000ms so the tool returns before the 10s SDK timeout when cleanup hangs on poisoned workflows or stuck I/O.",
+        ),
     },
     execute: async (
-      args: { reason: string; dryRun?: boolean },
+      args: { reason: string; dryRun?: boolean; timeoutMs?: number },
       store: Store,
-      options: { serverUrl?: URL } = {},
+      options: { serverUrl?: URL; client?: OpencodeClient } = {},
     ) => {
       const projectRoot = store.paths.root;
       const database = await initWorktreeDb(projectRoot);
       const log = createLogger();
       const warpDeps: WarpDeps | undefined = options.serverUrl
-        ? { serverUrl: options.serverUrl }
+        ? {
+            serverUrl: options.serverUrl,
+            directory: projectRoot,
+            client: options.client,
+          }
         : undefined;
-      const result = await advWorktreeCleanup(args.reason, {
+      const cleanupPromise = advWorktreeCleanup(args.reason, {
         projectRoot,
         database,
         log,
@@ -349,6 +433,31 @@ export const advWorktreeTools = {
         store,
         warpDeps,
       });
+      // rq-extend-poisoned-recovery AC7: bound the cleanup tool with a
+      // wall-clock timeout so cleanup hangs (e.g. inside discovery's
+      // workflow queries on poisoned workflows) don't exceed the SDK's
+      // tool-execution timeout and surface as console errors.
+      const timeoutMs = args.timeoutMs ?? 8000;
+      let timeoutHandle: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<{
+        timedOut: true;
+      }>((resolve) => {
+        timeoutHandle = setTimeout(
+          () => resolve({ timedOut: true }),
+          timeoutMs,
+        );
+      });
+      const result = await Promise.race([cleanupPromise, timeoutPromise]);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if ("timedOut" in result) {
+        return formatToolOutput({
+          success: false,
+          timedOut: true,
+          error: `adv_worktree_cleanup timed out after ${timeoutMs}ms. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_temporal_diagnose).`,
+          remediation:
+            "Pass a larger timeoutMs to retry, or fix the poisoned workflow via adv_change_archive recoveryMode=poisoned_history first.",
+        });
+      }
       return formatToolOutput({
         success: true,
         removed: result.removed,

@@ -39,11 +39,12 @@ let state: StatusState = {
  * worktree directory. That second instance calls initializeStatus(projectName)
  * again — pre-fix, this destructively reset activeChangeId, blowing away the
  * terminal status marker mid-change. projectName stays anchored to the first
- * init value so tab title remains the simple initial `project: advChange`
- * identity instead of dynamically changing to the worktree basename.
+ * init value so tab title remains anchored to the initial project identity
+ * when no ADV change is active instead of dynamically changing to the
+ * worktree basename.
  *
- * See change `fixWorktreeSessionRoot` task `tk-f96182eff2ad` and the audit at
- * docs/spikes/module-singleton-audit.md Part A.
+ * Source invariant: status initialization is idempotent across duplicate
+ * OpenCode plugin instances created by worktree/warp session roots.
  */
 let initialized = false;
 

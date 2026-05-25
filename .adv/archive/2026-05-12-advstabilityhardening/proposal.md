@@ -64,7 +64,7 @@ AND completes within 2s p95 even under multi-session load
 
 ### Out of Scope
 
-- OpenCode-core snapshot `index.lock` cross-process race (upstream Sharper-Flow/Opencode-Advance#1)
+- OpenCode-core snapshot `index.lock` cross-process race (upstream Sharper-Flow/Advance#1)
 - TypeScript LSP / tsserver initialization timeout (downstream OpenCode / tsserver tuning)
 - Auto-materialize worktree on `adv_change_create` (deferred — couples worktree setup hooks to proposal drafting; tool-level guard sufficient per research)
 - Standalone worker daemon with IPC socket pattern (deferred — lockfile + heartbeat is LBP per research)
@@ -104,7 +104,7 @@ AND completes within 2s p95 even under multi-session load
 | SC-1 | Integration: spawn 3 mock opencode-host processes for same project-id, assert worker count == 1, kill holder, assert next-host reclaims | `plugin/src/temporal/worker-singleton.test.ts` (new) |
 | SC-2 | Unit: invoke `adv_gate_complete discovery` with mocked main-checkout `_contextSnapshot`, assert structured BLOCK; invoke from worktree, assert pass | `plugin/src/tools/gate.test.ts` (extend) |
 | SC-3 | Unit + property: call `cache.fetch()` 10× concurrently, assert `fetchMethod` invoked once; call after TTL, assert refresh; mock probe failure, assert `stale: true` returned | `plugin/src/tools/probe-cache.test.ts` (new) |
-| SC-5 | Manual + smoke test: `adv_status view: health` with stopwatch under 2-session pokeedge-web load | Verification checklist in change archive notes |
+| SC-5 | Manual + smoke test: `adv_status view: health` with stopwatch under 2-session example-web load | Verification checklist in change archive notes |
 
 ## Linked Issues
 

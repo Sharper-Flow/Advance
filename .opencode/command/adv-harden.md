@@ -19,7 +19,6 @@ Orchestrate multi-dimensional hardening via sub-agents. Command is part of the r
 | 🎤 BLOCKED    | Blocker or unresolved review findings → user decides       |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
-> **CHECKLIST**: Follow [docs/checklists/harden-checklist.md](../../docs/checklists/harden-checklist.md).
 > <UserRequest>
 > $ARGUMENTS
 > </UserRequest>
@@ -49,7 +48,7 @@ Extract from `$ARGUMENTS`:
 
 Reusable hardening methodology for ADV harden workflows. Provides the 6-scanner framework overview.
 
-**Canonical source:** `docs/checklists/harden-checklist.md` — see that checklist for severity scoring, priority matrix, status determination, minimum findings threshold, documentation hygiene standard, and technical debt classification. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the hardening methodology needed during command execution.
 
 #### 6-Scanner Framework
 
@@ -70,7 +69,7 @@ All 6 must be executed. Skipping requires explicit justification.
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the harden gate
-- **Canonical source** — defer to `docs/checklists/harden-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Pre-flight
@@ -165,7 +164,7 @@ Before running 6-scanner analysis, validate and act on review suggestions/questi
 
 **Step 3: Implement valid findings:**
 - Apply drift-detection rule (same as Phase 3) before each fix
-- If no drift → implement via `adv-engineer` sub-agent or inline
+- If no drift → implement through hardening remediation routing (`adv-reviewer` for scoped review-style fixes, `adv-engineer` for primary implementation or multi-file refactors) or inline
 - If drift → STOP, present to user via `question` tool
 - After implementation → mark `fixed` with fix notes
 
@@ -205,11 +204,14 @@ Protocol: retry once → if still fails → inline fallback analysis → never s
 
 ## Phase 1: Spawn Analysis Sub-Agents
 
-**Harden Context Packet (inject into every sub-agent spawn prompt):**
+#### Harden Scanner Context Packet
+
+Inject into every `explore` scanner spawn prompt:
 
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
+ATTEMPT: {attempt-number, starting at 1 for this spawned worker}
 AFFECTED FILES:
   - {file}: {one-line change summary}
   - ...
@@ -225,9 +227,9 @@ TASK EVIDENCE SUMMARY:
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
 
-Build packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
+Build scanner packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
 
-Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Context Packet above plus dimension-specific instructions.
+Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Scanner Context Packet above plus dimension-specific instructions.
 
 ### Sub-Agent 1: Test Coverage Scanner
 
@@ -313,7 +315,7 @@ Priority = Impact × Effort
 
 ### Minimum Findings Enforcement
 
-Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per [harden-checklist.md](../../docs/checklists/harden-checklist.md).
+Count non-nit findings. If <3 → require genuinely-clean justification with scanner-level evidence per the Harden Methodology section above.
 
 ### Status Determination
 
@@ -334,7 +336,7 @@ If NEEDS_WORK or BLOCKED → fix all validated in-scope findings. × No report-o
 
 ### Drift Detection Rule (CRITICAL)
 
-Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
@@ -351,14 +353,53 @@ This is the single declarative drift detection rule. It applies to every finding
 
 ### Sub-Agent Routing for Fixes
 
+Hardening has two delegated lanes: scanner workers (`explore`) for readiness analysis and remediation workers (`adv-reviewer`/`adv-engineer`) for validated in-scope fixes. Do not introduce ad-hoc workers.
+
 | Fix shape | Worker | Returns |
 |---|---|---|
-| Scoped review-style (single file or local subsystem; no architectural risk) | `adv-reviewer` | fenced `REVIEWER_REPORT` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
-| Primary implementation or multi-file refactor | `adv-engineer` | fenced `ENGINEER_REPORT` |
+| Scoped review-style (single file or local subsystem; no architectural risk) | `adv-reviewer` | persisted `REVIEWER_REPORT` via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| Primary implementation or multi-file refactor | `adv-engineer` | persisted `ENGINEER_REPORT` via `adv_subagent_report_submit` |
 
 Both workers honor the drift detection rule and `stop_and_report` on scope drift. The orchestrator ingests verdict + findings from whichever report shape is returned.
 
 If fixing → establish CONTRACT ACTIVE banner listing issues grouped by category → spawn fix sub-agents → verify → update status.
+
+#### Harden Reviewer Remediation Packet
+
+Use when spawning `adv-reviewer` for scoped hardening fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+PHASE: harden
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: fix only the listed in-scope hardening finding(s); honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: fix scoped hardening finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
+```
+
+#### Harden Engineer Remediation Packet
+
+Use when spawning `adv-engineer` for primary implementation or multi-file hardening fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: implement only the listed in-scope hardening fix; honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: implement the fix, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+```
 
 ---
 
@@ -366,7 +407,7 @@ If fixing → establish CONTRACT ACTIVE banner listing issues grouped by categor
 
 After remediation fixes, re-verify affected dimensions before status determination:
 
-1. For each dimension with fixed findings, spawn a **targeted** `explore` scanner with the Harden Context Packet plus:
+1. For each dimension with fixed findings, spawn a **targeted** `explore` scanner with the Harden Scanner Context Packet plus:
    - `PRIOR FINDINGS: [{finding_id, original_issue, fix_applied}]`
    - `SCOPE: evaluate only whether the listed findings are resolved`
    - `EXPECTED OUTPUT: { finding_id, status: "resolved"|"unresolved", evidence }`

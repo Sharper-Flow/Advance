@@ -1,5 +1,5 @@
 import { readFile, readdir, rm } from "fs/promises";
-import { join } from "path";
+import { basename, dirname, join, resolve } from "path";
 import { SYNTHETIC_TEST_PROJECT_ID_PREFIX } from "../utils/project-id";
 
 export const ADV_TEST_OWNER_MARKER = ".adv-test-owner";
@@ -19,14 +19,29 @@ async function listSyntheticDirsIn(parent: string): Promise<string[]> {
   }
 }
 
+function syntheticAdvRoots(dataHome: string): string[] {
+  return [
+    join(dataHome, "opencode", "plugins", "advance"),
+    join(dataHome, "opencode", "worktree"),
+  ];
+}
+
+function isSyntheticAdvDir(path: string, roots: string[]): boolean {
+  const resolvedPath = resolve(path);
+  return roots.some(
+    (root) =>
+      dirname(resolvedPath) === resolve(root) &&
+      basename(resolvedPath).startsWith(SYNTHETIC_TEST_PROJECT_ID_PREFIX),
+  );
+}
+
 export async function listSyntheticAdvDirs(
   dataHome: string,
 ): Promise<Set<string>> {
-  const [projectDirs, worktreeDirs] = await Promise.all([
-    listSyntheticDirsIn(join(dataHome, "opencode", "plugins", "advance")),
-    listSyntheticDirsIn(join(dataHome, "opencode", "worktree")),
-  ]);
-  return new Set([...projectDirs, ...worktreeDirs]);
+  const dirs = await Promise.all(
+    syntheticAdvRoots(dataHome).map(listSyntheticDirsIn),
+  );
+  return new Set(dirs.flat());
 }
 
 async function markerMatches(path: string, runId?: string): Promise<boolean> {
@@ -35,22 +50,23 @@ async function markerMatches(path: string, runId?: string): Promise<boolean> {
     const marker = await readFile(join(path, ADV_TEST_OWNER_MARKER), "utf-8");
     return marker.trim() === runId;
   } catch {
+    // Missing marker means legacy/orphan synthetic test residue. Keep marker
+    // mismatches, but allow old unmarked synthetic dirs to be reaped.
     return true;
   }
 }
 
-export async function cleanupNewSyntheticAdvDirs(
+export async function cleanupSyntheticAdvDirs(
   dataHome: string,
-  baseline: Set<string>,
   options: { runId?: string } = {},
 ): Promise<string[]> {
   const current = await listSyntheticAdvDirs(dataHome);
-  const candidates = [...current]
-    .filter((path) => !baseline.has(path))
-    .sort((a, b) => a.localeCompare(b));
+  const roots = syntheticAdvRoots(dataHome);
+  const candidates = [...current].sort((a, b) => a.localeCompare(b));
   const removed: string[] = [];
 
   for (const path of candidates) {
+    if (!isSyntheticAdvDir(path, roots)) continue;
     if (!(await markerMatches(path, options.runId))) continue;
     await rm(path, { recursive: true, force: true });
     removed.push(path);

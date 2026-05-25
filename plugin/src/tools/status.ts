@@ -71,6 +71,13 @@ import {
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { createProbeCache, type ProbeCacheFreshness } from "./probe-cache";
 import { scanSnapshotHealth } from "./snapshot-scan";
+import { advWorktreeCleanup } from "./worktree";
+import {
+  getPendingDeletes,
+  initStateDb as initWorktreeStateDb,
+  summarizePendingDeletes,
+  type PendingDeleteSummary,
+} from "./worktree/state";
 
 // =============================================================================
 // Health Snapshot Cache
@@ -898,6 +905,7 @@ export function applyStatusView(
       projection.recommendations = full.recommendations ?? [];
       projection.temporal_health_ok = !!temporalHealth?.server_alive;
       projection.worktree_count = worktreeCensus?.total ?? 0;
+      projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       if (full.bootstrap_retry) {
         projection.diagnostics = full.diagnostics;
         projection.bootstrap_retry = full.bootstrap_retry;
@@ -913,6 +921,11 @@ export function applyStatusView(
       projection.worker_diagnostics = full.worker_diagnostics;
       projection.worker_role = full.worker_role;
       projection.feature_flags = full.feature_flags;
+      // rq-autoManageAdvWorktrees AC2 — surface resolved-flag source +
+      // auto-managed change census in health view so operators can audit
+      // the worktree_guard_enforce posture and migration progress.
+      projection.feature_flag_sources = full.feature_flag_sources;
+      projection.auto_managed_changes = full.auto_managed_changes;
       projection.search_attributes = full.search_attributes;
       projection.opencode_session_debt = full.opencode_session_debt;
       projection.diagnostics = full.diagnostics;
@@ -927,6 +940,7 @@ export function applyStatusView(
       if (full.metrics) projection.metrics = full.metrics;
       projection.plugin_runtime = full.plugin_runtime;
       projection.snapshot_health = full.snapshot_health;
+      projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       break;
     }
     case "changes": {
@@ -942,6 +956,7 @@ export function applyStatusView(
       projection.external_state_hygiene = full.external_state_hygiene;
       projection.migration_status = full.migration_status;
       projection.snapshot_health = full.snapshot_health;
+      projection.terminal_cleanup_retained = full.terminal_cleanup_retained;
       break;
     }
   }
@@ -1097,6 +1112,7 @@ export const statusTools = {
           );
           let featureFlags: Record<string, unknown> =
             withStabilityFeatureDefaults(undefined);
+          let rawFeatures: Record<string, unknown> | undefined;
 
           // Warn when external state is unavailable — worktree sharing and
           // state isolation won't function.  This happens when the plugin
@@ -1119,9 +1135,42 @@ export const statusTools = {
             status.recommendations.unshift(`${prefix}: ${configResult.error}`);
           } else {
             // Expose feature flags in status output for visibility
-            featureFlags = withStabilityFeatureDefaults(
-              configResult.data.features as Record<string, unknown>,
-            );
+            rawFeatures = configResult.data.features as
+              | Record<string, unknown>
+              | undefined;
+            featureFlags = withStabilityFeatureDefaults(rawFeatures);
+          }
+
+          // rq-autoManageAdvWorktrees AC2 — surface the source (default vs
+          // explicit) of each resolved flag so the agent can audit whether a
+          // given value was inherited or set in project.json. Computed
+          // regardless of config-load success so the census is always
+          // present even when project.json is missing/invalid.
+          const featureFlagSources: Record<string, "default" | "explicit"> = {};
+          for (const key of Object.keys(featureFlags)) {
+            featureFlagSources[key] =
+              rawFeatures && typeof rawFeatures[key] !== "undefined"
+                ? "explicit"
+                : "default";
+          }
+
+          // rq-autoManageAdvWorktrees AC2 — auto-managed change census from
+          // the in-flight changes list. New changes (post-A3) get marker
+          // true; legacy changes get false via lazy migration (A4). The
+          // counts help operators see migration progress without scanning
+          // every change.json by hand.
+          const recentForCensus = status.changes.recent ?? [];
+          const autoManagedCensus = {
+            auto: 0,
+            legacy: 0,
+            unmigrated: 0,
+          };
+          for (const c of recentForCensus) {
+            const marker = (c as { worktree_auto_managed?: boolean })
+              .worktree_auto_managed;
+            if (marker === true) autoManagedCensus.auto += 1;
+            else if (marker === false) autoManagedCensus.legacy += 1;
+            else autoManagedCensus.unmigrated += 1;
           }
 
           // Single-pass over recent changes: context snapshot, gate recommendation,
@@ -1156,6 +1205,33 @@ export const statusTools = {
           }
 
           // Worktree census
+          let terminalCleanupRetained: PendingDeleteSummary = {
+            total: 0,
+            classes: {},
+          };
+          try {
+            const worktreeAccess = await initWorktreeStateDb(
+              activeStore.paths.root,
+            );
+            await advWorktreeCleanup("status", {
+              projectRoot: activeStore.paths.root,
+              database: worktreeAccess,
+              log: {
+                debug: () => undefined,
+                info: () => undefined,
+                warn: () => undefined,
+                error: () => undefined,
+              },
+              store: activeStore,
+              forceAttempts: false,
+            });
+            terminalCleanupRetained = summarizePendingDeletes(
+              await getPendingDeletes(worktreeAccess),
+            );
+          } catch {
+            // Status cleanup discovery is best-effort; status itself must remain available.
+          }
+
           const worktreeCensusProbe =
             await statusWorktreeCensusProbeCache.fetch(activeStore.paths.root);
           const worktreeCensus = worktreeCensusProbe.value;
@@ -1164,10 +1240,10 @@ export const statusTools = {
           const opencodeSessionDebt = await scanOpenCodeSessionDebt();
           if (
             opencodeSessionDebt.available &&
-            opencodeSessionDebt.repairable_stale.length > 0
+            opencodeSessionDebt.orphan_ghost.length > 0
           ) {
             status.recommendations.push(
-              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.repairable_stale.length} repairable sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
+              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.orphan_ghost.length} orphan ghost sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
             );
           }
 
@@ -1253,12 +1329,12 @@ export const statusTools = {
                   stale: worktreeCensus.stale,
                 }
               : undefined,
+            terminalCleanupRetained,
             peerSessions,
             opencodeSessionDebt: opencodeSessionDebt.available
               ? {
                   available: true,
-                  repairableStaleCount:
-                    opencodeSessionDebt.repairable_stale.length,
+                  orphanGhostCount: opencodeSessionDebt.orphan_ghost.length,
                   liveInFlightCount: opencodeSessionDebt.live_in_flight.length,
                 }
               : {
@@ -1290,6 +1366,10 @@ export const statusTools = {
                 }
               : {}),
             feature_flags: featureFlags,
+            // rq-autoManageAdvWorktrees AC2 — per-flag source (default | explicit)
+            feature_flag_sources: featureFlagSources,
+            // rq-autoManageAdvWorktrees AC2 — auto-managed change census
+            auto_managed_changes: autoManagedCensus,
             worker_role: getTemporalWorkerRole(),
             _freshness: probeFreshness,
             temporal_health: temporalHealth,
@@ -1307,6 +1387,7 @@ export const statusTools = {
             project_metadata: projectMetadata,
             external_state_hygiene: externalStateHygiene,
             worktree_census: worktreeCensus,
+            terminal_cleanup_retained: terminalCleanupRetained,
             snapshot_health: snapshotHealth,
             _healthSnapshot: healthSnapshot,
             // AC6: in-memory counters surfaced via view: "health".

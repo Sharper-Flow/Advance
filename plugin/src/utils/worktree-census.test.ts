@@ -8,8 +8,21 @@ import { getWorktreeCensus } from "./worktree-census";
 const mockExecFile = vi.fn();
 const mockStatSync = vi.fn();
 
-vi.mock("child_process", () => ({
-  execFile: (...args: unknown[]) => mockExecFile(...args),
+// worktree-census.ts uses execFileGitCb from ./git-binary (post-Bug2 fix).
+// Mock the git-binary boundary so we don't have to also stub child_process
+// spawnSync for the binary-resolution lookup.
+vi.mock("./git-binary", () => ({
+  execFileGitCb: (
+    args: readonly string[],
+    options: unknown,
+    callback: (
+      err: NodeJS.ErrnoException | null,
+      stdout: string,
+      stderr: string,
+    ) => void,
+  ) => {
+    mockExecFile("git", args, options, callback);
+  },
 }));
 
 vi.mock("node:fs", () => ({

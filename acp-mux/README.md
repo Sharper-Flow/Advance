@@ -1,7 +1,27 @@
 # acp-mux
 
+> [!CAUTION]
+> Archived / parked experiment. Do not install, use, or extend `acp-mux` as part
+> of current Advance work. Keep it only as historical design material until
+> upstream OpenCode ACP fixes make ACP reliable for ADV human checkpoints.
+
 Local OpenCode/Zed ACP companion: per-instance launcher, agent-callable tools,
 runtime plugin hooks, and bidirectional session-store sync.
+
+## Archived status
+
+`acp-mux` is not part of the supported Advance install path, release surface, or
+active development plan. It was an ACP/session-isolation prototype for Zed +
+OpenCode. Current ACP behavior still blocks ADV workflows that depend on reliable
+question/permission round-trips, so the project is parked until upstream
+OpenCode ACP fixes land.
+
+`scripts/deploy-local.sh` and the repo post-commit hook intentionally do not
+install or refresh `acp-mux/bin/acp-mux` while this directory is archived.
+
+The sections below are historical reference only. Re-check upstream OpenCode,
+Zed, and ACP behavior before reviving any command, launcher, plugin hook, or DB
+sync design from this directory.
 
 ## Why a launcher AND a plugin?
 
@@ -14,10 +34,10 @@ fix that on its own.
 | `bin/acp-mux` | The launcher binary. Sets `XDG_DATA_HOME` per instance, seeds the new DB from canonical, symlinks shared state, then `exec`s `opencode acp`. Also provides `doctor`, `instances`, `sync-db`, `cleanup`, `install`, `zed-config`, `env` subcommands. |
 | `plugin.js` | Runtime plugin loaded by OpenCode. Surfaces multi-instance state to agents via tools (`acp_mux_instance_info`, `acp_mux_concurrent_sessions`, `acp_mux_sync_db`, `acp_mux_doctor`, `acp_mux_instances`), forwards `OPENCODE_CLIENT=acp` into child shells, and runs `PRAGMA wal_checkpoint(TRUNCATE)` on session end / SIGTERM / SIGINT / beforeExit. |
 
-## Install
+## Historical install notes — do not use while archived
 
 ```bash
-/home/jon/toolbox/plugins/acp-mux/bin/acp-mux install
+/home/dev/toolbox/plugins/acp-mux/bin/acp-mux install
 ```
 
 This symlinks the launcher into `~/.local/bin/acp-mux`. Then register the
@@ -26,14 +46,15 @@ plugin in `~/.config/opencode/opencode.jsonc`:
 ```jsonc
 {
   "plugin": [
-    "/home/jon/toolbox/plugins/acp-mux/plugin.js"
+    "/home/dev/toolbox/plugins/acp-mux/plugin.js"
   ]
 }
 ```
 
-Then restart Zed/OpenCode ACP.
+Then restart Zed/OpenCode ACP. Do not follow these notes for current Advance
+setup; they are retained only to preserve the old experiment.
 
-## Zed configuration
+## Historical Zed configuration
 
 ```jsonc
 {
@@ -43,7 +64,7 @@ Then restart Zed/OpenCode ACP.
       "command": "acp-mux",
       "args": ["acp"],
       "env": {
-        "PATH": "/home/jon/.local/bin:/home/jon/.opencode/bin:/home/jon/.bun/bin:/home/jon/.cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin",
+        "PATH": "/home/dev/.local/bin:/home/dev/.opencode/bin:/home/dev/.bun/bin:/home/dev/.cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin",
         "SHELL": "/usr/bin/zsh",
         "COLORTERM": "truecolor"
       }
@@ -52,7 +73,8 @@ Then restart Zed/OpenCode ACP.
 }
 ```
 
-Use `acp-mux zed-config` to print this snippet.
+Historically, `acp-mux zed-config` printed this snippet. Do not configure Zed to
+use `acp-mux` for current Advance work while this experiment is archived.
 
 ## Storage layout
 
@@ -78,7 +100,7 @@ Use `acp-mux zed-config` to print this snippet.
 Legacy instance root `~/.local/share/opencode-instances/` (from pre-rename
 sessions) is still scanned by `instances`, `sync-db`, and `cleanup`.
 
-## Useful commands
+## Historical useful commands
 
 ```bash
 acp-mux doctor
@@ -95,7 +117,7 @@ acp-mux env
 - runs `INSERT OR IGNORE` in three passes (canon → target → canon → target),
 - never deletes rows.
 
-## Tools surfaced to agents
+## Historical tools surfaced to agents
 
 | Tool | Purpose |
 |---|---|
@@ -121,10 +143,10 @@ acp-mux env
 | `OPENCODE_MASTER_DATA` | Override canonical data dir |
 | `OPENCODE_BIN` | Override real opencode binary path |
 
-## Tests
+## Historical tests
 
 ```bash
-cd /home/jon/toolbox/plugins/acp-mux
+cd /home/dev/toolbox/plugins/acp-mux
 npm test                # smoke.sh + unit tests
 npm run test:unit       # node --test test/*.test.js
 npm run test:smoke      # bash test/smoke.sh
@@ -133,8 +155,8 @@ npm run lint            # node --check on JS files
 
 ## Provenance
 
-This is the Zed-era replacement for the unbuilt portions of
-`Sharper-Flow/Opencode-Advance`:
+This is the Zed-era extraction of ACP/session-isolation ideas now archived in
+this repository:
 
 - `docs/proposals/2026-05-03-session-and-resource-architecture.md` §10.2
   flagged "session DB single-writer contention" — closed here via per-instance
@@ -146,8 +168,9 @@ This is the Zed-era replacement for the unbuilt portions of
   `opencode --session <id>` cold resume — covered by `sync-db` plus
   bypass-via-canonical (`opencode --session <id>` against master).
 
-Tmux-specific OCA pieces (status decode, resurrect, dashboard) are
-intentionally not ported — Zed owns window/session management now.
+Tmux-specific pieces (status decode, resurrect, dashboard) were intentionally
+not ported. Future revival must re-evaluate whether Zed, OpenCode ACP, or another
+ACP client owns window/session management.
 
 ## Upstream context (`anomalyco/opencode`)
 

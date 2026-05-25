@@ -21,8 +21,8 @@ describe("debug-log logger", () => {
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "adv-logger-"));
     originalAdvDebug = process.env.ADV_DEBUG;
-    originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
-    process.env.OPEN_CHAD_CACHE_DIR = tempDir;
+    originalCacheDir = process.env.ADV_CACHE_DIR;
+    process.env.ADV_CACHE_DIR = tempDir;
     warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -34,9 +34,9 @@ describe("debug-log logger", () => {
       process.env.ADV_DEBUG = originalAdvDebug;
     }
     if (originalCacheDir === undefined) {
-      delete process.env.OPEN_CHAD_CACHE_DIR;
+      delete process.env.ADV_CACHE_DIR;
     } else {
-      process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+      process.env.ADV_CACHE_DIR = originalCacheDir;
     }
     warnSpy.mockRestore();
     errorSpy.mockRestore();

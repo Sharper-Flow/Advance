@@ -31,6 +31,7 @@ import {
   ProblemStatementUpdatedSignalPayloadSchema,
   ProposalUpdatedSignalPayloadSchema,
   ReflectionRecordedSignalPayloadSchema,
+  SubagentReportSubmittedSignalPayloadSchema,
   TaskAddedSignalPayloadSchema,
   TaskAssignedSignalPayloadSchema,
   TaskBlockedSignalPayloadSchema,
@@ -39,6 +40,8 @@ import {
   TaskRemovedSignalPayloadSchema,
   TaskUpdatedSignalPayloadSchema,
   WisdomAddedSignalPayloadSchema,
+  WorktreeAttachedSignalPayloadSchema,
+  WorktreeAutoManagedSignalPayloadSchema,
   WorktreeCreatedSignalPayloadSchema,
   WorktreeDeletedSignalPayloadSchema,
 } from "../types";
@@ -57,6 +60,7 @@ const designSignalKeys = [
   "taskRemoved",
   "taskAssigned",
   "taskCompleted",
+  "subagentReportSubmitted",
   "taskBlocked",
   "taskCancelled",
   "gateInProgress",
@@ -68,6 +72,8 @@ const designSignalKeys = [
   "reflectionRecorded",
   "worktreeCreated",
   "worktreeDeleted",
+  "worktreeAutoManaged",
+  "worktreeAttached",
   "conformanceLocked",
   "conformanceVerdict",
   "conformanceOverridden",
@@ -87,11 +93,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 32 signal surface", () => {
+  it("defines the 35 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(32);
+    expect(surfacedKeys).toHaveLength(35);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -222,6 +228,39 @@ describe("change workflow message contract", () => {
         },
       ],
       [
+        SubagentReportSubmittedSignalPayloadSchema,
+        {
+          taskId: "tk-1",
+          submittedAt: timestamp,
+          report: {
+            schema_version: "1.0",
+            change_id: "change-1",
+            task_id: "tk-1",
+            attempt: 1,
+            agent: "adv-engineer",
+            scope: "Add typed report",
+            status: "complete",
+            files_touched: ["plugin/src/types/subagent-reports.ts"],
+            verification: [
+              {
+                command: "pnpm test",
+                exit_code: 0,
+                summary: "tests pass",
+              },
+            ],
+            decisions: [],
+            blockers: [],
+            follow_ups: [],
+            related_scan: "none",
+            workdir_used: "/tmp/worktree",
+            context_update_for_adv: {
+              what_ads_needs_to_know: "report persisted",
+              suggested_next_action: "continue",
+            },
+          },
+        },
+      ],
+      [
         TaskBlockedSignalPayloadSchema,
         { taskId: "tk-1", reason: "blocked", blockedAt: timestamp },
       ],
@@ -277,6 +316,14 @@ describe("change workflow message contract", () => {
       [
         WorktreeDeletedSignalPayloadSchema,
         { branch: "change/x", reason: "merged", deletedAt: timestamp },
+      ],
+      [
+        WorktreeAutoManagedSignalPayloadSchema,
+        { value: true, source: "create", recordedAt: timestamp },
+      ],
+      [
+        WorktreeAttachedSignalPayloadSchema,
+        { role: "target", path: "/abs/target", recordedAt: timestamp },
       ],
       [
         ConformanceLockedSignalPayloadSchema,

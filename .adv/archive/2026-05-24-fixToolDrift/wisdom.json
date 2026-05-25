@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-p3N1lx",
+      "type": "pattern",
+      "content": "Tool-drift validation should compare registry inventory against per-agent capability contracts, not assume every registered ADV tool belongs in every primary agent allowlist. Use structural role signals like frontmatter `mode` plus named capability sets (e.g. leaf-only tools) to avoid false positives without weakening ordinary drift checks.",
+      "source_task": "tk-b1b10675afd2",
+      "recorded_at": "2026-05-24T22:56:54.320Z"
+    }
+  ],
+  "count": 1
+}

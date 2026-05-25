@@ -45,6 +45,7 @@ describe("Command Manifest", () => {
       "adv-improve",
       "adv-slop-scan",
       "adv-task",
+      "adv-atc",
       "adv-tron",
       "adv-reflect",
       "adv-cleanup",
@@ -67,6 +68,15 @@ describe("Command Manifest", () => {
       expect(Array.isArray(def.successors)).toBe(true);
       expect(Array.isArray(def.prerequisites)).toBe(true);
     }
+  });
+
+  test("scanner command descriptions mention coverage-oriented capabilities", () => {
+    expect(COMMAND_MANIFEST["adv-slop-scan"].description).toBe(
+      "Scan slop, deletion safety, and detector coverage",
+    );
+    expect(COMMAND_MANIFEST["adv-arch-scan"].description).toBe(
+      "Scan architecture stack packs, coverage, and heuristic fallbacks",
+    );
   });
 
   test("gate-affecting commands reference valid gate IDs", () => {
@@ -339,6 +349,19 @@ describe("Command Manifest", () => {
     test("adv-prep scope creates tasks", () => {
       const def = getCommandDef("adv-prep");
       expect(def!.scope!.creates).toContain("tasks");
+    });
+
+    test("adv-task scope reflects fast-track artifact updates", () => {
+      const def = getCommandDef("adv-task");
+      expect(def!.successors).toEqual(["adv-apply"]);
+      expect(def!.scope!.creates).toEqual(["change", "proposal", "tasks"]);
+      expect(def!.scope!.modifies).toEqual(["proposal", "design"]);
+      expect(def!.scope!.gates).toEqual([
+        "proposal",
+        "discovery",
+        "design",
+        "planning",
+      ]);
     });
 
     test("adv-atc scope gates cover all autonomous gates", () => {

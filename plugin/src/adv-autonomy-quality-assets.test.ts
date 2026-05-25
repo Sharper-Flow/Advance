@@ -208,6 +208,18 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/push failure[\s\S]*Merged locally\./i);
   });
 
+  test("adv-archive.md records release gate through archive and points back to main", () => {
+    const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
+    expect(content).toMatch(
+      /adv_change_archive[\s\S]*records the release gate/i,
+    );
+    expect(content).toMatch(
+      /Continue from: \{mainCheckout\} \(\{default-branch\}\)/,
+    );
+    expect(content).toMatch(/terminal-neutral/i);
+    expect(content).not.toMatch(/call `adv_gate_complete gateId: 'release'`/);
+  });
+
   test("adv-archive.md requires local deploy before shipped finalization", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     expect(content).toMatch(/Step 5\.0: Local Deploy Gate/);
@@ -227,6 +239,13 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/push origin \{default-branch\}/);
     expect(content).toMatch(/Merged locally\./);
     expect(content).toMatch(/push fails/);
+  });
+
+  test("advance-workflow spec encodes release projection durability", () => {
+    const content = readAsset(ADVANCE_WORKFLOW_SPEC);
+    expect(content).toMatch(/rq-releaseProjectionDurability01/);
+    expect(content).toMatch(/adv_gate_status/);
+    expect(content).toMatch(/store-backed gate read/i);
   });
 
   test("advance-workflow spec encodes product-linked multi-repo state", () => {
@@ -327,5 +346,50 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(
       /RECORD_WISDOM|ACCUMULATED_WISDOM|TODO_CONTINUATION/,
     );
+  });
+});
+
+// =============================================================================
+// 6. Opportunity Scout Phase & Schema Anchors
+// =============================================================================
+
+describe("Opportunity scout phase and schema anchors", () => {
+  const SCOUT_SKILL = join(REPO_ROOT, "skills/adv-opportunity-scout/SKILL.md");
+
+  test("adv-opportunity-scout skill exists with required sections", () => {
+    const content = readAsset(SCOUT_SKILL);
+    // Output schema
+    expect(content).toMatch(/candidate/);
+    expect(content).toMatch(/evidence/);
+    expect(content).toMatch(/payoff/);
+    expect(content).toMatch(/risk/);
+    expect(content).toMatch(/contract_tie/);
+    expect(content).toMatch(/prior_consideration/);
+    expect(content).toMatch(/recommended_fate/);
+    expect(content).toMatch(/fate_rationale/);
+    // Hard cap
+    expect(content).toMatch(/≤ ?5|at most 5/);
+    // Degradation path
+    expect(content).toMatch(/inconclusive/i);
+    // Two modes
+    expect(content).toMatch(/discovery/);
+    expect(content).toMatch(/design/);
+  });
+
+  test("adv-discover spec contains scout requirements", () => {
+    const specPath = join(REPO_ROOT, ".adv/specs/adv-discover/spec.json");
+    const content = readAsset(specPath);
+    const spec = JSON.parse(content);
+    const ids = spec.requirements.map((r: { id: string }) => r.id);
+    expect(ids).toContain("rq-discOpportunityScout01");
+    expect(ids).toContain("rq-discOpportunityScout02");
+  });
+
+  test("advance-workflow spec contains design scout requirement", () => {
+    const specPath = join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json");
+    const content = readAsset(specPath);
+    const spec = JSON.parse(content);
+    const ids = spec.requirements.map((r: { id: string }) => r.id);
+    expect(ids).toContain("rq-designOpportunityScout01");
   });
 });

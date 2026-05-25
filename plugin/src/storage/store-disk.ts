@@ -126,10 +126,14 @@ export async function createDiskStore(
           docs_dir: "docs/specs",
           db_dir: ".adv/db",
           project_file: "project.md",
+          archive_mode: "direct",
+          auto_push: true,
           features: {
             tdd_enforcement: "strict",
             worktree_auto_create: true,
-            worktree_guard_enforce: false,
+            // rq-autoManageAdvWorktrees AC2 — default true (post-rollout).
+            // Explicit `false` preserves legacy permissive behavior.
+            worktree_guard_enforce: true,
             gate_enforcement: "strict",
             wisdom_accumulation: true,
             clarify_enforcement: "advisory",
@@ -332,6 +336,7 @@ export async function createDiskStore(
         agreementContent,
         designContent,
         executiveSummaryContent,
+        options,
       ) => {
         const baseId = generateChangeId(summary);
         const existing = await listChangeDirs(paths.changes);
@@ -370,6 +375,15 @@ export async function createDiskStore(
           created_at: new Date().toISOString(),
           tasks: [],
           deltas: {},
+          ...(options?.initialMetadata?.origin !== undefined
+            ? { origin: options.initialMetadata.origin }
+            : {}),
+          ...(options?.initialMetadata?.fast_follow_of !== undefined
+            ? { fast_follow_of: options.initialMetadata.fast_follow_of }
+            : {}),
+          ...(options?.initialMetadata?.scope_repos !== undefined
+            ? { scope_repos: options.initialMetadata.scope_repos }
+            : {}),
         } as Change;
         await saveChange(paths.changes, change);
 

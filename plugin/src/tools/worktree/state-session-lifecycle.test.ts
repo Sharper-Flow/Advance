@@ -22,8 +22,12 @@ const workflowList = vi.hoisted(() =>
   ),
 );
 const changeWorkflowQuery = vi.hoisted(() => vi.fn(async () => ({})));
+const changeWorkflowDescribe = vi.hoisted(() => vi.fn(async () => ({})));
 const workflowGetHandle = vi.hoisted(() =>
-  vi.fn(() => ({ query: changeWorkflowQuery })),
+  vi.fn(() => ({
+    query: changeWorkflowQuery,
+    describe: changeWorkflowDescribe,
+  })),
 );
 
 vi.mock("../../temporal/service", () => ({
@@ -44,8 +48,12 @@ import {
   unregisterSession,
   updateSessionActivity,
   buildWorktreeBranchVisibilityQuery,
+  buildActiveWorktreeChangesVisibilityQuery,
   findBranchOwnersAcrossChanges,
   listWorktreesAcrossChanges,
+  getWorktreeRegistrySnapshot,
+  listWorktrees,
+  getChangeSummaries,
   setPendingDelete,
   getPendingDeletes,
   incrementPendingDeleteAttempts,
@@ -68,6 +76,7 @@ describe("session lifecycle helpers (T21)", () => {
       })(),
     );
     changeWorkflowQuery.mockResolvedValue({});
+    changeWorkflowDescribe.mockResolvedValue({});
   });
 
   it("registerSession is a no-op after projectWorkflow retirement", async () => {
@@ -125,6 +134,14 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     );
   });
 
+  it("escapes quotes and backslashes in visibility query values", () => {
+    expect(
+      buildWorktreeBranchVisibilityQuery('proj\\"id', 'change/a"b\\c'),
+    ).toBe(
+      'AdvAffectedProjects = "proj\\\\\\"id" AND AdvWorktreeBranches = "change/a\\"b\\\\c" AND AdvChangeStatus = "active"',
+    );
+  });
+
   it("lists active owner change ids for a worktree branch and excludes current change", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
@@ -139,6 +156,44 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     ).resolves.toEqual(["other"]);
   });
 
+  it("builds active worktree owner query from project, non-terminal status, and worktree branch presence", () => {
+    expect(buildActiveWorktreeChangesVisibilityQuery("proj")).toBe(
+      'AdvAffectedProjects = "proj" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
+    );
+  });
+
+  it("uses the active worktree owner query so non-owner workflows are not queried", async () => {
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/owner" };
+      })(),
+    );
+    changeWorkflowQuery.mockResolvedValueOnce({
+      changeId: "owner",
+      status: "active",
+      tasks: [],
+      worktrees: {
+        "change/owner": {
+          branch: "change/owner",
+          path: "/work/owner",
+          baseRef: "main",
+          headSha: "abc123",
+          status: "created",
+          createdAt: "2026-05-01T00:00:00.000Z",
+        },
+      },
+    });
+
+    await listWorktreesAcrossChanges(access);
+
+    expect(workflowList).toHaveBeenCalledWith({
+      query:
+        'AdvAffectedProjects = "test-id" AND AdvChangeStatus IN ("draft", "pending", "active") AND AdvWorktreeBranches IS NOT NULL',
+    });
+    expect(workflowGetHandle).toHaveBeenCalledTimes(1);
+    expect(workflowGetHandle).toHaveBeenCalledWith("adv/change/test-id/owner");
+  });
+
   it("aggregates materialized worktrees from active change workflow search results", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
@@ -146,27 +201,168 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       })(),
     );
     changeWorkflowQuery.mockResolvedValueOnce({
-      "change/change-a": {
-        branch: "change/change-a",
-        path: "/work/change-a",
-        baseRef: "main",
-        headSha: "abc123",
-        status: "created",
-        createdAt: "2026-05-01T00:00:00.000Z",
-      },
-      "change/deleted": {
-        branch: "change/deleted",
-        path: "/work/deleted",
-        status: "deleted",
+      changeId: "change-a",
+      status: "active",
+      tasks: [],
+      worktrees: {
+        "change/change-a": {
+          branch: "change/change-a",
+          path: "/work/change-a",
+          baseRef: "main",
+          headSha: "abc123",
+          status: "created",
+          createdAt: "2026-05-01T00:00:00.000Z",
+        },
+        "change/deleted": {
+          branch: "change/deleted",
+          path: "/work/deleted",
+          status: "deleted",
+        },
       },
     });
 
-    await expect(listWorktreesAcrossChanges(access)).resolves.toEqual([
+    await expect(listWorktreesAcrossChanges(access)).resolves.toMatchObject({
+      records: [
+        expect.objectContaining({
+          branch: "change/change-a",
+          path: "/work/change-a",
+          changeId: "change-a",
+          status: "active",
+        }),
+      ],
+      warnings: [],
+      poisonedWorkflows: [],
+    });
+  });
+
+  it("exposes an authoritative registry snapshot and compatibility views", async () => {
+    workflowList.mockImplementation(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/change-a" };
+      })(),
+    );
+    changeWorkflowQuery.mockResolvedValue({
+      changeId: "change-a",
+      status: "active",
+      tasks: [
+        {
+          id: "tk-a",
+          title: "Task A",
+          status: "done",
+          touched_files: ["src/a.ts", "src/b.ts"],
+        },
+      ],
+      worktrees: {
+        "change/change-a": {
+          branch: "change/change-a",
+          path: "/work/change-a",
+          baseRef: "main",
+          headSha: "abc123",
+          status: "created",
+          createdAt: "2026-05-01T00:00:00.000Z",
+          lastSeenAt: "2026-05-01T00:00:00.000Z",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      },
+    });
+
+    await expect(getWorktreeRegistrySnapshot(access)).resolves.toMatchObject({
+      records: [
+        expect.objectContaining({
+          changeId: "change-a",
+          branch: "change/change-a",
+          path: "/work/change-a",
+        }),
+      ],
+      changeSummaries: {
+        "change-a": {
+          status: "active",
+          touched_files: ["src/a.ts", "src/b.ts"],
+        },
+      },
+      warnings: [],
+    });
+
+    await expect(listWorktrees(access)).resolves.toEqual([
       expect.objectContaining({
+        changeId: "change-a",
         branch: "change/change-a",
         path: "/work/change-a",
-        changeId: "change-a",
+      }),
+    ]);
+    await expect(getChangeSummaries(access)).resolves.toEqual({
+      "change-a": {
+        branch: "change/change-a",
         status: "active",
+        touched_files: ["src/a.ts", "src/b.ts"],
+      },
+    });
+  });
+
+  it("isolates a poisoned workflow query and keeps healthy worktrees", async () => {
+    workflowList.mockImplementationOnce(() =>
+      (async function* () {
+        yield { workflowId: "adv/change/test-id/healthy" };
+        yield { workflowId: "adv/change/test-id/poisoned" };
+      })(),
+    );
+    changeWorkflowQuery
+      .mockResolvedValueOnce({
+        changeId: "healthy",
+        status: "active",
+        tasks: [],
+        worktrees: {
+          "change/healthy": {
+            branch: "change/healthy",
+            path: "/work/healthy",
+            baseRef: "main",
+            headSha: "abc123",
+            status: "created",
+            createdAt: "2026-05-01T00:00:00.000Z",
+            lastSeenAt: "2026-05-01T00:00:00.000Z",
+            source: "tool",
+            sourceVersion: 1,
+          },
+        },
+      })
+      .mockRejectedValueOnce(new Error("Failed to query Workflow"));
+    changeWorkflowDescribe.mockResolvedValueOnce({
+      workflowExecutionInfo: {
+        closeStatus: null,
+        taskQueue: "advance-test-id",
+      },
+      lastFailure: {
+        message:
+          "WorkflowTaskFailedCauseNonDeterministicError [TMPRL1100] Nondeterminism error",
+      },
+    });
+
+    const result = await listWorktreesAcrossChanges(access);
+
+    expect(result.records).toEqual([
+      expect.objectContaining({
+        branch: "change/healthy",
+        path: "/work/healthy",
+        changeId: "healthy",
+        status: "active",
+      }),
+    ]);
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        source: "worktree_workflow",
+        changeId: "poisoned",
+        workflowId: "adv/change/test-id/poisoned",
+        recoveryReason: "poisoned_history",
+        evidenceSummary: expect.stringContaining("TMPRL1100"),
+      }),
+    ]);
+    expect(result.poisonedWorkflows).toEqual([
+      expect.objectContaining({
+        changeId: "poisoned",
+        workflowId: "adv/change/test-id/poisoned",
+        recoveryReason: "poisoned_history",
+        evidenceSummary: expect.stringContaining("TMPRL1100"),
       }),
     ]);
   });

@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-U4u4k7",
+      "type": "gotcha",
+      "content": "For auto-managed worktree changes, target-path task reads can show the authoritative task graph while main-checkout adv_change_validate may report stale NO_TASKS/CONTRACT_AC_UNCOVERED. Resume/apply from the change worktree target_path for state-sensitive operations.",
+      "source_task": "tk-b90800a8704c",
+      "recorded_at": "2026-05-22T06:51:00.659Z"
+    }
+  ],
+  "count": 1
+}

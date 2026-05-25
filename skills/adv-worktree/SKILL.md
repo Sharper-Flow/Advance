@@ -1,7 +1,17 @@
 ---
 name: adv-worktree
-description: "ADV worktree workflow — create, manage, triage, and clean up git worktrees with Temporal-coordinated state and per-worktree git isolation. Covers when to isolate, multi-session model, merge-before-delete protocol, and tmux navigation."
-keywords: ["worktree", "git-worktree", "branch-isolation", "feature-branch", "parallel-experiment", "merge-before-delete", "multi-session", "adv-worktree"]
+description: "ADV worktree workflow — create, manage, triage, and clean up git worktrees with Temporal-coordinated state and per-worktree git isolation. Covers when to isolate, multi-session model, and merge-before-delete protocol."
+keywords:
+  [
+    "worktree",
+    "git-worktree",
+    "branch-isolation",
+    "feature-branch",
+    "parallel-experiment",
+    "merge-before-delete",
+    "multi-session",
+    "adv-worktree",
+  ]
 license: MIT
 metadata:
   priority: medium
@@ -10,7 +20,7 @@ metadata:
 
 ## When to Load This Skill
 
-Load this skill when you need to **create, manage, triage, or clean up git worktrees** in an ADV-managed project. Covers decision criteria, multi-session model, merge protocol, and tmux navigation hints.
+Load this skill when you need to **create, manage, triage, or clean up git worktrees** in an ADV-managed project. Covers decision criteria, multi-session model, and merge protocol.
 
 ## Multi-Session Note
 
@@ -18,7 +28,8 @@ This skill applies in single-session AND multi-session modes. **Concurrent workt
 
 ## When to Create a Worktree
 
-Use `adv_worktree_create` (or the `worktree_create` alias) when:
+Use `adv_worktree_create` when:
+
 - **Risky refactors** — large structural changes that might break the codebase
 - **Parallel experiments** — trying two different approaches to the same problem
 - **Feature branches** — the user asks you to start a new feature in isolation
@@ -110,36 +121,24 @@ The 3-condition gate (archived AND merged AND clean) blocks unsafe deletion. `op
 
 Use these tools to see other sessions working in the same project:
 
-| Tool | Purpose |
-|------|---------|
-| `adv_status` | Includes Peer Sessions section with session_id + started_at + worktree-basename (privacy-defensive — no PID, no full path) |
-| `adv_session_list` | List all peer sessions in same project |
-| `adv_session_show <session_id>` | Own-session details (full info for current session only) |
-| `adv_temporal_diagnose` | Includes peer count, worker-lock holder PID, project workflow presence |
+| Tool                            | Purpose                                                                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `adv_status`                    | Includes Peer Sessions section with session_id + started_at + worktree-basename (privacy-defensive — no PID, no full path) |
+| `adv_session_list`              | List all peer sessions in same project                                                                                     |
+| `adv_session_show <session_id>` | Own-session details (full info for current session only)                                                                   |
+| `adv_temporal_diagnose`         | Includes peer count, worker-lock holder PID, project workflow presence                                                     |
 
 ## Triaging Drift
 
 When the worktree registry diverges from on-disk state, use `adv_worktree_triage` (read-only, advisory). Common drift causes: process killed mid-create, manual `git worktree remove` outside ADV, stale session entries.
-
-## Navigating to the New Worktree Tab
-
-When a worktree is created, openchad may open a new tmux window for it. The agent continues working inline via `workdir` — but you can inspect the worktree directly using these keybinds:
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+b n` | Next tmux window |
-| `Ctrl+b l` | Last (previously active) window |
-| `Ctrl+b w` | Interactive window chooser |
-| `oc switch` | Switch between openchad sessions |
-
-The agent will emit this hint immediately after `adv_worktree_create` succeeds so you always know how to reach the new tab.
 
 ## Ask Only When Needed
 
 Before creating a worktree, explain why isolation helps. Ask the user only when the decision is materially ambiguous or when the action is destructive/irreversible. Otherwise, proceed with the safest reasonable default.
 
 ## Keywords
+
 worktree, git worktree, branch isolation, parallel development, merge before delete,
-worktree create, worktree delete, tmux navigation, feature branch, risky refactor,
+worktree create, worktree delete, feature branch, risky refactor,
 exploratory work, worktree cleanup, multi-session, peer-session, Temporal coordination,
 adv-worktree

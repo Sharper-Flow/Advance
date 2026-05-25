@@ -18,9 +18,15 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import {
+  getSubagentReportPacketAnchors,
+  ReviewerSubagentReportSchema,
+} from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-reviewer.md");
+const REVIEW_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
+const HARDEN_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-harden.md");
 
 /**
  * Split a frontmatter+markdown file into { frontmatter, body }.
@@ -66,6 +72,30 @@ function getToolGrant(frontmatter: string, toolName: string): boolean | null {
   return match[1] === "true";
 }
 
+function sectionAfterHeading(content: string, heading: string): string {
+  const marker = `#### ${heading}`;
+  const start = content.indexOf(marker);
+  if (start === -1) return "";
+
+  const rest = content.slice(start + marker.length);
+  const nextHeading = rest.search(/\n#{3,4} /);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+}
+
+function firstFencedBlock(section: string): string {
+  return section.match(/```\n([\s\S]*?)```/)?.[1] ?? "";
+}
+
+function expectPacketAnchors(
+  packet: string,
+  anchors: string[],
+  label: string,
+): void {
+  for (const anchor of anchors) {
+    expect(packet, `${label} missing ${anchor}`).toContain(`${anchor}:`);
+  }
+}
+
 // Tool boundary per design Decision 1.
 //
 // ALLOWED — repo writes, code intelligence, web research, ADV reads, evidence,
@@ -107,6 +137,7 @@ const REQUIRED_ALLOWED_TOOLS = [
   // Evidence + wisdom emission
   "adv_run_test",
   "adv_wisdom_add",
+  "adv_subagent_report_submit",
 ];
 
 // BLOCKED — anything that would give the reviewer ADV orchestration authority,
@@ -140,15 +171,14 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_investment_report",
   "adv_temporal_worker_restart",
   // Worktree mutations
-  "worktree_create",
-  "worktree_delete",
-  "worktree_cleanup",
+  "adv_worktree_create",
+  "adv_worktree_delete",
+  "adv_worktree_cleanup",
 ];
 
 // Body anchor strings — pin the system prompt's required sections.
 const REQUIRED_BODY_ANCHORS = [
   "REVIEWER_REPORT",
-  "END_REVIEWER_REPORT",
   "scope_drift",
   "required_main_agent_actions",
   "no nested delegation",
@@ -228,6 +258,7 @@ describe("adv-reviewer agent asset", () => {
     // Per design Decision 3 schema.
     const requiredFields = [
       '"agent"',
+      '"attempt"',
       '"phase"',
       '"verdict"',
       '"blocking_findings"',
@@ -257,8 +288,129 @@ describe("adv-reviewer agent asset", () => {
     expect(body).toMatch(/NEVER\s+invoke\s+`?\/adv-\*?/i);
   });
 
+  test("body does not advertise prep pre-flight routing", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    expect(body).not.toMatch(/prep\s+pre-flight/i);
+    expect(body).not.toMatch(/phase[`"\s:]+prep/i);
+  });
+
   test("body cites scope-discovery-protocol.md for escalation", () => {
     const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
     expect(body).toContain("docs/scope-discovery-protocol.md");
+  });
+
+  test("REVIEWER_REPORT examples parse through Zod schema", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    const blocks = [...body.matchAll(/```json\s*\n([\s\S]*?)```/g)].map(
+      (match) => match[1].trim(),
+    );
+    const reportBlocks = blocks
+      .map((block) => JSON.parse(block) as Record<string, unknown>)
+      .filter(
+        (parsed) =>
+          parsed.agent === "adv-reviewer" &&
+          typeof parsed.change_id === "string" &&
+          !parsed.change_id.includes("{"),
+      );
+
+    expect(reportBlocks.length).toBeGreaterThanOrEqual(2);
+    for (const report of reportBlocks) {
+      expect(() => ReviewerSubagentReportSchema.parse(report)).not.toThrow();
+    }
+  });
+
+  test("REVIEWER_REPORT transport is tool-call based, not sentinel based", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    expect(body).toContain("adv_subagent_report_submit");
+    expect(body).not.toContain("REVIEWER_REPORT:");
+    expect(body).not.toContain("END_REVIEWER_REPORT");
+  });
+
+  test("missing ADV packet identity fields are structured defects, not user questions", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    const phaseModes =
+      body
+        .split("## Phase-Aware Operating Modes")[1]
+        ?.split("## Scope Lock")[0] ?? "";
+    const workdirLock =
+      body
+        .split("## Working Directory Lock")[1]
+        ?.split("## Iteration Loop")[0] ?? "";
+    const defectPolicy = `${phaseModes}\n${workdirLock}`;
+
+    expect(defectPolicy).toContain("packet_defect");
+    expect(defectPolicy).toContain("structured packet-defect failure");
+    expect(defectPolicy).toContain("Do NOT call `question`");
+    expect(defectPolicy).toContain("TASK");
+    expect(defectPolicy).toContain("PHASE");
+    expect(defectPolicy).toContain("ATTEMPT");
+    expect(defectPolicy).toContain("WORKING DIRECTORY");
+    expect(defectPolicy).not.toMatch(/ask the orchestrator/i);
+    expect(defectPolicy).not.toMatch(/ask .*clarification/i);
+  });
+
+  test("review and harden scanner context packets stay explore-only", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+
+    const scannerPackets = [
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Scanner Context Packet"),
+      ),
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Scanner Context Packet"),
+      ),
+    ];
+
+    for (const packet of scannerPackets) {
+      expect(packet).toContain(
+        "EXPECTED OUTPUT: {dimension-specific JSON schema}",
+      );
+      expect(packet).not.toContain("adv_subagent_report_submit");
+      expect(packet).not.toContain("ENGINEER_REPORT");
+      expect(packet).not.toContain("REVIEWER_REPORT");
+    }
+  });
+
+  test("review and harden reviewer remediation packets include REVIEWER_REPORT packet anchors", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+    const reviewerAnchors = getSubagentReportPacketAnchors("adv-reviewer");
+
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+      ),
+      reviewerAnchors,
+      "Review Reviewer Remediation Packet",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+      ),
+      reviewerAnchors,
+      "Harden Reviewer Remediation Packet",
+    );
+  });
+
+  test("review and harden engineer remediation packets include ENGINEER_REPORT packet anchors", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+    const engineerAnchors = getSubagentReportPacketAnchors("adv-engineer");
+
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Engineer Remediation Packet"),
+      ),
+      engineerAnchors,
+      "Review Engineer Remediation Packet",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Engineer Remediation Packet"),
+      ),
+      engineerAnchors,
+      "Harden Engineer Remediation Packet",
+    );
   });
 });

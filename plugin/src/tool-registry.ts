@@ -19,15 +19,21 @@
 import { tool, type ToolContext, type ToolResult } from "@opencode-ai/plugin";
 import { z } from "zod";
 import { safeExecute, safeExecuteSimple } from "./utils/safe-execute";
-import { formatToolArgPreflightError } from "./utils/tool-arg-preflight";
+import {
+  formatToolArgPreflightError,
+  preflightToolArgs,
+} from "./utils/tool-arg-preflight";
 import { formatAdvToolTitle } from "./utils/tool-title";
 import type { Store } from "./storage/store-types";
+import type { OpencodeClient } from "./utils/opencode-types";
 
 import { specTools } from "./tools/spec";
 import { roadmapTools } from "./tools/roadmap";
 import { backlogTools } from "./tools/backlog";
 import { changeTools } from "./tools/change";
+import { contractTools } from "./tools/contract";
 import { taskTools } from "./tools/task";
+import { subagentReportTools } from "./tools/subagent-report";
 import { wisdomTools } from "./tools/wisdom";
 import { statusTools } from "./tools/status";
 import { agendaTools } from "./tools/agenda";
@@ -129,15 +135,16 @@ export function registerTool(
       };
     };
 
+    let argsForExecute = rawArgs;
     if (toolName) {
-      const validationError = formatToolArgPreflightError(
-        toolName,
-        args,
-        rawArgs,
-      );
+      const preflight = preflightToolArgs(toolName, args, rawArgs);
+      const validationError = preflight.ok
+        ? undefined
+        : formatToolArgPreflightError(toolName, args, rawArgs);
       if (validationError) return wrapResult(validationError);
+      argsForExecute = preflight.normalizedArgs;
     }
-    return wrapResult(await execute(rawArgs, contextOrExtra));
+    return wrapResult(await execute(argsForExecute, contextOrExtra));
   };
 
   return tool({
@@ -241,6 +248,7 @@ export function createToolMap(
   directory: string,
   agendaPath: string | undefined,
   serverUrl?: URL,
+  client?: OpencodeClient,
 ) {
   return {
     // Spec Tools
@@ -310,6 +318,18 @@ export function createToolMap(
       store,
     ),
 
+    // Contract Tools
+    adv_contract_mint: bindTool(
+      contractTools.adv_contract_mint,
+      "adv_contract_mint",
+      store,
+    ),
+    adv_contract_review_matrix_set: bindTool(
+      contractTools.adv_contract_review_matrix_set,
+      "adv_contract_review_matrix_set",
+      store,
+    ),
+
     // Task Tools
     adv_task_show: bindTool(taskTools.adv_task_show, "adv_task_show", store),
     adv_task_list: bindTool(taskTools.adv_task_list, "adv_task_list", store),
@@ -372,6 +392,13 @@ export function createToolMap(
           "adv_task_reclassify_tdd",
         ),
       ),
+    ),
+
+    // Sub-agent Report Tools
+    adv_subagent_report_submit: bindTool(
+      subagentReportTools.adv_subagent_report_submit,
+      "adv_subagent_report_submit",
+      store,
     ),
 
     // Wisdom Tools
@@ -606,7 +633,11 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_create.execute
               >[0],
               store,
-              { serverUrl, sessionID: getToolContextSessionID(context) },
+              {
+                serverUrl,
+                sessionID: getToolContextSessionID(context),
+                client,
+              },
             ),
           "adv_worktree_create",
         ),
@@ -629,7 +660,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_delete.execute
               >[0],
               store,
-              { serverUrl },
+              { serverUrl, client },
             ),
           "adv_worktree_delete",
         ),
@@ -647,7 +678,7 @@ export function createToolMap(
                 typeof advWorktreeTools.adv_worktree_cleanup.execute
               >[0],
               store,
-              { serverUrl },
+              { serverUrl, client },
             ),
           "adv_worktree_cleanup",
         ),
@@ -657,65 +688,6 @@ export function createToolMap(
       advWorktreeTools.adv_worktree_triage,
       "adv_worktree_triage",
       store,
-    ),
-
-    // Backward-compat aliases for standalone worktree plugin (KD-8 phase 2)
-    // These share the same implementation as adv_worktree_* but are registered
-    // under the old standalone names. Will be removed in a future change once
-    // standalone-plugin users have migrated.
-    worktree_create: registerTool(
-      "Alias → adv_worktree_create (backward compat). Will be removed in a future change once standalone-plugin users have migrated.",
-      advWorktreeTools.adv_worktree_create.args,
-      namedExecute(
-        "worktree_create",
-        safeExecute(
-          async (args, context) =>
-            advWorktreeTools.adv_worktree_create.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_create.execute
-              >[0],
-              store,
-              { serverUrl, sessionID: getToolContextSessionID(context) },
-            ),
-          "worktree_create",
-        ),
-      ),
-    ),
-    worktree_delete: registerTool(
-      "Alias → adv_worktree_delete (backward compat).",
-      advWorktreeTools.adv_worktree_delete.args,
-      namedExecute(
-        "worktree_delete",
-        safeExecute(
-          async (args) =>
-            advWorktreeTools.adv_worktree_delete.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_delete.execute
-              >[0],
-              store,
-              { serverUrl },
-            ),
-          "worktree_delete",
-        ),
-      ),
-    ),
-    worktree_cleanup: registerTool(
-      "Alias → adv_worktree_cleanup (backward compat).",
-      advWorktreeTools.adv_worktree_cleanup.args,
-      namedExecute(
-        "worktree_cleanup",
-        safeExecute(
-          async (args) =>
-            advWorktreeTools.adv_worktree_cleanup.execute(
-              args as Parameters<
-                typeof advWorktreeTools.adv_worktree_cleanup.execute
-              >[0],
-              store,
-              { serverUrl },
-            ),
-          "worktree_cleanup",
-        ),
-      ),
     ),
 
     // Session Tools
@@ -752,6 +724,8 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_change_archive",
   "adv_change_update_issues",
   "adv_change_reenter",
+  "adv_contract_mint",
+  "adv_contract_review_matrix_set",
   "adv_task_show",
   "adv_task_list",
   "adv_task_ready",
@@ -759,6 +733,7 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_task_add",
   "adv_task_cancel",
   "adv_task_reclassify_tdd",
+  "adv_subagent_report_submit",
   "adv_wisdom_add",
   "adv_wisdom_list",
   "adv_project_wisdom_list",
@@ -790,10 +765,6 @@ export const ADV_TOOL_NAMES: readonly string[] = [
   "adv_session_list",
   "adv_session_show",
   "adv_snapshot_health",
-  // Backward-compat aliases (KD-8 phase 2)
-  "worktree_create",
-  "worktree_delete",
-  "worktree_cleanup",
 ] as const;
 
 /**
@@ -821,7 +792,7 @@ export function createDegradedToolMap(
         "Check ~/.config/opencode/opencode.json — the .plugin array must point to the built plugin directory",
         "If project.json is present, verify it is valid JSON and matches the ADV ProjectConfig schema",
         "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for malformed change/spec JSON; repair the artifact, then restart OpenCode",
-        "Set ADV_DEBUG=1 in your shell and restart OpenCode to capture init errors in $OPEN_CHAD_CACHE_DIR/adv-debug.log",
+        "Set ADV_DEBUG=1 in your shell and restart OpenCode to capture init errors in $ADV_CACHE_DIR/adv-debug.log",
       ],
     },
     null,

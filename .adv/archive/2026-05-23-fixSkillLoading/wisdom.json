@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-emm2_B",
+      "type": "gotcha",
+      "content": "For targeted Vitest evidence in plugin/, prefer `pnpm exec vitest run <file>` over `pnpm test -- <file>` when exact file selection matters; the latter can still run broader suites and surface unrelated integration timeouts.",
+      "source_task": "tk-0117cd2a5afa",
+      "recorded_at": "2026-05-23T03:51:52.300Z"
+    },
+    {
+      "id": "ws-q6pnkL",
+      "type": "pattern",
+      "content": "For command skill-ref asset tests, fallback/degradation assertions should be scoped near each skill reference, not file-wide, so additional refs in the same command cannot accidentally inherit unrelated fallback wording.",
+      "source_task": "tk-867de654b848",
+      "recorded_at": "2026-05-23T04:07:35.026Z"
+    }
+  ],
+  "count": 2
+}

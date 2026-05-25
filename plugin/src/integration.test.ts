@@ -450,8 +450,13 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     ] as const;
   }
 
+  // rq-autoManageAdvWorktrees AC2 — default flipped to true. Post-flip,
+  // omitting the flag engages the firewall; explicit `false` is the only
+  // way to get the pre-flip permissive behavior. The omitted-and-allowed
+  // case is now exercised via the explicit-false test below; this test
+  // verifies the new default-on behavior.
   it.each(fileToolCases())(
-    "allows %s targeting trunk checkout when worktree guard is omitted",
+    "blocks %s targeting trunk checkout when worktree guard is omitted (defaults true)",
     async (toolName, targetArg) => {
       await initGitRepo();
       const args = { [targetArg]: `${tempDir}/src/file.ts` };
@@ -471,7 +476,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
           { tool: toolName, sessionID: "test" } as any,
           { args } as any,
         ),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow(/Trunk write firewall/);
     },
     30_000,
   );
@@ -645,7 +650,8 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     }
   }, 30_000);
 
-  test("allows destructive bash targeting trunk checkout when worktree guard is omitted", async () => {
+  // rq-autoManageAdvWorktrees AC2 — post-flip default-on test.
+  test("blocks destructive bash targeting trunk checkout when worktree guard is omitted (defaults true)", async () => {
     await initGitRepo();
     hooks = await AdvancePlugin({
       project: { id: "test", worktree: tempDir, time: { created: Date.now() } },
@@ -659,7 +665,7 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
         { tool: "bash", sessionID: "test" } as any,
         { args: { command: `echo hello > ${tempDir}/src/file.ts` } } as any,
       ),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow(/Trunk write firewall/);
   }, 30_000);
 
   test("blocks destructive bash targeting trunk checkout when worktree guard is enabled", async () => {

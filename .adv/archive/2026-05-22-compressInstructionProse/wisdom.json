@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-fH72qg",
+      "type": "gotcha",
+      "content": "For label-normalization checks, use case-insensitive stale-label grep. A prior case-sensitive search missed `Caveman-lite` in an active docs example even though lowercase `caveman-lite` was gone.",
+      "source_task": "tk-6198de841da5",
+      "recorded_at": "2026-05-22T20:51:59.209Z"
+    }
+  ],
+  "count": 1
+}

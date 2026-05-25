@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.8.2
-> **Updated:** 2026-05-20
+> **Version:** 1.14.0
+> **Updated:** 2026-05-25
 
 ## Purpose
 
@@ -59,6 +59,75 @@ Capability: Workflow contract layer for ADV — gate model, autonomy boundaries,
 
 - It does not create or mutate changes, tasks, gates, or spec files
 - It hands off to /adv-proposal for artifact creation
+
+---
+
+### Fast-Track Tasks Preserve Spec-Law Intent and Crash-Safe Tracking
+
+**ID:** `rq-taskSpecLaw01` | **Priority:** **[MUST]**
+
+/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.
+
+**Tags:** `workflow`, `adv-task`, `spec-law`, `tracking`
+
+#### Scenarios
+
+**Fast-track spec delta obligations are concrete** (`rq-taskSpecLaw01.1`)
+
+**Given:**
+
+- A small well-understood durable change is routed through /adv-task
+
+**When:** The spec-law impact assessment classifies the change as add, modify, or remove
+
+**Then:**
+
+- The change artifacts include draft spec-delta obligations before planning completes
+- Each obligation has a concrete rq-* requirement ID
+- Each obligation has at least one Given/When/Then scenario
+
+**No-delta fast-track records rationale** (`rq-taskSpecLaw01.2`)
+
+**Given:**
+
+- A small well-understood durable change is routed through /adv-task
+
+**When:** The spec-law impact assessment determines no spec law update is required
+
+**Then:**
+
+- The change artifacts state No spec law update required
+- The change artifacts include the no-delta rationale
+- Planning may complete only after the rationale is persisted
+
+**Small durable changes use tracked fast path** (`rq-taskSpecLaw01.3`)
+
+**Given:**
+
+- A user asks for a small well-understood durable change
+
+**When:** Full /adv-proposal ceremony is not warranted but implementation work is needed
+
+**Then:**
+
+- ADV agent routing prefers /adv-task over ad hoc/direct implementation
+- Durable change/task state exists before implementation begins
+- A crash can resume from tracked change/task state
+
+**Uncertain fast-track scope routes deeper before planning** (`rq-taskSpecLaw01.4`)
+
+**Given:**
+
+- A small durable change is routed through /adv-task
+- The spec-law impact assessment cannot resolve whether spec law must be added, modified, removed, or left unchanged
+
+**When:** The assessment classifies the impact as Uncertain
+
+**Then:**
+
+- /adv-task does not complete planning for the uncertain scope
+- /adv-task creates no implementation tasks for the uncertain scope
+- The change routes to /adv-proposal or deeper discovery before implementation planning resumes
 
 ---
 
@@ -394,6 +463,93 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - The archive attempts safe `git push origin {default-branch}`
 - If the push succeeds, the archive reports `Shipped.`
 - If the push fails or is skipped, the archive reports `Merged locally.` with an explicit reason
+
+**Release gate structurally enforces trunk merge** (`rq-releaseFinalization01.5`)
+
+**Given:**
+
+- A change has completed all gates before release
+- The change branch is not reachable from the default branch
+
+**When:** Any caller invokes `adv_gate_complete` with `gateId: "release"`
+
+**Then:**
+
+- The gate rejects completion with code `RELEASE_REQUIRES_TRUNK_MERGE`
+- The response cites `rq-releaseFinalization01`
+- The response points to `/adv-archive {change-id}` to complete Phase 9
+
+**PR archive mode opts out of local default-branch merge** (`rq-releaseFinalization01.6`)
+
+**Given:**
+
+- Project configuration declares `archive_mode: "pr"`
+- The GitHub CLI is available for PR workflow handoff
+
+**When:** Archive finalization runs for the change
+
+**Then:**
+
+- Local default-branch merge is skipped
+- The change branch must be pushed or otherwise made available for PR workflow
+- The archive reports the PR-mode handoff instead of claiming a local default-branch merge
+
+---
+
+### Archive Success Requires Durable Release Projection
+
+**ID:** `rq-releaseProjectionDurability01` | **Priority:** **[MUST]**
+
+When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated by durable release-gate projection proof. Before `adv_change_archive phase9:"run"` reports success or performs archive retirement side effects, the store-backed gate read used by `adv_gate_status` MUST report `gates.release.status === "done"` with Phase 9 evidence in the release completion record. If this proof cannot be established, archive MUST return a blocked/recoverable result and MUST NOT claim shipped success, close linked issues, or run terminal cleanup as a successful retirement. Existing-bundle or completed-workflow retries MAY reconcile release metadata only after structural Phase 9 evidence is re-verified from the main checkout or PR branch state.
+
+**Tags:** `workflow`, `archive`, `release`, `projection`, `durability`
+
+#### Scenarios
+
+**Archive success proves gate-status-equivalent release done** (`rq-releaseProjectionDurability01.1`)
+
+**Given:**
+
+- Phase 9 finalization returns shipped or pr_pushed evidence
+- The release gate completion signal or recovery path has run
+
+**When:** `adv_change_archive phase9:"run"` is about to return success
+
+**Then:**
+
+- The store-backed gate read used by `adv_gate_status` reports `gates.release.status === "done"`
+- The release completion record includes Phase 9 evidence
+- Archive does not report success while the gate-status-equivalent read would show release pending
+
+**Unproven release projection blocks retirement side effects** (`rq-releaseProjectionDurability01.2`)
+
+**Given:**
+
+- Phase 9 finalization has succeeded
+- The store-backed release gate proof is missing, stale, pending, unreadable, or lacks matching Phase 9 evidence
+
+**When:** `adv_change_archive` evaluates archive success
+
+**Then:**
+
+- The archive returns a blocked or recoverable result citing `rq-releaseProjectionDurability01`
+- The change is not retired as successfully archived
+- Linked issue closure and terminal worktree cleanup are not reported as successful retirement effects
+
+**Terminal retry repairs projection only with structural finalization evidence** (`rq-releaseProjectionDurability01.3`)
+
+**Given:**
+
+- An archive bundle already exists or the change workflow has completed
+- Release gate metadata is stale or missing from the store-backed read
+
+**When:** Archive retry attempts release projection repair
+
+**Then:**
+
+- Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
+- PR archive mode re-verifies the change branch was pushed for PR handoff before repair
+- If finalization evidence is missing or invalid, repair is rejected and release remains not done
 
 ---
 
@@ -1643,6 +1799,141 @@ The Temporal OperatorService search-attribute health check MUST use `listSearchA
 - After registerMissingAdvSearchAttributes, checkAdvSearchAttributes is called for verification
 - The tool output includes a verification field with ok, present, missing, wrongType
 - The tool success field requires both registration ok AND verification ok
+
+---
+
+### Workflow replay and versioning guard command-producing changes
+
+**ID:** `rq-workflowVersioning01` | **Priority:** **[MUST]**
+
+Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.
+
+**Tags:** `temporal`, `replay`, `versioning`, `determinism`
+
+#### Scenarios
+
+**Committed histories replay in CI** (`rq-workflowVersioning01.1`)
+
+**Given:**
+
+- A sanitized changeWorkflow history fixture is committed under `plugin/src/temporal/__tests__/replay/histories`
+
+**When:** The replay determinism test runs
+
+**Then:**
+
+- Worker.runReplayHistory is invoked against the current workflow bundle
+- The test fails on DeterminismViolationError or ReplayError
+- The fixture metadata identifies the incident class or workflow behavior covered
+
+**Command-producing changes declare an evolution strategy** (`rq-workflowVersioning01.2`)
+
+**Given:**
+
+- A workflow-bundled change adds, removes, or reorders command-producing operations
+
+**When:** The change is prepared for archive
+
+**Then:**
+
+- The change includes wf.patched, Worker Versioning, or an explicit reset/recovery plan
+- Any patch marker includes a deprecation plan or documented non-deprecation rationale
+
+**Worker restart is not nondeterminism repair** (`rq-workflowVersioning01.3`)
+
+**Given:**
+
+- A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence
+
+**When:** Recovery guidance is presented
+
+**Then:**
+
+- The guidance does not classify worker restart as sufficient repair
+- Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate
+
+---
+
+### Front-End Acceptance Preview URL
+
+**ID:** `rq-acceptancePreviewUrl01` | **Priority:** **[MUST]**
+
+/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a user-facing dev-environment URL and reachability evidence. Preview URLs MUST target visual output only, MUST be sanitized before durable recording, and MUST NOT point at internal services, dashboards, databases, admin panels, CI systems, Temporal UI, or other non-visual infrastructure. A bare unverified URL MUST NOT satisfy acceptance proof. Acceptable reachability evidence is bounded to agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface; agents MUST NOT perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement. Missing URL, missing reachability evidence, unknown applicability, or visual-surface drift MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof. Archived preview URLs are point-in-time evidence and MUST include verification context rather than being treated as maintained current URLs.
+
+**Tags:** `workflow`, `acceptance`, `preview-url`, `front-end`
+
+#### Scenarios
+
+**Discovery records preview applicability** (`rq-acceptancePreviewUrl01.1`)
+
+**Given:**
+
+- A change is being finalized through /adv-discover
+
+**When:** The agreement is drafted and persisted
+
+**Then:**
+
+- The agreement records visual_surface as true, false, or unknown
+- The agreement records rationale for the preview applicability value
+- visual_surface unknown is carried forward as an acceptance blocker until clarified
+
+**Applicable visual work shows reachable preview before acceptance** (`rq-acceptancePreviewUrl01.2`)
+
+**Given:**
+
+- A change has visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work
+
+**When:** /adv-review presents the acceptance summary before the Inline Approval prompt
+
+**Then:**
+
+- The summary includes Preview URL: {url}
+- The summary includes reachability evidence with verification method, result, and reviewed timestamp or equivalent context
+- The contract review evidence records the preview proof
+
+**Missing applicable preview blocks acceptance** (`rq-acceptancePreviewUrl01.3`)
+
+**Given:**
+
+- A change requires preview proof because visual_surface is true or visual-output work is detected
+
+**When:** No dev-environment URL or reachability evidence is available
+
+**Then:**
+
+- /adv-review reports Preview URL: blocked with a concrete reason
+- The acceptance checkpoint is not presented
+- The acceptance gate remains pending
+
+**Visual-surface drift blocks acceptance until agreement is updated** (`rq-acceptancePreviewUrl01.4`)
+
+**Given:**
+
+- The approved agreement records visual_surface false
+- /adv-review detects implementation evidence of front-end, browser-visible, or visual-output work
+
+**When:** /adv-review evaluates preview applicability
+
+**Then:**
+
+- /adv-review reports Preview URL: blocked with a visual-surface drift reason
+- The acceptance checkpoint is not presented
+- The agreement must be clarified or re-entered before acceptance can proceed
+
+**Non-visual work may mark preview not applicable** (`rq-acceptancePreviewUrl01.5`)
+
+**Given:**
+
+- A change has visual_surface false and no implementation evidence of front-end, browser-visible, or visual-output work
+
+**When:** /adv-review presents the acceptance summary
+
+**Then:**
+
+- The summary may include Preview URL: not_applicable
+- The not_applicable state includes rationale
+- Preview URL absence does not block acceptance for the non-visual change
 
 ---
 

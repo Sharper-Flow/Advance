@@ -19,8 +19,9 @@ Every discovery MUST execute each step and report results. Mark `[x]` when compl
 - [ ] **Draft Spec Delta Shapes** — Each identified delta must have a concrete `rq-*` requirement ID and ≥1 Given/When/Then scenario. If no deltas needed, state "No spec deltas required" with rationale.
 - [ ] **P25 Related-Pattern Scan** — Identify the class of bug/gap being addressed and scan for similar patterns elsewhere in the codebase. Output: "Related Pattern Scan" section with matches or "no similar patterns found".
 - [ ] **LBP Check** — Verify the likely direction matches long-term best practice. Output: "LBP Check" section with direction and evidence. When the discovery agenda contains ecosystem unknowns or an open design question lists external tools/libraries/services as a realistic option, perform the External-Solution Check: consult any cited `docs/*-prep.md` pack first, and only run new Exa queries when no relevant pack covers the question. Purely internal changes may state "No external alternatives apply" with rationale.
+- [ ] **Phase 3.5: Discovery Opportunity Scout** — Run a mandatory bounded opportunity-scout pass using `adv-opportunity-scout` skill (mode: discovery). Load skill, spawn `adv-researcher` with discovery-mode prompt, collect ≤5 candidates, sort by payoff/risk, route adoption (auto-adopt narrow only: contract-tied, low risk, no user-value tradeoff; surface all others to user). Integrate adopted findings into agreement. Output: "Discovery Opportunity Scout" section with candidate counts and adoption summary. Trivially scoped changes may skip with rationale. INCONCLUSIVE is always valid (mandatory = must attempt, not must succeed).
 
-**Minimum**: All 8 steps must be executed. Skipping a step requires explicit justification in the Discovery Checklist output section.
+**Minimum**: All 10 steps (including scout) must be executed. Skipping a step requires explicit justification in the Discovery Checklist output section.
 
 ---
 
@@ -50,6 +51,9 @@ Graceful degradation rules for each protocol step:
 | Spec Deltas       | New capability needed (no existing spec)             | Draft "rq-NEW* in new capability X".                                                                                                                         |
 | P25 Scan          | Zero pattern matches                                 | State "no similar patterns found" explicitly. Do not omit.                                                                                                   |
 | P25 Scan          | Many matches found                                   | Cap at top N with rationale for prioritization.                                                                                                              |
+| Opportunity Scout | Skill unavailable or sub-agent fails                 | Record "Scout: inconclusive ({reason})". Proceed without blocking.                                                                                           |
+| Opportunity Scout | Trivially scoped change (narrow fix, single path)    | Record "Scout: skipped — {rationale}". Proceed without blocking.                                                                                             |
+| Opportunity Scout | Zero candidates returned                              | Record "Scout: 0 candidates found". Proceed normally.                                                                                                       |
 
 ---
 
@@ -130,7 +134,7 @@ Skip the entire Ambiguity Analysis Protocol if the discovery gate is already com
 
 Discovery analysis is complete when ALL of the following are true:
 
-- [ ] All 9 protocol steps executed and reported (including origin validation)
+- [ ] All 10 protocol steps executed and reported (including origin validation and opportunity scout)
 - [ ] If cross-project origin exists, it has been validated and confirmed by the user
 - [ ] Codebase searched for 3+ key terms from the change
 - [ ] All deployed specs scanned for conflicts via `adv_spec action: "search"`
@@ -139,5 +143,6 @@ Discovery analysis is complete when ALL of the following are true:
 - [ ] Conflict scan executed with all 3 mandatory tool calls
 - [ ] Each identified gap has edge case coverage
 - [ ] AMBIGUITY ANALYSIS section present with finding table and coverage report (or "no ambiguity findings" if scan clean)
+- [ ] Discovery Opportunity Scout executed (or skipped with rationale for trivially scoped changes)
 
 **Gate requirement**: Discovery gate can be marked complete when all heuristics are satisfied and the agreement phase can proceed with well-formed findings.

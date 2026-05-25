@@ -15,11 +15,11 @@
 //   - WAL TRUNCATE checkpoint on session.deleted / SIGTERM / SIGINT /
 //     beforeExit so per-instance DBs don't accumulate WAL bloat
 //
-// Provenance: this is the Zed-era replacement for the unbuilt portions of
-// Sharper-Flow/Opencode-Advance Pattern B (#23) + session-DB contention
-// discovery items (proposals/2026-05-03-session-and-resource-architecture.md
-// §10.2). Tmux-specific OCA pieces (status decode, resurrect, dashboard)
-// are intentionally omitted — Zed owns window/session management now.
+// Provenance: this is the Zed-era extraction of Pattern B session topology and
+// session-DB contention discovery items
+// (proposals/2026-05-03-session-and-resource-architecture.md §10.2).
+// Tmux-specific pieces (status decode, resurrect, dashboard) are intentionally
+// omitted — Zed owns window/session management now.
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";

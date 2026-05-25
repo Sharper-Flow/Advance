@@ -27,8 +27,8 @@ describe("safe-execute", () => {
   beforeEach(() => {
     profileDir = mkdtempSync(join(tmpdir(), "adv-profile-"));
     originalAdvProfile = process.env.ADV_PROFILE;
-    originalCacheDir = process.env.OPEN_CHAD_CACHE_DIR;
-    process.env.OPEN_CHAD_CACHE_DIR = profileDir;
+    originalCacheDir = process.env.ADV_CACHE_DIR;
+    process.env.ADV_CACHE_DIR = profileDir;
   });
 
   afterEach(() => {
@@ -39,9 +39,9 @@ describe("safe-execute", () => {
     }
 
     if (originalCacheDir === undefined) {
-      delete process.env.OPEN_CHAD_CACHE_DIR;
+      delete process.env.ADV_CACHE_DIR;
     } else {
-      process.env.OPEN_CHAD_CACHE_DIR = originalCacheDir;
+      process.env.ADV_CACHE_DIR = originalCacheDir;
     }
 
     rmSync(profileDir, { recursive: true, force: true });

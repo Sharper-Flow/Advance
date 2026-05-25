@@ -74,7 +74,7 @@
 - Detection of both modern + legacy snapshot layouts
 
 #### Out of Scope (explicit)
-- Fixing OpenCode-core snapshot race (`Sharper-Flow/Opencode-Advance#1`)
+- Fixing OpenCode-core snapshot race (`Sharper-Flow/Advance#1`)
 - Worktree-keying changes to OpenCode's snapshot service
 - Background daemon / scheduled polling — on-demand only
 - History-altering repair (`git gc`, `git prune`, `git filter-repo`)
@@ -108,7 +108,7 @@ R1–R7 from proposal hold; all have mitigations enumerated.
 V1. Unit tests with 6 fixture bare repos (one per finding type) + 2 edge cases (lsof-missing, post-cleanup-state) — 8 fixtures total
 V2. Run probe against live `~/.local/share/opencode/snapshot/` tree, compare with `/tmp/opencode/snapshot-health-scan.py` output (must match)
 V3. Reproduce corrupted state in temp fixture, run repair with `approvedByUser: true`, verify clean state + agenda audit entry
-V4. Cross-project read test (`scope: "global"` from this session sees pokeedge-web's snapshot dir)
+V4. Cross-project read test (`scope: "global"` from this session sees example-web's snapshot dir)
 V5. `adv_status view: health` and `view: hygiene` rendered output checks
 V6. Legacy-layout replay: synthesize a `548a340e…`-shaped fixture, verify probe categorizes it correctly
 

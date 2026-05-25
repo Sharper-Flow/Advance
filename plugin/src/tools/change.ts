@@ -23,17 +23,20 @@ import {
   createDefaultGates,
   getIncompleteGates,
   allGatesSatisfied,
+  isGateSatisfied,
+  GATE_ORDER,
   GateIdSchema,
   ChangeListStatusFilterSchema,
   ChangeOriginKindSchema,
   ChangeRepoScopeSchema,
   type GateId,
+  type GateCompletion,
   type Gates,
   type Change,
   type ChangeRepoScope,
   type ClarifyFindingSnapshot,
 } from "../types";
-import type { Store } from "../storage/store";
+import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import { createDiskStore as createLegacyStore } from "../storage/store-disk";
 import { getReflection } from "../storage/reflection";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
@@ -42,6 +45,8 @@ import { validateChange } from "../validator";
 import { createLogger } from "../utils/debug-log";
 import { validateCrossRepoTarget } from "../temporal/activities";
 import { queryClaimsByIssueNumber } from "../temporal/visibility-claim-queries";
+import { advWorktreeCleanup } from "./worktree";
+import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 
 const logger = createLogger("change");
 
@@ -159,9 +164,20 @@ import {
 } from "./_adapters";
 import {
   changeCancelledSignal,
+  gateCompletedSignal,
   gateReenteredSignal,
   getGateStatusQuery,
 } from "../temporal/messages";
+import {
+  detectDefaultBranch,
+  detectArchiveMode,
+  finalizeRelease,
+  validateChangeWorktree,
+  verifyChangeBranchReachable,
+  verifyChangeBranchPushed,
+  verifyDefaultBranchPushed,
+  type GitFinalizeOutcome,
+} from "./archive-helpers/git-finalize";
 
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -240,6 +256,113 @@ function buildSyntheticValidationDraftError(
       `Synthetic validation draft summary "${summary}" is reserved for parity/validation flows. ` +
       "Use isolated temp/test storage instead of live ADV state.",
   };
+}
+
+// Defensive bypass-resilience guard. Preflight in tool-arg-preflight.ts now
+// normalizes blank artifact / origin_source_artifact placeholders to omitted
+// before tool execution (rq-toolPlaceholderPolicy01.5), so this guard is a
+// no-op on the normal preflighted path. It remains active for direct
+// callers that bypass preflight (e.g. legacy or test harnesses).
+function collectBlankCreateArtifactOrLinkageFields(input: {
+  proposal?: string;
+  problemStatement?: string;
+  agreement?: string;
+  design?: string;
+  executiveSummary?: string;
+  origin_source_artifact?: string;
+}): string[] {
+  return [
+    { field: "proposal", value: input.proposal },
+    { field: "problemStatement", value: input.problemStatement },
+    { field: "agreement", value: input.agreement },
+    { field: "design", value: input.design },
+    { field: "executiveSummary", value: input.executiveSummary },
+    { field: "origin_source_artifact", value: input.origin_source_artifact },
+  ]
+    .filter(
+      ({ value }) =>
+        value !== undefined &&
+        typeof value === "string" &&
+        value.trim().length === 0,
+    )
+    .map(({ field }) => field);
+}
+
+// Defensive bypass-resilience guard. Preflight in tool-arg-preflight.ts now
+// normalizes blank-string and zero placeholders for origin_issue_number /
+// origin_source_artifact to omitted before tool execution
+// (rq-toolPlaceholderPolicy01.5). This function therefore no-ops for
+// strict-mode-style placeholder fills, but remains active for non-strict
+// callers that emit real origin-matrix violations (e.g. roadmap origin
+// without origin_issue_number, adhoc origin with linkage fields).
+function validateCreateOriginLinkage(input: {
+  origin_kind?: ChangeOrigin["kind"];
+  origin_issue_number?: number;
+  origin_source_artifact?: string;
+}): { error: string; fields: string[]; hint: string } | undefined {
+  const hasIssue = input.origin_issue_number !== undefined;
+  const hasSource = input.origin_source_artifact !== undefined;
+
+  // rq-backlogCoord08: enforce the create-time origin linkage matrix before
+  // claim checks, workflow start, or any late projection persistence.
+  if (!input.origin_kind) {
+    const fields = [
+      ...(hasIssue ? ["origin_issue_number"] : []),
+      ...(hasSource ? ["origin_source_artifact"] : []),
+    ];
+    if (fields.length > 0) {
+      return {
+        error:
+          "origin_issue_number / origin_source_artifact require origin_kind to be set",
+        fields,
+        hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside allowed linkage fields, or omit linkage fields for an unlinked change.",
+      };
+    }
+    return undefined;
+  }
+
+  if (input.origin_kind === "roadmap") {
+    if (!hasIssue) {
+      return {
+        error: "origin_issue_number is required when origin_kind is 'roadmap'",
+        fields: ["origin_issue_number"],
+        hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
+      };
+    }
+    if (hasSource) {
+      return {
+        error:
+          "origin_source_artifact is only allowed for triage or discovery origins.",
+        fields: ["origin_source_artifact"],
+        hint: "Omit origin_source_artifact for roadmap origins; the issue number is the roadmap linkage.",
+      };
+    }
+  }
+
+  if (input.origin_kind === "discovery" && hasIssue) {
+    return {
+      error:
+        "origin_issue_number is only allowed for roadmap or triage origins.",
+      fields: ["origin_issue_number"],
+      hint: "Use origin_kind 'roadmap' or 'triage' for issue-linked changes, or omit origin_issue_number for discovery origins.",
+    };
+  }
+
+  if (input.origin_kind === "adhoc") {
+    const fields = [
+      ...(hasIssue ? ["origin_issue_number"] : []),
+      ...(hasSource ? ["origin_source_artifact"] : []),
+    ];
+    if (fields.length > 0) {
+      return {
+        error: "origin linkage fields are not allowed for adhoc origins.",
+        fields,
+        hint: "Omit origin_issue_number and origin_source_artifact for adhoc origins.",
+      };
+    }
+  }
+
+  return undefined;
 }
 
 type ChangeIssueUpdate = {
@@ -848,10 +971,19 @@ async function resolveArchiveGateState(
 function getArchiveGatePreflightError(
   changeId: string,
   gateState: ArchiveGateState,
+  allowReleasePending: boolean,
   divergenceHint?: string | null,
 ): string | null {
   const gates = gateState.effectiveGates;
-  if (!allGatesSatisfied(gates)) {
+  // rq-releaseFinalization01: archive may run with release gate pending.
+  // Finalization creates the reachability/push evidence required to complete
+  // the release gate, which is then done after archive succeeds.
+  const incompleteGates = allowReleasePending
+    ? GATE_ORDER.filter(
+        (gateId) => gateId !== "release" && !isGateSatisfied(gates[gateId]),
+      )
+    : getIncompleteGates(gates);
+  if (incompleteGates.length > 0) {
     const fallbackHint = `Run /adv-gate-status ${changeId} to see gate details`;
     const hint = [
       fallbackHint,
@@ -866,7 +998,7 @@ function getArchiveGatePreflightError(
     return formatToolOutput({
       error:
         "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
-      incompleteGates: getIncompleteGates(gates),
+      incompleteGates,
       gateStateSource: gateState.source,
       storeIncompleteGates: getIncompleteGates(gateState.storeGates),
       ...(gateState.liveGates
@@ -880,6 +1012,366 @@ function getArchiveGatePreflightError(
   }
 
   return null;
+}
+
+const ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS = 40;
+const ARCHIVE_RELEASE_GATE_POLL_DELAY_MS = 25;
+
+const archiveDelay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForArchiveReleaseGateCompletion(
+  handle: ReturnType<typeof getChangeHandle>,
+): Promise<GateCompletion | undefined> {
+  let latest: GateCompletion | undefined;
+  for (
+    let attempt = 0;
+    attempt < ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS;
+    attempt++
+  ) {
+    latest = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      "release",
+    );
+    if (latest?.status === "done" || latest?.status === "stuck") {
+      return latest;
+    }
+    await archiveDelay(ARCHIVE_RELEASE_GATE_POLL_DELAY_MS);
+  }
+  return latest;
+}
+
+function buildReleaseCompletionEvidence(
+  finalization: GitFinalizeOutcome,
+): string {
+  const details = [
+    `defaultBranch=${finalization.defaultBranch}`,
+    `mainCheckout=${finalization.mainCheckout}`,
+    `pushStatus=${finalization.pushStatus}`,
+    finalization.mergeCommitSha
+      ? `mergeCommitSha=${finalization.mergeCommitSha}`
+      : null,
+    finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
+  ].filter(Boolean);
+  return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;
+}
+
+/**
+ * Verify Phase 9 release evidence from the main checkout when the original
+ * change worktree is already gone. Used only for existing-bundle retries; it
+ * mirrors finalizeRelease's release proof without merging or pushing again.
+ */
+function verifyReleaseEvidenceFromMain(input: {
+  store: Store;
+  changeId: string;
+  archiveMode: "direct" | "pr";
+}): GitFinalizeOutcome {
+  const mainCheckout = input.store.paths.root;
+  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+
+  if (input.archiveMode === "pr") {
+    const branchPush = verifyChangeBranchPushed(mainCheckout, input.changeId);
+    if (branchPush.pushed) {
+      return {
+        status: "pr_pushed",
+        mainCheckout,
+        defaultBranch,
+        prBranch: `change/${input.changeId}`,
+        pushStatus: "pushed",
+      };
+    }
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      prBranch: `change/${input.changeId}`,
+      pushStatus: "failed",
+      pushFailureReason: branchPush.reason,
+      blocked: {
+        reason: "PR_BRANCH_PUSH_NOT_VERIFIED",
+        remediation: `Change branch change/${input.changeId} must be pushed for PR-mode handoff before release completion (rq-releaseFinalization01).`,
+        details: [branchPush.reason ?? "change branch push not verified"],
+      },
+    };
+  }
+
+  const reachability = verifyChangeBranchReachable(
+    mainCheckout,
+    defaultBranch,
+    input.changeId,
+  );
+  if (!reachability.reachable) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "CHANGE_BRANCH_NOT_REACHABLE",
+        remediation: `Change branch change/${input.changeId} must be reachable from ${defaultBranch} before release completion (rq-releaseFinalization01).`,
+        details: reachability.unmergedCommits,
+      },
+    };
+  }
+
+  const pushCheck = verifyDefaultBranchPushed(mainCheckout, defaultBranch);
+  if (!pushCheck.pushed) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "failed",
+      pushFailureReason: pushCheck.reason,
+      blocked: {
+        reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
+        remediation: `Default branch ${defaultBranch} must be pushed before release completion (rq-releaseFinalization01).`,
+        details: [pushCheck.reason ?? `${defaultBranch} push not verified`],
+      },
+    };
+  }
+
+  return {
+    status: "shipped",
+    mainCheckout,
+    defaultBranch,
+    pushStatus: "pushed",
+  };
+}
+
+type ArchiveReleaseGateResult =
+  | {
+      ok: true;
+      gate: GateCompletion;
+      alreadyDone: boolean;
+      recoveryMutation?: boolean;
+      reconciliationWarning?: string;
+    }
+  | {
+      ok: false;
+      error: string;
+      workflowGateStatus?: GateCompletion["status"];
+      readinessBlockers?: GateCompletion["readiness_blockers"];
+      stuckReason?: GateCompletion["stuck_reason"];
+    };
+
+/**
+ * Repair only the release-gate disk projection after structural Phase 9
+ * evidence exists but the change workflow has already completed. The caller
+ * must pass completed-workflow evidence so disk-direct recovery remains
+ * auditable instead of becoming an unguarded state bypass.
+ */
+async function recoverReleaseGateViaDiskProjection(input: {
+  store: Store;
+  change: Change;
+  evidence: string;
+  recoveryEvidence: string;
+}): Promise<Extract<ArchiveReleaseGateResult, { ok: true }>> {
+  const { RECOVERY_RECONCILIATION_WARNING } =
+    await import("../temporal/recovery-classification");
+  const { saveRecoveredGateCompletion } = await import("./_recovery-writers");
+  const completion: GateCompletion = {
+    status: "done",
+    completed_at: new Date().toISOString(),
+    completed_by: "adv-archive",
+    approval_evidence: input.evidence,
+  };
+  const updated = await saveRecoveredGateCompletion({
+    store: input.store,
+    change: input.change,
+    authorization: {
+      reason: "completed_workflow_release_gate_recovery",
+      evidence: `${input.recoveryEvidence}; ${input.evidence}`,
+    },
+    gateId: "release",
+    completion,
+  });
+  return {
+    ok: true,
+    gate: updated.gates?.release ?? completion,
+    alreadyDone: false,
+    recoveryMutation: true,
+    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+  };
+}
+
+type DurableReleaseGateProofResult =
+  | { ok: true; gate: GateCompletion }
+  | {
+      ok: false;
+      error: string;
+      releaseGateStatus?: GateCompletion["status"];
+      readinessBlockers?: GateCompletion["readiness_blockers"];
+      stuckReason?: GateCompletion["stuck_reason"];
+    };
+
+function releaseGateEvidenceMatches(
+  gate: GateCompletion | undefined,
+  evidence: string,
+): boolean {
+  return (
+    typeof gate?.approval_evidence === "string" &&
+    gate.approval_evidence.includes(evidence)
+  );
+}
+
+async function verifyReleaseGateDurableForArchive(input: {
+  store: Store;
+  changeId: string;
+  evidence: string;
+}): Promise<DurableReleaseGateProofResult> {
+  let gates: Gates | null;
+  try {
+    gates = await input.store.gates.get(input.changeId);
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Store-backed release gate read failed: ${collectErrorText(error)}`,
+    };
+  }
+
+  const releaseGate = gates?.release;
+  if (releaseGate?.status !== "done") {
+    return {
+      ok: false,
+      error:
+        "Store-backed durable release gate proof did not observe release done",
+      releaseGateStatus: releaseGate?.status,
+      readinessBlockers: releaseGate?.readiness_blockers,
+      stuckReason: releaseGate?.stuck_reason,
+    };
+  }
+
+  if (!releaseGateEvidenceMatches(releaseGate, input.evidence)) {
+    return {
+      ok: false,
+      error:
+        "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+      releaseGateStatus: releaseGate.status,
+      readinessBlockers: releaseGate.readiness_blockers,
+      stuckReason: releaseGate.stuck_reason,
+    };
+  }
+
+  return { ok: true, gate: releaseGate };
+}
+
+/**
+ * Record the release gate after Phase 9 returns shipped/pr_pushed evidence and
+ * before archive status retires the workflow. Each Temporal interaction can
+ * race a completed workflow, so query, signal, and confirmation poll all route
+ * completed-workflow failures through disk-projection recovery.
+ */
+async function completeReleaseGateAfterFinalization(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  finalization: GitFinalizeOutcome;
+}): Promise<ArchiveReleaseGateResult> {
+  if (
+    input.finalization.status !== "shipped" &&
+    input.finalization.status !== "pr_pushed"
+  ) {
+    return {
+      ok: false,
+      error: `Release gate requires successful Phase 9 finalization, got ${input.finalization.status}`,
+    };
+  }
+
+  const bundle = getService();
+  if (!bundle) {
+    return {
+      ok: false,
+      error: "Temporal service not available for release gate completion",
+    };
+  }
+  const projectId = await getProjectId(input.store.paths.root);
+  if (!projectId) {
+    return {
+      ok: false,
+      error: "Could not resolve project ID for release gate completion",
+    };
+  }
+
+  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
+  const evidence = buildReleaseCompletionEvidence(input.finalization);
+  let currentGate: GateCompletion | undefined;
+  try {
+    currentGate = await querySignal<GateCompletion>(
+      handle,
+      getGateStatusQuery,
+      "release",
+    );
+  } catch (error) {
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
+    if (isWorkflowCompletedError(error)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+        recoveryEvidence: collectErrorText(error),
+      });
+    }
+    throw error;
+  }
+  if (currentGate?.status === "done") {
+    return { ok: true, gate: currentGate, alreadyDone: true };
+  }
+
+  try {
+    await fireSignalAndRefresh(
+      handle,
+      input.store,
+      input.changeId,
+      gateCompletedSignal,
+      {
+        gateId: "release",
+        completedBy: "adv-archive",
+        completedAt: new Date().toISOString(),
+        approvalEvidence: evidence,
+      },
+    );
+  } catch (error) {
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
+    if (isWorkflowCompletedError(error)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+        recoveryEvidence: collectErrorText(error),
+      });
+    }
+    throw error;
+  }
+
+  let postSignalGate: GateCompletion | undefined;
+  try {
+    postSignalGate = await waitForArchiveReleaseGateCompletion(handle);
+  } catch (error) {
+    const { isWorkflowCompletedError } =
+      await import("../temporal/recovery-classification");
+    if (isWorkflowCompletedError(error)) {
+      return recoverReleaseGateViaDiskProjection({
+        store: input.store,
+        change: input.change,
+        evidence,
+        recoveryEvidence: collectErrorText(error),
+      });
+    }
+    throw error;
+  }
+  if (postSignalGate?.status === "done") {
+    return { ok: true, gate: postSignalGate, alreadyDone: false };
+  }
+  return {
+    ok: false,
+    error: "Cannot confirm release gate completion from workflow state",
+    workflowGateStatus: postSignalGate?.status,
+    readinessBlockers: postSignalGate?.readiness_blockers,
+    stuckReason: postSignalGate?.stuck_reason,
+  };
 }
 
 /**
@@ -1338,6 +1830,12 @@ export const changeTools = {
             .describe(
               "When true, attaches raw executive-summary.md content as `_executiveSummary`.",
             ),
+          subagentReports: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches persisted task sub-agent reports as `_subagentReports`.",
+            ),
         })
         .optional()
         .describe(
@@ -1366,6 +1864,7 @@ export const changeTools = {
           agreement?: boolean;
           design?: boolean;
           executiveSummary?: boolean;
+          subagentReports?: boolean;
         };
       },
       store: Store,
@@ -1480,6 +1979,14 @@ export const changeTools = {
               output._ledger = null;
             }
 
+            if (include.subagentReports) {
+              const reports = change.tasks.flatMap((task) =>
+                (task.subagent_reports ?? []).map((report) => report),
+              );
+              output._subagentReports = reports;
+              output._subagentReportsMeta = { total: reports.length };
+            }
+
             // Ready tasks — unblocked queue, sliced to top-N. Avoids the
             // separate adv_task_ready round-trip on phase boundaries.
             if (include.readyTasks) {
@@ -1561,17 +2068,6 @@ export const changeTools = {
                 "executive-summary.md",
               );
               if (text) output._executiveSummary = text;
-            }
-            if (include.executiveSummary) {
-              try {
-                const text = await readFile(
-                  join(changeDir, "executive-summary.md"),
-                  "utf-8",
-                );
-                output._executiveSummary = text;
-              } catch {
-                // File may not exist
-              }
             }
           }
 
@@ -1672,8 +2168,8 @@ export const changeTools = {
         .positive()
         .optional()
         .describe(
-          "GitHub issue number for kind=roadmap (required) or post-hoc backlinking. " +
-            "Behavior automation (auto-create issue / auto-close on archive) lands in a follow-up change.",
+          "GitHub issue number for kind=roadmap (required) or kind=triage (optional). " +
+            "Rejected for discovery, adhoc, and omitted origin_kind.",
         ),
       origin_source_artifact: z
         .string()
@@ -1731,18 +2227,36 @@ export const changeTools = {
         });
       }
 
-      // Origin validation: kind=roadmap requires an issue number; other kinds
-      // accept it optionally. Origin is typed-state only — behavior automation
-      // (auto-create issue, auto-close on archive) lands in a follow-up change.
+      const blankCreateFields = collectBlankCreateArtifactOrLinkageFields({
+        proposal,
+        problemStatement,
+        agreement,
+        design,
+        executiveSummary,
+        origin_source_artifact,
+      });
+      if (blankCreateFields.length > 0) {
+        return formatToolOutput({
+          error: "Blank artifact or linkage fields are not allowed.",
+          fields: blankCreateFields,
+          hint: "Provide non-blank strings for fields you intend to set, or omit fields you do not intend to set.",
+        });
+      }
+
+      const originLinkageError = validateCreateOriginLinkage({
+        origin_kind,
+        origin_issue_number,
+        origin_source_artifact,
+      });
+      if (originLinkageError) {
+        return formatToolOutput(originLinkageError);
+      }
+
+      // Origin validation: the linkage matrix has already been validated.
+      // Origin is typed-state only — behavior automation (auto-create issue,
+      // auto-close on archive) lands in a follow-up change.
       let origin: ChangeOrigin | undefined;
       if (origin_kind) {
-        if (origin_kind === "roadmap" && origin_issue_number === undefined) {
-          return formatToolOutput({
-            error:
-              "origin_issue_number is required when origin_kind is 'roadmap'",
-            hint: "Pass origin_issue_number with the GitHub issue number, or use origin_kind 'discovery' / 'triage' / 'adhoc' for non-roadmap-driven changes.",
-          });
-        }
         origin = {
           kind: origin_kind,
           ...(origin_issue_number !== undefined
@@ -1752,12 +2266,6 @@ export const changeTools = {
             ? { source_artifact: origin_source_artifact }
             : {}),
         };
-      } else if (origin_issue_number !== undefined || origin_source_artifact) {
-        return formatToolOutput({
-          error:
-            "origin_issue_number / origin_source_artifact require origin_kind to be set",
-          hint: "Pass origin_kind ('roadmap' | 'discovery' | 'triage' | 'adhoc') alongside the linkage fields.",
-        });
       }
 
       // rq-backlogCoord02 — Pre-create claim collision check.
@@ -1830,7 +2338,19 @@ export const changeTools = {
         return formatToolOutput({ error: scopeResolution.error });
       }
 
-      // ----- Local creation path (unchanged) -----
+      const initialMetadata: ChangeCreateInitialMetadata = {};
+      if (origin) initialMetadata.origin = origin;
+      if (fastFollowOf) initialMetadata.fast_follow_of = fastFollowOf;
+      if (scopeResolution.scope)
+        initialMetadata.scope_repos = scopeResolution.scope;
+      const createOptions =
+        Object.keys(initialMetadata).length > 0
+          ? { initialMetadata }
+          : undefined;
+
+      // rq-backlogCoord08: seed creation metadata before workflow start so
+      // origin/search attributes are authoritative Temporal state, not a late
+      // disk-only patch.
       const result = await store.changes.create(
         summary,
         capability,
@@ -1839,16 +2359,12 @@ export const changeTools = {
         agreement,
         design,
         executiveSummary,
+        createOptions,
       );
 
       const output: Record<string, unknown> = { ...result };
 
       if (fastFollowOf) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          changeResult.data.fast_follow_of = fastFollowOf;
-          await store.changes.save(changeResult.data);
-        }
         output.fast_follow_of = fastFollowOf;
       }
 
@@ -1857,43 +2373,12 @@ export const changeTools = {
         output._duplicateWarning = result.duplicateWarning;
       }
 
-      // If parent_change_id set, attach fast-follow lineage
-      if (parent_change_id) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          const updatedChange = {
-            ...changeResult.data,
-            fast_follow_of: {
-              parent_change_id: parent_change_id,
-              linked_at: new Date().toISOString(),
-            },
-          };
-          await store.changes.save(updatedChange);
-          output.fast_follow_of = updatedChange.fast_follow_of;
-        }
-      }
-
-      // Persist origin provenance onto the created change. Behavior automation
-      // (auto-create issue / auto-close on archive) is intentionally NOT
-      // performed here — it ships in a follow-up change.
       if (origin) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          await store.changes.save({ ...changeResult.data, origin });
-          output.origin = origin;
-        }
+        output.origin = origin;
       }
 
       if (scopeResolution.scope) {
-        const changeResult = await store.changes.get(result.changeId);
-        if (changeResult.success && changeResult.data) {
-          await store.changes.save({
-            ...changeResult.data,
-            scope_repos: scopeResolution.scope,
-          });
-          await store.changes.refresh(result.changeId);
-          output.scope_repos = scopeResolution.scope;
-        }
+        output.scope_repos = scopeResolution.scope;
       }
 
       await appendClarifyNeededForCreatedChange(store, result.changeId, output);
@@ -2050,6 +2535,29 @@ export const changeTools = {
             error:
               "At least one of 'proposal', 'problemStatement', 'agreement', 'design', or 'executiveSummary' must be provided.",
             hint: "Pass one or more of: proposal, problemStatement, agreement, design, executiveSummary. See the tool description for which file each field writes.",
+          });
+        }
+
+        const artifactInputs = [
+          { field: "proposal", value: proposal },
+          { field: "problemStatement", value: problemStatement },
+          { field: "agreement", value: agreement },
+          { field: "design", value: design },
+          { field: "executiveSummary", value: executiveSummary },
+        ] as const;
+        const blankArtifactFields = artifactInputs
+          .filter(
+            ({ value }) =>
+              value !== undefined &&
+              typeof value === "string" &&
+              value.trim().length === 0,
+          )
+          .map(({ field }) => field);
+        if (blankArtifactFields.length > 0) {
+          return formatToolOutput({
+            error: "Blank artifact fields are not allowed.",
+            fields: blankArtifactFields,
+            hint: "Provide non-blank strings for artifact fields, or omit fields you do not intend to change.",
           });
         }
 
@@ -2545,6 +3053,24 @@ export const changeTools = {
         .describe(
           "Backward-compatible explicit affirmative (no-op, closure is default-on)",
         ),
+      phase9: z
+        .enum(["run", "skip"])
+        .optional()
+        .describe(
+          "Phase 9 git finalization mode. Defaults to run. 'skip' is a compatibility/manual-recovery escape hatch; release gate completion must happen only after reachability/push evidence exists.",
+        ),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .describe(
+          "Optional recovery mode. 'poisoned_history' authorizes a disk-projection fallback for the final status transition when the workflow is poisoned or already completed and the archive bundle is already present/written. Requires recoveryEvidence.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history evidence.",
+        ),
     },
     execute: async (
       {
@@ -2553,15 +3079,48 @@ export const changeTools = {
         worktreePath,
         noCloseIssue,
         closeIssue: _closeIssue,
+        phase9 = "run",
+        recoveryMode,
+        recoveryEvidence,
       }: {
         changeId: string;
         dryRun?: boolean;
         worktreePath?: string;
         noCloseIssue?: boolean;
         closeIssue?: boolean;
+        phase9?: "run" | "skip";
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
+      if (recoveryMode === "poisoned_history") {
+        if (!recoveryEvidence || !recoveryEvidence.trim()) {
+          return formatToolOutput({
+            error:
+              "archive recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
+          });
+        }
+        const { isPreciseWorkflowRecoveryEvidence } =
+          await import("../temporal/recovery-classification");
+        if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
+          return formatToolOutput({
+            error:
+              "archive recoveryEvidence must cite precise poisoned-history or completed-workflow evidence (TMPRL1100 / Nondeterminism / NonDeterministic / WorkflowExecutionUpdateAccepted / No command scheduled / WorkflowNotFoundError / workflow execution already completed)",
+          });
+        }
+      }
+      // rq-harden-archive-flow AC1: refresh the change from the workflow
+      // before reading. Earlier signals (release-gate completion, review
+      // matrix set) can leave the store cache stale and surface as false
+      // contract-proof failures. Refresh is best-effort; failures fall
+      // through to the existing read (which still has its own poisoned-
+      // history fallback) so we don't mask real outages.
+      try {
+        await store.changes.refresh(changeId);
+      } catch {
+        // intentionally swallowed; the next get() will surface a real error.
+      }
       const result = await store.changes.get(changeId);
       if (!result.success) {
         return formatToolOutput({ error: result.error });
@@ -2584,6 +3143,7 @@ export const changeTools = {
       const gatePreflightError = getArchiveGatePreflightError(
         changeId,
         gateState,
+        phase9 !== "skip",
         divergenceHint,
       );
       if (gatePreflightError) {
@@ -2654,6 +3214,44 @@ export const changeTools = {
           ? { ...store.paths, wisdom: undefined, inRepoArchive }
           : { ...store.paths, inRepoArchive };
 
+      const existingBundlePath = !dryRun
+        ? await findArchiveBundle(archivePaths.archive, changeId)
+        : null;
+
+      if (!dryRun) {
+        if (!worktreePath && phase9 !== "skip" && existingBundlePath === null) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Archive finalization requires worktreePath so archive artifacts are written to the change worktree before merge.",
+            requirement: "rq-releaseFinalization01",
+            changeId,
+          });
+        }
+      }
+
+      if (!dryRun && worktreePath) {
+        const worktreeValidation = validateChangeWorktree(
+          worktreePath,
+          changeId,
+          { requireCleanWorktree: true },
+        );
+        if (
+          !worktreeValidation.valid ||
+          worktreeValidation.mainCheckout !== store.paths.root
+        ) {
+          return formatToolOutput({
+            success: false,
+            error: "Archive finalization requires a trusted change worktree.",
+            requirement: "rq-releaseFinalization01",
+            changeId,
+            remediation:
+              worktreeValidation.error ??
+              `Worktree belongs to ${worktreeValidation.mainCheckout}, expected ${store.paths.root}.`,
+          });
+        }
+      }
+
       // rq-archiveOrdering01: Archive State Transition Must Be Resilient
       // to Failed Disk Bundle Write. Idempotent retry: if the bundle already
       // exists on disk, skip the disk write. Two sub-cases:
@@ -2663,13 +3261,14 @@ export const changeTools = {
       //      wrote the bundle but the status transition failed. Build a
       //      synthetic result without re-writing disk; let the status
       //      transition (below) complete the recovery.
-      const existingBundlePath = !dryRun
-        ? await findArchiveBundle(archivePaths.archive, changeId)
-        : null;
       let archiveResult: import("../archive/types").ArchiveOperationResult;
 
       if (existingBundlePath !== null) {
-        if (!dryRun && archivePaths.inRepoArchive) {
+        if (
+          !dryRun &&
+          archivePaths.inRepoArchive &&
+          (worktreePath || phase9 === "skip")
+        ) {
           await reconcileInRepoArchive(
             change,
             archivePaths.inRepoArchive,
@@ -2698,43 +3297,222 @@ export const changeTools = {
         });
       }
 
-      // Update change status in store (unless dry run)
-      if (!dryRun && archiveResult.success) {
-        change.status = "archived";
-        try {
-          await store.changes.save(change);
-        } catch (saveError) {
-          const saveErrorText = collectErrorText(saveError);
-          const contextMismatch = extractContextMismatch(saveError);
-          if (contextMismatch) {
-            return formatToolOutput({
-              success: false,
-              error: `Failed to update change status to archived: ${saveErrorText}`,
-              archivePath: archiveResult.archivePath,
-              ...contextMismatch,
+      // Phase 9 finalization BEFORE retiring the active change.
+      // If finalization fails, the change stays active so it can be retried.
+      let finalization: GitFinalizeOutcome | undefined;
+      let releaseGateCompletion:
+        | Extract<ArchiveReleaseGateResult, { ok: true }>
+        | undefined;
+      if (!dryRun && archiveResult.success && phase9 !== "skip") {
+        const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
+        finalization = worktreePath
+          ? await finalizeRelease({
+              changeId,
+              workdir: worktreePath,
+              expectedMainCheckout: store.paths.root,
+              archiveMode,
+              autoPush,
+            })
+          : verifyReleaseEvidenceFromMain({
+              store,
+              changeId,
+              archiveMode,
             });
-          }
-          const searchAttributeRecovery = isSearchAttributeArchiveFailure(
-            saveErrorText,
-          )
-            ? {
-                recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
-                retrySafe: true,
-              }
-            : {};
-          // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
-          // the real reason) so the caller can diagnose the failure.
+
+        if (finalization.status === "blocked") {
           return formatToolOutput({
             success: false,
-            error: `Failed to update change status to archived: ${saveErrorText}`,
+            error: `Archive finalization blocked: ${finalization.blocked?.reason}`,
+            requirement: "rq-releaseFinalization01",
+            remediation: finalization.blocked?.remediation,
+            details: finalization.blocked?.details,
+            changeId,
             archivePath: archiveResult.archivePath,
-            ...searchAttributeRecovery,
             specsUpdated: archiveResult.specsUpdated.map((s) => ({
               capability: s.capability,
               version: `${s.originalVersion} → ${s.newVersion}`,
               deltas: s.deltaResults.length,
             })),
           });
+        }
+
+        const releaseResult = await completeReleaseGateAfterFinalization({
+          store,
+          change,
+          changeId,
+          finalization,
+        });
+        if (!releaseResult.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Archive release gate completion blocked: ${releaseResult.error}`,
+            requirement: "rq-releaseFinalization01",
+            changeId,
+            archivePath: archiveResult.archivePath,
+            finalization,
+            continueFrom: {
+              path: finalization.mainCheckout,
+              branch: finalization.defaultBranch,
+            },
+            workflowGateStatus: releaseResult.workflowGateStatus,
+            stuckReason: releaseResult.stuckReason,
+            readinessBlockers: releaseResult.readinessBlockers,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+          });
+        }
+        const releaseEvidence = buildReleaseCompletionEvidence(finalization);
+        const durableProof = await verifyReleaseGateDurableForArchive({
+          store,
+          changeId,
+          evidence: releaseEvidence,
+        });
+        if (!durableProof.ok) {
+          return formatToolOutput({
+            success: false,
+            error: `Archive durable release gate proof blocked: ${durableProof.error}`,
+            requirement: "rq-releaseProjectionDurability01",
+            changeId,
+            archivePath: archiveResult.archivePath,
+            finalization,
+            continueFrom: {
+              path: finalization.mainCheckout,
+              branch: finalization.defaultBranch,
+            },
+            releaseGateStatus: durableProof.releaseGateStatus,
+            stuckReason: durableProof.stuckReason,
+            readinessBlockers: durableProof.readinessBlockers,
+            specsUpdated: archiveResult.specsUpdated.map((s) => ({
+              capability: s.capability,
+              version: `${s.originalVersion} → ${s.newVersion}`,
+              deltas: s.deltaResults.length,
+            })),
+          });
+        }
+        releaseGateCompletion = {
+          ...releaseResult,
+          gate: durableProof.gate,
+        };
+      }
+
+      // Update change status in store (unless dry run)
+      if (!dryRun && archiveResult.success) {
+        const statusAlreadyArchived = change.status === "archived";
+        if (!statusAlreadyArchived) {
+          change.status = "archived";
+          try {
+            await store.changes.save(change);
+          } catch (saveError) {
+            const saveErrorText = collectErrorText(saveError);
+            const contextMismatch = extractContextMismatch(saveError);
+            if (contextMismatch) {
+              return formatToolOutput({
+                success: false,
+                error: `Failed to update change status to archived: ${saveErrorText}`,
+                archivePath: archiveResult.archivePath,
+                ...contextMismatch,
+              });
+            }
+            // rq-extend-poisoned-recovery AC5: poisoned-workflow disk fallback
+            // for final status. Bundle is already written; only the workflow
+            // signal that flips the status field fails. Probe + recover.
+            if (recoveryMode === "poisoned_history") {
+              try {
+                const {
+                  RECOVERY_RECONCILIATION_WARNING,
+                  isWorkflowCompletedError,
+                } = await import("../temporal/recovery-classification");
+                const completedWorkflow = isWorkflowCompletedError(saveError);
+                let poisoned = false;
+                if (!completedWorkflow) {
+                  const { workflowHasPoisonedRecoveryEvidence } =
+                    await import("./recovery-probe");
+                  const { getService } = await import("../temporal/service");
+                  const { getChangeHandle } = await import("./_adapters");
+                  const { getProjectId } = await import("../utils/project-id");
+                  const bundle = getService();
+                  const projectId = bundle
+                    ? await getProjectId(store.paths.root)
+                    : null;
+                  const handle =
+                    bundle && projectId
+                      ? getChangeHandle(bundle.client, projectId, changeId)
+                      : undefined;
+                  poisoned = handle
+                    ? await workflowHasPoisonedRecoveryEvidence(handle)
+                    : false;
+                }
+                if (completedWorkflow || poisoned) {
+                  const { saveRecoveredChangeStatus } =
+                    await import("./_recovery-writers");
+                  await saveRecoveredChangeStatus({
+                    store,
+                    change,
+                    authorization: {
+                      reason: completedWorkflow
+                        ? "completed_workflow_status_recovery"
+                        : "poisoned_history_status_recovery",
+                      evidence: recoveryEvidence ?? saveErrorText,
+                    },
+                    status: "archived",
+                  });
+                  return formatToolOutput({
+                    success: true,
+                    archivePath: archiveResult.archivePath,
+                    ...(finalization ? { finalization } : {}),
+                    ...(finalization
+                      ? {
+                          continueFrom: {
+                            path: finalization.mainCheckout,
+                            branch: finalization.defaultBranch,
+                          },
+                        }
+                      : {}),
+                    ...(releaseGateCompletion
+                      ? {
+                          releaseGate: releaseGateCompletion.gate,
+                          releaseGateAlreadyDone:
+                            releaseGateCompletion.alreadyDone,
+                        }
+                      : {}),
+                    specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                      capability: s.capability,
+                      version: `${s.originalVersion} → ${s.newVersion}`,
+                      deltas: s.deltaResults.length,
+                    })),
+                    _recoveryMutation: true,
+                    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                  });
+                }
+              } catch {
+                // Fall through to the standard error response.
+              }
+            }
+            const searchAttributeRecovery = isSearchAttributeArchiveFailure(
+              saveErrorText,
+            )
+              ? {
+                  recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
+                  retrySafe: true,
+                }
+              : {};
+            // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
+            // the real reason) so the caller can diagnose the failure.
+            return formatToolOutput({
+              success: false,
+              error: `Failed to update change status to archived: ${saveErrorText}`,
+              archivePath: archiveResult.archivePath,
+              ...searchAttributeRecovery,
+              specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                capability: s.capability,
+                version: `${s.originalVersion} → ${s.newVersion}`,
+                deltas: s.deltaResults.length,
+              })),
+            });
+          }
         }
 
         // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
@@ -2749,17 +3527,34 @@ export const changeTools = {
             `Source cleanup warning: failed to remove changes/${change.id}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
+
+        try {
+          await advWorktreeCleanup("archive", {
+            projectRoot: store.paths.root,
+            database: await initWorktreeStateDb(store.paths.root),
+            log: logger,
+            store,
+            forceAttempts: false,
+          });
+        } catch (err) {
+          archiveResult.errors.push(
+            `Worktree cleanup warning: failed to run archive cleanup discovery: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
 
       // Issue closure — after archive state is durable (or previewed in dryRun)
-      const issueClosure = await closeLinkedIssue({
-        change,
-        store,
-        noCloseIssue,
-        dryRun,
-        existingBundlePath: existingBundlePath ?? undefined,
-        worktreePath,
-      });
+      const issueClosure =
+        finalization?.status === "pr_pushed"
+          ? { issue_closed: [], close_eligible: false }
+          : await closeLinkedIssue({
+              change,
+              store,
+              noCloseIssue,
+              dryRun,
+              existingBundlePath: existingBundlePath ?? undefined,
+              worktreePath,
+            });
 
       return formatToolOutput({
         success: archiveResult.success,
@@ -2783,6 +3578,30 @@ export const changeTools = {
           : {}),
         ...(issueClosure.issue_closure_error
           ? { issue_closure_error: issueClosure.issue_closure_error }
+          : {}),
+        ...(finalization ? { finalization } : {}),
+        ...(finalization
+          ? {
+              continueFrom: {
+                path: finalization.mainCheckout,
+                branch: finalization.defaultBranch,
+              },
+            }
+          : {}),
+        ...(releaseGateCompletion
+          ? {
+              releaseGate: releaseGateCompletion.gate,
+              releaseGateAlreadyDone: releaseGateCompletion.alreadyDone,
+              ...(releaseGateCompletion.recoveryMutation
+                ? { _recoveryMutation: true }
+                : {}),
+              ...(releaseGateCompletion.reconciliationWarning
+                ? {
+                    reconciliationWarning:
+                      releaseGateCompletion.reconciliationWarning,
+                  }
+                : {}),
+            }
           : {}),
         ...(validationResult.warnings.length > 0
           ? {

@@ -4,13 +4,13 @@ Add `adv_snapshot_health` — a read-only ADV tool that detects degraded state i
 
 ## Why
 
-OpenCode's snapshot service races on `index.lock` when multiple processes touch the same gitdir. Crashes leave behind stale locks and zero-byte git objects that permanently break snapshots for that worktree until manually cleaned. The forensic pattern (find stale locks, scan zero-byte objects, run `git fsck`) has been executed manually in at least four diagnosis sessions for pokeedge-web alone (2026-05-04, 2026-05-10, 2026-05-11, 2026-05-12). ADV today has no detection or remediation path; every recurrence costs hours.
+OpenCode's snapshot service races on `index.lock` when multiple processes touch the same gitdir. Crashes leave behind stale locks and zero-byte git objects that permanently break snapshots for that worktree until manually cleaned. The forensic pattern (find stale locks, scan zero-byte objects, run `git fsck`) has been executed manually in at least four diagnosis sessions for example-web alone (2026-05-04, 2026-05-10, 2026-05-11, 2026-05-12). ADV today has no detection or remediation path; every recurrence costs hours.
 
 A fifth concrete instance surfaced during this change's discovery: a 4.6 GB stale snapshot bare repo for an accidental opencode session that ran from `$HOME` in April. The dir contained *two stacked* git bare repos (legacy + modern layout) and went undetected for a month. The user-observed effect: confusion about snapshot keying + 4.6 GB of dead disk.
 
 This is *not* a fix for the upstream race (which is OpenCode-core). It is a layer above: detect degraded state, surface it, and provide a structured repair path.
 
-Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Opencode-Advance/issues/1) (closed) and [Sharper-Flow/Advance#118](https://github.com/Sharper-Flow/Advance/issues/118) (open).
+Tracked at [Sharper-Flow/Advance#1](https://github.com/Sharper-Flow/Advance/issues/1) (closed) and [Sharper-Flow/Advance#118](https://github.com/Sharper-Flow/Advance/issues/118) (open).
 
 ## Success Criteria
 
@@ -37,7 +37,7 @@ Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Ope
 
 ### Out of Scope
 
-- Fixing the upstream OpenCode race (`Sharper-Flow/Opencode-Advance#1`) — that is OpenCode-core, not ADV
+- Fixing the upstream OpenCode race (`Sharper-Flow/Advance#1`) — that is OpenCode-core, not ADV
 - Worktree-keying changes to OpenCode's snapshot service
 - Changes to ADV state files (changes/, archive/, wisdom.jsonl, etc.) — only the snapshot store
 - Snapshot-content inspection or rollback features
@@ -89,6 +89,6 @@ Tracked at [Sharper-Flow/Opencode-Advance#1](https://github.com/Sharper-Flow/Ope
 1. Unit tests with fixture bare repos covering each finding type (clean, stale-lock, zero-byte-object, fsck-error, orphan, oversized, legacy-layout, nested-stacked-layout).
 2. Run the probe against the live `~/.local/share/opencode/snapshot/` tree — must match the one-off Python script's post-cleanup output (currently 0/0/0 across 18 projects, since the 4.6 GB `/home/jrede` was just cleaned during this proposal).
 3. Reproduce a corrupted state in a temp fixture, run repair with approval, verify clean state + audit entry on agenda.
-4. Cross-project read test (call with `scope: "global"` from a session in `advance`, scan finds pokeedge-web's snapshot dir).
+4. Cross-project read test (call with `scope: "global"` from a session in `advance`, scan finds example-web's snapshot dir).
 5. Verify `adv_status view: health` includes the new line in both clean and degraded fixtures.
 6. Replay test: copy the pre-deletion `548a340e…` legacy-layout fixture, verify probe correctly identifies the legacy bare repo + recommends nuke-and-rebuild as repair action.

@@ -8,8 +8,6 @@ description: Gather context, analyze current state, identify objectives, and obt
 
 Gather current-state evidence needed to move from proposal into a shared agreement. Command completes the `discovery` gate and carries the full user-facing discovery + agreement flow.
 
-> **CHECKLIST**: Follow [docs/checklists/discover-checklist.md](../../docs/checklists/discover-checklist.md).
-
 ## Command Boundary
 
 **Produces:** Discovery findings, current-state analysis, blocker/options summary, recommended objectives for agreement, `agreement.md`, and the typed `ChangeContract` spine minted from approved agreement items.
@@ -34,9 +32,9 @@ $ARGUMENTS
 
 #### Purpose
 
-Reusable discovery methodology for ADV discover workflows. Provides the protocol step overview and constraints.
+<!-- rq-noSourceChecklistReads01 -->
 
-**Canonical source:** `docs/checklists/discover-checklist.md` — see that checklist for detailed rules per step, edge case handling, and output section schema. Do not duplicate its content here.
+Embedded protocol below owns discovery step rules, edge cases, and output sections. This command owns orchestration.
 
 #### Discovery Protocol (8 Steps)
 
@@ -60,7 +58,7 @@ After all 8 steps, emit a **Discovery Checklist** table listing each step with P
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the discovery gate
-- **Canonical source** — defer to `docs/checklists/discover-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering
 - **No architecture decisions** — those belong in `/adv-design`
 ---
@@ -256,7 +254,7 @@ Each open design question MUST include:
 
 ### LBP and Tradeoffs
 
-If there are 2+ viable approaches with user-value tradeoffs, load `skill("prioritizer")` and apply the criteria-based tradeoff analysis workflow. If skill is unavailable, continue with existing inline prioritizer workflow before asking questions.
+If 2+ viable approaches have user-value tradeoffs, run the inline Tradeoff Prioritizer Protocol from `ADV_INSTRUCTIONS.md` and produce criteria-based comparison before asking the user. If only one viable approach remains after evidence, record why.
 
 ### External-Solution Check (gated)
 <!-- rq-disc10 -->
@@ -299,6 +297,36 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 - Do not create `agreement.md` here
 ---
 
+## Phase 3.5: Discovery Opportunity Scout
+<!-- rq-discOpportunityScout01 -->
+
+Run a mandatory bounded opportunity-scout pass after current-state research and before agreement formation. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
+
+### Execution
+
+1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
+2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
+3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
+4. **Sort candidates** — by payoff/risk ratio (highest first).
+5. **Route adoption** per the skill's routing taxonomy:
+   - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
+   - **Surface to user** for all other candidates (untied, medium+ risk, or user-value tradeoff).
+6. **Integrate adopted findings** — auto-adopted candidates are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
+
+### Opt-Out
+
+The scout phase may be skipped with rationale for trivially scoped changes where the opportunity surface is likely zero. Record "Scout: skipped — {rationale}" in the phase output.
+
+### Degradation
+
+If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+
+### Output
+
+- "Discovery Opportunity Scout" section with: candidates considered (count), auto-adopted (count + summary), surfaced to user (count + summary), inconclusive/skipped (if applicable).
+
+---
+
 ## Phase 4: Present Agreement Draft + Resolve Questions
 <!-- rq-disc11 -->
 - Load the refreshed discovery context from proposal findings
@@ -308,6 +336,7 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
   - **Acceptance Criteria**
   - **Constraints**
   - **Avoidances / rejected approaches**
+  - **Preview applicability** — record preview applicability as `visual_surface: true|false|unknown` plus rationale. Use `true` when the change affects front-end, browser-visible, or any visual output; `false` when no visual output can be affected; `unknown` when uncertainty remains. `unknown` carries forward as an acceptance blocker until clarified.
   - **Open questions**
   - **Investment snapshot** — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate agreement.
 - Agreement sign-off uses the **Inline Approval prompt (Tier A)** at Phase 4.5.1 (AC checkpoint) and Phase 4.6 (Persist Agreement). Phase 4.5 (Open Question Resolution Loop) keeps the `question` tool — that is a non-checkpoint clarification round.
@@ -438,6 +467,7 @@ Suggested structure:
 ## Acceptance Criteria
 ## Constraints
 ## Avoidances
+## Preview Applicability
 ## Decisions
 ### User Decisions
 ### Agent Decisions (LBP)
@@ -446,27 +476,31 @@ Suggested structure:
 ```
 - **User Decisions** — questions user answered, each with the question, user's choice, and why it matters
 - **Agent Decisions (LBP)** — technical questions resolved autonomously
+- **Preview Applicability** — mandatory `visual_surface: true|false|unknown` value plus rationale. `visual_surface: unknown` is allowed only when uncertainty is explicit and MUST be treated as blocking during `/adv-review` before acceptance.
 - **Deferred Questions** — only questions user explicitly chose to defer
 - × Do NOT include a generic "Open Questions" section
 
 ### Contract Minting
 
-After Phase 4.5.1 AC approval and before completing the `discovery` gate, mint the typed contract from the approved agreement and persist it through the `contractSetSignal`-backed change mutation path.
+After Phase 4.5.1 AC approval and before `discovery` gate completion: call `adv_contract_mint`. Tool parses approved `agreement.md`, validates `ChangeContract`, persists via `contractSetSignal`.
 
 Contract rules:
 
-- Source of truth after minting: `ChangeContract.items`.
-- Legacy `acceptanceCriteria` remains only a backward-compatible projection from `AC*` contract items.
-- Mint stable IDs from the approved agreement text:
+- Source after mint: `ChangeContract.items`.
+- Legacy `acceptanceCriteria`: backward-compatible projection from `AC*` only.
+- Stable IDs from approved agreement text:
   - `SC1..n` — success criteria / desired outcomes.
   - `AC1..n` — approved acceptance criteria.
   - `C1..n` — constraints.
   - `DONT1..n` — rejected approaches / explicit avoidances.
   - `OOS1..n` — out-of-scope boundaries.
-- Set `sourceArtifact: "agreement"` for initial items.
-- Choose evidence policy by item kind: `AC*` usually `test`; `C*` `test`/`static_check`/`review`; `DONT*` and `OOS*` `static_check`/`review`/`design_proof` unless an executable test is meaningful.
+- Initial items use `sourceArtifact: "agreement"`.
+- Evidence policies: `SC*` → `review`; `AC*` → `test`; `C*` → `static_check`; `DONT*` → `review`; `OOS*` → `not_applicable`.
+- Poisoned-history repair only: `adv_contract_mint recoveryMode: "poisoned_history"` + explicit `recoveryEvidence`. Repairs disk projection only; does not heal workflow history.
 
-Discovery gate completion is blocked if the agreement is approved but the contract spine is missing or projected `acceptanceCriteria` would drift from the approved `AC*` items.
+Discovery completion blocked when approved agreement lacks contract spine or projected `acceptanceCriteria` drifts from approved `AC*` items.
+
+If `adv_gate_complete changeId: {change-id} gateId: discovery` returns `DISCOVERY_CONTRACT_MISSING`: run `adv_contract_mint`, fix parser/schema failures in approved agreement, retry gate.
 
 ---
 ## Phase 5: Complete Gate
@@ -501,4 +535,4 @@ Agreed objectives + constraints + user decisions.
 > → `/adv-design {change-id}`
 ```
 
-**Auto-continue:** After user approval of acceptance criteria and agreement, immediately begin `/adv-design` inline. Do not stop or ask "shall I proceed?" — user's approval is the go-ahead.
+**Auto-continue:** After user approves AC + agreement, begin `/adv-design` inline. Do not ask "shall I proceed?" Approval is go-ahead.

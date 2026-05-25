@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-SLo0Hq",
+      "type": "gotcha",
+      "content": "Full-suite verification can surface unrelated archived-change drift (asset allowlists, spec mirror metadata, citation invariants). Classify first; when failures are tiny structural drift blockers, repair minimally and record them in task error_recovery rather than weakening the requested verification bar.",
+      "source_task": "tk-b975614f63fc",
+      "recorded_at": "2026-05-22T16:06:55.469Z"
+    }
+  ],
+  "count": 1
+}

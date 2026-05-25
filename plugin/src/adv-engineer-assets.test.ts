@@ -1,11 +1,29 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import {
+  EngineerSubagentReportSchema,
+  getSubagentReportPacketAnchors,
+} from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-engineer.md");
 const APPLY_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-apply.md");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
+
+function sectionAfterHeading(content: string, heading: string): string {
+  const marker = `#### ${heading}`;
+  const start = content.indexOf(marker);
+  if (start === -1) return "";
+
+  const rest = content.slice(start + marker.length);
+  const nextHeading = rest.search(/\n#{3,4} /);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+}
+
+function firstFencedBlock(section: string): string {
+  return section.match(/```\n([\s\S]*?)```/)?.[1] ?? "";
+}
 
 describe("adv-engineer assets", () => {
   test("ships adv-engineer.md agent definition", () => {
@@ -46,8 +64,9 @@ describe("adv-engineer assets", () => {
       "adv_task_cancel: false",
       "adv_task_checkpoint: false",
       "adv_change_validate: false",
-      "worktree_create: false",
-      "worktree_delete: false",
+      "adv_worktree_create: false",
+      "adv_worktree_delete: false",
+      "adv_worktree_cleanup: false",
     ];
     for (const tool of blocked) {
       expect(frontmatter, `missing blocked tool: ${tool}`).toContain(tool);
@@ -64,6 +83,12 @@ describe("adv-engineer assets", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const frontmatter = content.split("---")[1] ?? "";
     expect(frontmatter).toMatch(/adv_agenda_\w+:\s*false/);
+  });
+
+  test("allows typed sub-agent report submission tool", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const frontmatter = content.split("---")[1] ?? "";
+    expect(frontmatter).toContain("adv_subagent_report_submit: true");
   });
 
   test("contains required contract section headings", () => {
@@ -91,6 +116,7 @@ describe("adv-engineer assets", () => {
       "schema_version",
       "change_id",
       "task_id",
+      "attempt",
       "agent",
       "scope",
       "status",
@@ -179,6 +205,50 @@ describe("adv-engineer assets", () => {
     expect(exampleBlock).toContain("workdir_used");
   });
 
+  test("ENGINEER_REPORT example JSON parses through Zod schema", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    const jsonBlocks = reportSection.match(/```json\s*\n([\s\S]*?)```/g);
+    expect(jsonBlocks, "No JSON example blocks found").not.toBeNull();
+    const exampleBlock = (jsonBlocks![1] ?? "")
+      .replace(/^```json\s*/, "")
+      .replace(/```$/, "")
+      .trim();
+
+    expect(() =>
+      EngineerSubagentReportSchema.parse(JSON.parse(exampleBlock)),
+    ).not.toThrow();
+  });
+
+  test("ENGINEER_REPORT transport is tool-call based, not final fenced JSON", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## ENGINEER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain("adv_subagent_report_submit");
+    expect(reportSection).not.toContain("final element of your final response");
+  });
+
+  test("missing ADV packet identity fields are structured defects, not user questions", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const scopeSection =
+      content
+        .split("## Scope Lock")[1]
+        ?.split("## Working Directory Lock")[0] ?? "";
+    const workdirSection =
+      content
+        .split("## Working Directory Lock")[1]
+        ?.split("## Iteration Loop")[0] ?? "";
+    const defectPolicy = `${scopeSection}\n${workdirSection}`;
+
+    expect(defectPolicy).toContain("packet_defect");
+    expect(defectPolicy).toContain("structured packet-defect failure");
+    expect(defectPolicy).toContain("Do NOT call `question`");
+    expect(defectPolicy).toContain("TASK");
+    expect(defectPolicy).toContain("ATTEMPT");
+    expect(defectPolicy).toContain("WORKING DIRECTORY");
+    expect(defectPolicy).not.toMatch(/ask the orchestrator/i);
+    expect(defectPolicy).not.toMatch(/Ask the orchestrator/i);
+  });
+
   test("adv-apply.md Apply Context Packet starts with WORKING DIRECTORY", () => {
     const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
     // Find the Apply Context Packet section
@@ -192,5 +262,18 @@ describe("adv-engineer assets", () => {
     ).not.toBeNull();
     const firstLine = codeBlock![1].trim().split("\n")[0];
     expect(firstLine).toMatch(/^WORKING DIRECTORY:/);
+  });
+
+  test("adv-apply.md Apply Context Packet includes all ENGINEER_REPORT packet anchors", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packet = firstFencedBlock(
+      sectionAfterHeading(content, "Apply Context Packet"),
+    );
+
+    for (const anchor of getSubagentReportPacketAnchors("adv-engineer")) {
+      expect(packet, `Apply Context Packet missing ${anchor}`).toContain(
+        `${anchor}:`,
+      );
+    }
   });
 });

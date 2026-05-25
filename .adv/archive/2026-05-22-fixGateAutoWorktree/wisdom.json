@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "ws-H6pMx7",
+      "type": "gotcha",
+      "content": "`adv_change_update` writes provided empty strings as artifact contents; omit fields entirely to leave artifacts unchanged. Passing `proposal:\"\"`/`agreement:\"\"` can temporarily trip artifact readiness until restored.",
+      "source_task": "tk-09482c0d9422",
+      "recorded_at": "2026-05-21T21:03:47.558Z"
+    },
+    {
+      "id": "ws-UxQwH9",
+      "type": "success",
+      "content": "Full-suite worktree cleanup tests are safer when fixture project IDs derive from per-test temp paths; shared constants can leak external pending-delete state across runs.",
+      "source_task": "tk-38fbce9d5136",
+      "recorded_at": "2026-05-21T21:04:15.272Z"
+    }
+  ],
+  "count": 2
+}

@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-UZ07Xy",
+      "type": "pattern",
+      "content": "Release artifact shape can be kept structurally correct with asset tests that inspect workflow packaging commands and require an explicit tar contents verification loop plus conventional SHA256SUMS.txt upload.",
+      "source_task": "tk-4decc6241419",
+      "recorded_at": "2026-05-23T05:39:11.198Z"
+    },
+    {
+      "id": "ws-drpmu0",
+      "type": "gotcha",
+      "content": "Latest-release installer should not trust ADV_VERSION or checksum filenames heuristically: normalize/validate tag shape before building URLs and confirm SHA256SUMS.txt contains the exact target asset before running sha256sum --check --ignore-missing.",
+      "source_task": "tk-47c3b40d5bcf",
+      "recorded_at": "2026-05-23T05:47:38.381Z"
+    },
+    {
+      "id": "ws-YbUYtG",
+      "type": "pattern",
+      "content": "For user-facing release installs, upload the installer itself as a latest-release asset and include it in SHA256SUMS.txt; docs can then use releases/latest/download/install.sh while the installer downloads the full tarball.",
+      "source_task": "tk-2fb3afdf6d0e",
+      "recorded_at": "2026-05-23T05:54:03.551Z"
+    },
+    {
+      "id": "ws-f8-fGX",
+      "type": "success",
+      "content": "Final release-readiness evidence is strongest when it combines static asset/doc tests, pnpm run check, pnpm run build, and a local tarball smoke that checks required paths plus SHA256SUMS coverage for both archive and installer asset.",
+      "source_task": "tk-f677e27ed635",
+      "recorded_at": "2026-05-23T06:02:51.849Z"
+    },
+    {
+      "id": "ws-1qu8oU",
+      "type": "gotcha",
+      "content": "Bash `while IFS= read -r a b` disables field splitting, so `b` stays empty. For checksum manifests that need hash+filename fields, use default IFS (`while read -r checksum filename`) or an explicit parser; static substring tests can miss this runtime bug.",
+      "source_task": "tk-f677e27ed635",
+      "recorded_at": "2026-05-23T07:29:43.270Z"
+    }
+  ],
+  "count": 5
+}

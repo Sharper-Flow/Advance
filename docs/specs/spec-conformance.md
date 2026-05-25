@@ -1,11 +1,11 @@
 # Spec Conformance
 
 > **Version:** 1.0.0
-> **Updated:** 2026-05-01
+> **Updated:** 2026-05-23
 
 ## Purpose
 
-Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; tiered visibility. Pure opt-in per spec.
+Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; single-structured verdict visibility. Pure opt-in per spec.
 
 ## Requirements
 
@@ -105,6 +105,61 @@ Conformance source for a spec is unlocked while the spec is being authored. On t
 - The lock state flips to false
 - An override audit entry is appended to the spec's overrides array recording user, reason, re_verify_deadline, and applied_at
 - Future amendments to the spec require re-archiving to re-lock
+
+---
+
+### Saved State Notification Failure Visibility
+
+**ID:** `rq-confSignalVisibility01` | **Priority:** **[MUST]**
+
+When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object: { code: 'ADV_CONFORMANCE_SIGNAL_FAILED', message: string, reason: string, recoverable: true, changeId: string }. The warning MUST NOT be debug-log-only.
+
+**Tags:** `conformance`, `visibility`, `signals`
+
+#### Scenarios
+
+**Lock save succeeds but workflow notification fails visibly** (`rq-confSignalVisibility01.1`)
+
+**Given:**
+- A tracked conformance spec exists
+- adv_conformance action: 'lock' persists locked state
+- The change-workflow signal rejects
+
+**When:** The tool returns to the caller
+
+**Then:**
+- The response reports success for the local lock state
+- The response includes signalWarning.code = 'ADV_CONFORMANCE_SIGNAL_FAILED'
+- signalWarning.reason contains the notification failure reason
+- signalWarning.recoverable is true and signalWarning.changeId identifies the change workflow
+
+**Override save succeeds but workflow notification fails visibly** (`rq-confSignalVisibility01.2`)
+
+**Given:**
+- A tracked conformance spec has locked_at_archive set
+- adv_conformance action: 'override' persists an override audit entry
+- The change-workflow signal rejects
+
+**When:** The tool returns to the caller
+
+**Then:**
+- The response reports success for the local override audit
+- The response includes signalWarning with stable code, reason, recoverable flag, and changeId
+- The override entry remains persisted
+
+**Run verdict save succeeds but workflow notification fails visibly** (`rq-confSignalVisibility01.3`)
+
+**Given:**
+- A tracked conformance spec has locked_at_archive set
+- adv_conformance action: 'run' persists last_verdict
+- The change-workflow signal rejects
+
+**When:** The tool returns to the caller
+
+**Then:**
+- The response preserves the structured verdict result
+- The response includes signalWarning with stable code, reason, recoverable flag, and changeId
+- The last_verdict remains persisted
 
 ---
 
@@ -286,4 +341,3 @@ On DRIFT verdict at archive, the agent halts and reports the failing AC labels (
 - The agent waits for an explicit user choice before continuing
 
 ---
-

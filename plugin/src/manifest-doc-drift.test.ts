@@ -284,7 +284,6 @@ describe("Prioritizer protocol docs", () => {
 // pointer lines. They do NOT assert specific wording.
 
 const VOICE_STANDARD_PATH = join(PLUGIN_ROOT, "docs/command-voice-standard.md");
-const PROSE_INVENTORY_PATH = join(PLUGIN_ROOT, "docs/prose-load-inventory.md");
 const ADVANCE_META_SPEC_PATH = join(
   PLUGIN_ROOT,
   ".adv/specs/advance-meta/spec.json",
@@ -306,22 +305,17 @@ describe("prose-load-reduction methodology presence (rq-proseReduction01)", () =
   });
 });
 
-describe("prose-load-reduction inventory presence (rq-proseReduction03)", () => {
-  test("inventory document exists with required columns", () => {
-    const content = readFileSync(PROSE_INVENTORY_PATH, "utf8");
-    // Header columns (canonical inventory schema — surface is in section
-    // heading, columns are Section/Lines/Class/Code Reference/Gap Rationale/Pass/Status)
-    expect(content).toMatch(/\| Section \|/);
-    expect(content).toMatch(/\| Class \|/);
-    expect(content).toMatch(/\| Code Reference \|/);
-    expect(content).toMatch(/\| Status \|/);
-  });
-
-  test("inventory header marks post-compression archive lifecycle", () => {
-    const content = readFileSync(PROSE_INVENTORY_PATH, "utf8");
-    // KD3 lifecycle anchor — after the compression pass completes, the
-    // inventory freezes as an audit artifact rather than maintained guidance.
-    expect(content).toMatch(/POST-COMPRESSION ARCHIVE/);
+describe("prose-load-reduction source-of-truth anchors (rq-proseReduction03)", () => {
+  test("advance-meta makes specs/tests/contracts the durable source of truth", () => {
+    const spec = JSON.parse(readFileSync(ADVANCE_META_SPEC_PATH, "utf8")) as {
+      requirements: Array<{ id: string; body: string; tags?: string[] }>;
+    };
+    const req = spec.requirements.find((r) => r.id === "rq-proseReduction03");
+    expect(req).toBeDefined();
+    expect(req?.tags).toContain("source-of-truth");
+    expect(req?.body).toContain("docs/command-voice-standard.md");
+    expect(req?.body).toContain("specs, tests, command contracts");
+    expect(req?.body).not.toContain("docs/" + "prose-load-inventory.md");
   });
 });
 

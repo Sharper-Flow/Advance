@@ -102,4 +102,4 @@ Re-entry is recorded in `reentry_history[]` on the change for audit. See [docs/a
 
 ## Fast-Track
 
-For small, well-scoped work, `/adv-task` fast-tracks a discussed change by synthesizing the proposal, discovery, design, and planning gates in one pass. Execution and acceptance still run through `/adv-apply` + `/adv-review` as normal.
+For small, well-understood durable work, `/adv-task` fast-tracks a tracked change by assessing spec-law impact, synthesizing the proposal, discovery, design, and planning gates, and creating task state before implementation. Execution and acceptance still run through `/adv-apply` + `/adv-review` as normal.

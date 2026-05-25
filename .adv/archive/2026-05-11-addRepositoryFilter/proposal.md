@@ -1,12 +1,12 @@
 ## Why
 
-`GitHubProjectConfigSchema` cannot express "this ADV project reads from GH Project X but only items belonging to repository Y." This forces multi-repo orgs that share a single GitHub Project (the canonical Sharper-Flow setup: Project #1 holds both PokeEdge-Web and PokeEdge issues) into N separate ADV-only project boards — fragmenting the single source of truth and losing cross-repo visibility on the shared backlog.
+`GitHubProjectConfigSchema` cannot express "this ADV project reads from GH Project X but only items belonging to repository Y." This forces multi-repo orgs that share a single GitHub Project (the canonical Sharper-Flow setup: Project #1 holds both Example-Web and ExampleProduct issues) into N separate ADV-only project boards — fragmenting the single source of truth and losing cross-repo visibility on the shared backlog.
 
 The `gh` CLI Projects v2 surface already supports server-side filtering via `--query "repo:owner/name"` (confirmed live against Sharper-Flow project #1). ADV's schema and read paths just don't propagate that filter.
 
 ## What Changes
 
-1. **Schema** — `GitHubProjectConfigSchema` (`plugin/src/storage/github-project-config.ts`) gains optional `repository_filter: z.string().min(1).optional()`. Value is the bare repo name (e.g. `"PokeEdge-Web"`); the owner is taken from `config.owner`. Existing configs without the field continue to parse.
+1. **Schema** — `GitHubProjectConfigSchema` (`plugin/src/storage/github-project-config.ts`) gains optional `repository_filter: z.string().min(1).optional()`. Value is the bare repo name (e.g. `"Example-Web"`); the owner is taken from `config.owner`. Existing configs without the field continue to parse.
 2. **Live read path** — `readLiveProject` (`plugin/src/tools/roadmap.ts:283`) accepts `repository_filter` from config. When set, the `gh project item-list` invocation gains `--query "repo:${owner}/${repository_filter}"`. Server-side filter — the CLI returns only matching items. No client-side filter step needed. Existing `fetchClosedIssueNumbers` + `filterOpenItemsOnly` operate on the already-filtered set without modification.
 3. **File read path** — `adv_roadmap source: "file"` reads a pre-filtered snapshot written by `/adv-triage`. No filter logic at read time.
 4. **Triage reader** — `/adv-triage` Phase 1 (`gh project item-list <N> --owner <owner> --format json --limit 500`) gains the same `--query "repo:..."` arg when `repository_filter` is set. The Phase 1 cached `project_items` map then contains only filtered items, and Phase 4 mutations + Phase 5 snapshot write naturally inherit the filter without per-phase changes.
@@ -19,7 +19,7 @@ The `gh` CLI Projects v2 surface already supports server-side filtering via `--q
 
 ## Success Criteria
 
-1. `GitHubProjectConfigSchema` parses configs with `repository_filter: "PokeEdge-Web"` and without (backwards compatible — same shape as today).
+1. `GitHubProjectConfigSchema` parses configs with `repository_filter: "Example-Web"` and without (backwards compatible — same shape as today).
 2. `adv_roadmap source: "live"` with filter set invokes `gh` with `--query "repo:${owner}/${filter}"` and returns only matching items.
 3. `adv_roadmap source: "file"` reads filtered snapshot written by `/adv-triage`.
 4. `/adv-triage --execute` auto-writes `repository_filter` on first run when current repo's owner matches project owner and the project is not a per-repo `ADV: <name>` board.
@@ -29,13 +29,13 @@ The `gh` CLI Projects v2 surface already supports server-side filtering via `--q
 
 ## Acceptance Criteria
 
-- FE ADV pointing at Project #1 (Sharper-Flow shared) with `repository_filter: "PokeEdge-Web"` → `adv_roadmap` output contains only FE items, zero BE items.
-- BE ADV pointing at Project #1 with `repository_filter: "PokeEdge"` → only BE items.
+- FE ADV pointing at Project #1 (Sharper-Flow shared) with `repository_filter: "Example-Web"` → `adv_roadmap` output contains only FE items, zero BE items.
+- BE ADV pointing at Project #1 with `repository_filter: "ExampleProduct"` → only BE items.
 - Removing the filter from a config restores the all-items behavior.
 - A FE deployment that never sets the filter (current state) sees no behavior change.
 - New schema test cases cover: filter present, filter absent (backcompat), filter empty (rejected).
 - Triage Phase 1 cached `project_items` map respects the filter (Phase 4 mutations operate only on filtered set — no cross-repo writes).
-- The 500-item `--limit` cap continues to apply, but only against the FILTERED set (per-repo, not whole project) — confirmed reasonable: Sharper-Flow project #1 has 123 items total, 68 in PokeEdge.
+- The 500-item `--limit` cap continues to apply, but only against the FILTERED set (per-repo, not whole project) — confirmed reasonable: Sharper-Flow project #1 has 123 items total, 68 in ExampleProduct.
 
 ## Scope
 
@@ -57,7 +57,7 @@ The `gh` CLI Projects v2 surface already supports server-side filtering via `--q
 - Archiving the legacy ADV-specific project boards (`#6` etc.).
 - Multi-repo union filter (e.g. `repository_filter: ["A", "B"]`).
 - Owner-different-from-project filter (e.g. user-owned project filtering org repos). Out of scope until a real use case appears.
-- Public-facing `/roadmap` page in `pokeedge-web` (separate code path, uses `ROADMAP_GITHUB_TOKEN`, not ADV).
+- Public-facing `/roadmap` page in `example-web` (separate code path, uses `ROADMAP_GITHUB_TOKEN`, not ADV).
 - Backporting filter logic to legacy `project_metadata['github_project']` fallback path.
 - Implicit "default to current repo" filter when unset.
 - Client-side filter on `item.content.repository` (research showed server-side `--query` is the LBP path).
@@ -75,13 +75,13 @@ The `gh` CLI Projects v2 surface already supports server-side filtering via `--q
 
 ## Related Repositories
 
-None directly modified. Downstream operators (PokeEdge-Web and PokeEdge ADV deployments) will re-bootstrap configs after this ships — that re-bootstrap is OUT OF SCOPE for this change (manual op).
+None directly modified. Downstream operators (Example-Web and ExampleProduct ADV deployments) will re-bootstrap configs after this ships — that re-bootstrap is OUT OF SCOPE for this change (manual op).
 
 ## Constraints
 
 - Backwards compatible: existing configs without `repository_filter` MUST behave identically (no implicit "default to current repo" filter).
 - Filter is single-repo only (`z.string()`, not `z.array(z.string())`).
-- Filter value semantics: BARE repo name (e.g. `"PokeEdge-Web"`); owner inherited from `config.owner`. Avoids ambiguity around cross-owner filtering and stays aligned with user-facing config legibility.
+- Filter value semantics: BARE repo name (e.g. `"Example-Web"`); owner inherited from `config.owner`. Avoids ambiguity around cross-owner filtering and stays aligned with user-facing config legibility.
 - Legacy `project_metadata['github_project']` fallback path is read-only and IGNORES the filter.
 - Bootstrap auto-detect MUST NOT overwrite an existing filter on re-bootstrap. First-run only.
 - Snapshot file format change: MUST be additive; old snapshots without the field continue to parse.
@@ -106,9 +106,9 @@ Phase 1b knowledge gaps probed during research. Updated dispositions:
 
 | Gap | Status | Disposition |
 |-----|--------|-------------|
-| **D1: GraphQL field path** | RESOLVED | `gh project item-list --format json` returns each item with `content.repository` as STRING in `owner/name` short form (e.g. `"Sharper-Flow/PokeEdge-Web"`) and a top-level `repository` URL. Verified live against Sharper-Flow Project #1. Original proposal's `item.content.repository.name` was wrong — `content.repository` is not an object. |
+| **D1: GraphQL field path** | RESOLVED | `gh project item-list --format json` returns each item with `content.repository` as STRING in `owner/name` short form (e.g. `"Sharper-Flow/Example-Web"`) and a top-level `repository` URL. Verified live against Sharper-Flow Project #1. Original proposal's `item.content.repository.name` was wrong — `content.repository` is not an object. |
 | **D2: `readLiveProject` location + parser** | RESOLVED | `plugin/src/tools/roadmap.ts:283`. Iterates `parsed.items`, dispatches by `item.aDV Type`. Filter applies BEFORE this loop by adding `--query` to the `gh` args. `LiveProjectItem` interface at line 201 already has `content.repository?: string`. |
-| **D3: Pagination behavior** | RESOLVED → DOWNGRADED | Original concern (`--limit 500` cap + client-side filter under-counts on big shared projects) is moot when filter is server-side. `--query` filters BEFORE the limit applies. Sharper-Flow project #1: 123 total items, 68 PokeEdge — well under 500. |
+| **D3: Pagination behavior** | RESOLVED → DOWNGRADED | Original concern (`--limit 500` cap + client-side filter under-counts on big shared projects) is moot when filter is server-side. `--query` filters BEFORE the limit applies. Sharper-Flow project #1: 123 total items, 68 ExampleProduct — well under 500. |
 | **D4: ROADMAP.md / snapshot visibility** | DECIDED | Snapshot JSON gains optional top-level `repository_filter` for transparency. ROADMAP.md format unchanged. |
 | **D5: Skill/spec locations** | DECIDED | Extend `rq-issueChangeLinkage03` (canonical github-project-config requirement) with the new field. No new skill needed; existing linkage docs are sufficient surface. |
 | **D6: Bootstrap edge cases** | DECIDED | Extract `parseGitRemoteUrl(url): {owner, name} \| null` helper. Handle `git@github.com:Owner/Repo.git`, `https://github.com/Owner/Repo.git`, and trailing `.git` strip. Skip auto-set when remote owner ≠ project owner. Skip auto-set when project title looks like `ADV: <name>` (per-repo board heuristic). |
@@ -137,7 +137,7 @@ User AC text refers to `item.content.repository.name === repository_filter` — 
 
 ### Sources
 
-- Live probe: `gh project item-list 1 --owner Sharper-Flow --format json --limit 2 --query "repo:Sharper-Flow/PokeEdge"` → 68 items (PokeEdge-only) vs 123 unfiltered.
+- Live probe: `gh project item-list 1 --owner Sharper-Flow --format json --limit 2 --query "repo:Sharper-Flow/ExampleProduct"` → 68 items (ExampleProduct-only) vs 123 unfiltered.
 - `gh project item-list --help`: documents `--query expression` flag using GitHub Projects filter syntax, referencing `docs.github.com/en/issues/planning-and-tracking-with-projects/customizing-views-in-your-project/filtering-projects`.
 - `plugin/src/tools/roadmap.ts:201-220, 283-399`: existing `LiveProjectItem` shape and `readLiveProject` impl.
 

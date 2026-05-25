@@ -25,6 +25,14 @@ describe("change-state pure mutation helpers", () => {
     expect(source).not.toContain("node:");
   });
 
+  it("uses an exhaustive agent switch for sub-agent blocker summaries", () => {
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source).toContain("function assertNeverSubagentReport");
+    expect(source).toContain("switch (report.agent)");
+    expect(source).toContain("const exhaustive: never = report");
+  });
+
   it("records task lifecycle mutations without task-run ledger state", () => {
     const state = createChangeWorkflowState({
       changeId: "change-state-test",
@@ -60,6 +68,140 @@ describe("change-state pure mutation helpers", () => {
     });
     expect(state).not.toHaveProperty("taskRuns");
     expect(state.lastSignalAt).toBe("2026-05-06T00:00:02.000Z");
+  });
+
+  it("preserves checkpoint metadata when a duplicate completion omits checkpointSha", () => {
+    const state = createChangeWorkflowState({
+      changeId: "checkpoint-sha-guard-test",
+      title: "Checkpoint sha guard test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-1",
+        title: "Task one",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskCompletedToState(state, {
+      taskId: "tk-1",
+      verification: "checkpoint verified",
+      summary: "checkpoint done",
+      filesTouched: ["plugin/src/temporal/change-state.ts"],
+      checkpointSha: "abc123",
+      completedAt: "2026-05-06T00:00:02.000Z",
+    });
+    applyTaskCompletedToState(state, {
+      taskId: "tk-1",
+      verification: "weaker duplicate",
+      summary: "weaker done",
+      filesTouched: ["plugin/src/temporal/change-state.ts"],
+      completedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.tasks[0]).toMatchObject({
+      status: "done",
+      verification: "checkpoint verified",
+      implementation_summary: "checkpoint done",
+      filesTouched: ["plugin/src/temporal/change-state.ts"],
+      checkpointSha: "abc123",
+      completedAt: "2026-05-06T00:00:02.000Z",
+    });
+    expect(state.lastSignalAt).toBe("2026-05-06T00:00:03.000Z");
+  });
+
+  it("preserves checkpoint metadata when a duplicate completion omits filesTouched", () => {
+    const state = createChangeWorkflowState({
+      changeId: "checkpoint-files-guard-test",
+      title: "Checkpoint files guard test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-1",
+        title: "Task one",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskCompletedToState(state, {
+      taskId: "tk-1",
+      verification: "checkpoint verified",
+      summary: "checkpoint done",
+      filesTouched: ["plugin/src/temporal/change-state.ts"],
+      checkpointSha: "abc123",
+      completedAt: "2026-05-06T00:00:02.000Z",
+    });
+    applyTaskCompletedToState(state, {
+      taskId: "tk-1",
+      verification: "weaker duplicate",
+      summary: "weaker done",
+      filesTouched: [],
+      checkpointSha: "def456",
+      completedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.tasks[0]).toMatchObject({
+      verification: "checkpoint verified",
+      implementation_summary: "checkpoint done",
+      filesTouched: ["plugin/src/temporal/change-state.ts"],
+      checkpointSha: "abc123",
+      completedAt: "2026-05-06T00:00:02.000Z",
+    });
+    expect(state.lastSignalAt).toBe("2026-05-06T00:00:03.000Z");
+  });
+
+  it("allows an equally strong duplicate completion to replace checkpoint metadata", () => {
+    const state = createChangeWorkflowState({
+      changeId: "checkpoint-strong-replace-test",
+      title: "Checkpoint strong replace test",
+      createdAt: "2026-05-06T00:00:00.000Z",
+    });
+
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-1",
+        title: "Task one",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-05-06T00:00:01.000Z",
+      },
+      addedAt: "2026-05-06T00:00:01.000Z",
+    });
+    applyTaskCompletedToState(state, {
+      taskId: "tk-1",
+      verification: "checkpoint verified",
+      summary: "checkpoint done",
+      filesTouched: ["plugin/src/temporal/change-state.ts"],
+      checkpointSha: "abc123",
+      completedAt: "2026-05-06T00:00:02.000Z",
+    });
+    applyTaskCompletedToState(state, {
+      taskId: "tk-1",
+      verification: "new checkpoint verified",
+      summary: "new checkpoint done",
+      filesTouched: ["plugin/src/temporal/workflows.ts"],
+      checkpointSha: "def456",
+      completedAt: "2026-05-06T00:00:03.000Z",
+    });
+
+    expect(state.tasks[0]).toMatchObject({
+      verification: "new checkpoint verified",
+      implementation_summary: "new checkpoint done",
+      filesTouched: ["plugin/src/temporal/workflows.ts"],
+      checkpointSha: "def456",
+      completedAt: "2026-05-06T00:00:03.000Z",
+    });
   });
 
   it("leaves sequential gate enforcement to the tool layer", () => {

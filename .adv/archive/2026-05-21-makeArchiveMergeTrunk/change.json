@@ -1,0 +1,328 @@
+{
+  "id": "makeArchiveMergeTrunk",
+  "title": "Make archive merge to trunk",
+  "status": "archived",
+  "created_at": "2026-05-21T04:40:45.463Z",
+  "tasks": [
+    {
+      "id": "tk-17ad0ed55bd7",
+      "title": "RED: Failing tests for git-finalize helpers",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T04:53:05.688Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "started_at": "2026-05-21T04:56:20.403Z",
+      "completed_at": "2026-05-21T04:58:12.998Z",
+      "completedAt": "2026-05-21T04:58:12.998Z",
+      "implementation_summary": "Added `plugin/src/tools/archive-helpers/git-finalize.test.ts` covering Phase 9 helper contracts: main checkout resolution from linked worktree, default-branch detection, main checkout invariants, change branch reachability, clean merge, conflict abort/no-stash behavior, push policy failure/skip reporting, archive mode defaults/PR gh validation, and dirty-trunk finalization blocking.",
+      "summary": "Added `plugin/src/tools/archive-helpers/git-finalize.test.ts` covering Phase 9 helper contracts: main checkout resolution from linked worktree, default-branch detection, main checkout invariants, change branch reachability, clean merge, conflict abort/no-stash behavior, push policy failure/skip reporting, archive mode defaults/PR gh validation, and dirty-trunk finalization blocking.",
+      "verification": "RED phase complete. Targeted test exits 1 because `./git-finalize` module is missing, proving the helper contract is not implemented yet. Checkpoint commit 8ae00c84989633b3472d30f9d83752a3bc9d0549 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-0d78331127d1",
+      "title": "GREEN: Implement git-finalize.ts helpers",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T04:53:18.046Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-17ad0ed55bd7"
+        }
+      ],
+      "started_at": "2026-05-21T04:58:43.623Z",
+      "completed_at": "2026-05-21T05:00:25.275Z",
+      "completedAt": "2026-05-21T05:00:25.275Z",
+      "implementation_summary": "Created `plugin/src/tools/archive-helpers/git-finalize.ts` with Phase 9 helper exports: `resolveMainCheckout`, `detectDefaultBranch`, `verifyMainInvariants`, `verifyChangeBranchReachable`, `mergeChangeBranch`/`mergeToTrunk`, `pushToOrigin`, `detectArchiveMode`, and `finalizeRelease`. Helpers use `spawnSync`-backed git operations, use `git -C`/cwd main checkout semantics, hard-block dirty/mismatched main, avoid stash/checkout/switch, report push failures as `merged_locally`, and preserve idempotent already-reachable handling.",
+      "summary": "Created `plugin/src/tools/archive-helpers/git-finalize.ts` with Phase 9 helper exports: `resolveMainCheckout`, `detectDefaultBranch`, `verifyMainInvariants`, `verifyChangeBranchReachable`, `mergeChangeBranch`/`mergeToTrunk`, `pushToOrigin`, `detectArchiveMode`, and `finalizeRelease`. Helpers use `spawnSync`-backed git operations, use `git -C`/cwd main checkout semantics, hard-block dirty/mismatched main, avoid stash/checkout/switch, report push failures as `merged_locally`, and preserve idempotent already-reachable handling.",
+      "verification": "Implemented git-finalize helpers and verified. Targeted helper tests pass (9); typecheck passes. Checkpoint commit fbcaf618deff6a970a74af538d183e763ca6ec78 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-0b42436e966a",
+      "title": "Add archive_mode + auto_push config + types",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T04:53:27.440Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d78331127d1"
+        }
+      ],
+      "started_at": "2026-05-21T05:01:20.221Z",
+      "completed_at": "2026-05-21T05:03:26.911Z",
+      "completedAt": "2026-05-21T05:03:26.911Z",
+      "implementation_summary": "Extended `ProjectConfigSchema` with `archive_mode: \"direct\" | \"pr\"` defaulting to `direct` and `auto_push` defaulting to true. Added structural tests for defaults, PR opt-out, auto-push override, and invalid archive-mode rejection. Updated `store-disk.ts` manual default project config and SETUP project initialization docs to mention optional archive finalization overrides.",
+      "summary": "Extended `ProjectConfigSchema` with `archive_mode: \"direct\" | \"pr\"` defaulting to `direct` and `auto_push` defaulting to true. Added structural tests for defaults, PR opt-out, auto-push override, and invalid archive-mode rejection. Updated `store-disk.ts` manual default project config and SETUP project initialization docs to mention optional archive finalization overrides.",
+      "verification": "Added archive finalization config fields and verified. Tests passed: project config + git-finalize helper tests (15). Typecheck passed after updating the manual store-disk default config. Checkpoint commit 2a65bb28ce7284f5b8ba1363fd4fde8317ba4406 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-c09ab286b36f",
+      "title": "RED: Failing test for release-gate precondition",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-21T04:53:36.746Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d78331127d1"
+        }
+      ],
+      "started_at": "2026-05-21T05:03:47.318Z",
+      "completed_at": "2026-05-21T05:05:01.429Z",
+      "completedAt": "2026-05-21T05:05:01.429Z",
+      "implementation_summary": "Added `plugin/src/tools/gate.release-enforcement.test.ts` with tests for release-gate reachability enforcement. The red test mocks git-finalize reachability as false and expects `RELEASE_REQUIRES_TRUNK_MERGE`, `rq-releaseFinalization01`, and `/adv-archive {id}` remediation with no signal fired; current implementation fails that rejection path, as intended.",
+      "summary": "Added `plugin/src/tools/gate.release-enforcement.test.ts` with tests for release-gate reachability enforcement. The red test mocks git-finalize reachability as false and expects `RELEASE_REQUIRES_TRUNK_MERGE`, `rq-releaseFinalization01`, and `/adv-archive {id}` remediation with no signal fired; current implementation fails that rejection path, as intended.",
+      "verification": "RED phase complete. Targeted gate test exits 1: rejection assertion fails because `parsed.error` is undefined, proving `adv_gate_complete release` currently allows completion without trunk-merge reachability. Checkpoint commit a1a37af4e35ed0d30ad55e6fb024bdb20b3a1542 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-1a88407ff2f8",
+      "title": "GREEN: Wire release-gate precondition in gate.ts",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-21T04:53:48.730Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c09ab286b36f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0b42436e966a"
+        }
+      ],
+      "started_at": "2026-05-21T05:06:30.889Z",
+      "completed_at": "2026-05-21T05:08:40.456Z",
+      "completedAt": "2026-05-21T05:08:40.456Z",
+      "implementation_summary": "Updated `plugin/src/tools/gate.ts` so `adv_gate_complete` blocks `gateId: \"release\"` in direct archive mode when `change/{id}` is not reachable from the default branch. The structured error uses code `RELEASE_REQUIRES_TRUNK_MERGE`, cites `rq-releaseFinalization01`, lists unmerged commits, and points to `/adv-archive {id}` remediation. Added passing release-enforcement tests and adjusted an existing gate cache-refresh unit test to use acceptance rather than release because release now has a structural precondition.",
+      "summary": "Updated `plugin/src/tools/gate.ts` so `adv_gate_complete` blocks `gateId: \"release\"` in direct archive mode when `change/{id}` is not reachable from the default branch. The structured error uses code `RELEASE_REQUIRES_TRUNK_MERGE`, cites `rq-releaseFinalization01`, lists unmerged commits, and points to `/adv-archive {id}` remediation. Added passing release-enforcement tests and adjusted an existing gate cache-refresh unit test to use acceptance rather than release because release now has a structural precondition.",
+      "verification": "Wired release-gate trunk-merge precondition and verified. Targeted gate tests pass (18); typecheck passes. Checkpoint commit 8bc09c9707981f98016611dcc6197012cc0561c0 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-b653c0f68815",
+      "title": "RED: Failing test for adv_change_archive Phase 9 integration",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-21T04:53:58.590Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d78331127d1"
+        }
+      ],
+      "started_at": "2026-05-21T05:05:23.412Z",
+      "completed_at": "2026-05-21T05:06:02.312Z",
+      "completedAt": "2026-05-21T05:06:02.312Z",
+      "implementation_summary": "Added `plugin/src/tools/change.archive-phase9.test.ts` asserting the archive tool imports shared Phase 9 finalization helpers, exposes `phase9: \"run\" | \"skip\"`, runs finalization after bundle creation in bundle-first order, and returns a `finalization` outcome. Current source fails those assertions as intended.",
+      "summary": "Added `plugin/src/tools/change.archive-phase9.test.ts` asserting the archive tool imports shared Phase 9 finalization helpers, exposes `phase9: \"run\" | \"skip\"`, runs finalization after bundle creation in bundle-first order, and returns a `finalization` outcome. Current source fails those assertions as intended.",
+      "verification": "RED phase complete. Source-level integration test exits 1 because `adv_change_archive` lacks `phase9` arg, `finalizeRelease` import/call, and `finalization` response. Checkpoint commit 715af8c9416542d99f8d84e0343e866759152419 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-261ee7e15b15",
+      "title": "GREEN: Wire adv_change_archive to finalizeRelease()",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-21T04:54:11.299Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b653c0f68815"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0b42436e966a"
+        }
+      ],
+      "started_at": "2026-05-21T05:09:17.693Z",
+      "completed_at": "2026-05-21T05:10:49.324Z",
+      "completedAt": "2026-05-21T05:10:49.324Z",
+      "implementation_summary": "Updated `adv_change_archive` args with optional `phase9: \"run\" | \"skip\"` (default run; slash-command path uses skip), imported `detectArchiveMode`/`finalizeRelease`, invokes `finalizeRelease` after successful non-dry-run archive bundle creation, and includes `finalization` in the response. Added source-level integration assertions for helper import, phase9 arg, bundle-first ordering, and finalization response.",
+      "summary": "Updated `adv_change_archive` args with optional `phase9: \"run\" | \"skip\"` (default run; slash-command path uses skip), imported `detectArchiveMode`/`finalizeRelease`, invokes `finalizeRelease` after successful non-dry-run archive bundle creation, and includes `finalization` in the response. Added source-level integration assertions for helper import, phase9 arg, bundle-first ordering, and finalization response.",
+      "verification": "Wired adv_change_archive to Phase 9 finalization helpers and verified. Source integration + existing change tests pass (38); typecheck passes. Checkpoint commit 4e26e76548a00692f73824e03eca892594fa3d16 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-e39508a7cc53",
+      "title": "Add rq-releaseFinalization01.5 + .6 spec scenarios and update Phase 9 contract",
+      "type": "code",
+      "section": "Spec + Docs",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-21T04:54:26.189Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1a88407ff2f8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-261ee7e15b15"
+        }
+      ],
+      "started_at": "2026-05-21T05:11:24.425Z",
+      "completed_at": "2026-05-21T05:13:22.558Z",
+      "completedAt": "2026-05-21T05:13:22.558Z",
+      "implementation_summary": "Added `rq-releaseFinalization01.5` for structural release-gate trunk-merge enforcement and `rq-releaseFinalization01.6` for PR-mode opt-out to `.adv/specs/advance-workflow/spec.json`, mirrored them in `docs/specs/advance-workflow.md`, updated `/adv-archive` Phase 9 to reference `git-finalize.ts`, `phase9: \"skip\"`, and runtime enforcement, updated `ADV_INSTRUCTIONS.md` worktree cleanup/release note, and added CHANGELOG entries.",
+      "summary": "Added `rq-releaseFinalization01.5` for structural release-gate trunk-merge enforcement and `rq-releaseFinalization01.6` for PR-mode opt-out to `.adv/specs/advance-workflow/spec.json`, mirrored them in `docs/specs/advance-workflow.md`, updated `/adv-archive` Phase 9 to reference `git-finalize.ts`, `phase9: \"skip\"`, and runtime enforcement, updated `ADV_INSTRUCTIONS.md` worktree cleanup/release note, and added CHANGELOG entries.",
+      "verification": "Spec/docs task complete. Added rq-releaseFinalization01.5/.6 scenarios, updated command contract, ADV instructions, generated spec docs, and changelog. Asset/doc tests pass (57); typecheck passes. Checkpoint commit 1f08669a0b8396937c4eb6fc4a05bcc886faf063 recorded.",
+      "filesTouched": [],
+      "touched_files": []
+    },
+    {
+      "id": "tk-a50af3431334",
+      "title": "Full verification + backward-compat smoke",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-21T04:54:37.257Z",
+      "assignedTo": "agent",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e39508a7cc53"
+        }
+      ],
+      "started_at": "2026-05-21T05:13:58.884Z",
+      "verification": "Review remediation completed and verified: targeted review re-check APPROVED; pnpm run check passed; pnpm test passed (215 files passed, 2671 tests passed, 1 skipped file, 2 skipped tests); pnpm run build passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-archive.md",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-archive.md",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/worktree/index-delete.test.ts"
+      ],
+      "checkpointSha": "79bac2a8ecd7915fca4b5058e1cd9fb511a701d2",
+      "completedAt": "2026-05-21T06:56:03.338Z",
+      "completed_at": "2026-05-21T06:56:03.338Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-nODvVf",
+      "type": "gotcha",
+      "content": "When adding defaulted fields to `ProjectConfigSchema`, Zod's parsed output type treats them as required. Any code constructing a parsed `ProjectConfig` manually (e.g. `store-disk.ts` default config passed to `saveProjectConfig`) must add the new defaulted fields too, or `tsc` fails even though parser callers are fine.",
+      "source_task": "tk-0b42436e966a",
+      "recorded_at": "2026-05-21T05:03:32.740Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:45:24.058Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track via /adv-task. User confirmed Quick Contract before this gate; proposal artifact rendered with full intent, LBP targets, scope, success criteria, non-goals, risks."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:52:31.555Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings: spec rq-releaseFinalization01 already declares trunk-merge as MUST law (4 scenarios, lines 356-423 of advance-workflow spec). Phase 9 markdown contract complete in adv-archive.md lines 206-446. Gap is purely structural: no enforcement at adv_gate_complete or adv_change_archive level. Researcher CONFIRMED architectural approach against gh CLI, release-it, release-please, changesets, semantic-release patterns with 6 minor refinements incorporated. No remaining ambiguity."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:52:34.884Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by adv-researcher: CONFIRMED. Pure helper module (git-finalize.ts) + gate-precondition + archive-tool integration + config opt-out matches release-it/gh CLI patterns. No contract-compromise risk. 6 researcher recommendations incorporated in proposal (gh availability check, exit-code handling, named mergeToTrunk, no stash, --no-push flag, branch-protection visibility). Bundle->merge->push ordering confirmed correct for retry safety. Idempotency contract explicit."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:54:44.315Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track via /adv-task: user confirmed Quick Contract before Phase 1; task graph follows researcher-CONFIRMED design (extract Phase 9 to helpers, gate-precondition enforces structurally, archive-tool integrates with idempotency, spec delta + docs sync). 9 tasks: 3 RED/GREEN pairs (helpers, gate, archive) + config + spec/docs + verification. Dependency chain: helpers RED→GREEN unblocks gate+archive RED tracks + config, both GREEN tracks unblock spec/docs, all unblock verification. Command-as-approval: user invoked /adv-task explicitly."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T05:40:00.000Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 9 tasks done. Verification evidence: `pnpm run check`, `pnpm test` (215 test files passed, 2662 tests passed), and `pnpm run build` passed; working tree clean."
+    },
+    "acceptance": {
+      "status": "pending"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

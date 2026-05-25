@@ -86,17 +86,29 @@ Implementation refs:
 
 ## Machine Worktree Guard
 
-`features.worktree_guard_enforce` defaults false during rollout
-(`worktree_guard_enforce default false`). trunk write firewall enforcement is
-opt-in: omitted or false allows default-checkout file writes and classified
-destructive bash writes. When enabled, ADV blocks main-checkout file writes,
-classified destructive bash writes, and mutating execution task/gate calls with
-`WorktreeIsolationViolation`, `mainCheckoutPath`, and remediation. Use
-`adv_worktree_resume` and rerun from returned workdir. Git commands stay
-allowed so recovery and normal git operations are not routed through the
-firewall classifier.
+`features.worktree_guard_enforce` defaults true post-rollout
+(`worktree_guard_enforce default true`, per rq-autoManageAdvWorktrees AC2).
+trunk write firewall enforcement is on by default: omitted or true blocks
+default-checkout file writes, classified destructive bash writes, and mutating
+execution task/gate calls with `WorktreeIsolationViolation`,
+`mainCheckoutPath`, and remediation. Use `adv_worktree_resume` and rerun from
+returned workdir. Git commands stay allowed so recovery and normal git
+operations are not routed through the firewall classifier.
 
-Advance repo opts into strict mode via root `project.json`:
+Explicit `false` is the legacy escape hatch — projects that want to keep
+editing in the main checkout (omitted or false allows default-checkout file
+writes is the pre-flip behavior; post-flip only explicit `false` does):
+
+```json
+{
+  "features": {
+    "worktree_guard_enforce": false
+  }
+}
+```
+
+Advance repo opts into strict mode via root `project.json` (now the default —
+this block kept for clarity; omitting the flag has the same effect):
 
 ```json
 {

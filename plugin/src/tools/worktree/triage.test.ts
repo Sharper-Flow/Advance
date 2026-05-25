@@ -22,8 +22,15 @@ vi.mock("./state", () => ({
     projectDir: "/test",
     projectId: "test-id",
   })),
+  getWorktreeRegistrySnapshot: vi.fn(async () => ({
+    records: [],
+    changeSummaries: {},
+    warnings: [],
+    poisonedWorkflows: [],
+  })),
   listWorktrees: vi.fn(async () => []),
   getChangeSummaries: vi.fn(async () => ({})),
+  getPendingDeletes: vi.fn(async () => []),
 }));
 
 vi.mock("../../utils/stale-head", () => ({
@@ -35,12 +42,30 @@ vi.mock("../../utils/stale-head", () => ({
 }));
 
 import { triageWorktrees } from "./triage";
-import { listWorktrees, getChangeSummaries } from "./state";
+import { getWorktreeRegistrySnapshot, getPendingDeletes } from "./state";
 import { detectStaleBranchHead } from "../../utils/stale-head";
 
-const mockedListWorktrees = vi.mocked(listWorktrees);
-const mockedGetSummaries = vi.mocked(getChangeSummaries);
+const mockedRegistrySnapshot = vi.mocked(getWorktreeRegistrySnapshot);
+const mockedGetPendingDeletes = vi.mocked(getPendingDeletes);
 const mockedStaleHead = vi.mocked(detectStaleBranchHead);
+
+type SnapshotRecord = Awaited<
+  ReturnType<typeof getWorktreeRegistrySnapshot>
+>["records"][number];
+
+function mockRegistrySnapshot(
+  records: SnapshotRecord[],
+  changeSummaries: Awaited<
+    ReturnType<typeof getWorktreeRegistrySnapshot>
+  >["changeSummaries"] = {},
+): void {
+  mockedRegistrySnapshot.mockResolvedValue({
+    records,
+    changeSummaries,
+    warnings: [],
+    poisonedWorkflows: [],
+  });
+}
 
 describe("triageWorktrees (T18)", () => {
   let tempRoot: string;
@@ -58,8 +83,13 @@ describe("triageWorktrees (T18)", () => {
     });
     vi.clearAllMocks();
     // Reset default mocks.
-    mockedListWorktrees.mockResolvedValue([]);
-    mockedGetSummaries.mockResolvedValue({});
+    mockedRegistrySnapshot.mockResolvedValue({
+      records: [],
+      changeSummaries: {},
+      warnings: [],
+      poisonedWorkflows: [],
+    });
+    mockedGetPendingDeletes.mockResolvedValue([]);
     mockedStaleHead.mockResolvedValue({
       stale: false,
       reason: "on default branch",
@@ -103,7 +133,7 @@ describe("triageWorktrees (T18)", () => {
       { cwd: repoRoot },
     );
 
-    mockedListWorktrees.mockResolvedValue([]); // empty registry
+    mockRegistrySnapshot([]); // empty registry
 
     const result = await triageWorktrees(repoRoot);
     const orphan = result.orphans.find(
@@ -111,11 +141,12 @@ describe("triageWorktrees (T18)", () => {
     );
     expect(orphan).toBeDefined();
     expect(orphan?.branch).toBe("change/orphan");
-    expect(orphan?.recommendedFix).toContain("adopt change/orphan");
+    expect(orphan?.recommendedFix).not.toContain("--adopt");
+    expect(orphan?.recommendedFix).toContain("adv_worktree_resume");
   });
 
   it("reports missing_from_disk when registry has worktree but disk doesn't", async () => {
-    mockedListWorktrees.mockResolvedValue([
+    mockRegistrySnapshot([
       {
         branch: "change/ghost",
         path: "/nonexistent/path",
@@ -145,23 +176,25 @@ describe("triageWorktrees (T18)", () => {
       { cwd: repoRoot },
     );
 
-    mockedListWorktrees.mockResolvedValue([
+    mockRegistrySnapshot(
+      [
+        {
+          branch: "change/archived",
+          path: wtPath,
+          changeId: "archivedchange",
+          status: "active",
+          createdAt: "2026-05-01T00:00:00Z",
+          lastSeenAt: "2026-05-01T00:00:00Z",
+          baseRef: "trunk",
+          headSha: "deadbeef",
+          source: "tool",
+          sourceVersion: 1,
+        },
+      ],
       {
-        branch: "change/archived",
-        path: wtPath,
-        changeId: "archivedchange",
-        status: "active",
-        createdAt: "2026-05-01T00:00:00Z",
-        lastSeenAt: "2026-05-01T00:00:00Z",
-        baseRef: "trunk",
-        headSha: "deadbeef",
-        source: "tool",
-        sourceVersion: 1,
+        archivedchange: { status: "archived" },
       },
-    ]);
-    mockedGetSummaries.mockResolvedValue({
-      archivedchange: { status: "archived" },
-    });
+    );
 
     const result = await triageWorktrees(repoRoot);
     const orphan = result.orphans.find(
@@ -182,7 +215,7 @@ describe("triageWorktrees (T18)", () => {
       { cwd: repoRoot },
     );
 
-    mockedListWorktrees.mockResolvedValue([
+    mockRegistrySnapshot([
       {
         branch: "change/missing-id",
         path: wtPath,
@@ -223,7 +256,7 @@ describe("triageWorktrees (T18)", () => {
       execFileSync("git", ["add", "prototype.svelte"], { cwd: wtPath });
 
       // Worktree IS in registry — this isn't an orphan via other classes
-      mockedListWorktrees.mockResolvedValue([
+      mockRegistrySnapshot([
         {
           branch: "change/dirty-staged",
           path: wtPath,
@@ -258,7 +291,7 @@ describe("triageWorktrees (T18)", () => {
       // Untracked file — no `git add`
       execFileSync("touch", [join(wtPath, "scratch.txt")]);
 
-      mockedListWorktrees.mockResolvedValue([
+      mockRegistrySnapshot([
         {
           branch: "change/dirty-untracked",
           path: wtPath,
@@ -290,7 +323,7 @@ describe("triageWorktrees (T18)", () => {
       );
       // No staged/untracked files
 
-      mockedListWorktrees.mockResolvedValue([
+      mockRegistrySnapshot([
         {
           branch: "change/clean",
           path: wtPath,
@@ -328,7 +361,7 @@ describe("triageWorktrees (T18)", () => {
         execFileSync("touch", [join(wtPath, `untracked-${i}.ts`)]);
       }
 
-      mockedListWorktrees.mockResolvedValue([
+      mockRegistrySnapshot([
         {
           branch: "change/dirty-counts",
           path: wtPath,
@@ -352,5 +385,29 @@ describe("triageWorktrees (T18)", () => {
       expect(orphan?.reason).toMatch(/3/);
       expect(orphan?.reason).toMatch(/2/);
     });
+  });
+
+  it("reports retained terminal cleanup pending deletes with exact branch path and blocker", async () => {
+    mockedGetPendingDeletes.mockResolvedValue([
+      {
+        branch: "change/live-terminal",
+        path: "/tmp/live-terminal",
+        reason: "worktree is still in use by a running process",
+        recordedAt: "2026-05-21T00:00:00.000Z",
+        attempts: 3,
+      },
+    ]);
+
+    const result = await triageWorktrees(repoRoot);
+
+    expect(result.orphans).toContainEqual(
+      expect.objectContaining({
+        class: "terminal_cleanup_retained",
+        branch: "change/live-terminal",
+        path: "/tmp/live-terminal",
+        reason: expect.stringContaining("worktree is still in use"),
+        recommendedFix: expect.stringContaining("adv_worktree_cleanup"),
+      }),
+    );
   });
 });

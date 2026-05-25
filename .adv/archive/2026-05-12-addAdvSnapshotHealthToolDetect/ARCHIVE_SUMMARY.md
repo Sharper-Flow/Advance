@@ -1,4 +1,4 @@
-# Archive: Add adv_snapshot_health tool to detect and remediate OpenCode snapshot-store corruption (stale locks, zero-byte git objects, fsck errors) that has caused recurring agent freezes in busy projects like pokeedge-web.
+# Archive: Add adv_snapshot_health tool to detect and remediate OpenCode snapshot-store corruption (stale locks, zero-byte git objects, fsck errors) that has caused recurring agent freezes in busy projects like example-web.
 
 **Change ID:** addAdvSnapshotHealthToolDetect
 **Archived:** 2026-05-12T21:23:47.185Z

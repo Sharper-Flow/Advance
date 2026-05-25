@@ -124,12 +124,12 @@ describe("Roadmap Tool", () => {
     test("surfaces repository_filter from snapshot metadata when present", async () => {
       await writeSnapshot({
         ...SAMPLE_SNAPSHOT,
-        repository_filter: "PokeEdge-Web",
+        repository_filter: "Example-Web",
       });
       const result = await roadmapTools.adv_roadmap.execute({}, store);
       const parsed = JSON.parse(result);
 
-      expect(parsed.repository_filter).toBe("PokeEdge-Web");
+      expect(parsed.repository_filter).toBe("Example-Web");
     });
 
     test("sorts features by WSJF descending; ties by Value desc, then issue number asc", async () => {
@@ -457,9 +457,9 @@ describe("Roadmap Tool", () => {
         buildProjectItemListArgs({
           owner: "Sharper-Flow",
           number: 1,
-          repository_filter: "PokeEdge-Web",
+          repository_filter: "Example-Web",
         }),
-      ).toContain("repo:Sharper-Flow/PokeEdge-Web");
+      ).toContain("repo:Sharper-Flow/Example-Web");
     });
   });
 

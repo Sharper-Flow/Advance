@@ -2,20 +2,24 @@
  * Branch Integration Gate (T29)
  *
  * 3-condition check before deleting an ADV-managed worktree branch:
- *   1. Archived  — corresponding ADV change has status: "archived"
- *   2. Merged    — branch appears in `git branch --merged <defaultBranch>`
- *   3. Clean     — worktree path has empty `git status --porcelain`
+ *   1. Terminal — corresponding ADV change has status: "archived" or "closed"
+ *   2. Merged   — branch appears in `git branch --merged <defaultBranch>`
+ *   3. Clean    — worktree path has empty `git status --porcelain`
  *
  * All three must pass. No `opts.force` bypass — this is an integrity contract.
+ *
+ * "Terminal" widens the historical archived-only check so that changes ended
+ * via /adv-cancel (status="closed" with cancelled/superseded/not_planned
+ * reasons) also free their worktree. Merged-into-default and clean-tree
+ * requirements stay intact: closed ≠ unmerged-OK.
  */
 
-import { execFile } from "node:child_process";
+import { execFileGitCb } from "./git-binary";
 import { getDefaultBranch } from "./git";
 import {
-  getChangeSummaries,
+  getWorktreeRegistrySnapshot,
   getWorktreePath,
   initStateDb,
-  listWorktrees,
 } from "../tools/worktree/state";
 
 // =============================================================================
@@ -28,7 +32,7 @@ export type BranchIntegrationResult =
       ok: false;
       reason:
         | "branch_not_in_registry"
-        | "change_not_archived"
+        | "change_not_terminal"
         | "branch_not_merged"
         | "worktree_dirty"
         | "default_branch_unresolvable"
@@ -62,14 +66,24 @@ export async function verifyBranchIntegration(
   let registryEntry:
     | { branch: string; changeId?: string; path: string }
     | undefined;
+  let registrySnapshot:
+    | Awaited<ReturnType<typeof getWorktreeRegistrySnapshot>>
+    | undefined;
 
   if (deps?.registry) {
     registryEntry = deps.registry.find((r) => r.branch === branch);
   } else {
     try {
       const access = await initStateDb(repoRoot);
-      const registry = await listWorktrees(access);
-      registryEntry = registry.find((r) => r.branch === branch);
+      registrySnapshot = await getWorktreeRegistrySnapshot(access);
+      if (registrySnapshot.unavailable) {
+        return fail(
+          "git_failed",
+          "Failed to read worktree registry: Temporal worktree registry snapshot unavailable.",
+          "Verify Temporal project workflow is reachable and the worktree registry is populated.",
+        );
+      }
+      registryEntry = registrySnapshot.records.find((r) => r.branch === branch);
     } catch (err) {
       return fail(
         "git_failed",
@@ -114,9 +128,18 @@ export async function verifyBranchIntegration(
     changeStatus = await deps.changeStatusReader(changeId);
   } else {
     try {
-      const access = await initStateDb(repoRoot);
-      const summaries = await getChangeSummaries(access);
-      changeStatus = summaries[changeId]?.status;
+      if (!registrySnapshot) {
+        const access = await initStateDb(repoRoot);
+        registrySnapshot = await getWorktreeRegistrySnapshot(access);
+      }
+      if (registrySnapshot.unavailable) {
+        return fail(
+          "git_failed",
+          "Failed to query change summaries: Temporal worktree registry snapshot unavailable.",
+          "Verify Temporal project workflow is reachable.",
+        );
+      }
+      changeStatus = registrySnapshot.changeSummaries[changeId]?.status;
     } catch (err) {
       return fail(
         "git_failed",
@@ -126,11 +149,11 @@ export async function verifyBranchIntegration(
     }
   }
 
-  if (changeStatus !== "archived") {
+  if (changeStatus !== "archived" && changeStatus !== "closed") {
     return fail(
-      "change_not_archived",
-      `Change "${changeId}" has status "${changeStatus ?? "undefined"}" (expected "archived").`,
-      "Archive the change via /adv-archive before deleting its worktree.",
+      "change_not_terminal",
+      `Change "${changeId}" has status "${changeStatus ?? "undefined"}" (expected "archived" or "closed").`,
+      "Archive or close the change via /adv-archive or /adv-cancel before deleting its worktree.",
     );
   }
 
@@ -223,14 +246,9 @@ async function getMergedBranches(
   repoRoot: string,
 ): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
+    execFileGitCb(
       ["branch", "--merged", defaultBranch],
-      {
-        cwd: repoRoot,
-        timeout: 5000,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-      },
+      { cwd: repoRoot, timeout: 5000 },
       (error, stdout) => {
         if (error) {
           reject(error);
@@ -249,14 +267,9 @@ async function getMergedBranches(
 
 async function getWorktreeStatus(worktreePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile(
-      "git",
+    execFileGitCb(
       ["status", "--porcelain"],
-      {
-        cwd: worktreePath,
-        timeout: 5000,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-      },
+      { cwd: worktreePath, timeout: 5000 },
       (error, stdout) => {
         if (error) {
           reject(error);

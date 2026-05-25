@@ -14,7 +14,6 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 | 🎤 BLOCKED | Blockers found → user decides |
 
 > **SUB-AGENT CONTEXT**: Return findings as JSON. Skip status markers.
-> **CHECKLIST**: Follow [docs/checklists/review-checklist.md](../../docs/checklists/review-checklist.md).
 <UserRequest>
   $ARGUMENTS
 </UserRequest>
@@ -31,7 +30,7 @@ Orchestrate multi-dimensional review of the delivered work. Command is part of t
 
 Reusable code review methodology for ADV review workflows. Provides the 12-dimension framework and conventional comment labels.
 
-**Canonical source:** `docs/checklists/review-checklist.md` — see that checklist for minimum findings threshold, verdict criteria, remediation protocol, and sub-agent failure handling. Do not duplicate its content here.
+**Runtime source:** this embedded section provides the review methodology needed during command execution.
 
 #### 12-Dimension Framework
 
@@ -71,7 +70,7 @@ Format: `{label}: [{file}:{line}] {what}` + `Why: {why}` + `Fix: {how}` (optiona
 
 - **Read-only guidance** — this methodology block does not mutate ADV state
 - **No gate completion** — command owns the review gate
-- **Canonical source** — defer to `docs/checklists/review-checklist.md` for detailed rules
+- **Runtime source** — use this embedded methodology during command execution
 - **No workflow sequencing** — command owns phase ordering and sub-agent orchestration
 
 ## Phase 1: Pre-flight
@@ -137,10 +136,14 @@ Protocol: retry once → if still fails → inline analysis for that dimension �
 
 ---
 ## Phase 2: Spawn Analysis Sub-Agents
-**Review Context Packet (inject into every sub-agent spawn prompt):**
+#### Review Scanner Context Packet
+
+Inject into every `explore` scanner spawn prompt:
+
 ```
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
+ATTEMPT: {attempt-number, starting at 1 for this spawned worker}
 AFFECTED FILES:
   - {file}: {one-line change summary}
   - ...
@@ -155,9 +158,10 @@ TASK EVIDENCE SUMMARY:
   - ...
 EXPECTED OUTPUT: {dimension-specific JSON schema}
 ```
-This replaces the minimal one-liner and gives explore agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access.
 
-Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Context Packet above plus dimension-specific instructions.
+This scanner-only packet gives `explore` agents grounded context without ADV tool access. Build the packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
+
+Spawn **5 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–5. Each receives the Review Scanner Context Packet above plus dimension-specific instructions.
 ### Sub-Agent 1: Requirement Traceability
 For each scenario → search files for implementation evidence → calculate coverage → flag untraced. Return: `dimension`, `coverage_percent`, `traced`, `untraced`, `issues`.
 ### Sub-Agent 2: Logic & Edge Cases
@@ -175,7 +179,7 @@ Verify: all target_repo/target_path tasks done, cancelled tasks have approval. R
 1. Combine all issues → group by label (blocker > issue > suggestion > nit) → deduplicate
 2. Cross-reference with spec scenarios
 ### Minimum Findings Enforcement
-If <3 non-nit findings → require genuinely-clean justification with file-level evidence per [review-checklist.md](../../docs/checklists/review-checklist.md).
+If <3 non-nit findings → require genuinely-clean justification with file-level evidence per the Review Methodology section above.
 ### Verdict
 | Verdict | Criteria |
 |---------|----------|
@@ -230,15 +234,52 @@ Example shape:
 If APPROVED → skip to completion.
 
 If CHANGES_REQUESTED/BLOCKED → auto-remediation is mandatory:
-1. **Fix all blockers/issues** — no partial fix mode. Choose the right fix worker:
-   - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect a fenced `REVIEWER_REPORT` JSON payload per `.opencode/agents/adv-reviewer.md`.
-   - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect a fenced `ENGINEER_REPORT` JSON payload per `.opencode/agents/adv-engineer.md`.
-   - For non-trivial fixes: research first (Context7 / `adv-researcher`) → then implement.
+1. **Fix all blockers/issues** — no partial fix mode. Use the review step's conditional remediation routing; do not introduce ad-hoc workers.
+   - **Scoped review-style fixes** (single file or local subsystem, no architectural risk) → spawn `adv-reviewer` sub-agent; expect persisted `REVIEWER_REPORT` state submitted via `adv_subagent_report_submit` per `.opencode/agents/adv-reviewer.md`.
+   - **Primary implementation fixes** (multi-file, architectural, risky) → spawn `adv-engineer` sub-agent; expect persisted `ENGINEER_REPORT` state submitted via `adv_subagent_report_submit` per `.opencode/agents/adv-engineer.md`.
+   - **Non-trivial fix research** (control flow, error handling, security code, module boundaries, 3+ files, multiple viable approaches) → spawn `adv-researcher` first, then implement through the appropriate remediation worker above.
 2. **Investigate suggestions/questions** — validate against specs/tests/code → implement if validated, reject with evidence if not.
+
+#### Review Reviewer Remediation Packet
+
+Use when spawning `adv-reviewer` for scoped review-style fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: review
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+PHASE: review
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: fix only the listed in-scope review finding(s); honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {label} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: fix scoped review finding(s), run verification, call adv_subagent_report_submit with REVIEWER_REPORT per .opencode/agents/adv-reviewer.md
+```
+
+#### Review Engineer Remediation Packet
+
+Use when spawning `adv-engineer` for primary implementation fixes:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: review
+TASK: {task-id} | {task-title} | source finding: {finding-id}
+ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+SCOPE: implement only the listed in-scope review fix; honor drift rule before edits
+FINDINGS TO FIX:
+  - {finding-id}: {label} | {file}:{line} | {what} | fix: {fix}
+ACCEPTANCE CRITERIA:
+  - AC1: {text}
+  - ...
+EXPECTED OUTPUT: implement the fix, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+```
 
 ### Drift Detection Rule (CRITICAL)
 
-Before applying ANY fix, evaluate: **"If I apply this fix, will proposal.md's Success Criteria, Acceptance Criteria, or Out-of-Scope sections need to change?"**
+Before applying ANY fix, evaluate: **"If I apply this fix, will any agreement acceptance criterion (`AC*`), constraint (`C*`), avoidance (`DONT*`), or out-of-scope boundary (`OOS*`) need to change?"**
 
 - **NO** → auto-remediate (proceed with fix)
 - **YES** → **STOP** — present the finding and proposed fix to user via `question` tool:
@@ -261,7 +302,7 @@ If research reveals finding was incorrect → downgrade to `nit:` or reject with
 ---
 ## Phase 5.5: Post-Remediation Re-Verification
 After remediation fixes are applied, re-verify affected dimensions before recomputing verdict:
-1. For each dimension that had findings fixed, spawn a **targeted** `explore` scanner with the Review Context Packet plus:
+1. For each dimension that had findings fixed, spawn a **targeted** `explore` scanner with the Review Scanner Context Packet plus:
    - `PRIOR FINDINGS: [{finding_id, original_issue, fix_applied}]`
    - `SCOPE: evaluate only whether the listed findings are resolved`
    - `EXPECTED OUTPUT: { finding_id, status: "resolved"|"unresolved", evidence }`
@@ -295,7 +336,7 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off via the `contractReviewMatrixSetSignal`-backed mutation path.
+If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path.
 
 Rules:
 
@@ -306,6 +347,7 @@ Rules:
 - `C*`, `DONT*`, and `OOS*` rows must be `respected`, `pass`, or `not_applicable` with rationale.
 - Any required contract item with `fail`, `violated`, `unknown`, or missing evidence blocks acceptance until remediated or formally amended/re-entered.
 - Keep evidence bounded and structured; do not paste raw logs into the matrix.
+- For poisoned-history recovery only, use `adv_contract_review_matrix_set recoveryMode: "poisoned_history"` with explicit `recoveryEvidence`, then complete the gate with `compatibilityReason: "..."` after the inline acceptance checkpoint when the legacy/replay rationale is valid. This repairs the disk projection only and does not heal the poisoned workflow.
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 
@@ -340,22 +382,45 @@ Status rules: `unresolved` at emission time. Terminal states are `fixed` or `rej
 
 Verify execution work is complete enough to review. If implementation/execution work is still incomplete, stop and direct user to `/adv-apply` first.
 
+### Preview URL Proof
+
+Before acceptance summary or acceptance approval prompt, determine the preview state from `agreement.md`, task evidence, and implementation evidence:
+
+| State | Required evidence | Acceptance effect |
+|---|---|---|
+| `live` | `visual_surface: true` or visual-output work detected; `Preview URL: {url}` sanitized for durable evidence; reachability evidence with verification method, result/status, and reviewed timestamp/context; matching `contract.reviewMatrix` evidence | Acceptance may proceed |
+| `not_applicable` | `visual_surface: false`; no front-end, browser-visible, or visual-output work detected; rationale recorded in `contract.reviewMatrix` | Acceptance may proceed |
+| `blocked` | `visual_surface: unknown`, visual-output drift, missing URL, missing reachability evidence, or missing matrix evidence | Stop before acceptance checkpoint |
+
+Rules:
+
+- Use front-end, browser-visible, or any visual output as the applicability scope.
+- File-path heuristics may assist drift detection, but they are advisory only; do not use heuristics as the sole authority to mark `not_applicable`.
+- If implementation evidence contradicts `visual_surface`, actual implementation evidence wins for safety. Report `Preview URL: blocked` with a visual-surface drift reason and re-enter or clarify the agreement before acceptance.
+- Valid preview URLs target user-facing visual output only. Internal services, CI dashboards, databases, admin panels, Temporal UI, and other non-visual infrastructure URLs are invalid.
+- Do not fabricate URLs. A bare unverified URL is insufficient.
+- Sanitize URLs before recording durable evidence: strip token, key, session, and auth query parameters; record origin + path + non-sensitive params only.
+- Acceptable reachability evidence: agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface. Do not perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement.
+- `blocked` requires a concrete reason and remediation hint. Produce the acceptance summary with `Preview URL: blocked`, but do not present the acceptance approval prompt or complete the acceptance gate.
+- The acceptance summary MUST include `Preview URL: {url}`, `Preview URL: not_applicable`, or `Preview URL: blocked` before the user acceptance prompt.
+
 ### Build Acceptance Summary
 Using `agreement.md`, produce:
 1. **Delivered work summary**
 2. **Acceptance Criteria checklist**
 3. **Constraints respected / avoidances honored**
-4. **Outstanding caveats**
-5. **Investment summary** (informational) — call `adv_investment_report changeId: {id}` and include a one-line summary: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Purely informational; does not gate acceptance.
+4. **Preview URL** — report `live`, `not_applicable`, or `blocked` state from Preview URL Proof. For `live`, include URL + reachability evidence. For `not_applicable`, include rationale. For `blocked`, stop before asking for acceptance.
+5. **Outstanding caveats**
+6. **Investment summary** — call `adv_investment_report changeId: {id}`; include one line: `Investment: N tasks / M retries / T min / tier: {auto|escalate|hardstop}`. Informational only; not a gate.
 
-Keep the summary concise and user-facing.
+Keep concise; user-facing.
 
 ### Persist Executive Summary
 
-After composing the acceptance summary and before asking for acceptance, persist the executive summary as a durable artifact:
+Before acceptance prompt, persist durable executive summary:
 
-1. `adv_investment_report changeId: {id}` → gather programmatic metrics (task counts, elapsed time, retry density, per-gate durations).
-2. Compose the executive summary from acceptance summary content + investment metrics, following this shape:
+1. `adv_investment_report changeId: {id}` → task counts, elapsed time, retry density, gate durations.
+2. Compose from acceptance summary + metrics:
    ```
    # Executive Summary
 
@@ -369,18 +434,31 @@ After composing the acceptance summary and before asking for acceptance, persist
    1. {ordered list from change.tasks, using implementation_summary}
 
    ## What Was Verified
-   - Verdict: {verdict} with {N} findings ({severity breakdown})
-   - Tests: {pass/fail summary}
-   - Investment: {N tasks / M retries / T min / tier}
-   - Contract matrix: {required rows passed/respected, if contract exists}
+    - Verdict: {verdict} with {N} findings ({severity breakdown})
+    - Tests: {pass/fail summary}
+    - Preview URL: {sanitized url + reachability evidence + verification timestamp | not_applicable + rationale | blocked + reason}
+    - Investment: {N tasks / M retries / T min / tier}
+    - Contract matrix: {required rows passed/respected, if contract exists}
 
    ## Remaining Concerns
    {open items or "None".}
    ```
 3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
-4. Verify the artifact was written: `adv_change_show changeId: {id} include: { executiveSummary: true }` → confirm `_executiveSummary` is present.
+4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present.
 
-After the user accepts, the executive summary artifact is already persisted — no additional write needed at the acceptance gate completion step.
+After user accepts, artifact already exists. No extra acceptance-step write.
+
+### Pre-Acceptance Contract Preflight
+
+Before acceptance summary or **Inline Approval prompt**, load `adv_change_show`; verify:
+
+- `change.contract` exists.
+- `contract.reviewMatrix` exists when contract items require it.
+- Preview proof has matching `contract.reviewMatrix` evidence when `visual_surface` is true or false. `visual_surface: unknown` or visual-surface drift blocks before acceptance and must be clarified or re-entered before a matrix pass row is expected.
+- Required rows have no `fail`, `violated`, `unknown`, or missing evidence.
+- Required new MCP tool is callable in current session. If source registered it but live registry lacks it, stop: tell user to build/reload plugin and open fresh OpenCode session. Do not ask for acceptance until proof path exists.
+
+Preflight fail → surface blocker + remediation. Do not continue to acceptance checkpoint.
 
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:
@@ -409,13 +487,13 @@ See `docs/scope-discovery-protocol.md` for the full protocol on scope discovery 
 
 **Anchor phrase:** `Reply `accept``
 
-If user identifies new objectives or acceptance criteria that require scope expansion, the `reopen {gate}` inline reply triggers `adv_change_reenter` to reopen from the earliest affected gate before proceeding. The `split` reply creates a fast-follow child change for the discovered scope, preserving current change's momentum.
+If user identifies new objectives or AC requiring scope expansion: `reopen {gate}` triggers `adv_change_reenter` from earliest affected gate. `split` creates fast-follow child change; current change keeps momentum.
 
 ### Complete Gate
 On acceptance:
 `adv_gate_complete changeId: {change-id} gateId: acceptance`
 
-If `adv_gate_complete` returns `workflowGateStatus: "stuck"`, inspect `readinessBlockers` and `stuckReason`. Resolve missing/failing contract rows or artifact-generation failures, then retry. Do not present acceptance as complete until the tool reports success.
+`workflowGateStatus: "stuck"` → inspect `readinessBlockers` + `stuckReason`, fix missing/failing contract rows or artifact-generation failures, retry. Do not present acceptance complete until tool succeeds.
 
 ---
 ## Output

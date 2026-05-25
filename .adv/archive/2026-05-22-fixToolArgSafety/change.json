@@ -1,0 +1,906 @@
+{
+  "id": "fixToolArgSafety",
+  "title": "Fix tool arg safety",
+  "status": "archived",
+  "created_at": "2026-05-22T05:59:27.861Z",
+  "tasks": [
+    {
+      "id": "tk-b90800a8704c",
+      "title": "Codify tool argument safety and origin linkage spec law",
+      "type": "code",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T06:43:27.634Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT4",
+          "DONT5"
+        ],
+        "verifies": [],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T06:48:44.079Z",
+      "verification": "JSON parse check passed for .adv/specs/advance-workflow/spec.json and .adv/specs/backlog-coordination/spec.json via adv_run_test (exit 0).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated .adv/specs/advance-workflow/spec.json with structural blank artifact/linkage argument requirements covering adv_change_update, adv_change_create, storage-boundary blank write rejection, offending-field errors, and omission semantics. Updated .adv/specs/backlog-coordination/spec.json with origin linkage matrix and creation-time Temporal seed-state requirements for roadmap/triage/discovery/adhoc/omitted origins and AdvBacklogIssueNumber search attributes.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".adv/specs/backlog-coordination/spec.json"
+      ],
+      "checkpointSha": "44a2098c1150a5e458e1da3cf0e8ee48cc850537",
+      "completedAt": "2026-05-22T06:50:42.141Z",
+      "completed_at": "2026-05-22T06:50:42.141Z",
+      "notes": "Completed spec law updates. Added rq-toolArgBlankArtifactLinkage01 to advance-workflow and rq-backlogCoord08 to backlog-coordination; bumped spec versions/dates. Verified both JSON specs parse successfully.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T06:50:50.879Z"
+    },
+    {
+      "id": "tk-2290392aab08",
+      "title": "Reject blank artifact updates at preflight, execute, and storage layers",
+      "type": "code",
+      "section": "Artifact validation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T06:43:39.703Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b90800a8704c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC7",
+          "C1",
+          "C2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T06:51:29.168Z",
+      "verification": "RED: added failing mixed-blank preflight, tool execute, and storage no-partial-write tests; initial targeted run failed on those assertions. GREEN: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tools/change.test.ts src/storage/json.test.ts passed (3 files, 121 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added preflight rejection for every provided blank adv_change_update artifact field, including mixed valid+blank payloads. Added tool execute-layer blank artifact guard before change lookup/storage writes. Added storage-boundary no-partial-write guard in updateChangeArtifacts. Added regression tests for preflight, direct tool execution, omitted-field compatibility, and storage partial-write prevention.",
+      "filesTouched": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "9af4d609cc333daf0e0b646d312d524013bc5086",
+      "completedAt": "2026-05-22T06:56:18.570Z",
+      "completed_at": "2026-05-22T06:56:18.570Z",
+      "notes": "Completed layered blank artifact update rejection. Verified red/green targeted tests.",
+      "error_recovery": {
+        "last_error": "Initial targeted RED run failed as expected on newly added mixed-blank/preflight, tool execute, and storage no-partial-write assertions before implementation.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "New tests failed before implementation: mixedBlank.ok was true; updateChangeArtifacts returned undefined error and partially wrote; adv_change_update attempted storage write for blank design.",
+            "diagnosis": "Existing guards only required at least one non-empty artifact field and did not reject other provided blanks; storage wrote provided empty/blank content.",
+            "fix_tried": "Implemented explicit blank-field detection in preflight, adv_change_update execute path, and updateChangeArtifacts before writes.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T06:55:50.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T06:56:30.270Z"
+    },
+    {
+      "id": "tk-c6df750567b9",
+      "title": "Reject blank create artifacts and enforce origin linkage matrix",
+      "type": "code",
+      "section": "Create validation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T06:43:55.177Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b90800a8704c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8",
+          "C1",
+          "C2"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T06:56:38.818Z",
+      "verification": "RED: added failing create blank artifact/source and origin matrix tests; initial targeted run failed 5 tests. GREEN: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tools/change-origin.test.ts src/tools/change-claim.test.ts src/storage/json.test.ts passed (4 files, 99 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added adv_change_create preflight and execute-layer validation for blank provided narrative artifact fields and blank origin_source_artifact. Enforced origin matrix: roadmap requires issue and rejects source artifact; triage accepts optional issue/source; discovery rejects issue and accepts source; adhoc/omitted origin reject linkage fields. Updated origin tests and claim compatibility tests remained green.",
+      "filesTouched": [
+        "plugin/src/tools/change-origin.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change-origin.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "4d6fb2b2a02f0ce53a177d85d3f21988077c050b",
+      "completedAt": "2026-05-22T07:00:37.894Z",
+      "completed_at": "2026-05-22T07:00:37.894Z",
+      "notes": "Completed create-time blank artifact/source rejection and origin linkage matrix enforcement. Verified red/green targeted tests.",
+      "error_recovery": {
+        "last_error": "Initial targeted RED run failed as expected on new adv_change_create preflight and origin matrix assertions.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "New tests failed: adv_change_create accepted blank design/source, roadmap source_artifact, discovery issue_number, and adhoc linkage; adv_change_create preflight returned ok for blank artifacts.",
+            "diagnosis": "Existing create path only required roadmap issue and otherwise accepted/persisted linkage fields loosely; optional strings used plain z.string().optional().",
+            "fix_tried": "Added structural preflight validator and execute-layer create-origin/blank-field guards before claim checks and workflow creation.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:00:04.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:00:48.367Z"
+    },
+    {
+      "id": "tk-1cee65bb2d9b",
+      "title": "Seed creation metadata into authoritative Temporal workflow state",
+      "type": "code",
+      "section": "Temporal origin authority",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T06:44:07.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c6df750567b9"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC8",
+          "C1",
+          "DONT6"
+        ],
+        "verifies": [
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "DONT3",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:00:59.644Z",
+      "verification": "RED: added failing create seed metadata tests for tool/store-disk/store-temporal. GREEN: pnpm exec vitest run src/tools/change.test.ts src/storage/store-disk.judgment-calls-removal.test.ts src/storage/store-temporal/changes.test.ts src/temporal/workflow-start.test.ts src/temporal/search-attributes.test.ts src/tools/change-origin.test.ts src/tools/change-claim.test.ts passed (7 files, 88 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended Store.changes.create with optional initialMetadata. Disk store stamps origin/fast_follow_of/scope_repos into the Change before save. Temporal store passes create options through, starts workflow from the stamped change, and overlays origin/scope metadata. adv_change_create builds initialMetadata for origin/fast-follow/scope and no longer late-saves origin after workflow start. Updated ChangeOrigin comments to match roadmap/triage/discovery/adhoc matrix.",
+      "filesTouched": [
+        "plugin/src/storage/store-disk.judgment-calls-removal.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-disk.judgment-calls-removal.test.ts",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/storage/store.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "a8b96f102017c4807c8db2e67432d8a9227ba4bb",
+      "completedAt": "2026-05-22T07:07:58.023Z",
+      "completed_at": "2026-05-22T07:07:58.023Z",
+      "notes": "Completed creation metadata seed path. Valid origin metadata is now passed into store creation, stamped before save, and present in Temporal seed state/search attributes. Removed origin late-save path from adv_change_create.",
+      "error_recovery": {
+        "last_error": "Initial RED run failed on create seed metadata tests: disk create ignored initial metadata; adv_change_create called create without options and relied on late save; temporal create did not pass initial metadata through.",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "New seed metadata tests failed across tool, disk store, and temporal store.",
+            "diagnosis": "Origin was attached after store.changes.create, so workflow start saw created.data.origin undefined. Store create had no initial metadata parameter.",
+            "fix_tried": "Added ChangeCreateOptions/initialMetadata, stamped disk changes before save, passed options through temporal create, and used create options from adv_change_create.",
+            "strategy_label": "TDD red-green",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:07:37.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:08:10.872Z"
+    },
+    {
+      "id": "tk-150fb12907ff",
+      "title": "Run contract-wide regression and compatibility verification",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-22T06:44:20.097Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2290392aab08"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c6df750567b9"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1cee65bb2d9b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T07:08:20.969Z",
+      "verification": "Targeted regression: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tools/change-origin.test.ts src/tools/change.test.ts src/storage/json.test.ts src/storage/store-disk.judgment-calls-removal.test.ts src/storage/store-temporal/changes.test.ts src/temporal/workflow-start.test.ts src/temporal/search-attributes.test.ts src/tools/change-claim.test.ts passed (9 files, 168 tests). Quality gate: pnpm run check passed. Full suite: pnpm test passed. ADV validation: adv_change_validate strict passed with warning NO_DELTAS only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran targeted regression for tool preflight, change create/update, storage artifact writes, origin matrix, claim compatibility, Temporal seed state, and search attributes. Fixed check failures by removing invalid scope_repos from workflow seedState and running Prettier on modified files. Confirmed pnpm run check, pnpm test, and adv_change_validate strict all pass.",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/change-origin.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/change-origin.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "d2af47251c18f39831ff67369683850dd27c4fce",
+      "completedAt": "2026-05-22T07:12:18.503Z",
+      "completed_at": "2026-05-22T07:12:18.503Z",
+      "notes": "Completed contract-wide regression and compatibility verification. Targeted regression, check, full suite, and ADV validation passed; only validation warning is NO_DELTAS.",
+      "error_recovery": {
+        "last_error": "pnpm run check initially failed: first on TypeScript because scope_repos is not a ChangeWorkflowState seedState field, then on Prettier formatting for modified files.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Typecheck failed: scope_repos does not exist in ChangeWorkflowState seedState Pick.",
+            "diagnosis": "scope_repos is disk Change metadata, not workflow state; only scope_worktrees is modeled in ChangeWorkflowState.",
+            "fix_tried": "Removed scope_repos from Temporal workflow seedState while retaining disk create metadata and overlay projection.",
+            "strategy_label": "typecheck-remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:09:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "format:check failed on change-origin.test.ts, change.ts, tool-arg-preflight.test.ts, and tool-arg-preflight.ts.",
+            "diagnosis": "New long literals and helper blocks needed Prettier normalization.",
+            "fix_tried": "Ran pnpm exec prettier --write on the reported files.",
+            "strategy_label": "format-remediation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-22T07:10:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-22T07:12:31.928Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-U4u4k7",
+      "type": "gotcha",
+      "content": "For auto-managed worktree changes, target-path task reads can show the authoritative task graph while main-checkout adv_change_validate may report stale NO_TASKS/CONTRACT_AC_UNCOVERED. Resume/apply from the change worktree target_path for state-sensitive operations.",
+      "source_task": "tk-b90800a8704c",
+      "recorded_at": "2026-05-22T06:51:00.659Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:02:01.245Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal with reply: continue. Problem statement and proposal persisted; scope includes blank optional arg guard, origin validation, and Temporal-authoritative origin persistence.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/proposal.md",
+        "content_hash": "0c0d56930538c5ac320e4ed708629f7fa734120294f77752c520d3e8054d23d7",
+        "non_whitespace_chars": 4816,
+        "checked_at": "2026-05-22T06:02:01.384Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:22:51.016Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. User approved acceptance criteria/agreement with reply: approve. Agreement persisted; contract minted with 19 items. Decisions: origin_issue_number roadmap/triage only; blank strictness artifact/linkage fields; broader all-tool blank policy deferred to agenda ag-IvWj2x1e; repair path deferred to design.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/agreement.md",
+        "content_hash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "non_whitespace_chars": 3138,
+        "checked_at": "2026-05-22T06:22:51.081Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:42:45.869Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and independently validated. Validator verdict: VALIDATED. No user-value tradeoff, no unresolved conflict, no contract-compromise risk. Key design: layered blank validation, origin matrix, creation-time initialMetadata seed, no dedicated repair tool in this change.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/design.md",
+        "content_hash": "bc1d22471845e898c7fae56e52e04133ff0756afcaea9b8a9c17a38759e0ff20",
+        "non_whitespace_chars": 9392,
+        "checked_at": "2026-05-22T06:42:45.907Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T06:48:17.436Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with reply: approve. Plan includes 5 tasks covering spec law, artifact update guards, create/origin guards, Temporal metadata seeding, and contract-wide verification. Proceeding inline to implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T07:13:02.211Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. All 5 tasks done with checkpoint commits. Verification: targeted regression passed (9 files, 168 tests), pnpm run check passed, pnpm test passed, adv_change_validate strict passed with warning NO_DELTAS only. Worktree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T15:46:22.098Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work with reply: accept. Review verdict APPROVED after remediation. Contract matrix persisted with 19/19 required rows passed/respected. Verification: targeted remediation tests passed (86), pnpm run check passed, pnpm test passed (226 files, 2920 tests), adv_change_validate strict passed with NO_DELTAS warning only. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/acceptance.md",
+        "content_hash": "93d7742d659436e9237be4dd0c4f6ca07a124a741bb2e9e4da7aa6e52fb56473",
+        "non_whitespace_chars": 5264,
+        "checked_at": "2026-05-22T15:46:22.201Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+      "approvedAt": "2026-05-22T06:21:46.197Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_update` rejects any provided blank artifact field, including mixed calls like `{ proposal: \"real\", design: \"\" }`, before writes/signals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Omitted artifact fields remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` rejects blank provided narrative artifact fields; omitted fields keep existing default/skip behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`origin_issue_number` is accepted only for `roadmap`/`triage`; `roadmap` still requires it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Blank `origin_source_artifact` is rejected when provided.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Valid creation-time origin metadata appears in authoritative Temporal workflow reads and relevant search attributes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Error responses name offending fields and tell agents to omit fields they do not intend to change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Existing valid create/update/proposal flows remain compatible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Correctness must be structural: Zod schemas, preflight validation, storage-boundary guards, Temporal seed-state flow, and tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Scope for blank optional string rejection is artifact/linkage fields only in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Broader all-ADV-tool blank optional string policy is deferred to agenda `ag-IvWj2x1e`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Runtime source changes require build/deploy/restart before live ADV tool behavior can be validated end-to-end in OpenCode.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Current repo only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not silently coerce blank strings to omission for destructive fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not rely on agent prompt discipline as the safety mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not hand-edit ADV state projections to repair individual changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not broaden into upstream OpenCode schema conversion fixes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not redesign every ADV tool schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not add a dedicated origin repair tool unless design proves forward-path seeding is insufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1aa57b08e0eaa7bf8a1794bf51eef65a9b4bc6ee727ba09fbc185e215cffc649",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-22T15:41:30.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted regression and full suite passed after remediation. Evidence: plugin/src/utils/tool-arg-preflight.test.ts mixed blank update preflight; plugin/src/tools/change.test.ts mixed blank execute; plugin/src/storage/json.test.ts blank update no partial write. pnpm test: 226 files, 2920 tests passed.",
+          "notes": "Review found no remaining update blank-field blocker."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change.test.ts verifies omitted update fields are passed as undefined; plugin/src/storage/json.test.ts verifies omitted update fields leave existing files unchanged. pnpm test passed.",
+          "notes": "Omission semantics preserved."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change-origin.test.ts and plugin/src/utils/tool-arg-preflight.test.ts reject blank create narratives; review remediation added plugin/src/storage/json.test.ts scaffold blank guard. pnpm exec vitest run src/storage/json.test.ts src/storage/store-temporal/changes.test.ts passed (86 tests); pnpm test passed.",
+          "notes": "Create path now has tool and storage-boundary defense."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change-origin.test.ts covers roadmap requires issue, roadmap rejects source artifact, discovery/adhoc reject issue as specified, triage remains allowed. pnpm test passed.",
+          "notes": "Origin matrix enforced before claim/workflow creation."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change-origin.test.ts and plugin/src/utils/tool-arg-preflight.test.ts verify blank origin_source_artifact rejection with fields/hint. pnpm test passed.",
+          "notes": "Blank linkage field rejected when provided."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/storage/store-temporal/changes.test.ts verifies origin seedState at workflow start and executiveSummary artifact metadata signaling after remediation; plugin/src/temporal/search-attributes.test.ts verifies AdvBacklogIssueNumber from origin. pnpm test passed.",
+          "notes": "Temporal authoritative origin flow and metadata freshness verified."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/change.test.ts and change-origin.test.ts assert error responses include offending fields and omit guidance; preflight formatter uses same message. pnpm test passed.",
+          "notes": "Agent-facing repair guidance present."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Valid create/update/proposal compatibility covered by change-origin.test.ts, change.test.ts, tool-arg-preflight.test.ts, and full suite. pnpm run check passed; pnpm test passed; adv_change_validate strict passed with NO_DELTAS warning only.",
+          "notes": "No compatibility regressions detected."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review confirmed structural layers: Zod schemas, preflight validators, tool execute guards, storage guards in json.ts create/update, Temporal seedState in store-temporal/changes.ts, and tests. Remediation closed storage-create and executiveSummary metadata gaps.",
+          "notes": "Heuristics are not authority for correctness."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Validation scope is limited to narrative artifact fields and origin linkage fields in adv_change_create/update; no broad all-tool blank optional string policy was introduced.",
+          "notes": "No scope broadening into unrelated tool schemas."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No implementation of broader all-ADV-tool blank optional string policy. Existing agenda deferral remains untouched.",
+          "notes": "Follow-up remains deferred."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source-level tests and checks passed in this session. Live OpenCode tool behavior still requires plugin build/deploy/session restart per repo gotcha; acceptance summary will call this out as caveat.",
+          "notes": "Runtime reload caveat preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cross-repo review found all touched files under current repo paths (.adv/specs, plugin/src, CHANGELOG.md); no target_repo/target_path tasks or external repo mutations.",
+          "notes": "Current repo only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Blank provided destructive fields are rejected with explicit errors at preflight/tool/storage layers; no code path silently converts blanks to omitted values.",
+          "notes": "Reject-not-coerce policy upheld."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Structural validation and tests enforce behavior independent of agent prompt discipline.",
+          "notes": "Prompt guidance is not the safety mechanism."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No hand edits to ADV state projections; state changes flow through store/Temporal APIs and typed review matrix tooling.",
+          "notes": "Projection repair avoided."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No OpenCode SDK/schema conversion redesign. Existing tool-registry cast pattern remains; new validation is ADV-local.",
+          "notes": "Upstream scope untouched."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only adv_change_create/update and related storage/Temporal artifact metadata paths were changed; no redesign of every ADV tool schema.",
+          "notes": "Tool schema surface stayed narrow."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No dedicated origin repair tool was added. Origin correctness is handled by forward-path create-time validation and Temporal seed-state persistence.",
+          "notes": "Repair tool avoided."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_update` rejects any provided blank artifact field, including mixed calls like `{ proposal: \"real\", design: \"\" }`, before writes/signals.",
+    "Omitted artifact fields remain unchanged.",
+    "`adv_change_create` rejects blank provided narrative artifact fields; omitted fields keep existing default/skip behavior.",
+    "`origin_issue_number` is accepted only for `roadmap`/`triage`; `roadmap` still requires it.",
+    "Blank `origin_source_artifact` is rejected when provided.",
+    "Valid creation-time origin metadata appears in authoritative Temporal workflow reads and relevant search attributes.",
+    "Error responses name offending fields and tell agents to omit fields they do not intend to change.",
+    "Existing valid create/update/proposal flows remain compatible."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/proposal.md",
+      "updatedAt": "2026-05-22T16:07:23.131Z"
+    },
+    "problemStatement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/problem-statement.md",
+      "updatedAt": "2026-05-22T16:07:23.145Z"
+    },
+    "agreement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/agreement.md",
+      "updatedAt": "2026-05-22T16:07:23.154Z"
+    },
+    "design": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixToolArgSafety/design.md",
+      "updatedAt": "2026-05-22T16:07:23.161Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T15:46:22.098Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Scope section is empty or placeholder. What specific files/modules will change?",
+      "recorded_at": "2026-05-22T15:43:14.394Z",
+      "resolved": true,
+      "resolved_at": "2026-05-22T15:45:00.843Z"
+    }
+  ]
+}

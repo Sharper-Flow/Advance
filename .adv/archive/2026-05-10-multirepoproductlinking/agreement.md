@@ -5,16 +5,16 @@
 - ADV project identity is repo-bound via `plugin/src/utils/project-id.ts` and external state at `$XDG_DATA_HOME/opencode/plugins/advance/{project-id}/`.
 - Existing cross-project model is contribution/provenance, not product grouping.
 - `ProjectConfigSchema` has `related_repos[]`, but no `product` or `scope_repos` concept.
-- PokeEdge backend and web have distinct project IDs, specs, active changes, archives, wisdom, and reflections.
+- ExampleProduct backend and web have distinct project IDs, specs, active changes, archives, wisdom, and reflections.
 - GitHub issue #59 is open and mirrors this change.
 
 ## Objectives
 
-O1. Add product-level linking for repo families like `pokeedge` + `pokeedge-web` without breaking single-repo projects.
+O1. Add product-level linking for repo families like `example-product` + `example-web` without breaking single-repo projects.
 O2. Preserve per-repo git mechanics: branches, worktrees, commits, specs, verification, archive git finalization.
 O3. Provide one canonical product-level place for active changes, archive metadata, wisdom, reflections, and status aggregation.
 O4. Make per-change repo scope structural.
-O5. Make PokeEdge adoption low-friction.
+O5. Make ExampleProduct adoption low-friction.
 O6. Avoid split-brain state.
 O7. Keep existing `target_path` for one-off/external coordination.
 
@@ -22,7 +22,7 @@ O7. Keep existing `target_path` for one-off/external coordination.
 
 AC1. Product-link config exists with explicit primary/secondary declarations, Zod-validated.
 AC2. Single-repo projects unchanged.
-AC3. From `pokeedge-web`, ADV resolves canonical product state without manual `target_path`, while knowing current repo context for filtering.
+AC3. From `example-web`, ADV resolves canonical product state without manual `target_path`, while knowing current repo context for filtering.
 AC4. Changes declare `scope_repos` structurally, validated against linked config.
 AC5. `adv_status` from secondary defaults to changes scoped to that secondary, with explicit all-product mode.
 AC6. Wisdom/reflection queries surface product knowledge and retain origin repo tags.

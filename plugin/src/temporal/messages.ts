@@ -37,6 +37,7 @@ import type {
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  SubagentReportSubmittedSignalPayload,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
   TaskBlockedSignalPayload,
@@ -45,6 +46,8 @@ import type {
   TaskRemovedSignalPayload,
   TaskUpdatedSignalPayload,
   WisdomAddedSignalPayload,
+  WorktreeAttachedSignalPayload,
+  WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
 } from "../types";
@@ -154,6 +157,9 @@ export const taskAssignedSignal = wf.defineSignal<[TaskAssignedSignalPayload]>(
 export const taskCompletedSignal = wf.defineSignal<
   [TaskCompletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.taskCompleted);
+export const subagentReportSubmittedSignal = wf.defineSignal<
+  [SubagentReportSubmittedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
 export const taskBlockedSignal = wf.defineSignal<[TaskBlockedSignalPayload]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.taskBlocked,
 );
@@ -187,6 +193,12 @@ export const worktreeCreatedSignal = wf.defineSignal<
 export const worktreeDeletedSignal = wf.defineSignal<
   [WorktreeDeletedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDeleted);
+export const worktreeAutoManagedSignal = wf.defineSignal<
+  [WorktreeAutoManagedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAutoManaged);
+export const worktreeAttachedSignal = wf.defineSignal<
+  [WorktreeAttachedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
 export const conformanceLockedSignal = wf.defineSignal<
   [ConformanceLockedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.conformanceLocked);

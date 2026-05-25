@@ -350,6 +350,65 @@
       ]
     },
     {
+      "id": "rq-titleIdentity01",
+      "title": "Terminal Title Identity Policy",
+      "body": "Terminal title identity MUST show the active ADV change id only when a change is active, and MUST fall back to the project name when no ADV change is active. The active title MUST NOT include a project prefix, worktree path, git branch, trunk/main checkout marker, status marker, progress text, blocked marker, or emoji. Title identity changes MUST remain subject to rq-titleBell01 sanitization and non-audible emission rules.",
+      "priority": "must",
+      "tags": ["chat-output-display", "terminal-title", "identity"],
+      "scenarios": [
+        {
+          "id": "rq-titleIdentity01.1",
+          "title": "Active change title is change id only",
+          "given": [
+            "Project name `toolbox`",
+            "Active ADV change id `fixFoo`"
+          ],
+          "when": "ADV builds or emits the terminal title",
+          "then": [
+            "The title payload is exactly `fixFoo` after existing title sanitization",
+            "The title payload does not contain `toolbox`, `toolbox: fixFoo`, a status marker, progress text, branch, worktree path, or emoji"
+          ]
+        },
+        {
+          "id": "rq-titleIdentity01.2",
+          "title": "Inactive title falls back to project name",
+          "given": [
+            "Project name `toolbox`",
+            "No active ADV change id"
+          ],
+          "when": "ADV builds or emits the terminal title",
+          "then": [
+            "The title payload is exactly `toolbox` after existing title sanitization"
+          ]
+        },
+        {
+          "id": "rq-titleIdentity01.3",
+          "title": "Status churn does not retitle unchanged identity",
+          "given": [
+            "The active ADV change id remains `fixFoo`",
+            "The status marker changes"
+          ],
+          "when": "ADV updates terminal status repeatedly",
+          "then": [
+            "The title is emitted only after the identity string changes",
+            "Normal status churn does not rewrite the same title"
+          ]
+        },
+        {
+          "id": "rq-titleIdentity01.4",
+          "title": "Identity policy preserves title safety",
+          "given": [
+            "A project name or active change id contains C0/C1 control bytes"
+          ],
+          "when": "ADV emits the terminal title",
+          "then": [
+            "Control bytes are normalized per rq-titleBell01",
+            "The emitted title sequence contains no BEL byte and terminates with ST"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-ctxswitch",
       "title": "Cross-Repo Switch Indicator",
       "body": "When the agent switches workdir to a different repository during a change, a formatted indicator MUST be emitted showing the from/to paths and the task that triggered the switch. The indicator MUST be ≤3 content lines (excluding box borders) so it stays compact when emitted alongside other context surfaces. This prevents the user from losing track of which repository context the agent is operating in without flooding scrollback.",

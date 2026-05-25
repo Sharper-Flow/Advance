@@ -1,0 +1,1350 @@
+{
+  "id": "hardenChangeCreation",
+  "title": "Harden change creation",
+  "status": "archived",
+  "created_at": "2026-05-23T00:41:09.858Z",
+  "tasks": [
+    {
+      "id": "tk-07df67737bb8",
+      "title": "Build shared placeholder preflight engine and registry normalization seam",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-23T17:31:48.747Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "AC13",
+          "AC15",
+          "AC27",
+          "AC28"
+        ],
+        "verifies": [
+          "AC27",
+          "AC28"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT8",
+          "DONT9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T17:34:54.482Z",
+      "verification": "pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts passed (31 tests). Prettier applied to modified files; post-format targeted tests passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended `ToolArgPreflightResult` with `normalizedArgs`, added `preflightToolArgs(...)`, and wired `tool-registry.ts` to pass normalized args into execute after successful preflight. Added pure structural field-policy executor with initial policies and regression coverage.",
+      "filesTouched": [
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/gate.worktree-isolation.test.ts",
+        "plugin/src/tools/task.worktree-isolation.test.ts",
+        "plugin/src/tools/worktree-auto-manage.test.ts",
+        "plugin/src/tools/worktree-auto-manage.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tools/gate.worktree-isolation.test.ts",
+        "plugin/src/tools/task.worktree-isolation.test.ts",
+        "plugin/src/tools/worktree-auto-manage.test.ts",
+        "plugin/src/tools/worktree-auto-manage.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "a963249b588f70f4cdfdf27e539b4562a6824dc0",
+      "completedAt": "2026-05-23T17:37:17.579Z",
+      "completed_at": "2026-05-23T17:37:17.579Z",
+      "notes": "Implemented shared preflight result with normalizedArgs and registry handoff. Added initial explicit placeholder policies for adv_change_create scope_repos empty-array omission and adv_run_test.command blank rejection. Added tests for normalized args, reject-only policy, and registry execute handoff. Verification: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts passed (31 tests).",
+      "updatedAt": "2026-05-23T17:37:27.474Z"
+    },
+    {
+      "id": "tk-0d2ef9f82020",
+      "title": "Apply adv_change_create placeholder policies and canonical minimal diagnostics",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-23T17:32:08.098Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07df67737bb8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "AC23",
+          "AC24"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "AC23",
+          "AC24"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "DONT8",
+          "DONT9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T17:37:52.045Z",
+      "verification": "pnpm exec vitest run src/tools/change-origin.test.ts src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts passed (44 tests) after formatting.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended `adv_change_create` preflight with structural placeholder/cross-field checks for target/source/parent/scope fields and canonical minimal payload diagnostics while preserving strict origin matrix behavior.",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "6811221e28aec580e952dd8019a9d1da277d79c3",
+      "completedAt": "2026-05-23T17:39:05.076Z",
+      "completed_at": "2026-05-23T17:39:05.076Z",
+      "notes": "Implemented adv_change_create-specific placeholder policies and diagnostics in preflight. Added blank target_path rejection, source_project/source_change_id without target_path checks, parent_change_id sentinel rejection, scope_repos empty-array omission, and canonical_minimal_payload on create preflight errors. Verification: change-origin + preflight + tool-registry tests passed (44 tests).",
+      "updatedAt": "2026-05-23T17:39:12.082Z"
+    },
+    {
+      "id": "tk-c327b6b27d24",
+      "title": "Apply representative all-tools placeholder policies",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-23T17:32:22.546Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-07df67737bb8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC12",
+          "AC13",
+          "AC14",
+          "AC15",
+          "AC22",
+          "AC27",
+          "AC28"
+        ],
+        "verifies": [
+          "AC12",
+          "AC13",
+          "AC14",
+          "AC15",
+          "AC22",
+          "AC27",
+          "AC28"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT8",
+          "DONT9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T17:39:23.245Z",
+      "verification": "pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts passed (48 tests) after formatting.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended central tool-arg preflight policy table to reject blank placeholders across representative ADV tools and added record-value blank rejection for cancellation/supersession maps. Added parameterized regression coverage for broad tool families.",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "34d2769123de95341d41578bc57a7423b46dda39",
+      "completedAt": "2026-05-23T17:41:42.179Z",
+      "completed_at": "2026-05-23T17:41:42.179Z",
+      "notes": "Added representative placeholder policies across task, wisdom, test command, approvals, cancellation record values, gate metadata, worktree branch/base/reason, conformance audit fields, agenda fields, contract timestamps/recovery evidence, and Temporal approval evidence. Verification: preflight + registry tests passed (48 tests).",
+      "updatedAt": "2026-05-23T17:41:48.825Z"
+    },
+    {
+      "id": "tk-973f6b2348cf",
+      "title": "Update spec law for placeholder-safe ADV tool arguments",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-23T17:32:35.935Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "AC27",
+          "AC28"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT8",
+          "DONT9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T17:43:22.228Z",
+      "verification": "Red: node spec check for rq-toolPlaceholderPolicy01 failed before spec update. Green: JSON parse + required rq-toolPlaceholderPolicy01 scenario IDs passed. adv_change_validate --strict passed with non-blocking NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added placeholder-safe ADV tool argument spec requirement and scenarios to .adv/specs/advance-workflow/spec.json, bumped spec version/date, and verified the new law is present and JSON-valid.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "checkpointSha": "061f32a5c61cc820f4e3f7fac7ab7fec202596fa",
+      "completedAt": "2026-05-23T17:44:17.497Z",
+      "completed_at": "2026-05-23T17:44:17.497Z",
+      "notes": "Updated advance-workflow spec law with rq-toolPlaceholderPolicy01 covering central placeholder preflight, explicit field policies, blank content/audit/linkage rejection, omission-equivalent normalization, and normalized execute payload. Verification: red missing-requirement check failed before edit; green JSON parse and requirement/scenario ID check passed; strict validation passed with non-blocking NO_DELTAS warning.",
+      "updatedAt": "2026-05-23T17:44:23.057Z"
+    },
+    {
+      "id": "tk-713b481b7c84",
+      "title": "Build data-driven regression matrix for placeholder policies",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-23T17:32:54.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0d2ef9f82020"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c327b6b27d24"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-973f6b2348cf"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC16",
+          "AC17",
+          "AC18",
+          "AC19",
+          "AC20",
+          "AC21",
+          "AC22"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "AC12",
+          "AC13",
+          "AC14",
+          "AC15",
+          "AC16",
+          "AC17",
+          "AC18",
+          "AC19",
+          "AC20",
+          "AC21",
+          "AC22",
+          "AC23",
+          "AC24",
+          "AC27",
+          "AC28"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "DONT8",
+          "DONT9"
+        ]
+      },
+      "verification": "Red: placeholder regression matrix test failed with ReferenceError before matrix existed. Green: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts passed (26 tests). Incremental: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts src/tools/change-origin.test.ts passed (61 tests) after formatting.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Built `PLACEHOLDER_POLICY_REGRESSION_MATRIX` in preflight tests and executed it through `validateToolArgsBeforeExecute`, asserting ok/failure, field diagnostics, and normalized args across creation and representative tool families.",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts"
+      ],
+      "checkpointSha": "42cbc2b468ec10ee80af36f33c97209bae336196",
+      "completedAt": "2026-05-23T17:45:47.082Z",
+      "completed_at": "2026-05-23T17:45:47.082Z",
+      "notes": "Added data-driven placeholder policy regression matrix covering minimal valid ad hoc creation, invalid origin placeholders, blank artifacts, roadmap/triage/discovery origin constraints, target/source/lineage placeholders, empty scope_repos normalization, and representative all-tools traps. Verification: red ReferenceError before matrix existed; green matrix test passed; related preflight/registry/change-origin tests passed (61 tests).",
+      "updatedAt": "2026-05-23T17:45:53.824Z"
+    },
+    {
+      "id": "tk-029c815e76be",
+      "title": "Verify provider evidence, contract traceability, and final quality gates",
+      "type": "code",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-23T17:33:11.225Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-713b481b7c84"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC25",
+          "AC26"
+        ],
+        "verifies": [
+          "AC23",
+          "AC24",
+          "AC25",
+          "AC26",
+          "AC27",
+          "AC28"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "DONT8",
+          "DONT9"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-23T17:46:10.102Z",
+      "verification": "Release hardening remediation completed. Fixed validated harden findings in AGENTS.md, tool-arg-preflight comments, registry preflight integration tests, and non-record raw-args tests. Verification: pnpm exec vitest run src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts passed (58 tests); pnpm run check passed; targeted re-verification resolved all 6 prior findings; adv_change_validate --strict passed with NO_DELTAS warning only.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "AGENTS.md",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "AGENTS.md",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "58078d828d7b6270a53e9136af1b04ad79e92921",
+      "completedAt": "2026-05-23T21:04:13.687Z",
+      "completed_at": "2026-05-23T21:04:13.687Z",
+      "notes": "Review surfaced additional in-scope placeholder-policy remediation: blank target_path/confirmationEvidence and blank source_project/source_change_id with target_path needed explicit preflight coverage. Reopened verification task to incorporate and checkpoint review fixes.",
+      "error_recovery": {
+        "last_error": "pnpm run check failed: @typescript-eslint/no-unused-vars blockWithExpectedPath in src/tools/worktree-auto-manage.ts",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Completed after focused lint and full check passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Unused helper blockWithExpectedPath caused lint failure.",
+            "diagnosis": "Dead helper remained after earlier worktree auto-manage refactor; no references existed in local search.",
+            "fix_tried": "Removed unused blockWithExpectedPath and now-unused AUTO_MANAGE_REMEDIATION constant.",
+            "strategy_label": "remove dead code",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-23T17:46:55.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-23T20:50:54.299Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-23T00:41:31.405Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal created with minimal 4-field payload. B/F/S scan: no CRITICAL findings, one LOW (S: \"tells agents\" slightly vague). Spec-law update flagged for discovery: advance-workflow needs a new requirement for canonical minimal ad hoc creation path and placeholder normalization policy.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/proposal.md",
+        "content_hash": "0dbfc79b9574051572353aff80eaf8e39e92a5ba24bcc2acb3ba8483374571af",
+        "non_whitespace_chars": 5406,
+        "checked_at": "2026-05-23T00:41:31.490Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-23T17:23:05.795Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user approved acceptance criteria via inline reply: `approve`. Agreement scope broadened to placeholder-sensitive handling across ADV tools. Contract minted from approved agreement with 43 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/agreement.md",
+        "content_hash": "d31762dd17add93de08f42f4aca2c01716bbb7cd395bcb0193da550744eb31bf",
+        "non_whitespace_chars": 8002,
+        "checked_at": "2026-05-23T17:23:06.104Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-23T17:30:46.575Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded and independently validated. Validator verdict: VALIDATED. No unresolved conflict, user-value tradeoff, or contract-compromise risk identified.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/design.md",
+        "content_hash": "5602b3981094fc10dbb1ce4a1175cbd6a294317735ea0650c0c64687aee66342",
+        "non_whitespace_chars": 5940,
+        "checked_at": "2026-05-23T17:30:46.884Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-23T17:34:39.072Z",
+      "completed_by": "agent",
+      "approval_evidence": "Prep plan approved by user via inline reply: `approve` (repeated). Task graph contains 6 tasks with TDD intent, dependencies, and contract refs. Strict validation passed with non-blocking NO_DELTAS warning; spec-law task covers deltas during execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-23T20:51:17.427Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution reconfirmed after acceptance-review remediation. All 6 tasks are done and checkpointed through aa0606c. Verification: pnpm run check passed; focused regression/architecture tests passed (71 tests); adv_change_validate --strict passed with only NO_DELTAS warning."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-23T20:53:59.494Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via inline reply: `accept`. Acceptance proof exists: executive summary persisted, contract review matrix has 43 rows passed/respected with 0 failing/unknown, full tests passed (227 files / 2995 tests), pnpm run check passed, strict validation passed with only NO_DELTAS warning.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/acceptance.md",
+        "content_hash": "489c7db98d2dab58012bb51f8e90894193d88c7914966ada19fa664cc03930d4",
+        "non_whitespace_chars": 9469,
+        "checked_at": "2026-05-23T20:53:59.571Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+      "approvedAt": "2026-05-23T17:23:05.795Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `{ summary: \"Update Geist typography\", capability: \"ui-interaction-primitives\", proposal: \"...\", problemStatement: \"...\" }`, when `adv_change_create` runs, then a change is created with no `origin`, no `fast_follow_of`, no `cross_project_origin`, no `scope_repos` unless product-linked default applies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given `{ summary: \"...\", proposal: \"\", design: \"   \", origin_source_artifact: \" \" }`, when preflight runs, then no workflow starts, no blank artifact is written, and the response names every offending field and includes the canonical minimal payload when useful.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given `{ summary: \"...\", origin_kind: \"adhoc\", origin_issue_number: 0, origin_source_artifact: \"\" }`, when preflight runs, then origin linkage fields are rejected or stripped by an explicit field policy, and no invalid `origin` is persisted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Roadmap without `origin_issue_number` → rejected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Triage with non-blank `origin_source_artifact` → accepted; without → accepted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Discovery with `origin_issue_number` → rejected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Existing origin tests continue to pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`target_path: \"\"` or whitespace-only → rejected or normalized by explicit policy; never attempts cross-project mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`source_project` / `source_change_id` without `target_path` → rejected or normalized by explicit policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`parent_change_id: \"none\"` or blank → rejected or normalized by explicit policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "`scope_repos: []` → normalized to omitted or rejected by explicit policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC12",
+        "kind": "acceptance_criterion",
+        "text": "Required content fields such as `summary`, task `content`, wisdom `content`, test `command`, worktree `branch`, and audit `reason` fields reject blank/whitespace values before mutation or execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC13",
+        "kind": "acceptance_criterion",
+        "text": "Optional durable/audit/path/linkage strings reject blank/whitespace when provided unless an explicit field policy treats omission as equivalent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC14",
+        "kind": "acceptance_criterion",
+        "text": "Record values such as task cancellation reasons and metadata reject blank values when they persist audit or workflow state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC15",
+        "kind": "acceptance_criterion",
+        "text": "Empty arrays/objects are normalized or rejected only through explicit policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC16",
+        "kind": "acceptance_criterion",
+        "text": "Minimal valid ad hoc payload.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC17",
+        "kind": "acceptance_criterion",
+        "text": "Ad hoc with blank/zero origin placeholders.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC18",
+        "kind": "acceptance_criterion",
+        "text": "Blank artifact fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC19",
+        "kind": "acceptance_criterion",
+        "text": "Roadmap/triage/discovery origin constraints.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC20",
+        "kind": "acceptance_criterion",
+        "text": "Target/source/lineage placeholders.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC21",
+        "kind": "acceptance_criterion",
+        "text": "Empty array `scope_repos` placeholder.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC22",
+        "kind": "acceptance_criterion",
+        "text": "Representative all-tools traps: task content, gate notes/actor, approval evidence, cancellation reasons, wisdom content, run-test command, worktree branch/base, conformance audit fields, agenda title/reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC23",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_create` description/schema includes a minimal valid ad hoc payload example and tells agents to omit optional fields not intended to be set.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC24",
+        "kind": "acceptance_criterion",
+        "text": "Error diagnostics include field names and a compact retry shape when callers can recover mechanically.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC25",
+        "kind": "acceptance_criterion",
+        "text": "Design records a provider-by-provider matrix covering GPT-class, Claude-class, and one open-weights/other model path if available.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC26",
+        "kind": "acceptance_criterion",
+        "text": "Matrix columns include provider, placeholder pattern reproduced, root-cause classification, and follow-up obligation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC27",
+        "kind": "acceptance_criterion",
+        "text": "Placeholder/cross-field validation is centralized in shared preflight helpers where possible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC28",
+        "kind": "acceptance_criterion",
+        "text": "Execute paths keep only defensive assertions needed for safety, with tests proving preflight and execute behavior do not diverge.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve strict correctness for `rq-backlogCoord08`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Prefer structural correctness: schemas, preflight normalization/rejection, validators, and tests over prose-only guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep valid ad hoc creation minimal and discoverable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Treat provider/model differences as evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Sentinel normalization policy is a design decision; heuristics must not own correctness, persistence, workflow state, or audit boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "“Across all tools” means all ADV fields where placeholder values affect durable state, audit, workflow transitions, paths, external execution, or semantic filters.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not treat `origin_issue_number: 0` as valid.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not persist blank artifact files.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not silently retain invalid adhoc origin linkage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not weaken cross-project mutation auditability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not hide validation errors that indicate real ambiguity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not rely on heuristic sentinel normalization as correctness authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "Do not split `adv_change_create` into mode-specific tools in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT8",
+        "kind": "avoidance",
+        "text": "Do not redesign provider runtime hints unless design proves they are causal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT9",
+        "kind": "avoidance",
+        "text": "Do not normalize placeholders for approval evidence, recovery evidence, gate actor, command strings, paths, issue numbers, or IDs unless design proves omission-equivalence and audit safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e50bb70343359dc0549137ea2beca7b920138839b4eec6db72e21164b26a3ad5",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-23T20:53:14.226Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix covers minimal valid ad hoc adv_change_create payload; focused tests passed (71) and full suite passed (2995)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Preflight rejects blank proposal/design/origin_source_artifact with field diagnostics; tool-arg-preflight tests passed."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Ad hoc origin placeholder/issue linkage regression rows reject invalid origin fields; change-origin and preflight tests passed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Roadmap origin without issue number remains rejected by origin matrix tests; focused tests passed."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Triage with optional source artifact remains accepted in origin matrix coverage; focused tests passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Discovery with origin_issue_number remains rejected by existing origin regression coverage; focused tests passed."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing origin tests included in focused run; src/tools/change-origin.test.ts passed."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Blank target_path rejected for create and target-aware tools; regression rows added after review and passed."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "source_project/source_change_id without target_path and blank source values with target_path are rejected by preflight matrix tests."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "parent_change_id blank/sentinel values rejected by preflight matrix tests."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "scope_repos empty array normalizes to omission in preflight matrix tests."
+        },
+        {
+          "contractId": "AC12",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Required content/execution fields (summary, task content, wisdom content, test command, worktree branch) reject blank values in parameterized tests."
+        },
+        {
+          "contractId": "AC13",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Optional durable/audit/path/linkage strings reject blanks through explicit FIELD_POLICIES; tests cover target_path, evidence, recovery, and linkage fields."
+        },
+        {
+          "contractId": "AC14",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Record values for task cancellation reasons and supersededBy reject blanks in preflight tests."
+        },
+        {
+          "contractId": "AC15",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Empty-array/object behavior is explicit in FIELD_POLICIES; scope_repos empty array is omitted, other placeholder handling rejects unless explicitly allowed."
+        },
+        {
+          "contractId": "AC16",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix includes minimal valid ad hoc payload case; tests passed."
+        },
+        {
+          "contractId": "AC17",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix includes ad hoc blank/zero origin placeholder cases; tests passed."
+        },
+        {
+          "contractId": "AC18",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix includes blank artifact field cases; tests passed."
+        },
+        {
+          "contractId": "AC19",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression coverage includes roadmap/triage/discovery origin constraints via preflight and change-origin tests."
+        },
+        {
+          "contractId": "AC20",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix includes target/source/lineage placeholder cases, including review-added target-aware fields."
+        },
+        {
+          "contractId": "AC21",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression matrix includes empty scope_repos normalization case; tests passed."
+        },
+        {
+          "contractId": "AC22",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Representative all-tools traps covered for task, gate, approval, cancellation, wisdom, run-test, worktree, conformance, agenda, contract, Temporal, and status fields."
+        },
+        {
+          "contractId": "AC23",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_create schema/description was updated with canonical minimal payload guidance and omission instruction."
+        },
+        {
+          "contractId": "AC24",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Preflight error formatting includes field names and canonical_minimal_payload for create failures; tool-arg-preflight tests passed."
+        },
+        {
+          "contractId": "AC25",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "Design records GPT-class, Claude-class, and GLM/open-weights/other provider matrix."
+        },
+        {
+          "contractId": "AC26",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "design_proof",
+          "evidence": "Design matrix columns include provider path, placeholder pattern reproduced, classification, and design response/follow-up."
+        },
+        {
+          "contractId": "AC27",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Placeholder/cross-field validation centralized in pure tool-arg-preflight helpers with registry handoff through normalizedArgs."
+        },
+        {
+          "contractId": "AC28",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Registry normalized-args tests and execute parity coverage prove preflight and execute behavior align; focused and full tests passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "rq-backlogCoord08 origin constraints preserved; change-origin tests passed."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Structural preflight policies, Zod schema validation, registry normalizedArgs, and regression tests own correctness; no prose-only enforcement."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Minimal ad hoc create path remains covered and discoverable through tests and diagnostics."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "design_proof",
+          "evidence": "Provider differences recorded as evidence only; runtime behavior remains provider-agnostic structural validation."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Sentinel handling is explicit field policy; heuristics do not own persistence/workflow/audit decisions."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Policy coverage targets durable state, audit, workflow transition, path, external execution, and semantic-filter fields across ADV tools."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "origin_issue_number: 0 remains invalid in origin/placeholder tests."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Blank artifact fields reject before mutation; tests verify no blank artifact persistence path."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Invalid ad hoc origin linkage rejected by preflight/origin tests."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Cross-project target_path and confirmationEvidence blanks reject structurally; auditability preserved."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review found deterministic field diagnostics; no real validation errors hidden by broad normalization."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Sentinel normalization limited to explicit omission-equivalent policy; audit/path/linkage defaults reject."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv_change_create API not split; change stayed within tool-boundary hardening scope."
+        },
+        {
+          "contractId": "DONT8",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "design_proof",
+          "evidence": "Provider runtime hints were not redesigned; provider matrix only informed validation design."
+        },
+        {
+          "contractId": "DONT9",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Approval evidence, recovery evidence, gate actor, command strings, paths, issue numbers, and IDs reject placeholders unless explicitly omission-equivalent; tests cover representative fields."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given `{ summary: \"Update Geist typography\", capability: \"ui-interaction-primitives\", proposal: \"...\", problemStatement: \"...\" }`, when `adv_change_create` runs, then a change is created with no `origin`, no `fast_follow_of`, no `cross_project_origin`, no `scope_repos` unless product-linked default applies.",
+    "Given `{ summary: \"...\", proposal: \"\", design: \"   \", origin_source_artifact: \" \" }`, when preflight runs, then no workflow starts, no blank artifact is written, and the response names every offending field and includes the canonical minimal payload when useful.",
+    "Given `{ summary: \"...\", origin_kind: \"adhoc\", origin_issue_number: 0, origin_source_artifact: \"\" }`, when preflight runs, then origin linkage fields are rejected or stripped by an explicit field policy, and no invalid `origin` is persisted.",
+    "Roadmap without `origin_issue_number` → rejected.",
+    "Triage with non-blank `origin_source_artifact` → accepted; without → accepted.",
+    "Discovery with `origin_issue_number` → rejected.",
+    "Existing origin tests continue to pass.",
+    "`target_path: \"\"` or whitespace-only → rejected or normalized by explicit policy; never attempts cross-project mutation.",
+    "`source_project` / `source_change_id` without `target_path` → rejected or normalized by explicit policy.",
+    "`parent_change_id: \"none\"` or blank → rejected or normalized by explicit policy.",
+    "`scope_repos: []` → normalized to omitted or rejected by explicit policy.",
+    "Required content fields such as `summary`, task `content`, wisdom `content`, test `command`, worktree `branch`, and audit `reason` fields reject blank/whitespace values before mutation or execution.",
+    "Optional durable/audit/path/linkage strings reject blank/whitespace when provided unless an explicit field policy treats omission as equivalent.",
+    "Record values such as task cancellation reasons and metadata reject blank values when they persist audit or workflow state.",
+    "Empty arrays/objects are normalized or rejected only through explicit policy.",
+    "Minimal valid ad hoc payload.",
+    "Ad hoc with blank/zero origin placeholders.",
+    "Blank artifact fields.",
+    "Roadmap/triage/discovery origin constraints.",
+    "Target/source/lineage placeholders.",
+    "Empty array `scope_repos` placeholder.",
+    "Representative all-tools traps: task content, gate notes/actor, approval evidence, cancellation reasons, wisdom content, run-test command, worktree branch/base, conformance audit fields, agenda title/reason.",
+    "`adv_change_create` description/schema includes a minimal valid ad hoc payload example and tells agents to omit optional fields not intended to be set.",
+    "Error diagnostics include field names and a compact retry shape when callers can recover mechanically.",
+    "Design records a provider-by-provider matrix covering GPT-class, Claude-class, and one open-weights/other model path if available.",
+    "Matrix columns include provider, placeholder pattern reproduced, root-cause classification, and follow-up obligation.",
+    "Placeholder/cross-field validation is centralized in shared preflight helpers where possible.",
+    "Execute paths keep only defensive assertions needed for safety, with tests proving preflight and execute behavior do not diverge."
+  ],
+  "documents": {},
+  "artifacts": {
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/agreement.md",
+      "updatedAt": "2026-05-23T17:30:28.282Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/problem-statement.md",
+      "updatedAt": "2026-05-23T17:30:28.180Z"
+    },
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/proposal.md",
+      "updatedAt": "2026-05-23T17:30:28.105Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/design.md",
+      "updatedAt": "2026-05-23T17:30:28.369Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/hardenChangeCreation/executive-summary.md",
+      "updatedAt": "2026-05-23T21:04:55.487Z"
+    }
+  },
+  "lastSignalAt": "2026-05-23T21:04:13.687Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+}

@@ -29,7 +29,7 @@ The Temporal cutover is functionally complete, but follow-up fixes and agenda ch
   - ADV project state: open changes, agenda, wisdom, reflections, roadmap
   - Recent bug/closure trends from GitHub issues and project board
   - Recent archive and commit history around Temporal/workflow/cache/worker/search-attribute changes
-  - Known external integration friction, including OpenCode-core issue signals and Sharper-Flow/Opencode-Advance issues
+  - Known external integration friction, including OpenCode-core issue signals and Sharper-Flow/Advance issues
   - Existing methodology commands/scans where useful: adv-tron, slop/arch/audit/improve-style recon
 - Optimization axes:
   - Code quality: dead code, unused exports, complexity hotspots, long closures, brittle tests
@@ -85,7 +85,7 @@ Potentially inspected:
 - Primary repo: `Sharper-Flow/Advance`
 - External signals to inspect during discovery:
   - `sst/opencode` GitHub issues involving plugins, MCP, snapshot race, agent prompt loading, tool registration, session/worktree behavior
-  - `Sharper-Flow/Opencode-Advance` issues involving OCA↔ADV integration friction
+  - `Sharper-Flow/Advance` issues involving OCA↔ADV integration friction
 
 ## Constraints
 

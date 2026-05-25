@@ -10,12 +10,35 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
 const TOKEN_BUDGETS_PATH = join(REPO_ROOT, ".opencode/token-budgets.json");
+const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
+
+const FORBIDDEN_RUNTIME_CHECKLIST_PATTERNS: Array<{
+  name: string;
+  pattern: RegExp;
+}> = [
+  {
+    name: "Advance checklist source path",
+    pattern: /(?:\.\.\/\.\.\/)?docs\/checklists\/[a-z0-9-]+\.md/i,
+  },
+  {
+    name: "runtime checklist follow directive",
+    pattern: /CHECKLIST[^\n]*Follow[^\n]*checklist/i,
+  },
+  {
+    name: "canonical checklist source directive",
+    pattern: /Canonical source[s]?[^\n]*checklist/i,
+  },
+  {
+    name: "Advance install tree methodology path",
+    pattern: /~\/\.local\/share\/Advance/i,
+  },
+];
 
 const SHARED_SKILL_COMMANDS = [
   {
@@ -123,7 +146,10 @@ describe("skill-backed command assets", () => {
       const content = readFileSync(commandPath, "utf8");
 
       expect(content).toContain(marker);
-      expect(content).toMatch(/Canonical source[s]?:/);
+      expect(content).toMatch(/Methodology/i);
+      expect(content).not.toMatch(
+        /skill\("adv-(discover|prep|apply|review)-methodology"\)/,
+      );
     });
 
     test(`${command} no longer loads a removed paired methodology skill`, () => {
@@ -134,6 +160,25 @@ describe("skill-backed command assets", () => {
       );
     });
   }
+
+  test("runtime adv commands do not point agents at Advance checklist files", () => {
+    const commandFiles = readdirSync(COMMAND_DIR)
+      .filter((file) => /^adv-.*\.md$/.test(file))
+      .sort();
+    const violations: string[] = [];
+
+    for (const file of commandFiles) {
+      const content = readFileSync(join(COMMAND_DIR, file), "utf8");
+      for (const { name, pattern } of FORBIDDEN_RUNTIME_CHECKLIST_PATTERNS) {
+        const match = content.match(pattern);
+        if (match) {
+          violations.push(`${file}: ${name}: ${match[0]}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
 
   test("deploy-local.sh glob covers adv-* skill directories", () => {
     const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
@@ -231,9 +276,15 @@ describe("ambiguity taxonomy spec assets", () => {
       ),
     ) as { version: string; requirements: Array<{ id: string }> };
 
-    expect(spec.version).toBe("1.1.0");
+    expect(spec.version).toBe("1.2.0");
     expect(spec.requirements.map((rq) => rq.id)).toEqual(
-      expect.arrayContaining(["rq-disc-tax1", "rq-disc-tax2", "rq-disc-tax3"]),
+      expect.arrayContaining([
+        "rq-disc-tax1",
+        "rq-disc-tax2",
+        "rq-disc-tax3",
+        "rq-discOpportunityScout01",
+        "rq-discOpportunityScout02",
+      ]),
     );
   });
 
@@ -432,6 +483,7 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
+    expect(content).toContain("adv_contract_mint");
     expect(content).toContain("contractSetSignal");
     expect(content).toContain("ChangeContract");
     expect(content).toContain("SC1..n");
@@ -439,6 +491,88 @@ describe("thin-command shape enforcement", () => {
     expect(content).toContain("DONT1..n");
     expect(content).toContain("OOS1..n");
     expect(content).toMatch(/acceptanceCriteria.*projection/i);
+    expect(content).toContain("DISCOVERY_CONTRACT_MISSING");
+    const mintIdx = content.indexOf("adv_contract_mint");
+    const gateIdx = content.indexOf(
+      "adv_gate_complete changeId: {change-id} gateId: discovery",
+    );
+    expect(mintIdx).toBeGreaterThanOrEqual(0);
+    expect(gateIdx).toBeGreaterThan(mintIdx);
+  });
+
+  test("adv-review preflights contract proof before acceptance checkpoint", () => {
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+
+    expect(review).toContain("Pre-Acceptance Contract Preflight");
+    expect(review).toContain("change.contract");
+    expect(review).toContain("contract.reviewMatrix");
+    expect(review).toContain("fresh OpenCode session");
+    const preflightIdx = review.indexOf("Pre-Acceptance Contract Preflight");
+    const checkpointIdx = review.indexOf("Inline Approval prompt");
+    expect(preflightIdx).toBeGreaterThanOrEqual(0);
+    expect(checkpointIdx).toBeGreaterThan(preflightIdx);
+  });
+
+  test("acceptance preview URL contract is wired across discovery, review, and specs", () => {
+    const workflowSpec = JSON.parse(
+      readFileSync(
+        join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+        "utf8",
+      ),
+    ) as { requirements: Array<{ id: string; title?: string }> };
+    const workflowDoc = readFileSync(
+      join(REPO_ROOT, "docs/specs/advance-workflow.md"),
+      "utf8",
+    );
+    const discover = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-discover.md"),
+      "utf8",
+    );
+    const review = readFileSync(
+      join(REPO_ROOT, ".opencode/command/adv-review.md"),
+      "utf8",
+    );
+
+    expect(workflowSpec.requirements.map((rq) => rq.id)).toContain(
+      "rq-acceptancePreviewUrl01",
+    );
+    expect(workflowDoc).toContain("Front-End Acceptance Preview URL");
+
+    expect(discover).toContain("visual_surface");
+    expect(discover).toContain("true|false|unknown");
+    expect(discover).toContain("preview applicability");
+
+    expect(review).toContain("Preview URL");
+    expect(review).toContain("reachability evidence");
+    expect(review).toContain("contract.reviewMatrix");
+    expect(review).toContain("`live` | `visual_surface: true`");
+    expect(review).toContain("Preview URL: not_applicable");
+    expect(review).toContain("Preview URL: blocked");
+    expect(review).toContain("Do not fabricate URLs");
+    expect(review).toContain("bare unverified URL");
+    expect(review).toContain("Sanitize URLs");
+    expect(review).toContain("Do not perform arbitrary HTTP probing");
+    expect(review).toContain("visual-surface drift");
+
+    const previewIdx = review.indexOf("Preview URL");
+    const checkpointIdx = review.indexOf("Inline Approval prompt");
+    expect(previewIdx).toBeGreaterThanOrEqual(0);
+    expect(checkpointIdx).toBeGreaterThan(previewIdx);
+  });
+
+  test("prep checklist requires reload checkpoint for new MCP tools", () => {
+    const checklist = readFileSync(
+      join(REPO_ROOT, "docs/checklists/prep-checklist.md"),
+      "utf8",
+    );
+
+    expect(checklist).toContain("Tool Registration Bootstrap");
+    expect(checklist).toContain("new MCP tools");
+    expect(checklist).toContain("fresh OpenCode session");
+    expect(checklist).toContain("self-application/reload checkpoint");
   });
 
   test("adv-prep requires contract refs when synthesizing tasks", () => {
@@ -474,6 +608,7 @@ describe("thin-command shape enforcement", () => {
       "utf8",
     );
 
+    expect(review).toContain("adv_contract_review_matrix_set");
     expect(review).toContain("contractReviewMatrixSetSignal");
     expect(review).toContain("contract.reviewMatrix");
     expect(review).toContain("required contract item");
@@ -536,10 +671,10 @@ describe("thin-command shape enforcement", () => {
 describe("command voice prose-load policy", () => {
   const COMMAND_VOICE_PATH = join(REPO_ROOT, "docs/command-voice-standard.md");
 
-  test("terse/caveman-lite composes with prose-load templates", () => {
+  test("caveman-full composes with prose-load templates", () => {
     const content = readFileSync(COMMAND_VOICE_PATH, "utf8");
 
-    expect(content).toContain("### Terse/caveman-lite composition");
+    expect(content).toContain("### Caveman-full composition");
     expect(content).toContain("wording-density layer");
     expect(content).toContain("enforcement class still controls");
     expect(content).toContain("Exact contract tokens stay unchanged");
@@ -591,8 +726,13 @@ describe("advisory line ceiling baselines", () => {
     const warnThreshold = 650;
     // 2026-05-03: bumped from 925 → 950 to accommodate intentional
     // long-term-practice rule docs plus multi-session coordination docs.
+    // 2026-05-24: bumped 950 → 960 (softenStrictModeOptionals AC10) to
+    // accommodate the strict-mode tolerance note in § ADV MCP Tool
+    // Invocation. The paragraph documents provider-asymmetric preflight
+    // normalization behavior that future maintainers need to see; it cites
+    // Vercel AI SDK #12200 inline.
     // Ratchet up only when adding intentional documented content.
-    const failThreshold = 950;
+    const failThreshold = 960;
 
     if (lines > warnThreshold) {
       console.warn(

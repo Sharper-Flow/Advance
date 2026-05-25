@@ -138,10 +138,13 @@ export const FeatureFlagsSchema = z
     wisdom_accumulation: z.boolean().default(true),
     /**
      * Whether machine worktree isolation is enforced.
-     * Default: false during rollout. When true, ADV main-checkout task/gate
-     * execution mutations and the trunk write firewall are enforced.
+     * Default: true (post-rollout, rq-autoManageAdvWorktrees AC2).
+     * When omitted or true, ADV main-checkout task/gate execution mutations
+     * and the trunk write firewall are enforced. Explicit `false` preserves
+     * legacy permissive behavior for projects that want to keep editing in
+     * the main checkout.
      */
-    worktree_guard_enforce: z.boolean().default(false),
+    worktree_guard_enforce: z.boolean().default(true),
     /**
      * Clarify enforcement mode.
      * - "off" (default): Clarify checks skipped entirely; no findings emitted
@@ -171,11 +174,11 @@ export function withStabilityFeatureDefaults(
     worker_singleton_enforce:
       typeof features?.worker_singleton_enforce === "boolean"
         ? features.worker_singleton_enforce
-        : true,
+        : false,
     worktree_guard_enforce:
       typeof features?.worktree_guard_enforce === "boolean"
         ? features.worktree_guard_enforce
-        : false,
+        : true,
   };
 }
 
@@ -184,7 +187,7 @@ export function withStabilityFeatureDefaults(
 // =============================================================================
 
 export const ProductLinkSchema = z.object({
-  /** Logical product identifier, e.g. "pokeedge". */
+  /** Logical product identifier, e.g. "example-product". */
   id: z.string().min(1),
   /** Role this repo plays inside the product. */
   role: z.enum(["primary", "secondary"]),
@@ -219,6 +222,16 @@ export const ProjectConfigSchema = z
     related_repos: z.array(RelatedRepoSchema).optional(),
     /** Optional product-link topology metadata. Reuses related_repos as repo registry. */
     product: ProductLinkSchema.optional(),
+    /**
+     * Archive finalization mode.
+     * - "direct" (default): /adv-archive finalizes by merging the change branch
+     *   into the default branch and optionally pushing it.
+     * - "pr": local default-branch merge is skipped; archive finalization must
+     *   push the change branch and guide the operator through PR workflow.
+     */
+    archive_mode: z.enum(["direct", "pr"]).default("direct"),
+    /** Whether archive finalization attempts `git push origin {default}`. */
+    auto_push: z.boolean().default(true),
     /** Per-project feature flag overrides. All flags default to current ADV behavior. */
     features: FeatureFlagsSchema.default(() => FeatureFlagsSchema.parse({})),
   })

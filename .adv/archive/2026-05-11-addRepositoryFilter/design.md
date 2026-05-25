@@ -12,7 +12,7 @@ The change touches:
 - 1 command-doc workflow (`/adv-triage`) — Phase 0 auto-detect + Phase 1 reader filter + Phase 5 writer-side fresh-read filter. Phase 4 inherits via the existing Phase 1 cached `project_items` map (the project's standing protocol). **The Phase 5 fresh read is a distinct read boundary that MUST get its own `--query` arg** — it deliberately does not reuse Phase 1 cache because Phase 4 mutations may have changed field values (see `adv-triage.md:432`).
 - 1 snapshot type — adds optional `repository_filter` mirror field
 
-Data flow (with filter set, `repository_filter: "PokeEdge-Web"`, owner: `Sharper-Flow`):
+Data flow (with filter set, `repository_filter: "Example-Web"`, owner: `Sharper-Flow`):
 
 ```
 git remote get-url origin → parseGitRemoteUrl() → { owner, name }
@@ -21,7 +21,7 @@ git remote get-url origin → parseGitRemoteUrl() → { owner, name }
                                     .adv/github-project.json
                                     { owner: "Sharper-Flow",
                                       project_number: 1,
-                                      repository_filter: "PokeEdge-Web", ... }
+                                      repository_filter: "Example-Web", ... }
                                                        │
        ┌───────────────────────────────────────────────┼───────────────────────────────────────────────┐
        ▼                                               ▼                                               ▼
@@ -30,10 +30,10 @@ readGitHubProjectConfig                       /adv-triage Phase 1               
        ▼                                               ▼                                               ▼
 readLiveProject(metadata + filter)         gh project item-list 1 \                   gh project item-list 1 \
        │                                       --owner Sharper-Flow \                   --owner Sharper-Flow \
-       ▼                                       --query "repo:Sharper-Flow/PokeEdge-Web"  --query "repo:Sharper-Flow/PokeEdge-Web"
+       ▼                                       --query "repo:Sharper-Flow/Example-Web"  --query "repo:Sharper-Flow/Example-Web"
 gh project item-list 1 \                              │                                               │
     --owner Sharper-Flow \                            ▼                                               ▼
-    --query "repo:Sharper-Flow/PokeEdge-Web"   cached project_items (filtered)            fresh items (filtered)
+    --query "repo:Sharper-Flow/Example-Web"   cached project_items (filtered)            fresh items (filtered)
        │                                              │                                               │
        ▼                                              ▼                                               ▼
 LiveProjectItem[] (already filtered)            Phase 4 scoring                       .adv/roadmap-snapshot.json
@@ -51,7 +51,7 @@ RoadmapSnapshot
 
 **Decision:** Every `gh project item-list` invocation gains `--query "repo:${config.owner}/${config.repository_filter}"` when `repository_filter` is set. Three call sites: `readLiveProject` (plugin), `/adv-triage` Phase 1 (command doc), `/adv-triage` Phase 5 (command doc).
 
-**Rationale (LBP):** Probe-confirmed live (Sharper-Flow Project #1: 123 items unfiltered → 68 PokeEdge filtered). gh CLI documents the `--query` flag and GitHub Projects filter syntax explicitly supports `repo:OWNER/REPO`. Server-side beats client-side on:
+**Rationale (LBP):** Probe-confirmed live (Sharper-Flow Project #1: 123 items unfiltered → 68 ExampleProduct filtered). gh CLI documents the `--query` flag and GitHub Projects filter syntax explicitly supports `repo:OWNER/REPO`. Server-side beats client-side on:
 
 - Simplicity — zero new loop
 - Pagination correctness — filter applies BEFORE the 500-item cap
@@ -62,9 +62,9 @@ DONT1 in agreement. Alternative (client-side post-fetch filter) rejected during 
 
 ### D2 — Bare-name semantics, owner inherited from config
 
-**Decision:** `repository_filter` value is the bare repo name (e.g. `"PokeEdge-Web"`). The gh query string is constructed as `${config.owner}/${config.repository_filter}`.
+**Decision:** `repository_filter` value is the bare repo name (e.g. `"Example-Web"`). The gh query string is constructed as `${config.owner}/${config.repository_filter}`.
 
-**Rationale:** User-facing config legibility ("filter to PokeEdge-Web" > "filter to Sharper-Flow/PokeEdge-Web" when owner is already in config). Aligns with `config.owner` as single source of truth for the org/user namespace. C2 in agreement.
+**Rationale:** User-facing config legibility ("filter to Example-Web" > "filter to Sharper-Flow/Example-Web" when owner is already in config). Aligns with `config.owner` as single source of truth for the org/user namespace. C2 in agreement.
 
 **Alternative considered:** Store full `owner/name` in the filter. Rejected — duplicates `config.owner` and creates ambiguity when the two disagree.
 
@@ -150,7 +150,7 @@ DONT1 in agreement. Alternative (client-side post-fetch filter) rejected during 
 
 7. **Verification gate**
    - `pnpm run check && pnpm test` pass
-   - Spot check: `adv_roadmap source: "live"` against Sharper-Flow Project #1 with `repository_filter: "PokeEdge"` → 68 items (matches probe baseline)
+   - Spot check: `adv_roadmap source: "live"` against Sharper-Flow Project #1 with `repository_filter: "ExampleProduct"` → 68 items (matches probe baseline)
 
 ### Order rationale
 

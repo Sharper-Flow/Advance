@@ -1,0 +1,155 @@
+{
+  "id": "rebuildPluginDistDeploy",
+  "title": "Rebuild plugin dist before deploy",
+  "status": "archived",
+  "created_at": "2026-05-20T18:49:12.804Z",
+  "tasks": [
+    {
+      "id": "tk-165a5300cf5f",
+      "title": "Add deploy-local freshness guard tests",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T00:22:44.003Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T00:25:35.972Z",
+      "verification": "Added failing freshness-guard tests. Red evidence: targeted test exits 1 for missing helper, missing call-site placement, dry-run message, and legacy warn-only removal. Checkpoint commit 61950c1fee72bb5144f81a146d1a3999eea6279e recorded.",
+      "summary": "Added source-level asset tests to `plugin/src/overlay-sync-assets.test.ts` covering freshness helper existence, mtime staleness check, pnpm build invocation, call placement after check/source guard and before rsync, dry-run messaging, missing/stale reasons, and removal of warn-only behavior.",
+      "implementation_summary": "Added source-level asset tests to `plugin/src/overlay-sync-assets.test.ts` covering freshness helper existence, mtime staleness check, pnpm build invocation, call placement after check/source guard and before rsync, dry-run messaging, missing/stale reasons, and removal of warn-only behavior.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T00:27:47.544Z",
+      "completed_at": "2026-05-21T00:27:47.544Z"
+    },
+    {
+      "id": "tk-92465d1dd2c6",
+      "title": "Implement deploy-local dist freshness guard",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T00:22:52.116Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-165a5300cf5f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T00:28:03.303Z",
+      "verification": "Implemented freshness guard and verified. Targeted asset test passes with 18 tests; shell syntax check passes. Checkpoint commit 98b9eccc5d57e1f619efee3fbaefcc2e5b58a778 recorded.",
+      "summary": "Added `ADV_PLUGIN_DIST` and `ensure_plugin_dist_fresh()` to `scripts/deploy-local.sh`. The helper detects missing dist and source-newer-than-dist via `find -newer`, reports planned rebuilds during dry-run, runs `(cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build)` in real deploy modes, and exits before rsync with `refusing to deploy stale dist` on build failure. The call site is after the `--check` exit and source-dir guard, immediately before plugin rsync. Updated asset tests to allow the first fresh-checkout build and seed temp-worktree dist for unrelated worktree-path assertions.",
+      "implementation_summary": "Added `ADV_PLUGIN_DIST` and `ensure_plugin_dist_fresh()` to `scripts/deploy-local.sh`. The helper detects missing dist and source-newer-than-dist via `find -newer`, reports planned rebuilds during dry-run, runs `(cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build)` in real deploy modes, and exits before rsync with `refusing to deploy stale dist` on build failure. The call site is after the `--check` exit and source-dir guard, immediately before plugin rsync. Updated asset tests to allow the first fresh-checkout build and seed temp-worktree dist for unrelated worktree-path assertions.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T00:34:12.873Z",
+      "completed_at": "2026-05-21T00:34:12.873Z"
+    },
+    {
+      "id": "tk-64a75d0ee614",
+      "title": "Run full verification and deploy smoke checks",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T00:22:58.669Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-92465d1dd2c6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-21T00:34:37.095Z",
+      "verification": "Review remediation applied and verified. Added behavioral guard tests with fake pnpm/rsync, post-build freshness validation, and same-git-common-dir CWD asset-root guard. Verification passed: bash -n, focused asset tests (19), full build/test/check, deploy dry-run/fix, runtime freshness assertion. Checkpoint commit 5f0e56377a86ebbbb4f31b12213a276c5d60f2a3 recorded.",
+      "summary": "Extended verification/remediation after review findings: deploy-local now validates candidate CWD asset roots share the same git common dir as the script checkout before executing build commands; `plugin_dist_stale_reason()` centralizes missing/stale checks; `ensure_plugin_dist_fresh()` re-checks dist after successful build and refuses rsync if still stale. Added behavioral tests that exercise dry-run no-build, build failure abort/rsync suppression, and successful fake build before rsync.",
+      "implementation_summary": "Extended verification/remediation after review findings: deploy-local now validates candidate CWD asset roots share the same git common dir as the script checkout before executing build commands; `plugin_dist_stale_reason()` centralizes missing/stale checks; `ensure_plugin_dist_fresh()` re-checks dist after successful build and refuses rsync if still stale. Added behavioral tests that exercise dry-run no-build, build failure abort/rsync suppression, and successful fake build before rsync.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T00:54:31.875Z",
+      "completed_at": "2026-05-21T00:54:31.875Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-SZwxGt",
+      "type": "gotcha",
+      "content": "Deploy-local asset tests spawn the real script against the checkout that owns the script. Once deploy-local auto-builds missing/stale plugin/dist, fresh-checkout tests may pay the real build cost, and temp worktree tests that validate unrelated path/config behavior should seed a fresh `plugin/dist/index.js` fixture to avoid accidentally testing dependency/build availability.",
+      "source_task": "tk-92465d1dd2c6",
+      "recorded_at": "2026-05-21T00:34:18.271Z"
+    },
+    {
+      "id": "ws-e4qxiM",
+      "type": "gotcha",
+      "content": "For focused Vitest verification in this repo, `pnpm exec vitest run <file>` is more reliable than `pnpm test -- <file>`; the package-script form can still behave like a broad suite run under the current pnpm/vitest invocation and surface unrelated integration prerequisites.",
+      "source_task": "tk-64a75d0ee614",
+      "recorded_at": "2026-05-21T00:39:03.074Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-20T18:49:37.898Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track via /adv-task. Quick contract confirmed by user."
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:16:03.262Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings already captured in proposal artifact: current-state scan found warn-only dist pre-flight, agreed scope/AC, risks, LBP direction, and no unresolved ambiguity."
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:22:20.684Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design revised after independent validator NEEDS_WORK finding. Re-validation PASS: guard call after --check early exit and source-dir guard, immediately before plugin rsync; no remaining contract-compromise risk."
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:24:44.358Z",
+      "completed_by": "agent",
+      "approval_evidence": "User invoked exact /adv-apply command after prep checkpoint; command-as-approval for planning/prep task graph. Proceeding to execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T00:41:03.287Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks completed. Verification passed: pnpm run build, pnpm test, pnpm run check, deploy-local --dry-run, deploy-local --fix, runtime dist freshness assertion, adv_change_validate (warnings only: NO_DELTAS). Working tree clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:00:13.515Z",
+      "completed_by": "user:acceptance",
+      "approval_evidence": "User replied `accept` to acceptance prompt after APPROVED review and verification summary."
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-21T04:34:17.552Z",
+      "completed_by": "user:signoff",
+      "approval_evidence": "User signed off via Tier B whitelist 'sign off'. Harden pass: pnpm run check ✓, working tree clean, all 3 tasks done, executive-summary.md persisted."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-21T04:25:35.594Z"
+    }
+  ]
+}

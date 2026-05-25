@@ -60,6 +60,35 @@ export {
 } from "./tasks";
 
 // =============================================================================
+// Sub-agent Reports
+// =============================================================================
+export {
+  SUBAGENT_REPORT_SCHEMA_VERSION,
+  SubagentAgentSchema,
+  type SubagentAgent,
+  SubagentVerificationEntrySchema,
+  SubagentDecisionSchema,
+  SubagentBlockerSchema,
+  SubagentConsumerWarningSchema,
+  EngineerSubagentReportSchema,
+  ReviewerFindingSchema,
+  ReviewerChangeMadeSchema,
+  ReviewerScopeDriftSchema,
+  ReviewerSubagentReportSchema,
+  SupportedSubagentReportSchema,
+  type PersistedSubagentReportAgent,
+  type SubagentReportFieldSource,
+  SUBAGENT_REPORT_PACKET_ANCHORS,
+  SUBAGENT_REPORT_FIELD_SOURCES,
+  getSubagentReportPacketAnchors,
+  type EngineerSubagentReport,
+  type ReviewerSubagentReport,
+  type SupportedSubagentReport,
+  SubagentReportSchema,
+  type SubagentReport,
+} from "./subagent-reports";
+
+// =============================================================================
 // Gates
 // =============================================================================
 export {
@@ -67,6 +96,10 @@ export {
   GateIdSchema,
   type GateId,
   GATE_ORDER,
+  type GateWorktreeImpact,
+  GATE_WORKTREE_IMPACT,
+  isMetadataOnlyGate,
+  isWorktreeMutationGate,
   GateArtifactKindSchema,
   type GateArtifactKind,
   GateArtifactEvidenceSchema,

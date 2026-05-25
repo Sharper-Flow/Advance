@@ -2,6 +2,7 @@ import type {
   ChangeClosure,
   ChangeContract,
   ChangeOrigin,
+  SubagentAgent,
   FastFollowOf,
   Gates,
 } from "../types";
@@ -54,6 +55,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   taskRemoved: "adv.change.taskRemoved",
   taskAssigned: "adv.change.taskAssigned",
   taskCompleted: "adv.change.taskCompleted",
+  subagentReportSubmitted: "adv.change.subagentReportSubmitted",
   taskBlocked: "adv.change.taskBlocked",
   taskCancelled: "adv.change.taskCancelled",
   gateInProgress: "adv.change.gateInProgress",
@@ -65,6 +67,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   reflectionRecorded: "adv.change.reflectionRecorded",
   worktreeCreated: "adv.change.worktreeCreated",
   worktreeDeleted: "adv.change.worktreeDeleted",
+  worktreeAutoManaged: "adv.change.worktreeAutoManaged",
+  worktreeAttached: "adv.change.worktreeAttached",
   conformanceLocked: "adv.change.conformanceLocked",
   conformanceVerdict: "adv.change.conformanceVerdict",
   conformanceOverridden: "adv.change.conformanceOverridden",
@@ -74,6 +78,15 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
 } as const;
+
+export function subagentReportKey(input: {
+  changeId: string;
+  taskId: string;
+  agent: SubagentAgent;
+  attempt: number;
+}): string {
+  return `${input.changeId}|${input.taskId}|${input.agent}|${input.attempt}`;
+}
 
 export interface ChangeSummaryPayload {
   changeId: string;
@@ -103,7 +116,8 @@ export type ArtifactKind =
   | "proposal"
   | "problemStatement"
   | "agreement"
-  | "design";
+  | "design"
+  | "executiveSummary";
 
 export interface ArtifactMetadata {
   path: string;
@@ -155,6 +169,10 @@ export interface ChangeWorkflowInput {
       | "conformance"
       | "archiveRequest"
       | "origin"
+      | "worktree_auto_managed"
+      | "target_worktree_path"
+      | "scope_worktrees"
+      | "seenReportIds"
     >
   >;
 }
@@ -176,6 +194,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     discovery?: ArtifactMetadata;
     design?: ArtifactMetadata;
     agreement?: ArtifactMetadata;
+    executiveSummary?: ArtifactMetadata;
   };
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;
@@ -243,12 +262,39 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * search attribute (rq-backlogCoord01).
    */
   origin?: ChangeOrigin;
+  /** Deterministic idempotency keys for submitted sub-agent reports. */
+  seenReportIds?: string[];
+
+  /**
+   * Per-change worktree-auto-managed marker (rq-autoManageAdvWorktrees AC3).
+   * Mirrors `ChangeSchema.worktree_auto_managed` on disk. Set by
+   * `worktreeAutoManagedSignal`; sticky once a boolean is written.
+   */
+  worktree_auto_managed?: boolean;
+
+  /**
+   * Cross-project worktree path projection (rq-autoManageAdvWorktrees AC4).
+   * Mirrors `ChangeSchema.target_worktree_path` on disk. Set by
+   * `worktreeAttachedSignal({ role: "target" })`; null after archive
+   * cleanup. Registry remains canonical per `rq-worktreeRegistry01`.
+   */
+  target_worktree_path?: string | null;
+
+  /**
+   * Per-`scope_repos[*]` worktree path projection
+   * (rq-autoManageAdvWorktrees AC4). Mirrors `ChangeSchema.scope_worktrees`
+   * on disk. Keyed by `repo_id`. Set by
+   * `worktreeAttachedSignal({ role: "scope", repoId, path })`. Iteration
+   * order matches `Object.keys` insertion order, which archive Phase 9
+   * cleanup relies on for deterministic per-repo deletion.
+   */
+  scope_worktrees?: Record<string, string>;
 }
 
 /**
  * Worktree registry record. Per-change context only in the signal-driven
  * architecture; peer sessions read via change workflow queries or Temporal
- * visibility search attributes.
+ * visibility search attributes. rq-wl-branchRegistry01
  */
 export type WorktreeRecordStatus =
   | "unmaterialized"

@@ -1,0 +1,1184 @@
+{
+  "id": "softenStrictModeOptionals",
+  "title": "Soften strict-mode optionals",
+  "status": "archived",
+  "created_at": "2026-05-23T23:33:55.648Z",
+  "tasks": [
+    {
+      "id": "tk-cbd763bdfbbd",
+      "title": "Extend preflight engine: zero policy axis + Zod-args routing refactor",
+      "type": "code",
+      "section": "Engine",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-24T03:22:55.799Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC14"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC14"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T04:07:25.097Z",
+      "verification": "Extended preflight engine: (1) added zero?: PlaceholderPolicyAction to PlaceholderFieldPolicy interface; (2) added value === 0 branch in applyFieldPolicies symmetric with blank/sentinels/emptyArray; (3) refactored preflightToolArgs Zod loop to read policyResult.normalizedArgs instead of raw args; (4) added first concrete entry adv_change_create.origin_issue_number: { zero: \"omit\" } as the in-T1 mechanism example. Tests: 41 in tool-arg-preflight.test.ts pass (added zero policy axis tests + Zod-normalized-args tests); 121 tests across preflight + registry + change-origin + change all pass; one existing matrix entry (\"ad hoc rejects blank/zero origin placeholders\") updated to reflect new semantics: origin_issue_number: 0 now normalizes out, but origin_source_artifact: \"\" still rejects until T2 sweep.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "4c32870cf6b01882c74d8f6d0825fbb7e4c613bf",
+      "completedAt": "2026-05-24T04:22:37.151Z",
+      "completed_at": "2026-05-24T04:22:37.151Z"
+    },
+    {
+      "id": "tk-bcab8dce2942",
+      "title": "Full-sweep FIELD_POLICIES flip + cross-field validator simplification + GPT regression matrix",
+      "type": "code",
+      "section": "Engine",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-24T03:23:26.327Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cbd763bdfbbd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "AC12",
+          "AC13"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11",
+          "AC12",
+          "AC13"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS5",
+          "OOS6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T04:22:44.680Z",
+      "verification": "Full-sweep FIELD_POLICIES flip applied per design table (76 hand-classified entries): optional content/path/lineage entries flipped to blank: \"omit\" (artifact fields on create+update; target_path on every read/mutation tool; source_project/source_change_id/parent_change_id on create; origin_source_artifact on create; supersededBy on close+bulk_close; notes/compatibilityReason on gate_complete; description/category on agenda_add; notes on agenda_complete; approvedAt on contract_mint; reviewedAt on contract_review_matrix_set; branch/base on worktree_resume; spec/artifact_path on conformance); audit/identity/command/title/branch/base on create/delete/cleanup/reason fields stay reject. CROSS_FIELD_VALIDATORS.adv_change_create simplified (blank-artifact and blank-source-artifact checks removed; origin matrix + mutual-exclusion intact). CROSS_FIELD_VALIDATORS.adv_change_update simplified (blank-artifact check removed; at-least-one-of guard collapsed with nonEmpty check). Added comprehensive GPT-payload tests + AC12 audit-fields-stay-strict parametrized matrix (26 audit fields covered). Adjacent fix per touched-scope rule: ratcheting line guard bumped 950→960 for ADV_INSTRUCTIONS.md to accommodate T5's strict-mode tolerance paragraph. Full vitest: 3102/3102 pass (233 files, 68s).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "1ec7dc04eaa28bc2a36cffb773207835ec20da16",
+      "completedAt": "2026-05-24T04:30:52.526Z",
+      "completed_at": "2026-05-24T04:30:52.526Z"
+    },
+    {
+      "id": "tk-bb6c8bfd3609",
+      "title": "Update defensive-guard comments in change.ts (bypass-resilience layer)",
+      "type": "code",
+      "section": "Code Hygiene",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-24T03:23:38.132Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C3",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": "Comment-only change. No logic modification; behavior is identical pre/post. Defense-in-depth layer continues working as before."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T04:07:26.104Z",
+      "verification": "Added bypass-resilience doc comments above collectBlankCreateArtifactOrLinkageFields (line 261) and validateCreateOriginLinkage (line 286) in plugin/src/tools/change.ts. Both comments cite rq-toolPlaceholderPolicy01.5 and explain no-op-on-normalized-path semantics. pnpm exec vitest run src/tools/change.test.ts src/tools/change-origin.test.ts passed (56 tests).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8d00e250fced1ea171be9fcd935db95ffed92f44",
+      "completedAt": "2026-05-24T04:19:24.862Z",
+      "completed_at": "2026-05-24T04:19:24.862Z"
+    },
+    {
+      "id": "tk-6df4f2a0158f",
+      "title": "Spec law amendment: rq-toolPlaceholderPolicy01 + rq-toolArgBlankArtifactLinkage01",
+      "type": "code",
+      "section": "Spec Law",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-24T03:24:03.165Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC15",
+          "AC16",
+          "AC17",
+          "AC18",
+          "AC19",
+          "AC20",
+          "AC21"
+        ],
+        "verifies": [
+          "AC15",
+          "AC16",
+          "AC17",
+          "AC18",
+          "AC19",
+          "AC20",
+          "AC21"
+        ],
+        "respects": [
+          "C2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T04:07:26.633Z",
+      "verification": "Amended .adv/specs/advance-workflow/spec.json: revised rq-toolArgBlankArtifactLinkage01 body + scenarios .1/.3/.5; added .6 (audit fields still reject); added rq-toolPlaceholderPolicy01.5 (strict-mode tolerance); bumped version 1.12.0 → 1.12.1. RED/GREEN scenario-presence checks passed. change.test.ts 44/44 pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8d00e250fced1ea171be9fcd935db95ffed92f44",
+      "completedAt": "2026-05-24T04:19:36.163Z",
+      "completed_at": "2026-05-24T04:19:36.163Z"
+    },
+    {
+      "id": "tk-311b779f3d2e",
+      "title": "Documentation: strict-mode tolerance note in AGENTS.md + ADV_INSTRUCTIONS.md",
+      "type": "code",
+      "section": "Documentation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-24T03:24:16.296Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC22"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT3"
+        ],
+        "not_applicable_reason": "Documentation-only change; no executable behavior to test."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T04:07:27.512Z",
+      "verification": "Added strict-mode tolerance paragraph to AGENTS.md § ADV MCP tool call hygiene and ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation. Both paragraphs cite Vercel AI SDK #12200, explain auto-strict-mode normalization, distinguish audit fields from optional content/lineage fields, remind agents to omit. Markdown integrity verified via diff.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8d00e250fced1ea171be9fcd935db95ffed92f44",
+      "completedAt": "2026-05-24T04:19:39.323Z",
+      "completed_at": "2026-05-24T04:19:39.323Z"
+    },
+    {
+      "id": "tk-8cc160e52edb",
+      "title": "Verification: pnpm run check + full vitest + adv_change_validate strict",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-24T03:24:33.459Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cbd763bdfbbd"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bcab8dce2942"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-bb6c8bfd3609"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6df4f2a0158f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-311b779f3d2e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC7",
+          "AC23"
+        ],
+        "respects": [
+          "C5"
+        ],
+        "not_applicable_reason": "Verification gate task; no new behavior to TDD. Verifies via existing test infrastructure and inspection of unchanged file."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-24T04:30:59.359Z",
+      "verification": "Verification gate task. (1) pnpm run check: typecheck + lint + format:check all pass (after removing unused BLANK_ARTIFACT_FIELD_MESSAGE / BLANK_SOURCE_ARTIFACT_MESSAGE constants left over from removed cross-field checks, and running prettier --write). (2) pnpm test: 233 files / 3102 tests pass, zero failures, ~63s. (3) adv_change_validate strict: passed: true with only NO_DELTAS warning (non-blocking; this change touches code + spec + docs but does not require formal change.deltas mapping). (4) Storage-layer guard json.ts: git diff trunk shows 0 changes — AC7 confirmed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "f4b8d031fba83ca8f31fc01cb061843675012ae6",
+      "completedAt": "2026-05-24T04:33:54.755Z",
+      "completed_at": "2026-05-24T04:33:54.755Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-24T00:34:13.478Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal via inline reply: `continue` (Tier A whitelist). B/F/S scan PASS. `adv_change_validate --strict` clean (NO_TASKS/NO_DELTAS only).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/proposal.md",
+        "content_hash": "0c200b4a3819df913d25db98cd13b83ce7dc4f98f14bba7c7a6fb2a7255fd578",
+        "non_whitespace_chars": 9960,
+        "checked_at": "2026-05-24T00:34:13.523Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-24T03:12:36.520Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved AC via inline reply: `approve` (Tier A whitelist). Discovery findings persisted to problem-statement.md. Agreement.md persisted with objectives (SC1-SC4), 23 acceptance criteria, 6 constraints, 7 avoidances, 6 out-of-scope items, user decisions for Q1/Q2/Q3, agent LBP decisions for Q4/Q5. Contract minted with 42 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/agreement.md",
+        "content_hash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "non_whitespace_chars": 7530,
+        "checked_at": "2026-05-24T03:12:36.588Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-24T03:20:56.519Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded with 10 key decisions and full implementation strategy (8 steps, 76 hand-classified policy table entries). Validator: VALIDATED with 2 CAUTION items, both addressed via design update (KD9 spec body revision + step 5 second-guard comment). KD10 resolves validator's D5 alternative concern via empirical SDK verification: @opencode-ai/plugin@1.15.5 installed in node_modules (no Tool.strict), OpenCode binary 1.15.10 still triggers strict-mode bug. No user-value tradeoff, no contract-compromise risk, no unresolved CONFLICT — Phase 4 straightforward design auto-pass routing to /adv-prep.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/design.md",
+        "content_hash": "ec4163826588e18e1d9db930d54288d208f67b06337e2a2218aff89e9c5f66df",
+        "non_whitespace_chars": 14870,
+        "checked_at": "2026-05-24T03:20:56.585Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-24T04:06:40.433Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep plan via inline reply: `approve` (Tier A whitelist). 6 tasks created with TDD intent, dependencies, contract refs spanning 23 AC items. Validation passed strict (NO_DELTAS warning only). Cross-cutting concerns 12-item checklist documented (3 applicable, 9 N/A). INVEST + smell checks clean."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-24T04:34:02.313Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks complete and checkpointed: T1 (engine extension - zero policy + Zod routing) commit 4c32870; T2 (full sweep + cross-field simplify + GPT regression matrix + line-guard bump) commit 1ec7dc0; T3 (defensive guard comments) commit 8d00e25; T4 (spec law) commit 8d00e25; T5 (docs) commit 8d00e25; T6 (verification + cleanup) commit f4b8d03. Final state: pnpm run check passes; pnpm test 3102/3102 passes; adv_change_validate --strict clean (NO_DELTAS only); storage layer json.ts diff = 0 lines."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-24T04:45:46.588Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via inline reply: `accept` (Tier A whitelist). Multi-dimensional review APPROVED with 0 blockers / 0 issues / 0 suggestions / 2 deferred nits. Contract matrix: 42 rows, 0 failing. Executive summary persisted to executive-summary.md. Investment: 6 tasks / 0 retries / 26 min / tier auto.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/acceptance.md",
+        "content_hash": "e21785e166e64e1576cba907565efe94be26d3b67dee13b2b582702e41f35616",
+        "non_whitespace_chars": 11686,
+        "checked_at": "2026-05-24T04:45:46.672Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "fast_follow_of": {
+    "parent_change_id": "hardenChangeCreation",
+    "linked_at": "2026-05-23T23:33:55.499Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session-2026-05-23-gpt-strict-mode-block"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+      "approvedAt": "2026-05-24T03:12:26.525Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** `FIELD_POLICIES` in `plugin/src/utils/tool-arg-preflight.ts` is updated via a hand-classified full sweep. Every optional content/path/lineage entry flips to `blank: \"omit\"` (and `zero: \"omit\"` for `origin_issue_number`). Every required-when-present audit/evidence/reason/command/branch entry keeps `blank: \"reject\"`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** A new `zero?: PlaceholderPolicyAction` member is added to the `PlaceholderFieldPolicy` type. `applyFieldPolicies` handles `value === 0` per the field's `zero` policy (omit / reject / allow).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** `preflightToolArgs` is refactored so that Zod validation reads from `policyResult.normalizedArgs` instead of raw `args`. Fields normalized out of the policy table are invisible to Zod and to cross-field validators.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** `CROSS_FIELD_VALIDATORS.adv_change_create` is simplified: blank-artifact and blank-`origin_source_artifact` checks are removed (now owned by `FIELD_POLICIES`). The origin matrix and target/source/parent mutual-exclusion checks continue using normalized args.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** `CROSS_FIELD_VALIDATORS.adv_change_update` `at-least-one-of` guard continues to fire on normalized args. An all-blanks GPT payload normalizes to empty, triggering \"At least one artifact field must be provided.\"",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6** `collectBlankCreateArtifactOrLinkageFields` in `plugin/src/tools/change.ts` is kept as a bypass-resilience layer. The code comment is updated to mark it as no-op on the normalized-args path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** Storage-level blank artifact rejection in `plugin/src/storage/json.ts` is unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8** Regression tests added to `plugin/src/utils/tool-arg-preflight.test.ts` covering:",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Full GPT strict-mode `adv_change_create` payload (every optional filled with `\"\"`/`0`/`[]`) normalizes to the minimal valid payload, returns `ok: true`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Full GPT strict-mode `adv_change_update` payload (all five artifact fields blank) normalizes to empty, returns `ok: false` with the `at-least-one-of` cross-field error.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Mixed GPT `adv_change_update` payload (`{proposal: \"real\", design: \"\"}`) normalizes `design` out, returns `ok: true` with `normalizedArgs: {changeId, proposal: \"real\"}`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC12",
+        "kind": "acceptance_criterion",
+        "text": "Audit-field rejection still fires for blank `approvalEvidence`, `confirmationEvidence`, `reason`, `command`, `branch`, `content`, `title`, `user`, `completedBy`, `recoveryEvidence`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC13",
+        "kind": "acceptance_criterion",
+        "text": "Sentinel rejection: `parent_change_id: \"none\"` (and other `KNOWN_OMISSION_SENTINELS`) still rejected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC14",
+        "kind": "acceptance_criterion",
+        "text": "`zero: \"omit\"` only applies to fields whose policy declares it; other zero-valued fields are not stripped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC15",
+        "kind": "acceptance_criterion",
+        "text": "**AC9** Spec law `.adv/specs/advance-workflow/spec.json` updated **in place**:",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC16",
+        "kind": "acceptance_criterion",
+        "text": "`rq-toolPlaceholderPolicy01.5` (new) — provider-asymmetric strict-mode tolerance scenario.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC17",
+        "kind": "acceptance_criterion",
+        "text": "`rq-toolArgBlankArtifactLinkage01.1` — revised to \"Mixed update payload normalizes blank field to omitted; only writes provided non-blank artifacts.\"",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC18",
+        "kind": "acceptance_criterion",
+        "text": "`rq-toolArgBlankArtifactLinkage01.3` — revised to \"Create normalizes blank provided narrative artifacts to omitted.\"",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC19",
+        "kind": "acceptance_criterion",
+        "text": "`rq-toolArgBlankArtifactLinkage01.5` — revised to \"Blank origin source artifact is normalized to omitted.\"",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC20",
+        "kind": "acceptance_criterion",
+        "text": "`rq-toolArgBlankArtifactLinkage01.6` (new) — required-when-present audit fields still reject blank.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC21",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_validate --strict` passes with only the expected pre-prep `NO_TASKS` / `NO_DELTAS` warnings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC22",
+        "kind": "acceptance_criterion",
+        "text": "**AC10** `AGENTS.md § ADV MCP tool call hygiene` and `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` each gain one short paragraph explaining strict-mode tolerance, citing Vercel AI SDK issue #12200, and reminding agents to still aim to omit fields they do not intend to set.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC23",
+        "kind": "acceptance_criterion",
+        "text": "**AC11** `pnpm run check` passes. All ~2995 existing tests still pass. New regression tests pass. No flake.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** No heuristic provider detection or model-family branching in preflight code (P33 structural correctness).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** No regression of any required-when-present field's blank rejection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** Storage-level blank artifact rejection in `json.ts` stays as defense-in-depth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** No changes to the OpenCode plugin SDK (`@opencode-ai/plugin`) or the underlying Vercel AI SDK. This is purely an ADV-side preflight policy change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5** Canonical error response shape preserved: `INVALID_TOOL_ARGS` code, `missing` / `invalid` field lists with names + messages, `canonical_minimal_payload` block, redacted `received_args`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6** Policy table remains the single structural source of truth; no scattered Zod `preprocess()` or per-tool ad-hoc normalization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** Don't add provider-specific code paths (e.g. `if (providerID === \"openai\")`) anywhere in preflight or tool registry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** Don't weaken any required-when-present field's blank rejection. Specifically: `approvalEvidence`, `confirmationEvidence`, `recoveryEvidence`, `reason`, `notes` on `adv_agenda_cancel`/`adv_worktree_cleanup`, `command`, `branch` on `adv_worktree_create`/`adv_worktree_delete`, `base` on `adv_worktree_create`, `content`, `title`, `user`, `completedBy` stay strict.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** Don't refactor `.optional()` → `.nullable()` at the Zod schema level — out of scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** Don't add a one-shot auto-retry that strips blanks and resubmits — that hides the underlying issue and prevents the agent from learning.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5** Don't remove the storage-level blank artifact guard in `json.ts` — it's defense-in-depth against direct callers that bypass preflight.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**DONT6** Don't remove the `collectBlankCreateArtifactOrLinkageFields` defensive guard in `change.ts` — it stays as a bypass-resilience layer.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "**DONT7** Don't oscillate the policy: once flipped, fields stay omit-on-blank unless a future bug demonstrates a real audit-integrity violation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1** Per-tool `strict: false` opt-out at the AI SDK level (waiting on `@opencode-ai/plugin` SDK upgrade beyond 1.15.5).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2** Refactoring schemas to use `.nullable()` instead of `.optional()`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3** Reverting `hardenChangeCreation`. Only the optional-content reject policy flips; the catch-laziness-on-audit-fields intent stays.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4** Changing the storage-level blank artifact guard in `json.ts`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "**OOS5** Adding provider-detection or model-family branching anywhere in ADV.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "**OOS6** Changing the OpenCode plugin SDK passthrough behavior in `@opencode-ai/plugin@1.15.5`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b5746d2e851714f7ef257757e142cc03b2d0862bbb6c67af403f77984fd6ccf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-24T04:40:50.059Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.ts:53-209 FIELD_POLICIES full-sweep table; verified by tool-arg-preflight.test.ts AC12 parametrized matrix + GPT comprehensive payload tests"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.ts:30 zero?: PlaceholderPolicyAction; lines 277-285 applyFieldPolicies value===0 branch; tested by zero policy axis describe block in tool-arg-preflight.test.ts"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.ts:444-465 preflightToolArgs Zod loop refactored to read policyResult.normalizedArgs; tested by 'Zod validation reads normalizedArgs' describe block"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.ts:278-376 CROSS_FIELD_VALIDATORS.adv_change_create simplified; origin matrix + mutual-exclusion intact; tested by enforces adv_change_create test"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.ts:394-411 at-least-one-of guard; tested by 'full GPT update payload (all artifacts blank) triggers at-least-one-of'"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "plugin/src/tools/change.ts:261-265 and 291-297 bypass-resilience comments on both defensive guards; verified by code review sub-agent 1 traceability"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk -- plugin/src/storage/json.ts returns 0 lines; storage-layer blank artifact rejection (rq-toolArgBlankArtifactLinkage01.4) unchanged"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts grew ~599 lines; 30 cases in regression matrix; 4 GPT comprehensive payload tests; 27 audit-fields-still-reject parametrized cases; 4 zero policy axis tests; 3 Zod-normalizedArgs integration tests"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts 'full GPT create payload normalizes to minimal valid' test; normalizedArgs equals {summary, proposal, origin_kind}"
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts 'full GPT update payload (all artifacts blank) triggers at-least-one-of' test"
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts 'mixed GPT update payload normalizes blanks and accepts non-blank' test"
+        },
+        {
+          "contractId": "AC12",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts 'audit-and-required fields still reject blank (AC12)' parametrized matrix with 27 cases covering content, command, approvalEvidence, confirmationEvidence, recoveryEvidence, reason, completedBy, user, branch, base, title, changeId"
+        },
+        {
+          "contractId": "AC13",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts 'sentinel placeholders still reject even after blank-omit flip' test verifies parent_change_id with 'none', 'n/a', 'null', 'transcript'"
+        },
+        {
+          "contractId": "AC14",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/tool-arg-preflight.test.ts 'no zero policy: value === 0 passes through' test; synthetic tool with no policy entry preserves zero value"
+        },
+        {
+          "contractId": "AC15",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-workflow/spec.json:2287 rq-toolArgBlankArtifactLinkage01 body revised; scenarios .1/.3/.5 updated; .6 added"
+        },
+        {
+          "contractId": "AC16",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-workflow/spec.json rq-toolPlaceholderPolicy01.5 scenario added"
+        },
+        {
+          "contractId": "AC17",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-workflow/spec.json rq-toolArgBlankArtifactLinkage01.1 scenario revised to omit-on-blank semantics"
+        },
+        {
+          "contractId": "AC18",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-workflow/spec.json rq-toolArgBlankArtifactLinkage01.3 scenario revised"
+        },
+        {
+          "contractId": "AC19",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-workflow/spec.json rq-toolArgBlankArtifactLinkage01.5 scenario revised"
+        },
+        {
+          "contractId": "AC20",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": ".adv/specs/advance-workflow/spec.json rq-toolArgBlankArtifactLinkage01.6 scenario added (audit fields still reject)"
+        },
+        {
+          "contractId": "AC21",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_change_validate strict returned passed:true with only NO_DELTAS warning (non-blocking)"
+        },
+        {
+          "contractId": "AC22",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "AGENTS.md and ADV_INSTRUCTIONS.md each gained a strict-mode tolerance paragraph citing Vercel AI SDK #12200; line-guard bumped 950→960 in adv-skill-backed-commands-assets.test.ts"
+        },
+        {
+          "contractId": "AC23",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check passed; pnpm test 3102/3102 passed (233 test files, ~63s); zero flakes"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No provider detection or model-family branching introduced; policy table is provider-agnostic structural classification (P33)"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "AC12 parametrized matrix (27 cases) confirms every required-when-present field still rejects blank"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk -- plugin/src/storage/json.ts returns 0 lines"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to OpenCode plugin SDK (@opencode-ai/plugin) or Vercel AI SDK; change is purely ADV-side"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "INVALID_TOOL_ARGS error shape preserved: code, missing, invalid (field+message), canonical_minimal_payload, received_args all intact; verified by 'includes canonical minimal payload' test"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "FIELD_POLICIES table is the single structural source of truth; no scattered Zod preprocess() calls or per-tool ad-hoc normalization added"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No provider-specific code paths (if providerID === ...) introduced anywhere in preflight or tool registry"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "AC12 parametrized matrix confirms all named audit/identity/command fields still reject blank"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No .optional() → .nullable() refactor; Zod schemas unchanged"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No one-shot auto-retry mechanism added; failed preflight still returns structured error to caller"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Storage-level blank artifact guard in json.ts unchanged (0 diff lines)"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "collectBlankCreateArtifactOrLinkageFields and validateCreateOriginLinkage in change.ts retained; only comments updated to mark bypass-resilience role"
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Spec law revised in lockstep (KD4 + KD9 in design.md); body + scenarios + version bump together; no oscillation expected"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Per-tool strict: false at AI SDK level not pursued; @opencode-ai/plugin@1.15.5 installed in node_modules does not expose Tool.strict"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No schema rewrite from .optional() to .nullable() performed"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "hardenChangeCreation not reverted; only the optional-content reject policy flipped, catch-laziness-on-audit-fields intent preserved"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Storage-level blank artifact guard in json.ts unchanged"
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No provider-detection or model-family branching introduced"
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No changes to OpenCode plugin SDK passthrough behavior"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** `FIELD_POLICIES` in `plugin/src/utils/tool-arg-preflight.ts` is updated via a hand-classified full sweep. Every optional content/path/lineage entry flips to `blank: \"omit\"` (and `zero: \"omit\"` for `origin_issue_number`). Every required-when-present audit/evidence/reason/command/branch entry keeps `blank: \"reject\"`.",
+    "**AC2** A new `zero?: PlaceholderPolicyAction` member is added to the `PlaceholderFieldPolicy` type. `applyFieldPolicies` handles `value === 0` per the field's `zero` policy (omit / reject / allow).",
+    "**AC3** `preflightToolArgs` is refactored so that Zod validation reads from `policyResult.normalizedArgs` instead of raw `args`. Fields normalized out of the policy table are invisible to Zod and to cross-field validators.",
+    "**AC4** `CROSS_FIELD_VALIDATORS.adv_change_create` is simplified: blank-artifact and blank-`origin_source_artifact` checks are removed (now owned by `FIELD_POLICIES`). The origin matrix and target/source/parent mutual-exclusion checks continue using normalized args.",
+    "**AC5** `CROSS_FIELD_VALIDATORS.adv_change_update` `at-least-one-of` guard continues to fire on normalized args. An all-blanks GPT payload normalizes to empty, triggering \"At least one artifact field must be provided.\"",
+    "**AC6** `collectBlankCreateArtifactOrLinkageFields` in `plugin/src/tools/change.ts` is kept as a bypass-resilience layer. The code comment is updated to mark it as no-op on the normalized-args path.",
+    "**AC7** Storage-level blank artifact rejection in `plugin/src/storage/json.ts` is unchanged.",
+    "**AC8** Regression tests added to `plugin/src/utils/tool-arg-preflight.test.ts` covering:",
+    "Full GPT strict-mode `adv_change_create` payload (every optional filled with `\"\"`/`0`/`[]`) normalizes to the minimal valid payload, returns `ok: true`.",
+    "Full GPT strict-mode `adv_change_update` payload (all five artifact fields blank) normalizes to empty, returns `ok: false` with the `at-least-one-of` cross-field error.",
+    "Mixed GPT `adv_change_update` payload (`{proposal: \"real\", design: \"\"}`) normalizes `design` out, returns `ok: true` with `normalizedArgs: {changeId, proposal: \"real\"}`.",
+    "Audit-field rejection still fires for blank `approvalEvidence`, `confirmationEvidence`, `reason`, `command`, `branch`, `content`, `title`, `user`, `completedBy`, `recoveryEvidence`.",
+    "Sentinel rejection: `parent_change_id: \"none\"` (and other `KNOWN_OMISSION_SENTINELS`) still rejected.",
+    "`zero: \"omit\"` only applies to fields whose policy declares it; other zero-valued fields are not stripped.",
+    "**AC9** Spec law `.adv/specs/advance-workflow/spec.json` updated **in place**:",
+    "`rq-toolPlaceholderPolicy01.5` (new) — provider-asymmetric strict-mode tolerance scenario.",
+    "`rq-toolArgBlankArtifactLinkage01.1` — revised to \"Mixed update payload normalizes blank field to omitted; only writes provided non-blank artifacts.\"",
+    "`rq-toolArgBlankArtifactLinkage01.3` — revised to \"Create normalizes blank provided narrative artifacts to omitted.\"",
+    "`rq-toolArgBlankArtifactLinkage01.5` — revised to \"Blank origin source artifact is normalized to omitted.\"",
+    "`rq-toolArgBlankArtifactLinkage01.6` (new) — required-when-present audit fields still reject blank.",
+    "`adv_change_validate --strict` passes with only the expected pre-prep `NO_TASKS` / `NO_DELTAS` warnings.",
+    "**AC10** `AGENTS.md § ADV MCP tool call hygiene` and `ADV_INSTRUCTIONS.md § ADV MCP Tool Invocation` each gain one short paragraph explaining strict-mode tolerance, citing Vercel AI SDK issue #12200, and reminding agents to still aim to omit fields they do not intend to set.",
+    "**AC11** `pnpm run check` passes. All ~2995 existing tests still pass. New regression tests pass. No flake."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/proposal.md",
+      "updatedAt": "2026-05-23T23:35:10.610Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/problem-statement.md",
+      "updatedAt": "2026-05-24T00:57:46.014Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/agreement.md",
+      "updatedAt": "2026-05-24T03:12:22.370Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/design.md",
+      "updatedAt": "2026-05-24T03:20:20.146Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/softenStrictModeOptionals/executive-summary.md",
+      "updatedAt": "2026-05-24T04:41:25.083Z"
+    }
+  },
+  "lastSignalAt": "2026-05-24T04:45:46.588Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-24T03:15:41.663Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

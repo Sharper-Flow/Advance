@@ -1,0 +1,1013 @@
+{
+  "id": "compressInstructionProse",
+  "title": "Compress instruction prose",
+  "status": "archived",
+  "created_at": "2026-05-22T15:11:13.154Z",
+  "tasks": [
+    {
+      "id": "tk-8a3cad9c50ba",
+      "title": "Capture dirty-scope baseline and pre-compression contract-token snapshot",
+      "type": "code",
+      "section": "Baseline and scope control",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-22T20:44:49.119Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T20:49:57.165Z",
+      "verification": "Baseline artifacts created in /tmp/opencode/compressInstructionProse and verified with test -s; no repository changes made by this task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Captured 15-file dirty scope and 2010 token-bearing lines before further edits. Snapshot command/pattern is embedded in the executed Python script and output artifacts in /tmp/opencode/compressInstructionProse. adv_task_checkpoint recorded commit f84df1b for the baseline state.",
+      "filesTouched": [
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-arch-scan.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-slop-scan.md",
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "skills/adv-arch-detection/SKILL.md",
+        "skills/adv-opportunity-scout/SKILL.md",
+        "skills/adv-slop-detection/SKILL.md"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv.md",
+        ".opencode/command/adv-arch-scan.md",
+        ".opencode/command/adv-archive.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-slop-scan.md",
+        "ADV_INSTRUCTIONS.md",
+        "AGENTS.md",
+        "docs/command-voice-standard.md",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts",
+        "skills/adv-arch-detection/SKILL.md",
+        "skills/adv-opportunity-scout/SKILL.md",
+        "skills/adv-slop-detection/SKILL.md"
+      ],
+      "checkpointSha": "f84df1b77390b52cbf6da78e0561d030489bef2c",
+      "completedAt": "2026-05-22T20:50:37.248Z",
+      "completed_at": "2026-05-22T20:50:37.248Z",
+      "notes": "Created baseline artifacts under /tmp/opencode/compressInstructionProse: dirty-files-pre.txt, scope-files-pre.json, contract-tokens-pre.json, baseline-summary-pre.json. Verification command passed. Checkpoint commit f84df1b recorded existing dirty instruction edits as implementation baseline.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T20:50:46.785Z"
+    },
+    {
+      "id": "tk-6198de841da5",
+      "title": "Finish caveman-full label normalization",
+      "type": "code",
+      "section": "Label normalization",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-22T20:45:15.867Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8a3cad9c50ba"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T20:51:14.109Z",
+      "verification": "Stale-label grep passed excluding historical paths; Caveman-full heading/test expectations present.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Updated docs/command-voice-standard.md line 496 from `Caveman-lite matches global config` to `Caveman-full matches global config`, preserving surrounding handoff example tokens. Verified no active non-archive `caveman-lite|caveman-light` matches and confirmed `Caveman-full composition` expectations in docs/test. Checkpoint commit 4e66813.",
+      "filesTouched": [
+        "docs/command-voice-standard.md"
+      ],
+      "touched_files": [
+        "docs/command-voice-standard.md"
+      ],
+      "checkpointSha": "4e66813d1a15821c8baffdbe19c086a66307e611",
+      "completedAt": "2026-05-22T20:51:42.563Z",
+      "completed_at": "2026-05-22T20:51:42.563Z",
+      "notes": "Replaced the remaining active `Caveman-lite` example clause in docs/command-voice-standard.md with `Caveman-full`. Stale-label grep passed with historical paths excluded; asset-test strings are present.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T20:51:51.852Z"
+    },
+    {
+      "id": "tk-40ce94a0889a",
+      "title": "Update prose-load inventory for this compression pass",
+      "type": "code",
+      "section": "Inventory",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-22T20:45:15.975Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8a3cad9c50ba"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T20:52:06.793Z",
+      "verification": "Inventory header updated to POST-COMPRESSION ARCHIVE — pass 3; Pass 3 Delta table for compressInstructionProse/T7 present and verified by rg.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Changed inventory lifecycle to `POST-COMPRESSION ARCHIVE — pass 3`, extended the pass list to include T7, and added `Pass 3 Delta: compressInstructionProse (T7)` with rows covering active touched instruction/test surfaces. Verification rg found header, pass section, and T7 rows. Checkpoint commit 4e59aa1.",
+      "filesTouched": [
+        "docs/prose-load-inventory.md"
+      ],
+      "touched_files": [
+        "docs/prose-load-inventory.md"
+      ],
+      "checkpointSha": "4e59aa13419d3b87f07cd09b8da37dbf584ffd18",
+      "completedAt": "2026-05-22T20:52:58.924Z",
+      "completed_at": "2026-05-22T20:52:58.924Z",
+      "notes": "Updated docs/prose-load-inventory.md for pass 3/T7 and verified the archive header + delta table anchors.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T20:53:08.420Z"
+    },
+    {
+      "id": "tk-34bad401b996",
+      "title": "Audit and complete obvious-win compression across active instruction assets",
+      "type": "code",
+      "section": "Compression audit",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-22T20:45:17.557Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8a3cad9c50ba"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "verifies": [],
+        "respects": [
+          "AC3",
+          "AC4",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T20:53:19.998Z",
+      "verification": "Compression audit report created at /tmp/opencode/compressInstructionProse/compression-audit-report.json; git diff --quiet confirmed no additional edits needed after baseline/label/inventory tasks.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Audited active instruction surface inventory: 82 files, with 15 baseline-changed files. Report written to /tmp/opencode/compressInstructionProse/compression-audit-report.json. Confirmed no uncommitted diffs remained for this audit task; no extra edits were safer than the existing baseline compression under C5.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "4e59aa13419d3b87f07cd09b8da37dbf584ffd18",
+      "completedAt": "2026-05-22T20:53:54.887Z",
+      "completed_at": "2026-05-22T20:53:54.887Z",
+      "notes": "Generated compression audit report covering 82 active instruction/test surfaces. Existing obvious-win compression was already captured in the baseline checkpoint; no additional safe compression edits identified after label and inventory tasks.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T20:54:04.203Z"
+    },
+    {
+      "id": "tk-09f196d2a8e8",
+      "title": "Run stale-label and contract-token verification",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-22T20:45:33.353Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6198de841da5"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-34bad401b996"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-40ce94a0889a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T20:55:15.937Z",
+      "verification": "Stale-label grep passed; post snapshot and token diff report exist; token diff report unexpected_diff_count=0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Generated `/tmp/opencode/compressInstructionProse/contract-tokens-post.json`, `scope-files-post.json`, and `token-diff-report.json`. Active-surface case-insensitive grep for `caveman-lite|caveman-light` passed with historical paths excluded. Token-diff report: 16 post files, 2268 token-bearing lines, unexpected_diff_count=0, added_files_after_pre_snapshot=[docs/prose-load-inventory.md].",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "4e59aa13419d3b87f07cd09b8da37dbf584ffd18",
+      "completedAt": "2026-05-22T20:56:00.690Z",
+      "completed_at": "2026-05-22T20:56:00.690Z",
+      "notes": "Stale-label gate passed; post token snapshot and token-diff report created. Token diff report shows unexpected_diff_count=0; docs/prose-load-inventory.md is the only file added after pre-snapshot.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T20:56:10.213Z"
+    },
+    {
+      "id": "tk-5a95ad5d4294",
+      "title": "Run focused asset/drift checks and full plugin check",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-22T20:45:43.864Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-09f196d2a8e8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC2",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-22T20:56:20.594Z",
+      "verification": "Focused Vitest passed (2 files, 71 tests). pnpm run check passed. Worktree clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran `pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/manifest-doc-drift.test.ts` successfully (71 tests). Ran `pnpm run check` successfully (typecheck, isolation/lockfile scripts, lint, format:check). Confirmed final git status clean. Checkpoint recorded at 4e59aa1.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "4e59aa13419d3b87f07cd09b8da37dbf584ffd18",
+      "completedAt": "2026-05-22T20:57:12.078Z",
+      "completed_at": "2026-05-22T20:57:12.078Z",
+      "notes": "Focused asset/drift tests passed: 2 files, 71 tests. `pnpm run check` passed. Final worktree status clean.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-22T20:57:26.015Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-fH72qg",
+      "type": "gotcha",
+      "content": "For label-normalization checks, use case-insensitive stale-label grep. A prior case-sensitive search missed `Caveman-lite` in an active docs example even though lowercase `caveman-lite` was gone.",
+      "source_task": "tk-6198de841da5",
+      "recorded_at": "2026-05-22T20:51:59.209Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-22T20:23:27.711Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal via inline Tier A reply: \"continue\". Proposal includes problem statement, scope, must-not constraints, success criteria, discovery agenda, and B/F/S scan PASS.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/proposal.md",
+        "content_hash": "3de1715c4ddc46d92dde7e073bf7f6bae0a2c692a0392f196598e02fcec59e12",
+        "non_whitespace_chars": 3620,
+        "checked_at": "2026-05-22T20:23:27.765Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-22T20:34:34.041Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user AC approval reply `approve`. Agreement persisted and ChangeContract minted with 25 items. Discovery checklist PASS; no ambiguity findings; no spec deltas required.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/agreement.md",
+        "content_hash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "non_whitespace_chars": 3204,
+        "checked_at": "2026-05-22T20:34:34.100Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-22T20:44:07.455Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Mandatory independent validator returned VALIDATED with no conflicts, no user-value tradeoff, and no contract-compromise risk. Auto-continue to planning/prep per design workflow.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/design.md",
+        "content_hash": "b375cf5db64046dd151f7169087220d061c26f930a1a8c78ae4614e3eaf8ef92",
+        "non_whitespace_chars": 7230,
+        "checked_at": "2026-05-22T20:44:07.507Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-22T20:49:35.993Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan with reply `approve`. Six-task graph created with dependencies, TDD intent, and contract refs. Ready task: tk-8a3cad9c50ba."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-22T20:57:53.357Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six execution tasks are done. Verification passed: stale-label grep, token snapshots/diff with unexpected_diff_count=0, inventory pass 3/T7 check, focused Vitest (2 files, 71 tests), and `pnpm run check`. Worktree clean at 4e59aa1."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-22T21:26:21.951Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted acceptance summary with reply `accept`. Review verdict APPROVED after remediation; contract matrix persisted with 25 rows and 0 failing; executive summary persisted; tests passed (focused Vitest 71 tests, pnpm run check, stale-label grep).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/acceptance.md",
+        "content_hash": "0bd803e9aa6817ce2e6770564675cf220c938a780d0b18977856fef357d44fc9",
+        "non_whitespace_chars": 5798,
+        "checked_at": "2026-05-22T21:26:22.090Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+      "approvedAt": "2026-05-22T20:34:05.604Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Active ADV instruction surfaces use `caveman-full` as the current normative style label where a caveman label is needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Audited active instruction assets have obvious compression wins applied without reducing protocol clarity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Behavioral contracts remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Verification is machine-backed, not visual-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Active ADV instruction surfaces no longer define current style as `caveman-lite` or `caveman-light`; normative wording uses `caveman-full`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "All active audited instruction files are reviewed; segments with obvious compression benefit are compressed without reducing protocol clarity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Contract tokens remain intact: tool names, gates, statuses, slash commands, enums, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "No runtime behavior, schema, or command semantics change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "A fresh prose-load inventory pass records changed/reclassified sections and returns archive status at completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Pre/post contract-token snapshots exist for in-scope files; diff is empty or intentional standard-name/test changes are justified.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Focused asset/drift checks and `pnpm run check` pass from `plugin/`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Prose-only compression except stale standard reference changes and matching tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve required command frontmatter shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep safety, destructive-action, cancellation, and archive-signoff language unambiguous.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Existing prose-load enforcement-class templates remain the governing compression framework.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Compress obvious wins; do not pursue perfect optimization at the cost of protocol clarity.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not delete contract-critical instructions only to reduce line count.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not alter workflow sequencing, gate ownership, approvals, cancellation approval, or archive sign-off.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not edit ADV external state files directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not treat `caveman-full` as a replacement for prose-load enforcement classes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not rewrite archives/changelog history unless a mention is part of an active instruction surface.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Runtime behavior changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Tool schema, enum, gate ID, status, or command semantic changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Broad documentation rewrite outside audited instruction surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "User-facing product feature changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "25fdb222ffe07ba1a5c28e7cb7df2b36dd8634e899222617360fdfe18972ef9e",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Active normative label is `caveman-full`; stale-label grep `! rg -ni \"caveman-lite|caveman-light\" --glob '!CHANGELOG.md' --glob '!.adv/**' --glob '!docs/archive/**' .` returned no matches.",
+          "notes": "Label sweep verified after remediation."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Compression audit covered 82 active instruction/test surfaces; docs/prose-load-inventory.md pass 3/T7 records changed surface groups; review approved after remediation.",
+          "notes": "No over-compression blockers remain."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Token snapshots/diff report unexpected_diff_count=0; targeted re-verification resolved restored `MUST` and guard wording findings in ADV_INSTRUCTIONS.md:904/929 and AGENTS.md:89.",
+          "notes": "Contract-token loss findings fixed and re-verified."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Diff is markdown instruction assets plus one asset-test label update; no runtime source, schema, enum, gate, or tool behavior changes.",
+          "notes": "No behavior changes."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Case-insensitive stale-label grep excluding CHANGELOG, .adv, and docs/archive returned no output; `caveman-full` anchors present in docs/test.",
+          "notes": "Passed before and after remediation."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Audit report at /tmp/opencode/compressInstructionProse/compression-audit-report.json covers active instruction assets; Architecture & Quality re-verification resolved all compression clarity findings.",
+          "notes": "Obvious-win scope retained."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Token diff report unexpected_diff_count=0; re-verification resolved `MUST` restoration, `Do NOT delete worktree`, and worktree guard ambiguity findings.",
+          "notes": "Contract-token preservation proved by snapshot plus targeted review."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Git diff contains prose-only instruction/doc updates and matching asset-test label change; focused tests and full check passed.",
+          "notes": "No runtime/schema/semantic edits."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "docs/prose-load-inventory.md lifecycle updated to POST-COMPRESSION ARCHIVE — pass 3 with `Pass 3 Delta: compressInstructionProse (T7)` rows.",
+          "notes": "Inventory requirement satisfied."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Pre/post snapshots exist under /tmp/opencode/compressInstructionProse (`contract-tokens-pre.json`, `contract-tokens-post.json`); `token-diff-report.json` shows unexpected_diff_count=0.",
+          "notes": "Remediation re-verified restored contract tokens."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`pnpm exec vitest run src/adv-skill-backed-commands-assets.test.ts src/manifest-doc-drift.test.ts` passed (2 files, 71 tests). `pnpm run check` passed.",
+          "notes": "Checks rerun after remediation."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Changes are prose/instruction compression plus stale-label asset-test alignment; no implementation behavior changed.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Focused manifest/doc drift tests passed; command frontmatter shape retained.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Safety/destructive language re-verified: `MUST use as workdir`, `MUST return zero matches`, `Do NOT delete worktree`, and explicit worktree opt-out wording present.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "`caveman-full` remains wording-density layer over existing prose-load enforcement templates; inventory and command-voice docs retain framework references.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only clear compression/clarity fixes were applied; review remediation restored clarity where compression was too aggressive.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review found and fixed contract-critical wording losses; no contract-critical instruction deleted for line-count reduction.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No workflow sequencing, gate ownership, approval, cancellation, or archive sign-off semantics changed; targeted review found no unresolved issues.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "ADV state was accessed only via ADV MCP tools; repo edits were confined to worktree files and /tmp evidence artifacts.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Docs explicitly preserve prose-load enforcement classes as governing framework; `caveman-full` is only wording-density compression.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Stale-label grep excluded historical archive/changelog paths; active instruction surfaces updated only.",
+          "notes": "Respected."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Runtime behavior changes were out of scope and not performed.",
+          "notes": "No runtime behavior edit."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Tool schemas, enums, gate IDs, statuses, and command semantics were out of scope and not changed.",
+          "notes": "No schema/enum/gate edit."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Broad documentation rewrite outside audited instruction surfaces was out of scope; edits stayed in audited active instruction/test surfaces.",
+          "notes": "Scope contained."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "User-facing product feature changes were out of scope and not performed.",
+          "notes": "No product feature edit."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Active ADV instruction surfaces no longer define current style as `caveman-lite` or `caveman-light`; normative wording uses `caveman-full`.",
+    "All active audited instruction files are reviewed; segments with obvious compression benefit are compressed without reducing protocol clarity.",
+    "Contract tokens remain intact: tool names, gates, statuses, slash commands, enums, quoted errors, `MUST`, `NEVER`, approval checkpoints, cancellation approval, archive sign-off, JSON/code examples.",
+    "No runtime behavior, schema, or command semantics change.",
+    "A fresh prose-load inventory pass records changed/reclassified sections and returns archive status at completion.",
+    "Pre/post contract-token snapshots exist for in-scope files; diff is empty or intentional standard-name/test changes are justified.",
+    "Focused asset/drift checks and `pnpm run check` pass from `plugin/`."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/proposal.md",
+      "updatedAt": "2026-05-22T21:47:52.238Z"
+    },
+    "problemStatement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/problem-statement.md",
+      "updatedAt": "2026-05-22T21:47:52.262Z"
+    },
+    "agreement": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/agreement.md",
+      "updatedAt": "2026-05-22T21:47:52.307Z"
+    },
+    "design": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/design.md",
+      "updatedAt": "2026-05-22T21:47:52.332Z"
+    },
+    "executiveSummary": {
+      "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/compressInstructionProse/executive-summary.md",
+      "updatedAt": "2026-05-22T21:47:52.356Z"
+    }
+  },
+  "lastSignalAt": "2026-05-22T21:26:21.951Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-22T21:23:45.696Z",
+      "resolved": true,
+      "resolved_at": "2026-05-22T21:25:02.157Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-22T21:23:45.696Z",
+      "resolved": true,
+      "resolved_at": "2026-05-22T21:25:02.157Z"
+    }
+  ]
+}

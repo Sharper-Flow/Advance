@@ -6,8 +6,9 @@
  * No `du` calls — stale detection via mtime only.
  */
 
-import { execFile } from "child_process";
 import { statSync } from "node:fs";
+
+import { execFileGitCb } from "./git-binary";
 
 export interface WorktreeCensus {
   total: number;
@@ -18,9 +19,10 @@ export interface WorktreeCensus {
 const SEVEN_DAYS_MS = 7 * 86400_000;
 const MAX_WORKTREE_LIST_BUFFER = 10 * 1024 * 1024;
 
-const GIT_ENV = {
-  ...process.env,
-  GIT_TERMINAL_PROMPT: "0",
+const GIT_EXTRA_ENV = {
+  // git-binary helper handles GIT_TERMINAL_PROMPT/GIT_ASKPASS hygiene
+  // already; we override GIT_ASKPASS to /bin/false for parity with the
+  // legacy "force fail any credential prompt" behavior used here.
   GIT_ASKPASS: "/bin/false",
   GIT_EDITOR: "true",
 };
@@ -34,14 +36,13 @@ export async function getWorktreeCensus(
 ): Promise<WorktreeCensus | null> {
   try {
     const stdout = await new Promise<string>((resolve, reject) => {
-      execFile(
-        "git",
+      execFileGitCb(
         ["worktree", "list", "--porcelain"],
         {
           cwd: repoRoot,
           timeout: 5000,
           maxBuffer: MAX_WORKTREE_LIST_BUFFER,
-          env: GIT_ENV,
+          env: { ...process.env, ...GIT_EXTRA_ENV },
         },
         (err, out) => {
           if (err) reject(err);

@@ -1,11 +1,6 @@
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
-import { createDefaultGates } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import {
-  classifyTemporalError,
-  collectErrorText,
-} from "../../temporal/retry-wrapper";
 import { hasArchiveBundle, listChangeDirs, loadChange } from "../json";
 import { buildChangeRecency } from "../store-types";
 import type { ChangeStatus, ProjectStatus, Spec } from "../../types";
@@ -25,9 +20,14 @@ import {
   mapTemporalChangeStateToChange,
   getGuardedChangeHandle,
   runTemporalQuery,
+  classifyTemporalReadFailure,
 } from "./shared";
-import { changeStateQuery } from "../../temporal/messages";
+import {
+  changeStateQuery,
+  worktreeAutoManagedSignal,
+} from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 import { createChangeOps } from "./changes";
@@ -56,14 +56,6 @@ function withProjectionRecovery(
     _source: source,
     _recovery: { mode: "temporal_query_fallback", reason },
   };
-}
-
-function recoveryReasonFromError(error: unknown): ProjectionRecoveryReason {
-  return /TMPRL1100|Nondeterminism error|No command scheduled for event/i.test(
-    collectErrorText(error),
-  )
-    ? "poisoned_history"
-    : "missing_workflow";
 }
 
 export function createTemporalStoreBackend(
@@ -122,6 +114,14 @@ export function createTemporalStoreBackend(
     };
     changeCache.set(state.changeId, mapped);
     memo.set(state.changeId, buildSummary(state));
+    // rq-reentryTaskLookup01: every workflow-state cache refresh must also
+    // hydrate the reverse task→change index. Tool-layer task additions and
+    // gate re-entry refresh via setCachedChange(), not store.tasks.add(), so
+    // ad-hoc indexing only at individual call sites leaves task-id-only tools
+    // unable to resolve newly visible workflow tasks.
+    for (const task of state.tasks ?? []) {
+      taskChangeIndex.set(task.id, state.changeId);
+    }
     return mapped;
   };
 
@@ -202,6 +202,52 @@ export function createTemporalStoreBackend(
   const invalidateChange = (changeId: string): void => {
     changeCache.delete(changeId);
     memo.invalidate(changeId);
+  };
+
+  /**
+   * rq-autoManageAdvWorktrees AC3 — lazy migration of legacy changes.
+   *
+   * On first read of a change whose workflow state lacks
+   * `worktree_auto_managed`, fire `worktreeAutoManagedSignal` best-effort
+   * with `value: false, source: "migrate"`. The signal handler is sticky
+   * (`applyWorktreeAutoManagedToState`) so concurrent migrations from
+   * peer sessions are idempotent. Failures log at `debug` and do NOT
+   * block the read — the next read retries automatically.
+   *
+   * Lazy by design (DONT3): never fires at plugin load. Only triggers
+   * when a tool actually requests a change.
+   *
+   * Pre-A3 detection: any change with the marker undefined is necessarily
+   * legacy (new changes get the marker stamped at create per A3, across
+   * workflow seedState + disk + Memo overlay simultaneously).
+   */
+  const fireWorktreeAutoManagedMigrationIfNeeded = (
+    changeId: string,
+    workflowMarker: boolean | undefined,
+    diskMarker: boolean | undefined,
+  ): void => {
+    if (
+      typeof workflowMarker === "boolean" ||
+      typeof diskMarker === "boolean"
+    ) {
+      return;
+    }
+    void (async () => {
+      try {
+        const handle = await getGuardedChangeHandle(input, changeId);
+        await handle.signal(worktreeAutoManagedSignal, {
+          value: false,
+          source: "migrate",
+          recordedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        logger.debug(
+          `Lazy worktree_auto_managed migration skipped for change ${changeId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    })();
   };
 
   const updateOverlay = (changeId: string, patch: Partial<Change>): void => {
@@ -395,14 +441,7 @@ export function createTemporalStoreBackend(
         initializedAt: change.created_at,
         projectionChangesDir: legacy.paths.changes,
         archiveProjects: [{ projectPath: legacy.paths.root }],
-        seedState: {
-          status: change.status,
-          tasks: change.tasks ?? [],
-          deltas: change.deltas ?? {},
-          wisdom: change.wisdom ?? [],
-          gates: change.gates ?? createDefaultGates(),
-          reentry_history: change.reentry_history ?? [],
-        },
+        seedState: changeSeedStateFromChange(change),
       });
     } catch (err) {
       // Re-seed itself failed — surface the original not-found to callers
@@ -438,11 +477,12 @@ export function createTemporalStoreBackend(
           err instanceof Error ? err.message : String(err)
         }`,
       );
-      if (classifyTemporalError(err) === "fallback") {
+      const failure = await classifyTemporalReadFailure(input, changeId, err);
+      if (failure.errorClass === "fallback") {
         return withProjectionRecovery(
           change,
           "disk",
-          recoveryReasonFromError(err),
+          failure.recoveryReason ?? "missing_workflow",
         );
       }
       return null;
@@ -462,6 +502,13 @@ export function createTemporalStoreBackend(
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as ChangeWorkflowState;
       indexTasksFromState(state);
+      // rq-autoManageAdvWorktrees AC3 — lazy migration trigger.
+      // Fires once on legacy reads; sticky handler dedupes concurrent races.
+      fireWorktreeAutoManagedMigrationIfNeeded(
+        changeId,
+        state.worktree_auto_managed,
+        undefined,
+      );
       return { success: true, data: setCachedChange(state) };
     } catch (error) {
       // P1.5 — orphan-tolerant changes.get with re-seed. When the
@@ -474,12 +521,22 @@ export function createTemporalStoreBackend(
       // reseedChangeFromDisk short-circuits and returns the on-disk
       // projection without re-creating the workflow — re-seeding would
       // re-emit a summary signal and undo adv_archive_purge.
-      if (classifyTemporalError(error) === "fallback") {
+      const failure = await classifyTemporalReadFailure(input, changeId, error);
+      if (failure.errorClass === "fallback") {
         const reseeded = await reseedChangeFromDisk(
           changeId,
-          recoveryReasonFromError(error),
+          failure.recoveryReason ?? "missing_workflow",
         );
         if (reseeded) {
+          // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.
+          // The disk projection may lack the marker for legacy changes
+          // that pre-date this field; signal the workflow once so the
+          // marker becomes sticky in the freshly-seeded state.
+          fireWorktreeAutoManagedMigrationIfNeeded(
+            changeId,
+            undefined,
+            reseeded.worktree_auto_managed,
+          );
           return { success: true, data: reseeded };
         }
       }
@@ -523,32 +580,10 @@ export function createTemporalStoreBackend(
       filter?.includeArchived || filter?.includeClosed,
     );
 
-    // Fast path: when no terminal statuses are requested AND Memo has
-    // data, return Memo summaries directly (no per-change query). Mirrors
-    // the original P2.4 fast path — preserved for active-change list perf.
-    const memoAll = memo.getAll();
-    if (memoAll.length > 0 && !wantsTerminalStatuses) {
-      return memoAll.map(
-        (summary): Change => ({
-          id: summary.id,
-          title: summary.title,
-          status: summary.status,
-          created_at: summary.lastActivityAt,
-          tasks: [],
-          deltas: {},
-          wisdom: [],
-          gates: Object.fromEntries(
-            Object.entries(summary.gateProgress).map(([gate, status]) => [
-              gate,
-              { status: status as "pending" | "done" | "skipped" | "legacy" },
-            ]),
-          ) as Change["gates"],
-          fast_follow_of: summary.fast_follow_of,
-        }),
-      );
-    }
-
-    // Slow path: union three sources to find every change ID.
+    // Union three sources to find every change ID. Memo is used as a
+    // cache within per-change hydration (getTemporalChange), not as a
+    // completeness authority, so we always merge memo IDs with visibility
+    // and disk to avoid omitting active changes or flattening task counts.
     //
     // (1) Memo — picks up changes the adapter has touched (e.g.
     //     recently-closed entries that close() repopulated). Survives
@@ -565,6 +600,7 @@ export function createTemporalStoreBackend(
     //
     // Per-change load is wrapped in try/catch so one missing/terminated
     // workflow doesn't abort the batch; falls back to legacy disk read.
+    const memoAll = memo.getAll();
     const memoIds = memoAll.map((s) => s.id);
 
     const bundle = input.temporal as {

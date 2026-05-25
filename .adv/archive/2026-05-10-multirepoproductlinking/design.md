@@ -14,7 +14,7 @@ repo_project_id = git root SHA              product_project_id = primary repo SH
 - per-repo verification                      - scope_repos filtering
 ```
 
-PokeEdge v1 topology is strict N:1: `pokeedge` backend primary, `pokeedge-web` secondary. Single-repo projects omit product config.
+ExampleProduct v1 topology is strict N:1: `example-product` backend primary, `example-web` secondary. Single-repo projects omit product config.
 
 ## Key Decisions
 
@@ -35,7 +35,7 @@ PokeEdge v1 topology is strict N:1: `pokeedge` backend primary, `pokeedge-web` s
 3. `scope_repos` schema and create/list/show/status semantics.
 4. Wisdom/reflection origin tags and product filters.
 5. Multi-repo archive bundle/preflight support.
-6. Specs, command docs, PokeEdge examples.
+6. Specs, command docs, ExampleProduct examples.
 
 ## LBP Analysis
 

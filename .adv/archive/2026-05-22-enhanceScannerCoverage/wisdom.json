@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "id": "ws-PeGbRH",
+      "type": "gotcha",
+      "content": "For targeted Vitest runs in this repo, `pnpm exec vitest run src/<file>.test.ts` gives isolated file execution; `pnpm test -- src/<file>.test.ts` can surface unrelated high-signal failures through the package script/tool output path, so use the exact vitest command when validating a single asset test.",
+      "source_task": "tk-21925c3f3128",
+      "recorded_at": "2026-05-22T08:04:33.294Z"
+    },
+    {
+      "id": "ws-tALDnK",
+      "type": "pattern",
+      "content": "Scanner contract changes are efficient when implemented as spec/command/skill/docs + asset-test anchors in one vertical slice per scanner requirement. The existing `*-assets.test.ts` pattern is enough to lock requirement IDs, command anchors, and skill methodology without adding a new runtime subsystem.",
+      "source_task": "tk-6e80a1ead5e8",
+      "recorded_at": "2026-05-22T08:08:11.915Z"
+    },
+    {
+      "id": "ws--BIwdu",
+      "type": "success",
+      "content": "Manifest/doc drift tests already enforce scanner description consistency across manifest, command frontmatter, README, and ADV_INSTRUCTIONS. For discoverability changes, add a focused manifest expectation first, then rely on `manifest-doc-drift.test.ts` to propagate exact wording.",
+      "source_task": "tk-514aab6991a9",
+      "recorded_at": "2026-05-22T08:10:04.477Z"
+    },
+    {
+      "id": "ws-EnR-QX",
+      "type": "success",
+      "content": "For scanner contract changes, a compact final verification suite can combine the two scanner asset tests with manifest and manifest-doc drift tests, then `pnpm run check` for full type/lint/format coverage. This catches spec-command-skill-doc drift without needing the full Vitest suite.",
+      "source_task": "tk-72d7d39acd8d",
+      "recorded_at": "2026-05-22T08:11:21.216Z"
+    }
+  ],
+  "count": 4
+}

@@ -6,7 +6,7 @@
  * - Persists a reusable research pack under docs/*-prep.md so /adv-discover
  *   and related research phases can cite it as prior research
  * - Has an Exits section, Target Resolution (broad + scoped),
- *   CHECKLIST reference to improve-checklist.md, external landscape analysis
+ *   skill/fallback scan category guidance, external landscape analysis
  *   (3 competitors + 2 emerging), and graceful-degradation wording
  * - Never calls adv_change_create, adv_task_add, or adv_gate_complete
  * - Ships a backing checklist with the research-pack schema
@@ -72,10 +72,13 @@ describe("adv-improve command shape", () => {
     expect(content).toMatch(/[Ss]cop/);
   });
 
-  test("contains CHECKLIST reference to improve-checklist.md", () => {
+  test("uses skill/fallback scan categories instead of runtime checklist paths", () => {
     const content = readFileSync(COMMAND_PATH, "utf8");
-    expect(content).toContain("improve-checklist.md");
-    expect(content).toContain("CHECKLIST");
+    expect(content).toContain('skill("adv-improve")');
+    expect(content).toContain("Analyze 6 categories");
+    expect(content).toContain("loaded skill or embedded fallback");
+    expect(content).not.toContain("improve-checklist.md");
+    expect(content).not.toContain("CHECKLIST");
   });
 
   test("contains external landscape analysis phase", () => {

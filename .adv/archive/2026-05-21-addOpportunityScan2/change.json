@@ -1,0 +1,164 @@
+{
+  "id": "addOpportunityScan2",
+  "title": "Add opportunity scan",
+  "status": "archived",
+  "created_at": "2026-05-21T01:25:56.642Z",
+  "tasks": [
+    {
+      "id": "tk-23ef9470c45b",
+      "title": "Create opportunity scout skill (SKILL.md)",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-21T01:28:24.879Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Created skills/adv-opportunity-scout/SKILL.md with discovery/design modes, 8-field ScoutCandidate schema, 5-fate routing, hard cap ≤5, INCONCLUSIVE degradation, opt-out, and prompt templates. Committed in 7c410cc.",
+      "summary": "Created skills/adv-opportunity-scout/SKILL.md with discovery/design modes, 8-field ScoutCandidate schema, 5-fate routing, hard cap ≤5, INCONCLUSIVE degradation, opt-out, and prompt templates. Committed in 7c410cc.",
+      "implementation_summary": "Created skills/adv-opportunity-scout/SKILL.md with discovery/design modes, 8-field ScoutCandidate schema, 5-fate routing, hard cap ≤5, INCONCLUSIVE degradation, opt-out, and prompt templates. Committed in 7c410cc.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T01:28:39.093Z",
+      "completed_at": "2026-05-21T01:28:39.093Z"
+    },
+    {
+      "id": "tk-351f40af6313",
+      "title": "Integrate scout into adv-discover and adv-design commands",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-21T01:28:27.675Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Added Phase 3.5 to adv-discover.md, Phase 2.5 to adv-design.md, updated discover-checklist.md with scout step and edge cases. Committed in 7c410cc.",
+      "summary": "Added Phase 3.5 to adv-discover.md, Phase 2.5 to adv-design.md, updated discover-checklist.md with scout step and edge cases. Committed in 7c410cc.",
+      "implementation_summary": "Added Phase 3.5 to adv-discover.md, Phase 2.5 to adv-design.md, updated discover-checklist.md with scout step and edge cases. Committed in 7c410cc.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T01:28:40.219Z",
+      "completed_at": "2026-05-21T01:28:40.219Z"
+    },
+    {
+      "id": "tk-24a7d05982cf",
+      "title": "Add spec deltas and asset tests",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-21T01:28:32.246Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "verification": "Added spec deltas rq-discOpportunityScout01/02 (adv-discover v1.2.0), rq-designOpportunityScout01 (advance-workflow v1.10.0). Asset tests for phase anchors and scout schema. All 2512 tests pass. Committed in 7c410cc.",
+      "summary": "Added spec deltas rq-discOpportunityScout01/02 (adv-discover v1.2.0), rq-designOpportunityScout01 (advance-workflow v1.10.0). Asset tests for phase anchors and scout schema. All 2512 tests pass. Committed in 7c410cc.",
+      "implementation_summary": "Added spec deltas rq-discOpportunityScout01/02 (adv-discover v1.2.0), rq-designOpportunityScout01 (advance-workflow v1.10.0). Asset tests for phase anchors and scout schema. All 2512 tests pass. Committed in 7c410cc.",
+      "filesTouched": [],
+      "touched_files": [],
+      "completedAt": "2026-05-21T01:28:42.502Z",
+      "completed_at": "2026-05-21T01:28:42.502Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-LF4yge",
+      "type": "pattern",
+      "content": "ChangeContract signals (contractSetSignal, contractReviewMatrixSetSignal) are fired by the adv-acceptance command workflow, not by individual tools. When resuming a change from a prior session that was created before the contract mechanism existed, the contract and review matrix must be set via direct Temporal signals before acceptance gate can complete. Use signal names 'adv.change.contractSet' and 'adv.change.contractReviewMatrixSet' (from contracts.ts SIGNAL_NAMES).",
+      "recorded_at": "2026-05-21T02:01:25.004Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:27:13.590Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal recreated from prior session commit 7c410cc. Scope: add opportunity scout skill integrating into discovery (Phase 3.5) and design (Phase 2.5) workflows.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/proposal.md",
+        "content_hash": "4b5e4839aeeb782186a27acef2eb5595e607f2eb01bad7b5d87379fb18da741b",
+        "non_whitespace_chars": 1411,
+        "checked_at": "2026-05-21T01:27:13.669Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-05-21T01:27:19.471Z",
+      "completed_at": "2026-05-21T01:28:02.676Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. ScoutCandidate schema, fate routing, spec deltas all defined.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/agreement.md",
+        "content_hash": "a8af86cfdb2efccda7b7c52a9f0721f0aea9cff03958def50cae2cba5dc178f7",
+        "non_whitespace_chars": 1329,
+        "checked_at": "2026-05-21T01:28:02.724Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:28:07.053Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Two-mode skill (discovery/design), 8-field schema, 5-fate routing, command integration points defined.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/design.md",
+        "content_hash": "1706c84ac97beee4157dad5ec99ad4c09fa3b94a3b81486bda7742d1e10901ad",
+        "non_whitespace_chars": 1829,
+        "checked_at": "2026-05-21T01:28:07.118Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:28:47.337Z",
+      "completed_by": "agent",
+      "approval_evidence": "3 tasks, all complete. Implementation committed in 7c410cc. Retrospective planning approval for work done in prior session."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:28:51.530Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks executed. Single commit 7c410cc with 9 files changed (+906/-127). All 2512 tests pass."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-05-21T01:40:08.823Z",
+      "completed_at": "2026-05-21T01:41:39.948Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract + review matrix set via Temporal signals. Independent review: READY. All 10 AC pass, 4 constraints respected, 3 avoidances respected. All 2512 tests pass.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/dev/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/addOpportunityScan2/acceptance.md",
+        "content_hash": "84fb63289013846e833270b70f1750a8d1e544c0879196f151ee9949f911f4c3",
+        "non_whitespace_chars": 1752,
+        "checked_at": "2026-05-21T01:41:40.048Z"
+      }
+    },
+    "release": {
+      "status": "done",
+      "completed_at": "2026-05-21T01:55:04.909Z",
+      "completed_by": "agent",
+      "approval_evidence": "User sign-off confirmed. All gates complete. Archiving."
+    }
+  },
+  "reentry_history": [],
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-21T03:10:07.381Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-21T03:10:07.381Z"
+    }
+  ]
+}

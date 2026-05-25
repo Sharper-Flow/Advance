@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.10.0",
-  "updated_at": "2026-05-12T00:00:00.000Z",
+  "version": "1.11.0",
+  "updated_at": "2026-05-22T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -75,8 +75,8 @@
           "then": [
             "Output includes feature_flags values",
             "Defaults are applied when flags are omitted",
-            "worker_singleton_enforce defaults true when omitted",
-            "worktree_guard_enforce defaults false when omitted"
+            "worker_singleton_enforce defaults false when omitted",
+            "worktree_guard_enforce defaults true when omitted"
           ]
         }
       ],
@@ -123,7 +123,7 @@
     {
       "id": "rq-opencodeDebt01",
       "title": "OpenCode Session Debt Diagnostics",
-      "body": "ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows from repairable stale debt, and require dry-run plus backup before any repair deletes rows.",
+      "body": "ADV diagnostics must safely detect stale blank assistant messages in the shared OpenCode session database, distinguish live in-flight rows, idle active-session rows, and orphan-ghost repair candidates, and require dry-run plus backup before any repair deletes rows.",
       "priority": "must",
       "tags": ["diagnostics", "opencode", "session-debt", "doctor"],
       "scenarios": [
@@ -149,7 +149,8 @@
           "when": "OpenCode session-debt classification runs",
           "then": [
             "Younger rows are classified as live or in-flight",
-            "Younger rows are not counted as repairable stale debt",
+            "Older rows attached to sessions without orphan proof are classified as idle active-session debt",
+            "Only orphan-ghost rows are counted as repairable stale debt",
             "No repair recommendation is emitted solely because of younger rows"
           ]
         },
@@ -163,7 +164,7 @@
           "then": [
             "The utility refuses deletion unless apply mode is explicit",
             "The utility refuses deletion unless a backup destination is provided and populated before deletion",
-            "Only assistant messages with finish null, zero parts, and age at or above the stale threshold are deleted"
+            "Only assistant messages with finish null, zero parts, age at or above the stale threshold, and orphan-ghost liveness are deleted"
           ]
         },
         {
@@ -338,7 +339,7 @@
     {
       "id": "rq-providerAdvSkinny01",
       "title": "Single ADV Runtime Agent with Provider Hints",
-      "body": "ADV must expose one canonical runtime agent while preserving provider-specific guidance through runtime system-block hint injection. deploy-local.sh must not require generated adv-{provider}.md runtime agents or concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.",
+      "body": "ADV must expose one canonical lean ADV runtime prompt while preserving provider-specific guidance through runtime system-block hint injection. deploy-local.sh must not append the full ADV_INSTRUCTIONS.md protocol reference into global adv.md, require generated adv-{provider}.md runtime agents, or create concatenated provider prompt files. Provider hints must be selected from structured provider/model context and emitted through the existing single-system-entry system block path.",
       "priority": "must",
       "tags": ["provider-adv", "prompt-parts", "sync"],
       "scenarios": [
@@ -350,8 +351,9 @@
           ],
           "when": "ADV runtime assets are synced",
           "then": [
-            "Global adv.md is the complete runtime ADV agent",
-            "Global adv.md contains the canonical ADV body and ADV_INSTRUCTIONS.md protocol content",
+            "Global adv.md is the complete lean runtime ADV agent",
+            "Global adv.md is assembled from the canonical runtime agent source without wholesale ADV_INSTRUCTIONS.md append",
+            "Runtime-critical protocol removed or compressed from global adv.md is covered by a runtime protocol coverage inventory, retained runtime text, code/spec enforcement, or command-contract ownership",
             "Global adv-{provider}.md files are not generated as required runtime artifacts",
             "Concatenated provider prompt files are not generated as required runtime artifacts at agent-parts/advance/adv-{provider}.md",
             "agent.adv-{provider}.prompt refs are not written by deploy-local.sh",
@@ -390,7 +392,7 @@
     {
       "id": "rq-providerAdvMetrics01",
       "title": "Provider ADV Prompt Size Metrics",
-      "body": "Provider ADV evaluation must report prompt-size planes for the single-agent architecture: canonical ADV prompt size, ADV protocol instruction size, provider hint size, selected runtime prompt size, and removed or avoided provider-variant duplication. Metrics must not require generated adv-{provider}.md files as canonical inputs.",
+      "body": "Provider ADV evaluation must report prompt-size planes for the single-agent architecture: lean ADV runtime prompt size, ADV reference protocol size, provider hint size, dynamic ADV system-block estimate, caveman voice-contract allowance, selected runtime prompt size, and removed or avoided provider-variant duplication. Metrics must be coverage-first reporting and must not require generated adv-{provider}.md files as canonical inputs or impose a hard prompt-size cap as correctness proof.",
       "priority": "must",
       "tags": ["provider-adv", "metrics", "prompt-size"],
       "scenarios": [
@@ -402,9 +404,11 @@
           ],
           "when": "The provider evaluation harness reports prompt size metrics",
           "then": [
-            "Metrics include canonical ADV prompt bytes and lines",
-            "Metrics include ADV protocol instruction bytes and lines",
+            "Metrics include lean_adv_runtime_prompt bytes and lines",
+            "Metrics include adv_reference_protocol bytes and lines",
             "Metrics include provider hint bytes and lines",
+            "Metrics include adv_dynamic_system_block_estimate bytes and lines",
+            "Metrics include caveman_voice_contract_allowance bytes and lines",
             "Metrics include selected_agent_runtime_prompt bytes and lines for the composed single ADV prompt plus one runtime provider hint",
             "Metrics include removed or avoided provider-variant duplication when measurable",
             "The harness does not require generated provider variant files as canonical prompt sources"
@@ -446,31 +450,32 @@
     },
     {
       "id": "rq-proseReduction03",
-      "title": "Category Classification Inventory",
-      "body": "When a change executes prose-load reduction work, an inventory document MUST be produced and committed during execution that records every section being reclassified, its enforcement class, target compression format, code reference (for fully/partially-enforced classes), and gap rationale (for partially-enforced class). The inventory is a working document during execution; after compression completes it is marked as a post-compression archive and is not maintained thereafter. Durable invariants live in this spec, not in the inventory document.",
+      "title": "Category Classification Source of Truth",
+      "body": "Prose-load reduction work MUST classify instruction sections by enforcement class using this spec and docs/command-voice-standard.md as the source of truth. Long-lived inventory or audit-trail documents are not required; durable invariants live in specs, tests, command contracts, and the voice standard.",
       "priority": "must",
-      "tags": ["prose-reduction", "audit-trail", "inventory"],
+      "tags": ["prose-reduction", "source-of-truth", "classification"],
       "scenarios": [
         {
           "id": "rq-proseReduction03.1",
-          "title": "Inventory captures classification rows",
+          "title": "Classification uses canonical framework",
           "given": ["A change executes prose-load reduction work"],
-          "when": "The inventory document is inspected after the inventory pass completes",
+          "when": "The edited instruction surface is inspected",
           "then": [
-            "Every reclassified section appears as a row",
-            "Each row records: surface, section, line count, class (full/partial/inherent), target format, code reference (for full/partial), gap rationale (for partial), status"
+            "Every edited section follows the full, partial, or inherent enforcement-class framework",
+            "Fully and partially enforced sections cite code/spec/test anchors when applicable",
+            "Partially enforced sections state the agent-side gap when prose remains necessary"
           ]
         },
         {
           "id": "rq-proseReduction03.2",
-          "title": "Inventory marked archive after compression",
+          "title": "No standing audit inventory required",
           "given": [
-            "All compression passes for a prose-reduction change have completed"
+            "A prose-reduction change has completed"
           ],
-          "when": "The inventory document header is inspected",
+          "when": "The repository documentation is inspected",
           "then": [
-            "The header records POST-COMPRESSION ARCHIVE status",
-            "No maintenance owner is assigned to the inventory thereafter"
+            "No repository doc is required solely to preserve the change's audit trail",
+            "Current behavior is recoverable from specs, tests, command contracts, and source comments"
           ]
         }
       ]
@@ -510,7 +515,7 @@
     {
       "id": "rq-skillProseCompression01",
       "title": "Skill File Prose Compression",
-      "body": "Skill files under skills/*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must be classified as full, partial, or inherent in docs/prose-load-inventory.md and compressed accordingly before archive.",
+      "body": "Skill files under skills/*/SKILL.md MUST use the same enforcement-class compression framework as command files. New or modified skills must follow the full, partial, or inherent class rules in docs/command-voice-standard.md and keep durable invariants in specs, tests, or command contracts rather than standing audit inventories.",
       "priority": "must",
       "tags": ["prose-reduction", "skills", "compression"],
       "scenarios": [
@@ -521,7 +526,7 @@
           "when": "The skill file is prepared for archive",
           "then": [
             "The skill is compressed per the same enforcement-class framework as command files",
-            "The applicable class is full, partial, or inherent per docs/prose-load-inventory.md",
+            "The applicable class is full, partial, or inherent per docs/command-voice-standard.md",
             "Contract tokens, code blocks, tool names, enum values, and quoted errors remain intact"
           ]
         }
@@ -545,6 +550,41 @@
             "ADV_INSTRUCTIONS.md § Command vs Skill Boundaries lists the command under Dedicated skill or Shared skill",
             "The row includes the skill identifier",
             "The command is not listed as Command-only"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-noSourceChecklistReads01",
+      "title": "Runtime Commands Avoid Source Checklist Reads",
+      "body": "ADV runtime command guidance MUST NOT require agents to read Advance source or install-tree checklist files for reusable methodology. Runtime methodology must be available through embedded command guidance or loaded trusted skills, while docs/checklists/* remains maintainer/reference documentation only.",
+      "priority": "must",
+      "tags": ["commands", "skills", "runtime-guidance", "checklists"],
+      "scenarios": [
+        {
+          "id": "rq-noSourceChecklistReads01.1",
+          "title": "Runtime command uses embedded guidance or skill",
+          "given": [
+            "A synced ADV runtime command needs reusable methodology during execution"
+          ],
+          "when": "The command is invoked from a repository that is not the Advance source checkout",
+          "then": [
+            "The command provides the methodology through embedded runtime guidance or a loaded trusted skill",
+            "The command does not instruct the agent to read docs/checklists/* files",
+            "The command does not instruct the agent to search or read ~/.local/share/Advance/** for methodology"
+          ]
+        },
+        {
+          "id": "rq-noSourceChecklistReads01.2",
+          "title": "Checklist docs remain maintainer references",
+          "given": [
+            "Maintainer-facing docs/checklists/* files exist in the Advance repository"
+          ],
+          "when": "Runtime command guidance is authored or synced",
+          "then": [
+            "The docs may remain available for maintainer reference",
+            "Runtime command prose does not present those docs as the execution-time source of methodology",
+            "Structural drift tests fail if runtime command files reintroduce source or install-tree checklist-read directives"
           ]
         }
       ]
@@ -1237,7 +1277,7 @@
     {
       "id": "rq-scopedAdvInstructions01",
       "title": "ADV Protocol Instructions Are Scoped to the ADV Runtime Agent",
-      "body": "ADV_INSTRUCTIONS.md protocol content must be loaded by the single ADV runtime agent without being globally registered in opencode.json instructions[]. Sync and setup flows must preserve unrelated global instructions while removing legacy ADV_INSTRUCTIONS.md entries so non-ADV agents avoid ADV protocol prompt tax.",
+      "body": "ADV protocol must be scoped to the single ADV runtime agent without globally registering ADV_INSTRUCTIONS.md in opencode.json instructions[]. The runtime prompt must stay complete through a lean ADV runtime prompt plus runtime protocol coverage inventory, retained text, code/spec enforcement, and command-contract ownership rather than wholesale ADV_INSTRUCTIONS.md concatenation. Sync and setup flows must preserve unrelated global instructions while removing legacy ADV_INSTRUCTIONS.md entries so non-ADV agents avoid ADV protocol prompt tax.",
       "priority": "must",
       "tags": [
         "instructions",
@@ -1248,17 +1288,18 @@
       "scenarios": [
         {
           "id": "rq-scopedAdvInstructions01.1",
-          "title": "Single ADV runtime prompt embeds ADV protocol instructions",
+          "title": "Single ADV runtime prompt preserves ADV protocol coverage without wholesale reference append",
           "given": [
             "scripts/deploy-local.sh --fix syncs the global ADV runtime agent"
           ],
           "when": "The global adv.md runtime prompt content is inspected",
           "then": [
-            "The content includes the canonical ADV agent body",
-            "The content includes ADV_INSTRUCTIONS.md protocol content from the repository source file",
+            "The content is the complete lean ADV runtime prompt",
+            "The content does not include a wholesale ADV_INSTRUCTIONS.md protocol-reference append",
+            "Removed or compressed runtime protocol is mapped in a runtime protocol coverage inventory to retained runtime text, code/spec enforcement, command contracts, or reference-only material",
             "The content does not include provider-specific runtime hints",
             "Provider hints are supplied only by the runtime system-block injection path",
-            "The effective static prompt order is canonical ADV body, then ADV_INSTRUCTIONS.md body"
+            "The effective static prompt is the canonical lean ADV runtime prompt; ADV_INSTRUCTIONS.md remains the full repo/dev reference source"
           ]
         },
         {
@@ -1306,15 +1347,15 @@
     {
       "id": "rq-twf01",
       "title": "Trunk Write Firewall",
-      "body": "When features.worktree_guard_enforce is true, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is omitted or false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout. In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
+      "body": "When features.worktree_guard_enforce is true (default) or omitted, the plugin MUST intercept direct file-write tool calls and known destructive bash write patterns via the tool.execute.before hook and block writes into the trunk checkout when HEAD is the default branch. When features.worktree_guard_enforce is explicitly false, the trunk write firewall MUST allow direct file-write tools and known destructive bash write patterns in the trunk checkout (legacy escape hatch). In strict mode, the firewall MUST allow writes inside ADV worktrees, outside git checkouts, and during explicit git recovery states (merge, rebase, cherry-pick, revert). Git commands MUST NOT be classified or blocked by this firewall; P32 is enforced by where files are edited, not by restricting git operations. Shell indirection and script-internal writes are accepted residual risk documented in ADV instructions.",
       "priority": "must",
       "tags": ["git", "worktree", "firewall", "trunk", "safety"],
       "scenarios": [
         {
           "id": "rq-twf01.1",
-          "title": "Flag-off trunk file writes allowed on default branch",
+          "title": "Explicit-false trunk file writes allowed on default branch",
           "given": [
-            "features.worktree_guard_enforce is omitted or false",
+            "features.worktree_guard_enforce is explicitly false",
             "A tool call targets a path inside the trunk checkout",
             "HEAD is on the default branch",
             "No git recovery state is active"
@@ -1329,7 +1370,7 @@
           "id": "rq-twf01.1a",
           "title": "Strict trunk file write blocked on default branch",
           "given": [
-            "features.worktree_guard_enforce is true",
+            "features.worktree_guard_enforce is true (default) or explicitly set true",
             "A tool call targets a path inside the trunk checkout",
             "HEAD is on the default branch",
             "No git recovery state is active"

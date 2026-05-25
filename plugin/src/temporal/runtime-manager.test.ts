@@ -30,7 +30,7 @@ describe("temporal runtime manager helpers", () => {
 
   it("derives a stable lock path for a project", () => {
     const lockPath = getTemporalRuntimeLockPath("proj123", {
-      OPEN_CHAD_CACHE_DIR: "/tmp/advance-cache",
+      ADV_CACHE_DIR: "/tmp/advance-cache",
     });
     expect(lockPath).toBe(
       "/tmp/advance-cache/advance-temporal/proj123.runtime.lock",

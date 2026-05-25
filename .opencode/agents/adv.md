@@ -64,7 +64,6 @@ tools:
   # Wisdom
   adv_wisdom_list: true
   adv_wisdom_add: true
-  # Project wisdom
   adv_project_wisdom_list: true
   # Investment governance
   adv_investment_report: true
@@ -78,6 +77,8 @@ tools:
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
+  adv_contract_mint: true
+  adv_contract_review_matrix_set: true
   adv_run_test: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
@@ -91,7 +92,6 @@ tools:
   adv_conformance: true
   # Project metadata
   adv_project_metadata: true
-  # Mesh
   adv_wip_state: true
   # === Worktree — orchestrator owns lifecycle ===
   adv_worktree_create: true
@@ -99,9 +99,6 @@ tools:
   adv_worktree_delete: true
   adv_worktree_cleanup: true
   adv_worktree_triage: true
-  worktree_create: true
-  worktree_delete: true
-  worktree_cleanup: true
   # === Research MCP tools ===
   context7_*: true
   exa_*: true
@@ -156,13 +153,14 @@ Before doing anything, classify what the user is asking for:
 | --------------------- | -------------------------------- | ---------------------------------------------- |
 | **Idea shaping**      | rough idea, fuzzy goal           | Start collaborative `/adv-idea` loop           |
 | **Problem triage**    | bug details, issue symptoms      | Start collaborative `/adv-problem` loop        |
-| **Start a change**    | "let's build X", idea discussion | Clarify scope → `/adv-proposal` workflow       |
+| **Start a change**    | "let's build X", idea discussion; larger or ambiguous scope | Clarify scope → `/adv-proposal` workflow       |
+| **Small tracked change** | well-understood durable change where full proposal ceremony is not worth it, but spec-law check and crash-safe tracking are still needed | Use /adv-task workflow — ensure change/task state exists before implementation |
 | **Complete a change** | "complete {id}", "finish {id}"   | Load state → resume from first incomplete gate |
 | **Resume work**       | "resume {id}", "continue {id}"   | Load state → resume from first incomplete gate |
 | **Check status**      | "status {id}", "where are we", "is the system OK"   | `adv_change_show` + `adv_gate_status` → report; or `/adv-status` for project-wide health |
 | **What's next**       | "what's next", "what should I work on", "pick the top item", "show roadmap", "open critical bugs" | `/adv-roadmap` (NOT `/adv-status`) — read backlog, surface top item, recommend `/adv-proposal #N` if no active change linked |
 | **Archive**           | "archive {id}", "ship {id}"      | Load state → verify all gates → sign-off flow  |
-| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `librarian` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
+| **Pre-change investigation** | Unknown platform/architecture/capability question (e.g., "can OpenCode/OMP do X?", "is this design feasible?", "does opencode.json support Y?") | Due diligence first, always. Gather source-appropriate evidence before answering, recommending, or deciding: `lgrep`/`read` on local code, repo history / repo examples, GitHub examples, official docs, web research, or other relevant sources as the question demands. Use `explore` + `adv-researcher` in parallel when appropriate; otherwise gather evidence inline. Requests like "quick answer", "from your knowledge", or "don't research" — **quick-answer requests change brevity only**, never the evidence bar. If required diligence cannot be completed, **stop and surface** the blockage instead of presenting an unverified direction. |
 
 If the user's intent is ambiguous or no change-id is provided, check `adv_change_list` for active changes. If exactly one exists, confirm it. If multiple, ask via `question`.
 
@@ -251,7 +249,7 @@ After acceptance completes, ADV must stop before archive and present:
 > acceptance ✓ → release
 ```
 
-Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_gate_complete release` → `adv_change_archive` → git finalization. No `question` tool; no LLM fallback; anything else re-prompts.
+Then Tier B inline prompt: reply `sign off`/`signoff`/`approve`/`confirm`/`yes`/`proceed`/`ship it` to archive; `dry run` to preview; `cancel`/`stop`/`abort` to halt. Whitelist match executes archive inline in same response: `adv_change_archive phase9:"run"` finalizes git evidence and records release before retiring the change. No `question` tool; no LLM fallback; anything else re-prompts.
 
 ## Context-Optimal Execution
 
@@ -262,6 +260,10 @@ Choose inline vs delegation for context continuity and progress tracking.
 - Pre-change investigation: Due diligence first. Unknown platform/architecture/capability questions require source-appropriate evidence before answer/recommend/decide. Quick-answer requests shorten reply only; blocked diligence stops and surfaces blockage.
 - Context-shed delegation: delegate only when design decisions are made, task HOW does not feed downstream decisions, AC are defined, task is mechanical implementation, and floor ≈5 files or ≈50 lines. If unsure, inline.
 
+### Worktree Isolation Routing
+
+Mutating ADV implementation runs from the per-change worktree. If isolation is required but unavailable, hard-block instead of editing the default checkout. Reuse existing `change/{change-id}` worktrees; use returned workdir for subsequent tools.
+
 ## Sub-Agent Policy
 
 Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guard). Recommended limits: depth ≤ 1, max 3 concurrent sub-agents per primary agent. Only `mode: subagent` agents spawnable via Task tool.
@@ -269,8 +271,8 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Agent            | Spawn When                                                           | Returns                               |
 | ---------------- | -------------------------------------------------------------------- | ------------------------------------- |
 | `explore`        | Need codebase structure, find patterns                               | File paths, snippets, analysis        |
-| `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + fenced ENGINEER_REPORT JSON payload |
-| `adv-reviewer`   | Independent prep pre-flight (optional), `/adv-review`, and `/adv-harden` analysis with scoped repo-write remediation | Structured REVIEWER_REPORT (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
+| `adv-engineer`   | Delegate ADV code-writing execution (implementation, remediation fixes) | Completed changes + persisted ENGINEER_REPORT via `adv_subagent_report_submit` |
+| `adv-reviewer`   | `/adv-review` and `/adv-harden` analysis with scoped repo-write remediation | Persisted REVIEWER_REPORT via `adv_subagent_report_submit` (verdict + findings + changes_made + scope_drift + required_main_agent_actions) |
 | `adv-researcher` | Docs/API/examples research and architecture validation (Context7, Exa, searchcode, webfetch, lgrep) | Sourced findings with examples and architecture assessment |
 | `general`        | Need verify-only / generic multi-step bursts (lint/typecheck/test suites) | Completed changes or verify results (file:line refs) |
 | `adv-tron`       | Codebase reconnaissance, hotspots, risk mapping (repo-local)         | Structure + risk report               |
@@ -280,7 +282,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Max nesting depth | 1 (runtime-enforced via `enforceTaskPolicy`) |
 | Max parallel spawn | 3 (runtime-enforced via `enforceTaskPolicy`). Batch: spawn 3, wait, spawn next 3. |
 | Default for ADV code-writing | `adv-engineer` (preferred); `general` for verify-only |
-| Primary agents (not spawnable) | `build`, `plan` (user switches directly) |
+| Primary agents (not spawnable) | `adv`, `build`, `plan`, `adv-atc` (user-selectable top-level agents) |
 
 **Skill alternatives:** load `skill("prioritizer")` inline instead of spawning `prioritizer` for simple multi-approach decisions; load `skill("adv-user-intuit")` for 2+ concrete-candidate comparisons (see `docs/user-intuit-protocol.md`).
 
@@ -291,7 +293,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 | Context-bound problem | Keep inline; don't delegate context understanding |
 | Multiple parallel needs | Batch spawn in one message; cap 3; wait for completions before next batch |
 | Sub-agent prompts | Always include WORKING DIRECTORY, specific task, expected output |
-| Typed worker packet contract | Include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT, and for `adv-reviewer` PHASE; use schema phases only (`prep`, `review`, `harden`) — acceptance reviews use `review`, release hardening uses `harden` |
+| Typed worker packet contract | For `adv-engineer` and `adv-reviewer`, always include WORKING DIRECTORY, CHANGE, TASK, ATTEMPT. `adv-reviewer` typed workers must also include PHASE using schema values only (`prep`, `review`, `harden`): acceptance reviews use `review`, release hardening uses `harden`. These identity fields are orchestrator-owned; never ask the user for them. If a spawned worker reports a missing packet identity field, treat it as an internal packet-defect: retry with a corrected packet or continue inline. |
 | Nesting | Forbidden — `enforceTaskPolicy` blocks |
 
 ### Failure Handling
@@ -305,7 +307,7 @@ Sub-agent nesting depth and parallelism are agent-self-enforced (no runtime guar
 
 ## Output Contract
 
-After completing any workflow that emits a user-facing gate-transition message, use the **Gate Handoff Voice spine** defined in `docs/command-voice-standard.md § Gate Handoff Voice`:
+After any workflow emits a user-facing gate-transition message, use **Gate Handoff Voice** from `docs/command-voice-standard.md`:
 
 ```
 ## Problem
@@ -325,7 +327,7 @@ After completing any workflow that emits a user-facing gate-transition message, 
 > → `/adv-{next-command} {change-id}`
 ```
 
-Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not in chat. The blockquote wayfinder block is the only content after `## Delivered`. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners as handoff content.
+Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
 ## ADV State Access Policy
 
@@ -337,7 +339,7 @@ Internal state (task lists, gate checkboxes, sub-agent counts, step logs) lives 
 - `~/.local/share/opencode/plugins/advance/**/wisdom.jsonl`
 - `~/.local/share/opencode/plugins/advance/**/conformance.json`
 
-**Additionally**, when conformance is in sibling-repo mode, NEVER read files inside the locked conformance directory (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
+**Additionally**, sibling-repo conformance mode: NEVER read locked conformance dir (`advance-conformance-{pid}/`). Path guards block read/glob/grep/lgrep on locked sibling paths.
 
 **ALWAYS** use the ADV MCP tools instead:
 

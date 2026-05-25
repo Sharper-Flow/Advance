@@ -4,37 +4,40 @@ description: "Architecture inconsistency detection via deterministic tools, rese
 keywords: ["architecture", "layer", "circular-deps", "drift", "tech-stack", "dependencies", "structure"]
 metadata:
   priority: medium
-  source: agent-created
+  source: .adv/specs/arch-scan/spec.json
 ---
 
 # Architecture Detection Skill
 
 ## Purpose
 
-Reusable architecture inconsistency detection for ADV arch-scan workflows. Three-phase strategy: deterministic tools for known stacks → research fallback for unknown stacks → AI heuristic as universal fallback.
+Detect architecture inconsistencies across codebase, specs, command docs, and workflow assets. Three phases: deterministic tools → research fallback → AI heuristic.
 
 ## Three-Phase Detection Strategy
 
-### Phase 1: Deterministic Tools (Known Stacks)
+### Phase 1: Deterministic Tools (Stack Packs)
 
 <!-- rq-archp33 -->
+<!-- rq-archstack01 -->
+<!-- rq-archstack02 -->
 
-Detect stack from project files, then run stack-specific tools from the Known-Stack Rule Matrix.
+Detect stack from project files, then run stack-specific tools from the Stack Packs matrix before research fallback or generic AI heuristic fallback.
 
-| Detected File | Stack | Tools |
-|---------------|-------|-------|
+| Detected File | Stack Pack | Tools / Structural owners |
+|---------------|------------|---------------------------|
 | `package.json` + `tsconfig.json` | TypeScript/Node | `dependency-cruiser`, `madge` |
+| `package.json` + ADV command/spec/skill/Temporal assets | ADV stack pack | dependency graph tools; workflow bundle boundary tests; command/manifest symmetry tests; spec/asset anchors; command/skill methodology surfaces |
 | `pyproject.toml` / `setup.py` | Python | `pydeps` |
 | `go.mod` | Go | `go vet`, `gocyclo` |
 | `Cargo.toml` | Rust | `cargo-deps` |
 
-When tools are absent → graceful fallback with `detectionMethod: degraded` and a note.
+When tools are absent → graceful fallback with `detectionMethod: degraded` and a note. When a relevant detected stack has no pack, report it as missing pack coverage.
 
 Also scan known correctness boundaries for structural ownership: input parsing/normalization, workflow state transitions, gate/spec/compliance outcomes, persistence mutation, and classification. Prefer tool/schema/type evidence; heuristic-only signals are low-confidence candidates.
 
 ### Phase 2: Research Fallback (Unknown Stacks)
 
-When stack is NOT in the Known-Stack Rule Matrix OR user requests `--phase 2`:
+When stack is NOT in the Stack Packs matrix OR user requests `--phase 2`:
 
 1. **Detect stack** from project files (e.g., `Gemfile` → Ruby, `pom.xml` → Java)
 2. **Exa query** — search `"{stack} architecture linter"`, `"{stack} circular dependency detector"`
@@ -44,22 +47,32 @@ When stack is NOT in the Known-Stack Rule Matrix OR user requests `--phase 2`:
 
 ### Phase 3: AI Heuristic (Universal Fallback)
 
-When Phase 1 and 2 produce no results:
+Run Phase 3 when the user requests `--phase 3`, after Phase 1/2 produce no findings, or when no Stack Pack applies.
+- Compare claimed architecture vs implementation evidence.
+- Flag orphaned layers, bypassed abstractions, dead integration paths, duplicate responsibility, doc/spec/code drift.
+- Flag P33 boundary violations only when source shows heuristic/prose/regex/LLM judgment owns correctness, security, persistence, workflow state, gate completion, or spec compliance.
+- Mark all findings `detectionMethod: heuristic`, `confidence: low`.
+- Do not create blocking findings from vibes; cite concrete evidence.
 
-- Analyze file structure and import patterns heuristically
-- Detect likely layer violations (e.g., UI importing DB directly)
-- Flag circular dependencies via import graph analysis
-- Flag suspected structural-correctness boundary violations only when source evidence shows heuristic/prose/regex/LLM judgment owns correctness, security, persistence, workflow state, gate completion, or spec compliance
-- Mark all findings with `detectionMethod: heuristic` and `confidence: low`
+## Stack Packs Matrix
 
-## Known-Stack Rule Matrix
-
-| Stack | Primary Tool | Fallback Tool | Checks |
-|-------|-------------|---------------|--------|
+| Stack Pack | Primary Tool / Structural Owner | Fallback Tool | Checks |
+|------------|----------------------------------|---------------|--------|
 | TypeScript/Node | `dependency-cruiser` | `madge` | Circular deps, layer violations, orphans |
+| ADV stack pack | existing structural enforcers | dependency graph tools | TypeScript/Bun/OpenCode plugin/Temporal workflow bundle boundary, command/manifest symmetry, spec/asset anchors, command/skill methodology surfaces |
 | Python | `pydeps` | `import-deps` | Import cycles, module depth |
 | Go | `go vet` | `gocyclo` | Shadowing, complexity, unused code |
 | Rust | `cargo-deps` | `cargo-modules` | Dependency graph, unused crates |
+
+The ADV stack pack cites existing tests and validators as authoritative structural checks instead of restating those boundaries as prose authority.
+
+<!-- rq-archcov01 -->
+
+## Architecture Scanner Coverage Report
+
+Text output: detected stacks, applied Stack Packs, missing Stack Packs, skipped detectors, degraded detectors. JSON: `coverage.detectedStacks`, `coverage.appliedPacks`, `coverage.missingPacks`, `coverage.skippedDetectors`, `coverage.degradedDetectors`.
+
+Missing pack ≠ finding by itself. It is coverage debt.
 
 ## Research-Fallback Protocol
 
@@ -86,12 +99,14 @@ Example: Kotlin project detected → Exa: "Kotlin architecture linter" → Conte
 
 | Level | Criteria | Action |
 |-------|----------|--------|
-| blocker | Circular deps at core layer, build-breaking drift | Must fix before merge |
-| major | Layer violations, orphaned critical modules | Fix in current sprint |
+| blocker | Core circular deps, build-breaking drift | Must fix before merge |
+| major | Layer violations, orphaned critical modules | Fix current sprint |
 | minor | Style inconsistency, minor complexity | Fix opportunistically |
 | nit | Naming mismatch, formatting | Campsite rule |
 
-Structural-correctness severity: blocker when heuristic-owned authority controls security, persistence, workflow state, gate completion, or spec compliance in touched scope; major when it controls input recognition/classification without immediate mutation; minor/nit only for advisory-only smells with clear guardrails.
+Structural-correctness severity: `blocker` when heuristic-owned authority controls security, persistence, workflow state, gate completion, or spec compliance in touched scope; `major` for input recognition/classification authority without immediate mutation; `minor`/`nit` for advisory-only smells with guardrails.
+
+Cross-scanner comparison: arch-scan `blocker≈CRITICAL`, `major≈HIGH`, `minor≈MEDIUM`, `nit≈LOW` vs slop-scan. Keep each scanner's native labels.
 
 ## Constraints
 

@@ -234,6 +234,9 @@ describe("scanSnapshotHealth", () => {
     expect(f.severity).toBe("critical");
     expect(f.project_id).toBe("test-pid");
     expect(f.metadata).toHaveProperty("error_line");
+    // Bug fix: fsck_error findings MUST carry a remediation so users can
+    // auto-repair fsck'd snapshots via adv_snapshot_health repair.
+    expect(f.remediation).toBe("delete_fsck_corrupt_repos");
   });
 
   it("detects orphan bare repo when worktree path does not exist", async () => {
@@ -715,6 +718,108 @@ describe("executeRepair", () => {
       repairActions: ["delete_orphan_bare_repos"],
       dryRun: true,
       resolveWorktreePath: async () => "/nonexistent/path",
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("success");
+    expect(result[0].reason).toBe("dryRun");
+    await expect(access(repoPath)).resolves.toBeUndefined();
+  });
+
+  // ---------------------------------------------------------------------------
+  // delete_fsck_corrupt_repos — repair gap fix
+  // ---------------------------------------------------------------------------
+
+  it("deletes fsck-corrupt bare repo when live fsck still reports errors", async () => {
+    const repoPath = join(tempRoot, "test-pid", "abc123");
+    await makeBareRepo(repoPath);
+    await addCorruptedObject(repoPath);
+    // Dangling ref → live fsck will still report errors when re-run.
+    await writeFile(
+      join(repoPath, "refs", "heads", "main"),
+      "deadbeef00000000000000000000000000000000\n",
+    );
+
+    const finding: SnapshotFinding = {
+      pattern: "fsck_error",
+      severity: "critical",
+      project_id: "test-pid",
+      bare_repo_path: repoPath,
+      detail: "git fsck error: missing blob deadbeef",
+      remediation: "delete_fsck_corrupt_repos",
+      metadata: {
+        error_line: "missing blob deadbeef",
+      },
+    };
+
+    const result = await executeRepair({
+      scope: "project",
+      projectId: "test-pid",
+      snapshotRoot: tempRoot,
+      findings: [finding],
+      repairActions: ["delete_fsck_corrupt_repos"],
+      dryRun: false,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("success");
+    expect(result[0].action).toBe("delete_fsck_corrupt_repos");
+    await expect(access(repoPath)).rejects.toThrow();
+  });
+
+  it("skips fsck-corrupt deletion when live fsck is now clean", async () => {
+    // Build a syntactically valid bare repo with no corruption — live
+    // fsck should pass even though the original scan flagged it.
+    const repoPath = join(tempRoot, "test-pid", "clean123");
+    await makeBareRepo(repoPath);
+
+    const finding: SnapshotFinding = {
+      pattern: "fsck_error",
+      severity: "critical",
+      project_id: "test-pid",
+      bare_repo_path: repoPath,
+      detail: "git fsck error: missing blob (transient)",
+      remediation: "delete_fsck_corrupt_repos",
+      metadata: { error_line: "missing blob (transient)" },
+    };
+
+    const result = await executeRepair({
+      scope: "project",
+      projectId: "test-pid",
+      snapshotRoot: tempRoot,
+      findings: [finding],
+      repairActions: ["delete_fsck_corrupt_repos"],
+      dryRun: false,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe("skipped");
+    expect(result[0].reason).toContain("fsck now clean");
+    await expect(access(repoPath)).resolves.toBeUndefined();
+  });
+
+  it("dryRun fsck-corrupt deletion returns success without deleting", async () => {
+    const repoPath = join(tempRoot, "test-pid", "abc123");
+    await makeBareRepo(repoPath);
+    await addCorruptedObject(repoPath);
+
+    const finding: SnapshotFinding = {
+      pattern: "fsck_error",
+      severity: "critical",
+      project_id: "test-pid",
+      bare_repo_path: repoPath,
+      detail: "git fsck error: missing blob",
+      remediation: "delete_fsck_corrupt_repos",
+      metadata: { error_line: "missing blob" },
+    };
+
+    const result = await executeRepair({
+      scope: "project",
+      projectId: "test-pid",
+      snapshotRoot: tempRoot,
+      findings: [finding],
+      repairActions: ["delete_fsck_corrupt_repos"],
+      dryRun: true,
     });
 
     expect(result).toHaveLength(1);

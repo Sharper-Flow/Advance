@@ -119,6 +119,16 @@ describe("sister-command anchor existence (drift detection)", () => {
     const content = readCommand("adv-proposal.md");
     expect(content).toMatch(/### Must Not/);
   });
+
+  test("adv-discover.md contains Phase 3.5 Discovery Opportunity Scout anchor", () => {
+    const content = readCommand("adv-discover.md");
+    expect(content).toMatch(/Phase 3\.5.*Discovery Opportunity Scout/);
+  });
+
+  test("adv-design.md contains Phase 2.5 Design Leverage Scout anchor", () => {
+    const content = readCommand("adv-design.md");
+    expect(content).toMatch(/Phase 2\.5.*Design Leverage Scout/);
+  });
 });
 
 describe("ChangeSchema no longer validates autopilot fields", () => {

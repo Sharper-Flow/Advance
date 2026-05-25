@@ -104,7 +104,7 @@ describe("ADV stability hardening cross-cutting verification", () => {
     ).resolves.toMatchObject({ shouldSpawnWorker: true, workerRole: "host" });
   });
 
-  test("worktree guard blocks main-checkout mutations but allows worktrees and exemptions", () => {
+  test("worktree guard blocks main-checkout mutations but allows worktrees and exemptions", async () => {
     const mainContext = () => ({
       isWorktree: false,
       isMainCheckout: true,
@@ -116,22 +116,25 @@ describe("ADV stability hardening cross-cutting verification", () => {
       mainCheckoutPath: "/repo/main",
     });
 
-    expect(
+    await expect(
       evaluateGateWorktreeIsolation({
         gateId: "execution",
         features: { worktree_guard_enforce: true },
         cwd: "/repo/main",
         getSessionContext: mainContext,
       }),
-    ).toMatchObject({ decision: "BLOCK", mainCheckoutPath: "/repo/main" });
-    expect(
+    ).resolves.toMatchObject({
+      decision: "BLOCK",
+      mainCheckoutPath: "/repo/main",
+    });
+    await expect(
       evaluateGateWorktreeIsolation({
         gateId: "proposal",
         features: { worktree_guard_enforce: true },
         cwd: "/repo/main",
         getSessionContext: mainContext,
       }),
-    ).toEqual({ decision: "ALLOW" });
+    ).resolves.toEqual({ decision: "ALLOW" });
     expect(
       evaluateTaskAddWorktreeIsolation({
         features: { worktree_guard_enforce: true },

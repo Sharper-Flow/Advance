@@ -30,7 +30,10 @@ async function makeTempProject(): Promise<string> {
 }
 
 describe("store-disk — judgment_calls removal", () => {
-  test("init writes explicit worktree_guard_enforce false by default", async () => {
+  // rq-autoManageAdvWorktrees AC2 — init template flipped to write
+  // explicit true so the project starts in strict mode. Explicit false
+  // remains the legacy escape hatch for projects that want to opt out.
+  test("init writes explicit worktree_guard_enforce true by default", async () => {
     const dir = await mkdtemp(join(tmpdir(), "adv-store-init-"));
     const store = await createDiskStore(dir);
 
@@ -41,7 +44,7 @@ describe("store-disk — judgment_calls removal", () => {
     ) as {
       features?: { worktree_guard_enforce?: unknown };
     };
-    expect(config.features?.worktree_guard_enforce).toBe(false);
+    expect(config.features?.worktree_guard_enforce).toBe(true);
   });
 
   test("(a) createChange does NOT initialize judgment_calls", async () => {
@@ -65,6 +68,28 @@ describe("store-disk — judgment_calls removal", () => {
     const change = loaded.data!;
     expect("judgment_calls" in change).toBe(false);
     expect(change.judgment_calls).toBeUndefined();
+  });
+
+  test("createChange stamps initial metadata before save", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const origin = { kind: "roadmap" as const, issue_number: 51 };
+
+    const result = await store.changes.create(
+      "Seed Origin",
+      "backlog-coordination",
+      "# Proposal\n",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { initialMetadata: { origin } },
+    );
+
+    const loaded = await store.changes.get(result.changeId);
+
+    expect(loaded.success).toBe(true);
+    expect(loaded.data?.origin).toEqual(origin);
   });
 });
 

@@ -77,6 +77,8 @@ tools:
   # Gates
   adv_gate_status: true
   adv_gate_complete: true
+  adv_contract_mint: true
+  adv_contract_review_matrix_set: true
   adv_run_test: true
   # Temporal / workflow ops
   adv_temporal_diagnose: true
@@ -98,9 +100,6 @@ tools:
   adv_worktree_delete: true
   adv_worktree_cleanup: true
   adv_worktree_triage: true
-  worktree_create: true
-  worktree_delete: true
-  worktree_cleanup: true
   # Research MCP tools
   context7_*: true
   exa_*: true

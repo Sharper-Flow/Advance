@@ -1,7 +1,13 @@
 # Agent reference: Zed + OpenCode ACP
 
-Use this as a checklist. Do not treat it as permanent truth; verify dynamically
-against current docs, logs, and installed versions.
+> [!CAUTION]
+> Archived / parked reference. Do not use this as current setup guidance for
+> Advance. `acp-mux` is paused until upstream OpenCode ACP fixes make ADV human
+> checkpoints reliable.
+
+Use this only as historical context. Do not treat it as permanent truth; verify
+dynamically against current docs, logs, installed versions, and upstream ACP
+behavior before reviving any part of it.
 
 ## Current evidence to re-check
 
@@ -17,8 +23,9 @@ against current docs, logs, and installed versions.
 
 ## Local invariants
 
-- Launch through `acp-mux acp`, not direct `opencode acp`, when Zed needs
-  isolated DB behavior.
+- Historical invariant: launch through `acp-mux acp`, not direct `opencode acp`,
+  when Zed needs isolated DB behavior. This is not current Advance guidance while
+  `acp-mux` is archived.
 - Launch-time DB selection cannot be done by an OpenCode server plugin.
 - Expected ACP env from launcher:
   - `OPENCODE_CLIENT=acp`
@@ -30,7 +37,7 @@ against current docs, logs, and installed versions.
 - New isolated instance DBs are seeded from canonical `opencode.db` when present
   to avoid historical `Session not found` failures.
 
-## Before changing ACP behavior
+## Before reviving or changing ACP behavior
 
 1. Check installed OpenCode version and whether it is a release or local build.
 2. Check active Zed remote server version.
@@ -42,7 +49,7 @@ against current docs, logs, and installed versions.
    - SQLite/session-store isolation,
    - or unsupported ACP capability.
 
-## Useful commands
+## Historical useful commands
 
 ```bash
 acp-mux doctor
@@ -52,18 +59,17 @@ acp-mux sync-db --dry-run --all
 acp-mux thread-close --help              # see usage
 acp-mux thread-close                     # close newest live instance
 acp-mux thread-close --instance ID       # close specific instance
-/home/jon/.opencode/bin/opencode --version
+/home/dev/.opencode/bin/opencode --version
 sqlite3 "$XDG_DATA_HOME/opencode/opencode.db" 'pragma integrity_check;'
 ```
 
-## Thread-close (single-instance graceful shutdown)
+## Historical thread-close (single-instance graceful shutdown)
 
 `acp-mux thread-close [--instance ID] [--no-sync] [--no-archive] [--timeout SEC]`
 
-One-shot orchestrator for closing an isolated instance cleanly. Designed
-to be invoked from a Zed task bound to a keyboard shortcut (e.g.
-`ctrl-shift-w`) so the user can archive the active thread without leaving
-Zed.
+One-shot orchestrator for closing an isolated instance cleanly. It was designed
+to be invoked from a Zed task bound to a keyboard shortcut (e.g. `ctrl-shift-w`)
+so the user could archive the active thread without leaving Zed.
 
 Flow:
 
@@ -103,9 +109,10 @@ to `ctrl-shift-w` plus the Zed `agent::ArchiveSelectedThread` action.
 
 Use `--dry-run` first when investigating unknown session-store state.
 
-## Future work
+## Future work — paused
 
-- Rename `OPENCODE_ZED=1` (set by `plugin.js` `shell.env` hook) to
+- Do not extend `acp-mux` until upstream OpenCode ACP blockers are resolved.
+- If revived, rename `OPENCODE_ZED=1` (set by `plugin.js` `shell.env` hook) to
   `OPENCODE_ACP_CLIENT=zed`. This makes the architecture extensible for other
   ACP clients (Cursor, Neovim, VS Code Agent Mode) without renaming env vars
   later. A Cursor launcher would then set `OPENCODE_ACP_CLIENT=cursor`.

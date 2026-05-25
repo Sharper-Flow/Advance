@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
   const queryMock = vi.fn();
   const handleMock = { signal: signalMock, query: queryMock };
   const getHandleMock = vi.fn(() => handleMock);
+  const targetStoreRef = { current: undefined as unknown };
   const temporalBundle = {
     client: { workflow: { getHandle: getHandleMock } },
   };
@@ -32,8 +33,52 @@ const mocks = vi.hoisted(() => {
     fireSignalAndRefresh: vi.fn(async () => {}),
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
+    targetStoreRef,
+    withTargetPathStore: vi.fn(async (input, fn) =>
+      fn({
+        context: {
+          root: input.target_path,
+          projectId: "target-project-id",
+          externalRoot: "/tmp/target-external",
+          trusted: false,
+          trustSource: "explicit",
+          stateMode: "temporal",
+        },
+        store: targetStoreRef.current,
+      }),
+    ),
+    ensureWorktreeForMutation: vi.fn(async () => ({ decision: "ALLOW" })),
+    buildWorktreeAutoManageDeps: vi.fn(async (targetStore) => ({
+      resumeRuntime: {
+        projectRoot: targetStore.paths.root,
+        database: {},
+        log: {
+          debug: vi.fn(),
+          info: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+        },
+        store: targetStore,
+      },
+    })),
   };
 });
+
+vi.mock("./target-project", async () => {
+  const actual =
+    await vi.importActual<typeof import("./target-project")>(
+      "./target-project",
+    );
+  return {
+    ...actual,
+    withTargetPathStore: mocks.withTargetPathStore,
+  };
+});
+
+vi.mock("./worktree-auto-manage", () => ({
+  ensureWorktreeForMutation: mocks.ensureWorktreeForMutation,
+  buildWorktreeAutoManageDeps: mocks.buildWorktreeAutoManageDeps,
+}));
 
 vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
@@ -121,6 +166,7 @@ describe("gate tools — signal-driven lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.querySignal.mockReset();
+    mocks.targetStoreRef.current = undefined;
   });
 
   afterEach(() => {
@@ -165,6 +211,105 @@ describe("gate tools — signal-driven lifecycle", () => {
         gateId: "planning",
         completedBy: "agent",
       });
+    });
+
+    test("passes compatibilityReason for acceptance gate completion", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
+        status: "done",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).toMatchObject({
+        compatibilityReason: "legacy replay lacks contract proof",
+      });
+    });
+
+    test("rejects compatibilityReason for non-acceptance gates", async () => {
+      const store = createMockStore();
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "design",
+          completedBy: "agent",
+          compatibilityReason: "not allowed here",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("acceptance");
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    test("poisoned-history acceptance recovery writes disk projection", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          _source: "disk",
+          _recovery: {
+            mode: "temporal_query_fallback",
+            reason: "poisoned_history",
+          },
+        } as Partial<import("../types").Change>,
+      });
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("TMPRL1100: Nondeterminism error"),
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.reconciliationWarning).toContain("not healed");
+      expect(store.changes.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gates: expect.objectContaining({
+            acceptance: expect.objectContaining({ status: "done" }),
+          }),
+        }),
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     });
 
     test("queries workflow gate state before firing completion signal", async () => {
@@ -326,7 +471,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           design: { status: "done" },
           planning: { status: "done" },
           execution: { status: "done" },
-          acceptance: { status: "done" },
+          acceptance: { status: "pending" },
           release: { status: "pending" },
         } as import("../types").Gates,
       });
@@ -336,7 +481,7 @@ describe("gate tools — signal-driven lifecycle", () => {
         design: { status: "done" },
         planning: { status: "done" },
         execution: { status: "done" },
-        acceptance: { status: "done" },
+        acceptance: { status: "pending" },
         release: { status: "pending" },
       } as import("../types").Gates);
       mocks.querySignal.mockResolvedValueOnce({ status: "done" });
@@ -344,7 +489,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       const result = await gateTools.adv_gate_complete.execute(
         {
           changeId: "test-change",
-          gateId: "release",
+          gateId: "acceptance",
           completedBy: "user",
           notes: "Manual finalization",
         },
@@ -407,6 +552,125 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     });
 
+    test("target_path worktree-mutation gate completion uses target store root for worktree isolation deps", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const targetStore = createMockStore({
+        gates,
+        change: {
+          id: "target-change",
+          worktree_auto_managed: true,
+        },
+      });
+      targetStore.paths.root = "/repo/worktree/change/target-change";
+      targetStore.paths.changes =
+        "/repo/worktree/change/target-change/.adv/changes";
+      mocks.targetStoreRef.current = targetStore;
+      vi.spyOn(process, "cwd").mockReturnValue("/repo/main");
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
+        status: "done",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "target-change",
+          gateId: "planning",
+          completedBy: "adv-prep",
+          userApproved: true,
+          target_path: "/repo/worktree/change/target-change",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        createMockStore(),
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.buildWorktreeAutoManageDeps).toHaveBeenCalledWith(
+        targetStore,
+      );
+      expect(mocks.ensureWorktreeForMutation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cwd: "/repo/worktree/change/target-change",
+          change: expect.objectContaining({
+            id: "target-change",
+            worktree_auto_managed: true,
+          }),
+          deps: expect.objectContaining({
+            resumeRuntime: expect.objectContaining({
+              projectRoot: "/repo/worktree/change/target-change",
+              store: targetStore,
+            }),
+          }),
+        }),
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({ gateId: "planning" }),
+      );
+    });
+
+    test("target_path metadata gate completion skips worktree isolation deps", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const targetStore = createMockStore({
+        gates,
+        change: {
+          id: "target-change",
+          worktree_auto_managed: true,
+        },
+      });
+      targetStore.paths.root = "/repo/worktree/change/target-change";
+      targetStore.paths.changes =
+        "/repo/worktree/change/target-change/.adv/changes";
+      mocks.targetStoreRef.current = targetStore;
+      vi.spyOn(process, "cwd").mockReturnValue("/repo/main");
+      mocks.querySignal.mockResolvedValueOnce(gates).mockResolvedValueOnce({
+        status: "done",
+      });
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "target-change",
+          gateId: "discovery",
+          completedBy: "adv-discover",
+          target_path: "/repo/worktree/change/target-change",
+          target_confirmed: true,
+          confirmationEvidence: "user approved target mutation",
+        },
+        createMockStore(),
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.buildWorktreeAutoManageDeps).not.toHaveBeenCalled();
+      expect(mocks.ensureWorktreeForMutation).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+        expect.anything(),
+        targetStore,
+        "target-change",
+        expect.anything(),
+        expect.objectContaining({ gateId: "discovery" }),
+      );
+    });
+
     test("execution gate checks for incomplete tasks", async () => {
       const gates = {
         proposal: { status: "done" },
@@ -446,6 +710,220 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("task(s) not done or cancelled");
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    });
+
+    // rq-extend-poisoned-recovery AC4: release-gate recovery accepts
+    // compatibilityReason (no longer rejected as acceptance-only).
+    test("compatibilityReason is now permitted for release gate", async () => {
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
+      // The pre-signal release-gate path will fail on git resolution in
+      // the unit-test environment; the important guarantee here is that
+      // the *acceptance-only* gate guard no longer rejects
+      // compatibilityReason for release.
+      let parsed: Record<string, unknown>;
+      try {
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "release",
+            completedBy: "user:jon",
+            compatibilityReason: "legacy poisoned workflow",
+          },
+          store,
+        );
+        parsed = JSON.parse(result);
+      } catch (err) {
+        parsed = { error: (err as Error).message };
+      }
+      expect(parsed.error ?? "").not.toContain(
+        "compatibilityReason is only supported for acceptance",
+      );
+    });
+
+    test("poisoned-history acceptance recovery covers WorkflowTaskFailedCauseNonDeterministicError describe", async () => {
+      // rq-fix-gate-tools-recovery AC2: probe-based recovery for generic
+      // signal errors when workflow describe carries poisoned evidence.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          _source: "disk",
+          _recovery: {
+            mode: "temporal_query_fallback",
+            reason: "poisoned_history",
+          },
+        } as Partial<import("../types").Change>,
+      });
+
+      // Healthy gates query succeeds (no isPoisonedHistoryError(error)
+      // signal — workflow signal will fail with a generic error instead).
+      mocks.querySignal.mockResolvedValueOnce(gates);
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to send signal"),
+      );
+
+      // Inject describe() that reports nondeterminism via TemporalReportedProblems.
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "category=WorkflowTaskFailed",
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+      mocks.handleMock.describe = describeMock;
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "test-change",
+          gateId: "acceptance",
+          completedBy: "agent",
+          compatibilityReason: "legacy replay lacks contract proof",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(parsed.reconciliationWarning).toContain("not healed");
+      expect(describeMock).toHaveBeenCalled();
+      expect(store.changes.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gates: expect.objectContaining({
+            acceptance: expect.objectContaining({ status: "done" }),
+          }),
+        }),
+      );
+
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+  });
+
+  describe("adv_gate_status", () => {
+    test("falls back to disk gates with _recovery annotation on poisoned workflow", async () => {
+      // rq-fix-gate-tools-recovery AC1.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({
+        gates,
+        change: {
+          gates,
+          _source: "disk",
+          _recovery: {
+            mode: "temporal_query_fallback",
+            reason: "poisoned_history",
+          },
+        } as Partial<import("../types").Change>,
+      });
+
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: {
+          TemporalReportedProblems: [
+            "cause=WorkflowTaskFailedCauseNonDeterministicError",
+          ],
+        },
+      }));
+      mocks.handleMock.describe = describeMock;
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.gates.planning.status).toBe("pending");
+      expect(parsed.gates.discovery.status).toBe("done");
+      expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
+      expect(describeMock).toHaveBeenCalled();
+
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    test("propagates query errors when describe does not show poisoned evidence", async () => {
+      // rq-fix-gate-tools-recovery AC6: no recovery without evidence.
+      const gates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates });
+
+      mocks.querySignal.mockRejectedValueOnce(
+        new Error("Failed to query Workflow"),
+      );
+      const describeMock = vi.fn(async () => ({
+        searchAttributes: { AdvChangeStatus: ["draft"] },
+        status: "RUNNING",
+      }));
+      mocks.handleMock.describe = describeMock;
+
+      await expect(
+        gateTools.adv_gate_status.execute({ changeId: "test-change" }, store),
+      ).rejects.toThrow(/Failed to query Workflow/);
+
+      delete (mocks.handleMock as { describe?: unknown }).describe;
+    });
+
+    test("uses workflow gates when query succeeds", async () => {
+      const diskGates = {
+        proposal: { status: "done" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as import("../types").Gates;
+      const workflowGates = {
+        ...diskGates,
+        discovery: { status: "done" },
+      } as import("../types").Gates;
+      const store = createMockStore({ gates: diskGates });
+
+      mocks.querySignal.mockResolvedValueOnce(workflowGates);
+
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.gates.discovery.status).toBe("done");
+      expect(parsed._recovery).toBeUndefined();
     });
   });
 });

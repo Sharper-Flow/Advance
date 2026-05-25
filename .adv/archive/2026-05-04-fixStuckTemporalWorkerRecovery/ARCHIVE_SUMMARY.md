@@ -130,7 +130,7 @@ Green phase:
 
 Acceptance:
 - Diagnose classifies #22/#23/#24 shape as suspect or unserviceable with actionable next action.
-- Status output cannot imply current Advance worker health equals target PokeEdge queue health.
+- Status output cannot imply current Advance worker health equals target ExampleProduct queue health.
 - Probe unavailable states are visible, not silently healthy.
   > Added queue serviceability snapshots to `adv_temporal_diagnose` and `adv_status view:health`, including expected queue, local worker diagnostics, server poller probe status, stale workflow count, and blockers. Updated recovery recommendations so suspect live legacy v1 locks require explicit approval/OpenCode owner restart, while fresh server poller evidence can mark peer-owned queues serviceable. Formatted status now separates worker process health from target queue serviceability.
 - ✅ Add bounded project-workflow access recovery for worktree creation

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { join, resolve } from "path";
+import { pathToFileURL } from "node:url";
 import { SpecSchema } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -16,9 +17,17 @@ const PROVIDER_SMOKE_DOC_PATH = join(
   REPO_ROOT,
   "docs/provider-adv-smoke-checklist.md",
 );
+const RUNTIME_PROTOCOL_COVERAGE_PATH = join(
+  REPO_ROOT,
+  "docs/adv-runtime-protocol-coverage.md",
+);
 const ADVANCE_META_SPEC_PATH = join(
   REPO_ROOT,
   ".adv/specs/advance-meta/spec.json",
+);
+const ADVANCE_META_SPEC_DOC_PATH = join(
+  REPO_ROOT,
+  "docs/specs/advance-meta.md",
 );
 const WORKTREE_LIFECYCLE_SPEC_PATH = join(
   REPO_ROOT,
@@ -182,6 +191,8 @@ describe("deploy-local.sh", () => {
       expect(content).toContain(
         'ADV_RUNTIME_PLUGIN_PATH="$LOCAL_DEPLOY_ROOT/plugin"',
       );
+      expect(content).toContain("check_rsync");
+      expect(content).toContain("command -v rsync");
       expect(content).toContain(
         'rsync -a --delete "$ADV_SOURCE_PLUGIN_PATH/" "$ADV_RUNTIME_PLUGIN_PATH/"',
       );
@@ -256,6 +267,30 @@ describe("deploy-local.sh", () => {
       expect(
         duplicateFrontmatterKeys(readFileSync(ADV_ATC_AGENT_PATH, "utf8")),
       ).toEqual([]);
+    });
+
+    test("tool drift validation exempts leaf-only report submit from primary agents", () => {
+      const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
+      const advAtcAgent = readFileSync(ADV_ATC_AGENT_PATH, "utf8");
+
+      expect(advAgent).toContain("mode: primary");
+      expect(advAtcAgent).toContain("mode: primary");
+      expect(advAgent).not.toContain("  adv_subagent_report_submit:");
+      expect(advAtcAgent).not.toContain("  adv_subagent_report_submit:");
+
+      expect(content).toContain("LEAF_ONLY_TOOLS");
+      expect(content).toContain('"adv_subagent_report_submit"');
+      expect(content).toContain("agent_mode");
+      expect(content).toContain('agent_mode == "primary"');
+      expect(content).toContain("registered - primary_exemptions - allowed");
+    });
+
+    test("tool drift validation remains strict for ordinary primary-agent tools", () => {
+      expect(content).toContain("primary_exemptions");
+      expect(content).toContain("missing = sorted(");
+      expect(content).toContain("extras = sorted(allowed - registered)");
+      expect(content).not.toContain("missing = []");
+      expect(content).not.toContain("registered = registered - allowed");
     });
 
     test("handles tilde-expanded paths in json_array_contains", () => {
@@ -371,8 +406,9 @@ describe("deploy-local.sh", () => {
 
     test("sync script assembles one complete ADV runtime agent", () => {
       expect(content).toContain("sync_adv_runtime_agent");
-      expect(content).toContain("canonical_text");
-      expect(content).toContain("instructions_text");
+      expect(content).toContain("runtime_text");
+      expect(content).not.toContain("instructions_text");
+      expect(content).not.toContain("canonical_text +");
       expect(content).toContain("assembled ADV runtime agent: adv.md");
     });
 
@@ -396,13 +432,17 @@ describe("deploy-local.sh", () => {
 
     test("provider eval reports single-agent prompt-size planes", () => {
       expect(providerEval).toContain("collectPromptSizeMetrics");
-      expect(providerEval).toContain("canonical_adv_prompt");
-      expect(providerEval).toContain("adv_protocol_instructions");
+      expect(providerEval).toContain("lean_adv_runtime_prompt");
+      expect(providerEval).toContain("adv_reference_protocol");
       expect(providerEval).toContain("provider_hint");
+      expect(providerEval).toContain("adv_dynamic_system_block_estimate");
+      expect(providerEval).toContain("caveman_voice_contract_allowance");
       expect(providerEval).toContain("selected_agent_runtime_prompt");
       expect(providerEval).toContain("avoided_provider_variant_duplication");
-      expect(providerEval).toContain("Canonical ADV prompt");
+      expect(providerEval).toContain("Lean ADV runtime prompt");
+      expect(providerEval).toContain("ADV reference protocol");
       expect(providerEval).toContain("Selected runtime prompt");
+      expect(providerEval).not.toContain("adv_protocol_instructions");
     });
 
     test("provider eval does not use generated provider variants as canonical prompt source", () => {
@@ -415,8 +455,36 @@ describe("deploy-local.sh", () => {
       expect(providerEval).toContain(
         "single ADV runtime prompt, no provider hint",
       );
-      expect(providerEval).toContain("return `${base}\\n\\n${hintContent}`");
+      expect(providerEval).toContain("composeSystemPrompt");
       expect(providerEval).not.toContain("stripped.indexOf(endMarker)");
+    });
+
+    test("provider eval computes prompt metric planes from executable helpers", async () => {
+      const { composeSystemPrompt, collectPromptSizeMetrics } = await import(
+        pathToFileURL(PROVIDER_EVAL_PATH).href
+      );
+      const leanPrompt = "---\nname: adv\n---\n\nADV body\nline 2";
+      const providerHint = "<!-- PROVIDER_HINT:gpt -->\nHint";
+      const runtimePrompt = composeSystemPrompt(leanPrompt, providerHint);
+      const metrics = collectPromptSizeMetrics({
+        leanRuntimePrompt: leanPrompt,
+        advReferenceProtocol: "Reference\nprotocol",
+        providerHint,
+        runtimePrompt,
+        retiredGeneratedProviderPath: join(
+          REPO_ROOT,
+          "does-not-exist/adv-gpt.md",
+        ),
+      });
+
+      expect(runtimePrompt).toBe(
+        "ADV body\nline 2\n\n<!-- PROVIDER_HINT:gpt -->\nHint",
+      );
+      expect(metrics.lean_adv_runtime_prompt).toMatchObject({ lines: 2 });
+      expect(metrics.adv_reference_protocol).toMatchObject({ lines: 2 });
+      expect(metrics.provider_hint).toMatchObject({ lines: 2 });
+      expect(metrics.selected_agent_runtime_prompt).toMatchObject({ lines: 5 });
+      expect(metrics.avoided_provider_variant_duplication).toBeNull();
     });
   });
 
@@ -438,12 +506,31 @@ describe("deploy-local.sh", () => {
         "output.system[0]",
         "Manual One-Time Migration",
         "agent.adv-{provider}.prompt",
-        "canonical_adv_prompt",
+        "lean_adv_runtime_prompt",
+        "adv_reference_protocol",
         "provider_hint",
+        "adv_dynamic_system_block_estimate",
+        "caveman_voice_contract_allowance",
         "selected_agent_runtime_prompt",
       ]) {
         expect(`${assemblyDoc}\n${smokeDoc}`).toContain(required);
       }
+      expect(assemblyDoc).toContain("lean canonical runtime prompt");
+      expect(assemblyDoc).not.toContain(
+        "global adv.md = canonical ADV body + ADV_INSTRUCTIONS.md",
+      );
+    });
+
+    test("setup docs document deploy-local jq and rsync dependencies", () => {
+      const setupDoc = readFileSync(join(REPO_ROOT, "SETUP.md"), "utf8");
+      const agentsDoc = readFileSync(join(REPO_ROOT, "AGENTS.md"), "utf8");
+      const projectDoc = readFileSync(join(REPO_ROOT, "project.md"), "utf8");
+
+      expect(setupDoc).toContain("rsync");
+      expect(`${agentsDoc}\n${projectDoc}`).toContain(
+        "rsync` for runtime plugin deployment",
+      );
+      expect(setupDoc).not.toContain("generated ADV provider prompts");
     });
 
     test("advance-meta spec contains provider runtime and metrics requirements", () => {
@@ -453,6 +540,65 @@ describe("deploy-local.sh", () => {
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.1");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.1a");
       expect(scenarioIds).toContain("rq-providerAdvSkinny01.2");
+    });
+
+    test("advance-meta markdown mirror is synced to spec metadata and new laws", () => {
+      const specDoc = readFileSync(ADVANCE_META_SPEC_DOC_PATH, "utf8");
+
+      expect(specDoc).toContain("> **Version:** 1.11.0");
+      expect(specDoc).toContain("> **Updated:** 2026-05-22");
+      expect(specDoc).toContain("**ID:** `rq-providerAdvSkinny01`");
+      expect(specDoc).toContain("**ID:** `rq-providerAdvMetrics01`");
+      expect(specDoc).toContain("**ID:** `rq-scopedAdvInstructions01`");
+      expect(specDoc).toContain("**ID:** `rq-clarifyEnforcementAudit01`");
+      expect(specDoc).toContain("**ID:** `rq-noSourceChecklistReads01`");
+    });
+
+    test("advance-meta spec no longer requires full ADV_INSTRUCTIONS runtime append", () => {
+      const specText = readFileSync(ADVANCE_META_SPEC_PATH, "utf8");
+
+      expect(specText).toContain("lean ADV runtime prompt");
+      expect(specText).toContain("runtime protocol coverage inventory");
+      expect(specText).toContain("adv_reference_protocol");
+      expect(specText).toContain("caveman_voice_contract_allowance");
+      expect(specText).not.toContain(
+        "Global adv.md contains the canonical ADV body and ADV_INSTRUCTIONS.md protocol content",
+      );
+      expect(specText).not.toContain(
+        "The effective static prompt order is canonical ADV body, then ADV_INSTRUCTIONS.md body",
+      );
+    });
+
+    test("runtime protocol coverage inventory preserves critical ADV invariants", () => {
+      const coverageDoc = readFileSync(RUNTIME_PROTOCOL_COVERAGE_PATH, "utf8");
+      const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
+
+      for (const required of [
+        "slash-command boundary",
+        "gate sequencing",
+        "human checkpoints",
+        "ADV state access",
+        "worktree isolation",
+        "due-diligence routing",
+        "intent routing",
+        "MCP tool-name contract",
+        "sub-agent policy",
+        "output handoff voice",
+        "sign-off boundary",
+        "cancellation approval",
+        "TDD/completion expectations",
+        "single-system-block discipline",
+      ]) {
+        expect(coverageDoc).toContain(required);
+      }
+
+      expect(coverageDoc).toContain("Source-of-truth coverage matrix");
+      expect(coverageDoc).not.toContain("| planned |");
+      expect(advAgent).toContain("## Slash Command Boundary");
+      expect(advAgent).toContain("## Step 3: Gate Machine");
+      expect(advAgent).toContain("### Human Checkpoints vs Auto-Continue");
+      expect(advAgent).toContain("## ADV State Access Policy");
+      expect(advAgent).toContain("### Worktree Isolation Routing");
     });
 
     test("advance-meta spec captures worker heartbeat and run-loop health requirements", () => {
@@ -550,12 +696,12 @@ describe("deploy-local.sh", () => {
         advConfig?.scenarios
           ?.find((s) => s.id === "rq-advcfg01.2")
           ?.then.join("\n"),
-      ).toContain("worker_singleton_enforce defaults true");
+      ).toContain("worker_singleton_enforce defaults false");
       expect(
         advConfig?.scenarios
           ?.find((s) => s.id === "rq-advcfg01.2")
           ?.then.join("\n"),
-      ).toContain("worktree_guard_enforce defaults false");
+      ).toContain("worktree_guard_enforce defaults true");
       expect(probeCache).toBeDefined();
       expect(probeCache?.body).toContain("_freshness");
       expect(probeCache?.scenarios?.map((s) => s.id)).toEqual(

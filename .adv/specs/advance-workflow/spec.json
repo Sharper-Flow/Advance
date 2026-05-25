@@ -2,9 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "advance-workflow",
   "title": "Advance Workflow",
-  "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.9.0",
-  "updated_at": "2026-05-20T00:00:00.000Z",
+  "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
+  "version": "1.14.0",
+  "updated_at": "2026-05-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -47,6 +47,68 @@
           "then": [
             "It does not create or mutate changes, tasks, gates, or spec files",
             "It hands off to /adv-proposal for artifact creation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-taskSpecLaw01",
+      "title": "Fast-Track Tasks Preserve Spec-Law Intent and Crash-Safe Tracking",
+      "body": "/adv-task MUST include a spec-law impact assessment for small well-understood durable changes before planning completes. The assessment MUST classify impact as add, modify, remove, No spec law update required, or Uncertain. Add/modify/remove outcomes MUST persist draft spec-delta obligations with concrete rq-* requirement IDs and at least one Given/When/Then scenario per obligation before implementation tasks are generated. No-update outcomes MUST persist a no-delta rationale. Uncertain outcomes MUST NOT complete planning or create implementation tasks for the uncertain scope; they route to /adv-proposal or deeper discovery. ADV agent routing SHOULD prefer /adv-task over ad hoc/direct implementation when full /adv-proposal ceremony is not warranted but durable change/task state exists before implementation for crash recovery.",
+      "priority": "must",
+      "tags": ["workflow", "adv-task", "spec-law", "tracking"],
+      "scenarios": [
+        {
+          "id": "rq-taskSpecLaw01.1",
+          "title": "Fast-track spec delta obligations are concrete",
+          "given": [
+            "A small well-understood durable change is routed through /adv-task"
+          ],
+          "when": "The spec-law impact assessment classifies the change as add, modify, or remove",
+          "then": [
+            "The change artifacts include draft spec-delta obligations before planning completes",
+            "Each obligation has a concrete rq-* requirement ID",
+            "Each obligation has at least one Given/When/Then scenario"
+          ]
+        },
+        {
+          "id": "rq-taskSpecLaw01.2",
+          "title": "No-delta fast-track records rationale",
+          "given": [
+            "A small well-understood durable change is routed through /adv-task"
+          ],
+          "when": "The spec-law impact assessment determines no spec law update is required",
+          "then": [
+            "The change artifacts state No spec law update required",
+            "The change artifacts include the no-delta rationale",
+            "Planning may complete only after the rationale is persisted"
+          ]
+        },
+        {
+          "id": "rq-taskSpecLaw01.3",
+          "title": "Small durable changes use tracked fast path",
+          "given": [
+            "A user asks for a small well-understood durable change"
+          ],
+          "when": "Full /adv-proposal ceremony is not warranted but implementation work is needed",
+          "then": [
+            "ADV agent routing prefers /adv-task over ad hoc/direct implementation",
+            "Durable change/task state exists before implementation begins",
+            "A crash can resume from tracked change/task state"
+          ]
+        },
+        {
+          "id": "rq-taskSpecLaw01.4",
+          "title": "Uncertain fast-track scope routes deeper before planning",
+          "given": [
+            "A small durable change is routed through /adv-task",
+            "The spec-law impact assessment cannot resolve whether spec law must be added, modified, removed, or left unchanged"
+          ],
+          "when": "The assessment classifies the impact as Uncertain",
+          "then": [
+            "/adv-task does not complete planning for the uncertain scope",
+            "/adv-task creates no implementation tasks for the uncertain scope",
+            "The change routes to /adv-proposal or deeper discovery before implementation planning resumes"
           ]
         }
       ]
@@ -373,11 +435,90 @@
             "If the push succeeds, the archive reports `Shipped.`",
             "If the push fails or is skipped, the archive reports `Merged locally.` with an explicit reason"
           ]
+        },
+        {
+          "id": "rq-releaseFinalization01.5",
+          "title": "Release gate structurally enforces trunk merge",
+          "given": [
+            "A change has completed all gates before release",
+            "The change branch is not reachable from the default branch"
+          ],
+          "when": "Any caller invokes `adv_gate_complete` with `gateId: \"release\"`",
+          "then": [
+            "The gate rejects completion with code `RELEASE_REQUIRES_TRUNK_MERGE`",
+            "The response cites `rq-releaseFinalization01`",
+            "The response points to `/adv-archive {change-id}` to complete Phase 9"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.6",
+          "title": "PR archive mode opts out of local default-branch merge",
+          "given": [
+            "Project configuration declares `archive_mode: \"pr\"`",
+            "The GitHub CLI is available for PR workflow handoff"
+          ],
+          "when": "Archive finalization runs for the change",
+          "then": [
+            "Local default-branch merge is skipped",
+            "The change branch must be pushed or otherwise made available for PR workflow",
+            "The archive reports the PR-mode handoff instead of claiming a local default-branch merge"
+          ]
         }
       ],
       "meta": {
         "merged_from": "advance"
       }
+    },
+    {
+      "id": "rq-releaseProjectionDurability01",
+      "title": "Archive Success Requires Durable Release Projection",
+      "body": "When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated by durable release-gate projection proof. Before `adv_change_archive phase9:\"run\"` reports success or performs archive retirement side effects, the store-backed gate read used by `adv_gate_status` MUST report `gates.release.status === \"done\"` with Phase 9 evidence in the release completion record. If this proof cannot be established, archive MUST return a blocked/recoverable result and MUST NOT claim shipped success, close linked issues, or run terminal cleanup as a successful retirement. Existing-bundle or completed-workflow retries MAY reconcile release metadata only after structural Phase 9 evidence is re-verified from the main checkout or PR branch state.",
+      "priority": "must",
+      "tags": ["workflow", "archive", "release", "projection", "durability"],
+      "scenarios": [
+        {
+          "id": "rq-releaseProjectionDurability01.1",
+          "title": "Archive success proves gate-status-equivalent release done",
+          "given": [
+            "Phase 9 finalization returns shipped or pr_pushed evidence",
+            "The release gate completion signal or recovery path has run"
+          ],
+          "when": "adv_change_archive phase9:\"run\" is about to return success",
+          "then": [
+            "The store-backed gate read used by adv_gate_status reports gates.release.status === \"done\"",
+            "The release completion record includes Phase 9 evidence",
+            "Archive does not report success while the gate-status-equivalent read would show release pending"
+          ]
+        },
+        {
+          "id": "rq-releaseProjectionDurability01.2",
+          "title": "Unproven release projection blocks retirement side effects",
+          "given": [
+            "Phase 9 finalization has succeeded",
+            "The store-backed release gate proof is missing, stale, pending, unreadable, or lacks matching Phase 9 evidence"
+          ],
+          "when": "adv_change_archive evaluates archive success",
+          "then": [
+            "The archive returns a blocked or recoverable result citing rq-releaseProjectionDurability01",
+            "The change is not retired as successfully archived",
+            "Linked issue closure and terminal worktree cleanup are not reported as successful retirement effects"
+          ]
+        },
+        {
+          "id": "rq-releaseProjectionDurability01.3",
+          "title": "Terminal retry repairs projection only with structural finalization evidence",
+          "given": [
+            "An archive bundle already exists or the change workflow has completed",
+            "Release gate metadata is stale or missing from the store-backed read"
+          ],
+          "when": "Archive retry attempts release projection repair",
+          "then": [
+            "Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair",
+            "PR archive mode re-verifies the change branch was pushed for PR handoff before repair",
+            "If finalization evidence is missing or invalid, repair is rejected and release remains not done"
+          ]
+        }
+      ]
     },
     {
       "id": "rq-productLinking01",
@@ -612,7 +753,7 @@
           "when": "The ADV orchestrator evaluates the next gate",
           "then": [
             "The orchestrator stops and presents a change report",
-            "The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md § Inline Approval Voice (Tier B)"
+            "The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md \u00a7 Inline Approval Voice (Tier B)"
           ]
         },
         {
@@ -964,7 +1105,7 @@
     {
       "id": "rq-handoffVoice01",
       "title": "Gate Handoff Voice Spine",
-      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.",
+      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} \u2713 \u2192 {next-gate}`, and an arrow-prefixed runnable command `\u2192 `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue \u2014 no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md \u00a7 Gate Handoff Voice.",
       "priority": "must",
       "tags": ["voice", "handoff", "presentation"],
       "scenarios": [
@@ -978,9 +1119,9 @@
           "then": [
             "All three narrative spine headings are present: Problem, Chosen direction, Delivered, followed by a blockquote wayfinder block below a --- separator",
             "The blockquote contains a row with `**{change-id}**` (bolded change ID)",
-            "The blockquote contains a row with `{gate} ✓ → {next-gate}` (gate transition)",
-            "The blockquote contains an arrow-prefixed row `→ `/adv-{next-command} {change-id}`` showing exactly one runnable command",
-            "The archive terminal variant uses a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard three-row wayfinder block",
+            "The blockquote contains a row with `{gate} \u2713 \u2192 {next-gate}` (gate transition)",
+            "The blockquote contains an arrow-prefixed row `\u2192 `/adv-{next-command} {change-id}`` showing exactly one runnable command",
+            "The archive terminal variant uses a single-line blockquote `> **{change-id}** \u00b7 release \u2713 \u00b7` followed by a terminal verb (Shipped. when push succeeds and assets propagate to the global install, Merged locally. when no remote is configured or push is skipped or push fails) instead of the standard three-row wayfinder block",
             "When the handoff is paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote (not inside it); the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
           ]
         },
@@ -1023,7 +1164,7 @@
           "then": [
             "## Next stage and ## Next headings are absent from the handoff",
             "A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command",
-            "The archive terminal variant ends with a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb (Shipped. or Merged locally. depending on push state) and no separate labeled block",
+            "The archive terminal variant ends with a single-line blockquote `> **{change-id}** \u00b7 release \u2713 \u00b7` followed by a terminal verb (Shipped. or Merged locally. depending on push state) and no separate labeled block",
             "Optional reply instructions for human checkpoints (Inline Approval Voice) appear as plain prose below the blockquote, not inside it"
           ]
         },
@@ -1048,7 +1189,7 @@
     {
       "id": "rq-inlineApproval01",
       "title": "Inline Approval at Named Human Checkpoints",
-      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text — composed with the Gate Handoff Voice spine — instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md § Inline Approval Voice.",
+      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",
       "priority": "must",
       "tags": ["voice", "checkpoints", "approval", "ux"],
       "scenarios": [
@@ -1505,7 +1646,7 @@
           "given": ["Changes with fast_follow_of in the project"],
           "when": "adv_status is called",
           "then": [
-            "Child change labels are prefixed with ↳ ",
+            "Child change labels are prefixed with \u21b3 ",
             "Recommendations reference the parent change ID",
             "Archived parents are annotated with (archived)"
           ]
@@ -1550,7 +1691,7 @@
     {
       "id": "rq-atc01",
       "title": "ATC Agent Records Delegation Audit and Defers HITL to GitHub",
-      "body": "The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL moments to linked GitHub issues via structured comments. ATC auto-transitions gates only when no HITL is required (proposal, discovery, design, planning via auto-transition with `completedBy: 'adv-atc'`). When HITL would block (planning gate machine enforcement `userApproved: true`, acceptance gate, archive sign-off, system interrupts), ATC posts a structured `<!-- ADV_ATC_DEFERRED v1 -->` comment to the linked GitHub issue and moves to the next ROADMAP item. Resume detection is content-based: at every workflow-boundary transition, ATC batch-queries GitHub for new `<!-- ADV_ATC_RESPONSE v1 -->` comments on awaiting_approval changes. Single-session lock prevents concurrent ATC runs. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are deferred to GitHub like other HITL — NOT auto-approved. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, drift) defer to GitHub with full context.",
+      "body": "The /adv-atc agent provides autonomous ROADMAP execution that defers all HITL moments to linked GitHub issues via structured comments. ATC auto-transitions gates only when no HITL is required (proposal, discovery, design, planning via auto-transition with `completedBy: 'adv-atc'`). When HITL would block (planning gate machine enforcement `userApproved: true`, acceptance gate, archive sign-off, system interrupts), ATC posts a structured `<!-- ADV_ATC_DEFERRED v1 -->` comment to the linked GitHub issue and moves to the next ROADMAP item. Resume detection is content-based: at every workflow-boundary transition, ATC batch-queries GitHub for new `<!-- ADV_ATC_RESPONSE v1 -->` comments on awaiting_approval changes. Single-session lock prevents concurrent ATC runs. Tier B checkpoints (archive sign-off, cancellation) remain whitelist-only and are deferred to GitHub like other HITL \u2014 NOT auto-approved. All system-level interrupts (doom-loop, design validator CONFLICT, contract-compromise risk, drift) defer to GitHub with full context.",
       "priority": "must",
       "tags": ["workflow", "autonomy", "atc", "audit", "github-defer"],
       "scenarios": [
@@ -1629,7 +1770,7 @@
     {
       "id": "rq-searchAttrHealth01",
       "title": "Search-Attribute Registration Must Use Correct OperatorService Method",
-      "body": "The Temporal OperatorService search-attribute health check MUST use `listSearchAttributes` (not `getSearchAttributes`). `getSearchAttributes` exists on WorkflowService, not OperatorService. Using the wrong method causes the check to silently fail, returning ok: false even when attributes are registered. All code paths that query search-attribute health — observability checks, diagnose tool, and register tool — must go through `checkAdvSearchAttributes` which uses the correct OperatorService method.",
+      "body": "The Temporal OperatorService search-attribute health check MUST use `listSearchAttributes` (not `getSearchAttributes`). `getSearchAttributes` exists on WorkflowService, not OperatorService. Using the wrong method causes the check to silently fail, returning ok: false even when attributes are registered. All code paths that query search-attribute health \u2014 observability checks, diagnose tool, and register tool \u2014 must go through `checkAdvSearchAttributes` which uses the correct OperatorService method.",
       "priority": "must",
       "scenarios": [
         {
@@ -1683,6 +1824,52 @@
             "After registerMissingAdvSearchAttributes, checkAdvSearchAttributes is called for verification",
             "The tool output includes a verification field with ok, present, missing, wrongType",
             "The tool success field requires both registration ok AND verification ok"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-workflowVersioning01",
+      "title": "Workflow replay and versioning guard command-producing changes",
+      "body": "Changes to Temporal workflow code under plugin/src/temporal/** or other workflow-bundled command-producing helpers MUST be replay-verified against committed sanitized histories before archive. A workflow-code change that adds, removes, or reorders command-producing operations (Activities, timers, search-attribute upserts, patch markers, child workflows, continue-as-new, or similar Temporal commands) MUST include wf.patched, Worker Versioning, or an explicit reset/recovery plan. Patch markers MUST document the old branch, new branch, and a deprecation plan or non-deprecation rationale. Restarting a worker alone is not a repair for nondeterministic history mismatch.",
+      "priority": "must",
+      "tags": ["temporal", "replay", "versioning", "determinism"],
+      "scenarios": [
+        {
+          "id": "rq-workflowVersioning01.1",
+          "title": "Committed histories replay in CI",
+          "given": [
+            "A sanitized changeWorkflow history fixture is committed under plugin/src/temporal/__tests__/replay/histories"
+          ],
+          "when": "The replay determinism test runs",
+          "then": [
+            "Worker.runReplayHistory is invoked against the current workflow bundle",
+            "The test fails on DeterminismViolationError or ReplayError",
+            "The fixture metadata identifies the incident class or workflow behavior covered"
+          ]
+        },
+        {
+          "id": "rq-workflowVersioning01.2",
+          "title": "Command-producing changes declare an evolution strategy",
+          "given": [
+            "A workflow-bundled change adds, removes, or reorders command-producing operations"
+          ],
+          "when": "The change is prepared for archive",
+          "then": [
+            "The change includes wf.patched, Worker Versioning, or an explicit reset/recovery plan",
+            "Any patch marker includes a deprecation plan or documented non-deprecation rationale"
+          ]
+        },
+        {
+          "id": "rq-workflowVersioning01.3",
+          "title": "Worker restart is not nondeterminism repair",
+          "given": [
+            "A workflow query or task fails with TMPRL1100, NonDeterministic, Nondeterminism, WorkflowTaskFailedCauseNonDeterministicError, No command scheduled, or WorkflowExecutionUpdateAccepted evidence"
+          ],
+          "when": "Recovery guidance is presented",
+          "then": [
+            "The guidance does not classify worker restart as sufficient repair",
+            "Recovery starts with diagnosis, replay/versioning analysis, and audited quarantine/reset planning as appropriate"
           ]
         }
       ]
@@ -1833,7 +2020,7 @@
     {
       "id": "rq-ambiguityScan01",
       "title": "Project-wide ambiguity scanning in /adv-audit",
-      "body": "/adv-audit MUST detect ambiguity in committed spec laws using the B/F/S/Q/E taxonomy. Detection runs inline during Phase 3 Synthesis via runSpecAmbiguityChecks(markdown, capability) — not a sub-agent stage. Categories: B (Boundaries), F (Functional), S (Completion Signals), Q (Quality Attributes), E (Error Handling).",
+      "body": "/adv-audit MUST detect ambiguity in committed spec laws using the B/F/S/Q/E taxonomy. Detection runs inline during Phase 3 Synthesis via runSpecAmbiguityChecks(markdown, capability) \u2014 not a sub-agent stage. Categories: B (Boundaries), F (Functional), S (Completion Signals), Q (Quality Attributes), E (Error Handling).",
       "priority": "must",
       "scenarios": [
         {
@@ -1893,7 +2080,7 @@
     {
       "id": "rq-ambiguityScan03",
       "title": "Ambiguity-aware quality gates",
-      "body": "Quality gates MUST promote health status based on ambiguity severity. CRITICAL ambiguity ≥ 1 promotes to MAJOR_DRIFT. HIGH ambiguity > 3 (standard mode) or any HIGH (strict mode) promotes to DRIFT_DETECTED.",
+      "body": "Quality gates MUST promote health status based on ambiguity severity. CRITICAL ambiguity \u2265 1 promotes to MAJOR_DRIFT. HIGH ambiguity > 3 (standard mode) or any HIGH (strict mode) promotes to DRIFT_DETECTED.",
       "priority": "must",
       "scenarios": [
         {
@@ -1981,7 +2168,7 @@
           "when": "adv_task_ready is called",
           "then": [
             "The response includes _todoProjection rows derived from ADV task state",
-            "Each row content is formatted as `tk-id — title`",
+            "Each row content is formatted as `tk-id \u2014 title`",
             "Completed ADV tasks are omitted from the projection"
           ]
         },
@@ -2091,6 +2278,173 @@
       ]
     },
     {
+      "id": "rq-toolPlaceholderPolicy01",
+      "title": "Placeholder-Safe ADV Tool Arguments",
+      "body": "ADV tool invocation preflight MUST centrally classify placeholder-sensitive arguments before tool execution. Blank or whitespace-only strings, omission sentinels such as 'none'/'n/a'/'null'/'transcript', and empty arrays/objects MUST be rejected or normalized only by an explicit field policy. Required content, durable audit, path, lineage, origin, approval-evidence, command, and worktree branch/base fields MUST reject blank placeholders when provided. Omission-equivalent normalization is allowed only for fields whose schema and semantics make omission equivalent, such as scope_repos: [] on adv_change_create. Preflight MUST return deterministic field-level diagnostics and execute tools with normalized arguments so tool execution, workflow state, persistence, and spec compliance are not governed by heuristic caller interpretation.",
+      "priority": "must",
+      "tags": [
+        "tools",
+        "validation",
+        "placeholders",
+        "preflight",
+        "structural-correctness"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-toolPlaceholderPolicy01.1",
+          "title": "Required content placeholders fail before execution",
+          "given": [
+            "An ADV tool receives a blank required content field such as task content, wisdom content, run-test command, agenda title, or worktree branch"
+          ],
+          "when": "Tool argument preflight runs",
+          "then": [
+            "The invocation returns INVALID_TOOL_ARGS before tool execution",
+            "The response names the offending field",
+            "No workflow signal, shell command, artifact write, git worktree operation, or durable state mutation occurs"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.2",
+          "title": "Audit and linkage placeholders are rejected",
+          "given": [
+            "An ADV mutation tool receives a blank or sentinel audit, approval-evidence, target path, origin, parent, source, supersession, recovery-evidence, or cancellation-reason value"
+          ],
+          "when": "Tool argument preflight runs",
+          "then": [
+            "The invocation fails before mutation",
+            "The diagnostic names each invalid field or record entry",
+            "Placeholder strings are not persisted as workflow or audit facts"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.3",
+          "title": "Omission-equivalent placeholders require explicit normalization policy",
+          "given": [
+            "An ADV tool receives an empty array or other placeholder that might mean omitted"
+          ],
+          "when": "The field has no explicit omit policy",
+          "then": [
+            "The placeholder is rejected or left to schema validation rather than silently normalized",
+            "Only explicitly whitelisted fields such as adv_change_create scope_repos: [] may be removed from normalizedArgs"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.4",
+          "title": "Normalized arguments are the execute payload",
+          "given": [
+            "Preflight applies a field policy that omits or otherwise normalizes a placeholder"
+          ],
+          "when": "The tool registry calls the tool implementation",
+          "then": [
+            "The tool receives normalizedArgs rather than the raw caller payload",
+            "Execute paths contain only defensive safety checks needed for bypass resilience",
+            "Preflight and execute behavior do not diverge for placeholder-sensitive fields"
+          ]
+        },
+        {
+          "id": "rq-toolPlaceholderPolicy01.5",
+          "title": "Strict-mode optional fields normalize blanks to omitted",
+          "given": [
+            "A strict-mode provider sends adv_change_create with optional fields filled with blank strings or zero"
+          ],
+          "when": "Tool argument preflight runs",
+          "then": [
+            "Blank optional fields are normalized to omitted",
+            "The invocation succeeds with normalizedArgs",
+            "Required-when-present fields still reject blank values"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-toolArgBlankArtifactLinkage01",
+      "title": "Blank Artifact and Linkage Mutation Arguments",
+      "body": "ADV mutation tools MUST normalize provided blank or whitespace-only strings to omitted for fields that write durable narrative artifacts or origin linkage metadata. Required-when-present audit, evidence, and identity fields MUST still reject blank values. For adv_change_update this applies to proposal, problemStatement, agreement, design, and executiveSummary, including mixed payloads where another artifact field is non-blank. For adv_change_create this applies to provided narrative artifact fields and origin_source_artifact. Omitted fields preserve existing omission/default semantics. Normalization MUST occur before writes or workflow signals. Storage artifact write boundaries MUST also reject blank artifact content so bypassing preflight cannot erase an artifact.",
+      "priority": "must",
+      "tags": [
+        "tools",
+        "validation",
+        "artifacts",
+        "origin"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.1",
+          "title": "Mixed update payload normalizes blank field to omitted; only writes provided non-blank artifacts",
+          "given": [
+            "adv_change_update receives a payload with proposal: 'real content' and design: ''"
+          ],
+          "when": "The tool invocation is validated",
+          "then": [
+            "design is normalized to omitted",
+            "The invocation succeeds",
+            "Only proposal is written"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.2",
+          "title": "Omitted artifact fields keep omission semantics",
+          "given": [
+            "adv_change_update receives proposal: 'new content' and omits design"
+          ],
+          "when": "The update succeeds",
+          "then": [
+            "The proposal artifact may change",
+            "The omitted design artifact remains unchanged"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.3",
+          "title": "Create normalizes blank provided narrative artifacts to omitted",
+          "given": [
+            "adv_change_create receives agreement: '   '"
+          ],
+          "when": "The create invocation is validated",
+          "then": [
+            "agreement is normalized to omitted",
+            "The invocation succeeds",
+            "Omitted narrative artifact fields still use create defaults or skip behavior"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.4",
+          "title": "Storage boundary rejects blank artifact writes",
+          "given": [
+            "A caller bypasses tool preflight and attempts to persist a blank artifact value"
+          ],
+          "when": "The storage artifact write boundary validates the content",
+          "then": [
+            "The write is rejected before any artifact file is overwritten",
+            "The error identifies the blank artifact field"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.5",
+          "title": "Blank origin source artifact is normalized to omitted",
+          "given": [
+            "adv_change_create receives origin_source_artifact: '   '"
+          ],
+          "when": "The create invocation is validated",
+          "then": [
+            "origin_source_artifact is normalized to omitted",
+            "The invocation succeeds"
+          ]
+        },
+        {
+          "id": "rq-toolArgBlankArtifactLinkage01.6",
+          "title": "Required-when-present audit fields still reject blank",
+          "given": [
+            "adv_change_update receives confirmationEvidence: ''"
+          ],
+          "when": "The update invocation is validated",
+          "then": [
+            "The invocation fails before writes or workflow signals",
+            "The response names confirmationEvidence as an offending field"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-gateArtifactEnforcement01",
       "title": "Workflow-Level Gate Artifact Enforcement",
       "body": "The Temporal change workflow MUST enforce required artifact preconditions before marking artifact-backed gates done. Proposal, discovery, design, and acceptance gate completion MUST be blocked when the required evidence is missing, unreadable, blank, or below deterministic minimum-content rules, unless an explicit compatibility rationale is recorded for replay or migration safety. Artifact checks MUST use activities or tool/storage boundaries, never direct filesystem I/O in workflow code.",
@@ -2100,7 +2454,9 @@
         {
           "id": "rq-gateArtifactEnforcement01.1",
           "title": "Missing artifact blocks artifact-backed gate",
-          "given": ["An artifact-backed gate completion signal is handled by the change workflow"],
+          "given": [
+            "An artifact-backed gate completion signal is handled by the change workflow"
+          ],
           "when": "The gate's required artifact is missing or unreadable",
           "then": [
             "The workflow does not mark the gate done",
@@ -2121,7 +2477,10 @@
         {
           "id": "rq-gateArtifactEnforcement01.3",
           "title": "Valid required artifact permits completion",
-          "given": ["All prior gates are done", "The required artifact exists and passes deterministic checks"],
+          "given": [
+            "All prior gates are done",
+            "The required artifact exists and passes deterministic checks"
+          ],
           "when": "gateCompletedSignal is handled for the artifact-backed gate",
           "then": [
             "The workflow may mark the gate done",
@@ -2131,7 +2490,9 @@
         {
           "id": "rq-gateArtifactEnforcement01.4",
           "title": "Compatibility requires explicit rationale",
-          "given": ["A replay or migration fixture cannot provide the required artifact evidence"],
+          "given": [
+            "A replay or migration fixture cannot provide the required artifact evidence"
+          ],
           "when": "Compatibility completion is allowed",
           "then": [
             "The completion records an explicit compatibility rationale",
@@ -2150,7 +2511,9 @@
         {
           "id": "rq-gateReadiness01.1",
           "title": "Prior gate blocker is reported",
-          "given": ["A gate completion is requested while an earlier gate is not done"],
+          "given": [
+            "A gate completion is requested while an earlier gate is not done"
+          ],
           "when": "Readiness is evaluated",
           "then": [
             "Readiness fails",
@@ -2161,7 +2524,10 @@
         {
           "id": "rq-gateReadiness01.2",
           "title": "Artifact blocker is reported",
-          "given": ["Prior gates are complete", "The requested gate requires an artifact"],
+          "given": [
+            "Prior gates are complete",
+            "The requested gate requires an artifact"
+          ],
           "when": "The required artifact is missing or invalid",
           "then": [
             "Readiness fails with a stable blocker code",
@@ -2190,7 +2556,9 @@
         {
           "id": "rq-gateArtifactAudit01.1",
           "title": "Artifact evidence recorded on completion",
-          "given": ["A gate requiring artifact evidence completes successfully"],
+          "given": [
+            "A gate requiring artifact evidence completes successfully"
+          ],
           "when": "The gate completion record is persisted",
           "then": [
             "The record includes the artifact kind and checked timestamp",
@@ -2200,7 +2568,9 @@
         {
           "id": "rq-gateArtifactAudit01.2",
           "title": "Caller-provided audit data is not authoritative",
-          "given": ["A caller sends gate completion payload data that claims artifact evidence"],
+          "given": [
+            "A caller sends gate completion payload data that claims artifact evidence"
+          ],
           "when": "The workflow handles the completion signal",
           "then": [
             "The workflow validates the artifact independently or rejects completion",
@@ -2219,7 +2589,9 @@
         {
           "id": "rq-acceptanceProjection01.1",
           "title": "Missing contract blocks acceptance",
-          "given": ["A new contract-era change reaches acceptance gate completion"],
+          "given": [
+            "A new contract-era change reaches acceptance gate completion"
+          ],
           "when": "ChangeContract state is missing and no explicit compatibility rationale applies",
           "then": [
             "The workflow refuses acceptance completion",
@@ -2239,12 +2611,126 @@
         {
           "id": "rq-acceptanceProjection01.3",
           "title": "Passing matrix generates durable acceptance projection",
-          "given": ["All verification-required contract items have acceptable review rows"],
+          "given": [
+            "All verification-required contract items have acceptable review rows"
+          ],
           "when": "The acceptance gate is completed",
           "then": [
             "The workflow writes acceptance.md through an activity or storage boundary",
             "The workflow records acceptance artifact evidence",
             "The acceptance gate may be marked done"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-acceptancePreviewUrl01",
+      "title": "Front-End Acceptance Preview URL",
+      "body": "/adv-discover MUST capture preview applicability for each change as visual_surface: true, false, or unknown with rationale. /adv-review MUST surface a Preview URL line before the acceptance Inline Approval prompt. For changes with visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work, the Preview URL line MUST include a user-facing dev-environment URL and reachability evidence. Preview URLs MUST target visual output only, MUST be sanitized before durable recording, and MUST NOT point at internal services, dashboards, databases, admin panels, CI systems, Temporal UI, or other non-visual infrastructure. A bare unverified URL MUST NOT satisfy acceptance proof. Acceptable reachability evidence is bounded to agent-observed dev-server output, CI/deploy log URL assignment, user-confirmed URL, or browser-open evidence for the intended visual surface; agents MUST NOT perform arbitrary HTTP probing of untrusted URLs to satisfy this requirement. Missing URL, missing reachability evidence, unknown applicability, or visual-surface drift MUST block acceptance before user sign-off. Non-visual changes MAY use Preview URL: not_applicable with rationale. Durable preview proof MUST be represented through contract review evidence and included in acceptance or executive-summary evidence; generated acceptance.md remains projection-only and MUST NOT be hand-edited as authoritative proof. Archived preview URLs are point-in-time evidence and MUST include verification context rather than being treated as maintained current URLs.",
+      "priority": "must",
+      "tags": ["workflow", "acceptance", "preview-url", "front-end"],
+      "scenarios": [
+        {
+          "id": "rq-acceptancePreviewUrl01.1",
+          "title": "Discovery records preview applicability",
+          "given": ["A change is being finalized through /adv-discover"],
+          "when": "The agreement is drafted and persisted",
+          "then": [
+            "The agreement records visual_surface as true, false, or unknown",
+            "The agreement records rationale for the preview applicability value",
+            "visual_surface unknown is carried forward as an acceptance blocker until clarified"
+          ]
+        },
+        {
+          "id": "rq-acceptancePreviewUrl01.2",
+          "title": "Applicable visual work shows reachable preview before acceptance",
+          "given": [
+            "A change has visual_surface true or implementation evidence of front-end, browser-visible, or visual-output work"
+          ],
+          "when": "/adv-review presents the acceptance summary before the Inline Approval prompt",
+          "then": [
+            "The summary includes Preview URL: {url}",
+            "The summary includes reachability evidence with verification method, result, and reviewed timestamp or equivalent context",
+            "The contract review evidence records the preview proof"
+          ]
+        },
+        {
+          "id": "rq-acceptancePreviewUrl01.3",
+          "title": "Missing applicable preview blocks acceptance",
+          "given": [
+            "A change requires preview proof because visual_surface is true or visual-output work is detected"
+          ],
+          "when": "No dev-environment URL or reachability evidence is available",
+          "then": [
+            "/adv-review reports Preview URL: blocked with a concrete reason",
+            "The acceptance checkpoint is not presented",
+            "The acceptance gate remains pending"
+          ]
+        },
+        {
+          "id": "rq-acceptancePreviewUrl01.4",
+          "title": "Visual-surface drift blocks acceptance until agreement is updated",
+          "given": [
+            "The approved agreement records visual_surface false",
+            "/adv-review detects implementation evidence of front-end, browser-visible, or visual-output work"
+          ],
+          "when": "/adv-review evaluates preview applicability",
+          "then": [
+            "/adv-review reports Preview URL: blocked with a visual-surface drift reason",
+            "The acceptance checkpoint is not presented",
+            "The agreement must be clarified or re-entered before acceptance can proceed"
+          ]
+        },
+        {
+          "id": "rq-acceptancePreviewUrl01.5",
+          "title": "Non-visual work may mark preview not applicable",
+          "given": [
+            "A change has visual_surface false and no implementation evidence of front-end, browser-visible, or visual-output work"
+          ],
+          "when": "/adv-review presents the acceptance summary",
+          "then": [
+            "The summary may include Preview URL: not_applicable",
+            "The not_applicable state includes rationale",
+            "Preview URL absence does not block acceptance for the non-visual change"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-designOpportunityScout01",
+      "title": "Mandatory Design Leverage Scout",
+      "body": "/adv-design MUST execute a bounded Design Leverage Scout pass (Phase 2.5) for every full proposal workflow after draft design (Phase 2) and before independent validation (Phase 3.5). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in design mode for worker methodology. It returns \u22645 structured candidates. The scout identifies leverage points: shortcuts, reusable components, parallelism, simplification paths. The scout phase MUST include an INCONCLUSIVE degradation path. Trivially scoped changes MAY skip with rationale. Auto-adopted candidates are incorporated into the design before the validator runs.",
+      "priority": "must",
+      "tags": ["design", "scout", "leverage", "mandatory"],
+      "scenarios": [
+        {
+          "id": "rq-designOpportunityScout01.1",
+          "title": "Scout phase executes for full proposals",
+          "given": [
+            "A /adv-design invocation for a full proposal workflow",
+            "Design Phase 2 (draft design) has completed"
+          ],
+          "when": "Phase 2.5 executes",
+          "then": [
+            "The orchestrator prepares schema, routing, fallback/degradation, and adoption rules",
+            "adv-researcher is spawned with design-mode prompt and may load adv-opportunity-scout in worker context",
+            "\u22645 candidates are returned with 8-field ScoutCandidate schema",
+            "Candidates are sorted by payoff/risk ratio",
+            "Auto-adopted candidates are integrated into design before validator"
+          ]
+        },
+        {
+          "id": "rq-designOpportunityScout01.2",
+          "title": "Design validator remains distinct",
+          "given": [
+            "Phase 2.5 (scout) has completed",
+            "Phase 3.5 (validator) runs after"
+          ],
+          "when": "The design validation flow executes",
+          "then": [
+            "The existing design validator runs unchanged",
+            "The validator validates the design including any scout-adopted improvements",
+            "The scout and validator serve different purposes (opportunity vs correctness)"
           ]
         }
       ]

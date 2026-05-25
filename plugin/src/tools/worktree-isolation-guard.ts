@@ -3,11 +3,50 @@ import { resolveGitSessionContext } from "../utils/git-session";
 
 export type WorktreeIsolationDecision = "ALLOW" | "BLOCK";
 
+/**
+ * rq-autoManageAdvWorktrees AC6 — structured failure classes for the
+ * auto-create + block guard surface. The legacy block path emits
+ * `WorktreeIsolationViolation` only; the new auto-manage path emits one
+ * of the four classes below with a machine-readable `code` so agents
+ * can branch on it deterministically (P33 — heuristics never own
+ * correctness for mutation gating).
+ */
+export type WorktreeIsolationErrorClass =
+  | "WorktreeIsolationViolation"
+  | "WorktreeAutoCreateFailure"
+  | "WorktreeBranchCollision"
+  | "WorktreeSetupFailed";
+
+export type WorktreeIsolationErrorCode =
+  | "BRANCH_IN_USE_BY_OTHER_CHANGE"
+  | "BRANCH_LOCKED"
+  | "BRANCH_EXISTS_WORKTREE_MISSING"
+  | "DEFAULT_BRANCH_UNRESOLVABLE"
+  | "STALE_BASE"
+  | "SETUP_HOOK_FAILED"
+  | "DISK_FULL"
+  | "PERMISSION_DENIED"
+  | "GIT_FAILED"
+  | "INVALID_BRANCH"
+  | "RESUME_INVALID_TARGET";
+
 export interface WorktreeIsolationResult {
   decision: WorktreeIsolationDecision;
-  errorClass?: "WorktreeIsolationViolation";
+  errorClass?: WorktreeIsolationErrorClass;
+  /** Machine-readable failure code (AC6); set only for auto-manage BLOCKs. */
+  code?: WorktreeIsolationErrorCode;
   reason?: string;
   mainCheckoutPath?: string;
+  /**
+   * Path the agent SHOULD use as `workdir` for the retry. Set when:
+   * - block_only mode finds an existing worktree (current behavior, extended).
+   * - auto-manage mode either finds an existing worktree OR successfully
+   *   auto-creates one — in both cases the agent should re-run with this
+   *   workdir per AC1.
+   */
+  expectedWorktreePath?: string;
+  /** Original error message from advWorktreeResume when auto-create failed. */
+  underlying_error?: string;
   remediation?: string;
 }
 
@@ -17,7 +56,7 @@ export interface WorktreeIsolationDeps {
 }
 
 export const WORKTREE_ISOLATION_REMEDIATION =
-  "Create or resume an ADV worktree (adv_worktree_create / adv_worktree_resume) and retry from inside the worktree.";
+  "Resume or create the ADV worktree with adv_worktree_resume / adv_worktree_create, switch the session or tool workdir to the returned path, then retry from inside that worktree.";
 
 export function checkWorktreeIsolation(
   cwd: string,

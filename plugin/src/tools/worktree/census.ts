@@ -1,10 +1,6 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
-
 import type { SessionRecord, WorktreeRecord } from "../../temporal/contracts";
+import { execFileGitAsync } from "../../utils/git-binary";
 import { inferChangeIdFromBranch } from "./state";
-
-const execFileAsync = promisify(execFile);
 
 export interface GitBranchFact {
   branch: string;
@@ -25,10 +21,9 @@ export interface GitWorkspaceFacts {
 }
 
 async function git(cwd: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, {
+  const { stdout } = await execFileGitAsync(args, {
     cwd,
     timeout: 10_000,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
   });
   return stdout.trim();
 }

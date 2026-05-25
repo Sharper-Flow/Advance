@@ -12,29 +12,9 @@ import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
 import { createLogger } from "../../utils/debug-log";
+import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 
 const logger = createLogger("store-temporal-changes");
-
-/**
- * Detect Temporal errors indicating the workflow is already completed,
- * terminated, or otherwise not accepting signals. When a workflow is in
- * a terminal state (Completed, Terminated, Failed, Cancelled), signaling
- * throws with messages like "workflow execution already completed".
- * These are safe to treat as disk-only close — the disk write already
- * succeeded, and the workflow state is effectively closed.
- */
-function isWorkflowCompletedError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message?.toLowerCase() ?? "";
-  const name = err.name?.toLowerCase() ?? "";
-  return (
-    msg.includes("already completed") ||
-    msg.includes("workflow execution already completed") ||
-    name.includes("workflowexecutionalreadycompleted") ||
-    msg.includes("workflow is not running") ||
-    msg.includes("cannot signal a completed")
-  );
-}
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {
@@ -60,6 +40,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       agreementContent,
       designContent,
       executiveSummaryContent,
+      options,
     ) => {
       const result = await legacy.changes.create(
         summary,
@@ -69,6 +50,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         agreementContent,
         designContent,
         executiveSummaryContent,
+        options,
       );
       const created = await legacy.changes.get(result.changeId);
       if (!created.success || !created.data) {
@@ -102,6 +84,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             reentry_history: created.data.reentry_history,
             fast_follow_of: created.data.fast_follow_of,
             origin: created.data.origin,
+            // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
+            // by default. Seed the workflow state with the marker so the
+            // first read sees it; lazy migration (A4) covers legacy changes
+            // that pre-date this field.
+            worktree_auto_managed: true,
           },
         });
       } catch (err) {
@@ -124,6 +111,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const changeWithOwner: Change = {
         ...created.data,
         adv_project_id: input.projectId,
+        // rq-autoManageAdvWorktrees AC3 — stamp the disk projection so the
+        // first read sees the marker even before the workflow signal-
+        // handler projection writes it back. Sticky on the workflow side
+        // via applyWorktreeAutoManagedToState.
+        worktree_auto_managed: true,
       };
       try {
         await legacy.changes.save(changeWithOwner);
@@ -147,7 +139,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         cross_project_origin: created.data.cross_project_origin,
         fast_follow_of: created.data.fast_follow_of,
         origin: created.data.origin,
+        scope_repos: created.data.scope_repos,
         adv_project_id: input.projectId,
+        // rq-autoManageAdvWorktrees AC3 — surface the marker on the Memo
+        // overlay so lightweight summary reads observe it without a
+        // workflow query round-trip.
+        worktree_auto_managed: true,
       });
       return result;
     },
@@ -191,6 +188,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         reentry_history: change.reentry_history,
         cross_project_origin: change.cross_project_origin,
         fast_follow_of: change.fast_follow_of,
+        origin: change.origin,
+        scope_repos: change.scope_repos,
         adv_project_id: change.adv_project_id,
       });
     },
@@ -459,7 +458,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         results,
         message: allSuccess
           ? `Successfully closed ${closed} change(s).`
-          : `Closed ${closed}of ${changeIds.length} change(s). See results for details.`,
+          : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
       };
     },
     updateArtifacts: async (
@@ -487,7 +486,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       const updates: Array<
         [
-          "proposal" | "problemStatement" | "agreement" | "design",
+          (
+            | "proposal"
+            | "problemStatement"
+            | "agreement"
+            | "design"
+            | "executiveSummary"
+          ),
           string | undefined,
         ]
       > = [
@@ -495,6 +500,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         ["problemStatement", result.problemStatementPath],
         ["agreement", result.agreementPath],
         ["design", result.designPath],
+        ["executiveSummary", result.executiveSummaryPath],
       ];
       for (const [kind, path] of updates) {
         if (!path) continue;

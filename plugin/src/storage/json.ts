@@ -1,8 +1,9 @@
 /**
  * JSON File Storage
  *
- * Handles reading/writing JSON files for specs and changes.
- * JSON files are the source of truth.
+ * Handles JSON disk projection for specs and changes. Temporal workflows are
+ * the authoritative runtime state; JSON files serve projection and legacy
+ * compatibility paths.
  */
 
 import { join, basename } from "path";
@@ -612,6 +613,29 @@ export async function createChangeScaffold(
   const changePath = join(changeDir, "change.json");
   const proposalPath = join(changeDir, "proposal.md");
 
+  // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
+  // before any partial scaffold write so tool-layer bypasses cannot create
+  // blank narrative artifacts.
+  const blankFields = [
+    { field: "proposal", content: proposalContent },
+    { field: "problemStatement", content: problemStatementContent },
+    { field: "agreement", content: agreementContent },
+    { field: "design", content: designContent },
+    { field: "executiveSummary", content: executiveSummaryContent },
+  ]
+    .filter(
+      ({ content }) =>
+        content !== undefined &&
+        typeof content === "string" &&
+        content.trim().length === 0,
+    )
+    .map(({ field }) => field);
+  if (blankFields.length > 0) {
+    throw new Error(
+      `Blank artifact fields are not allowed: ${blankFields.join(", ")}. Omit fields you do not intend to change.`,
+    );
+  }
+
   await mkdir(changeDir, { recursive: true });
 
   // Create proposal.md template with structured sections
@@ -750,24 +774,53 @@ export async function updateChangeArtifacts(
   // filename and the result-shape key. Mirror of createChangeScaffold's
   // optionalArtifacts table (plus a proposal entry); keep in sync.
   const artifacts = [
-    { key: "proposalPath", content: proposalContent, filename: "proposal.md" },
+    {
+      key: "proposalPath",
+      field: "proposal",
+      content: proposalContent,
+      filename: "proposal.md",
+    },
     {
       key: "problemStatementPath",
+      field: "problemStatement",
       content: problemStatementContent,
       filename: "problem-statement.md",
     },
     {
       key: "agreementPath",
+      field: "agreement",
       content: agreementContent,
       filename: "agreement.md",
     },
-    { key: "designPath", content: designContent, filename: "design.md" },
+    {
+      key: "designPath",
+      field: "design",
+      content: designContent,
+      filename: "design.md",
+    },
     {
       key: "executiveSummaryPath",
+      field: "executiveSummary",
       content: executiveSummaryContent,
       filename: "executive-summary.md",
     },
   ] as const;
+
+  // rq-toolArgBlankArtifactLinkage01: storage rejects blank artifact writes
+  // before any partial write so tool-layer bypasses cannot erase content.
+  const blankFields = artifacts
+    .filter(
+      ({ content }) =>
+        content !== undefined &&
+        typeof content === "string" &&
+        content.trim().length === 0,
+    )
+    .map(({ field }) => field);
+  if (blankFields.length > 0) {
+    return {
+      error: `Blank artifact fields are not allowed: ${blankFields.join(", ")}. Omit fields you do not intend to change.`,
+    };
+  }
 
   const result: {
     proposalPath?: string;

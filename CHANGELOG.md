@@ -1,3 +1,365 @@
+## 2026-05-23 (v0.11.14)
+
+### Fixed
+
+- pin sharperflow-security-gates to @v0 floating major tag
+
+## 2026-05-23 (v0.11.13)
+
+### Changed
+
+- clarify non-blocking semantics in security gates pilot (docs: ci)
+
+## 2026-05-23 (v0.11.12)
+
+### Fixed
+
+- bump brace-expansion override to >=5.0.6 (GHSA-jxxr-4gwj-5jf2)
+### Changed
+
+- add security gates pilot workflow (ci)
+- add missing fixSlopScanFindings archive (chore)
+
+## 2026-05-23 (v0.11.11)
+
+
+## 2026-05-23 (v0.11.10)
+
+
+### Change Highlights
+
+- **05-23-documentReleaseInstall**: Executive Summary
+
+## 2026-05-23 (v0.11.9)
+
+### Changed
+
+- refresh README banner artwork as a simplified local SVG asset
+- bump plugin package version to 0.11.9 after the v0.11.8 release
+
+## 2026-05-23 (v0.11.8)
+
+### Changed
+
+- bump plugin package version to 0.11.8 after the v0.11.7 docs release
+
+## 2026-05-23 (v0.11.7)
+
+### Changed
+
+- retire stale audit trail documents (docs)
+
+## 2026-05-23 (v0.11.6)
+
+### Changed
+
+- sanitize public repository references (docs)
+- highlight Advance context engineering (docs)
+
+## 2026-05-23 (v0.11.3)
+
+
+### Change Highlights
+
+- **05-23-fixAuditHygiene**: Executive Summary
+
+## 2026-05-22 (v0.11.2)
+
+
+### Change Highlights
+
+- **05-22-compressInstructionProse**: Executive Summary
+
+## 2026-05-22 (v0.11.1)
+
+
+### Change Highlights
+
+- **05-22-reviseReleaseProjection**: Executive Summary
+
+## 2026-05-22 (v0.11.0)
+
+### Added
+
+- flip worker_singleton_enforce default to false (multi-worker)
+### Fixed
+
+- align drift detection to contract-aware language
+- include adv-reviewer in bundled-agent overview
+### Changed
+
+- refresh roadmap snapshot (chore)
+- align ADV agent lgrep tool allowlists (chore)
+
+### Change Highlights
+
+- **05-22-addDelegationMatrix**: Executive Summary: addDelegationMatrix
+- **05-22-addQuestionNoteDocs**: Executive Summary: Add Question Note Convention
+- **05-22-addWorkflowReplayChecks**: Executive Summary
+- **05-22-enhanceScannerCoverage**: Executive Summary
+- **05-22-fixAdvChecklistReads**: Executive Summary
+- **05-22-fixArchiveReleaseOrdering**: Executive Summary
+- **05-22-fixCompletionSemantics**: Executive Summary
+- **05-22-fixToolArgSafety**: Executive Summary
+- **05-22-flipWorkerSingletonMultiWorker**: Executive Summary: Flip Worker Singleton to Multi-Worker Default
+- **05-22-updateTerminalTitles2**: Executive Summary
+
+## 2026-05-22 (v0.10.6)
+
+
+### Change Highlights
+
+- **05-22-fixToolArgSafety**: Reject blank artifact/linkage tool arguments, enforce the origin linkage matrix, and seed origin metadata before Temporal workflow start.
+- **05-22-fixReentryTaskLookup**: Fix re-entry task lookup behavior.
+
+## 2026-05-22 (v0.10.5)
+
+
+### Change Highlights
+
+- **05-22-extendCompletedWorkflow**: Extend completed-workflow handling for recovery-safe operations.
+
+## 2026-05-22 (v0.10.4)
+
+
+## 2026-05-22 (v0.10.3)
+
+
+## 2026-05-22 (v0.10.2)
+
+
+## 2026-05-22 (v0.10.1)
+
+
+## 2026-05-22 (v0.10.0)
+
+### Added
+
+- add question note convention for optional agent context
+
+## 2026-05-22 (v0.9.10)
+
+
+### Change Highlights
+
+- **05-22-addContractMintTool**: Add contract minting support for agreement-backed acceptance proof.
+- **05-22-fixGateAutoWorktree**: Fix gate worktree automation behavior.
+
+## 2026-05-22 (v0.9.9)
+
+
+## 2026-05-22 (v0.9.8)
+
+
+## 2026-05-22 (v0.9.7)
+
+
+## 2026-05-22 (v0.9.6)
+
+
+## 2026-05-21 (v0.9.5)
+
+### Fixed
+
+- tolerate default review matrix args
+
+## 2026-05-21 (v0.9.4)
+
+### Fixed
+
+- harden git spawn env and wire fsck repair action
+- route target-path isolation through target root
+
+## 2026-05-21 (v0.9.3)
+
+### Fixed
+
+- resolve trunk rebase conflict
+
+### Change Highlights
+
+- **05-21-addTerminalCleanupReaper**: Add terminal cleanup reaper behavior.
+- **05-21-makeArchiveMergeTrunk**: Make archive finalization merge through trunk.
+
+## 2026-05-21 (v0.9.2)
+
+### Fixed
+
+- enforce guard in project config
+- use target cwd for guarded mutations
+- wire auto-managed resume deps
+- route mode:warp session lookup through SDK client
+### Changed
+
+- capture scan prep notes (chore)
+
+### Change Highlights
+
+- **05-21-addDelegationDefaults2**: Add delegation defaults coverage.
+- **05-21-fixWarpSessionLookup**: Fix Warp session lookup routing.
+- **05-21-rebuildPluginDistDeploy**: Rebuild and deploy plugin dist artifacts.
+
+## 2026-05-21 (v0.9.1)
+
+### Fixed
+
+- enforce release-gate trunk merge structurally (rq-releaseFinalization01.5)
+- widen integration gate to terminal-set {archived, closed}
+### Changed
+
+- add archive_mode PR opt-out and auto_push archive finalization config
+- archive fixWorktreeTerminalStatusGate (chore)
+
+### Change Highlights
+
+- **05-21-fixWorktreeTerminalStatusGate**: Outcome
+
+## 2026-05-21 (v0.9.0)
+
+### Added
+
+- first-class executive summary with archive fallback
+- persist executive summary as 5th narrative artifact
+- add executive summary and structured list guidance
+- track plugin + lib + unit tests previously untracked
+- add thread-close subcommand for single-instance graceful shutdown
+- hygiene recommendations emit actionable commands (#122)
+- triage flags worktrees with uncommitted work (#120)
+- add /ship command with worktree-aware cleanup
+- replace Phase 3b text-only batch prompt with question tool one-by-one
+- adv_roadmap MCP tool + /adv-roadmap command + change.origin field
+- enforce git mutation guard
+- add ADV triage guard guidance
+- add ADV triage command contract
+- accept signal-driven verification as TDD compliance evidence
+- disk-layer guard against synthetic-fixture change IDs (rq-synthstate01)
+- add test-only runtime Zod schema guard at SDK boundary
+- wire external ensure-window hook
+- add one-writer-per-worktree lease protocol
+- add trunk guard for worktree-first execution
+### Fixed
+
+- bump pnpm to v11, drop Node 20 from matrix
+- resolve default branch via local refs before init.defaultBranch (#113)
+- expose ADV backlog and WIP tools
+- flag stale snapshot drift
+- filter closed GH issues from live source
+- add adv_roadmap to ADV agent tool allowlists
+- trust live Temporal gates as authoritative for archive preflight
+- archive gate resolution + temporal compat query names
+- adv_task_cancel crash on missing reasons
+- distinguish permission-ATTN from idle-ATTN (#86)
+- stop flagging in-repo archive as legacy, extend test isolation checks (#60)
+- add disk-only close fallback for terminated workflows (#54)
+- add data/constant trivial patterns to TDD classifier (#62)
+- use store.paths.projectMetadata for live source
+- mandate full ROADMAP.md echo in chat after regen
+- allowlist ROADMAP.md, force-bypass non-registered branches, autofill option
+- allow stash/checkout/switch on dirty default branch (RECOVERY)
+- patch fast-uri vulnerabilities
+- replace gh project item-edit with batched GraphQL mutations
+- resolve post-merge verification issues
+- drop newly-orphan InvestmentReport type + reclassify conformance TODO
+- drop residual tier surface from Temporal workflow + adv-reflect docs
+- return 'compliant' from getTaskTddCompliance when red+green evidence present
+- invalidate change cache after gateCompletedSignal (R1 follow-on)
+- drop AdvAffectedPaths to fit Temporal dev-server KeywordList cap
+- enforce exact MCP tool names
+- remove stale tool entries from canonical adv.md allowlist
+- lazy-load temporal/service in state.ts; add service mock to window-hook test
+- remove stale hardcoded tool count from index.ts header
+- harden branch-aware worktree lifecycle
+- require explicit gate reentry timestamp
+- remove stale bun lockfile
+- raise outer safety-net timeout to 305s
+- add path verification defense-in-depth for adv-engineer file-not-found errors
+- restore external ensure-window hook integration tests
+- skip window-hook integration tests pending proper mock setup
+- resolve lint errors and format drift in worktree test files
+- peer worker lock allows mutations when this session has no worker
+- bypass local-worker check when peer pollers serve queue
+- auto-bootstrap project workflow + fast-fail on missing workflow
+- resolve worker_alive false-negative in multi-session setups
+### Changed
+
+- install Temporal CLI before integration tests (ci)
+- apply prettier to drifted test files (style)
+- archive addOpportunityScan2 (chore)
+- archive persistExecutiveSummary (chore)
+- archive removePhantomSubAgent (chore)
+- replace sync-global references (docs)
+- archive fixWorktreeSessionRoot (chore)
+- archive improveAcceptanceReviews (chore)
+- archive addAcpTitlesAdvTools (chore)
+- archive gateTrunkFirewall (chore)
+- archive requireProblemSpecLaw (chore)
+- align JSONC deploy-local behavior (test: plugin)
+- rename deploy-local banner (chore: plugin)
+- update deploy-local worktree fixture (test: plugin)
+- simplify ADV terminal tab titles (chore: plugin)
+- remove Windows Terminal / WSL spawning code (chore)
+- revert pnpm metadata drift (chore)
+- refresh pnpm metadata and terminal fallback (chore: plugin)
+- switch guidance to exa and searchcode (chore: research)
+- WSL chrome-launcher hazard section (#123) (docs: worktree-guide)
+- archive advstabilityhardening (chore)
+- regenerate via /adv-triage (docs: roadmap)
+- adopt mattpocock skills (chore: archive)
+- archive extendAdvAuditProjectWideSpec (chore)
+- regenerate ROADMAP.md — score #106-#110, 36 features ranked (chore: triage)
+- archive optimizeAdvCommandTokenLoadVia (chore)
+- archive defaultLinkedIssueClosure (chore)
+- /adv-triage update 2026-05-11 (chore: roadmap)
+- flip default to execute, --dry-run is the flag (chore: triage)
+- changelog for 2026-05-09 ATC bug drain (19 bugs) (docs)
+- archive 19 ADV bug-fix changes from 2026-05-09 ATC drain (docs)
+- format merged bug-fix files (style)
+- clean generated issue title (chore: roadmap)
+- /adv-triage update 2026-05-09 (chore: roadmap)
+- add score-blind change archive (chore: archive)
+- update changelog for adv-triage Phase 3b question tool update (docs)
+- format roadmap.test.ts (prettier) (style)
+- caveman-compress origin linkage section (docs: adv-instructions)
+- codify Change Origin Linkage Strategy (docs: adv-instructions)
+- /adv-triage update 2026-05-09 (chore: roadmap)
+- archive replacegitguardwithtrunkwritef (chore)
+- caveman-compress adv-atc agent overlay (354→310 lines) (refactor)
+- archive fixGitMutationGuardDeadlock (chore)
+- archive hardenPhaseValidatesImplements + harden/review findings workflow (chore)
+- archive addStructuralChangeContract (chore)
+- archive createbackendstackevaluationsk (chore)
+- add release and contract assets (chore)
+- format arch scan asset test (chore)
+- /adv-triage update 2026-05-08 (chore: roadmap)
+- stage pending changes before cavemanCompressAdvInstruction merge (chore)
+- codify structural correctness scans (docs)
+- cover git mutation guard hook (test)
+- archive scopeAdvInstructionLoadAdv (chore)
+- rename npm package scope from @goost to @sharperflow (chore)
+- fix line-scoped NOSONAR for clarify-readiness.e2e.test.ts (#77) (chore: sonar)
+- suppress remaining S7739 BDD then-field false-positives (#76) (chore: sonar)
+- address Sonar cleanup findings (chore)
+- remove tmux-window bridge (#75) (chore: worktree)
+- remove tmux-window bridge (chore: worktree)
+- scrub missed matrix references (docs: retire-investment-governance)
+- archive change retireinvestmentgovernancedead (chore: adv)
+- archive change fixWorkflowReplayDeterminism (chore: adv)
+- archive centralizemutationcacherefresh (chore)
+- archive refactorChangeWorkflowsSignal + reap migration disk leftovers (chore)
+- archive removeBunTypesMainTsconfig (chore)
+- archive makeAdvTaskEvidenceFallback + addagentmeshandinrepoarchive (chore)
+- add Section 9 — Removal & Test Strategy (docs: decisions)
+- record signal-driven change workflow architecture (docs: decisions)
+- use STSL singleton in probeStaleQueues, avoid fresh client overhead (perf)
+- record open issue solution plan (docs)
+- archive resolveOpenAdvanceGithubBug (chore)
+- archive terminatechangeworkflowonarchi (chore)
+
+### Change Highlights
+
+- **05-20-persistExecutiveSummary**: Persist executive summaries as communication artifacts.
+- **05-21-addOpportunityScan2**: Add Opportunity Scout.
+
 # Changelog
 
 All notable changes to ADV (Advance) will be documented in this file.
@@ -9,7 +371,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — Persist Executive Summary as Communication-Only Narrative Artifact
 
-`executive-summary.md` is a new optional narrative artifact on every change, written at acceptance time by `/adv-review` Phase 7 and restated in the pre-archive Change Report by the Sign-Off Boundary. It complements (does NOT replace) trunk's `acceptance.md`: `acceptance.md` is the gate-enforcement projection verified by `inspectArtifactActivity`; `executive-summary.md` is a field-style artifact for release notes, changelogs, and user-facing communication. Not tracked in workflow state, not gate-coupled.
+`executive-summary.md` is a new optional narrative artifact on every change, written at acceptance time by `/adv-review` Phase 7 and restated in the pre-archive Change Report by the Sign-Off Boundary. It complements (does NOT replace) trunk's `acceptance.md`: `acceptance.md` is the gate-enforcement projection verified by `inspectArtifactActivity`; `executive-summary.md` is a field-style artifact for release notes, changelogs, and user-facing communication. Artifact metadata is tracked in workflow state for freshness; it is not gate-coupled.
 
 **Tool surface (additive, backward-compatible):**
 - `adv_change_create` accepts new optional `executiveSummary` content field
@@ -17,7 +379,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `adv_change_show` accepts new optional `include.executiveSummary` flag → returns `_executiveSummary` markdown
 
 **Storage (additive):**
-- `createChangeScaffold` and `updateChangeArtifacts` in `storage/json.ts` accept a 5th optional `executiveSummaryContent` param; same threading through `store-types`, `store-disk`, and `store-temporal/changes.ts` (file write only — no workflow-state signal mapping, by design)
+- `createChangeScaffold` and `updateChangeArtifacts` in `storage/json.ts` accept a 5th optional `executiveSummaryContent` param; same threading through `store-types`, `store-disk`, and `store-temporal/changes.ts`, including workflow artifact metadata refresh when `adv_change_update` writes the artifact
 
 **Guidance:**
 - `/adv-review` Phase 7 adds a `### Persist Executive Summary` step instructing the orchestrator to compose using investment metrics + acceptance summary, then persist via `adv_change_update executiveSummary: ...` before completing the acceptance gate
@@ -136,7 +498,7 @@ ADV ATC autonomous pipeline drained the bug backlog, archiving 19 changes in a s
 - **Recommended rule P30 `docs-before-probing` + P16 strengthening** documented in `SETUP.md` (sibling to P28/P29). Targets the agent failure mode of probing external library behavior via test scripts, source reads, or extrapolation from existing repo usage when the official docs already answer the question authoritatively. P30 (priority 8) makes Context7 / official docs the mandatory first move when external API/framework/library behavior is unclear; probing is reserved as a fallback when docs are missing, ambiguous, or contradicted by observed behavior. P16 is broadened in scope from internal-only (repo docs/ADRs/workflows) to internal + external (library, framework, API, vendor docs) to set the broader "docs first" stance. Like P28/P29, `rules.yaml` stays user-managed; section documents both edits.
 - **Recommended rule P31 `thoroughness` + P19 reinforcement** documented in `SETUP.md` (sibling to P28-P30). Targets the agent failure mode of optimizing for minimum tokens / turns / time / effort at the cost of correctness. P31 (priority 9, parity with P05/P24/P27/P28) forbids decisions based on agent-effort minimization and lists concrete anti-patterns (skipping docs, skipping related-scan, accepting first-pass solutions, suppressing better ideas, declaring done prematurely, choosing cheap diagnosis over correct). P19 simplicity is reinforced with a carve-out: simplicity governs the SOLUTION, not the WORK INVESTED — do not invoke KISS/YAGNI to skip thorough-work obligations. Two reinforcing rules close the most common rationalization escape hatch agents use to cut corners. Like P28-P30, `rules.yaml` stays user-managed; section documents both edits.
 - **advance-meta v1.5.0 spec promotion** (`unifyWorktreeUnderAdvMultiSession` change): four new requirements promoted to law for the multi-session-as-design-center work — `rq-multiSessionCoordination01` (Temporal-serialized state writes across peer sessions), `rq-worktreeRegistry01` (worktree state authority lives in `ProjectWorkflowState.worktree_registry`, no SQLite/JSONL sidecar), `rq-multiSessionFraming01` (legacy Concurrent Session Hazard framing forbidden in production code; `[ADV:PEER_SESSIONS]` informational marker replaces `[ADV:WARN]`; ADV_INSTRUCTIONS.md must contain `§ Multi-Session Coordination`), and `rq-temporalConcurrentLoad01` (Temporal worker survives N≥5 concurrent client load and worker-kill respawn-elect). Citation anchor for downstream task implementation; full enforcement paths land via subsequent tasks in this change.
-- **Closed T3 risk** (`unifyWorktreeUnderAdvMultiSession` change, T38–T39): Temporal multi-client load behavior validated via the new `--mode=concurrent-clients` benchmark mode. Stress scenarios cover 5+ concurrent clients with worker-lock contention, state-write race (5×10 worktree register/remove cycles, monotonic source_version asserted), and worker-kill respawn-elect (rq-workerSingleton01.3 stale-PID reclaim). Linux-only per J4 SCOPE REDUCTION. Opt-in: `RUN_INTEGRATION_TESTS=1 pnpm test src/__tests__/temporal-concurrent-load.itest.ts`. T3 row in `docs/decisions/temporal-reliability-agent-prep.md` marked CLOSED.
+- **Closed T3 risk** (`unifyWorktreeUnderAdvMultiSession` change, T38–T39): Temporal multi-client load behavior validated via the new `--mode=concurrent-clients` benchmark mode. Stress scenarios cover 5+ concurrent clients with worker-lock contention, state-write race (5×10 worktree register/remove cycles, monotonic source_version asserted), and worker-kill respawn-elect (rq-workerSingleton01.3 stale-PID reclaim). Linux-only per J4 SCOPE REDUCTION. Opt-in: `RUN_INTEGRATION_TESTS=1 pnpm test src/__tests__/temporal-concurrent-load.itest.ts`.
 
 ## [0.8.2] - 2026-05-01
 
@@ -322,7 +684,7 @@ Three previously divergent "where am I" surfaces — `context-display`, `task-st
 
 **Spec rename** — `.adv/specs/context-display/` → `.adv/specs/chat-output-display/` (v1.2.0 → v1.3.0, `supersedes: ["context-display"]`). Five new requirements: `rq-idleMarker01` (resolver split), `rq-idleMarker02` (IDLE marker constant + ⬜ emoji), `rq-idleMarker03` (IDLE bell policy), `rq-ctxticker1` (ticker content), `rq-ctxticker2` (ticker emission triggers). `rq-ctxformat` extended with `rq-ctxformat.4` (CONTEXT-line truncation) and `rq-ctxformat.3` clarified to apply only to compact surfaces. `rq-ctxswitch` updated with `.2` (≤3 content lines).
 
-**Doc retirement** — `docs/adv-task-report.md` reduced to a redirect pointer to the new spec; `docs/adv-context-agreement.md` cross-reference updated; `docs/chat-output-adhd-prep.md` research pack marked as `Status: Consumed`.
+**Doc retirement** — legacy task-report and context-agreement guidance moved into the new spec; the chat-output research pack was consumed.
 
 **Drift test extension** — `plugin/src/handoff-footer-drift.test.ts` adds a `chat-output-display drift contract` describe block (6 tests: STATUS_MARKERS.IDLE, ⬜/🟥 emoji distinction, ticker structure, ticker truncation, spec rename + new requirement IDs, legacy directory retired). All pre-existing 17 wayfinder assertions are preserved verbatim — no regression to `trimGateHandoffFooterSingle`.
 
@@ -353,7 +715,7 @@ ADV instruction surfaces (`ADV_INSTRUCTIONS.md`, `docs/command-voice-standard.md
 
 **COMPLETE trailer removal** — 12 command docs (`adv-arch-scan`, `adv-audit`, `adv-clarify`, `adv-cleanup`, `adv-comp-scan`, `adv-coordinate`, `adv-idea`, `adv-improve`, `adv-problem`, `adv-refactor`, `adv-research`, `adv-slop-scan`) had their `/adv-X COMPLETE` code-block trailers removed.
 
-**Inventory** — `docs/prose-load-inventory.md` (new, archive) records per-section classification, code reference, and gap rationale. Marked POST-COMPRESSION ARCHIVE on completion; durable invariants live in spec deltas, not the inventory.
+**Inventory** — temporary prose-load classification captured per-section class, code reference, and gap rationale during execution; durable invariants live in spec deltas.
 
 **Net effect:** 12-task plan delivered — methodology + spec law + drift tests + asset-test cleanup + targeted compressions across 5 surfaces. Many `full`-classified sections (gate sequencing, sub-agent selection, checkpoint commits, context snapshot, cancellation policy) found already in KD2 template form post-prior refactors. Significant scannability improvement; raw line-count savings modest because prose conversion to tabular form sometimes adds structural lines. Stop condition (UD3) applied: only inherently-prose categories remain after compression passes.
 
@@ -498,10 +860,10 @@ Improves the deterministic project shortname generator to restore meaning for co
 - **New `segmentToken(token, dict)` helper** — dynamic-programming word-break segmentation. Returns `string[]` on full-character-cover success, `null` otherwise. The full-cover requirement is the correctness guard: names that can't be cleanly decomposed fall back to the existing truncate path.
 - **`generateProjectShortname` updated** to run segmentation when a single lowercase token ≥ 4 chars remains after prefix/suffix strip. On 2+ subwords success, those become the word list and feed the existing acronym/compact branches.
 - **New behaviour examples:**
-  - `opencodeadvance → OCA` (segments `open`+`code`+`advance`, over cap → acronym)
+  - `advanceplugin → AP` (segments `advance`+`plugin`, over cap → acronym)
   - `opencode → Opencode` (segments `open`+`code`, at cap → compact)
   - `advance → Advance` (previously `Advanc`)
-  - `pokeedge → Pokeedge` (segments `poke`+`edge`, at cap → compact)
+  - `example-product → ExampleProduct` (segments `poke`+`edge`, at cap → compact)
   - `xyzzyabcdef → Xyzzyabc` (opaque, truncate to 8)
 - **Unchanged behaviour:** names with explicit boundaries (`my-cool-project → MCP`, `opencode-morph-fast-apply → OMFA`, `morph-plugin → Morph`). Acronym cap scaled from 6 to 8 along with the main limit.
 - **Tests**: 9 new `segmentToken` unit tests, 5 new `SHORTNAME_DICTIONARY` invariant tests (lowercase / no-dupes / size), 7 new `generateProjectShortname` table-driven tests for segmentation + cap-bump cases. 3 existing assertions updated for new cap (111 total events tests pass).
@@ -575,7 +937,7 @@ Tool count: 40 → 42 (`adv_investment_report` + `adv_change_reenter` — the la
   - Strips common suffixes: `-plugin`, `-plugins`, `-app`, `-cli`, `-server`, `-client`, `-mcp`, `.js`, `.ts`
   - Multi-word names with combined length > 6 → acronym (e.g. `my-cool-project` → `MCP`, `opencode-morph-fast-apply` → `OMFA`)
   - Single words ≤ 6 chars → title-cased as-is (e.g. `plugin` → `Plugin`)
-  - Single words > 6 chars → truncate + title-case (e.g. `advance` → `Advanc`, `pokeedge` → `Pokeed`)
+  - Single words > 6 chars → truncate + title-case (e.g. `advance` → `Advanc`, `example-product` → `Example`)
   - Case-insensitive prefix/suffix matching, only first match stripped
 - **`buildTabTitle(emoji, projectName, changeId)`** updated to thread `projectName` through `generateProjectShortname` and use the `·` separator. Previously ignored the project name argument.
 - **Public exports** added from the events module: `generateProjectShortname`, `buildTabTitle`, `normalizeChangeCode`.

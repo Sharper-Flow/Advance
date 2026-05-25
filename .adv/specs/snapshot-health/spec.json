@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "snapshot-health",
   "title": "Snapshot Store Health Diagnostics",
-  "purpose": "Detect and remediate OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts — that historically caused recurring agent freezes (e.g., pokeedge-web index.lock contention).",
+  "purpose": "Detect and remediate OpenCode snapshot-store corruption — stale locks, zero-byte git objects, fsck errors, orphan bare repos, oversized dirs, and legacy-layout artifacts — that historically caused recurring agent freezes (e.g., example-web index.lock contention).",
   "version": "1.0.0",
   "updated_at": "2026-05-12T00:00:00.000Z",
   "requirements": [

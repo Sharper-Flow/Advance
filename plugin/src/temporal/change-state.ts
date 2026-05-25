@@ -3,6 +3,7 @@ import type {
   AgreementUpdatedSignalPayload,
   ArchiveRequestedSignalPayload,
   Cancellation,
+  Change,
   ChangeCancelledSignalPayload,
   ChangeClosure,
   ContractAmendedSignalPayload,
@@ -22,6 +23,7 @@ import type {
   ProblemStatementUpdatedSignalPayload,
   ProposalUpdatedSignalPayload,
   ReflectionRecordedSignalPayload,
+  SubagentReportSubmittedSignalPayload,
   Task,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
@@ -33,23 +35,19 @@ import type {
   TddReclassification,
   WisdomAddedSignalPayload,
   WisdomType,
+  WorktreeAttachedSignalPayload,
+  WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
+import { subagentReportKey } from "./contracts";
 import type {
   ArtifactKind,
   ArtifactMetadata,
+  ChangeWorkflowInput,
   ChangeWorkflowState,
 } from "./contracts";
-
-export interface AddTaskInput {
-  title: string;
-  type?: Task["type"];
-  section?: string;
-  blockedBy?: string[];
-  metadata?: Record<string, string>;
-}
 
 export interface UpdateTaskInput {
   status: Task["status"];
@@ -104,6 +102,55 @@ export function createChangeWorkflowState(input: {
     reflections: [],
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
+  };
+}
+
+export function changeSeedStateFromChange(
+  change: Change,
+): NonNullable<ChangeWorkflowInput["seedState"]> {
+  return {
+    status: change.status,
+    tasks: change.tasks ?? [],
+    deltas: change.deltas ?? {},
+    wisdom: change.wisdom ?? [],
+    gates: change.gates ?? createDefaultGates(),
+    reentry_history: change.reentry_history ?? [],
+    artifacts: (change.artifacts as ChangeWorkflowState["artifacts"]) ?? {},
+    fast_follow_of: change.fast_follow_of,
+    affectedProjects: change.affectedProjects,
+    affectedPaths: change.affectedPaths,
+    lastSignalAt: change.lastSignalAt,
+    acceptanceCriteria: change.acceptanceCriteria,
+    contract: change.contract,
+    documents: change.documents,
+    origin: change.origin,
+    worktree_auto_managed: change.worktree_auto_managed,
+    target_worktree_path: change.target_worktree_path,
+    scope_worktrees: change.scope_worktrees,
+    seenReportIds: (change as unknown as { seenReportIds?: string[] })
+      .seenReportIds,
+  };
+}
+
+export function changeToWorkflowState(input: {
+  projectId: string;
+  change: Change;
+  initializedAt?: string;
+  projectionChangesDir?: string;
+  gates?: ChangeWorkflowState["gates"];
+}): ChangeWorkflowState {
+  const seed = changeSeedStateFromChange(input.change);
+  return {
+    ...createChangeWorkflowState({
+      changeId: input.change.id,
+      title: input.change.title,
+      createdAt: input.initializedAt ?? input.change.created_at,
+    }),
+    projectId: input.projectId,
+    initializedAt: input.initializedAt ?? input.change.created_at,
+    projectionChangesDir: input.projectionChangesDir,
+    ...seed,
+    gates: input.gates ?? seed.gates ?? createDefaultGates(),
   };
 }
 
@@ -164,14 +211,20 @@ export function applyAcceptanceCriteriaSetToState(
   return state;
 }
 
+export function acceptanceCriteriaFromContract(
+  contract: NonNullable<ChangeWorkflowState["contract"]>,
+): string[] {
+  return contract.items
+    .filter((item) => item.kind === "acceptance_criterion")
+    .map((item) => item.text);
+}
+
 export function applyContractSetToState(
   state: ChangeWorkflowState,
   payload: ContractSetSignalPayload,
 ): ChangeWorkflowState {
   state.contract = payload.contract;
-  state.acceptanceCriteria = payload.contract.items
-    .filter((item) => item.kind === "acceptance_criterion")
-    .map((item) => item.text);
+  state.acceptanceCriteria = acceptanceCriteriaFromContract(payload.contract);
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }
@@ -263,6 +316,17 @@ export function applyTaskCompletedToState(
   payload: TaskCompletedSignalPayload,
 ): ChangeWorkflowState {
   const task = getMutableTask(state, payload.taskId);
+  const existingFiles = task.filesTouched ?? task.touched_files ?? [];
+  const incomingWouldWeakenCheckpoint =
+    task.status === "done" &&
+    ((Boolean(task.checkpointSha) && !payload.checkpointSha) ||
+      (existingFiles.length > 0 && payload.filesTouched.length === 0));
+
+  if (incomingWouldWeakenCheckpoint) {
+    setLastSignalAt(state, payload.completedAt);
+    return state;
+  }
+
   task.status = "done";
   task.verification = payload.verification;
   task.summary = payload.summary;
@@ -276,6 +340,111 @@ export function applyTaskCompletedToState(
     task.structured_output = payload.structured_output;
   }
   setLastSignalAt(state, payload.completedAt);
+  return state;
+}
+
+function assertNeverSubagentReport(report: never): never {
+  throw new Error(`Unsupported sub-agent report in blocker summary: ${report}`);
+}
+
+function blockerSummary(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): { summary: string; diagnosis: string } | null {
+  switch (report.agent) {
+    case "adv-engineer":
+      if (report.blockers.length === 0) return null;
+      return {
+        summary: report.blockers
+          .map((blocker) =>
+            [blocker.file, blocker.line ? `:${blocker.line}` : "", blocker.what]
+              .filter(Boolean)
+              .join(" "),
+          )
+          .join("; "),
+        diagnosis: report.blockers
+          .map((blocker) => blocker.diagnosis)
+          .join("; "),
+      };
+
+    case "adv-reviewer":
+      if (report.blocking_findings.length === 0) return null;
+      return {
+        summary: report.blocking_findings
+          .map((finding) =>
+            [finding.file, finding.line ? `:${finding.line}` : "", finding.what]
+              .filter(Boolean)
+              .join(" "),
+          )
+          .join("; "),
+        diagnosis: report.blocking_findings
+          .map((finding) => finding.why)
+          .join("; "),
+      };
+
+    default: {
+      const exhaustive: never = report;
+      return assertNeverSubagentReport(exhaustive);
+    }
+  }
+}
+
+export function applySubagentReportSubmittedToState(
+  state: ChangeWorkflowState,
+  payload: SubagentReportSubmittedSignalPayload,
+): ChangeWorkflowState {
+  const task = getMutableTask(state, payload.taskId);
+  const reportId = subagentReportKey({
+    changeId: payload.report.change_id,
+    taskId: payload.report.task_id,
+    agent: payload.report.agent,
+    attempt: payload.report.attempt,
+  });
+  const seenReportIds = state.seenReportIds ?? [];
+  const alreadyStored = (task.subagent_reports ?? []).some(
+    (report) =>
+      subagentReportKey({
+        changeId: report.change_id,
+        taskId: report.task_id,
+        agent: report.agent,
+        attempt: report.attempt,
+      }) === reportId,
+  );
+
+  if (seenReportIds.includes(reportId) || alreadyStored) {
+    state.seenReportIds = seenReportIds.includes(reportId)
+      ? seenReportIds
+      : [...seenReportIds, reportId];
+    setLastSignalAt(state, payload.submittedAt);
+    return state;
+  }
+
+  task.subagent_reports = [...(task.subagent_reports ?? []), payload.report];
+  state.seenReportIds = [...seenReportIds, reportId];
+
+  const blockers = blockerSummary(payload.report);
+  if (blockers) {
+    task.error_recovery = {
+      last_error: blockers.summary,
+      retry_count: payload.report.attempt,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+      next_strategy: "Resolve sub-agent reported blocker",
+      attempts: [
+        ...(task.error_recovery?.attempts ?? []),
+        {
+          attempt_number: payload.report.attempt,
+          error: blockers.summary,
+          diagnosis: blockers.diagnosis,
+          fix_tried: "Sub-agent report submission recorded blocker",
+          strategy_label: `${payload.report.agent}-reported-blocker`,
+          outcome: "failed",
+          attempted_at: payload.submittedAt,
+        },
+      ],
+    };
+  }
+
+  setLastSignalAt(state, payload.submittedAt);
   return state;
 }
 
@@ -435,6 +604,75 @@ export function applyWorktreeDeletedToState(
   return state;
 }
 
+/**
+ * rq-autoManageAdvWorktrees AC3 — stamp/migrate worktree_auto_managed.
+ *
+ * Sticky semantics: once `state.worktree_auto_managed` is set to a
+ * boolean, subsequent signals are ignored. This protects both the
+ * create-time stamp (true) and the lazy migration (false) from being
+ * overwritten by an out-of-order or retried signal.
+ */
+export function applyWorktreeAutoManagedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeAutoManagedSignalPayload,
+): ChangeWorkflowState {
+  if (typeof state.worktree_auto_managed === "boolean") {
+    // Sticky — ignore; the first boolean wins.
+    return state;
+  }
+  state.worktree_auto_managed = payload.value;
+  setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
+/**
+ * rq-autoManageAdvWorktrees AC4 — project a worktree path onto the
+ * change record for cross-project / scope_repos routing convenience.
+ *
+ * Idempotent: writing the same value twice is a no-op (no state churn).
+ * Differing values overwrite — the ensure-helper guarantees the new
+ * value reflects the canonical registry post-create or post-cleanup.
+ */
+export function applyWorktreeAttachedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeAttachedSignalPayload,
+): ChangeWorkflowState {
+  switch (payload.role) {
+    case "target": {
+      if (state.target_worktree_path === payload.path) return state;
+      state.target_worktree_path = payload.path;
+      break;
+    }
+    case "scope": {
+      if (!payload.repoId) {
+        // Defensive: scope role requires repoId; skip without mutating.
+        return state;
+      }
+      const current = state.scope_worktrees ?? {};
+      if (payload.path === null) {
+        if (!(payload.repoId in current)) return state;
+        const next = { ...current };
+        delete next[payload.repoId];
+        state.scope_worktrees = next;
+        break;
+      }
+      if (current[payload.repoId] === payload.path) return state;
+      state.scope_worktrees = { ...current, [payload.repoId]: payload.path };
+      break;
+    }
+    case "current": {
+      // Current-repo worktree state lives in state.worktrees today (via
+      // worktreeCreatedSignal). The attached signal with role:"current"
+      // is reserved for future parity with target/scope — no-op for now
+      // so the helper module can fire uniformly across roles without
+      // double-writing the worktrees registry.
+      return state;
+    }
+  }
+  setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
 export function applyConformanceLockedToState(
   state: ChangeWorkflowState,
   payload: ConformanceLockedSignalPayload,
@@ -512,35 +750,6 @@ export function applyChangeCancelledToState(
   };
   setLastSignalAt(state, payload.cancelledAt);
   return state;
-}
-
-export function addTaskToChangeState(
-  state: ChangeWorkflowState,
-  input: AddTaskInput,
-  ctx: StateMutationContext,
-): Task {
-  const nextPriority =
-    state.tasks.length === 0
-      ? 0
-      : Math.max(...state.tasks.map((task) => task.priority ?? 0)) + 1;
-
-  const task: Task = {
-    id: `tk-${ctx.uuid()}`,
-    title: input.title,
-    type: input.type ?? "code",
-    section: input.section,
-    status: "pending",
-    priority: nextPriority,
-    created_at: ctx.now,
-    deps: input.blockedBy?.map((target) => ({
-      type: "blocked_by" as const,
-      target,
-    })),
-    ...(input.metadata ? { metadata: input.metadata } : {}),
-  };
-
-  state.tasks.push(task);
-  return task;
 }
 
 export function listTasksFromChangeState(

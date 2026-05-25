@@ -7,6 +7,7 @@ import {
   type GateReadinessBlocker,
 } from "../types";
 import type { ChangeWorkflowState } from "./contracts";
+import { isFailingContractReviewStatus } from "./recovery-classification";
 
 export const ARTIFACT_BACKED_GATES: Partial<Record<GateId, GateArtifactKind>> =
   {
@@ -20,6 +21,7 @@ export const gateArtifactEvidenceSchema = GateArtifactEvidenceSchema;
 
 export interface GateReadinessOptions {
   compatibilityReason?: string;
+  enforceDiscoveryContract?: boolean;
 }
 
 export interface GateReadinessResult {
@@ -86,6 +88,30 @@ function artifactStoreBlocker(
   });
 }
 
+function agreementExists(state: ChangeWorkflowState): boolean {
+  if (state.documents?.agreement?.trim()) return true;
+  return Boolean(state.artifacts.agreement ?? state.artifacts.discovery);
+}
+
+function discoveryContractBlockers(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "discovery") return [];
+  if (!agreementExists(state) || state.contract) return [];
+  return [
+    makeBlocker({
+      code: "DISCOVERY_CONTRACT_MISSING",
+      gateId,
+      artifactKind: "agreement",
+      message:
+        "Discovery requires typed contract proof once agreement is approved.",
+      remediation:
+        "Run adv_contract_mint for this change before completing discovery.",
+    }),
+  ];
+}
+
 function acceptanceContractBlockers(
   state: ChangeWorkflowState,
   gateId: GateId,
@@ -135,7 +161,7 @@ function acceptanceContractBlockers(
           }),
         ];
       }
-      if (["fail", "violated", "unknown"].includes(row.status)) {
+      if (isFailingContractReviewStatus(row.status)) {
         return [
           makeBlocker({
             code: "ACCEPTANCE_REVIEW_ROW_FAILING",
@@ -202,6 +228,10 @@ export function evaluateGateReadiness(
     } else {
       blockers.push(artifactStoreBlocker(gateId, artifactKind));
     }
+  }
+
+  if (gateId === "discovery" && options.enforceDiscoveryContract !== false) {
+    blockers.push(...discoveryContractBlockers(state, gateId));
   }
 
   if (artifactKind === "acceptance") {

@@ -181,7 +181,7 @@ describe("reflection tool", () => {
         currentRoot: "/repo/web",
         currentRepoId: "web",
         repoProjectId: "w".repeat(40),
-        productId: "pokeedge",
+        productId: "example-product",
         productProjectId: "b".repeat(40),
         primaryRoot: "/repo/backend",
         primaryRepoId: "backend",
@@ -205,7 +205,7 @@ describe("reflection tool", () => {
     const parsed = JSON.parse(output);
 
     expect(parsed.reflection).toMatchObject({
-      product_id: "pokeedge",
+      product_id: "example-product",
       origin_repo_id: "web",
       origin_repo_project_id: "w".repeat(40),
       origin_repo_path: "/repo/web",

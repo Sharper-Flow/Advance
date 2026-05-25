@@ -202,6 +202,57 @@ describe("createDegradedToolMap parity with createToolMap", () => {
       }),
     );
   });
+
+  test("registry passes normalized preflight args into execute", async () => {
+    let receivedArgs: unknown;
+    const execute = async (args: unknown) => {
+      receivedArgs = args;
+      return JSON.stringify({ ok: true });
+    };
+    (execute as { __advToolName?: string }).__advToolName = "adv_change_create";
+    const registered = registerTool(
+      "test",
+      {
+        summary: z.string(),
+        scope_repos: z.array(z.object({ repo_id: z.string() })).optional(),
+      },
+      execute,
+    );
+
+    await registered.execute(
+      { summary: "Add rate limiting", scope_repos: [] },
+      {} as any,
+    );
+
+    expect(receivedArgs).toEqual({ summary: "Add rate limiting" });
+  });
+
+  test("registry rejects invalid preflight args for non-create tools", async () => {
+    const execute = async () => JSON.stringify({ ok: true });
+    (execute as { __advToolName?: string }).__advToolName = "adv_wisdom_add";
+    const registered = registerTool(
+      "test",
+      {
+        changeId: z.string(),
+        type: z.enum(["pattern", "success", "failure", "gotcha", "convention"]),
+        content: z.string(),
+      },
+      execute,
+    );
+
+    const result = await registered.execute(
+      { changeId: "c", type: "pattern", content: " " },
+      {} as any,
+    );
+    const output = JSON.parse((result as { output: string }).output);
+
+    expect(output.code).toBe("INVALID_TOOL_ARGS");
+    expect(output.tool).toBe("adv_wisdom_add");
+    expect(output.invalid).toContainEqual({
+      field: "content",
+      message: "content must be a non-blank string.",
+    });
+  });
 });
 
 describe("KD-8 worktree + session tool registrations", () => {
@@ -279,46 +330,21 @@ describe("KD-8 worktree + session tool registrations", () => {
     expect(parsed.total).toBe(0);
   });
 
-  test("backward-compat aliases are registered (KD-8 phase 2)", async () => {
+  test("legacy standalone worktree aliases are not registered", async () => {
     const map = createToolMap(store, tempDir, store.paths.agenda);
     const aliases = ["worktree_create", "worktree_delete", "worktree_cleanup"];
     for (const name of aliases) {
-      expect(map).toHaveProperty(name);
-      const tool = (map as Record<string, unknown>)[name];
-      expect(typeof tool).toBe("object");
-      expect(tool).toHaveProperty("description");
-      expect(typeof (tool as { description: unknown }).description).toBe(
-        "string",
-      );
-      expect((tool as { description: string }).description).toContain(
-        "Alias →",
-      );
-      expect(tool).toHaveProperty("execute");
-      expect(typeof (tool as { execute: unknown }).execute).toBe("function");
+      expect(map).not.toHaveProperty(name);
     }
   });
 
-  test("aliases share the same execute shape as adv_worktree_* counterparts", async () => {
-    const map = createToolMap(store, tempDir, store.paths.agenda);
-    const pairs: [string, string][] = [
-      ["worktree_create", "adv_worktree_create"],
-      ["worktree_delete", "adv_worktree_delete"],
-      ["worktree_cleanup", "adv_worktree_cleanup"],
-    ];
-    for (const [aliasName, canonicalName] of pairs) {
-      const alias = (map as Record<string, unknown>)[aliasName];
-      const canonical = (map as Record<string, unknown>)[canonicalName];
-      expect(alias).toBeDefined();
-      expect(canonical).toBeDefined();
-      expect(typeof (alias as { execute: unknown }).execute).toBe("function");
-      expect(typeof (canonical as { execute: unknown }).execute).toBe(
-        "function",
-      );
-      // Args schemas should be identical (same reference)
-      expect((alias as { args: unknown }).args).toBe(
-        (canonical as { args: unknown }).args,
-      );
-    }
+  test("degraded tool names do not include legacy worktree aliases", () => {
+    expect(ADV_TOOL_NAMES).toContain("adv_worktree_create");
+    expect(ADV_TOOL_NAMES).toContain("adv_worktree_delete");
+    expect(ADV_TOOL_NAMES).toContain("adv_worktree_cleanup");
+    expect(ADV_TOOL_NAMES).not.toContain("worktree_create");
+    expect(ADV_TOOL_NAMES).not.toContain("worktree_delete");
+    expect(ADV_TOOL_NAMES).not.toContain("worktree_cleanup");
   });
 });
 

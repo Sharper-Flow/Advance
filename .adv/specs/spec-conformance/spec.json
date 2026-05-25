@@ -2,9 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "spec-conformance",
   "title": "Spec Conformance",
-  "purpose": "Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; tiered visibility. Pure opt-in per spec.",
+  "purpose": "Capability: External CI-isolated spec conformance verification. Verifies high-level acceptance criteria against the real system from outside the implementing agent's context. Source physically/runtime-isolated; archive-gated; single-structured verdict visibility. Pure opt-in per spec.",
   "version": "1.0.0",
-  "updated_at": "2026-05-01T00:00:00.000Z",
+  "updated_at": "2026-05-23T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-confSource01",
@@ -99,6 +99,61 @@
             "The lock state flips to false",
             "An override audit entry is appended to the spec's overrides array recording user, reason, re_verify_deadline, and applied_at",
             "Future amendments to the spec require re-archiving to re-lock"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-confSignalVisibility01",
+      "title": "Saved State Notification Failure Visibility",
+      "body": "When adv_conformance writes local conformance state for lock, override, or run and the change-workflow notification fails, the tool response MUST preserve the local-state success result and include a structured signalWarning object: { code: 'ADV_CONFORMANCE_SIGNAL_FAILED', message: string, reason: string, recoverable: true, changeId: string }. The warning MUST NOT be debug-log-only.",
+      "priority": "must",
+      "tags": ["conformance", "visibility", "signals"],
+      "scenarios": [
+        {
+          "id": "rq-confSignalVisibility01.1",
+          "title": "Lock save succeeds but workflow notification fails visibly",
+          "given": [
+            "A tracked conformance spec exists",
+            "adv_conformance action: 'lock' persists locked state",
+            "The change-workflow signal rejects"
+          ],
+          "when": "The tool returns to the caller",
+          "then": [
+            "The response reports success for the local lock state",
+            "The response includes signalWarning.code = 'ADV_CONFORMANCE_SIGNAL_FAILED'",
+            "signalWarning.reason contains the notification failure reason",
+            "signalWarning.recoverable is true and signalWarning.changeId identifies the change workflow"
+          ]
+        },
+        {
+          "id": "rq-confSignalVisibility01.2",
+          "title": "Override save succeeds but workflow notification fails visibly",
+          "given": [
+            "A tracked conformance spec has locked_at_archive set",
+            "adv_conformance action: 'override' persists an override audit entry",
+            "The change-workflow signal rejects"
+          ],
+          "when": "The tool returns to the caller",
+          "then": [
+            "The response reports success for the local override audit",
+            "The response includes signalWarning with stable code, reason, recoverable flag, and changeId",
+            "The override entry remains persisted"
+          ]
+        },
+        {
+          "id": "rq-confSignalVisibility01.3",
+          "title": "Run verdict save succeeds but workflow notification fails visibly",
+          "given": [
+            "A tracked conformance spec has locked_at_archive set",
+            "adv_conformance action: 'run' persists last_verdict",
+            "The change-workflow signal rejects"
+          ],
+          "when": "The tool returns to the caller",
+          "then": [
+            "The response preserves the structured verdict result",
+            "The response includes signalWarning with stable code, reason, recoverable flag, and changeId",
+            "The last_verdict remains persisted"
           ]
         }
       ]

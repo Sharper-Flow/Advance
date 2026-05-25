@@ -353,6 +353,64 @@ Terminal status/title paths MUST NOT emit BEL (U+0007 / `\x07`). OSC title seque
 
 ---
 
+### Terminal Title Identity Policy
+
+**ID:** `rq-titleIdentity01` | **Priority:** **[MUST]**
+
+Terminal title identity MUST show the active ADV change id only when a change is active, and MUST fall back to the project name when no ADV change is active. The active title MUST NOT include a project prefix, worktree path, git branch, trunk/main checkout marker, status marker, progress text, blocked marker, or emoji. Title identity changes MUST remain subject to `rq-titleBell01` sanitization and non-audible emission rules.
+
+**Tags:** `chat-output-display`, `terminal-title`, `identity`
+
+#### Scenarios
+
+**Active change title is change id only** (`rq-titleIdentity01.1`)
+
+**Given:**
+- Project name `toolbox`
+- Active ADV change id `fixFoo`
+
+**When:** ADV builds or emits the terminal title
+
+**Then:**
+- The title payload is exactly `fixFoo` after existing title sanitization
+- The title payload does not contain `toolbox`, `toolbox: fixFoo`, a status marker, progress text, branch, worktree path, or emoji
+
+**Inactive title falls back to project name** (`rq-titleIdentity01.2`)
+
+**Given:**
+- Project name `toolbox`
+- No active ADV change id
+
+**When:** ADV builds or emits the terminal title
+
+**Then:**
+- The title payload is exactly `toolbox` after existing title sanitization
+
+**Status churn does not retitle unchanged identity** (`rq-titleIdentity01.3`)
+
+**Given:**
+- The active ADV change id remains `fixFoo`
+- The status marker changes
+
+**When:** ADV updates terminal status repeatedly
+
+**Then:**
+- The title is emitted only after the identity string changes
+- Normal status churn does not rewrite the same title
+
+**Identity policy preserves title safety** (`rq-titleIdentity01.4`)
+
+**Given:**
+- A project name or active change id contains C0/C1 control bytes
+
+**When:** ADV emits the terminal title
+
+**Then:**
+- Control bytes are normalized per `rq-titleBell01`
+- The emitted title sequence contains no BEL byte and terminates with ST
+
+---
+
 ### Cross-Repo Switch Indicator
 
 **ID:** `rq-ctxswitch` | **Priority:** **[MUST]**

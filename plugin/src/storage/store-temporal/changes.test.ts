@@ -12,27 +12,13 @@
 
 import { describe, test, expect, vi } from "vitest";
 import { createChangeOps } from "./changes";
+import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 
 vi.mock("../../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted,
 }));
-
-// Re-implement the helper for direct testing (same logic as in changes.ts)
-// The helper is file-private, so we mirror it here for focused unit testing.
-function isWorkflowCompletedError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  const msg = err.message?.toLowerCase() ?? "";
-  const name = err.name?.toLowerCase() ?? "";
-  return (
-    msg.includes("already completed") ||
-    msg.includes("workflow execution already completed") ||
-    name.includes("workflowexecutionalreadycompleted") ||
-    msg.includes("workflow is not running") ||
-    msg.includes("cannot signal a completed")
-  );
-}
 
 describe("isWorkflowCompletedError", () => {
   test("non-Error values → false", () => {
@@ -87,11 +73,11 @@ describe("isWorkflowCompletedError", () => {
 });
 
 describe("createChangeOps", () => {
-  test("seeds origin into new change workflow at start (rq-backlogCoord01)", async () => {
+  test("seeds origin into new change workflow at start (rq-backlogCoord01, rq-backlogCoord08)", async () => {
     ensureChangeWorkflowStarted.mockResolvedValue(undefined);
 
     const origin = { kind: "roadmap", issue_number: 51 };
-    const createdChange = {
+    let createdChange = {
       id: "backlogFeature51",
       title: "Backlog feature 51",
       status: "draft",
@@ -101,14 +87,25 @@ describe("createChangeOps", () => {
       wisdom: [],
       gates: {},
       reentry_history: [],
-      origin,
     };
 
     const legacy = {
       paths: { changes: "/tmp/changes", root: "/tmp/project" },
       changes: {
-        create: vi.fn().mockResolvedValue({ changeId: createdChange.id }),
-        get: vi.fn().mockResolvedValue({ success: true, data: createdChange }),
+        create: vi.fn().mockImplementation(async (...args: unknown[]) => {
+          const metadata = args[7] as
+            | { initialMetadata?: { origin?: typeof origin } }
+            | undefined;
+          createdChange = {
+            ...createdChange,
+            ...metadata?.initialMetadata,
+          };
+          return { changeId: createdChange.id };
+        }),
+        get: vi.fn().mockImplementation(async () => ({
+          success: true,
+          data: createdChange,
+        })),
         save: vi.fn().mockResolvedValue(undefined),
       },
     };
@@ -138,12 +135,160 @@ describe("createChangeOps", () => {
       "",
       "",
       "",
+      undefined,
+      { initialMetadata: { origin } },
+    );
+
+    expect(legacy.changes.create).toHaveBeenCalledWith(
+      "Backlog feature 51",
+      "backlog-coordination",
+      "",
+      "",
+      "",
+      "",
+      undefined,
+      { initialMetadata: { origin } },
     );
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
       workflowClient,
       expect.objectContaining({
         seedState: expect.objectContaining({ origin }),
+      }),
+    );
+  });
+
+  /**
+   * rq-autoManageAdvWorktrees AC3 — stamping on create.
+   *
+   * New changes get worktree_auto_managed: true at creation, propagated
+   * through three surfaces: workflow seedState, the disk-projection save
+   * (changeWithOwner), and the Memo overlay. All three sites must move
+   * together so reads see the marker regardless of which path serves them.
+   */
+  test("stamps worktree_auto_managed:true at change creation (AC3)", async () => {
+    ensureChangeWorkflowStarted.mockResolvedValue(undefined);
+
+    const createdChange = {
+      id: "newAutoManagedChange",
+      title: "New auto-managed change",
+      status: "draft",
+      created_at: "2026-05-21T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      wisdom: [],
+      gates: {},
+      reentry_history: [],
+    };
+
+    const saveMock = vi.fn().mockResolvedValue(undefined);
+    const updateOverlayMock = vi.fn();
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        create: vi.fn().mockResolvedValue({ changeId: createdChange.id }),
+        get: vi.fn().mockResolvedValue({ success: true, data: createdChange }),
+        save: saveMock,
+      },
+    };
+    const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-am",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: updateOverlayMock,
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.create("New auto-managed change", "test", "", "", "", "");
+
+    // 1. Workflow seedState carries the marker so the workflow starts with it set.
+    expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
+      workflowClient,
+      expect.objectContaining({
+        seedState: expect.objectContaining({ worktree_auto_managed: true }),
+      }),
+    );
+
+    // 2. Disk projection save includes the marker (changeWithOwner).
+    expect(saveMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "newAutoManagedChange",
+        adv_project_id: "pid-am",
+        worktree_auto_managed: true,
+      }),
+    );
+
+    // 3. Memo overlay carries the marker for lightweight summary reads.
+    expect(updateOverlayMock).toHaveBeenCalledWith(
+      "newAutoManagedChange",
+      expect.objectContaining({ worktree_auto_managed: true }),
+    );
+  });
+
+  test("signals executiveSummary artifact metadata after artifact updates", async () => {
+    const signalMock = vi.fn().mockResolvedValue(undefined);
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        get: vi.fn().mockResolvedValue({
+          success: true,
+          data: { id: "summaryChange", adv_project_id: "pid-summary" },
+        }),
+        updateArtifacts: vi.fn().mockResolvedValue({
+          success: true,
+          executiveSummaryPath:
+            "/tmp/changes/summaryChange/executive-summary.md",
+        }),
+      },
+    };
+    const workflowClient = {
+      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-summary",
+      },
+      legacy,
+      invalidateChange: vi.fn(),
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.updateArtifacts(
+      "summaryChange",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "# Executive Summary",
+    );
+
+    expect(signalMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        kind: "executiveSummary",
+        metadata: expect.objectContaining({
+          path: "/tmp/changes/summaryChange/executive-summary.md",
+        }),
       }),
     );
   });
