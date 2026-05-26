@@ -109,6 +109,19 @@ If all resolved → emit REVIEW FINDINGS AUDIT: PASSED banner → proceed.
 
 > **Scope note:** `blocker:` and `issue:` findings are checked here (pre-flight). `suggestion:` and `question:` findings are validated and implemented in "Review Findings Ingestion" below. `nit:` findings are excluded from both.
 
+### Report-Created Agenda Audit
+
+Inspect report-created agenda items before scanners run:
+
+1. Call `adv_agenda_list` and filter items with category `subagent-followup` or description/source metadata containing `Source: {change-id}/`.
+2. For each report-created agenda item, decide:
+   - **Safe + adjacent + campsite/touched-scope applicable** → fix during harden and record verification.
+   - **Not applicable** → record rationale (`not adjacent`, `not campsite`, `outside touched scope`, `already covered`, or `requires separate change`).
+   - **Would change agreement scope** → stop under the drift detection rule below.
+3. The harden summary must include `Report-created agenda audit: {fixed count} fixed, {rationale count} rationale recorded`.
+
+Do not silently ignore report-created agenda items. Do not require harden to fix non-adjacent or unrelated agenda items.
+
 ### Contract Proof Audit
 
 If `change.contract` exists, verify `contract.reviewMatrix` before scanners run:

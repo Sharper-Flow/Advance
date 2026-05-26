@@ -143,4 +143,23 @@ describe("optimized handoff command packets", () => {
       );
     }
   });
+
+  test("harden inspects report-created agenda items with bounded campsite handling", () => {
+    const harden = readFileSync(join(COMMAND_DIR, "adv-harden.md"), "utf8");
+
+    expect(harden).toContain("Report-Created Agenda Audit");
+    expect(harden).toContain("adv_agenda_list");
+    expect(harden).toContain("subagent-followup");
+    expect(harden).toContain("Source: {change-id}/");
+    expect(harden).toMatch(
+      /Safe \+ adjacent \+ campsite\/touched-scope applicable/,
+    );
+    expect(harden).toContain("record rationale");
+    expect(harden).toContain(
+      "Do not silently ignore report-created agenda items",
+    );
+    expect(harden).toContain(
+      "Do not require harden to fix non-adjacent or unrelated agenda items",
+    );
+  });
 });
