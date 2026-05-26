@@ -20,7 +20,7 @@ import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import {
   getSubagentReportPacketAnchors,
-  ReviewerSubagentReportSchema,
+  ScopedSubagentReportSchema,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
 
@@ -320,8 +320,21 @@ describe("adv-reviewer agent asset", () => {
 
     expect(reportBlocks.length).toBeGreaterThanOrEqual(2);
     for (const report of reportBlocks) {
-      expect(() => ReviewerSubagentReportSchema.parse(report)).not.toThrow();
+      expect(() => ScopedSubagentReportSchema.parse(report)).not.toThrow();
     }
+  });
+
+  test("REVIEWER_REPORT prompt examples use structural scope, not legacy string scope", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+    const reportSection = body.split("## REVIEWER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain('"scope": {');
+    expect(reportSection).toContain('"kind": "task"');
+    expect(reportSection).toContain('"task_id"');
+    expect(reportSection).toContain('"kind": "change"');
+    expect(reportSection).toContain('"scope_key": "review:acceptance"');
+    expect(reportSection).toContain('"scope_key": "harden:release"');
+    expect(reportSection).not.toMatch(/"scope"\s*:\s*"/);
+    expect(reportSection).toContain("compatibility-only");
   });
 
   test("REVIEWER_REPORT transport is tool-call based, not sentinel based", () => {
@@ -410,6 +423,14 @@ describe("adv-reviewer agent asset", () => {
       [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
       "Harden Reviewer Remediation Packet warn-first anchors",
     );
+
+    for (const packet of [
+      firstFencedBlock(sectionAfterHeading(review, "Review Reviewer Remediation Packet")),
+      firstFencedBlock(sectionAfterHeading(harden, "Harden Reviewer Remediation Packet")),
+    ]) {
+      expect(packet).toContain("REPORT_SCOPE:");
+      expect(packet).toContain('{ "kind": "task", "task_id": "{task-id}" }');
+    }
   });
 
   test("review and harden engineer remediation packets include ENGINEER_REPORT packet anchors", () => {

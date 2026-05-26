@@ -269,6 +269,20 @@ describe("adv-designer assets", () => {
     expect(() =>
       DesignerSubagentReportSchema.parse(JSON.parse(exampleBlock)),
     ).not.toThrow();
+    expect(JSON.parse(exampleBlock).scope).toEqual({
+      kind: "task",
+      task_id: "tk-ui-001",
+    });
+  });
+
+  test("DESIGNER_REPORT prompt examples use structural scope, not legacy string scope", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
+    expect(reportSection).toContain('"scope": {');
+    expect(reportSection).toContain('"kind": "task"');
+    expect(reportSection).toContain('"task_id"');
+    expect(reportSection).not.toMatch(/"scope"\s*:\s*"/);
+    expect(reportSection).toContain("compatibility-only");
   });
 
   test("DESIGNER_REPORT transport is tool-call based, not final fenced JSON", () => {

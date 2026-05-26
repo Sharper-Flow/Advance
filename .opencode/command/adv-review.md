@@ -281,6 +281,7 @@ Use when spawning `adv-reviewer` for scoped review-style fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 PHASE: review
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
 TASK_SCOPE: scoped review remediation for listed finding(s)
@@ -323,6 +324,7 @@ Use when spawning `adv-engineer` for primary implementation fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
 TASK_SCOPE: primary implementation remediation for listed review fix
 IN_SCOPE:

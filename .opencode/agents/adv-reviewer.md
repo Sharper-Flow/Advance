@@ -96,7 +96,7 @@ Your spawn prompt specifies one of two phases. Behavior differs:
 | `review` | 12-dimension review analysis. Apply scoped fixes for `blocker:`/`issue:` findings. Verify each fix. Per `/adv-review` Phase 5. | `/adv-review` reads your persisted `REVIEWER_REPORT`, recomputes verdict, surfaces remaining findings, records acceptance evidence. |
 | `harden` | 6-scanner readiness analysis (test coverage, AI-slop, doc hygiene, cleanup, production readiness, deployment readiness). Apply scoped fixes for blocker/high findings. Per `/adv-harden` Phase 3. | `/adv-harden` aggregates by severity, determines READY/NEEDS_WORK/BLOCKED status. |
 
-The phase value MUST appear in your `REVIEWER_REPORT.phase` field. The `task_id` field MUST equal the `TASK:` id in the Context Packet. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify `TASK`, `PHASE`, or `ATTEMPT`, return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
+The phase value MUST appear in your `REVIEWER_REPORT.phase` field. For remediation packets, the `task_id` field MUST equal the `TASK:` id in the Context Packet and `scope` MUST be `{ "kind": "task", "task_id": "..." }`. For independent review/harden summaries, omit `task_id` and use change scope: `{ "kind": "change", "scope_key": "review:acceptance" }` or `{ "kind": "change", "scope_key": "harden:release" }`. The `attempt` field MUST equal the numeric `ATTEMPT:` value in the Context Packet. If the spawn prompt does not specify the required identity anchors for its lane (`TASK` for remediation or `SCOPE KEY` for independent summaries, plus `PHASE` and `ATTEMPT`), return a structured packet-defect failure to the orchestrator with `packet_defect` and the missing anchors. Do NOT call `question` and do NOT ask the user for packet identity values. If the spawn prompt asks for `prep`, refuse: prep is inline-only and task creation stays with the orchestrator.
 
 ## Scope Lock
 
@@ -238,7 +238,7 @@ Build this JSON object as the `report` argument to `adv_subagent_report_submit`.
   "attempt": 1,
   "agent": "adv-reviewer",
   "phase": "review | harden",
-  "scope": "{one-line scope summary}",
+  "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "verdict": "READY | NEEDS_WORK | BLOCKED | CONFLICT",
   "blocking_findings": [
     {
@@ -304,7 +304,8 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
 ### Rules
 
 - `agent`: MUST be the literal string `"adv-reviewer"`.
-- `task_id`: MUST equal the task id from the `TASK:` line in the Context Packet.
+- `task_id`: MUST equal the task id from the `TASK:` line in remediation packets. Independent review/harden summaries omit `task_id`.
+- `scope`: MUST be structural. Remediation reports use `{ "kind": "task", "task_id": "..." }`. Independent summaries use `{ "kind": "change", "scope_key": "review:acceptance" }` or `{ "kind": "change", "scope_key": "harden:release" }`. String scope is compatibility-only for legacy callers and MUST NOT be used in new reports.
 - `attempt`: MUST equal the numeric `ATTEMPT:` value from the Context Packet.
 - `phase`: One of `"review"`, `"harden"`. Required.
 - `verdict`:
@@ -337,7 +338,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
   "attempt": 1,
   "agent": "adv-reviewer",
   "phase": "review",
-  "scope": "Requirement traceability and edge-case review for payment retry feature",
+  "scope": { "kind": "task", "task_id": "tk-review001" },
   "verdict": "READY",
   "blocking_findings": [],
   "nonblocking_findings": [
@@ -377,7 +378,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
   "attempt": 1,
   "agent": "adv-reviewer",
   "phase": "review",
-  "scope": "12-dimension review of rate-limit middleware",
+  "scope": { "kind": "task", "task_id": "tk-xyz789" },
   "verdict": "CONFLICT",
   "blocking_findings": [
     {

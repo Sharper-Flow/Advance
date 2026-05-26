@@ -255,7 +255,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "task_id": "{task-id from context packet}",
   "attempt": 1,
   "agent": "adv-designer",
-  "scope": "{one-line scope summary}",
+  "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "status": "complete | error",
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
@@ -298,6 +298,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 
 - `status`: `"complete"` when verification passes and scope is done; `"error"` when non-empty `blockers`.
 - `task_id`: MUST equal the task id from the `TASK:` line in the Designer Apply or remediation Context Packet.
+- `scope`: MUST be structural task scope `{ "kind": "task", "task_id": "..." }`. String scope is compatibility-only for legacy callers and MUST NOT be used in new reports.
 - `attempt`: MUST equal the numeric `ATTEMPT:` value from the Designer Apply or remediation Context Packet.
 - `blockers`: Empty array on success. On failure, list each blocker with file/line and what prevents completion.
 - `scope_drift`: `null` when no drift. Non-null when you found out-of-scope work; use `recommendation: "finish_owned_scope_then_report"` for UI-only drift; use `recommendation: "stop_and_report"` when STOP_WHEN required immediate stop or when the Backend Boundary is hit.
@@ -328,7 +329,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "task_id": "tk-ui-001",
   "attempt": 1,
   "agent": "adv-designer",
-  "scope": "Add dark mode toggle button to site header with a11y + responsive support",
+  "scope": { "kind": "task", "task_id": "tk-ui-001" },
   "status": "complete",
   "files_touched": [
     "src/components/Header.tsx",

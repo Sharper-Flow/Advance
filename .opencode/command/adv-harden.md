@@ -419,6 +419,7 @@ Use when spawning `adv-reviewer` for scoped hardening fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 PHASE: harden
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
 TASK_SCOPE: scoped hardening remediation for listed finding(s)
@@ -461,6 +462,7 @@ Use when spawning `adv-engineer` for primary implementation or multi-file harden
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
 TASK_SCOPE: primary implementation or multi-file hardening fix
 IN_SCOPE:

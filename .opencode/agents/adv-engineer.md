@@ -220,7 +220,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "task_id": "{task-id from context packet}",
   "attempt": 1,
   "agent": "adv-engineer",
-  "scope": "{one-line scope summary}",
+  "scope": { "kind": "task", "task_id": "{task-id from context packet}" },
   "status": "complete | error",
   "files_touched": ["{relative/path/to/file}"],
   "verification": [
@@ -253,6 +253,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
 
 - `status`: `"complete"` when verification passes and scope is done; `"error"` when non-empty `blockers`.
 - `task_id`: MUST equal the task id from the `TASK:` line in the Apply or remediation Context Packet.
+- `scope`: MUST be structural task scope `{ "kind": "task", "task_id": "..." }`. String scope is compatibility-only for legacy callers and MUST NOT be used in new reports.
 - `attempt`: MUST equal the numeric `ATTEMPT:` value from the Apply or remediation Context Packet.
 - `blockers`: Empty array on success. On failure, list each blocker with file/line and what prevents completion.
 - `scope_drift`: `null` when no drift. Non-null when you found out-of-scope work; use `recommendation: "finish_owned_scope_then_report"` unless STOP_WHEN required immediate stop.
@@ -281,7 +282,7 @@ Build the following JSON object as the `report` argument to `adv_subagent_report
   "task_id": "tk-abc123",
   "attempt": 1,
   "agent": "adv-engineer",
-  "scope": "Add POST /api/v1/users endpoint with validation",
+  "scope": { "kind": "task", "task_id": "tk-abc123" },
   "status": "complete",
   "files_touched": ["src/routes/users.ts", "src/routes/users.test.ts"],
   "verification": [
