@@ -229,6 +229,19 @@ EXPECTED OUTPUT: {dimension-specific JSON schema}
 
 Build scanner packet from `adv_task_list` and `adv_change_show` outputs at spawn time. Inject verbatim — do NOT give explore agents ADV tool access and do NOT ask scanners to call `adv_subagent_report_submit`.
 
+After scanner synthesis, the orchestrator submits one compact scanner bundle. Individual scanners do not submit reports.
+
+```
+SCANNER_BUNDLE_REPORT:
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: release
+SCOPE KEY: scanner-bundle:harden
+PHASE: harden
+ATTEMPT: {attempt-number, starting at 1 for this orchestrator-submitted bundle}
+REPORT PAYLOAD: { "agent": "adv-scanner-bundle", "phase": "harden", "summary": "bounded synthesis", "findings": [] }
+EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
+```
+
 Spawn **6 sub-agents in two batches** (`subagent_type: "explore"`). Batch 1: sub-agents 1–3. Wait for completions. Batch 2: sub-agents 4–6. Each receives the Harden Scanner Context Packet above plus dimension-specific instructions.
 
 ### Sub-Agent 1: Test Coverage Scanner

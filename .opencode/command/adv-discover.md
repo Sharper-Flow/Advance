@@ -306,7 +306,7 @@ Run a mandatory bounded opportunity-scout pass after current-state research and 
 
 1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
 2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
-3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
+3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema) and submits a compact `RESEARCHER_REPORT` before final response.
 4. **Sort candidates** — by payoff/risk ratio (highest first).
 5. **Route adoption** per the skill's routing taxonomy:
    - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
@@ -324,6 +324,18 @@ If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/m
 ### Output
 
 - "Discovery Opportunity Scout" section with: candidates considered (count), auto-adopted (count + summary), surfaced to user (count + summary), inconclusive/skipped (if applicable).
+
+### Researcher Scout Packet
+
+Inject into the `adv-researcher` scout prompt:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: discovery
+SCOPE KEY: researcher:discovery-opportunity-scout
+ATTEMPT: {attempt-number, starting at 1 for this researcher worker}
+EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit with RESEARCHER_REPORT per .opencode/agents/adv-researcher.md
+```
 
 ---
 

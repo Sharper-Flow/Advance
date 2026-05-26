@@ -98,6 +98,9 @@ Optional: candidate ADRs only when the Phase 2 3-criteria rubric is met. Drafts 
 ```
 ROLE: Design validator for ADV change {change-id}.
 WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title} | gate: design
+SCOPE KEY: researcher:design-validation
+ATTEMPT: {attempt-number, starting at 1 for this researcher worker}
 
 DESIGN UNDER REVIEW:
 {design.md content}
@@ -126,6 +129,7 @@ DESIGN_VALIDATION:
 
 BUDGET: Focus on the 4 dimensions only. Do not rewrite the design.
 STOP_WHEN: You have a verdict with evidence for each dimension.
+EXPECTED OUTPUT: return DESIGN_VALIDATION and call adv_subagent_report_submit with RESEARCHER_REPORT per .opencode/agents/adv-researcher.md
 ```
 
 ---

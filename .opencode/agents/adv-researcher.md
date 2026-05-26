@@ -26,7 +26,7 @@ tools:
   searchcode_*: true
   # Research tools - academic papers
   arxiv-mcp_*: true
-  # ADV tools - spec/change queries only
+  # ADV tools - spec/change queries + own optimized handoff report only
   adv_spec: true
   adv_status: true
   adv_change_list: true
@@ -34,6 +34,7 @@ tools:
   adv_change_update: false
   adv_snapshot_health: true
   adv_project_context: true
+  adv_subagent_report_submit: true
   # UX tools
   question: true
   # Disabled - research agents don't write code
@@ -82,6 +83,50 @@ Validate architectural decisions against canonical best practices. You have a **
 - If unsure, say "I don't know" rather than guess
 - Perform all research inline with your own tools; NEVER spawn or request additional sub-agents/delegates
 - NEVER invoke `/adv-*` slash commands from inside this sub-agent; use ADV tools directly when you need ADV state
+- The only ADV mutation you may perform is submitting your own optimized `RESEARCHER_REPORT` through `adv_subagent_report_submit`
+
+## Optimized Report Transport
+
+When the orchestrator packet includes these anchors, copy them into the `RESEARCHER_REPORT` exactly before exit:
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title}
+SCOPE KEY: researcher:{topic-slug}
+ATTEMPT: {attempt-number}
+```
+
+Build this JSON object as the `report` argument to `adv_subagent_report_submit`. Do **not** use fenced JSON/sentinel text as the ADV report transport.
+
+```json
+{
+  "schema_version": "1.0",
+  "change_id": "exampleChange",
+  "attempt": 1,
+  "workdir_used": "/absolute/workdir",
+  "scope": { "kind": "change", "scope_key": "researcher:design-validation" },
+  "agent": "adv-researcher",
+  "topic": "Design validation",
+  "sources": [
+    {
+      "label": "Official docs",
+      "locator": "https://example.com/docs",
+      "summary": "Relevant evidence summary"
+    }
+  ],
+  "architecture_assessment": "Evidence-backed assessment summary.",
+  "validation": {
+    "status": "pass",
+    "blockers": [],
+    "notes": "No blockers found."
+  },
+  "recommendation": "Specific recommendation for ADV orchestrator.",
+  "follow_ups": []
+}
+```
+
+- Before final response, call `adv_subagent_report_submit` with `{ report: RESEARCHER_REPORT }`.
+- If any required packet anchor is missing, return a packet-defect failure in your final response. Do not infer identity fields heuristically.
 
 ## Response Format
 
