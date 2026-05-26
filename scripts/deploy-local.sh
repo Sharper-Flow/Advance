@@ -1250,8 +1250,9 @@ done
 # ===========================================================================
 # Config validation / patching
 # ===========================================================================
+fix_config_exit=0
 if [ "$MODE" = "fix" ]; then
-	fix_config
+	fix_config || fix_config_exit=$?
 else
 	check_config
 fi
@@ -1277,7 +1278,11 @@ echo "    Skills in global:  $(ls -d "$GLOBAL_SKILLS"/adv-*/ 2>/dev/null | wc -l
 echo "    Local bins:        acp-mux archived/skipped"
 
 if [ "$MODE" = "fix" ]; then
-	echo "    Config: patched (if needed)"
+	if [ "$fix_config_exit" -ne 0 ]; then
+		echo "    Config: ❌ JSONC drift not auto-patched — see message above (exit $fix_config_exit)"
+	else
+		echo "    Config: patched (if needed)"
+	fi
 else
 	if [ "$config_issues" -gt 0 ]; then
 		echo "    Config: $config_issues issue(s) — run with --fix to auto-patch"
@@ -1287,3 +1292,8 @@ else
 fi
 
 echo "    Restart OpenCode sessions to pick up changes."
+
+# Propagate fix_config exit code so JSONC drift fails the script run.
+if [ "$MODE" = "fix" ] && [ "$fix_config_exit" -ne 0 ]; then
+	exit "$fix_config_exit"
+fi
