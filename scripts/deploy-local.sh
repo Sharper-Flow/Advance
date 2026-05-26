@@ -754,9 +754,17 @@ check_config() {
 	if [ "$config_issues" -eq 0 ]; then
 		echo "    Config: all ADV entries present ✓"
 	else
-		echo "    Config: $config_issues issue(s) found"
-		if [ "$MODE" != "fix" ]; then
-			echo "    Run with --fix to auto-patch, or edit $GLOBAL_JSON manually"
+		if [ "$GLOBAL_JSON_IS_JSONC" = true ]; then
+			echo "    Config: ❌ JSONC drift detected — $config_issues issue(s) found"
+			if [ "$MODE" != "fix" ]; then
+				echo "    Run with --fix to get the exact patch diff + restore hint;"
+				echo "    JSONC drift is fail-loud (no auto-rewrite) because jq strips comments."
+			fi
+		else
+			echo "    Config: $config_issues issue(s) found"
+			if [ "$MODE" != "fix" ]; then
+				echo "    Run with --fix to auto-patch, or edit $GLOBAL_JSON manually"
+			fi
 		fi
 	fi
 }
