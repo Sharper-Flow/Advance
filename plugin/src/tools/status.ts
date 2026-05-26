@@ -1238,12 +1238,49 @@ export const statusTools = {
           probeFreshness.worktree_census = worktreeCensusProbe.freshness;
 
           const opencodeSessionDebt = await scanOpenCodeSessionDebt();
+          const opencodeDebtCounts = opencodeSessionDebt.available
+            ? {
+                orphanGhost:
+                  (opencodeSessionDebt.total_orphan_ghost as
+                    | number
+                    | undefined) ?? opencodeSessionDebt.orphan_ghost.length,
+                liveInFlight:
+                  (opencodeSessionDebt.total_live_in_flight as
+                    | number
+                    | undefined) ?? opencodeSessionDebt.live_in_flight.length,
+                idleActiveSession:
+                  (opencodeSessionDebt.total_idle_active_session as
+                    | number
+                    | undefined) ??
+                  opencodeSessionDebt.idle_active_session.length,
+                repairableToolPart:
+                  (opencodeSessionDebt.total_repairable_tool_parts as
+                    | number
+                    | undefined) ??
+                  opencodeSessionDebt.repairable_tool_parts?.length ??
+                  0,
+                liveToolPart:
+                  (opencodeSessionDebt.total_live_tool_parts as
+                    | number
+                    | undefined) ??
+                  opencodeSessionDebt.live_tool_parts?.length ??
+                  0,
+                idleToolPart:
+                  (opencodeSessionDebt.total_idle_tool_parts as
+                    | number
+                    | undefined) ??
+                  opencodeSessionDebt.idle_tool_parts?.length ??
+                  0,
+              }
+            : null;
           if (
             opencodeSessionDebt.available &&
-            opencodeSessionDebt.orphan_ghost.length > 0
+            opencodeDebtCounts &&
+            (opencodeDebtCounts.orphanGhost > 0 ||
+              opencodeDebtCounts.repairableToolPart > 0)
           ) {
             status.recommendations.push(
-              `[doctor] OpenCode blank assistant session debt detected (${opencodeSessionDebt.orphan_ghost.length} orphan ghost sample(s), ${opencodeSessionDebt.total_blank} total blank row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
+              `[doctor] OpenCode blank assistant session debt detected (${opencodeDebtCounts.orphanGhost} orphan ghost blank assistant row(s), ${opencodeDebtCounts.repairableToolPart} repairable stale tool part row(s)) — run \`bun scripts/opencode-session-doctor.ts --dry-run\` to classify live vs orphan rows before any cleanup.`,
             );
           }
 
@@ -1334,8 +1371,14 @@ export const statusTools = {
             opencodeSessionDebt: opencodeSessionDebt.available
               ? {
                   available: true,
-                  orphanGhostCount: opencodeSessionDebt.orphan_ghost.length,
-                  liveInFlightCount: opencodeSessionDebt.live_in_flight.length,
+                  orphanGhostCount: opencodeDebtCounts?.orphanGhost ?? 0,
+                  liveInFlightCount: opencodeDebtCounts?.liveInFlight ?? 0,
+                  idleActiveSessionCount:
+                    opencodeDebtCounts?.idleActiveSession ?? 0,
+                  repairableToolPartCount:
+                    opencodeDebtCounts?.repairableToolPart ?? 0,
+                  liveToolPartCount: opencodeDebtCounts?.liveToolPart ?? 0,
+                  idleToolPartCount: opencodeDebtCounts?.idleToolPart ?? 0,
                 }
               : {
                   available: false,

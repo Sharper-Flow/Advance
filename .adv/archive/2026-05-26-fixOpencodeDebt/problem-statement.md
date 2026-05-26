@@ -1,0 +1,1 @@
+Advance's OpenCode session doctor currently repairs blank assistant ghosts but cannot detect or repair stale `running`/`pending` tool parts, leaving frequent OpenCode hangs unrecoverable without ad-hoc SQL.
