@@ -10,6 +10,20 @@ import {
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-designer.md");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
+const APPLY_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-apply.md");
+
+function sectionAfterHeading(content: string, heading: string): string {
+  const marker = `#### ${heading}`;
+  const start = content.indexOf(marker);
+  if (start === -1) return "";
+  const rest = content.slice(start + marker.length);
+  const nextHeading = rest.search(/\n#{3,4} /);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+}
+
+function firstFencedBlock(section: string): string {
+  return section.match(/```\n([\s\S]*?)```/)?.[1] ?? "";
+}
 
 describe("adv-designer assets", () => {
   test("ships adv-designer.md agent definition", () => {
@@ -299,5 +313,66 @@ describe("adv-designer assets", () => {
       "TASK",
       "WORKING DIRECTORY",
     ]);
+  });
+
+  test("adv-apply.md delegation routing includes Priority 1.5 metadata.frontend branch for adv-designer", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    expect(content).toContain("metadata.frontend");
+    expect(content).toMatch(/Priority\s*1\.5/i);
+    expect(content).toContain("adv-designer");
+    // metadata.delegation_hint MUST remain Priority 1 (explicit user override wins)
+    expect(content).toMatch(/\b1\s*\|\s*`?metadata\.delegation_hint/);
+  });
+
+  test("adv-apply.md Designer Apply Context Packet exists and starts with WORKING DIRECTORY", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packetSection = sectionAfterHeading(
+      content,
+      "Designer Apply Context Packet",
+    );
+    expect(
+      packetSection,
+      "missing Designer Apply Context Packet section",
+    ).not.toBe("");
+    const codeBlock = firstFencedBlock(packetSection);
+    expect(codeBlock, "no code block in Designer Apply Context Packet").not.toBe(
+      "",
+    );
+    const firstLine = codeBlock.trim().split("\n")[0];
+    expect(firstLine).toMatch(/^WORKING DIRECTORY:/);
+  });
+
+  test("adv-apply.md Designer Apply Context Packet includes all DESIGNER_REPORT packet anchors", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packet = firstFencedBlock(
+      sectionAfterHeading(content, "Designer Apply Context Packet"),
+    );
+
+    for (const anchor of getSubagentReportPacketAnchors("adv-designer")) {
+      expect(
+        packet,
+        `Designer Apply Context Packet missing ${anchor}`,
+      ).toContain(`${anchor}:`);
+    }
+
+    for (const anchor of SUBAGENT_WARN_FIRST_PACKET_ANCHORS) {
+      expect(
+        packet,
+        `Designer Apply Context Packet missing ${anchor}`,
+      ).toContain(`${anchor}:`);
+    }
+  });
+
+  test("adv-apply.md Designer Apply Context Packet pins DESIGN QUALITY BAR, NEIGHBORING RECOMMENDATIONS, and BACKEND BOUNDARY anchors", () => {
+    const content = readFileSync(APPLY_COMMAND_PATH, "utf8");
+    const packet = firstFencedBlock(
+      sectionAfterHeading(content, "Designer Apply Context Packet"),
+    );
+
+    expect(packet).toContain("DESIGN QUALITY BAR:");
+    expect(packet).toContain("NEIGHBORING RECOMMENDATIONS:");
+    expect(packet).toContain("BACKEND BOUNDARY:");
+    expect(packet).toContain("DESIGNER_REPORT");
+    expect(packet).toContain("adv-designer");
   });
 });

@@ -409,13 +409,14 @@ Before TDD phases, evaluate each task for delegation eligibility:
 | Priority | Check | Result |
 |----------|-------|--------|
 | 1 | `metadata.delegation_hint` set? | Use the hint value directly |
+| 1.5 | `metadata.frontend == "true"`? | `delegate_allowed` to `adv-designer` (apply-phase frontend worker) — unless step 4 risk signals force inline |
 | 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` |
 | 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` |
 | 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis? | Any present → `inline_required` |
 | 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` |
 | 5 | Default | `inline_required` |
 
-Step 4.5 does not override step 1 (`delegation_hint`) or step 4 (risk signals); priority order is authoritative.
+Step 1.5 (`metadata.frontend`) routes UI/component work to `adv-designer` instead of `adv-engineer`. Priority 1 (`metadata.delegation_hint`) remains the explicit user override and wins over Step 1.5; Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4; priority order is authoritative.
 
 Hint semantics:
 
@@ -423,11 +424,15 @@ Hint semantics:
 - `delegate_allowed` → delegate when no risk signals force inline
 - `delegate_preferred` → delegate by default; only override if an execution precondition makes delegation impossible
 
-**If delegated (`delegate_allowed` or `delegate_preferred`):** Spawn `adv-engineer` sub-agent with the Apply Context Packet below. If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
+**If delegated to `adv-engineer` (`delegate_allowed` or `delegate_preferred`):** Spawn `adv-engineer` sub-agent with the Apply Context Packet below.
+
+**If delegated to `adv-designer` (Priority 1.5 frontend branch):** Spawn `adv-designer` sub-agent with the Designer Apply Context Packet below. `adv-designer` is the apply-phase frontend specialist; review/harden ownership remains with `adv-reviewer`.
+
+If sub-agent succeeds → run incremental verification → if passes → mark done. If sub-agent fails OR verification fails → immediate inline fallback, continue with Red/Green phases.
 
 **If `inline_required`:** Proceed with standard TDD flow.
 
-Emit routing summary: `tk-{id} → {inline|adv-engineer|general-verify} ({reason})`
+Emit routing summary: `tk-{id} → {inline|adv-engineer|adv-designer|general-verify} ({reason})`
 
 #### Verify-Burst Delegation
 
@@ -499,6 +504,40 @@ EXPECTED OUTPUT: implement the task, run tests, call adv_subagent_report_submit 
 ```
 
 `PROJECT STRUCTURE` provides the sub-agent with a ground-truth file manifest so it can self-correct path assumptions. Populate it from the Phase 0.1 path verification output. Example: `"Directories: repositories/, api/schemas/, services/; Pattern files: repositories/base.py, api/schemas/analytics.py"`.
+
+#### Designer Apply Context Packet
+
+Use this packet when delegating a task to `adv-designer` (Priority 1.5 routing branch — `metadata.frontend == "true"`). It mirrors the Apply Context Packet identity anchors and adds frontend-specific guidance.
+
+```
+WORKING DIRECTORY: {workdir}
+CHANGE: {change-id} | {title}
+TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
+ATTEMPT: {attempt-number, starting at 1 for this task delegation}
+TASK_SCOPE: {one-line frontend/component objective}
+IN_SCOPE:
+  - {owned UI/component files/findings for this task}
+OUT_OF_SCOPE:
+  - {backend logic, storage, APIs, Temporal, business rules, unrelated subsystems, review/harden}
+DONE_WHEN:
+  - {task acceptance condition; UI verified}
+STOP_WHEN:
+  - contract/security/release blocker, unsafe edit, impossible verification, or BACKEND BOUNDARY hit
+VERIFICATION:
+  required_when_possible:
+    - {task-specific component/lint/typecheck/a11y command}
+  optional_additional_checks: true
+DESIGN QUALITY BAR: component correctness, semantic HTML/accessibility, responsive behavior, visual polish, matching site design, finer details
+NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI inconsistencies (e.g., unstyled neighboring buttons, inconsistent tokens) via `DESIGNER_REPORT.neighboring_recommendations[]` and `required_main_agent_actions` for orchestrator/user HITL. Do not silently broaden scope.
+BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.
+AFFECTED FILES: {file list from task description — use VERIFIED paths from Phase 0.1 path verification, not assumed paths}
+PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
+DESIGN EXCERPT: {relevant section if task references design}
+ACCEPTANCE CRITERIA: {criteria relevant to this task}
+EXPECTED OUTPUT: implement the UI/component task, run tests, call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md
+```
+
+The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). The packet adds `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
 
 ### Task Flow
 
