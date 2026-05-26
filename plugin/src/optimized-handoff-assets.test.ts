@@ -20,7 +20,11 @@ function splitFrontmatter(content: string): {
   return { frontmatter: match[1], body: match[2] };
 }
 
-function expectToolGrant(frontmatter: string, toolName: string, value: boolean) {
+function expectToolGrant(
+  frontmatter: string,
+  toolName: string,
+  value: boolean,
+) {
   const escaped = toolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   expect(frontmatter).toMatch(
     new RegExp(`^\\s+${escaped}:\\s*${String(value)}\\s*$`, "m"),
@@ -57,7 +61,11 @@ describe("optimized handoff agent contracts", () => {
     );
 
     expectToolGrant(frontmatter, "adv_subagent_report_submit", true);
-    for (const forbidden of ["adv_change_create", "adv_task_add", "adv_gate_complete"]) {
+    for (const forbidden of [
+      "adv_change_create",
+      "adv_task_add",
+      "adv_gate_complete",
+    ]) {
       expectToolGrant(frontmatter, forbidden, false);
     }
     expect(body).toContain("TRON_REPORT");
@@ -105,7 +113,9 @@ describe("optimized handoff command packets", () => {
         getSubagentReportPacketAnchors("adv-scanner-bundle"),
         path,
       );
-      expect(command).toMatch(/do NOT ask scanners to call `adv_subagent_report_submit`/i);
+      expect(command).toMatch(
+        /do NOT ask scanners to call `adv_subagent_report_submit`/i,
+      );
     }
   });
 });
