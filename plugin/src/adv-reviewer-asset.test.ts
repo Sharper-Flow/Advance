@@ -447,7 +447,7 @@ describe("adv-reviewer agent asset", () => {
     );
   });
 
-  test("review and harden reviewer remediation packets reference skill(\"adv-frontend-review\") AND retain inline 6-dimension checklist as fallback", () => {
+  test('review and harden reviewer remediation packets reference skill("adv-frontend-review") AND retain inline 6-dimension checklist as fallback', () => {
     const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
 
