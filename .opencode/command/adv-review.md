@@ -170,7 +170,27 @@ CHANGE: {change-id} | {title} | gate: review
 SCOPE KEY: scanner-bundle:review
 PHASE: review
 ATTEMPT: {attempt-number, starting at 1 for this orchestrator-submitted bundle}
-REPORT PAYLOAD: { "agent": "adv-scanner-bundle", "phase": "review", "summary": "bounded synthesis", "findings": [] }
+REPORT PAYLOAD:
+{
+  "schema_version": "1.0",
+  "change_id": "{change-id}",
+  "attempt": 1,
+  "workdir_used": "{workdir}",
+  "scope": { "kind": "change", "scope_key": "scanner-bundle:review" },
+  "agent": "adv-scanner-bundle",
+  "phase": "review",
+  "scanner_count": 5,
+  "dimensions": [
+    "requirement-traceability",
+    "logic-edge-cases",
+    "security",
+    "architecture-quality",
+    "cross-repo"
+  ],
+  "summary": "bounded synthesis",
+  "findings": [],
+  "follow_ups": []
+}
 EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
 ```
 

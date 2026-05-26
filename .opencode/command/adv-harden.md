@@ -238,7 +238,28 @@ CHANGE: {change-id} | {title} | gate: release
 SCOPE KEY: scanner-bundle:harden
 PHASE: harden
 ATTEMPT: {attempt-number, starting at 1 for this orchestrator-submitted bundle}
-REPORT PAYLOAD: { "agent": "adv-scanner-bundle", "phase": "harden", "summary": "bounded synthesis", "findings": [] }
+REPORT PAYLOAD:
+{
+  "schema_version": "1.0",
+  "change_id": "{change-id}",
+  "attempt": 1,
+  "workdir_used": "{workdir}",
+  "scope": { "kind": "change", "scope_key": "scanner-bundle:harden" },
+  "agent": "adv-scanner-bundle",
+  "phase": "harden",
+  "scanner_count": 6,
+  "dimensions": [
+    "test-coverage",
+    "ai-slop-detection",
+    "documentation-hygiene",
+    "cleanup",
+    "production-readiness",
+    "deployment-readiness"
+  ],
+  "summary": "bounded synthesis",
+  "findings": [],
+  "follow_ups": []
+}
 EXPECTED ACTION: orchestrator calls adv_subagent_report_submit with SCANNER_BUNDLE_REPORT after synthesis
 ```
 

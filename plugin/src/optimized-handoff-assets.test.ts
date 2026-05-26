@@ -37,6 +37,26 @@ function expectAnchors(content: string, anchors: string[], label: string) {
   }
 }
 
+function expectScannerBundlePayloadSkeleton(
+  content: string,
+  phase: "review" | "harden",
+  scannerCount: number,
+) {
+  expect(content).toContain('"schema_version": "1.0"');
+  expect(content).toContain('"change_id": "{change-id}"');
+  expect(content).toContain('"attempt": 1');
+  expect(content).toContain('"workdir_used": "{workdir}"');
+  expect(content).toContain(
+    `"scope": { "kind": "change", "scope_key": "scanner-bundle:${phase}" }`,
+  );
+  expect(content).toContain('"agent": "adv-scanner-bundle"');
+  expect(content).toContain(`"phase": "${phase}"`);
+  expect(content).toContain(`"scanner_count": ${scannerCount}`);
+  expect(content).toContain('"dimensions": [');
+  expect(content).toContain('"findings": []');
+  expect(content).toContain('"follow_ups": []');
+}
+
 describe("optimized handoff agent contracts", () => {
   test("adv-researcher can submit strict change-scoped RESEARCHER_REPORTs", () => {
     const { frontmatter, body } = splitFrontmatter(
@@ -108,6 +128,11 @@ describe("optimized handoff command packets", () => {
       const command = readFileSync(join(COMMAND_DIR, path), "utf8");
       expect(command).toContain("SCANNER_BUNDLE_REPORT");
       expect(command).toContain('"agent": "adv-scanner-bundle"');
+      expectScannerBundlePayloadSkeleton(
+        command,
+        path === "adv-review.md" ? "review" : "harden",
+        path === "adv-review.md" ? 5 : 6,
+      );
       expectAnchors(
         command,
         getSubagentReportPacketAnchors("adv-scanner-bundle"),
