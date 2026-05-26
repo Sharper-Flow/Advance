@@ -84,11 +84,21 @@ interface ChangeProjectionActivities {
   inspectArtifactActivity(input: {
     changesDir: string;
     changeId: string;
-    kind: "proposal" | "agreement" | "design" | "acceptance";
+    kind:
+      | "proposal"
+      | "agreement"
+      | "design"
+      | "acceptance"
+      | "executive-summary";
   }): Promise<
     | {
         ok: true;
-        kind: "proposal" | "agreement" | "design" | "acceptance";
+        kind:
+          | "proposal"
+          | "agreement"
+          | "design"
+          | "acceptance"
+          | "executive-summary";
         path: string;
         contentHash: string;
         nonWhitespaceChars: number;
@@ -96,7 +106,12 @@ interface ChangeProjectionActivities {
       }
     | {
         ok: false;
-        kind: "proposal" | "agreement" | "design" | "acceptance";
+        kind:
+          | "proposal"
+          | "agreement"
+          | "design"
+          | "acceptance"
+          | "executive-summary";
         path: string;
         code: "missing" | "unreadable";
         error: string;
@@ -762,6 +777,57 @@ export async function changeWorkflow(
           ]);
           return;
         }
+        const executiveSummary = await inspectArtifactActivity({
+          changesDir: state.projectionChangesDir,
+          changeId: state.changeId,
+          kind: "executive-summary",
+        });
+        if (!executiveSummary.ok) {
+          markGateStuckForBlockers(payload, [
+            gateArtifactBlocker(payload, {
+              code:
+                executiveSummary.code === "missing"
+                  ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
+                  : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE",
+              artifactKind,
+              message: executiveSummary.error,
+              remediation:
+                "Persist a readable executive-summary.md and update workflow metadata before retrying acceptance.",
+            }),
+          ]);
+          return;
+        }
+        if (
+          executiveSummary.nonWhitespaceChars <
+          MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
+        ) {
+          markGateStuckForBlockers(payload, [
+            gateArtifactBlocker(payload, {
+              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED",
+              artifactKind,
+              message: `executive-summary artifact has ${executiveSummary.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+              remediation:
+                "Populate executive-summary.md with substantive acceptance evidence before retrying acceptance.",
+            }),
+          ]);
+          return;
+        }
+        if (
+          state.artifacts.executiveSummary?.contentHash !==
+          executiveSummary.contentHash
+        ) {
+          markGateStuckForBlockers(payload, [
+            gateArtifactBlocker(payload, {
+              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+              artifactKind,
+              message:
+                "executive-summary artifact contentHash does not match workflow metadata.",
+              remediation:
+                "Re-persist executive-summary.md through the artifact update path so workflow metadata receives a fresh contentHash.",
+            }),
+          ]);
+          return;
+        }
       }
       const artifact = await inspectArtifactActivity({
         changesDir: state.projectionChangesDir,
@@ -798,7 +864,7 @@ export async function changeWorkflow(
         return;
       }
       artifactEvidence = {
-        kind: artifact.kind,
+        kind: artifactKind,
         path: artifact.path,
         content_hash: artifact.contentHash,
         non_whitespace_chars: artifact.nonWhitespaceChars,

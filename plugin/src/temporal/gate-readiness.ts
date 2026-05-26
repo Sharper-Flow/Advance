@@ -141,41 +141,71 @@ function acceptanceContractBlockers(
       }),
     ];
   }
+  const executiveSummary = state.artifacts.executiveSummary;
+  const executiveSummaryBlockers: GateReadinessBlocker[] = [];
+  if (!executiveSummary?.path) {
+    executiveSummaryBlockers.push(
+      makeBlocker({
+        code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
+        gateId,
+        artifactKind: "acceptance",
+        message:
+          "Acceptance requires workflow-visible executive-summary artifact metadata.",
+        remediation:
+          "Persist executive-summary.md and update workflow artifact metadata before retrying acceptance.",
+      }),
+    );
+  }
+  if (!executiveSummary?.contentHash?.trim()) {
+    executiveSummaryBlockers.push(
+      makeBlocker({
+        code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_MISSING",
+        gateId,
+        artifactKind: "acceptance",
+        message:
+          "Acceptance requires executive-summary artifact metadata with contentHash evidence.",
+        remediation:
+          "Signal executiveSummary artifact metadata with a server-computed contentHash before retrying acceptance.",
+      }),
+    );
+  }
   const rowsByContractId = new Map(
     state.contract.reviewMatrix.rows.map((row) => [row.contractId, row]),
   );
-  return state.contract.items
-    .filter((item) => item.verificationRequired !== false)
-    .flatMap((item) => {
-      const row = rowsByContractId.get(item.id);
-      if (!row) {
-        return [
-          makeBlocker({
-            code: "ACCEPTANCE_REVIEW_ROW_MISSING",
-            gateId,
-            artifactKind: "acceptance",
-            contractId: item.id,
-            message: `Acceptance review matrix is missing row ${item.id}.`,
-            remediation:
-              "Complete the contract review matrix before retrying acceptance.",
-          }),
-        ];
-      }
-      if (isFailingContractReviewStatus(row.status)) {
-        return [
-          makeBlocker({
-            code: "ACCEPTANCE_REVIEW_ROW_FAILING",
-            gateId,
-            artifactKind: "acceptance",
-            contractId: item.id,
-            message: `Acceptance review row ${item.id} has non-passing status ${row.status}.`,
-            remediation:
-              "Resolve the failing contract review row before retrying acceptance.",
-          }),
-        ];
-      }
-      return [];
-    });
+  return executiveSummaryBlockers.concat(
+    state.contract.items
+      .filter((item) => item.verificationRequired !== false)
+      .flatMap((item) => {
+        const row = rowsByContractId.get(item.id);
+        if (!row) {
+          return [
+            makeBlocker({
+              code: "ACCEPTANCE_REVIEW_ROW_MISSING",
+              gateId,
+              artifactKind: "acceptance",
+              contractId: item.id,
+              message: `Acceptance review matrix is missing row ${item.id}.`,
+              remediation:
+                "Complete the contract review matrix before retrying acceptance.",
+            }),
+          ];
+        }
+        if (isFailingContractReviewStatus(row.status)) {
+          return [
+            makeBlocker({
+              code: "ACCEPTANCE_REVIEW_ROW_FAILING",
+              gateId,
+              artifactKind: "acceptance",
+              contractId: item.id,
+              message: `Acceptance review row ${item.id} has non-passing status ${row.status}.`,
+              remediation:
+                "Resolve the failing contract review row before retrying acceptance.",
+            }),
+          ];
+        }
+        return [];
+      }),
+  );
 }
 
 export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
