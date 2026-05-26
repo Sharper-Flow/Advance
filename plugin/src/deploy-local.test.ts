@@ -337,15 +337,16 @@ describe("deploy-local.sh", () => {
 
     test("removes canonical and stale global ADV_INSTRUCTIONS.md from instructions array", () => {
       expect(content).toContain(
-        "Removed global instruction: ADV_INSTRUCTIONS.md",
+        "remove globally-registered ADV_INSTRUCTIONS.md",
       );
-      expect(content).toContain("Removed stale instruction:");
+      expect(content).toContain("remove stale instruction:");
       expect(content).toContain("instructions/ADV_INSTRUCTIONS.md");
     });
 
-    test("cleans up backup when no patches needed", () => {
+    test("does not create config backup when no patches needed", () => {
       expect(content).toContain("No patches needed");
-      expect(content).toContain('rm -f "$backup"');
+      expect(content).toContain('if [ "$patched" -eq 0 ]; then');
+      expect(content).toContain('rm -f "$tmp_json"');
     });
 
     test("skips asset sync in --check mode", () => {

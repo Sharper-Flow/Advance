@@ -723,7 +723,7 @@ exit 0
     }
   });
 
-  test("skips JSONC patching during --fix without stripping comments", () => {
+  test("fails loud on JSONC drift during --fix without stripping comments", () => {
     const tempHome = mkdtempSync(join(tmpdir(), "adv-jsonc-protect-"));
 
     try {
@@ -745,10 +745,10 @@ exit 0
         encoding: "utf8",
       });
 
-      // Should warn and skip config mutation rather than silently strip comments.
-      expect(result.status).toBe(0);
+      // Should fail loud rather than silently strip comments.
+      expect(result.status).toBe(1);
       expect(`${result.stdout}${result.stderr}`).toContain(
-        "Config is JSONC — skipping auto-patch",
+        "JSONC drift detected — manual patch required",
       );
       const content = readFileSync(jsoncPath, "utf8");
       expect(content).toContain("// This is a comment");
