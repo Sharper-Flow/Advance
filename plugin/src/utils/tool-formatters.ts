@@ -118,6 +118,10 @@ export interface StatusInput {
     /** @deprecated Use orphanGhostCount. */
     repairableStaleCount?: number;
     liveInFlightCount?: number;
+    idleActiveSessionCount?: number;
+    repairableToolPartCount?: number;
+    liveToolPartCount?: number;
+    idleToolPartCount?: number;
     reason?: string;
   };
   temporalHealth?: {
@@ -482,7 +486,11 @@ export function formatStatusOutput(input: StatusInput): FormattedStatus {
       input.opencodeSessionDebt.repairableStaleCount ??
       0;
     const live = input.opencodeSessionDebt.liveInFlightCount ?? 0;
-    sessionDebtSection = `## OpenCode Session Debt\n${stale} orphan ghost blank assistant row(s), ${live} live/in-flight`;
+    const idleActive = input.opencodeSessionDebt.idleActiveSessionCount ?? 0;
+    const staleTools = input.opencodeSessionDebt.repairableToolPartCount ?? 0;
+    const liveTools = input.opencodeSessionDebt.liveToolPartCount ?? 0;
+    const idleTools = input.opencodeSessionDebt.idleToolPartCount ?? 0;
+    sessionDebtSection = `## OpenCode Session Debt\n${stale} orphan ghost blank assistant row(s), ${staleTools} stale tool part(s), ${live + liveTools} live/in-flight, ${idleActive + idleTools} idle/not-proven-orphan`;
   }
 
   // T22: Peer Sessions section (privacy-defensive — sessionId + startedAt
