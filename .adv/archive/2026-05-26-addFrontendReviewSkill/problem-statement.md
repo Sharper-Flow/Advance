@@ -1,0 +1,1 @@
+addAdvDesigner deferred the `skill("adv-frontend-review")` to a fast-follow. The reviewer packet currently embeds the 6-dimension checklist inline only. Codify the checklist as a real ADV skill so reviewers can load it canonically while keeping the inline text as a backward-compat fallback.
