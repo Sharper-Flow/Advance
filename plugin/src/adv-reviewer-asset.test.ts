@@ -446,4 +446,51 @@ describe("adv-reviewer agent asset", () => {
       "Harden Engineer Remediation Packet warn-first anchors",
     );
   });
+
+  test("review and harden reviewer remediation packets include FRONTEND DESIGN REVIEW SKILL anchor with inline checklist", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+
+    const reviewPacket = firstFencedBlock(
+      sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+    );
+    const hardenPacket = firstFencedBlock(
+      sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+    );
+
+    for (const packet of [reviewPacket, hardenPacket]) {
+      expect(packet).toContain("FRONTEND DESIGN REVIEW SKILL:");
+      const lowered = packet.toLowerCase();
+      // Inline checklist enumerates the 6 design dimensions when the change
+      // has frontend tasks (metadata.frontend == "true") or design-inclusive scope
+      for (const dimension of [
+        "semantic html",
+        "accessibility",
+        "responsive",
+        "visual polish",
+        "site",
+        "component correctness",
+      ]) {
+        expect(lowered).toContain(dimension);
+      }
+    }
+  });
+
+  test("review and harden keep adv-reviewer as review/harden owner and do NOT route to adv-designer", () => {
+    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
+
+    for (const content of [review, harden]) {
+      // adv-designer must not appear as a review/harden spawn directive.
+      // Safety-rail prose mentioning adv-designer (e.g., "MUST NOT be spawned
+      // here") is allowed; spawn directives like `subagent_type: "adv-designer"`
+      // or `EXPECTED OUTPUT: ... spawn adv-designer` are not.
+      const spawnDirective = /(subagent_type\s*[:=]\s*["']?adv-designer|spawn\s+`?adv-designer)/i;
+      expect(content).not.toMatch(spawnDirective);
+      // Sanity-check that we did add the safety-rail prose explicitly.
+      expect(content).toMatch(
+        /adv-designer.*apply-phase only.*MUST NOT be spawned/i,
+      );
+    }
+  });
 });
