@@ -43,6 +43,8 @@ const targetArgs = {
 const recoveryArgs = {
   recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
   recoveryEvidence: z.string().optional(),
+  recoveryReason: z.string().optional(),
+  priorApprovalEvidence: z.string().optional(),
 };
 
 async function withContractStore<T>(
@@ -125,6 +127,8 @@ async function healthySignalHandle(store: Store, changeId: string) {
 function recoveryEvidenceError(input: {
   recoveryMode?: "normal" | "poisoned_history";
   recoveryEvidence?: string;
+  recoveryReason?: string;
+  priorApprovalEvidence?: string;
 }): string | undefined {
   if (
     input.recoveryMode === "poisoned_history" &&
@@ -180,8 +184,17 @@ async function saveRecoveredReviewMatrix(input: {
   store: Store;
   change: Change;
   reviewMatrix: ContractReviewMatrix;
+  authorization: { reason: string; evidence: string };
   diskDirect?: boolean;
 }): Promise<void> {
+  if (
+    !input.authorization.reason.trim() ||
+    !input.authorization.evidence.trim()
+  ) {
+    throw new Error(
+      "contract review matrix recovery requires reason and evidence",
+    );
+  }
   if (!input.change.contract) {
     throw new Error(
       "Cannot recover contract review matrix: no contract is set",
@@ -276,6 +289,8 @@ export const contractTools = {
         approvedAt?: string;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
+        recoveryReason?: string;
+        priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -424,6 +439,8 @@ export const contractTools = {
         dryRun?: boolean;
         recoveryMode?: "normal" | "poisoned_history";
         recoveryEvidence?: string;
+        recoveryReason?: string;
+        priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -434,6 +451,18 @@ export const contractTools = {
         try {
           const recoveryError = recoveryEvidenceError(args);
           if (recoveryError) return formatToolOutput({ error: recoveryError });
+          if (
+            args.recoveryMode === "poisoned_history" &&
+            (!args.recoveryReason?.trim() ||
+              !args.priorApprovalEvidence?.trim())
+          ) {
+            return formatToolOutput({
+              error:
+                "review matrix recovery requires recoveryReason and priorApprovalEvidence",
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
           const change = await loadChange(activeStore, args.changeId);
           if (!change.contract) {
             return formatToolOutput({
@@ -509,6 +538,10 @@ export const contractTools = {
                 store: activeStore,
                 change,
                 reviewMatrix,
+                authorization: {
+                  reason: args.recoveryReason ?? "review_matrix_recovery",
+                  evidence: args.recoveryEvidence ?? String(signalError),
+                },
                 diskDirect: completedWorkflow,
               });
               return formatToolOutput({
@@ -535,6 +568,12 @@ export const contractTools = {
               store: activeStore,
               change,
               reviewMatrix,
+              authorization: {
+                reason: args.recoveryReason ?? "review_matrix_recovery",
+                evidence:
+                  args.recoveryEvidence ??
+                  "poisoned workflow describe evidence",
+              },
             });
             return formatToolOutput({
               success: true,

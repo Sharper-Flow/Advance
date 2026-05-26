@@ -18,6 +18,7 @@
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
 import { saveChange } from "../storage/json";
+import type { ArtifactMetadata } from "../temporal/contracts";
 
 interface RecoveryWriteAuthorization {
   reason: string;
@@ -114,6 +115,29 @@ export async function saveRecoveredGateCompletion(input: {
   const gates = (input.change.gates ?? {}) as Gates;
   const updatedGates = { ...gates, [input.gateId]: input.completion } as Gates;
   const updated = { ...input.change, gates: updatedGates } as Change;
+  await saveChange(input.store.paths.changes, updated);
+  return updated;
+}
+
+/**
+ * Repair workflow artifact metadata on the disk projection when a completed or
+ * poisoned workflow cannot accept `updateArtifactMetadataSignal`.
+ */
+export async function saveRecoveredArtifactMetadata(input: {
+  store: Store;
+  change: Change;
+  authorization: RecoveryWriteAuthorization;
+  kind: string;
+  metadata: ArtifactMetadata;
+}): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
+  const updated = {
+    ...input.change,
+    artifacts: {
+      ...(input.change.artifacts ?? {}),
+      [input.kind]: input.metadata,
+    },
+  } as Change;
   await saveChange(input.store.paths.changes, updated);
   return updated;
 }

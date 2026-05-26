@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  saveRecoveredArtifactMetadata,
   saveRecoveredChangeStatus,
   saveRecoveredGateCompletion,
   saveRecoveredTaskAdd,
@@ -179,6 +180,60 @@ describe("saveRecoveredGateCompletion", () => {
         change,
         gateId: "release",
         completion: { status: "done" },
+      } as any),
+    ).rejects.toThrow(/recovery authorization/);
+  });
+});
+
+describe("saveRecoveredArtifactMetadata", () => {
+  it("repairs artifact metadata through disk-direct saveChange", async () => {
+    const { store } = createMockStore();
+    const change = baseChange();
+    (mockedSaveChange as unknown as ReturnType<typeof vi.fn>).mockClear();
+
+    const updated = await saveRecoveredArtifactMetadata({
+      store,
+      change,
+      authorization: {
+        reason: "completed_workflow_artifact_metadata_recovery",
+        evidence: "WorkflowExecutionAlreadyCompleted",
+      },
+      kind: "executiveSummary",
+      metadata: {
+        path: "/tmp/test/.adv/changes/test-change/executive-summary.md",
+        updatedAt: "2026-05-22T00:00:00Z",
+        contentHash: "a".repeat(64),
+      },
+    });
+
+    expect(updated.artifacts?.executiveSummary).toMatchObject({
+      contentHash: "a".repeat(64),
+    });
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mockedSaveChange).toHaveBeenCalledWith(
+      "/tmp/test/.adv/changes",
+      expect.objectContaining({
+        artifacts: expect.objectContaining({
+          executiveSummary: expect.objectContaining({
+            contentHash: "a".repeat(64),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("requires recovery authorization for artifact metadata recovery", async () => {
+    const { store } = createMockStore();
+    await expect(
+      saveRecoveredArtifactMetadata({
+        store,
+        change: baseChange(),
+        kind: "executiveSummary",
+        metadata: {
+          path: "/tmp/executive-summary.md",
+          updatedAt: "2026-05-22T00:00:00Z",
+          contentHash: "a".repeat(64),
+        },
       } as any),
     ).rejects.toThrow(/recovery authorization/);
   });
