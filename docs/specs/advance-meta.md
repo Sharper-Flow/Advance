@@ -92,7 +92,7 @@ adv_status must surface project.json diagnostics and include parsed feature flag
 - Output includes feature_flags values
 - Defaults are applied when flags are omitted
 - worker_singleton_enforce defaults false when omitted; singleton enforcement is opt-in
-- worktree_guard_enforce defaults false when omitted
+- worktree_guard_enforce defaults true when omitted
 
 ---
 
