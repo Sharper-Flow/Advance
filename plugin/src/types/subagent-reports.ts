@@ -297,6 +297,15 @@ export const SUBAGENT_REPORT_PACKET_ANCHORS = {
   phase: "PHASE",
 } as const;
 
+export const SUBAGENT_WARN_FIRST_PACKET_ANCHORS = [
+  "TASK_SCOPE",
+  "IN_SCOPE",
+  "OUT_OF_SCOPE",
+  "DONE_WHEN",
+  "STOP_WHEN",
+  "VERIFICATION",
+] as const;
+
 export const SUBAGENT_REPORT_FIELD_SOURCES = {
   "adv-engineer": {
     schema_version: "worker_derived",

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
-import { SpecSchema } from "./types";
+import { SpecSchema, SUBAGENT_WARN_FIRST_PACKET_ANCHORS } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const SUBAGENT_REPORTS_SPEC = join(
@@ -87,6 +87,24 @@ describe("subagent reports spec assets", () => {
     expect(text).toContain("INVALID_REPORT");
   });
 
+  test("subagent-reports law pins warn-first scope/done/stop/verification anchors", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const requirement = spec.requirements.find(
+      (req) => req.id === "rq-subagentReports05",
+    );
+    expect(requirement).toBeDefined();
+
+    const text = JSON.stringify(requirement);
+    for (const anchor of SUBAGENT_WARN_FIRST_PACKET_ANCHORS) {
+      expect(text).toContain(anchor);
+    }
+    expect(text).toContain("warn-first");
+    expect(text).toContain("identity anchors");
+    expect(text).toContain("finish owned scope if safe");
+    expect(text).toContain("contract/security/release blockers");
+    expect(text).toContain("Verification commands are required when possible");
+  });
+
   test("subagent-reports law defines researcher tron scanner sidecar variants", () => {
     const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
     const text = JSON.stringify(spec);
@@ -114,5 +132,41 @@ describe("subagent reports spec assets", () => {
     expect(text).toContain("non_persisted_scanner");
     expect(text).toContain("orchestrator-submitted scanner bundle");
     expect(text).toContain("without ADV tool access");
+  });
+
+  test("delegation-defaults matrix separates strict identity anchors from warn-first contract anchors", () => {
+    const spec = readJson(DELEGATION_DEFAULTS_SPEC) as {
+      delegation_matrix?: Array<{
+        delegated_substeps?: Array<{
+          packet_contracts?: Array<{
+            report_transport: string;
+            required_packet_anchors: string[];
+            warn_packet_anchors?: string[];
+          }>;
+        }>;
+      }>;
+    };
+    const contracts = (spec.delegation_matrix ?? []).flatMap((row) =>
+      (row.delegated_substeps ?? []).flatMap(
+        (substep) => substep.packet_contracts ?? [],
+      ),
+    );
+
+    for (const contract of contracts.filter(
+      (entry) => entry.report_transport === "typed_persisted_worker",
+    )) {
+      expect(contract.required_packet_anchors).not.toEqual(
+        expect.arrayContaining([...SUBAGENT_WARN_FIRST_PACKET_ANCHORS]),
+      );
+      expect(contract.warn_packet_anchors).toEqual(
+        SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
+      );
+    }
+
+    for (const contract of contracts.filter(
+      (entry) => entry.report_transport === "non_persisted_scanner",
+    )) {
+      expect(contract.warn_packet_anchors ?? []).toEqual([]);
+    }
   });
 });

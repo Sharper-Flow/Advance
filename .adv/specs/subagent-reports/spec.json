@@ -4,7 +4,7 @@
   "title": "Sub-Agent Reports",
   "purpose": "Typed, durable ADV sub-agent report ingestion and readback. Replaces ADV worker final-message fenced JSON with Zod-validated tool-call submission, sidecar report persistence, deterministic scope-aware dedupe, and machine-readable downstream consumers.",
   "version": "1.0.0",
-  "updated_at": "2026-05-25T00:00:00.000Z",
+  "updated_at": "2026-05-26T00:00:00.000Z",
   "conformance_required": false,
   "requirements": [
     {
@@ -133,7 +133,7 @@
     {
       "id": "rq-subagentReports05",
       "title": "Schema-aligned worker context packets",
-      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. Task-scoped adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT anchors. Task-scoped adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT anchors. Change-scoped adv-researcher and adv-tron worker packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT anchors. Orchestrator-submitted scanner bundle packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT anchors. Missing schema-derived identity anchors produce malformed reports and MUST remain INVALID_REPORT. Individual scanner lanes are separate non-persisted analysis workers and MUST NOT claim worker report transport or call adv_subagent_report_submit.",
+      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. Task-scoped adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT identity anchors. Task-scoped adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT identity anchors. Change-scoped adv-researcher and adv-tron worker packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT identity anchors. Orchestrator-submitted scanner bundle packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT identity anchors. Missing schema-derived identity anchors produce malformed reports and MUST remain INVALID_REPORT. Newly-added non-identity packet anchors are warn-first during rollout: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. These anchors define explicit scope boundaries, completion conditions, stop conditions, and verification expectations. Out-of-scope findings use finish owned scope if safe, then report; workers stop immediately only for contract/security/release blockers. Verification commands are required when possible and workers may add relevant additional checks. Individual scanner lanes are separate non-persisted analysis workers and MUST NOT claim worker report transport or call adv_subagent_report_submit.",
       "priority": "must",
       "tags": ["subagents", "packets", "schema", "scanners"],
       "scenarios": [
@@ -143,8 +143,9 @@
           "given": ["ADV spawns adv-engineer or adv-reviewer for implementation or remediation work"],
           "when": "The worker builds ENGINEER_REPORT or REVIEWER_REPORT for adv_subagent_report_submit",
           "then": [
-            "task-scoped packets provide WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
-            "change-scoped packets provide WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT",
+            "task-scoped packets provide strict identity anchors WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
+            "change-scoped packets provide strict identity anchors WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT",
+            "new non-identity anchors TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION warn first during rollout",
             "Missing TASK, SCOPE KEY, PHASE, or ATTEMPT is rejected as INVALID_REPORT instead of inferred heuristically"
           ]
         },
@@ -157,6 +158,19 @@
             "The scanner packet is classified as scanner, not worker",
             "The scanner is not instructed to call adv_subagent_report_submit",
             "The scanner result is consumed by the orchestrator and is not persisted directly"
+          ]
+        },
+        {
+          "id": "rq-subagentReports05.3",
+          "title": "Scope and stop semantics are explicit",
+          "given": ["A worker packet contains scope/done/stop/verification anchors"],
+          "when": "The worker encounters an out-of-scope finding or verification need",
+          "then": [
+            "The worker uses TASK_SCOPE, IN_SCOPE, and OUT_OF_SCOPE to identify owned work",
+            "The worker uses DONE_WHEN to decide completion",
+            "The worker uses STOP_WHEN to stop for contract/security/release blockers",
+            "The worker uses VERIFICATION commands when possible and may add relevant checks",
+            "The worker should finish owned scope if safe before reporting out-of-scope actions"
           ]
         }
       ]

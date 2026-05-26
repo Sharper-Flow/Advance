@@ -92,6 +92,7 @@ export {
   type PersistedSubagentReportAgent,
   type SubagentReportFieldSource,
   SUBAGENT_REPORT_PACKET_ANCHORS,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
   SUBAGENT_REPORT_FIELD_SOURCES,
   getSubagentReportPacketAnchors,
   type SubagentReportScope,

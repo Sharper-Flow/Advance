@@ -4,7 +4,7 @@
   "title": "Delegation Defaults",
   "purpose": "Canonical definition of default delegation modes for each ADV workflow step. Establishes which steps allow sub-agent delegation, which require inline execution, and what safety boundaries constrain delegation. The matrix is the single source of truth for delegation routing decisions; command files and orchestrator guidance reference this spec rather than duplicating delegation prose.",
   "version": "1.0.0",
-  "updated_at": "2026-05-24T00:00:00.000Z",
+  "updated_at": "2026-05-26T00:00:00.000Z",
   "delegation_matrix": [
     {
       "step": "proposal",
@@ -56,7 +56,8 @@
             {
               "agent": "adv-engineer",
               "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"]
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
             }
           ]
         },
@@ -91,12 +92,14 @@
             {
               "agent": "adv-reviewer",
               "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"]
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
+              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
             },
             {
               "agent": "adv-engineer",
               "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"]
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
             }
           ]
         },
@@ -130,12 +133,14 @@
             {
               "agent": "adv-reviewer",
               "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"]
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "PHASE", "ATTEMPT"],
+              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
             },
             {
               "agent": "adv-engineer",
               "report_transport": "typed_persisted_worker",
-              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"]
+              "required_packet_anchors": ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+              "warn_packet_anchors": ["TASK_SCOPE", "IN_SCOPE", "OUT_OF_SCOPE", "DONE_WHEN", "STOP_WHEN", "VERIFICATION"]
             }
           ]
         }
@@ -315,7 +320,7 @@
     {
       "id": "rq-delDefaults05",
       "title": "Typed and Persisted Worker Reports",
-      "body": "Delegated worker lanes that produce ADV evidence MUST provide typed, ingest-validated, durable reports through sidecar report persistence. adv-engineer and adv-reviewer task-scoped reports MUST be submitted through adv_subagent_report_submit and remain backward-compatible with task.subagent_reports[] readers; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. adv-researcher and adv-tron change-scoped optimized handoff reports MUST use the same strict tool-call transport with source metadata. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport, without ADV tool access, and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Only an orchestrator-submitted scanner bundle MAY persist scanner findings. Worker packet contracts MUST pin schema-derived anchors: WORKING DIRECTORY, CHANGE, scope identity, and ATTEMPT, plus PHASE where required. Future persisted worker additions MUST include these 4 field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
+      "body": "Delegated worker lanes that produce ADV evidence MUST provide typed, ingest-validated, durable reports through sidecar report persistence. adv-engineer and adv-reviewer task-scoped reports MUST be submitted through adv_subagent_report_submit and remain backward-compatible with task.subagent_reports[] readers; their payloads MUST include evidence references (sources, file:line, test output), scope/design/task impact assessment, blockers (with file/line and diagnosis), and recommended next action for the orchestrator. adv-researcher and adv-tron change-scoped optimized handoff reports MUST use the same strict tool-call transport with source metadata. Scanner lanes (for example explore review/harden scanners) are non-persisted scanner transport, without ADV tool access, and MUST NOT claim adv_subagent_report_submit or task.subagent_reports[] persistence. Only an orchestrator-submitted scanner bundle MAY persist scanner findings. Worker packet contracts MUST pin schema-derived strict identity anchors: WORKING DIRECTORY, CHANGE, scope identity, and ATTEMPT, plus PHASE where required. Worker packet contracts MUST also define warn-first scope/done/stop/verification anchors: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. Future persisted worker additions MUST include these field categories and must not rely on LLM-parsed prose as the only ADV report transport.",
       "priority": "must",
       "tags": ["delegation", "reports", "structured-output"],
       "scenarios": [
@@ -337,8 +342,9 @@
           "given": ["A delegated sub-step uses a typed persisted worker or a scanner worker"],
           "when": "The delegation matrix row is evaluated",
           "then": [
-            "task-scoped typed_persisted_worker packet contracts include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
-            "adv-reviewer task-scoped typed_persisted_worker packet contracts also include PHASE",
+            "task-scoped typed_persisted_worker packet contracts include strict identity anchors WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
+            "adv-reviewer task-scoped typed_persisted_worker packet contracts also include strict PHASE",
+            "typed_persisted_worker packet contracts include warn-first anchors TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION",
             "change-scoped optimized handoff packet contracts include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT",
             "non_persisted_scanner packet contracts include WORKING DIRECTORY, CHANGE, and ATTEMPT without adv_subagent_report_submit persistence or ADV tool access",
             "orchestrator-submitted scanner bundle packet contracts include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT"

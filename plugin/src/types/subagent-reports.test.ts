@@ -12,6 +12,7 @@ import {
   ScopedSubagentReportSchema,
   SUBAGENT_REPORT_FIELD_SOURCES,
   SUBAGENT_REPORT_PACKET_ANCHORS,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
   SubagentAgentSchema,
   TronSubagentReportSchema,
 } from "./subagent-reports";
@@ -355,6 +356,23 @@ describe("Subagent report schemas", () => {
         "SCOPE KEY",
         "WORKING DIRECTORY",
       ]);
+    });
+
+    it("keeps new scope/done/stop/verification packet anchors warn-first and separate from strict identity", () => {
+      expect(SUBAGENT_WARN_FIRST_PACKET_ANCHORS).toEqual([
+        "TASK_SCOPE",
+        "IN_SCOPE",
+        "OUT_OF_SCOPE",
+        "DONE_WHEN",
+        "STOP_WHEN",
+        "VERIFICATION",
+      ]);
+
+      for (const agent of SubagentAgentSchema.options) {
+        expect(getSubagentReportPacketAnchors(agent)).not.toEqual(
+          expect.arrayContaining([...SUBAGENT_WARN_FIRST_PACKET_ANCHORS]),
+        );
+      }
     });
   });
 });
