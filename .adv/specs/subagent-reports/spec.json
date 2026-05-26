@@ -10,7 +10,7 @@
     {
       "id": "rq-subagentReports01",
       "title": "Typed tool-call report ingest",
-      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer, adv-reviewer, adv-researcher, adv-tron, and adv-scanner-bundle payload variants, and rejects malformed or unsupported payloads before persistence.",
+      "body": "ADV worker reports MUST be submitted through adv_subagent_report_submit using strict Zod-validated payloads. Version 1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, and adv-scanner-bundle payload variants, and rejects malformed or unsupported payloads before persistence.",
       "priority": "must",
       "tags": ["subagents", "reports", "zod", "ingest"],
       "scenarios": [
@@ -34,6 +34,17 @@
             "The strict payload schema validates the agent-specific object",
             "The report carries explicit source metadata",
             "The workflow signal is fired only after schema validation succeeds"
+          ]
+        },
+        {
+          "id": "rq-subagentReports01.3",
+          "title": "adv-designer report variant validates structurally",
+          "given": ["A report uses agent adv-designer with task-scoped identity anchors and design_dimensions plus neighboring_recommendations"],
+          "when": "adv_subagent_report_submit validates the payload in v1",
+          "then": [
+            "The strict DESIGNER_REPORT schema accepts only the typed payload",
+            "Malformed or unsupported designer payloads are rejected as INVALID_REPORT before persistence",
+            "Missing TASK or ATTEMPT remains INVALID_REPORT instead of inferred heuristically"
           ]
         }
       ]
@@ -133,15 +144,15 @@
     {
       "id": "rq-subagentReports05",
       "title": "Schema-aligned worker context packets",
-      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. Task-scoped adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT identity anchors. Task-scoped adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT identity anchors. Change-scoped adv-researcher and adv-tron worker packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT identity anchors. Orchestrator-submitted scanner bundle packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT identity anchors. Missing schema-derived identity anchors produce malformed reports and MUST remain INVALID_REPORT. Newly-added non-identity packet anchors are warn-first during rollout: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. These anchors define explicit scope boundaries, completion conditions, stop conditions, and verification expectations. Out-of-scope findings use finish owned scope if safe, then report; workers stop immediately only for contract/security/release blockers. Verification commands are required when possible and workers may add relevant additional checks. Individual scanner lanes are separate non-persisted analysis workers and MUST NOT claim worker report transport or call adv_subagent_report_submit.",
+      "body": "ADV typed worker context packets MUST align with the strict report schemas that adv_subagent_report_submit validates. Task-scoped adv-engineer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT identity anchors. Task-scoped adv-reviewer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, PHASE, and ATTEMPT identity anchors. Task-scoped adv-designer worker packets MUST include WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT identity anchors. Change-scoped adv-researcher and adv-tron worker packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT identity anchors. Orchestrator-submitted scanner bundle packets MUST include WORKING DIRECTORY, CHANGE, SCOPE KEY, PHASE, and ATTEMPT identity anchors. Missing schema-derived identity anchors produce malformed reports and MUST remain INVALID_REPORT. Newly-added non-identity packet anchors are warn-first during rollout: TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION. These anchors define explicit scope boundaries, completion conditions, stop conditions, and verification expectations. Out-of-scope findings use finish owned scope if safe, then report; workers stop immediately only for contract/security/release blockers. Verification commands are required when possible and workers may add relevant additional checks. Individual scanner lanes are separate non-persisted analysis workers and MUST NOT claim worker report transport or call adv_subagent_report_submit.",
       "priority": "must",
       "tags": ["subagents", "packets", "schema", "scanners"],
       "scenarios": [
         {
           "id": "rq-subagentReports05.1",
           "title": "Typed worker packets provide schema-derived identity",
-          "given": ["ADV spawns adv-engineer or adv-reviewer for implementation or remediation work"],
-          "when": "The worker builds ENGINEER_REPORT or REVIEWER_REPORT for adv_subagent_report_submit",
+          "given": ["ADV spawns adv-engineer, adv-reviewer, or adv-designer for implementation or remediation work"],
+          "when": "The worker builds ENGINEER_REPORT, REVIEWER_REPORT, or DESIGNER_REPORT for adv_subagent_report_submit",
           "then": [
             "task-scoped packets provide strict identity anchors WORKING DIRECTORY, CHANGE, TASK, and ATTEMPT",
             "change-scoped packets provide strict identity anchors WORKING DIRECTORY, CHANGE, SCOPE KEY, and ATTEMPT",
@@ -178,7 +189,7 @@
     {
       "id": "rq-subagentReports06",
       "title": "Strict report scope model",
-      "body": "Persisted reports MUST carry structural scope metadata. Task evidence reports use scope.kind task with task_id. Optimized handoff reports use scope.kind change with a structural scope_key. The schema MUST enforce agent/scope pairing: adv-engineer and adv-reviewer reports are task-scoped; adv-researcher, adv-tron, and adv-scanner-bundle reports are change-scoped.",
+      "body": "Persisted reports MUST carry structural scope metadata. Task evidence reports use scope.kind task with task_id. Optimized handoff reports use scope.kind change with a structural scope_key. The schema MUST enforce agent/scope pairing: adv-engineer, adv-reviewer, and adv-designer reports are task-scoped; adv-researcher, adv-tron, and adv-scanner-bundle reports are change-scoped.",
       "priority": "must",
       "tags": ["schema", "scope", "structural-correctness"],
       "scenarios": [

@@ -82,9 +82,25 @@ describe("subagent reports spec assets", () => {
     }
     expect(text).toContain("adv-engineer");
     expect(text).toContain("adv-reviewer");
+    expect(text).toContain("adv-designer");
     expect(text).toContain("scanner");
     expect(text).toContain("worker");
     expect(text).toContain("INVALID_REPORT");
+  });
+
+  test("subagent-reports rq01 and rq06 include adv-designer as supported task-scoped variant", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const rq01 = spec.requirements.find(
+      (req) => req.id === "rq-subagentReports01",
+    );
+    const rq06 = spec.requirements.find(
+      (req) => req.id === "rq-subagentReports06",
+    );
+    expect(rq01).toBeDefined();
+    expect(rq06).toBeDefined();
+    expect(rq01!.body).toContain("adv-designer");
+    expect(rq06!.body).toContain("adv-designer");
+    expect(rq06!.body).toContain("task-scoped");
   });
 
   test("subagent-reports law pins warn-first scope/done/stop/verification anchors", () => {
@@ -132,6 +148,54 @@ describe("subagent reports spec assets", () => {
     expect(text).toContain("non_persisted_scanner");
     expect(text).toContain("orchestrator-submitted scanner bundle");
     expect(text).toContain("without ADV tool access");
+  });
+
+  test("delegation-defaults apply step lists Frontend Implementation with adv-designer typed_persisted_worker contract", () => {
+    const spec = readJson(DELEGATION_DEFAULTS_SPEC) as {
+      delegation_matrix: Array<{
+        step: string;
+        allowed_subagents?: string[];
+        delegated_substeps?: Array<{
+          name: string;
+          allowed_subagents?: string[];
+          packet_contracts?: Array<{
+            agent: string;
+            report_transport: string;
+            required_packet_anchors: string[];
+            warn_packet_anchors?: string[];
+          }>;
+        }>;
+      }>;
+    };
+    const apply = spec.delegation_matrix.find((row) => row.step === "apply");
+    expect(apply).toBeDefined();
+    expect(apply!.allowed_subagents).toContain("adv-designer");
+
+    const frontend = (apply!.delegated_substeps ?? []).find(
+      (substep) => substep.name === "Frontend Implementation",
+    );
+    expect(frontend, "apply step missing Frontend Implementation substep").toBeDefined();
+    expect(frontend!.allowed_subagents).toEqual(["adv-designer"]);
+
+    const designerContract = (frontend!.packet_contracts ?? []).find(
+      (contract) => contract.agent === "adv-designer",
+    );
+    expect(designerContract).toBeDefined();
+    expect(designerContract!.report_transport).toBe("typed_persisted_worker");
+    expect(designerContract!.required_packet_anchors).toEqual([
+      "WORKING DIRECTORY",
+      "CHANGE",
+      "TASK",
+      "ATTEMPT",
+    ]);
+    expect(designerContract!.warn_packet_anchors).toEqual([
+      "TASK_SCOPE",
+      "IN_SCOPE",
+      "OUT_OF_SCOPE",
+      "DONE_WHEN",
+      "STOP_WHEN",
+      "VERIFICATION",
+    ]);
   });
 
   test("delegation-defaults matrix separates strict identity anchors from warn-first contract anchors", () => {
