@@ -79,9 +79,9 @@ All tasks must be done (or properly cancelled with user approval). `/adv-apply` 
 
 Owner: `/adv-review` | **Pauses for:** user acceptance of delivered work
 
-Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question), presents the acceptance criteria checklist, and completes the acceptance gate after user confirmation. The acceptance gate is artifact-backed by a generated `acceptance.md` projection derived from `ChangeContract` items and `contract.reviewMatrix`; manually edited markdown is not authoritative acceptance proof.
+Absorbs the old `review` + `signoff` gates. `/adv-review` emits a `REVIEW_FINDINGS` block (blocker, issue, suggestion, question), persists and verifies acceptance proof, presents the acceptance criteria checklist, and completes the acceptance gate after user confirmation. The acceptance gate is artifact-backed by typed `contract.reviewMatrix`, generated `acceptance.md`, and workflow-visible `executive-summary.md` evidence. Manually edited markdown is not authoritative acceptance proof.
 
-`/adv-review` Phase 7 also persists `executive-summary.md` — a communication-only narrative artifact composed from the acceptance summary + investment metrics. Unlike `acceptance.md` (gate-enforcement projection), `executive-summary.md` is a field-style artifact for release notes, changelogs, and the archive sign-off Change Report. It is NOT tracked in workflow state and NOT verified by gate-readiness; it is plain markdown written via `adv_change_update executiveSummary:` and read at archive sign-off via `adv_change_show include.executiveSummary`.
+`/adv-review` Phase 7 persists `executive-summary.md` before the acceptance prompt. For new contract-era changes it is acceptance proof: it must be represented by workflow-visible artifact metadata, including content hash, and verified by gate readiness. It also remains the release-note/archive sign-off narrative read via `adv_change_show include.executiveSummary`.
 
 ### Release Gate
 

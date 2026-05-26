@@ -395,7 +395,9 @@ Group findings by severity tier. Within each tier, order by file path for scanab
 
 ### Contract Review Matrix
 
-If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path.
+<!-- rq-acceptanceEvidenceTiming01 rq-acceptanceRecovery01 -->
+
+If `change.contract` exists, build and persist `contract.reviewMatrix` before acceptance sign-off by calling `adv_contract_review_matrix_set`. The tool validates rows against existing contract item IDs and persists through the `contractReviewMatrixSetSignal`-backed mutation path. This is the first required proof write in the no-late-homework sequence: proof required for acceptance must exist before the approval prompt, not after.
 
 Rules:
 
@@ -410,7 +412,7 @@ Rules:
 
 The acceptance summary must include a contract proof line: required rows passed/respected, failed/violated/unknown counts, and remaining caveats.
 
-`contract.reviewMatrix` is the authoritative acceptance proof. On gate completion, the workflow writes a generated acceptance.md projection from `ChangeContract` items and the review matrix before marking acceptance done. Do not manually edit acceptance.md as proof; fix the typed matrix or formally amend/re-enter the contract instead.
+`contract.reviewMatrix`, generated `acceptance.md`, and workflow-visible `executive-summary.md` metadata are the authoritative acceptance proof. On gate completion, the workflow writes a generated acceptance.md projection from `ChangeContract` items and the review matrix, verifies executive-summary evidence, and only then marks acceptance done. Do not manually edit acceptance.md as proof; fix the typed matrix or formally amend/re-enter the contract instead.
 
 ### Emit REVIEW_FINDINGS Block
 Always emit regardless of verdict:
@@ -503,9 +505,9 @@ Before acceptance prompt, persist durable executive summary:
    {open items or "None".}
    ```
 3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
-4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present.
+4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present and workflow-visible executive-summary artifact metadata exists with content-hash evidence.
 
-After user accepts, artifact already exists. No extra acceptance-step write.
+After user accepts, artifact already exists and is workflow-visible. No extra acceptance-step write. If the executive-summary write or metadata signal fails, stop before the acceptance prompt; chat approval alone is not durable acceptance proof.
 
 ### Pre-Acceptance Contract Preflight
 
@@ -513,11 +515,14 @@ Before acceptance summary or **Inline Approval prompt**, load `adv_change_show`;
 
 - `change.contract` exists.
 - `contract.reviewMatrix` exists when contract items require it.
+- `executive-summary.md` exists, is non-blank/substantive, and has workflow-visible artifact metadata with content-hash evidence.
 - Preview proof has matching `contract.reviewMatrix` evidence when `visual_surface` is true or false. `visual_surface: unknown` or visual-surface drift blocks before acceptance and must be clarified or re-entered before a matrix pass row is expected.
 - Required rows have no `fail`, `violated`, `unknown`, or missing evidence.
 - Required new MCP tool is callable in current session. If source registered it but live registry lacks it, stop: tell user to build/reload plugin and open fresh OpenCode session. Do not ask for acceptance until proof path exists.
 
 Preflight fail → surface blocker + remediation. Do not continue to acceptance checkpoint.
+
+No-late-homework rule: required acceptance proof (`contract.reviewMatrix`, generated/generatable `acceptance.md`, and workflow-visible `executive-summary.md`) must be persisted and verified before this checkpoint. If proof persistence fails after the user replies, acceptance remains pending/stuck until proof is persisted or an audited completed/poisoned workflow recovery validates the same evidence.
 
 ### Ask for Acceptance (Inline)
 Emit the acceptance summary inline, followed by the **Inline Approval prompt (Tier A)** per `docs/command-voice-standard.md` § Inline Approval Voice:

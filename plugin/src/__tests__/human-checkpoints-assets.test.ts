@@ -134,6 +134,9 @@ describe("rq-autonomy01 human checkpoint assets", () => {
     const askIdx = content.search(/###\s*Ask for Acceptance/);
     expect(persistIdx).toBeGreaterThanOrEqual(0);
     expect(askIdx).toBeGreaterThan(persistIdx);
+    expect(content).toContain("workflow-visible executive-summary");
+    expect(content).toContain("No-late-homework rule");
+    expect(content).toContain("chat approval alone is not durable acceptance proof");
   });
 
   test("adv-archive.md Phase 1 loads executive summary via include flag", () => {
