@@ -78,7 +78,6 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
   isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
-import { collectErrorText } from "../temporal/retry-wrapper";
 import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 
@@ -245,6 +244,7 @@ async function completeGateViaRecovery(input: {
   diskDirect?: boolean;
   recoveryReason?: string;
   recoveryEvidence?: string;
+  priorApprovalEvidence?: string;
 }): Promise<string> {
   if (input.gateId !== "acceptance" && input.gateId !== "release") {
     return formatToolOutput({
@@ -263,23 +263,25 @@ async function completeGateViaRecovery(input: {
       ...(input.extraPayload ?? {}),
     });
   }
-  if (!input.recoveryEvidence?.trim()) {
+  const missingAuditFields = [
+    !input.recoveryEvidence?.trim() ? "recoveryEvidence" : undefined,
+    !input.recoveryReason?.trim() ? "recoveryReason" : undefined,
+    input.gateId === "acceptance" && !input.priorApprovalEvidence?.trim()
+      ? "priorApprovalEvidence"
+      : undefined,
+  ].filter((field): field is string => Boolean(field));
+  if (missingAuditFields.length > 0) {
     return formatToolOutput({
-      error: `poisoned-history ${input.gateId} recovery requires precise recoveryEvidence`,
+      error: `poisoned-history ${input.gateId} recovery requires ${missingAuditFields.join(", ")}`,
       changeId: input.changeId,
       gateId: input.gateId,
+      missingAuditFields,
       ...(input.extraPayload ?? {}),
     });
   }
-  if (input.gateId === "acceptance" && !input.notes?.trim()) {
-    return formatToolOutput({
-      error:
-        "poisoned-history acceptance recovery requires prior user approval evidence in notes",
-      changeId: input.changeId,
-      gateId: input.gateId,
-      ...(input.extraPayload ?? {}),
-    });
-  }
+  const recoveryReason = input.recoveryReason?.trim() ?? "";
+  const recoveryEvidence = input.recoveryEvidence?.trim() ?? "";
+  const priorApprovalEvidence = input.priorApprovalEvidence?.trim();
   if (!canCompleteGate(input.gates, input.gateId)) {
     const blockedBy = GATE_ORDER.slice(
       0,
@@ -426,7 +428,7 @@ async function completeGateViaRecovery(input: {
     status: "done",
     completed_at: completedAt,
     completed_by: input.completedBy,
-    approval_evidence: input.notes,
+    approval_evidence: input.notes ?? priorApprovalEvidence,
     artifact_evidence: artifactEvidence,
   } as Gates[GateId];
   const updatedGates: Gates = {
@@ -438,11 +440,11 @@ async function completeGateViaRecovery(input: {
       store: input.store,
       change: recoveryChange,
       authorization: {
-        reason: input.recoveryReason ?? "completed_workflow_gate_recovery",
+        reason: recoveryReason,
         evidence:
-          input.recoveryEvidence ??
-          input.compatibilityReason ??
-          "completed workflow gate recovery",
+          input.gateId === "acceptance"
+            ? `${recoveryEvidence}\nPrior approval evidence: ${priorApprovalEvidence}`
+            : recoveryEvidence,
       },
       gateId: input.gateId,
       completion,
@@ -908,6 +910,24 @@ export const gateTools = {
         .describe(
           "Acceptance-only legacy/replay compatibility rationale. Used for explicit poisoned-history recovery; rejected for non-acceptance gates.",
         ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required when acceptance/release gate recovery is invoked. Must explain why disk-projection recovery is appropriate.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when acceptance/release gate recovery is invoked. Must cite precise completed-workflow or poisoned-history evidence.",
+        ),
+      priorApprovalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required for acceptance gate recovery. Must cite the prior user acceptance approval evidence.",
+        ),
       target_path: z
         .string()
         .optional()
@@ -925,6 +945,9 @@ export const gateTools = {
         userApproved,
         notes,
         compatibilityReason,
+        recoveryReason,
+        recoveryEvidence,
+        priorApprovalEvidence,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -935,6 +958,9 @@ export const gateTools = {
         userApproved?: boolean;
         notes?: string;
         compatibilityReason?: string;
+        recoveryReason?: string;
+        recoveryEvidence?: string;
+        priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -1046,10 +1072,9 @@ export const gateTools = {
               compatibilityReason,
               boundaryWarning,
               diskDirect: completedWorkflow,
-              recoveryReason: completedWorkflow
-                ? "completed_workflow_gate_recovery"
-                : "poisoned_history_gate_recovery",
-              recoveryEvidence: collectErrorText(error),
+              recoveryReason,
+              recoveryEvidence,
+              priorApprovalEvidence,
               extraPayload: projectContext
                 ? { _projectContext: projectContext }
                 : {},
@@ -1227,10 +1252,9 @@ export const gateTools = {
               compatibilityReason,
               boundaryWarning,
               diskDirect: completedWorkflow,
-              recoveryReason: completedWorkflow
-                ? "completed_workflow_gate_recovery"
-                : "poisoned_history_gate_recovery",
-              recoveryEvidence: collectErrorText(error),
+              recoveryReason,
+              recoveryEvidence,
+              priorApprovalEvidence,
               extraPayload: projectContext
                 ? { _projectContext: projectContext }
                 : {},
