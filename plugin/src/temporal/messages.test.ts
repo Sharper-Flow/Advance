@@ -250,7 +250,9 @@ describe("change workflow message contract", () => {
             ],
             decisions: [],
             blockers: [],
+            scope_drift: null,
             follow_ups: [],
+            required_main_agent_actions: [],
             related_scan: "none",
             workdir_used: "/tmp/worktree",
             context_update_for_adv: {
