@@ -1,0 +1,1 @@
+Engineer sub-agents currently receive insufficiently explicit task scope and reporting instructions. This causes avoidable exploration, ambiguous boundaries, inconsistent report payloads, and extra orchestrator recovery work. ADV needs a clearer contractual process and improved schema so sub-agents know exactly what tasks they own and how to report back.
