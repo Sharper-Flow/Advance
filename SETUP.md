@@ -262,8 +262,8 @@ Typical outcomes:
 ## External Dependencies (MCP Servers and Sub-Agents)
 
 ADV ships the plugin, commands, overlays, and bundled ADV agents (`plan`,
-`build`, `adv-researcher`, `adv-engineer`, `adv-reviewer`). The `adv-researcher`,
-`adv-engineer`, and `adv-reviewer` agents are synced globally by `deploy-local.sh`
+`build`, `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer`). The `adv-researcher`,
+`adv-engineer`, `adv-reviewer`, and `adv-designer` agents are synced globally by `deploy-local.sh`
 as bundled global specialists. The `adv-tron` agent remains
 repo-local in `.opencode/agents/`. All ADV-shipped sub-agents use the `adv-<name>` naming convention. Several agents and commands
 reference **external MCP servers** and **shared sub-agents** that are NOT part
@@ -283,8 +283,9 @@ invocation, which is slower and less specialized.
 | `explore`        | `/adv-review`, `/adv-harden`, `/adv-audit`, `/adv-slop-scan`, `/adv-refactor` | Codebase navigation, scoped read-only scans                                                                                                  |
 | `adv-researcher` | `/adv-discover`, `/adv-design`, `/adv-research`, `/adv-task`, `/adv-review`   | Documentation, API, and code-example research (Context7, Exa, searchcode, webfetch) AND architecture validation                              |
 | `general`        | `/adv-review` (cross-cutting), overlay-managed                                | Multi-step verification                                                                                                                      |
-| `adv-engineer`   | `/adv-apply` code-writing delegation, `/adv-review` remediation fixes         | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                                                        |
-| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT submitted via `adv_subagent_report_submit` |
+| `adv-engineer`   | `/adv-apply` code-writing delegation (backend/state/API/business logic), `/adv-review` remediation fixes | Structured ENGINEER_REPORT submitted via `adv_subagent_report_submit`                                                                        |
+| `adv-designer`   | `/adv-apply` frontend code-writing delegation (`metadata.frontend == "true"`, Priority 1.5) | Apply-phase frontend/component specialist (HTML/CSS/JS/TSX, a11y, responsive, polish, site-design match); write-only; never review/harden owner; structured DESIGNER_REPORT submitted via `adv_subagent_report_submit` |
+| `adv-reviewer`   | `/adv-review`, `/adv-harden`                                                  | Independent review/harden analysis with scoped repo-write remediation; structured REVIEWER_REPORT submitted via `adv_subagent_report_submit`. Reviewer Remediation Packet carries `FRONTEND DESIGN REVIEW SKILL` anchor for design-inclusive changes |
 
 ### Optional MCP servers (referenced by agent tool blocks)
 
@@ -316,7 +317,7 @@ If you want to run ADV with the smallest possible footprint:
 1. OpenCode CLI
 2. Node.js 20+, pnpm 10+
 3. ADV plugin built (`plugin/dist/index.js` present)
-4. `~/.config/opencode/agents/` contains `explore` at minimum (plus `adv-researcher`, `adv-engineer`, `adv-reviewer` after `scripts/deploy-local.sh --fix`)
+4. `~/.config/opencode/agents/` contains `explore` at minimum (plus `adv-researcher`, `adv-engineer`, `adv-reviewer`, `adv-designer` after `scripts/deploy-local.sh --fix`)
 5. No external MCP servers required — agents fall back to built-in tools
 
 ADV itself will function. Research and review commands will be noticeably

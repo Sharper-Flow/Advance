@@ -34,7 +34,7 @@ plugin/src/
 .adv/specs/           # Capability specs — git-tracked, branch-local (the laws)
 .opencode/
   command/            # 21 slash-command workflow files (adv-*.md)
-  agents/             # adv-researcher (bundled global), adv-engineer (bundled global), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
+  agents/             # adv-researcher (bundled global), adv-engineer (bundled global), adv-reviewer (bundled global), adv-designer (bundled global, apply-phase frontend specialist), adv-tron (repo-local); overlay-managed: adv, plan (absorbed scout), build (absorbed refine)
   overlays/           # Managed overlay blocks for global shared agents
 skills/               # Bundled methodology skills → synced to ~/.config/opencode/skills/
 docs/                 # Gate contracts, workflow diagram, checklists, generated spec docs
