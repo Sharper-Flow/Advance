@@ -93,6 +93,7 @@ export {
   TaskScopedSubagentReportSchema,
   ScopedSubagentReportSchema,
   SupportedSubagentReportSchema,
+  normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
   type SubagentReportFieldSource,
   SUBAGENT_REPORT_PACKET_ANCHORS,

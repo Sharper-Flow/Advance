@@ -41,6 +41,7 @@ import type {
   WorktreeDeletedSignalPayload,
 } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
+import { normalizePersistedSubagentReportState } from "../types";
 import { subagentReportKey } from "./contracts";
 import type {
   ArtifactKind,
@@ -109,27 +110,30 @@ export function createChangeWorkflowState(input: {
 export function changeSeedStateFromChange(
   change: Change,
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
+  const [normalizedChange] = normalizePersistedSubagentReportState(change);
+  const safeChange = normalizedChange as Change;
+
   return {
-    status: change.status,
-    tasks: change.tasks ?? [],
-    subagent_reports: change.subagent_reports ?? [],
-    deltas: change.deltas ?? {},
-    wisdom: change.wisdom ?? [],
-    gates: change.gates ?? createDefaultGates(),
-    reentry_history: change.reentry_history ?? [],
-    artifacts: (change.artifacts as ChangeWorkflowState["artifacts"]) ?? {},
-    fast_follow_of: change.fast_follow_of,
-    affectedProjects: change.affectedProjects,
-    affectedPaths: change.affectedPaths,
-    lastSignalAt: change.lastSignalAt,
-    acceptanceCriteria: change.acceptanceCriteria,
-    contract: change.contract,
-    documents: change.documents,
-    origin: change.origin,
-    worktree_auto_managed: change.worktree_auto_managed,
-    target_worktree_path: change.target_worktree_path,
-    scope_worktrees: change.scope_worktrees,
-    seenReportIds: (change as unknown as { seenReportIds?: string[] })
+    status: safeChange.status,
+    tasks: safeChange.tasks ?? [],
+    subagent_reports: safeChange.subagent_reports ?? [],
+    deltas: safeChange.deltas ?? {},
+    wisdom: safeChange.wisdom ?? [],
+    gates: safeChange.gates ?? createDefaultGates(),
+    reentry_history: safeChange.reentry_history ?? [],
+    artifacts: (safeChange.artifacts as ChangeWorkflowState["artifacts"]) ?? {},
+    fast_follow_of: safeChange.fast_follow_of,
+    affectedProjects: safeChange.affectedProjects,
+    affectedPaths: safeChange.affectedPaths,
+    lastSignalAt: safeChange.lastSignalAt,
+    acceptanceCriteria: safeChange.acceptanceCriteria,
+    contract: safeChange.contract,
+    documents: safeChange.documents,
+    origin: safeChange.origin,
+    worktree_auto_managed: safeChange.worktree_auto_managed,
+    target_worktree_path: safeChange.target_worktree_path,
+    scope_worktrees: safeChange.scope_worktrees,
+    seenReportIds: (safeChange as unknown as { seenReportIds?: string[] })
       .seenReportIds,
   };
 }

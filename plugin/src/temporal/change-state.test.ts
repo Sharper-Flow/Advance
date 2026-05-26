@@ -8,10 +8,11 @@ import {
   applyGateReenteredToState,
   applyTaskAddedToState,
   applyTaskCompletedToState,
+  changeSeedStateFromChange,
   completeGateInChangeState,
   createChangeWorkflowState,
 } from "./change-state";
-import type { ChangeOrigin } from "../types";
+import type { Change, ChangeOrigin } from "../types";
 import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
@@ -170,6 +171,44 @@ describe("change-state pure mutation helpers", () => {
     expect(state.seenReportIds).toEqual([
       "sidecar-change-report-test|change:researcher:temporal-docs|adv-researcher|1",
     ]);
+  });
+
+  it("normalizes legacy sub-agent reports when seeding workflow state", () => {
+    const seed = changeSeedStateFromChange({
+      id: "legacy-seed",
+      title: "Legacy seed",
+      status: "draft",
+      created_at: "2026-05-26T00:00:00.000Z",
+      tasks: [
+        {
+          id: "tk-legacy",
+          title: "Legacy task",
+          type: "code",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-05-26T00:00:00.000Z",
+          subagent_reports: [makeEngineerReport("legacy-seed", "tk-legacy")],
+        },
+      ],
+      subagent_reports: [makeEngineerReport("legacy-seed", "tk-legacy")],
+      deltas: {},
+      wisdom: [],
+      gates: createChangeWorkflowState({
+        changeId: "legacy-seed",
+        title: "Legacy seed",
+        createdAt: "2026-05-26T00:00:00.000Z",
+      }).gates,
+      reentry_history: [],
+    } as unknown as Change);
+
+    expect(seed.tasks[0].subagent_reports?.[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+    expect(seed.subagent_reports?.[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
   });
 
   it("records task lifecycle mutations without task-run ledger state", () => {

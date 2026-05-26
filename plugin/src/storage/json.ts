@@ -8,7 +8,12 @@
 
 import { join, basename } from "path";
 import { readdir, mkdir, readFile, access, rm } from "fs/promises";
-import { SpecSchema, ChangeSchema, ProjectConfigSchema } from "../types";
+import {
+  SpecSchema,
+  ChangeSchema,
+  ProjectConfigSchema,
+  normalizePersistedSubagentReportState,
+} from "../types";
 import type { Spec, Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
 import { atomicWriteFile } from "../utils/fs";
@@ -438,7 +443,10 @@ export async function loadChange(
   try {
     const content = await readFile(changePath, "utf-8");
     const parsed = JSON.parse(content);
-    const [normalized, changed] = normalizeLegacyGateData(parsed);
+    const [gateNormalized, gateChanged] = normalizeLegacyGateData(parsed);
+    const [normalized, reportChanged] =
+      normalizePersistedSubagentReportState(gateNormalized);
+    const changed = gateChanged || reportChanged;
 
     if (changed) {
       await atomicWriteFile(changePath, JSON.stringify(normalized, null, 2));

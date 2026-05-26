@@ -6,6 +6,7 @@ import {
   DesignerSubagentReportSchema,
   EngineerSubagentReportSchema,
   getSubagentReportPacketAnchors,
+  normalizePersistedSubagentReportState,
   type PersistedSubagentReportAgent,
   ResearcherSubagentReportSchema,
   ReviewerSubagentReportSchema,
@@ -300,6 +301,53 @@ describe("Subagent report schemas", () => {
     expect(() =>
       EngineerSubagentReportSchema.parse({
         ...engineerReport,
+        required_main_agent_actions: undefined,
+      }),
+    ).toThrow();
+  });
+
+  it("normalizes legacy persisted task-scoped reports without weakening new ingest", () => {
+    const legacy = {
+      tasks: [
+        {
+          id: "tk-legacy",
+          subagent_reports: [
+            {
+              ...engineerReport,
+              task_id: "tk-legacy",
+              scope: "legacy prose scope",
+              scope_drift: undefined,
+              required_main_agent_actions: undefined,
+            },
+          ],
+        },
+      ],
+      subagent_reports: [
+        {
+          ...reviewerReport,
+          task_id: "tk-legacy",
+          scope_drift: undefined,
+          required_main_agent_actions: undefined,
+        },
+      ],
+    };
+
+    const [normalized, changed] = normalizePersistedSubagentReportState(legacy);
+    const normalizedState = normalized as typeof legacy;
+
+    expect(changed).toBe(true);
+    expect(normalizedState.tasks[0].subagent_reports[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+    expect(normalizedState.subagent_reports[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+    expect(() =>
+      EngineerSubagentReportSchema.parse({
+        ...engineerReport,
+        scope_drift: undefined,
         required_main_agent_actions: undefined,
       }),
     ).toThrow();

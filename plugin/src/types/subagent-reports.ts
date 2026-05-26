@@ -332,6 +332,88 @@ export const ScopedSubagentReportSchema = z.discriminatedUnion("agent", [
 
 export const SupportedSubagentReportSchema = TaskScopedSubagentReportSchema;
 
+const LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS = new Set<string>([
+  "adv-engineer",
+  "adv-reviewer",
+  "adv-designer",
+]);
+
+function normalizeLegacySubagentReportRow(value: unknown): [unknown, boolean] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [value, false];
+  }
+
+  const row = value as Record<string, unknown>;
+  const agent = row.agent;
+  if (
+    typeof agent !== "string" ||
+    !LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS.has(agent)
+  ) {
+    return [value, false];
+  }
+
+  let changed = false;
+  const next: Record<string, unknown> = { ...row };
+
+  if (next.scope_drift === undefined) {
+    next.scope_drift = null;
+    changed = true;
+  }
+
+  if (next.required_main_agent_actions === undefined) {
+    next.required_main_agent_actions = [];
+    changed = true;
+  }
+
+  return [changed ? next : value, changed];
+}
+
+/**
+ * Normalize legacy persisted sub-agent reports before strict whole-change
+ * parsing or workflow projection. This is intentionally NOT part of the
+ * adv_subagent_report_submit ingest schema: new malformed reports still fail
+ * strict Zod validation at the tool boundary.
+ */
+export function normalizePersistedSubagentReportState(
+  value: unknown,
+): [unknown, boolean] {
+  let changed = false;
+
+  if (Array.isArray(value)) {
+    const next = value.map((item) => {
+      const [normalized, itemChanged] = normalizePersistedSubagentReportState(item);
+      changed = changed || itemChanged;
+      return normalized;
+    });
+    return [changed ? next : value, changed];
+  }
+
+  if (!value || typeof value !== "object") {
+    return [value, false];
+  }
+
+  const out: Record<string, unknown> = {};
+
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (key === "subagent_reports" && Array.isArray(raw)) {
+      const nextReports = raw.map((report) => {
+        const [normalizedReport, reportChanged] =
+          normalizeLegacySubagentReportRow(report);
+        changed = changed || reportChanged;
+        return normalizedReport;
+      });
+      out[key] = changed ? nextReports : raw;
+      continue;
+    }
+
+    const [normalized, childChanged] = normalizePersistedSubagentReportState(raw);
+    out[key] = normalized;
+    changed = changed || childChanged;
+  }
+
+  return [changed ? out : value, changed];
+}
+
 export type PersistedSubagentReportAgent = z.infer<typeof SubagentAgentSchema>;
 
 export type SubagentReportFieldSource =
