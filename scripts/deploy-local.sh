@@ -317,6 +317,30 @@ print_diff() {
 	fi
 }
 
+# Prune old global-config backups, keeping the N most recent by mtime.
+# Honors DRY_RUN. Silent when fewer than N backups exist.
+# Called at the end of every fix_config run regardless of whether the current
+# run created a backup, so accumulated backups from prior runs are trimmed.
+prune_config_backups() {
+	local keep="${CONFIG_BACKUP_KEEP:-3}"
+	local dir base
+	dir="$(dirname "$GLOBAL_JSON")"
+	base="$(basename "$GLOBAL_JSON")"
+	# shellcheck disable=SC2012  # ls -t for mtime sort is intentional here
+	local stale
+	stale="$(ls -1t "$dir/${base}.bak."* 2>/dev/null | tail -n +$((keep + 1)))"
+	[ -z "$stale" ] && return 0
+	local count
+	count="$(echo "$stale" | wc -l | tr -d ' ')"
+	if [ "$DRY_RUN" = true ]; then
+		echo "    dry-run: would prune $count stale backup(s) (keeping $keep most recent)"
+		echo "$stale" | sed 's/^/      - /'
+	else
+		echo "$stale" | xargs --no-run-if-empty rm
+		echo "    pruned $count stale backup(s) (kept $keep most recent)"
+	fi
+}
+
 apply_overlay_block() {
 	local overlay_name="$1"
 	local target_file="$2"
@@ -897,6 +921,11 @@ fix_config() {
 		# Clean up unnecessary backup
 		[ "$DRY_RUN" = true ] || rm -f "$backup"
 	fi
+
+	# Trim accumulated backups (keeps the most recent N regardless of whether
+	# this run created one). Task tk-7fee01045bc9 will move this to all exit
+	# paths after the drift-first refactor.
+	prune_config_backups
 }
 
 # ===========================================================================
