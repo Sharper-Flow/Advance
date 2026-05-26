@@ -478,6 +478,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 TASK: {task-id} | {task-title} | type: {type} | tdd_intent: {intent}
 ATTEMPT: {attempt-number, starting at 1 for this task delegation}
+TASK_SCOPE: {one-line implementation objective}
+IN_SCOPE:
+  - {owned files/findings/contract refs for this task}
+OUT_OF_SCOPE:
+  - {boundaries, DONT/OOS refs, unrelated subsystems}
+DONE_WHEN:
+  - {task acceptance condition}
+STOP_WHEN:
+  - contract/security/release blocker, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {task-specific test/lint/typecheck command}
+  optional_additional_checks: true
 AFFECTED FILES: {file list from task description — use VERIFIED paths from Phase 0.1 path verification, not assumed paths}
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}

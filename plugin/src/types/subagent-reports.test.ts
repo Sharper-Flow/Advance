@@ -12,6 +12,7 @@ import {
   ScopedSubagentReportSchema,
   SUBAGENT_REPORT_FIELD_SOURCES,
   SUBAGENT_REPORT_PACKET_ANCHORS,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
   SubagentAgentSchema,
   TronSubagentReportSchema,
 } from "./subagent-reports";
@@ -34,7 +35,9 @@ const engineerReport = {
   ],
   decisions: [{ what: "Use Zod strict schemas", why: "P33 boundary" }],
   blockers: [],
+  scope_drift: null,
   follow_ups: [],
+  required_main_agent_actions: [],
   related_scan: "none",
   workdir_used: "/tmp/worktree",
   context_update_for_adv: {
@@ -215,6 +218,41 @@ describe("Subagent report schemas", () => {
     ).toThrow();
   });
 
+  it("requires engineer reports to capture scope drift and main-agent actions structurally", () => {
+    const parsed = EngineerSubagentReportSchema.parse({
+      ...engineerReport,
+      scope_drift: {
+        items: ["Found adjacent prompt contract gap"],
+        details:
+          "Owned schema work completed; prompt gap belongs to packet task.",
+        recommendation: "finish_owned_scope_then_report",
+      },
+      required_main_agent_actions: ["Carry prompt gap into packet task"],
+    });
+
+    expect(parsed.scope_drift).toEqual({
+      items: ["Found adjacent prompt contract gap"],
+      details:
+        "Owned schema work completed; prompt gap belongs to packet task.",
+      recommendation: "finish_owned_scope_then_report",
+    });
+    expect(parsed.required_main_agent_actions).toEqual([
+      "Carry prompt gap into packet task",
+    ]);
+    expect(() =>
+      EngineerSubagentReportSchema.parse({
+        ...engineerReport,
+        scope_drift: undefined,
+      }),
+    ).toThrow();
+    expect(() =>
+      EngineerSubagentReportSchema.parse({
+        ...engineerReport,
+        required_main_agent_actions: undefined,
+      }),
+    ).toThrow();
+  });
+
   it("rejects invalid agent/scope pairings structurally", () => {
     expect(() =>
       ScopedSubagentReportSchema.parse({
@@ -318,6 +356,23 @@ describe("Subagent report schemas", () => {
         "SCOPE KEY",
         "WORKING DIRECTORY",
       ]);
+    });
+
+    it("keeps new scope/done/stop/verification packet anchors warn-first and separate from strict identity", () => {
+      expect(SUBAGENT_WARN_FIRST_PACKET_ANCHORS).toEqual([
+        "TASK_SCOPE",
+        "IN_SCOPE",
+        "OUT_OF_SCOPE",
+        "DONE_WHEN",
+        "STOP_WHEN",
+        "VERIFICATION",
+      ]);
+
+      for (const agent of SubagentAgentSchema.options) {
+        expect(getSubagentReportPacketAnchors(agent)).not.toEqual(
+          expect.arrayContaining([...SUBAGENT_WARN_FIRST_PACKET_ANCHORS]),
+        );
+      }
     });
   });
 });

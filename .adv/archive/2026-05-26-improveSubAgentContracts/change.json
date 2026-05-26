@@ -1,0 +1,946 @@
+{
+  "id": "improveSubAgentContracts",
+  "title": "Improve sub-agent contracts",
+  "status": "archived",
+  "created_at": "2026-05-26T03:04:52.376Z",
+  "tasks": [
+    {
+      "id": "tk-fe62a95c44fd",
+      "title": "Extend sub-agent report schema and report-tool typing",
+      "type": "code",
+      "section": "Schema / Tooling",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-26T04:37:43.207Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T04:40:00.978Z",
+      "verification": "RED: pnpm exec vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts failed before implementation (string report schema accepted; engineer fields unrecognized). GREEN: pnpm exec vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts exitCode 0 (35 tests passed). FORMAT: pnpm exec prettier --check src/types/subagent-reports.ts src/types/subagent-reports.test.ts src/tools/subagent-report.ts src/tools/subagent-report.test.ts exitCode 0. TYPECHECK: pnpm run typecheck exitCode 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "da349bad16fcc34bbb7c26e921e24b788c926e22",
+      "completedAt": "2026-05-26T04:44:57.840Z",
+      "completed_at": "2026-05-26T04:44:57.840Z"
+    },
+    {
+      "id": "tk-4748faeb813b",
+      "title": "Add packet-scope specs and asset-test contract coverage",
+      "type": "code",
+      "section": "Specs / Asset Tests",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-26T04:37:55.011Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fe62a95c44fd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T04:45:19.706Z",
+      "verification": "RED: pnpm exec vitest run src/types/subagent-reports.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts failed before spec/matrix updates (missing TASK_SCOPE warn-first law and warn_packet_anchors). GREEN: same vitest command exitCode 0 (52 tests passed). FORMAT: pnpm exec prettier --check src/types/subagent-reports.ts src/types/subagent-reports.test.ts src/types/index.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts exitCode 0. TYPECHECK: pnpm run typecheck exitCode 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/delegation-defaults/spec.json",
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/delegation-matrix.test.ts",
+        "plugin/src/subagent-reports-spec-assets.test.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "5b33d10f8a7317c6f4f2f7863bc9b1e97d4d6388",
+      "completedAt": "2026-05-26T04:51:31.898Z",
+      "completed_at": "2026-05-26T04:51:31.898Z"
+    },
+    {
+      "id": "tk-194b4d798da5",
+      "title": "Update worker prompts and command packet templates",
+      "type": "code",
+      "section": "Prompts / Command Packets",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-26T04:38:06.955Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4748faeb813b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T04:51:44.599Z",
+      "verification": "RED: pnpm exec vitest run src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/optimized-handoff-assets.test.ts failed before prompt/template updates (missing TASK_SCOPE and related warn-first anchors). GREEN: pnpm exec vitest run src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/optimized-handoff-assets.test.ts src/types/subagent-reports.test.ts src/subagent-reports-spec-assets.test.ts src/delegation-matrix.test.ts exitCode 0 (166 tests passed). FORMAT: pnpm exec prettier --check src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/optimized-handoff-assets.test.ts exitCode 0. TYPECHECK: pnpm run typecheck exitCode 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-tron.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-design.md",
+        ".opencode/command/adv-discover.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-tron.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/optimized-handoff-assets.test.ts"
+      ],
+      "checkpointSha": "6e4093ca3cc3595cd1607b265587e4e738c00a59",
+      "completedAt": "2026-05-26T04:57:16.132Z",
+      "completed_at": "2026-05-26T04:57:16.132Z"
+    },
+    {
+      "id": "tk-4d81593fe27a",
+      "title": "Run contract-wide verification and compatibility hardening",
+      "type": "code",
+      "section": "Verification / Hardening",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-26T04:38:17.074Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fe62a95c44fd"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4748faeb813b"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-194b4d798da5"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T04:57:30.054Z",
+      "verification": "HARDEN DOC FIX: adv-reviewer harden found docs/agent-tool-contracts.md dirty after applying in-scope documentation hygiene update. TARGETED: pnpm exec vitest run src/agent-tool-contracts-assets.test.ts exitCode 0. FORMAT: pnpm exec prettier --check ../docs/agent-tool-contracts.md exitCode 0 after formatting. Change aligns durable contract checklist with new scope/done/stop/verification anchors.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/agent-tool-contracts.md"
+      ],
+      "touched_files": [
+        "docs/agent-tool-contracts.md"
+      ],
+      "checkpointSha": "fe0e6b0ab2813dfd1a01e389e613be9ed7d6cb18",
+      "completedAt": "2026-05-26T05:19:34.266Z",
+      "completed_at": "2026-05-26T05:19:34.266Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "improveSubAgentContracts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveSubAgentContracts",
+          "task_id": "tk-4d81593fe27a",
+          "scope": "12-dimension acceptance review of complete improveSubAgentContracts diff: sub-agent schemas, report tool typing, packet specs/assets, prompts/templates, and verification fixtures",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "consistency-praise-1",
+              "label": "praise",
+              "file": "plugin/src/subagent-reports-spec-assets.test.ts",
+              "line": 137,
+              "what": "Asset tests explicitly separate strict identity anchors from warn-first scope/done/stop/verification anchors.",
+              "why": "This directly protects AC3/AC6/C5 compatibility while making the new packet contract testable."
+            },
+            {
+              "id": "tests-praise-1",
+              "label": "praise",
+              "file": "plugin/src/tools/subagent-report.test.ts",
+              "line": 452,
+              "what": "Report tool schema now rejects string-serialized report payloads at the argument boundary.",
+              "why": "This is the key structural guard for AC8 and prevents MCP/schema drift from silently degrading typed report transport."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git diff --check 6df132b3d48197dd80c0dac4f0eff8d056e1d4e0...HEAD",
+              "pnpm exec vitest run --maxWorkers=4 src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/subagent-reports-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/optimized-handoff-assets.test.ts src/delegation-matrix.test.ts src/temporal/messages.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Reviewed 23 changed files across schemas, report submit tool, specs, command packet templates, agent prompts, and fixture/asset tests. 12 dimensions checked: design, functionality, complexity, tests, naming, comments, style, documentation, security, performance, error handling, consistency. git diff --check exit 0. Targeted contract asset/schema/tool/message tests passed: 8 test files, 182 tests."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check 6df132b3d48197dd80c0dac4f0eff8d056e1d4e0...HEAD"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run --maxWorkers=4 src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/subagent-reports-spec-assets.test.ts src/adv-engineer-assets.test.ts src/adv-reviewer-asset.test.ts src/optimized-handoff-assets.test.ts src/delegation-matrix.test.ts src/temporal/messages.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "improveSubAgentContracts",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveSubAgentContracts",
+          "task_id": "tk-4d81593fe27a",
+          "scope": "release readiness review for changed sub-agent contract files across 6 harden scanner dimensions",
+          "agent": "adv-reviewer",
+          "phase": "harden",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "deployment-readiness-1",
+              "label": "blocker",
+              "file": "docs/agent-tool-contracts.md",
+              "line": 7,
+              "what": "Worktree is not clean: docs/agent-tool-contracts.md has uncommitted release-relevant documentation changes after checkpoint 0ed132b.",
+              "why": "Release/archive readiness depends on a clean, intentional worktree. This doc change appears in-scope and useful, but it is not included in the checkpointed branch diff and must not be silently dropped or shipped as an untracked local state.",
+              "fix": "Main agent must either commit/include this documentation change or intentionally revert it, then confirm git status --porcelain is empty before release."
+            }
+          ],
+          "nonblocking_findings": [
+            {
+              "id": "test-coverage-praise-1",
+              "label": "praise",
+              "file": "plugin/src/types/subagent-reports.test.ts",
+              "line": 1,
+              "what": "Schema and packet-anchor changes are covered by focused asset/schema tests plus full-suite evidence.",
+              "why": "Existing evidence shows pnpm run check, pnpm exec vitest run --maxWorkers=4, and pnpm run build all passed; task verification also records targeted fixture remediation and rerun."
+            },
+            {
+              "id": "production-readiness-praise-1",
+              "label": "praise",
+              "file": "plugin/src/tools/subagent-report.ts",
+              "line": 531,
+              "what": "Report tool now exposes a structured ScopedSubagentReportSchema argument rather than z.unknown().",
+              "why": "This structurally hardens object payload typing and directly supports AC8 without weakening INVALID_REPORT validation."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git status --porcelain",
+              "git diff --check 6df132b3d48197dd80c0dac4f0eff8d056e1d4e0..HEAD",
+              "git diff --check HEAD -- docs/agent-tool-contracts.md",
+              "adv_gate_status improveSubAgentContracts",
+              "adv_task_show tk-4d81593fe27a"
+            ],
+            "results": "fail",
+            "evidence": "No new code edits. Six scanners checked by diff/read/static evidence. Test coverage: task evidence cites pnpm run check exitCode 0, full pnpm exec vitest run --maxWorkers=4 exitCode 0 after fixture remediation, and pnpm run build exitCode 0. AI-slop/cleanup: git diff --check passed for committed branch diff and dirty doc diff; risky-token diff scans found no TODO/FIXME/HACK/debug/type-evasion additions in committed or dirty diff. Doc hygiene/deployment readiness: git status --porcelain returned ` M docs/agent-tool-contracts.md`, contradicting clean-release preflight and blocking release until resolved. Production readiness: schema/tool changes are structural Zod-backed contract hardening; no additional blocker found."
+          },
+          "scope_drift": null,
+          "risks": [
+            "docs/agent-tool-contracts.md dirty change appears contract-relevant and should probably be included, but reviewer did not commit or revert because that release packaging decision belongs to main agent."
+          ],
+          "required_main_agent_actions": [
+            "Resolve dirty worktree before release: commit/include docs/agent-tool-contracts.md if intended, or revert it if not intended.",
+            "After resolving dirty docs, rerun git status --porcelain and confirm empty; rerun targeted docs/contract checks only if the doc content changes materially.",
+            "Then continue release gate; existing full verification evidence remains acceptable unless the dirty doc resolution changes source/test behavior."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --porcelain"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check 6df132b3d48197dd80c0dac4f0eff8d056e1d4e0..HEAD"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git diff --check HEAD -- docs/agent-tool-contracts.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: adv_gate_status improveSubAgentContracts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: adv_task_show tk-4d81593fe27a"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "improveSubAgentContracts",
+          "attempt": 4,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveSubAgentContracts",
+          "task_id": "tk-4d81593fe27a",
+          "scope": "Release hardening re-check for agent-tool-contracts docs inclusion, asset coverage, formatting, and worktree cleanliness",
+          "agent": "adv-reviewer",
+          "phase": "harden",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git status --short",
+              "pnpm --dir plugin exec vitest run src/agent-tool-contracts-assets.test.ts",
+              "pnpm --dir plugin exec prettier --check ../docs/agent-tool-contracts.md"
+            ],
+            "results": "pass",
+            "evidence": "Path preflight passed for docs/agent-tool-contracts.md, plugin/src/agent-tool-contracts-assets.test.ts, and plugin/package.json. git status --short produced no output. Vitest asset test passed: 1 file, 4 tests, exit 0. Prettier check passed: All matched files use Prettier code style."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [
+            "Release hardening re-check is READY; proceed with release gate acceptance evidence/next orchestrator step.",
+            "No blocker/high finding remains from release-hardening-doc-clean; no reviewer remediation needed."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: git status --short"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/agent-tool-contracts-assets.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec prettier --check ../docs/agent-tool-contracts.md"
+            }
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": "docs/agent-tool-contracts.md :7 Worktree is not clean: docs/agent-tool-contracts.md has uncommitted release-relevant documentation changes after checkpoint 0ed132b.",
+        "retry_count": 3,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 3,
+            "error": "docs/agent-tool-contracts.md :7 Worktree is not clean: docs/agent-tool-contracts.md has uncommitted release-relevant documentation changes after checkpoint 0ed132b.",
+            "diagnosis": "Release/archive readiness depends on a clean, intentional worktree. This doc change appears in-scope and useful, but it is not included in the checkpointed branch diff and must not be silently dropped or shipped as an untracked local state.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-05-26T05:18:17.408Z"
+          }
+        ]
+      }
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-26T03:07:21.144Z",
+      "completed_by": "agent",
+      "approval_evidence": "User agreed with transcript analysis and requested proposal creation: 'agree, create proposal'. Proposal includes problem, scope, success criteria, failure handling, proposed direction, and non-goals.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/proposal.md",
+        "content_hash": "96accfaf0b753a864dec9d8ea1ca631e73fdc508a899ed51d9bc3ad6e111bc52",
+        "non_whitespace_chars": 2439,
+        "checked_at": "2026-05-26T03:07:21.195Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-26T04:28:24.525Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery findings recorded; user answered required scope/rollout/verification questions and approved AC with `approve`. agreement.md persisted and contract minted with 18 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/agreement.md",
+        "content_hash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "non_whitespace_chars": 3224,
+        "checked_at": "2026-05-26T04:28:24.581Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-26T04:36:51.360Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact recorded. Leverage scout and independent validator both returned VALIDATED with non-blocking recommendations incorporated: warn-first rollout exit criterion and canonical anchor-ordering tests. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/design.md",
+        "content_hash": "e439ee3cf1fc0876a572b1946d6f7c574e11816dc98f36a5fd78ef20e8e96089",
+        "non_whitespace_chars": 8737,
+        "checked_at": "2026-05-26T04:36:51.412Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-26T04:39:38.226Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision with `approve`. Task graph contains 4 tasks with contract refs, TDD intent, dependencies, and verification task. Validation passed with warning only: no spec deltas recorded yet."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-26T05:01:50.356Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete: all 4 planned tasks done with checkpoint commits da349bad, 5b33d10, 6e4093c, 0ed132b. Verification evidence includes pnpm run check exitCode 0, pnpm exec vitest run --maxWorkers=4 exitCode 0 after fixture remediation, pnpm run build exitCode 0, targeted asset/schema/tool tests passing, and clean worktree."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-26T05:11:54.786Z",
+      "completed_by": "user:accept",
+      "approval_evidence": "User accepted delivered work with reply `accept`. Acceptance proof exists: executive-summary.md persisted, independent reviewer READY, contract.reviewMatrix rowCount 18 failingRows 0, preview URL not_applicable, full check/test/build passed.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/acceptance.md",
+        "content_hash": "d9b67386659cca045b57af03abf4c96b8ef2cb16f006d2d969d49c0f90388e4e",
+        "non_whitespace_chars": 4553,
+        "checked_at": "2026-05-26T05:11:54.899Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+      "approvedAt": "2026-05-26T04:15:00.000Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Worker packets include first-class scope anchors: `TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, and `VERIFICATION`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Engineer reports structurally capture `scope_drift` and `required_main_agent_actions`, not only prose `follow_ups`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Legacy packets warn first during rollout; strict failure remains for identity anchors (`CHANGE`, `TASK`, `PHASE`, `ATTEMPT`, `WORKING DIRECTORY`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Out-of-scope findings use “finish owned scope if safe, then report” by default; stop immediately only for contract/security/release blockers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Verification commands are required when possible; workers may add extra checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Asset/schema/spec tests prove schema ↔ packet ↔ prompt alignment for identity, scope, done, stop, and verification anchors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Scanner lanes remain non-persisted; only orchestrator-submitted scanner bundles use `adv_subagent_report_submit`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`adv_subagent_report_submit` report tool typing is checked so object payloads are not string-serialized by MCP/schema drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken `INVALID_REPORT` validation for required identity fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not infer missing `task_id`, `phase`, `attempt`, `change_id`, or `workdir_used` heuristically for persistence correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep worker and scanner transport lanes distinct.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Use structural mechanisms first: Zod schemas, packet builders/anchors, asset tests, specs, and command/prompt checks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Preserve backward compatibility for existing/legacy packets where possible by warning first for newly-added non-identity anchors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "No nested sub-agent delegation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make sub-agents discover their own ADV task IDs from global state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not rely on final-message fenced JSON as ADV worker report transport.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not make explore/scanner lanes call `adv_subagent_report_submit` directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not expand into unrelated sub-agent quality or model-routing refactors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "656c80c2f862ff59826425b54cc99e458f499545dce79f81a25fa6ff1cb7bb53",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-26T05:03:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Asset tests verify TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, VERIFICATION in worker prompts/packets. Combined asset/schema test suite exitCode 0 (166 tests).",
+          "notes": "Covers adv-engineer, adv-reviewer, adv-researcher, adv-tron, and command packets."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "EngineerSubagentReportSchema now requires scope_drift and required_main_agent_actions; schema/tool tests pass (35 tests).",
+          "notes": "Engineer prompt payload and examples updated; examples parse through Zod."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "SUBAGENT_WARN_FIRST_PACKET_ANCHORS is separate from strict identity anchors; delegation-defaults uses warn_packet_anchors. Relevant schema/spec/matrix tests pass.",
+          "notes": "Identity anchors remain strict and schema-backed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specs and prompts document finish owned scope if safe, then report; stop immediately for contract/security/release blockers. Asset tests assert prompt/spec coverage.",
+          "notes": "Reviewer drift guidance updated accordingly."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Worker packets include VERIFICATION sections with required_when_possible commands and optional_additional_checks. Full check, full tests, and build passed.",
+          "notes": "Workers may add relevant checks."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Schema/spec/asset alignment pinned by tests across subagent-reports, delegation-matrix, engineer/reviewer/optimized-handoff assets. Full vitest --maxWorkers=4 exitCode 0.",
+          "notes": "Includes identity, scope, done, stop, verification anchors."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Specs and asset tests verify scanner packets are explore-only and do not ask scanners to call adv_subagent_report_submit; scanner bundles remain orchestrator-submitted only.",
+          "notes": "Scanner lanes stay non-persisted."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_subagent_report_submit args.report uses ScopedSubagentReportSchema; tests reject JSON-stringified payloads with INVALID_REPORT.",
+          "notes": "Prevents z.unknown string-serialization drift."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ScopedSubagentReportSchema remains strict; parseReport still returns INVALID_REPORT on malformed payloads. Tests cover missing/invalid fields and scope pairings.",
+          "notes": "No weakening of identity validation."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No code infers missing task_id, phase, attempt, change_id, or workdir_used for persistence. Prompts forbid asking user or inferring identity values.",
+          "notes": "Packet identity remains orchestrator-owned."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "delegation-defaults and asset tests keep typed_persisted_worker vs non_persisted_scanner contracts separate.",
+          "notes": "Scanner bundles remain orchestrator-submitted only."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation uses Zod schemas, exported anchor constants, specs, matrix fields, and tests. pnpm run check, full tests, and build passed.",
+          "notes": "No heuristic-only correctness path added."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "New non-identity anchors are warn-first constants/matrix fields; strict identity anchors remain separate and tested.",
+          "notes": "Warn-first rollout preserved."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Agent prompts continue to forbid nested delegation; asset tests pin this. No nested spawning added.",
+          "notes": "No nested delegation introduced."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Worker prompts copy identity from packet anchors and treat missing identity as packet defects; no worker discovers ADV task IDs from global state.",
+          "notes": "Packet IDs remain orchestrator-owned."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompts/specs require adv_subagent_report_submit tool-call transport and explicitly reject fenced JSON/sentinel transport.",
+          "notes": "Code blocks are examples only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Review/harden scanner packets stay explore-only and exclude adv_subagent_report_submit; asset/spec tests verify scanner isolation.",
+          "notes": "Only SCANNER_BUNDLE_REPORT is orchestrator-submitted."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched scope was limited to sub-agent contracts: schemas/tool tests, specs, agent prompts, command packets, and fixtures. No unrelated refactors.",
+          "notes": "Broad packet-renderer rewrite deferred."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Worker packets include first-class scope anchors: `TASK_SCOPE`, `IN_SCOPE`, `OUT_OF_SCOPE`, `DONE_WHEN`, `STOP_WHEN`, and `VERIFICATION`.",
+    "Engineer reports structurally capture `scope_drift` and `required_main_agent_actions`, not only prose `follow_ups`.",
+    "Legacy packets warn first during rollout; strict failure remains for identity anchors (`CHANGE`, `TASK`, `PHASE`, `ATTEMPT`, `WORKING DIRECTORY`).",
+    "Out-of-scope findings use “finish owned scope if safe, then report” by default; stop immediately only for contract/security/release blockers.",
+    "Verification commands are required when possible; workers may add extra checks.",
+    "Asset/schema/spec tests prove schema ↔ packet ↔ prompt alignment for identity, scope, done, stop, and verification anchors.",
+    "Scanner lanes remain non-persisted; only orchestrator-submitted scanner bundles use `adv_subagent_report_submit`.",
+    "`adv_subagent_report_submit` report tool typing is checked so object payloads are not string-serialized by MCP/schema drift."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/proposal.md",
+      "updatedAt": "2026-05-26T04:15:11.147Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/agreement.md",
+      "updatedAt": "2026-05-26T04:28:06.613Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/design.md",
+      "updatedAt": "2026-05-26T04:36:45.927Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveSubAgentContracts/executive-summary.md",
+      "updatedAt": "2026-05-26T05:06:24.891Z"
+    }
+  },
+  "lastSignalAt": "2026-05-26T05:20:45.326Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-26T03:05:30.624Z",
+      "resolved": true,
+      "resolved_at": "2026-05-26T04:07:01.025Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

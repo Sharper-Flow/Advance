@@ -38,6 +38,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id-or-none} | {title-or-ad-hoc}
 SCOPE KEY: tron:{target-slug}
 ATTEMPT: {attempt-number, starting at 1 for this Tron worker}
+TASK_SCOPE: reconnaissance target and mode ({broad|scoped})
+IN_SCOPE:
+  - {repo areas, files, symbols, or architecture questions to inspect}
+OUT_OF_SCOPE:
+  - writes, ADV orchestration mutations, unrelated subsystems, agenda creation
+DONE_WHEN:
+  - bounded findings cite file evidence or state no evidence found
+STOP_WHEN:
+  - target cannot be resolved, evidence contradicts packet scope, or contract/security/release blocker appears
+VERIFICATION:
+  required_when_possible:
+    - cite file:line evidence for each material finding
+  optional_additional_checks: true
 EXPECTED OUTPUT: return TRON RECONNAISSANCE REPORT and call adv_subagent_report_submit with TRON_REPORT per .opencode/agents/adv-tron.md when CHANGE is a real ADV change
 ```
 
