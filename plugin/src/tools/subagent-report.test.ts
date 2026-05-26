@@ -4,6 +4,7 @@ import type {
   Change,
   EngineerSubagentReport,
   ResearcherSubagentReport,
+  ReviewerSubagentReport,
   ScannerBundleSubagentReport,
 } from "../types";
 import type { Store } from "../storage/store-types";
@@ -124,6 +125,32 @@ function researcherReport(
     follow_ups: ["Review sidecar readback"],
     ...overrides,
   };
+}
+
+function reviewerReport(overrides: Partial<ReviewerSubagentReport> = {}) {
+  return {
+    schema_version: "1.0",
+    change_id: "change-1",
+    attempt: 1,
+    agent: "adv-reviewer",
+    scope: { kind: "change", scope_key: "review:acceptance" },
+    workdir_used: "/repo",
+    phase: "review",
+    verdict: "READY",
+    blocking_findings: [],
+    nonblocking_findings: [],
+    changes_made: [],
+    wisdom_candidates: [],
+    verification: {
+      tests_run: ["pnpm test"],
+      results: "pass",
+      evidence: "exit code 0",
+    },
+    scope_drift: null,
+    risks: [],
+    required_main_agent_actions: [],
+    ...overrides,
+  } as unknown as ReviewerSubagentReport;
 }
 
 function scannerBundleReport(
@@ -346,6 +373,57 @@ describe("subagentReportTools", () => {
         ),
       }),
     );
+  });
+
+  test("accepts change-scoped independent reviewer reports before signaling", async () => {
+    const store = storeFor(change());
+    const report = reviewerReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.reportId).toBe(
+      "change-1|change:review:acceptance|adv-reviewer|1",
+    );
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.objectContaining({
+        report: expect.objectContaining({ agent: "adv-reviewer" }),
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
+      "taskId",
+    );
+  });
+
+  test("invalid task anchors return typed actionable diagnostics without signaling", async () => {
+    const store = storeFor(change());
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport({ task_id: "tk-missing", scope: { kind: "task", task_id: "tk-missing" } }) },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(false);
+    expect(output.code).toBe("INVALID_TASK_ANCHOR");
+    expect(output.changeId).toBe("change-1");
+    expect(output.taskId).toBe("tk-missing");
+    expect(output.validTaskAnchors).toEqual([
+      { id: "tk-1", title: "Task one" },
+    ]);
+    expect(output.guidance).toEqual(expect.stringContaining("change-scoped reviewer"));
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("bounds scanner bundle follow-up agenda creation", async () => {

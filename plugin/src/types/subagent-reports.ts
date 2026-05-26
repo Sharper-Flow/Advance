@@ -26,7 +26,9 @@ export type SubagentAgent = z.infer<typeof SubagentAgentSchema>;
 export const ChangeReportScopeKeySchema = z
   .string()
   .min(1)
-  .regex(/^(researcher|tron|scanner-bundle):[a-z0-9][a-z0-9-]*$/u);
+  .regex(
+    /^(?:(researcher|tron|scanner-bundle):[a-z0-9][a-z0-9-]*|review:acceptance|harden:release)$/u,
+  );
 
 export const TaskSubagentReportScopeSchema = z
   .object({
@@ -215,34 +217,39 @@ export const ReviewerChangeMadeSchema = z
   })
   .strict();
 
-export const ReviewerSubagentReportSchema =
-  TaskScopedBaseSubagentReportSchema.extend({
-    agent: z.literal("adv-reviewer"),
-    phase: z.enum(["review", "harden"]),
-    verdict: z.enum(["READY", "NEEDS_WORK", "BLOCKED", "CONFLICT"]),
-    blocking_findings: z.array(ReviewerFindingSchema),
-    nonblocking_findings: z.array(ReviewerFindingSchema),
-    changes_made: z.array(ReviewerChangeMadeSchema),
-    wisdom_candidates: z.array(
-      z
-        .object({
-          type: WisdomTypeSchema,
-          content: z.string().min(1).max(2000),
-        })
-        .strict(),
-    ),
-    verification: z
+const ReviewerReportFields = {
+  agent: z.literal("adv-reviewer"),
+  phase: z.enum(["review", "harden"]),
+  verdict: z.enum(["READY", "NEEDS_WORK", "BLOCKED", "CONFLICT"]),
+  blocking_findings: z.array(ReviewerFindingSchema),
+  nonblocking_findings: z.array(ReviewerFindingSchema),
+  changes_made: z.array(ReviewerChangeMadeSchema),
+  wisdom_candidates: z.array(
+    z
       .object({
-        tests_run: z.array(z.string().min(1)),
-        results: z.enum(["pass", "fail", "n/a"]),
-        evidence: z.string().min(1),
+        type: WisdomTypeSchema,
+        content: z.string().min(1).max(2000),
       })
       .strict(),
-    scope_drift: ReviewerScopeDriftSchema.nullable(),
-    risks: z.array(z.string().min(1)),
-    required_main_agent_actions: z.array(z.string().min(1)),
-    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  ),
+  verification: z
+    .object({
+      tests_run: z.array(z.string().min(1)),
+      results: z.enum(["pass", "fail", "n/a"]),
+      evidence: z.string().min(1),
+    })
+    .strict(),
+  scope_drift: ReviewerScopeDriftSchema.nullable(),
+  risks: z.array(z.string().min(1)),
+  required_main_agent_actions: z.array(z.string().min(1)),
+  consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+};
+
+export const ReviewerSubagentReportSchema =
+  TaskScopedBaseSubagentReportSchema.extend(ReviewerReportFields).strict();
+
+export const ChangeScopedReviewerSubagentReportSchema =
+  ChangeScopedBaseSubagentReportSchema.extend(ReviewerReportFields).strict();
 
 export const SubagentSourceReferenceSchema = z
   .object({
@@ -321,9 +328,10 @@ export const TaskScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   DesignerSubagentReportSchema,
 ]);
 
-export const ScopedSubagentReportSchema = z.discriminatedUnion("agent", [
+export const ScopedSubagentReportSchema = z.union([
   EngineerSubagentReportSchema,
   ReviewerSubagentReportSchema,
+  ChangeScopedReviewerSubagentReportSchema,
   DesignerSubagentReportSchema,
   ResearcherSubagentReportSchema,
   TronSubagentReportSchema,
@@ -586,6 +594,9 @@ export type EngineerSubagentReport = z.infer<
 >;
 export type ReviewerSubagentReport = z.infer<
   typeof ReviewerSubagentReportSchema
+>;
+export type ChangeScopedReviewerSubagentReport = z.infer<
+  typeof ChangeScopedReviewerSubagentReportSchema
 >;
 export type DesignerSubagentReport = z.infer<
   typeof DesignerSubagentReportSchema

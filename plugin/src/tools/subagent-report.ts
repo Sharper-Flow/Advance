@@ -98,13 +98,38 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
   return result.data;
 }
 
-function getTaskOrError(change: Change, taskId: string): Task {
+function findTask(change: Change, taskId: string): Task | undefined {
   const task = (change.tasks ?? []).find(
     (candidate) => candidate.id === taskId,
   );
-  if (!task)
-    throw new Error(`Task not found in change ${change.id}: ${taskId}`);
   return task;
+}
+
+function invalidTaskAnchorOutput(input: {
+  change: Change;
+  taskId: string;
+  report: ScopedSubagentReport;
+  projectContext?: TargetProjectOutputContext;
+}): string {
+  return appendProjectContext(
+    formatToolOutput({
+      success: false,
+      error:
+        "Task-scoped sub-agent report references a task that does not exist in this change",
+      code: "INVALID_TASK_ANCHOR",
+      changeId: input.change.id,
+      taskId: input.taskId,
+      agent: input.report.agent,
+      attempt: input.report.attempt,
+      validTaskAnchors: (input.change.tasks ?? []).map((task) => ({
+        id: task.id,
+        title: task.title,
+      })),
+      guidance:
+        "Task-scoped reports must use an existing ADV task ID. Independent review/harden reports must use the change-scoped reviewer variant. Scanner lanes must not call adv_subagent_report_submit directly.",
+    }),
+    input.projectContext,
+  );
 }
 
 function parseReport(
@@ -436,7 +461,15 @@ async function executeSubmit(
 
   const change = await loadChange(store, parsedReport.report.change_id);
   const taskId = reportTaskId(parsedReport.report);
-  const task = taskId ? getTaskOrError(change, taskId) : undefined;
+  const task = taskId ? findTask(change, taskId) : undefined;
+  if (taskId && !task) {
+    return invalidTaskAnchorOutput({
+      change,
+      taskId,
+      report: parsedReport.report,
+      projectContext,
+    });
+  }
   const id = reportId(parsedReport.report);
 
   if (

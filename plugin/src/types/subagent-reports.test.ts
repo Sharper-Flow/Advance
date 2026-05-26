@@ -243,6 +243,21 @@ describe("Subagent report schemas", () => {
     expect(parsedReviewer.phase).toBe("review");
   });
 
+  it("parses change-scoped independent reviewer reports", () => {
+    const { task_id: _taskId, ...changeScopedReviewerReport } = reviewerReport;
+    const parsed = ScopedSubagentReportSchema.parse({
+      ...changeScopedReviewerReport,
+      scope: { kind: "change", scope_key: "review:acceptance" },
+    });
+
+    expect(parsed.agent).toBe("adv-reviewer");
+    expect(parsed.scope).toEqual({
+      kind: "change",
+      scope_key: "review:acceptance",
+    });
+    expect("task_id" in parsed).toBe(false);
+  });
+
   it("parses strict change-scoped optimized handoff reports", () => {
     expect(ResearcherSubagentReportSchema.parse(researcherReport).agent).toBe(
       "adv-researcher",
@@ -394,6 +409,12 @@ describe("Subagent report schemas", () => {
     );
     expect(ChangeReportScopeKeySchema.parse("scanner-bundle:harden")).toBe(
       "scanner-bundle:harden",
+    );
+    expect(ChangeReportScopeKeySchema.parse("review:acceptance")).toBe(
+      "review:acceptance",
+    );
+    expect(ChangeReportScopeKeySchema.parse("harden:release")).toBe(
+      "harden:release",
     );
     expect(() => ChangeReportScopeKeySchema.parse("freeform")).toThrow();
   });
