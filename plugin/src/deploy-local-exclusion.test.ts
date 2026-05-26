@@ -85,4 +85,18 @@ describe("deploy-local.sh exclusion lists", () => {
     expect(list).not.toContain("adv-engineer.md");
     expect(list).not.toContain("adv-researcher.md");
   });
+
+  test("REPO_LOCAL_ONLY does NOT contain adv-designer.md", () => {
+    // adv-designer is a bundled global apply-phase frontend worker — it must
+    // deploy via the standard loop alongside adv-engineer / adv-reviewer.
+    const list = extractList(script, "REPO_LOCAL_ONLY");
+    expect(list).not.toBeNull();
+    expect(list).not.toContain("adv-designer.md");
+  });
+
+  test("SHARED_OVERLAY_ONLY does NOT contain adv-designer.md", () => {
+    const list = extractList(script, "SHARED_OVERLAY_ONLY");
+    expect(list).not.toBeNull();
+    expect(list).not.toContain("adv-designer.md");
+  });
 });

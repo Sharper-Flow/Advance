@@ -63,6 +63,7 @@ const GLOBAL_AGENTS = new Set(["explore", "general"]);
 const KNOWN_SPAWNABLE_SUBAGENTS = [
   "adv-engineer",
   "adv-reviewer",
+  "adv-designer",
   "adv-researcher",
   "adv-tron",
   "explore",
@@ -487,6 +488,14 @@ describe("delegation matrix coverage", () => {
       [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
     );
     expectPacketContract(
+      rows.apply,
+      "Frontend Implementation",
+      "adv-designer",
+      "typed_persisted_worker",
+      ["WORKING DIRECTORY", "CHANGE", "TASK", "ATTEMPT"],
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+    );
+    expectPacketContract(
       rows.review,
       "Scoped Evidence Scan",
       "explore",
@@ -591,7 +600,9 @@ describe("delegation matrix coverage", () => {
     );
     expect(agentMap.discovery).toEqual(new Set(["adv-researcher", "explore"]));
     expect(agentMap.design).toEqual(new Set(["adv-researcher"]));
-    expect(agentMap.apply).toEqual(new Set(["adv-engineer", "general"]));
+    expect(agentMap.apply).toEqual(
+      new Set(["adv-engineer", "adv-designer", "general"]),
+    );
     expect(agentMap.review).toEqual(
       new Set(["adv-reviewer", "adv-engineer", "adv-researcher", "explore"]),
     );
@@ -618,6 +629,7 @@ describe("delegation matrix coverage", () => {
     for (const agent of [
       "adv-engineer",
       "adv-reviewer",
+      "adv-designer",
       "adv-researcher",
       "adv-tron",
     ]) {

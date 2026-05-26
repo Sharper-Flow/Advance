@@ -95,7 +95,7 @@ function buildPatterns(name: string): PatternSpec[] {
     {
       kind: "plus-routing",
       pattern: new RegExp(
-        "(?:\\b(?:explore|general|adv-engineer|adv-reviewer|adv-researcher|adv-tron)\\b\\s*\\+\\s*`?" +
+        "(?:\\b(?:explore|general|adv-engineer|adv-reviewer|adv-designer|adv-researcher|adv-tron)\\b\\s*\\+\\s*`?" +
           name +
           "`?" +
           notCompound +
@@ -103,7 +103,7 @@ function buildPatterns(name: string): PatternSpec[] {
           name +
           "`?" +
           notCompound +
-          "\\s*\\+\\s*\\b(?:explore|general|adv-engineer|adv-reviewer|adv-researcher|adv-tron)\\b)",
+          "\\s*\\+\\s*\\b(?:explore|general|adv-engineer|adv-reviewer|adv-designer|adv-researcher|adv-tron)\\b)",
         "gi",
       ),
     },
