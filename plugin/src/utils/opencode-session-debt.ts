@@ -34,6 +34,8 @@ export interface ToolPartRow extends SessionDebtLivenessRow {
   tool: string;
   call_id: string;
   status: "running" | "pending";
+  child_session_id?: string;
+  child_session_updated_ms?: number;
 }
 
 export interface ClassifiedBlankAssistantRow extends BlankAssistantRow {
@@ -166,8 +168,12 @@ export const STALE_TOOL_PART_ROWS_SQL = `
     p.time_updated AS updated_ms,
     json_extract(p.data, '$.tool') AS tool,
     json_extract(p.data, '$.callID') AS call_id,
-    json_extract(p.data, '$.state.status') AS status
+    json_extract(p.data, '$.state.status') AS status,
+    json_extract(p.data, '$.state.metadata.sessionId') AS child_session_id,
+    child.time_updated AS child_session_updated_ms
   FROM part p
+  LEFT JOIN session child
+    ON child.id = json_extract(p.data, '$.state.metadata.sessionId')
   WHERE json_extract(p.data, '$.type') = 'tool'
     AND json_extract(p.data, '$.state.status') IN ('running', 'pending')
   ORDER BY p.time_updated DESC
@@ -313,6 +319,12 @@ export function classifyToolPartRows(
     };
     const liveness = options.resolveSessionLiveness?.(row);
 
+    if (isLiveTaskToolWait(row, nowMs, thresholdMs)) {
+      result.total_live_tool_parts += 1;
+      pushSample(result.live_tool_parts, classified, sampleLimit);
+      continue;
+    }
+
     // Tool parts require both stale age and orphan liveness before repair.
     // Young orphan-looking rows can be produced while a live runner is still
     // creating DB rows, so age is a safety gate for tool repair.
@@ -331,6 +343,21 @@ export function classifyToolPartRows(
   }
 
   return result;
+}
+
+function isLiveTaskToolWait(
+  row: ToolPartRow,
+  nowMs: number,
+  thresholdMs: number,
+): boolean {
+  if (row.tool !== "task") return false;
+  if (!row.child_session_id) return false;
+  const childUpdatedMs = row.child_session_updated_ms;
+  return (
+    childUpdatedMs !== undefined &&
+    Number.isFinite(childUpdatedMs) &&
+    nowMs - childUpdatedMs < thresholdMs
+  );
 }
 
 export function getDeletableBlankAssistantIds(
@@ -512,6 +539,9 @@ export function normalizeToolPartRow(row: unknown): ToolPartRow | null {
   const tool = String(candidate.tool ?? "");
   const callId = String(candidate.call_id ?? "");
   const status = String(candidate.status ?? "");
+  const childSessionId = String(candidate.child_session_id ?? "") || undefined;
+  const rawChildSessionUpdatedMs = candidate.child_session_updated_ms;
+  const childSessionUpdatedMs = Number(rawChildSessionUpdatedMs);
   if (
     !id ||
     !messageId ||
@@ -535,6 +565,14 @@ export function normalizeToolPartRow(row: unknown): ToolPartRow | null {
     tool,
     call_id: callId,
     status,
+    child_session_id: childSessionId,
+    child_session_updated_ms:
+      rawChildSessionUpdatedMs !== null &&
+      rawChildSessionUpdatedMs !== undefined &&
+      Number.isFinite(childSessionUpdatedMs) &&
+      childSessionUpdatedMs > 0
+        ? childSessionUpdatedMs
+        : undefined,
   };
 }
 

@@ -219,6 +219,48 @@ describe("opencode-session-debt", () => {
     expect(getRepairableToolPartIds(result)).toEqual(["prt-stale-orphan"]);
   });
 
+  test("keeps task tools with active child sessions out of repairable debt", () => {
+    const rows: ToolPartRow[] = [
+      {
+        id: "prt-task-waiting",
+        message_id: "msg-task-waiting",
+        session_id: "ses-stale-parent",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 10,
+        updated_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 5,
+        tool: "task",
+        call_id: "call-task-waiting",
+        status: "running",
+        child_session_id: "ses-active-child",
+        child_session_updated_ms: nowMs - 1,
+      },
+      {
+        id: "prt-task-orphan",
+        message_id: "msg-task-orphan",
+        session_id: "ses-stale-parent",
+        created_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 10,
+        updated_ms: nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 5,
+        tool: "task",
+        call_id: "call-task-orphan",
+        status: "running",
+        child_session_id: "ses-stale-child",
+        child_session_updated_ms:
+          nowMs - STALE_BLANK_ASSISTANT_THRESHOLD_MS - 5,
+      },
+    ];
+
+    const result = classifyToolPartRows(rows, {
+      nowMs,
+      resolveSessionLiveness: () => "orphan_ghost",
+    });
+
+    expect(result.live_tool_parts.map((row) => row.id)).toEqual([
+      "prt-task-waiting",
+    ]);
+    expect(result.repairable_tool_parts.map((row) => row.id)).toEqual([
+      "prt-task-orphan",
+    ]);
+  });
+
   test("keeps total repair counts separate from bounded samples", () => {
     const blankRows: BlankAssistantRow[] = Array.from(
       { length: 12 },
@@ -359,6 +401,8 @@ describe("opencode-session-debt", () => {
                 tool: "bash",
                 call_id: "call-valid",
                 status: "running",
+                child_session_id: null,
+                child_session_updated_ms: null,
               },
             ],
           };
