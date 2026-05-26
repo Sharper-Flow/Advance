@@ -1,0 +1,880 @@
+{
+  "id": "fixSubagentReportContracts",
+  "title": "Fix subagent report contracts",
+  "status": "archived",
+  "created_at": "2026-05-26T22:13:13.837Z",
+  "tasks": [
+    {
+      "id": "tk-849e0bdf3a90",
+      "title": "Update subagent-report spec law and contract tests",
+      "type": "code",
+      "section": "Spec and Contract Law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-26T22:37:48.093Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T22:44:21.397Z",
+      "verification": "RED: `pnpm test -- src/subagent-reports-spec-assets.test.ts` failed on missing rq-subagentReports10-13 and rq06 reviewer scope law (plus unrelated full-suite asset failures because script ignored args). GREEN: `pnpm exec vitest run src/subagent-reports-spec-assets.test.ts` passed: 1 file, 12 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/subagent-reports/spec.json",
+        "plugin/src/subagent-reports-spec-assets.test.ts"
+      ],
+      "checkpointSha": "0f3f0a609ac48d5a17b2bbe62643601f15649f95",
+      "completedAt": "2026-05-26T22:47:27.418Z",
+      "completed_at": "2026-05-26T22:47:27.418Z"
+    },
+    {
+      "id": "tk-60a1383e8b32",
+      "title": "Implement legacy report normalization and Temporal readback preservation",
+      "type": "code",
+      "section": "Persistence and Temporal Readback",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-26T22:39:24.324Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-849e0bdf3a90"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T22:47:48.151Z",
+      "verification": "RED: `pnpm exec vitest run src/types/subagent-reports.test.ts src/storage/store-temporal/shared.test.ts src/temporal/change-state.test.ts` failed on missing normalizer, dropped sidecar projection, and unnormalized seed. GREEN: `pnpm exec vitest run src/types/subagent-reports.test.ts src/storage/store-temporal/shared.test.ts src/temporal/change-state.test.ts src/temporal/workflow-bundle-boundary.test.ts` passed: 4 files, 51 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/store-temporal/shared.test.ts",
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "bee4eaa42404250a35acc9cb06870493ded092d2",
+      "completedAt": "2026-05-26T22:51:35.153Z",
+      "completed_at": "2026-05-26T22:51:35.153Z"
+    },
+    {
+      "id": "tk-6d1355155f76",
+      "title": "Add change-scoped reviewer report variant and invalid-anchor diagnostics",
+      "type": "code",
+      "section": "Submission Schema and Diagnostics",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-26T22:39:35.705Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-849e0bdf3a90"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "OOS1",
+          "OOS3",
+          "OOS5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T22:52:07.800Z",
+      "verification": "RED: `pnpm exec vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts` failed on unsupported reviewer change scope, review/harden scope keys, and opaque missing-task throw. GREEN: same command passed: 2 files, 43 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.test.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "c2debed62a0b9a633e9887de333319534c426477",
+      "completedAt": "2026-05-26T22:54:22.377Z",
+      "completed_at": "2026-05-26T22:54:22.377Z"
+    },
+    {
+      "id": "tk-ec41dd0a0d51",
+      "title": "Update worker packets and prompt assets to structural scope",
+      "type": "code",
+      "section": "Worker Packet Contracts",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-26T22:39:49.222Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-849e0bdf3a90"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6d1355155f76"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC4",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T22:54:49.356Z",
+      "verification": "RED: asset tests failed after adding structural-scope expectations because worker examples still used string scope. GREEN: `pnpm exec vitest run src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-reviewer-asset.test.ts` passed: 3 files, 144 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "touched_files": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts"
+      ],
+      "checkpointSha": "4d637cffc734454307ecc02a951fa9008009f104",
+      "completedAt": "2026-05-26T22:58:26.924Z",
+      "completed_at": "2026-05-26T22:58:26.924Z"
+    },
+    {
+      "id": "tk-f9ed7b153d02",
+      "title": "Add end-to-end report submit/readback regression coverage",
+      "type": "code",
+      "section": "End-to-End Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-26T22:40:00.747Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-60a1383e8b32"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6d1355155f76"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ec41dd0a0d51"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "main_or_verify_agent"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4",
+          "OOS5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T22:58:52.391Z",
+      "verification": "Harden remediation verification passed: targeted tests `pnpm exec vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts src/storage/json.test.ts src/adv-reviewer-asset.test.ts`, `pnpm run check`, `pnpm test`, and `pnpm run build`.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/types/tasks.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-harden.md",
+        ".opencode/command/adv-review.md",
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/tools/subagent-report.test.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/subagent-reports.ts",
+        "plugin/src/types/tasks.ts"
+      ],
+      "checkpointSha": "5e18327c474bff68d1858dcb5de63fc308cbf5b6",
+      "completedAt": "2026-05-26T23:56:19.003Z",
+      "completed_at": "2026-05-26T23:56:19.003Z"
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-26T22:15:20.416Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved proposal via chat: `continue`. Proposal includes confirmed problem statement, scope, constraints, success criteria, and discovery agenda for sub-agent report contract drift.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/proposal.md",
+        "content_hash": "578ca929ea53581e18a8e1b6951a68bc5655946f5d3127d1c025b214a21bf86c",
+        "non_whitespace_chars": 7086,
+        "checked_at": "2026-05-26T22:15:20.487Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-26T22:27:00.378Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery completed after user approved acceptance criteria and agreement via chat: `approve`. Agreement persisted and contract minted with AC1-AC7, C1-C5, DONT1-DONT5, OOS1-OOS5. User decisions: persist acceptance review reliably; auto-normalize legacy readback; deprecate string scope in prompts while keeping compatibility.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/agreement.md",
+        "content_hash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "non_whitespace_chars": 3699,
+        "checked_at": "2026-05-26T22:27:00.444Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-26T22:37:13.936Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Validator returned CAUTION with minor call-site/spec asset cautions; design updated to resolve call-site ambiguity and pin reviewer scope-key strategy. No user-value tradeoff, unresolved CONFLICT, or contract-compromise risk remains.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/design.md",
+        "content_hash": "843357c96714ced54545b48e75d8de6a183930c74be23241e8f4ccdc399b7c86",
+        "non_whitespace_chars": 11941,
+        "checked_at": "2026-05-26T22:37:13.995Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-26T22:43:37.841Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep vision via chat: `approve`. Task graph has 5 tasks with dependencies and TDD intent; strict validation passed with one non-blocking warning that spec deltas will be created by first task."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-26T23:10:16.557Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 planned tasks completed with checkpoint evidence. Full execution verification passed: `pnpm test`, `pnpm run check`, and `pnpm run build`. `adv_change_validate strict` passed with non-blocking NO_DELTAS warning (spec law updated directly in tracked spec file as planned)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-26T23:30:54.608Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via Tier A inline acceptance prompt: `accept`. Acceptance proof already persisted: contract review matrix rowCount 22 failingRows 0, executive summary persisted and verified, preview URL not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/acceptance.md",
+        "content_hash": "000b849d9930e7082011f758ca2ca7d55b2450b31663f848e37fe450f7345df7",
+        "non_whitespace_chars": 4818,
+        "checked_at": "2026-05-26T23:30:54.866Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "adv-problem triage from user-provided session transcript ses_199b3f4b3ffeK9d5rORyOarf4b"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+      "approvedAt": "2026-05-26T22:26:54.239Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Legacy task and sidecar sub-agent reports missing `scope_drift` and/or `required_main_agent_actions` load with safe defaults.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_show` and `adv_gate_status` work on changes containing those legacy reports.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "New malformed report submissions remain rejected by strict Zod validation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Acceptance-stage reviewer reports persist reliably through a supported structural anchor model; no synthetic task IDs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Invalid task anchors return actionable diagnostics with valid anchor guidance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Worker prompts/examples use structural `scope`; string `scope` remains compatibility-only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Specs and tests cover legacy normalization, accepted task reports, invalid anchors, acceptance-review anchoring, and prompt/schema alignment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve Temporal replay safety and legacy compatibility (`rq-subagentReports09`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve strict Zod validation for new payloads (`rq-subagentReports01`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Use explicit deterministic normalization; no heuristic inference of identity anchors.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Keep scanner lanes non-persisted unless an orchestrator-submitted scanner bundle is explicitly used.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Coordinate with `fixTaskCompletion` only where touched task/report consumers overlap; do not solve task-completion semantics here.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not require manual ADV state-file edits as the normal recovery path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not persist reviewer reports against fabricated task IDs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not weaken strict validation to make malformed new reports pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not broaden into a rewrite of delegation architecture or the seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not silently treat string `scope` as the preferred new-report shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Broad rewrite of ADV delegation or sub-agent architecture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Task completion ownership/semantics owned by `fixTaskCompletion`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Adding unrelated sub-agent report variants.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Manual mutation of external ADV state files as the intended fix path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Broad scanner/handoff persistence refactor beyond clarifying current persisted vs non-persisted lanes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-26T23:27:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Legacy missing-field normalization covered by `src/types/subagent-reports.test.ts`, `src/storage/store-temporal/shared.test.ts`, `src/temporal/change-state.test.ts`; task tk-60a1383e8b32 GREEN: 4 files / 51 tests.",
+          "notes": "Safe defaults at persisted read, Temporal seed, and projection boundaries."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-60a1383e8b32 readback tests passed; current preflight loaded `adv_change_show` and `adv_gate_status` successfully.",
+          "notes": "Read tools work with normalized reports."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-6d1355155f76 GREEN: `pnpm exec vitest run src/types/subagent-reports.test.ts src/tools/subagent-report.test.ts`; strict malformed submission rejection covered.",
+          "notes": "Normalizer does not weaken new submit validation."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Change-scoped reviewer schema and `review:acceptance` / `harden:release` scope keys implemented; `src/tools/subagent-report.test.ts` covers persistence without synthetic task IDs.",
+          "notes": "Structural change-scope anchoring used."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "`src/tools/subagent-report.test.ts` covers `INVALID_TASK_ANCHOR` diagnostics and valid anchor guidance.",
+          "notes": "Invalid task anchors actionable."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Task tk-ec41dd0a0d51 GREEN: `pnpm exec vitest run src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-reviewer-asset.test.ts` passed 3 files / 144 tests.",
+          "notes": "Prompts/examples use structural scope; string scope compatibility retained."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Spec law updated; `src/subagent-reports-spec-assets.test.ts` passed. Full execution verification passed `pnpm test`, `pnpm run check`, and `pnpm run build`.",
+          "notes": "Spec/test coverage spans required contract surface."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Temporal tests and `src/temporal/workflow-bundle-boundary.test.ts` passed in tk-60a1383e8b32 verification.",
+          "notes": "Replay safety and legacy compatibility preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Strict Zod submission tests pass in `src/types/subagent-reports.test.ts` and `src/tools/subagent-report.test.ts`.",
+          "notes": "New payload validation remains strict."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Normalizer uses explicit agent allowlist and deterministic default fills; scope keys are structurally validated and tested.",
+          "notes": "No heuristic identity inference."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Individual scanner prompts remain non-persisted; orchestrator submitted one `adv-scanner-bundle` report with change scope `scanner-bundle:review`.",
+          "notes": "Scanner lane boundary preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Cross-repo audit passed: no `target_repo`, `target_path`, cancellations, or `fixTaskCompletion` semantic changes; 5 tasks done / 0 cancelled.",
+          "notes": "No task-completion semantic expansion."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Automatic normalization implemented; no manual ADV state-file mutation used or required.",
+          "notes": "Manual state editing avoided."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer reports use change-scoped anchors; invalid task anchors fail with diagnostics.",
+          "notes": "No fabricated task IDs."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Malformed new submissions remain rejected by strict schema tests.",
+          "notes": "Strict validation preserved."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Diff limited to report schemas, readback, diagnostics, prompts/contracts, specs, and tests.",
+          "notes": "No broad lifecycle rewrite."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Prompt asset tests enforce structural scope examples; string scope remains compatibility-only.",
+          "notes": "Preferred shape is structural scope."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad ADV delegation/sub-agent architecture rewrite in diff.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No task-completion ownership/semantics changes; audit found no `fixTaskCompletion` expansion.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No unrelated report variants added beyond agreed reviewer change-scope/scanner-bundle support.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No manual external ADV state mutation path used as intended fix.",
+          "notes": "Out-of-scope boundary respected."
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No broad scanner/handoff persistence refactor; scanner lane clarified and bundle submitted structurally.",
+          "notes": "Out-of-scope boundary respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Legacy task and sidecar sub-agent reports missing `scope_drift` and/or `required_main_agent_actions` load with safe defaults.",
+    "`adv_change_show` and `adv_gate_status` work on changes containing those legacy reports.",
+    "New malformed report submissions remain rejected by strict Zod validation.",
+    "Acceptance-stage reviewer reports persist reliably through a supported structural anchor model; no synthetic task IDs.",
+    "Invalid task anchors return actionable diagnostics with valid anchor guidance.",
+    "Worker prompts/examples use structural `scope`; string `scope` remains compatibility-only.",
+    "Specs and tests cover legacy normalization, accepted task reports, invalid anchors, acceptance-review anchoring, and prompt/schema alignment."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/proposal.md",
+      "updatedAt": "2026-05-26T22:22:11.717Z",
+      "contentHash": "363ab01171365f75141132b3c7e58611a2b96633d279b1be9ebaeb267661fe16"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/agreement.md",
+      "updatedAt": "2026-05-26T22:26:41.241Z",
+      "contentHash": "05eff3a75d84f475c7c697d88db9b52ad50910a60c406e54808a0ce760735961"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/design.md",
+      "updatedAt": "2026-05-26T22:37:08.065Z",
+      "contentHash": "843357c96714ced54545b48e75d8de6a183930c74be23241e8f4ccdc399b7c86"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSubagentReportContracts/executive-summary.md",
+      "updatedAt": "2026-05-26T23:52:32.078Z",
+      "contentHash": "da3cd1a9f449ab3cce3e6d295255abba3025a7c9607e30fc039b301fa88877a3"
+    }
+  },
+  "lastSignalAt": "2026-05-26T23:56:19.003Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
