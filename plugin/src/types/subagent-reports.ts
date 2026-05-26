@@ -90,6 +90,23 @@ export const SubagentBlockerSchema = z
   })
   .strict();
 
+export const ScopeDriftRecommendationSchema = z.enum([
+  "finish_owned_scope_then_report",
+  "stop_and_report",
+  "reenter_scope",
+  "accept_compromise",
+]);
+
+export const ReviewerScopeDriftSchema = z
+  .object({
+    items: z.array(z.string().min(1)),
+    details: z.string().min(1),
+    recommendation: ScopeDriftRecommendationSchema,
+  })
+  .strict();
+
+export const EngineerScopeDriftSchema = ReviewerScopeDriftSchema;
+
 export const SubagentConsumerWarningSchema = z
   .object({
     kind: z.enum([
@@ -109,7 +126,9 @@ export const EngineerSubagentReportSchema =
     verification: z.array(SubagentVerificationEntrySchema).min(1),
     decisions: z.array(SubagentDecisionSchema),
     blockers: z.array(SubagentBlockerSchema),
+    scope_drift: EngineerScopeDriftSchema.nullable(),
     follow_ups: z.array(z.string().min(1)),
+    required_main_agent_actions: z.array(z.string().min(1)),
     related_scan: z.string().min(1),
     context_update_for_adv: z
       .object({
@@ -144,18 +163,6 @@ export const ReviewerChangeMadeSchema = z
     file: z.string().min(1),
     summary: z.string().min(1),
     verification: z.string().min(1),
-  })
-  .strict();
-
-export const ReviewerScopeDriftSchema = z
-  .object({
-    items: z.array(z.string().min(1)),
-    details: z.string().min(1),
-    recommendation: z.enum([
-      "stop_and_report",
-      "reenter_scope",
-      "accept_compromise",
-    ]),
   })
   .strict();
 
@@ -303,7 +310,9 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     verification: "worker_derived",
     decisions: "worker_derived",
     blockers: "worker_derived",
+    scope_drift: "worker_derived",
     follow_ups: "worker_derived",
+    required_main_agent_actions: "worker_derived",
     related_scan: "worker_derived",
     workdir_used: "packet_anchor",
     context_update_for_adv: "worker_derived",

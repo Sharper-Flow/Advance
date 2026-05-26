@@ -88,7 +88,9 @@ function engineerReport(
     verification: [{ command: "pnpm test", exit_code: 0, summary: "passed" }],
     decisions: [{ what: "Used typed tool", why: "Durable state" }],
     blockers: [],
+    scope_drift: null,
     follow_ups: ["Add docs", "Add examples"],
+    required_main_agent_actions: [],
     related_scan: "No same-pattern issues",
     context_update_for_adv: {
       what_ads_needs_to_know: "Report submitted",
@@ -445,6 +447,36 @@ describe("subagentReportTools", () => {
       subagentReportSubmittedSignal,
       expect.anything(),
     );
+  });
+
+  test("report argument schema rejects string-serialized report payloads", () => {
+    const reportSchema =
+      subagentReportTools.adv_subagent_report_submit.args.report;
+
+    expect(reportSchema.safeParse(engineerReport()).success).toBe(true);
+    expect(
+      reportSchema.safeParse(JSON.stringify(engineerReport())).success,
+    ).toBe(false);
+  });
+
+  test("rejects string-serialized reports deterministically without recording task failure", async () => {
+    const store = storeFor(change());
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: JSON.stringify(engineerReport()) },
+        store,
+      ),
+    );
+
+    expect(output.error).toBe("Invalid sub-agent report payload");
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(output.failureRecord).toEqual({
+      recorded: false,
+      reason: "report identity unavailable",
+    });
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });
 
   test("consumer warnings emitted by tool consumers keep schema shape", async () => {
