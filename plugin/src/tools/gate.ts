@@ -82,8 +82,7 @@ const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 function gateDoneCount(gates: Gates): number {
-  return GATE_ORDER.filter((gateId) => gates[gateId]?.status === "done")
-    .length;
+  return GATE_ORDER.filter((gateId) => gates[gateId]?.status === "done").length;
 }
 
 function hasCompatibilityRecoveryEvidence(gates: Gates): boolean {

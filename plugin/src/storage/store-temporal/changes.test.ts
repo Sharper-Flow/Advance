@@ -10,6 +10,7 @@
  * methods handle terminated workflows gracefully.
  */
 
+import { createHash } from "crypto";
 import { describe, test, expect, vi } from "vitest";
 import { createChangeOps } from "./changes";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
@@ -288,6 +289,9 @@ describe("createChangeOps", () => {
         kind: "executiveSummary",
         metadata: expect.objectContaining({
           path: "/tmp/changes/summaryChange/executive-summary.md",
+          contentHash: createHash("sha256")
+            .update("# Executive Summary")
+            .digest("hex"),
         }),
       }),
     );
