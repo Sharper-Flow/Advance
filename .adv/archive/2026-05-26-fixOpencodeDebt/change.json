@@ -1,0 +1,881 @@
+{
+  "id": "fixOpencodeDebt",
+  "title": "Fix opencode debt",
+  "status": "archived",
+  "created_at": "2026-05-25T21:03:10.999Z",
+  "tasks": [
+    {
+      "id": "tk-d0bec1ff5376",
+      "title": "Extend session-debt model and classifier for stale tool parts",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-26T01:37:56.395Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "pnpm test -- src/utils/opencode-session-debt.test.ts passed; pnpm exec vitest run src/tools/status.test.ts src/utils/tool-formatters.test.ts -t \"OpenCode session debt\" passed; pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended opencode-session-debt with ToolPartRow, classification buckets/counts, stale tool-part SQL, normalizer, repairable ID helper, and scanner output. Preserved blank assistant behavior and added tests for stale tool parts, live exclusion, sample counts, scanner integration, and doctor temp DB behavior.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/opencode-session-doctor.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/opencode-session-debt.test.ts",
+        "plugin/src/utils/opencode-session-debt.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "scripts/opencode-session-doctor.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/opencode-session-doctor.md",
+        "docs/specs/advance-meta.md",
+        "plugin/src/tools/status.ts",
+        "plugin/src/utils/opencode-session-debt.test.ts",
+        "plugin/src/utils/opencode-session-debt.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts",
+        "scripts/opencode-session-doctor.ts"
+      ],
+      "checkpointSha": "9167fe31e0da81995f7878806ae331f8fe0a5aed",
+      "completedAt": "2026-05-26T01:49:52.963Z",
+      "completed_at": "2026-05-26T01:49:52.963Z",
+      "notes": "Implemented stale tool-part model/classifier and scanner integration. Evidence: pnpm test -- src/utils/opencode-session-debt.test.ts passed; typecheck passed. Checkpoint 9167fe31e0da81995f7878806ae331f8fe0a5aed.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-26T01:50:02.915Z"
+    },
+    {
+      "id": "tk-979e51e6be30",
+      "title": "Extend opencode-session-doctor dry-run/apply repair for stale tool parts",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-26T01:38:26.168Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d0bec1ff5376"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6",
+          "C2",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "pnpm test -- src/utils/opencode-session-debt.test.ts passed, including doctor apply backup/repair/partial-parent fixture; pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended opencode-session-doctor with tool-part dry-run counts, backup-gated apply, OpenCode schema validation, WAL checkpoint before backup, busy_timeout on write connections, transaction-backed blank deletion and in-place stale tool-part repair, interrupted metadata/time.end, and conditional parent completion only when all children terminal.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9167fe31e0da81995f7878806ae331f8fe0a5aed",
+      "completedAt": "2026-05-26T01:50:18.712Z",
+      "completed_at": "2026-05-26T01:50:18.712Z",
+      "notes": "Doctor dry-run/apply repair implemented and verified in temp SQLite fixture. Evidence: pnpm test -- src/utils/opencode-session-debt.test.ts passed; checkpoint clean at 9167fe31e0da81995f7878806ae331f8fe0a5aed.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-26T01:50:30.480Z"
+    },
+    {
+      "id": "tk-4db77ad2c3d8",
+      "title": "Extend adv_status session-debt output for stale tool parts",
+      "type": "code",
+      "section": "Status",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-26T01:38:26.275Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d0bec1ff5376"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "pnpm exec vitest run src/tools/status.test.ts src/utils/tool-formatters.test.ts -t \"OpenCode session debt\" passed; pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended adv_status projection/recommendation to include repairable stale tool parts and updated formatter input/output with compact blank/tool/live/idle debt counts. Added/updated formatter/status tests for OpenCode session debt output.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9167fe31e0da81995f7878806ae331f8fe0a5aed",
+      "completedAt": "2026-05-26T01:50:43.692Z",
+      "completed_at": "2026-05-26T01:50:43.692Z",
+      "notes": "Status output updated and focused OpenCode session-debt tests passed. Checkpoint clean at 9167fe31e0da81995f7878806ae331f8fe0a5aed.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-26T01:50:52.066Z"
+    },
+    {
+      "id": "tk-ccb72d0cd691",
+      "title": "Update OpenCode session-debt specs and docs for tool-part repair",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-26T01:38:26.306Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d0bec1ff5376"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "Spec/docs updated; JSON parse check passed; pnpm run typecheck passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended rq-opencodeDebt01 in docs and spec JSON to cover stale tool-part detection, live exclusion, backup-gated repair, metadata.interrupted/time end, and partial parent safety. Updated opencode-session-doctor docs to describe tool-part repair behavior.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "9167fe31e0da81995f7878806ae331f8fe0a5aed",
+      "completedAt": "2026-05-26T01:51:16.584Z",
+      "completed_at": "2026-05-26T01:51:16.584Z",
+      "notes": "Updated advance-meta spec law and doctor docs for stale tool-part debt. Evidence: spec JSON parse check passed; typecheck passed. Checkpoint clean at 9167fe31e0da81995f7878806ae331f8fe0a5aed.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-26T01:51:24.963Z"
+    },
+    {
+      "id": "tk-676320017242",
+      "title": "Run final targeted validation and cleanup for OpenCode session-debt repair",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-26T01:38:46.951Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-979e51e6be30"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-4db77ad2c3d8"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ccb72d0cd691"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "Harden doc drift fix applied by reviewer; pnpm run check passed; spec JSON parse passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Final validation plus harden remediation: verified integrated session-debt repair and corrected docs/spec drift found during hardening. Ready for release/archive sign-off.",
+      "filesTouched": [
+        "docs/specs/advance-meta.md"
+      ],
+      "touched_files": [
+        "docs/specs/advance-meta.md"
+      ],
+      "checkpointSha": "0fda7240d80c57cd259348357147e367bd9a667e",
+      "completedAt": "2026-05-26T02:10:42.783Z",
+      "completed_at": "2026-05-26T02:10:42.783Z",
+      "notes": "Harden pass READY. Reviewer corrected one doc/spec drift line (`worktree_guard_enforce` default true). Verification after harden fix: pnpm run check passed; spec JSON parse passed. Checkpoint 0fda7240d80c57cd259348357147e367bd9a667e. Retry budget not exhausted: prior issues were resolved, not active failures.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "No recovery pending; all review/harden findings resolved.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "Broad file-pattern vitest commands ran unrelated tests and failed on no-psw timeout plus terminal cleanup assertion.",
+            "diagnosis": "Validation command too broad for in-scope behavior.",
+            "fix_tried": "Reran focused tests and static checks.",
+            "strategy_label": "narrow-in-scope-validation",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T01:52:00.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Reviewer BLOCKED on missing task-tool safety behavior/test.",
+            "diagnosis": "Task tool rows with active child sessions need deterministic exclusion from repairable debt.",
+            "fix_tried": "Added child_session_id/child_session_updated_ms extraction, live task wait classification, and regression test.",
+            "strategy_label": "task-tool-child-liveness",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T01:59:00.000Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "Harden reviewer found generated docs drift for worktree_guard_enforce default.",
+            "diagnosis": "docs/specs/advance-meta.md disagreed with authoritative spec JSON default.",
+            "fix_tried": "Corrected doc line to default true and ran pnpm run check plus spec JSON parse.",
+            "strategy_label": "doc-spec-drift-fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T02:08:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T02:11:20.630Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixOpencodeDebt",
+          "task_id": "tk-676320017242",
+          "attempt": 2,
+          "scope": "Review prior tests-1 remediation for task-tool child-session liveness in opencode session debt scanner",
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixOpencodeDebt",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": "plugin/src/utils/opencode-session-debt.ts",
+              "line": 162,
+              "what": "SQL now extracts child task session metadata and joins child session activity for deterministic classification.",
+              "why": "Provides structural evidence needed to avoid repairing task tool parts that are still waiting on active child sessions."
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": "plugin/src/utils/opencode-session-debt.test.ts",
+              "line": 222,
+              "what": "Regression covers active child task wait as live and stale child task as repairable.",
+              "why": "Directly locks prior blocker behavior with deterministic timestamps and parent-orphan liveness."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "pnpm --dir plugin exec vitest run src/utils/opencode-session-debt.test.ts -t \"keeps task tools\""
+            ],
+            "results": "pass",
+            "evidence": "Exit code 0. Vitest: 1 test file passed, 1 test passed, 14 skipped. Reviewed scoped implementation/test files; no blocking regressions found."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm --dir plugin exec vitest run src/utils/opencode-session-debt.test.ts -t \"keeps task tools\""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-26T01:06:37.626Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal framing via chat: approve. Proposal refreshed with explicit Scope/In Scope/Out of Scope/Must Not, success criteria, affected code, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/proposal.md",
+        "content_hash": "790ced37530e2294b57abd33b8db72536aa36218aac627fae669e86babf82acc",
+        "non_whitespace_chars": 4495,
+        "checked_at": "2026-05-26T01:06:37.675Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-26T01:23:51.642Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved acceptance criteria via chat: yes. Agreement persisted and contract minted with 18 items. Discovery incorporated local code, live DB dry-run/read-only inspection, and online OpenCode-specific research.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/agreement.md",
+        "content_hash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "non_whitespace_chars": 2657,
+        "checked_at": "2026-05-26T01:23:51.708Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-26T01:37:04.803Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design recorded. Mandatory leverage scout attempted and adopted safe findings. Independent validator returned VALIDATED with cautions; D2 refined to target runtime MessageV2.ToolPart row shape and spec amendment marked mandatory.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/design.md",
+        "content_hash": "93a1dce668c76b89fc1ec92e65566b8735f34a3b503838d0babd6c4f6924166c",
+        "non_whitespace_chars": 9398,
+        "checked_at": "2026-05-26T01:37:04.845Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-26T01:45:45.711Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via chat: approve. Task graph contains 5 tasks with TDD intent and contract refs: classifier/model, doctor repair, status output, specs/docs, final targeted validation. Worktree resumed for implementation."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-26T01:52:41.192Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks completed. Verification passed: typecheck, lint, format:check, focused OpenCode session-debt vitest (16 tests), opencode-session-debt test file, status/formatter focused tests, spec JSON parse. adv_change_validate strict passed with no errors and one NO_DELTAS warning because specs were edited directly as in-repo law."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-26T02:03:17.096Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via chat: accept. Review verdict APPROVED after remediation. Contract matrix has 18/18 passed/respected; executive summary persisted; preview URL not_applicable.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/acceptance.md",
+        "content_hash": "17ee0f7bb7d873068dc561f4b3ebf04bc59d501e5b0abcaa3c133f2735675e06",
+        "non_whitespace_chars": 3727,
+        "checked_at": "2026-05-26T02:03:17.205Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+      "approvedAt": "2026-05-26T01:18:00.000Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Dry-run reports stale blank assistant ghosts and stale `running`/`pending` tool parts with bounded session/message/part/tool/status/age/context samples.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Apply mode refuses without explicit apply and backup directory, and writes DB/WAL/SHM backups before mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Apply repairs only classified stale orphan tool parts in place: `state.status:'error'`, schema-valid error payload, `metadata.interrupted:true`, terminal timestamp.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Live/in-flight, idle-active, and plausibly task-waiting tool parts remain unchanged unless orphan evidence is strong.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Blank assistant ghost repair remains limited to classified orphan ghosts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Parent assistant is completed only when all child parts are terminal; partial parents remain open.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Status output, docs/specs, and tests cover detection, exclusions, backup requirement, mutation shape, partial parent behavior, task-tool safety, and status output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Never modify `~/.local/bin` directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Never mutate a real OpenCode DB without explicit apply mode and populated backup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Use deterministic classification over heuristic cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve current blank assistant ghost repair safety boundaries.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Keep repaired tool-part payloads compatible with OpenCode tool-state schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Runtime watchdog implementation inside OpenCode is out of scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No blind SQL deletes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No force-killing active OpenCode sessions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No broad DB vacuum/compaction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No cascade-delete repair for tool parts in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "No arbitrary non-schema fields inside OpenCode `state` payloads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "30516991a2c37aed9b768db89df5c78eb38d5cc674c1a407a1f2d42191cb1280",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-26T02:01:30.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused vitest: src/utils/opencode-session-debt.test.ts + status/formatter tests passed; scanner/status expose blank ghosts and stale tool-part counts/samples.",
+          "notes": "Dry-run/status reporting implemented with bounded samples and counts."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "opencode-session-debt.test.ts doctor apply fixture passed; apply without --backup-dir throws; backup_files asserted populated.",
+          "notes": "Doctor apply is explicit and backup-gated."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "opencode-session-debt.test.ts doctor apply fixture passed; repaired part has state.status error, metadata.interrupted true, state.time.end number.",
+          "notes": "In-place repair only for classified repairable tool parts."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-review regression passed: task tools with active child sessions stay live/not repairable; live row remains running in doctor fixture.",
+          "notes": "Reviewer re-review APPROVED after task-tool child liveness fix."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Blank assistant classifier tests passed; getDeletableBlankAssistantIds returns only orphan_ghost rows.",
+          "notes": "Existing blank ghost boundaries preserved."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Doctor apply fixture passed; complete parent finish set to error, partial parent finish remains null when live child remains running.",
+          "notes": "Parent completion conditional on all child parts terminal."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Status/formatter focused tests passed; spec JSON parse passed; docs/spec updated for rq-opencodeDebt01; lint/typecheck/format passed.",
+          "notes": "Coverage includes tests, docs/spec, and status output."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Git diff touches repo files only; no ~/.local/bin path edits.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Doctor mutation path requires --apply --backup-dir and backupDatabaseFiles before applyRepairs; tests use temp DB only.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Classification uses SQL fields, timestamps, session/child-session liveness, deterministic thresholds; no heuristic-only repair authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Blank assistant APIs retained; tests for existing blank assistant behavior passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Repair writes runtime MessageV2 ToolPart-compatible state: status error, error string, metadata, time start/end; no arbitrary state.interrupted.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No OpenCode runtime watchdog implementation added; changes are ADV doctor/status/spec only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer APPROVED after remediation; SQL deletes remain limited to validated blank assistant ids and tool parts use UPDATE.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No process/session kill behavior implemented.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No vacuum/compaction behavior added; WAL checkpoint + DB/WAL/SHM copy only.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tool-part repair uses UPDATE part; no parent cascade-delete for tool repair.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Repair marker is state.metadata.interrupted, not arbitrary top-level state.interrupted.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Dry-run reports stale blank assistant ghosts and stale `running`/`pending` tool parts with bounded session/message/part/tool/status/age/context samples.",
+    "Apply mode refuses without explicit apply and backup directory, and writes DB/WAL/SHM backups before mutation.",
+    "Apply repairs only classified stale orphan tool parts in place: `state.status:'error'`, schema-valid error payload, `metadata.interrupted:true`, terminal timestamp.",
+    "Live/in-flight, idle-active, and plausibly task-waiting tool parts remain unchanged unless orphan evidence is strong.",
+    "Blank assistant ghost repair remains limited to classified orphan ghosts.",
+    "Parent assistant is completed only when all child parts are terminal; partial parents remain open.",
+    "Status output, docs/specs, and tests cover detection, exclusions, backup requirement, mutation shape, partial parent behavior, task-tool safety, and status output."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/proposal.md",
+      "updatedAt": "2026-05-26T01:22:28.750Z"
+    },
+    "problemStatement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/problem-statement.md",
+      "updatedAt": "2026-05-26T01:22:28.781Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/agreement.md",
+      "updatedAt": "2026-05-26T01:23:37.337Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/design.md",
+      "updatedAt": "2026-05-26T01:36:57.472Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixOpencodeDebt/executive-summary.md",
+      "updatedAt": "2026-05-26T02:11:44.635Z"
+    }
+  },
+  "lastSignalAt": "2026-05-26T02:11:20.630Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-05-26T01:03:34.810Z",
+      "resolved": true,
+      "resolved_at": "2026-05-26T01:24:05.287Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-26T01:06:53.065Z"
+    }
+  ]
+}
