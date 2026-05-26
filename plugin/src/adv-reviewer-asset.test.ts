@@ -485,7 +485,8 @@ describe("adv-reviewer agent asset", () => {
       // Safety-rail prose mentioning adv-designer (e.g., "MUST NOT be spawned
       // here") is allowed; spawn directives like `subagent_type: "adv-designer"`
       // or `EXPECTED OUTPUT: ... spawn adv-designer` are not.
-      const spawnDirective = /(subagent_type\s*[:=]\s*["']?adv-designer|spawn\s+`?adv-designer)/i;
+      const spawnDirective =
+        /(subagent_type\s*[:=]\s*["']?adv-designer|spawn\s+`?adv-designer)/i;
       expect(content).not.toMatch(spawnDirective);
       // Sanity-check that we did add the safety-rail prose explicitly.
       expect(content).toMatch(

@@ -238,12 +238,8 @@ describe("ADV_INSTRUCTIONS.md adv-designer roster", () => {
   test("review/harden ownership note preserves adv-reviewer", () => {
     // Ensure the roster + selection prose still pins adv-reviewer as the
     // review/harden owner and does not reassign that to adv-designer.
-    expect(content).toMatch(
-      /adv-reviewer[^.\n]*(review|harden|acceptance)/i,
-    );
-    expect(content).not.toMatch(
-      /adv-designer[^.\n]*owns.*(review|harden)/i,
-    );
+    expect(content).toMatch(/adv-reviewer[^.\n]*(review|harden|acceptance)/i);
+    expect(content).not.toMatch(/adv-designer[^.\n]*owns.*(review|harden)/i);
   });
 });
 

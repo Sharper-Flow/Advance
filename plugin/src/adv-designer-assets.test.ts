@@ -245,7 +245,9 @@ describe("adv-designer assets", () => {
     const neighborSection =
       content.split("## Neighboring Recommendation")[1]?.split("## ")[0] ?? "";
     expect(neighborSection).toContain("neighboring_recommendations");
-    expect(neighborSection.toLowerCase()).toMatch(/finish owned scope|hitl|surface/);
+    expect(neighborSection.toLowerCase()).toMatch(
+      /finish owned scope|hitl|surface/,
+    );
   });
 
   test("DESIGNER_REPORT schema contains workdir_used field", () => {
@@ -335,9 +337,10 @@ describe("adv-designer assets", () => {
       "missing Designer Apply Context Packet section",
     ).not.toBe("");
     const codeBlock = firstFencedBlock(packetSection);
-    expect(codeBlock, "no code block in Designer Apply Context Packet").not.toBe(
-      "",
-    );
+    expect(
+      codeBlock,
+      "no code block in Designer Apply Context Packet",
+    ).not.toBe("");
     const firstLine = codeBlock.trim().split("\n")[0];
     expect(firstLine).toMatch(/^WORKING DIRECTORY:/);
   });

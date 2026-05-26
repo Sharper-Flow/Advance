@@ -174,7 +174,10 @@ describe("subagent reports spec assets", () => {
     const frontend = (apply!.delegated_substeps ?? []).find(
       (substep) => substep.name === "Frontend Implementation",
     );
-    expect(frontend, "apply step missing Frontend Implementation substep").toBeDefined();
+    expect(
+      frontend,
+      "apply step missing Frontend Implementation substep",
+    ).toBeDefined();
     expect(frontend!.allowed_subagents).toEqual(["adv-designer"]);
 
     const designerContract = (frontend!.packet_contracts ?? []).find(

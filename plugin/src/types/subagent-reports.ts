@@ -140,11 +140,7 @@ export const EngineerSubagentReportSchema =
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   }).strict();
 
-export const DesignerDesignDimensionSchema = z.enum([
-  "pass",
-  "concern",
-  "n/a",
-]);
+export const DesignerDesignDimensionSchema = z.enum(["pass", "concern", "n/a"]);
 
 export const DesignerDesignDimensionsSchema = z
   .object({
