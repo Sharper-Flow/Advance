@@ -302,8 +302,9 @@ FINDINGS TO FIX:
 ACCEPTANCE CRITERIA:
   - AC1: {text}
   - ...
-FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implementation scope (any task with metadata.frontend == "true" or an agreement-declared design scope), populate this anchor with the frontend/design review checklist below. Otherwise the anchor MAY be omitted.
-  inline checklist (iteration 1; replace with `skill("adv-frontend-review")` when the skill ships):
+FRONTEND DESIGN REVIEW SKILL: when the change includes frontend/design implementation scope (any task with metadata.frontend == "true" or an agreement-declared design scope), populate this anchor. Otherwise the anchor MAY be omitted.
+  Primary: load `skill("adv-frontend-review")` for the canonical 6-dimension methodology.
+  Fallback (inline checklist for offline reviewers or older deployments without the skill):
     - semantic HTML & accessibility — semantic elements, landmark structure, ARIA only when native semantics are insufficient, focus management
     - responsive behavior — layout works across supported viewports, touch targets, overflow
     - visual polish — spacing, alignment, typography, color, motion match design tokens already in use
