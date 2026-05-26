@@ -166,7 +166,7 @@ describe("saveRecoveredGateCompletion", () => {
         }),
       }),
     );
-    expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
+    expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 
   it("requires recovery authorization for disk-direct gate writes", async () => {
@@ -210,8 +210,9 @@ describe("saveRecoveredChangeStatus", () => {
       "/tmp/test/.adv/changes",
       expect.objectContaining({ status: "archived" }),
     );
-    // AC2: cache invalidation still fires so the next read sees fresh state.
-    expect(store.changes.refresh).toHaveBeenCalledWith("test-change");
+    // Completed-but-queryable workflows can project stale state back over the
+    // disk repair, so disk-direct recovery deliberately skips refresh.
+    expect(store.changes.refresh).not.toHaveBeenCalled();
   });
 
   it("requires recovery authorization for disk-direct status writes", async () => {

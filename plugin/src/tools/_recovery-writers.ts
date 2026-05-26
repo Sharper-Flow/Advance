@@ -11,8 +11,9 @@
  *
  * The disk-direct writers structurally require an authorization reason and
  * evidence. Callers remain responsible for proving that evidence before
- * invoking the writer; the writers ensure the disk write is atomic and the
- * in-memory cache is invalidated.
+ * invoking the writer; the writers ensure the disk write is atomic. They do
+ * not refresh the Temporal-backed cache because a completed-but-queryable
+ * workflow can project stale workflow state back over the recovery write.
  */
 import type { Store } from "../storage/store-types";
 import type { Change, Gates } from "../types";
@@ -114,7 +115,6 @@ export async function saveRecoveredGateCompletion(input: {
   const updatedGates = { ...gates, [input.gateId]: input.completion } as Gates;
   const updated = { ...input.change, gates: updatedGates } as Change;
   await saveChange(input.store.paths.changes, updated);
-  await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }
 
@@ -126,8 +126,7 @@ export async function saveRecoveredGateCompletion(input: {
  * for `status: "archived"` the temporal store routes through
  * `archiveChangeSignal` on the workflow — which is exactly what we are
  * recovering from. Write the disk projection directly via `saveChange`
- * and best-effort invalidate the in-memory cache so subsequent reads
- * pull the fresh disk state.
+ * without refreshing stale workflow state back over the disk repair.
  */
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
@@ -138,6 +137,5 @@ export async function saveRecoveredChangeStatus(input: {
   assertRecoveryAuthorization(input.authorization);
   const updated = { ...input.change, status: input.status } as Change;
   await saveChange(input.store.paths.changes, updated);
-  await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }

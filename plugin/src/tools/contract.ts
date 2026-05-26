@@ -2,6 +2,7 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
+import { saveChange } from "../storage/json";
 import {
   ContractEvidencePolicySchema,
   ContractEvidenceStatusSchema,
@@ -23,7 +24,8 @@ import { buildContractFromAgreement } from "../validator/contract-mint";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
-  isPrecisePoisonedHistoryEvidence,
+  isPreciseWorkflowRecoveryEvidence,
+  isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
@@ -133,9 +135,9 @@ function recoveryEvidenceError(input: {
   if (
     input.recoveryMode === "poisoned_history" &&
     input.recoveryEvidence &&
-    !isPrecisePoisonedHistoryEvidence(input.recoveryEvidence)
+    !isPreciseWorkflowRecoveryEvidence(input.recoveryEvidence)
   ) {
-    return "poisoned_history recoveryEvidence must cite precise poisoned-history evidence";
+    return "poisoned_history recoveryEvidence must cite precise poisoned-history or completed-workflow evidence";
   }
   return undefined;
 }
@@ -156,6 +158,7 @@ async function saveRecoveredContract(input: {
   store: Store;
   change: Change;
   contract: Change["contract"];
+  diskDirect?: boolean;
 }): Promise<void> {
   if (!input.contract) {
     throw new Error("Cannot recover contract: no contract is set");
@@ -165,14 +168,19 @@ async function saveRecoveredContract(input: {
     contract: input.contract,
     acceptanceCriteria: acceptanceCriteriaFromContract(input.contract),
   } as Change;
-  await input.store.changes.save(updated);
-  await bestEffortRefresh(input.store, input.change.id);
+  if (input.diskDirect) {
+    await saveChange(input.store.paths.changes, updated);
+  } else {
+    await input.store.changes.save(updated);
+    await bestEffortRefresh(input.store, input.change.id);
+  }
 }
 
 async function saveRecoveredReviewMatrix(input: {
   store: Store;
   change: Change;
   reviewMatrix: ContractReviewMatrix;
+  diskDirect?: boolean;
 }): Promise<void> {
   if (!input.change.contract) {
     throw new Error(
@@ -183,8 +191,12 @@ async function saveRecoveredReviewMatrix(input: {
     ...input.change,
     contract: { ...input.change.contract, reviewMatrix: input.reviewMatrix },
   } as Change;
-  await input.store.changes.save(updated);
-  await bestEffortRefresh(input.store, input.change.id);
+  if (input.diskDirect) {
+    await saveChange(input.store.paths.changes, updated);
+  } else {
+    await input.store.changes.save(updated);
+    await bestEffortRefresh(input.store, input.change.id);
+  }
 }
 
 const reviewMatrixRowSchema = z.object({
@@ -315,16 +327,19 @@ export const contractTools = {
             // rq-fix-gate-tools-recovery AC3: poisoned-history mint recovers
             // when EITHER the signal error matches the legacy regex OR the
             // workflow's own describe carries poisoned evidence.
+            const completedWorkflow = isWorkflowCompletedError(signalError);
             if (
               args.recoveryMode === "poisoned_history" &&
-              (await workflowHasPoisonedRecoveryEvidence(handle, {
-                signalError,
-              }))
+              (completedWorkflow ||
+                (await workflowHasPoisonedRecoveryEvidence(handle, {
+                  signalError,
+                })))
             ) {
               await saveRecoveredContract({
                 store: activeStore,
                 change,
                 contract,
+                diskDirect: completedWorkflow,
               });
               return formatToolOutput({
                 success: true,
@@ -482,16 +497,19 @@ export const contractTools = {
           } catch (signalError) {
             // rq-fix-gate-tools-recovery AC4: review-matrix poisoned recovery
             // also runs when describe carries poisoned evidence.
+            const completedWorkflow = isWorkflowCompletedError(signalError);
             if (
               args.recoveryMode === "poisoned_history" &&
-              (await workflowHasPoisonedRecoveryEvidence(handle, {
-                signalError,
-              }))
+              (completedWorkflow ||
+                (await workflowHasPoisonedRecoveryEvidence(handle, {
+                  signalError,
+                })))
             ) {
               await saveRecoveredReviewMatrix({
                 store: activeStore,
                 change,
                 reviewMatrix,
+                diskDirect: completedWorkflow,
               });
               return formatToolOutput({
                 success: true,
