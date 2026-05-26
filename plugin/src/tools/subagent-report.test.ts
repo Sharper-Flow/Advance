@@ -409,7 +409,12 @@ describe("subagentReportTools", () => {
 
     const output = parse(
       await subagentReportTools.adv_subagent_report_submit.execute(
-        { report: engineerReport({ task_id: "tk-missing", scope: { kind: "task", task_id: "tk-missing" } }) },
+        {
+          report: engineerReport({
+            task_id: "tk-missing",
+            scope: { kind: "task", task_id: "tk-missing" },
+          }),
+        },
         store,
       ),
     );
@@ -421,7 +426,9 @@ describe("subagentReportTools", () => {
     expect(output.validTaskAnchors).toEqual([
       { id: "tk-1", title: "Task one" },
     ]);
-    expect(output.guidance).toEqual(expect.stringContaining("change-scoped reviewer"));
+    expect(output.guidance).toEqual(
+      expect.stringContaining("change-scoped reviewer"),
+    );
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
     expect(mocks.addAgendaItem).not.toHaveBeenCalled();
   });

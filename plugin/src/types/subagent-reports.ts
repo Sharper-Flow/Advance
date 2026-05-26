@@ -389,7 +389,8 @@ export function normalizePersistedSubagentReportState(
 
   if (Array.isArray(value)) {
     const next = value.map((item) => {
-      const [normalized, itemChanged] = normalizePersistedSubagentReportState(item);
+      const [normalized, itemChanged] =
+        normalizePersistedSubagentReportState(item);
       changed = changed || itemChanged;
       return normalized;
     });
@@ -414,7 +415,8 @@ export function normalizePersistedSubagentReportState(
       continue;
     }
 
-    const [normalized, childChanged] = normalizePersistedSubagentReportState(raw);
+    const [normalized, childChanged] =
+      normalizePersistedSubagentReportState(raw);
     out[key] = normalized;
     changed = changed || childChanged;
   }

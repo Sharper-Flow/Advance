@@ -425,8 +425,12 @@ describe("adv-reviewer agent asset", () => {
     );
 
     for (const packet of [
-      firstFencedBlock(sectionAfterHeading(review, "Review Reviewer Remediation Packet")),
-      firstFencedBlock(sectionAfterHeading(harden, "Harden Reviewer Remediation Packet")),
+      firstFencedBlock(
+        sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+      ),
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+      ),
     ]) {
       expect(packet).toContain("REPORT_SCOPE:");
       expect(packet).toContain('{ "kind": "task", "task_id": "{task-id}" }');
