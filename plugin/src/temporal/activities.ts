@@ -44,7 +44,8 @@ export type ArtifactKind =
   | "problem-statement"
   | "agreement"
   | "design"
-  | "acceptance";
+  | "acceptance"
+  | "executive-summary";
 
 const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
   proposal: "proposal.md",
@@ -52,6 +53,7 @@ const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
   agreement: "agreement.md",
   design: "design.md",
   acceptance: "acceptance.md",
+  "executive-summary": "executive-summary.md",
 };
 
 export interface ReadArtifactInput {

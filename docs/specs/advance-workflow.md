@@ -1854,6 +1854,88 @@ Changes to Temporal workflow code under plugin/src/temporal/\*\* or other workfl
 
 ---
 
+### Acceptance Proof Exists Before Approval Prompt
+
+**ID:** `rq-acceptanceEvidenceTiming01` | **Priority:** **[MUST]**
+
+/adv-review MUST persist and verify all required acceptance proof before presenting the acceptance approval prompt. Required proof includes contract.reviewMatrix, generated or generatable acceptance.md from typed contract state, and workflow-visible executive-summary.md evidence. If any required proof cannot be persisted, verified, or made workflow-visible, /adv-review MUST stop before asking for acceptance and the acceptance gate MUST remain pending or stuck with deterministic blockers. This is the no-late-homework rule: evidence required to justify acceptance cannot be submitted only after user approval.
+
+**Tags:** `workflow`, `acceptance`, `evidence`, `review`
+
+#### Scenarios
+
+**Review stops before prompt when required proof is missing** (`rq-acceptanceEvidenceTiming01.1`)
+
+**Given:**
+
+- /adv-review is preparing the acceptance checkpoint
+
+**When:** contract.reviewMatrix, acceptance projection proof, or workflow-visible executive-summary evidence is missing or invalid
+
+**Then:**
+
+- The acceptance approval prompt is not presented
+- The missing proof is surfaced with remediation
+- The acceptance gate remains pending or stuck
+
+**Approval alone is not durable acceptance proof** (`rq-acceptanceEvidenceTiming01.2`)
+
+**Given:**
+
+- A user replies with an acceptance approval
+- A required acceptance proof write failed before or after that reply
+
+**When:** The acceptance gate is evaluated
+
+**Then:**
+
+- The approval text alone does not complete acceptance
+- The workflow requires persisted proof or audited recovery proof
+- The gate remains pending or stuck until proof is durable
+
+---
+
+### Audited Acceptance Evidence Recovery
+
+**ID:** `rq-acceptanceRecovery01` | **Priority:** **[MUST]**
+
+Completed-workflow or poisoned-history acceptance recovery MUST be explicit and audited. Recovery MAY repair disk projection for contract.reviewMatrix, executive-summary metadata, and acceptance gate completion only when precise completed/poisoned evidence, recovery rationale, and prior user approval evidence are supplied. Recovery MUST rerun deterministic readiness validation against typed contract state and required artifacts before marking acceptance done. Silent recovery, chat-history reconstruction, caller-forged metadata, and manual ADV state-file edits are not supported recovery mechanisms.
+
+**Tags:** `workflow`, `acceptance`, `recovery`, `audit`
+
+#### Scenarios
+
+**Audited recovery repairs terminal acceptance evidence** (`rq-acceptanceRecovery01.1`)
+
+**Given:**
+
+- A change workflow is completed or poisoned
+- Acceptance proof was produced but could not be fully persisted through Temporal
+
+**When:** Recovery is invoked with precise evidence, recovery rationale, and prior user approval evidence
+
+**Then:**
+
+- The recovery path validates contract rows and required artifacts deterministically
+- The disk projection may be repaired with audit metadata
+- The response marks the mutation as recovery and warns that workflow history is not healed
+
+**Recovery without evidence is rejected** (`rq-acceptanceRecovery01.2`)
+
+**Given:**
+
+- An acceptance recovery mutation is requested
+
+**When:** Precise recovery evidence, rationale, or prior user approval evidence is missing
+
+**Then:**
+
+- No disk projection repair occurs
+- The response identifies the missing audit field
+- The acceptance gate remains pending or stuck
+
+---
+
 ### Front-End Acceptance Preview URL
 
 **ID:** `rq-acceptancePreviewUrl01` | **Priority:** **[MUST]**

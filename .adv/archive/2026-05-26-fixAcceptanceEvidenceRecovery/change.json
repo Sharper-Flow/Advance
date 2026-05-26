@@ -1,0 +1,1453 @@
+{
+  "id": "fixAcceptanceEvidenceRecovery",
+  "title": "Fix acceptance evidence recovery",
+  "status": "archived",
+  "created_at": "2026-05-26T13:59:25.565Z",
+  "tasks": [
+    {
+      "id": "tk-475fcb20608d",
+      "title": "Update acceptance evidence specs and /adv-review command contract",
+      "type": "code",
+      "section": "Spec and Command Contracts",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-26T14:41:46.168Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T14:45:24.571Z",
+      "verification": "python -m json.tool ../.adv/specs/advance-workflow/spec.json passed; pnpm test -- --run src/__tests__/human-checkpoints-assets.test.ts src/adv-skill-backed-commands-assets.test.ts src/__tests__/spec-citation-invariant.test.ts passed (vitest ran full suite: 3170 passed, 2 skipped).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added rq-acceptanceEvidenceTiming01 and rq-acceptanceRecovery01; amended artifact enforcement/audit/projection requirements for workflow-visible executive-summary proof and post-approval late-write rejection. Updated docs/adv-gates and /adv-review to require matrix + acceptance projection + executive-summary proof before the acceptance prompt. Added asset test assertions and requirement citations.",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-review.md",
+        "docs/adv-gates.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-review.md",
+        "docs/adv-gates.md",
+        "docs/specs/advance-workflow.md",
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "plugin/src/adv-skill-backed-commands-assets.test.ts"
+      ],
+      "checkpointSha": "8d7e69b9285861222917d0a5d260d5231f967ffe",
+      "completedAt": "2026-05-26T14:53:55.610Z",
+      "completed_at": "2026-05-26T14:53:55.610Z",
+      "notes": "Updated advance-workflow spec law, docs, /adv-review command contract, and asset/citation tests for no-late-homework acceptance proof. Checkpoint 8d7e69b9285861222917d0a5d260d5231f967ffe recorded.",
+      "error_recovery": {
+        "last_error": "Initial verification command used wrong spec path from plugin/ workdir; reran with ../.adv path. First test run also exposed missing citation and exact string mismatch, both fixed.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "python -m json.tool .adv/specs/advance-workflow/spec.json failed from plugin workdir; targeted test run then failed on missing rq citations and expected string mismatch.",
+            "diagnosis": "Spec path should be ../.adv from plugin; new rq IDs needed command citations; test expected unquoted executive-summary string while command text used markdown code ticks.",
+            "fix_tried": "Corrected verification path, added rq citations to adv-review.md, adjusted asset test expectation.",
+            "strategy_label": "fix-test-contract",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T14:52:41.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T14:54:08.975Z"
+    },
+    {
+      "id": "tk-5ab80065db9a",
+      "title": "Add executive-summary artifact metadata hashing and inspection support",
+      "type": "code",
+      "section": "Artifact Evidence Plumbing",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-26T14:41:56.489Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-475fcb20608d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC3",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C6",
+          "C7",
+          "DONT3",
+          "DONT5",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T14:54:35.422Z",
+      "verification": "RED: pnpm test -- --run src/storage/store-temporal/changes.test.ts src/temporal/activities.test.ts initially failed on missing executive-summary artifact kind and missing contentHash metadata. GREEN: targeted test passed; pnpm run typecheck passed; pnpm run lint passed; pnpm run format:check passed after Prettier remediation.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added SHA-256 contentHash calculation in store-temporal artifact metadata signals, including executiveSummary. Extended Temporal disk-artifact activities to support executive-summary.md for read/inspect paths. Added regression tests proving executiveSummary metadata carries a hash and executive-summary artifacts inspect with hash/nonblank metadata. Applied Prettier remediation for files reported by format:check.",
+      "filesTouched": [
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/temporal/activities.test.ts",
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/__tests__/human-checkpoints-assets.test.ts",
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/temporal/activities.test.ts",
+        "plugin/src/temporal/activities.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "418adb5d643aba9e7e84a36cc80e52958e9969bc",
+      "completedAt": "2026-05-26T15:04:51.141Z",
+      "completed_at": "2026-05-26T15:04:51.141Z",
+      "notes": "Added content-hash metadata signaling for artifact updates and executive-summary disk-artifact inspection support. Checkpoint 418adb5d643aba9e7e84a36cc80e52958e9969bc recorded.",
+      "error_recovery": {
+        "last_error": "Initial RED test run failed because executive-summary was not in the disk ArtifactKind map and updateArtifacts signaled executiveSummary metadata without contentHash. format:check also found existing style drift in human-checkpoints-assets.test.ts and gate.ts.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- --run src/storage/store-temporal/changes.test.ts src/temporal/activities.test.ts failed: undefined artifact path for executive-summary and missing contentHash in executiveSummary metadata signal; pnpm run format:check failed on Prettier style in two files.",
+            "diagnosis": "Artifact activity enum/map lacked executive-summary; store metadata signal only sent path/updatedAt; formatting drift needed Prettier remediation.",
+            "fix_tried": "Added executive-summary artifact kind mapping, computed SHA-256 contentHash for artifact metadata from persisted content, added tests, ran Prettier on reported files.",
+            "strategy_label": "artifact-metadata-hash-and-format-fix",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T15:04:40.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T15:05:11.823Z"
+    },
+    {
+      "id": "tk-9c56fb7a2000",
+      "title": "Enforce acceptance readiness and healthy gate completion proof",
+      "type": "code",
+      "section": "Acceptance Readiness",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-26T14:42:07.544Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5ab80065db9a"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C5",
+          "C6",
+          "C7",
+          "DONT2",
+          "DONT3",
+          "DONT5",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:05:36.192Z",
+      "verification": "RED: targeted readiness/workflow tests failed on missing executive-summary metadata/hash and stale-hash enforcement. GREEN: pnpm exec vitest run src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/activities.test.ts src/storage/store-temporal/changes.test.ts passed (62 tests); pnpm run typecheck passed; pnpm run lint passed; pnpm run format:check passed. Accidental broader pnpm test invocation surfaced overlay-sync-assets failure, rerun exact overlay-sync-assets test passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added pure readiness blockers for missing executiveSummary artifact metadata and missing contentHash. Extended acceptance gate completion to generate acceptance.md, inspect executive-summary.md, enforce readability/substantive size, and compare inspected hash to workflow metadata before marking acceptance done. Updated workflow tests for healthy acceptance projection and stale executive-summary hash blockers, plus gate-readiness unit coverage.",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "9091f08f662aef4f343842bc1423faf54fcac6ee",
+      "completedAt": "2026-05-26T15:16:07.292Z",
+      "completed_at": "2026-05-26T15:16:07.292Z",
+      "notes": "Enforced acceptance readiness on workflow-visible executive-summary metadata/hash and healthy gate completion on generated acceptance.md plus non-stale executive-summary.md. Checkpoint 9091f08f662aef4f343842bc1423faf54fcac6ee recorded.",
+      "error_recovery": {
+        "last_error": "Initial TDD run failed as expected on missing executive-summary readiness/hash enforcement. A later typecheck failed because the workflow activity proxy type did not include executive-summary; format:check also required Prettier on gate-readiness.ts. An accidental broader pnpm test invocation surfaced overlay-sync-assets once, but exact overlay-sync-assets rerun passed.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm test -- --run src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts failed: readiness stayed ready without executive-summary metadata/hash, and stale-hash workflow test observed no stuck reason.",
+            "diagnosis": "Readiness only enforced contract/matrix rows; workflow completion generated acceptance.md but did not verify executive-summary proof.",
+            "fix_tried": "Added executiveSummary metadata/hash blockers and workflow executive-summary inspect/hash comparison before acceptance completion.",
+            "strategy_label": "acceptance-proof-enforcement",
+            "outcome": "failed",
+            "attempted_at": "2026-05-26T15:09:15.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "pnpm run typecheck failed on workflow inspectArtifactActivity proxy kind union; format:check failed on gate-readiness.ts formatting.",
+            "diagnosis": "Activity implementation supported executive-summary but workflow proxy type still listed only gate artifact kinds; Prettier formatting needed after patch.",
+            "fix_tried": "Extended workflow activity proxy union to include executive-summary, used artifactKind for gate evidence kind, and ran Prettier.",
+            "strategy_label": "type-and-format-repair",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T15:14:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T15:16:23.401Z"
+    },
+    {
+      "id": "tk-a4618afa951e",
+      "title": "Add audited recovery for executive summary, review matrix, and acceptance gate",
+      "type": "code",
+      "section": "Audited Recovery",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-26T14:42:21.357Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9c56fb7a2000"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:17:57.321Z",
+      "verification": "RED/GREEN: recovery targeted suite passed after implementing audited repair and updating recovery tests: pnpm exec vitest run src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.test.ts src/tools/change.test.ts (103 passed). pnpm run typecheck passed; pnpm run lint passed; pnpm run format:check passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added disk-direct saveRecoveredArtifactMetadata with required recovery authorization. Added adv_change_update recovery args/path for executiveSummary metadata repair on completed/poisoned workflow signal failure. Tightened contract review matrix recovery to require recoveryReason and priorApprovalEvidence and pass authorization into disk recovery. Tightened acceptance gate recovery to require prior user approval evidence, rerun deterministic readiness, generate acceptance.md, inspect executive-summary.md, and verify hash freshness before disk recovery completion. Added targeted recovery tests.",
+      "filesTouched": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "53f4643487b7b22f6af6d07e39c13cafa97ab0cb",
+      "completedAt": "2026-05-26T15:28:10.824Z",
+      "completed_at": "2026-05-26T15:28:10.824Z",
+      "notes": "Added audited recovery paths for executive-summary artifact metadata, review matrix recovery rationale/approval requirements, and acceptance gate recovery validation. Checkpoint 53f4643487b7b22f6af6d07e39c13cafa97ab0cb recorded.",
+      "error_recovery": {
+        "last_error": "Initial recovery targeted test run failed because existing acceptance recovery tests lacked prior approval notes required by the new audit guard. Contract recovery validation was initially inserted in the mint path instead of review-matrix path and was moved.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "N/A — verification passed.",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "pnpm exec vitest run recovery targets failed on poisoned-history acceptance recovery tests: parsed.success undefined after new prior-approval guard.",
+            "diagnosis": "Existing legacy recovery tests did not include notes/prior approval evidence; new guard correctly rejected acceptance recovery without it.",
+            "fix_tried": "Updated acceptance recovery test inputs with prior user approval notes.",
+            "strategy_label": "audit-test-update",
+            "outcome": "failed",
+            "attempted_at": "2026-05-26T15:25:55.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Review-matrix recovery rationale validation was accidentally inserted into adv_contract_mint path during patching.",
+            "diagnosis": "Patch matched the first recoveryError site instead of the review-matrix execute block.",
+            "fix_tried": "Removed validation from mint path, inserted it in adv_contract_review_matrix_set path, and updated review matrix recovery tests with recoveryReason/priorApprovalEvidence.",
+            "strategy_label": "contract-recovery-validation-placement",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-26T15:27:26.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-26T15:28:24.814Z"
+    },
+    {
+      "id": "tk-0880c9367959",
+      "title": "Add cross-path regression coverage for no-late-homework acceptance proof",
+      "type": "code",
+      "section": "Regression Coverage",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-26T14:42:34.474Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a4618afa951e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:29:17.215Z",
+      "verification": "Cross-path regression suite passed: pnpm exec vitest run storage/store-temporal changes, temporal activities, gate-readiness, workflows.signal-handlers, recovery-writers, contract, gate, change, human-checkpoints assets, adv-skill assets, spec-citation invariant (234 passed). Spec JSON validation passed: python -m json.tool ../.adv/specs/advance-workflow/spec.json.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Regression coverage now spans artifact metadata hashing, executive-summary disk inspection, acceptance readiness blockers, workflow healthy/stale acceptance paths, audited artifact/review/gate recovery, change/contract/gate tool paths, /adv-review command assets, and spec citation invariant. No new code was needed in this task because coverage was added during the preceding implementation tasks; this task verified the combined cross-path suite.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "53f4643487b7b22f6af6d07e39c13cafa97ab0cb",
+      "completedAt": "2026-05-26T15:30:12.478Z",
+      "completed_at": "2026-05-26T15:30:12.478Z",
+      "notes": "Verified cross-path no-late-homework regression coverage across artifact metadata, readiness/workflow, audited recovery, command assets, and spec citation paths. Clean checkpoint at 53f4643487b7b22f6af6d07e39c13cafa97ab0cb recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "N/A — verification passed.",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-26T15:30:22.015Z"
+    },
+    {
+      "id": "tk-7c571e84cf57",
+      "title": "Run final verification and acceptance-evidence coordination checks",
+      "type": "code",
+      "section": "Final Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-26T14:42:46.416Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0880c9367959"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC10"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "C9",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6",
+          "DONT7",
+          "OOS1",
+          "OOS2",
+          "OOS3",
+          "OOS4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-26T15:30:42.189Z",
+      "verification": "Post-reviewer remediation verification passed: pnpm exec vitest run src/tools/gate.test.ts src/tools/contract.test.ts src/tools/change.test.ts src/tools/_recovery-writers.test.ts (104 passed); pnpm run check passed; pnpm run build passed; pnpm test passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran final validation, then acceptance reviewer validated the change and tightened acceptance gate recovery audit fields plus /adv-review instructions. Post-reviewer verification passed: targeted gate/contract/change/recovery tests, pnpm run check, pnpm run build, and pnpm test.",
+      "filesTouched": [
+        ".opencode/command/adv-review.md",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "touched_files": [
+        ".opencode/command/adv-review.md",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts"
+      ],
+      "checkpointSha": "8df23522d517d9f1c60572c58f946e5f901e8b40",
+      "completedAt": "2026-05-26T15:55:57.504Z",
+      "completed_at": "2026-05-26T15:55:57.504Z",
+      "notes": "Acceptance reviewer returned READY and made small audit-field alignment fixes. Post-reviewer verification passed. Checkpoint 8df23522d517d9f1c60572c58f946e5f901e8b40 recorded.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "N/A — verification passed.",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-26T15:56:10.195Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixAcceptanceEvidenceRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceEvidenceRecovery",
+          "task_id": "tk-7c571e84cf57",
+          "scope": "review analysis of acceptance evidence recovery across specs/docs/command contract and plugin source",
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": "plugin/src/temporal/gate-readiness.ts",
+              "line": 115,
+              "what": "Acceptance readiness now structurally ties typed contract review rows and workflow-visible executive-summary metadata to gate completion.",
+              "why": "This replaces prompt-only acceptance judgment with deterministic blockers and directly supports the no-late-homework contract.",
+              "fix": "no action needed"
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": "plugin/src/temporal/workflows.ts",
+              "line": 761,
+              "what": "Acceptance gate completion writes generated acceptance.md, validates executive-summary readability/substance/hash, and records artifact evidence before marking done.",
+              "why": "This closes the late artifact-write gap and gives recovery/readiness code machine-checkable proof.",
+              "fix": "no action needed"
+            }
+          ],
+          "changes_made": [
+            {
+              "file": "plugin/src/tools/gate.ts",
+              "summary": "Fixed acceptance gate recovery audit enforcement: completed/poisoned recovery now requires recoveryEvidence, recoveryReason, and priorApprovalEvidence, surfaces missing audit fields, carries prior approval into recovered gate evidence, and removes internally fabricated recovery evidence.",
+              "verification": "pnpm exec vitest run src/tools/gate.test.ts; pnpm run typecheck; pnpm run check; pnpm test; pnpm run build all exited 0."
+            },
+            {
+              "file": "plugin/src/tools/gate.test.ts",
+              "summary": "Added regression coverage that poisoned-history acceptance gate recovery rejects missing audit fields and updated recovery-path tests to supply explicit audit evidence.",
+              "verification": "pnpm exec vitest run src/tools/gate.test.ts exited 0 with 27 tests passed; related acceptance evidence test set exited 0 with 98 tests passed."
+            },
+            {
+              "file": ".opencode/command/adv-review.md",
+              "summary": "Aligned /adv-review recovery contract text with audited recovery requirements for review matrix and acceptance gate completion.",
+              "verification": "pnpm run check and pnpm run build exited 0."
+            }
+          ],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "When adding recovery arguments to one acceptance evidence repair tool, check peer recovery paths for the same audit fields. Gate recovery can otherwise keep fabricating recovery evidence from caught errors while matrix/artifact recovery correctly requires caller-supplied rationale and prior approval."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "pnpm exec vitest run src/tools/gate.test.ts",
+              "pnpm run typecheck",
+              "pnpm run lint",
+              "pnpm run format:check",
+              "pnpm exec vitest run src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/contract.test.ts src/tools/change.test.ts",
+              "pnpm run check",
+              "pnpm run build",
+              "pnpm test"
+            ],
+            "results": "pass",
+            "evidence": "Exact gate test passed: 27/27. Related acceptance evidence tests passed: 98/98. Full check passed. Full build passed. Full test suite `pnpm test` exited 0. Earlier accidental `pnpm test -- src/tools/gate.test.ts` forwarded args incorrectly and ran the full suite with transient unrelated failures; rerun with correct exact vitest command and full `pnpm test` both passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Source-vs-dist runtime gotcha: live OpenCode tool schema/behavior will require normal build/deploy/restart before current-session ADV tool calls expose new adv_gate_complete recovery args."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/tools/gate.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run lint"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm run format:check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No adv_run_test evidence found for reported command: pnpm exec vitest run src/temporal/gate-readiness.test.ts src/temporal/workflows.signal-handlers.test.ts src/tools/contract.test.ts src/tools/change.test.ts"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-plJLlw",
+      "type": "pattern",
+      "content": "When adding new spec-law requirement IDs, add command/code citations in the same task (e.g. `<!-- rq-newId -->`) because `spec-citation-invariant` runs with broad test selection and will fail uncited requirements even when targeted asset tests are requested.",
+      "source_task": "tk-475fcb20608d",
+      "recorded_at": "2026-05-26T14:54:18.990Z"
+    },
+    {
+      "id": "ws-mX69_A",
+      "type": "gotcha",
+      "content": "Artifact naming is split by boundary: disk-artifact activities use filename-oriented kebab kinds like `executive-summary`, while workflow artifact metadata uses camelCase `executiveSummary`. Tests should cover both boundaries so support is not added to one map only.",
+      "source_task": "tk-5ab80065db9a",
+      "recorded_at": "2026-05-26T15:05:20.090Z"
+    },
+    {
+      "id": "ws-vmHvZs",
+      "type": "gotcha",
+      "content": "When extending Temporal activity inputs used by workflows, update both the activity implementation type and the workflow `proxyActivities`-style local interface in `workflows.ts`; tests may pass while `tsc --noEmit` catches the narrower workflow proxy union.",
+      "source_task": "tk-9c56fb7a2000",
+      "recorded_at": "2026-05-26T15:16:29.542Z"
+    },
+    {
+      "id": "ws-qFOtKO",
+      "type": "gotcha",
+      "content": "Recovery audit fields can be misapplied when shared helpers validate multiple tools. If recoveryReason/priorApprovalEvidence apply only to review-matrix or acceptance recovery, place validation in that specific execute path, not a shared recoveryEvidence helper used by contract minting.",
+      "source_task": "tk-a4618afa951e",
+      "recorded_at": "2026-05-26T15:28:33.095Z"
+    },
+    {
+      "id": "ws-APR6kC",
+      "type": "gotcha",
+      "content": "When adding recovery arguments to one acceptance evidence repair tool, check peer recovery paths for the same audit fields. Gate recovery can otherwise fabricate recovery evidence from caught errors while matrix/artifact recovery correctly requires caller-supplied rationale and prior approval.",
+      "source_task": "tk-7c571e84cf57",
+      "recorded_at": "2026-05-26T15:56:19.778Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-26T14:01:30.090Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved proposal via chat reply: `approve`. Proposal covers acceptance evidence ordering, completed-workflow recovery, no-late-homework rule, and advance-workflow spec-delta obligations.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/proposal.md",
+        "content_hash": "3b394ec9273650a31042cd21fd44a619f70fc03223b89ec4579bac92c2dee34d",
+        "non_whitespace_chars": 10049,
+        "checked_at": "2026-05-26T14:01:30.138Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-26T14:31:20.364Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. User approved acceptance criteria via chat reply: `approve`. Agreement persisted; contract minted with 35 items. User decisions: executive summary is acceptance proof; old stuck changes need audited repair; chat approval alone is not accepted when required proof fails to persist.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/agreement.md",
+        "content_hash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "non_whitespace_chars": 5227,
+        "checked_at": "2026-05-26T14:31:20.436Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-26T14:41:09.764Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Validator returned VALIDATED with planning cautions only: require server-computed executiveSummary contentHash, reconcile artifact kind inspection, and keep gate evidence backward-compatible. No unresolved conflict, no user-value tradeoff, no contract-compromise risk.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/design.md",
+        "content_hash": "23fee186772c743ef324a143812c8db103fece4575b2347a815b8d7b9372fc3f",
+        "non_whitespace_chars": 7745,
+        "checked_at": "2026-05-26T14:41:09.815Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-26T14:44:56.952Z",
+      "completed_by": "agent",
+      "approval_evidence": "User explicitly approved prep task graph via chat reply: `approve`. Six-task graph covers specs/command contract, artifact metadata hashing, acceptance readiness, audited recovery, regressions, and final verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-26T15:33:18.373Z",
+      "completed_by": "agent",
+      "approval_evidence": "All six execution tasks completed and checkpointed. Final verification passed: pnpm run check, pnpm run build, pnpm test."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-26T16:11:36.695Z",
+      "completed_by": "agent",
+      "approval_evidence": "User accepted delivered work via chat reply: `accept`. Acceptance proof was persisted before prompt: contract review matrix, executive-summary artifact metadata, and generated/generatable acceptance projection.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/acceptance.md",
+        "content_hash": "4bb8999679c1aec156803bd20f77a144992ab1b9fa3a38d08c0c531fb3d8f249",
+        "non_whitespace_chars": 7208,
+        "checked_at": "2026-05-26T16:11:36.775Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "ag-RBrRerdF"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+      "approvedAt": "2026-05-26T14:31:13.325Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Acceptance proof exists durably before the acceptance approval prompt.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Required acceptance evidence is represented in workflow state or in an explicitly audited recovery projection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Stuck completed/poisoned workflow states can be repaired without manual ADV state-file edits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Missing or invalid proof yields deterministic blockers instead of heuristic agent judgment.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Healthy acceptance flow remains structurally compatible with existing signal/query workflow architecture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-review` must persist and verify `contract.reviewMatrix`, generated `acceptance.md`, and `executive-summary.md` before presenting acceptance approval.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Acceptance gate completion must fail with deterministic blockers when any required acceptance proof is missing, stale, failing, or not workflow-visible.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`executive-summary.md` must be workflow-known acceptance evidence, not only a communication artifact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Completed/poisoned workflow recovery must support audited repair for review matrix, executive summary, and acceptance gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Recovery must require precise evidence, recovery rationale, and prior user approval evidence; no silent repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Chat approval alone must never mark acceptance done when required proof failed to persist.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Healthy paths remain signal/query-only; no Temporal `defineUpdate` reintroduction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Specs and `/adv-review` docs encode the no-late-homework rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Regression tests cover healthy path, missing evidence blockers, completed workflow recovery, poisoned recovery, and rejection without recovery evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check`, `pnpm run build`, and relevant/full tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Specs are law: update `advance-workflow` before or with implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Required acceptance proof must be persisted and verified before acceptance approval prompt.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`executive-summary.md` is acceptance proof for this change's target behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Recovery must be explicit, audited, and evidence-gated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not silently mark acceptance done from chat approval alone when required proof failed to persist.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Preserve Temporal signal/query-only change workflow surface; do not reintroduce `defineUpdate`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Use deterministic readiness blockers and typed evidence, not LLM judgment, for gate correctness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "Do not require manual reads or edits under ADV state directories.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C9",
+        "kind": "constraint",
+        "text": "Keep release/archive ordering scope with `fixArchiveReleaseOrdering`; this change owns acceptance evidence only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Manual ADV state-file editing as a supported repair path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Heuristic chat-history reconstruction as proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Caller-forged artifact metadata as authoritative evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Silent recovery without recovery evidence, user approval evidence, and rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Treating `executive-summary.md` as optional communication-only material for acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Broad release/archive behavior changes unrelated to acceptance proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "New Temporal update handlers on change workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Fixing PokeEdge app logic or `fixSetPriceSorting` implementation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Broad dirty-main checkpointing, worktree cleanup, or archive finalization sequencing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Reworking proposal/discovery/design/planning/execution gates except for shared evidence infrastructure needed by acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Adding external services or dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "2ce81fbf59c1a4e9b53722f394be02460e7c31ffb813208028cc2df41fc4e837",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-26T15:56:30.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance proof sequence implemented in /adv-review contract and verified by reviewer READY report plus gate-readiness/workflow tests.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Workflow artifact metadata, generated acceptance.md, and audited disk recovery paths implemented; regression suite passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "saveRecoveredArtifactMetadata, review-matrix recovery, and acceptance gate disk recovery implemented without manual ADV state-file edits.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Deterministic blockers added for missing/stale executive-summary metadata/hash and failing/missing review rows.",
+          "notes": ""
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Workflow remains signal/query-only; no defineUpdate reintroduced; workflow tests and boundary checks passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-review docs require proof before prompt; workflow writes acceptance.md and verifies executive-summary hash; targeted and full tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness and workflows.signal-handlers tests cover missing metadata/hash and stale executive-summary hash blockers.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "store-temporal metadata and activities tests prove executive-summary contentHash and inspection support; workflow readiness requires it.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "_recovery-writers, contract, change, and gate tests cover artifact metadata, review matrix, and acceptance gate recovery.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate and contract recovery tests require recoveryEvidence/recoveryReason/priorApprovalEvidence; missing audit fields reject recovery.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Acceptance gate completion blocks before done when proof missing/stale; chat approval alone cannot bypass readiness.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Workflow change surface remains signal/query-only; pnpm run check and workflow tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "advance-workflow spec, docs/adv-gates, and .opencode/command/adv-review updated; asset and citation tests passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cross-path regression suite passed: 234 targeted tests across metadata, readiness/workflow, recovery, assets, and citations.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final verification passed after reviewer fixes: pnpm run check, pnpm run build, and pnpm test.",
+          "notes": ""
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "advance-workflow spec updated before/with implementation; spec JSON and citation invariant passed.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No-late-homework order encoded in /adv-review and enforced by readiness/workflow before acceptance completion.",
+          "notes": ""
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "executiveSummary metadata contentHash is required and executive-summary.md is inspected as acceptance proof.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Recovery paths require explicit audit fields and recovery authorization before disk projection repair.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Acceptance recovery rejects missing priorApprovalEvidence; workflow readiness blocks missing proof before approval can complete gate.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No defineUpdate changes; Temporal workflow signal/query architecture preserved.",
+          "notes": ""
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Correctness uses typed contract review matrix, artifact metadata hashes, and deterministic readiness blockers.",
+          "notes": ""
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implemented tool-based recovery writers; no supported manual ADV state-file edit path introduced.",
+          "notes": ""
+        },
+        {
+          "contractId": "C9",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Scope stayed on acceptance evidence/recovery; release/archive finalization sequencing was not changed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No manual ADV state-file editing repair path added.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery requires structured evidence fields; no chat-history reconstruction used as proof.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Workflow/tool computes or validates contentHash; caller-forged metadata is not sole acceptance authority.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery requires recoveryEvidence, recoveryReason, and priorApprovalEvidence where applicable.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "executive-summary.md is now workflow-visible acceptance proof with hash metadata.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No broad release/archive behavior changes made beyond acceptance proof references.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No Temporal update handlers added to change workflow.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "PokeEdge app logic and fixSetPriceSorting implementation were not changed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Dirty-main checkpointing, worktree cleanup, and archive finalization sequencing were not changed.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Proposal/discovery/design/planning/execution gates were not reworked beyond shared acceptance evidence infrastructure.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No external services or dependencies added.",
+          "notes": ""
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`/adv-review` must persist and verify `contract.reviewMatrix`, generated `acceptance.md`, and `executive-summary.md` before presenting acceptance approval.",
+    "Acceptance gate completion must fail with deterministic blockers when any required acceptance proof is missing, stale, failing, or not workflow-visible.",
+    "`executive-summary.md` must be workflow-known acceptance evidence, not only a communication artifact.",
+    "Completed/poisoned workflow recovery must support audited repair for review matrix, executive summary, and acceptance gate completion.",
+    "Recovery must require precise evidence, recovery rationale, and prior user approval evidence; no silent repair.",
+    "Chat approval alone must never mark acceptance done when required proof failed to persist.",
+    "Healthy paths remain signal/query-only; no Temporal `defineUpdate` reintroduction.",
+    "Specs and `/adv-review` docs encode the no-late-homework rule.",
+    "Regression tests cover healthy path, missing evidence blockers, completed workflow recovery, poisoned recovery, and rejection without recovery evidence.",
+    "`pnpm run check`, `pnpm run build`, and relevant/full tests pass."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/proposal.md",
+      "updatedAt": "2026-05-26T14:10:47.321Z"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/agreement.md",
+      "updatedAt": "2026-05-26T14:30:57.960Z"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/design.md",
+      "updatedAt": "2026-05-26T14:41:03.203Z"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixAcceptanceEvidenceRecovery/executive-summary.md",
+      "updatedAt": "2026-05-26T15:58:03.149Z"
+    }
+  },
+  "lastSignalAt": "2026-05-26T16:44:05.495Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-26T17:06:13.855Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-05-26T17:06:13.855Z"
+    }
+  ]
+}

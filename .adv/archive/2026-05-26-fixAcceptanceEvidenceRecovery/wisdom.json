@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "id": "ws-plJLlw",
+      "type": "pattern",
+      "content": "When adding new spec-law requirement IDs, add command/code citations in the same task (e.g. `<!-- rq-newId -->`) because `spec-citation-invariant` runs with broad test selection and will fail uncited requirements even when targeted asset tests are requested.",
+      "source_task": "tk-475fcb20608d",
+      "recorded_at": "2026-05-26T14:54:18.990Z"
+    },
+    {
+      "id": "ws-mX69_A",
+      "type": "gotcha",
+      "content": "Artifact naming is split by boundary: disk-artifact activities use filename-oriented kebab kinds like `executive-summary`, while workflow artifact metadata uses camelCase `executiveSummary`. Tests should cover both boundaries so support is not added to one map only.",
+      "source_task": "tk-5ab80065db9a",
+      "recorded_at": "2026-05-26T15:05:20.090Z"
+    },
+    {
+      "id": "ws-vmHvZs",
+      "type": "gotcha",
+      "content": "When extending Temporal activity inputs used by workflows, update both the activity implementation type and the workflow `proxyActivities`-style local interface in `workflows.ts`; tests may pass while `tsc --noEmit` catches the narrower workflow proxy union.",
+      "source_task": "tk-9c56fb7a2000",
+      "recorded_at": "2026-05-26T15:16:29.542Z"
+    },
+    {
+      "id": "ws-qFOtKO",
+      "type": "gotcha",
+      "content": "Recovery audit fields can be misapplied when shared helpers validate multiple tools. If recoveryReason/priorApprovalEvidence apply only to review-matrix or acceptance recovery, place validation in that specific execute path, not a shared recoveryEvidence helper used by contract minting.",
+      "source_task": "tk-a4618afa951e",
+      "recorded_at": "2026-05-26T15:28:33.095Z"
+    },
+    {
+      "id": "ws-APR6kC",
+      "type": "gotcha",
+      "content": "When adding recovery arguments to one acceptance evidence repair tool, check peer recovery paths for the same audit fields. Gate recovery can otherwise fabricate recovery evidence from caught errors while matrix/artifact recovery correctly requires caller-supplied rationale and prior approval.",
+      "source_task": "tk-7c571e84cf57",
+      "recorded_at": "2026-05-26T15:56:19.778Z"
+    }
+  ],
+  "count": 5
+}

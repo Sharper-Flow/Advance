@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
@@ -619,6 +620,14 @@ describe("changeWorkflow signal handlers", () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-projection");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nAcceptance proof persisted before approval.";
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "executive-summary.md"),
+        executiveSummaryContent,
+      );
       const gates = createDefaultGates();
       gates.proposal.status = "done";
       gates.discovery.status = "done";
@@ -631,6 +640,15 @@ describe("changeWorkflow signal handlers", () => {
         seedState: {
           ...makeChangeInput("acceptance-projection").seedState,
           gates,
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
           contract: {
             version: 1 as const,
             rigor: "standard" as const,
@@ -686,6 +704,96 @@ describe("changeWorkflow signal handlers", () => {
               "utf-8",
             ),
           ).resolves.toContain("Artifact-backed gates are enforced.");
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  it("blocks acceptance when executive-summary metadata hash is stale", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-stale-summary");
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "executive-summary.md"),
+        "# Executive Summary\n\nActual proof differs from metadata.",
+      );
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-stale-summary"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-stale-summary").seedState,
+          gates,
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: "0".repeat(64),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "Artifact-backed gates are enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "acceptance-stale-summary",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "stuck");
+          expect(state.gates.acceptance.stuck_reason).toContain(
+            "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+          );
+          expect(state.gates.acceptance.readiness_blockers).toContainEqual(
+            expect.objectContaining({
+              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+            }),
+          );
         },
       );
     } finally {

@@ -703,6 +703,8 @@ describe("contractTools", () => {
           recoveryMode: "poisoned_history",
           recoveryEvidence:
             "TMPRL1100: Nondeterminism error in workflow history",
+          recoveryReason: "review matrix recovery after poisoned history",
+          priorApprovalEvidence: "User approved acceptance: approve",
           rows: [
             {
               contractId: "AC1",
@@ -752,6 +754,53 @@ describe("contractTools", () => {
 
     expect(output.error).toContain("recoveryEvidence");
     expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("review matrix recovery requires rationale and prior approval evidence", async () => {
+    const change = baseChange({
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: { artifact: "agreement", approvedAt },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion",
+            text: "Contract minting fires a production signal.",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      },
+    } as Partial<Change>);
+    const store = createStore(change, "/tmp/unused");
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "TMPRL1100: Nondeterminism error in workflow history",
+          rows: [
+            {
+              contractId: "AC1",
+              kind: "acceptance_criterion",
+              status: "pass",
+              evidencePolicy: "test",
+              evidence: "passing test",
+            },
+          ],
+        },
+        store,
+      ),
+    );
+
+    expect(output.error).toContain("recoveryReason and priorApprovalEvidence");
+    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
   test("missing-workflow errors do not authorize poisoned-history recovery", async () => {
@@ -936,6 +985,8 @@ describe("contractTools", () => {
           recoveryMode: "poisoned_history",
           recoveryEvidence:
             "Temporal reports WorkflowTaskFailedCauseNonDeterministicError",
+          recoveryReason: "review matrix recovery after poisoned history",
+          priorApprovalEvidence: "User approved acceptance: approve",
           rows: [
             {
               contractId: "AC1",

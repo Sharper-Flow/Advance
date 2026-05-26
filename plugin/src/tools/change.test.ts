@@ -618,6 +618,82 @@ describe("change tools — signal-driven lifecycle", () => {
         undefined,
       );
     });
+
+    test("requires audited recovery fields for executive-summary metadata recovery", async () => {
+      const store = createMockStore();
+
+      const result = await changeTools.adv_change_update.execute(
+        {
+          changeId: "test-change",
+          executiveSummary: "# Executive Summary\n\nDurable proof.",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain(
+        "recoveryReason and priorApprovalEvidence",
+      );
+      expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
+    });
+
+    test("recovers executive-summary metadata when artifact update hits completed workflow", async () => {
+      const { createHash } = await import("crypto");
+      const { mkdir, readFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = pathJoin(
+        tmpdir(),
+        `adv-change-update-recovery-${Date.now()}`,
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+        vi.mocked(store.changes.updateArtifacts).mockRejectedValueOnce(
+          new Error("workflow execution already completed"),
+        );
+
+        const executiveSummary = "# Executive Summary\n\nDurable proof.";
+        const result = await changeTools.adv_change_update.execute(
+          {
+            changeId: "test-change",
+            executiveSummary,
+            recoveryMode: "poisoned_history",
+            recoveryEvidence:
+              "WorkflowExecutionAlreadyCompleted: workflow execution already completed",
+            recoveryReason:
+              "completed workflow accepted disk artifact but rejected metadata signal",
+            priorApprovalEvidence: "Prior user acceptance approval: accept",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.executiveSummaryPath).toBe(
+          pathJoin(changeDir, "executive-summary.md"),
+        );
+        const saved = JSON.parse(
+          await readFile(pathJoin(changeDir, "change.json"), "utf-8"),
+        );
+        expect(saved.artifacts.executiveSummary).toMatchObject({
+          path: pathJoin(changeDir, "executive-summary.md"),
+          contentHash: createHash("sha256")
+            .update(executiveSummary)
+            .digest("hex"),
+        });
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("adv_change_create", () => {

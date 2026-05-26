@@ -27,6 +27,51 @@ function makeState(
   };
 }
 
+function acceptanceReadyGates() {
+  const gates = createDefaultGates();
+  gates.proposal.status = "done";
+  gates.discovery.status = "done";
+  gates.design.status = "done";
+  gates.planning.status = "done";
+  gates.execution.status = "done";
+  return gates;
+}
+
+function passingContract(): ChangeWorkflowState["contract"] {
+  return {
+    version: 1,
+    rigor: "standard",
+    source: {
+      artifact: "agreement",
+      approvedAt: "2026-05-20T00:00:00.000Z",
+    },
+    items: [
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Gate artifacts are enforced.",
+        sourceArtifact: "agreement",
+        verificationRequired: true,
+        evidencePolicy: "test",
+        status: "approved",
+      },
+    ],
+    reviewMatrix: {
+      reviewedAt: "2026-05-20T00:00:00.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "pass",
+          evidencePolicy: "test",
+          evidence: "workflow tests pass",
+        },
+      ],
+    },
+    amendments: [],
+  };
+}
+
 describe("gate readiness", () => {
   it("maps artifact-backed gates to required artifacts", () => {
     expect(ARTIFACT_BACKED_GATES).toEqual({
@@ -270,6 +315,70 @@ describe("gate readiness", () => {
         contractId: "AC1",
       }),
     );
+  });
+
+  it("blocks acceptance when workflow-visible executive summary metadata is missing", () => {
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract: passingContract(),
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
+        artifactKind: "acceptance",
+      }),
+    );
+  });
+
+  it("blocks acceptance when executive summary metadata lacks content hash", () => {
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract: passingContract(),
+        artifacts: {
+          executiveSummary: {
+            path: "/tmp/changes/change-1/executive-summary.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+          },
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_MISSING",
+        artifactKind: "acceptance",
+      }),
+    );
+  });
+
+  it("allows acceptance when review matrix and executive summary hash metadata exist", () => {
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract: passingContract(),
+        artifacts: {
+          executiveSummary: {
+            path: "/tmp/changes/change-1/executive-summary.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+          },
+        },
+      }),
+      "acceptance",
+    );
+
+    expect(result.ready).toBe(true);
   });
 
   it("parses backward-compatible gate artifact evidence", () => {

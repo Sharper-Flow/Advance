@@ -1,5 +1,6 @@
 import type { Store } from "../store-types";
 import type { ChangeClosure, BulkCloseResult, Change } from "../../types";
+import { createHash } from "crypto";
 import {
   archiveChangeSignal,
   closeChangeSignal,
@@ -15,6 +16,10 @@ import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 
 const logger = createLogger("store-temporal-changes");
+
+function computeContentHash(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
   const {
@@ -494,22 +499,37 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             | "executiveSummary"
           ),
           string | undefined,
+          string | undefined,
         ]
       > = [
-        ["proposal", result.proposalPath],
-        ["problemStatement", result.problemStatementPath],
-        ["agreement", result.agreementPath],
-        ["design", result.designPath],
-        ["executiveSummary", result.executiveSummaryPath],
+        ["proposal", result.proposalPath, proposalContent],
+        [
+          "problemStatement",
+          result.problemStatementPath,
+          problemStatementContent,
+        ],
+        ["agreement", result.agreementPath, agreementContent],
+        ["design", result.designPath, designContent],
+        [
+          "executiveSummary",
+          result.executiveSummaryPath,
+          executiveSummaryContent,
+        ],
       ];
-      for (const [kind, path] of updates) {
+      for (const [kind, path, content] of updates) {
         if (!path) continue;
         await runTemporal(async () =>
           (await getGuardedChangeHandle(input, changeId)).signal(
             updateArtifactMetadataSignal,
             {
               kind,
-              metadata: { path, updatedAt: new Date().toISOString() },
+              metadata: {
+                path,
+                updatedAt: new Date().toISOString(),
+                ...(content === undefined
+                  ? {}
+                  : { contentHash: computeContentHash(content) }),
+              },
             },
           ),
         );

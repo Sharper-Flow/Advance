@@ -67,6 +67,7 @@ describe("temporal activities", () => {
         await writeFile(join(changeDir, "agreement.md"), "A");
         await writeFile(join(changeDir, "design.md"), "D");
         await writeFile(join(changeDir, "acceptance.md"), "ACCEPT");
+        await writeFile(join(changeDir, "executive-summary.md"), "ES");
 
         for (const [kind, expected] of [
           ["proposal", "P"],
@@ -74,6 +75,7 @@ describe("temporal activities", () => {
           ["agreement", "A"],
           ["design", "D"],
           ["acceptance", "ACCEPT"],
+          ["executive-summary", "ES"],
         ] as const) {
           const result = await readArtifactActivity({
             changesDir,
@@ -223,6 +225,33 @@ describe("temporal activities", () => {
           code: "missing",
         });
         expect(result.path).toMatch(/acceptance\.md$/);
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("returns content hash metadata for executive-summary artifacts", async () => {
+      const dir = await createTempDir();
+      try {
+        const changesDir = join(dir, "changes");
+        const changeDir = join(changesDir, "myChange");
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "executive-summary.md"),
+          "# Executive Summary\n\nAccepted.",
+        );
+
+        const result = await inspectArtifactActivity({
+          changesDir,
+          changeId: "myChange",
+          kind: "executive-summary",
+        });
+
+        expect(result.ok).toBe(true);
+        expect(result.kind).toBe("executive-summary");
+        expect(result.path).toMatch(/executive-summary\.md$/);
+        expect(result.contentHash).toMatch(/^[a-f0-9]{64}$/);
+        expect(result.nonWhitespaceChars).toBeGreaterThan(0);
       } finally {
         await cleanupTempDir(dir);
       }

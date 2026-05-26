@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { createHash } from "crypto";
 import { basename, join } from "path";
 import { readFile, stat, realpath } from "fs/promises";
 import { execGit, getDefaultBranch } from "../utils/git.js";
@@ -2525,6 +2526,23 @@ export const changeTools = {
         .describe(
           "Required with target_confirmed for untrusted target_path mutation. Cite user approval evidence.",
         ),
+      recoveryMode: z.enum(["normal", "poisoned_history"]).optional(),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when recoveryMode='poisoned_history'. Must cite precise poisoned-history or completed-workflow evidence.",
+        ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe("Required recovery rationale for artifact metadata repair."),
+      priorApprovalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required prior user approval evidence for acceptance-proof artifact recovery.",
+        ),
     },
     execute: async (
       {
@@ -2537,6 +2555,10 @@ export const changeTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
+        recoveryReason,
+        priorApprovalEvidence,
       }: {
         changeId: string;
         proposal?: string;
@@ -2547,6 +2569,10 @@ export const changeTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
+        recoveryReason?: string;
+        priorApprovalEvidence?: string;
       },
       store: Store,
     ) => {
@@ -2604,15 +2630,106 @@ export const changeTools = {
             hint: "Fetch valid change IDs with 'adv_change_list' or confirm the target with 'adv_change_show changeId: <id>' before retrying.",
           });
         }
+        if (recoveryMode === "poisoned_history") {
+          const { isPreciseWorkflowRecoveryEvidence } =
+            await import("../temporal/recovery-classification");
+          if (!recoveryEvidence?.trim()) {
+            return formatToolOutput({
+              error:
+                "artifact metadata recovery requires non-empty recoveryEvidence when recoveryMode='poisoned_history'",
+              changeId,
+            });
+          }
+          if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
+            return formatToolOutput({
+              error:
+                "artifact metadata recoveryEvidence must cite precise poisoned-history or completed-workflow evidence",
+              changeId,
+            });
+          }
+          if (!recoveryReason?.trim() || !priorApprovalEvidence?.trim()) {
+            return formatToolOutput({
+              error:
+                "artifact metadata recovery requires recoveryReason and priorApprovalEvidence",
+              changeId,
+            });
+          }
+        }
 
-        const result = await activeStore.changes.updateArtifacts(
-          changeId,
-          proposal,
-          problemStatement,
-          agreement,
-          design,
-          executiveSummary,
-        );
+        let result;
+        try {
+          result = await activeStore.changes.updateArtifacts(
+            changeId,
+            proposal,
+            problemStatement,
+            agreement,
+            design,
+            executiveSummary,
+          );
+        } catch (error) {
+          if (
+            recoveryMode !== "poisoned_history" ||
+            executiveSummary === undefined
+          ) {
+            throw error;
+          }
+          const { RECOVERY_RECONCILIATION_WARNING, isWorkflowCompletedError } =
+            await import("../temporal/recovery-classification");
+          const completedWorkflow = isWorkflowCompletedError(error);
+          let poisonedWorkflow = false;
+          if (!completedWorkflow) {
+            const bundle = await import("../temporal/service");
+            const service = bundle.getService();
+            const projectId = await getProjectId(activeStore.paths.root);
+            if (service && projectId) {
+              const { getChangeHandle } = await import("./_adapters");
+              const { workflowHasPoisonedRecoveryEvidence } =
+                await import("./recovery-probe");
+              const handle = getChangeHandle(
+                service.client,
+                projectId,
+                changeId,
+              );
+              poisonedWorkflow = await workflowHasPoisonedRecoveryEvidence(
+                handle,
+                { signalError: error },
+              );
+            }
+          }
+          if (!completedWorkflow && !poisonedWorkflow) throw error;
+          const { saveRecoveredArtifactMetadata } =
+            await import("./_recovery-writers");
+          const executiveSummaryPath = join(
+            activeStore.paths.changes,
+            changeId,
+            "executive-summary.md",
+          );
+          await saveRecoveredArtifactMetadata({
+            store: activeStore,
+            change: existing.data,
+            authorization: {
+              reason: recoveryReason ?? "artifact_metadata_recovery",
+              evidence: recoveryEvidence ?? String(error),
+            },
+            kind: "executiveSummary",
+            metadata: {
+              path: executiveSummaryPath,
+              updatedAt: new Date().toISOString(),
+              contentHash: createHash("sha256")
+                .update(executiveSummary)
+                .digest("hex"),
+            },
+          });
+          return formatToolOutput({
+            changeId,
+            executiveSummaryPath,
+            _recoveryMutation: true,
+            recoveryReason,
+            priorApprovalEvidence,
+            reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        }
 
         if (!result.success) {
           return formatToolOutput({ error: result.error });

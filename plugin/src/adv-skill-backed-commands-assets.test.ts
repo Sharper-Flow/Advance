@@ -637,6 +637,8 @@ describe("thin-command shape enforcement", () => {
     expect(prep).toContain("Artifact Excerpts");
     expect(prep).toContain("problem-statement.md excerpt");
     expect(review).toContain("generated acceptance.md projection");
+    expect(review).toContain("workflow-visible `executive-summary.md`");
+    expect(review).toContain("No-late-homework rule");
     expect(review).toContain("Do not manually edit acceptance.md");
     expect(review).toContain("readinessBlockers");
   });

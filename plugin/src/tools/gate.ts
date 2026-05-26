@@ -65,18 +65,25 @@ import {
   verifyDefaultBranchPushed,
 } from "./archive-helpers/git-finalize";
 import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
-import { evaluateGateReadiness } from "../temporal/gate-readiness";
+import {
+  evaluateGateReadiness,
+  renderAcceptanceProjection,
+} from "../temporal/gate-readiness";
+import {
+  inspectArtifactActivity,
+  writeArtifactActivity,
+} from "../temporal/activities";
 import { changeToWorkflowState } from "../temporal/change-state";
 import {
   RECOVERY_RECONCILIATION_WARNING,
   isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
-import { collectErrorText } from "../temporal/retry-wrapper";
 import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 
 const GATE_COMPLETION_POLL_ATTEMPTS = 40;
 const GATE_COMPLETION_POLL_DELAY_MS = 25;
+const MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS = 20;
 
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -237,6 +244,7 @@ async function completeGateViaRecovery(input: {
   diskDirect?: boolean;
   recoveryReason?: string;
   recoveryEvidence?: string;
+  priorApprovalEvidence?: string;
 }): Promise<string> {
   if (input.gateId !== "acceptance" && input.gateId !== "release") {
     return formatToolOutput({
@@ -255,6 +263,25 @@ async function completeGateViaRecovery(input: {
       ...(input.extraPayload ?? {}),
     });
   }
+  const missingAuditFields = [
+    !input.recoveryEvidence?.trim() ? "recoveryEvidence" : undefined,
+    !input.recoveryReason?.trim() ? "recoveryReason" : undefined,
+    input.gateId === "acceptance" && !input.priorApprovalEvidence?.trim()
+      ? "priorApprovalEvidence"
+      : undefined,
+  ].filter((field): field is string => Boolean(field));
+  if (missingAuditFields.length > 0) {
+    return formatToolOutput({
+      error: `poisoned-history ${input.gateId} recovery requires ${missingAuditFields.join(", ")}`,
+      changeId: input.changeId,
+      gateId: input.gateId,
+      missingAuditFields,
+      ...(input.extraPayload ?? {}),
+    });
+  }
+  const recoveryReason = input.recoveryReason?.trim() ?? "";
+  const recoveryEvidence = input.recoveryEvidence?.trim() ?? "";
+  const priorApprovalEvidence = input.priorApprovalEvidence?.trim();
   if (!canCompleteGate(input.gates, input.gateId)) {
     const blockedBy = GATE_ORDER.slice(
       0,
@@ -292,15 +319,14 @@ async function completeGateViaRecovery(input: {
     });
   }
 
-  const readiness = evaluateGateReadiness(
-    buildRecoveryReadinessState({
-      change: recoveryChange,
-      gates: input.gates,
-      projectionChangesDir: input.store.paths.changes,
-    }),
-    input.gateId,
-    { compatibilityReason: input.compatibilityReason },
-  );
+  const recoveryState = buildRecoveryReadinessState({
+    change: recoveryChange,
+    gates: input.gates,
+    projectionChangesDir: input.store.paths.changes,
+  });
+  const readiness = evaluateGateReadiness(recoveryState, input.gateId, {
+    compatibilityReason: input.compatibilityReason,
+  });
   if (!readiness.ready) {
     return workflowReadinessBlockedResponse({
       changeId: input.changeId,
@@ -312,14 +338,102 @@ async function completeGateViaRecovery(input: {
       },
     });
   }
+  let artifactEvidence = readiness.evidence;
+  if (input.gateId === "acceptance" && recoveryState.contract?.reviewMatrix) {
+    const acceptanceWrite = await writeArtifactActivity({
+      changesDir: input.store.paths.changes,
+      changeId: input.changeId,
+      kind: "acceptance",
+      content: renderAcceptanceProjection(recoveryState),
+    });
+    if (!acceptanceWrite.ok) {
+      return workflowReadinessBlockedResponse({
+        changeId: input.changeId,
+        gateId: input.gateId,
+        gate: {
+          status: "stuck",
+          stuck_reason: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+          readiness_blockers: [
+            {
+              code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+              gateId: "acceptance",
+              artifactKind: "acceptance",
+              message: acceptanceWrite.error,
+              remediation:
+                "Fix acceptance projection generation before retrying recovery.",
+            },
+          ],
+        },
+      });
+    }
+    const executiveSummary = await inspectArtifactActivity({
+      changesDir: input.store.paths.changes,
+      changeId: input.changeId,
+      kind: "executive-summary",
+    });
+    if (
+      !executiveSummary.ok ||
+      executiveSummary.nonWhitespaceChars <
+        MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS ||
+      executiveSummary.contentHash !==
+        recoveryState.artifacts.executiveSummary?.contentHash
+    ) {
+      const code = !executiveSummary.ok
+        ? executiveSummary.code === "missing"
+          ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
+          : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE"
+        : executiveSummary.nonWhitespaceChars <
+            MIN_RECOVERY_ARTIFACT_NON_WHITESPACE_CHARS
+          ? "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED"
+          : "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE";
+      return workflowReadinessBlockedResponse({
+        changeId: input.changeId,
+        gateId: input.gateId,
+        gate: {
+          status: "stuck",
+          stuck_reason: code,
+          readiness_blockers: [
+            {
+              code,
+              gateId: "acceptance",
+              artifactKind: "acceptance",
+              message: !executiveSummary.ok
+                ? executiveSummary.error
+                : "executive-summary proof failed recovery validation",
+              remediation:
+                "Repair executive-summary.md and workflow metadata before retrying recovery.",
+            },
+          ],
+        },
+      });
+    }
+    const acceptanceArtifact = await inspectArtifactActivity({
+      changesDir: input.store.paths.changes,
+      changeId: input.changeId,
+      kind: "acceptance",
+    });
+    if (acceptanceArtifact.ok) {
+      artifactEvidence = {
+        kind: "acceptance",
+        path: acceptanceArtifact.path,
+        content_hash: acceptanceArtifact.contentHash,
+        non_whitespace_chars: acceptanceArtifact.nonWhitespaceChars,
+        checked_at: acceptanceArtifact.checkedAt,
+      };
+    }
+  }
 
   const completedAt = new Date().toISOString();
   const completion = {
     status: "done",
     completed_at: completedAt,
     completed_by: input.completedBy,
-    approval_evidence: input.notes,
-    artifact_evidence: readiness.evidence,
+    approval_evidence:
+      input.gateId === "acceptance"
+        ? [input.notes, priorApprovalEvidence].filter(Boolean).join("; ") ||
+          undefined
+        : input.notes,
+    artifact_evidence: artifactEvidence,
   } as Gates[GateId];
   const updatedGates: Gates = {
     ...input.gates,
@@ -330,11 +444,11 @@ async function completeGateViaRecovery(input: {
       store: input.store,
       change: recoveryChange,
       authorization: {
-        reason: input.recoveryReason ?? "completed_workflow_gate_recovery",
+        reason: recoveryReason,
         evidence:
-          input.recoveryEvidence ??
-          input.compatibilityReason ??
-          "completed workflow gate recovery",
+          input.gateId === "acceptance"
+            ? `${recoveryEvidence}\nPrior approval evidence: ${priorApprovalEvidence}`
+            : recoveryEvidence,
       },
       gateId: input.gateId,
       completion,
@@ -798,7 +912,25 @@ export const gateTools = {
         .string()
         .optional()
         .describe(
-          "Acceptance-only legacy/replay compatibility rationale. Used for explicit poisoned-history recovery; rejected for non-acceptance gates.",
+          "Legacy/replay compatibility rationale for poisoned-history gate recovery. Required for acceptance and release gate recovery; rejected for other gates.",
+        ),
+      recoveryReason: z
+        .string()
+        .optional()
+        .describe(
+          "Required when acceptance/release gate recovery is invoked. Must explain why disk-projection recovery is appropriate.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required when acceptance/release gate recovery is invoked. Must cite precise completed-workflow or poisoned-history evidence.",
+        ),
+      priorApprovalEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Required for acceptance gate recovery only. Not required for release gate recovery. Must cite the prior user acceptance approval evidence.",
         ),
       target_path: z
         .string()
@@ -817,6 +949,9 @@ export const gateTools = {
         userApproved,
         notes,
         compatibilityReason,
+        recoveryReason,
+        recoveryEvidence,
+        priorApprovalEvidence,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -827,6 +962,9 @@ export const gateTools = {
         userApproved?: boolean;
         notes?: string;
         compatibilityReason?: string;
+        recoveryReason?: string;
+        recoveryEvidence?: string;
+        priorApprovalEvidence?: string;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -938,10 +1076,9 @@ export const gateTools = {
               compatibilityReason,
               boundaryWarning,
               diskDirect: completedWorkflow,
-              recoveryReason: completedWorkflow
-                ? "completed_workflow_gate_recovery"
-                : "poisoned_history_gate_recovery",
-              recoveryEvidence: collectErrorText(error),
+              recoveryReason,
+              recoveryEvidence,
+              priorApprovalEvidence,
               extraPayload: projectContext
                 ? { _projectContext: projectContext }
                 : {},
@@ -1119,10 +1256,9 @@ export const gateTools = {
               compatibilityReason,
               boundaryWarning,
               diskDirect: completedWorkflow,
-              recoveryReason: completedWorkflow
-                ? "completed_workflow_gate_recovery"
-                : "poisoned_history_gate_recovery",
-              recoveryEvidence: collectErrorText(error),
+              recoveryReason,
+              recoveryEvidence,
+              priorApprovalEvidence,
               extraPayload: projectContext
                 ? { _projectContext: projectContext }
                 : {},
