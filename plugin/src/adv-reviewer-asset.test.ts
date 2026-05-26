@@ -447,7 +447,7 @@ describe("adv-reviewer agent asset", () => {
     );
   });
 
-  test("review and harden reviewer remediation packets include FRONTEND DESIGN REVIEW SKILL anchor with inline checklist", () => {
+  test("review and harden reviewer remediation packets reference skill(\"adv-frontend-review\") AND retain inline 6-dimension checklist as fallback", () => {
     const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
 
@@ -460,9 +460,12 @@ describe("adv-reviewer agent asset", () => {
 
     for (const packet of [reviewPacket, hardenPacket]) {
       expect(packet).toContain("FRONTEND DESIGN REVIEW SKILL:");
+      // Primary: canonical methodology reference to the iteration-2 skill.
+      expect(packet).toContain('skill("adv-frontend-review")');
+      // Fallback: inline 6-dimension checklist for offline reviewers and older
+      // deployments that haven't pulled the skill yet. Both stay pinned so the
+      // packet works whether or not the skill is loadable.
       const lowered = packet.toLowerCase();
-      // Inline checklist enumerates the 6 design dimensions when the change
-      // has frontend tasks (metadata.frontend == "true") or design-inclusive scope
       for (const dimension of [
         "semantic html",
         "accessibility",
