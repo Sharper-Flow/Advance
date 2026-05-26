@@ -94,6 +94,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 SCOPE KEY: researcher:{topic-slug}
 ATTEMPT: {attempt-number}
+TASK_SCOPE: {research objective}
+IN_SCOPE:
+  - {questions, docs, APIs, examples, or design dimensions to investigate}
+OUT_OF_SCOPE:
+  - {boundaries, unrelated implementation, or user-value decisions}
+DONE_WHEN:
+  - sourced findings answer the research objective or state inconclusive evidence
+STOP_WHEN:
+  - source access blocked, contract/security/release blocker, or contradictory evidence needing orchestrator decision
+VERIFICATION:
+  required_when_possible:
+    - cite official docs/source examples for each material claim
+  optional_additional_checks: true
 ```
 
 Build this JSON object as the `report` argument to `adv_subagent_report_submit`. Do **not** use fenced JSON/sentinel text as the ADV report transport.
@@ -127,6 +140,7 @@ Build this JSON object as the `report` argument to `adv_subagent_report_submit`.
 
 - Before final response, call `adv_subagent_report_submit` with `{ report: RESEARCHER_REPORT }`.
 - If any required packet anchor is missing, return a packet-defect failure in your final response. Do not infer identity fields heuristically.
+- If TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION are missing, continue with existing prompt scope, include a warning in `follow_ups`, and do not infer identity anchors.
 
 ## Response Format
 

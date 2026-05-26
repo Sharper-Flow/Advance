@@ -421,6 +421,19 @@ CHANGE: {change-id} | {title} | gate: release
 TASK: {task-id} | {task-title} | source finding: {finding-id}
 PHASE: harden
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+TASK_SCOPE: scoped hardening remediation for listed finding(s)
+IN_SCOPE:
+  - {finding-id}: {file}:{line} and directly affected local subsystem
+OUT_OF_SCOPE:
+  - unrelated findings, new features, agreement changes without orchestrator re-entry
+DONE_WHEN:
+  - listed hardening finding(s) fixed or reported as blocked with evidence
+STOP_WHEN:
+  - contract/security/release blocker, scope conflict, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {targeted test/lint/static check for fixed finding(s)}
+  optional_additional_checks: true
 SCOPE: fix only the listed in-scope hardening finding(s); honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
@@ -439,6 +452,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: release
 TASK: {task-id} | {task-title} | source finding: {finding-id}
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}
+TASK_SCOPE: primary implementation or multi-file hardening fix
+IN_SCOPE:
+  - {finding-id}: {file}:{line} and directly affected implementation files
+OUT_OF_SCOPE:
+  - unrelated findings, new features, agreement changes without orchestrator re-entry
+DONE_WHEN:
+  - listed hardening fix is complete and verified
+STOP_WHEN:
+  - contract/security/release blocker, unsafe edit, or impossible verification
+VERIFICATION:
+  required_when_possible:
+    - {targeted test/lint/static check for implementation fix}
+  optional_additional_checks: true
 SCOPE: implement only the listed in-scope hardening fix; honor drift rule before edits
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}

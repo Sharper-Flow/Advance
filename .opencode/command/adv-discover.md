@@ -334,6 +334,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: discovery
 SCOPE KEY: researcher:discovery-opportunity-scout
 ATTEMPT: {attempt-number, starting at 1 for this researcher worker}
+TASK_SCOPE: discover missed opportunities and leverage points within approved proposal scope
+IN_SCOPE:
+  - proposal/problem context, existing specs, adjacent implementation patterns, bounded external evidence
+OUT_OF_SCOPE:
+  - new product commitments, unrelated refactors, user-value tradeoffs without orchestrator synthesis
+DONE_WHEN:
+  - scout candidates are classified as auto-adopt, user-surface, or inconclusive
+STOP_WHEN:
+  - source access blocked, contract/security/release blocker, or contradictory evidence needing orchestrator decision
+VERIFICATION:
+  required_when_possible:
+    - cite source/docs/code evidence for each surfaced candidate
+  optional_additional_checks: true
 EXPECTED OUTPUT: return ScoutCandidate rows and call adv_subagent_report_submit with RESEARCHER_REPORT per .opencode/agents/adv-researcher.md
 ```
 

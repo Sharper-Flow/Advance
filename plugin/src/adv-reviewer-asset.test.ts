@@ -21,6 +21,7 @@ import { join, resolve } from "path";
 import {
   getSubagentReportPacketAnchors,
   ReviewerSubagentReportSchema,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
@@ -186,6 +187,10 @@ const REQUIRED_BODY_ANCHORS = [
   "WORKING DIRECTORY",
   "workdir_used",
   "stop_and_report",
+  "TASK_SCOPE",
+  "DONE_WHEN",
+  "STOP_WHEN",
+  "VERIFICATION",
 ];
 
 describe("adv-reviewer agent asset", () => {
@@ -386,10 +391,24 @@ describe("adv-reviewer agent asset", () => {
     );
     expectPacketAnchors(
       firstFencedBlock(
+        sectionAfterHeading(review, "Review Reviewer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Review Reviewer Remediation Packet warn-first anchors",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
         sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
       ),
       reviewerAnchors,
       "Harden Reviewer Remediation Packet",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Reviewer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Harden Reviewer Remediation Packet warn-first anchors",
     );
   });
 
@@ -407,10 +426,24 @@ describe("adv-reviewer agent asset", () => {
     );
     expectPacketAnchors(
       firstFencedBlock(
+        sectionAfterHeading(review, "Review Engineer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Review Engineer Remediation Packet warn-first anchors",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
         sectionAfterHeading(harden, "Harden Engineer Remediation Packet"),
       ),
       engineerAnchors,
       "Harden Engineer Remediation Packet",
+    );
+    expectPacketAnchors(
+      firstFencedBlock(
+        sectionAfterHeading(harden, "Harden Engineer Remediation Packet"),
+      ),
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "Harden Engineer Remediation Packet warn-first anchors",
     );
   });
 });

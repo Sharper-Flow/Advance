@@ -164,6 +164,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title}
 SCOPE KEY: tron:{target-slug}
 ATTEMPT: {attempt-number}
+TASK_SCOPE: {reconnaissance target and mode}
+IN_SCOPE:
+  - {files, directories, symbols, or architecture questions to inspect}
+OUT_OF_SCOPE:
+  - {unrelated subsystems, edits, or ADV orchestration mutations}
+DONE_WHEN:
+  - bounded findings cite file evidence or state no evidence found
+STOP_WHEN:
+  - target cannot be resolved, evidence contradicts packet scope, or contract/security/release blocker appears
+VERIFICATION:
+  required_when_possible:
+    - cite file:line evidence for each material finding
+  optional_additional_checks: true
 ```
 
 Build this JSON object as the `report` argument to `adv_subagent_report_submit`. Do **not** use fenced JSON/sentinel text as the ADV report transport.
@@ -191,3 +204,4 @@ Build this JSON object as the `report` argument to `adv_subagent_report_submit`.
 
 - Before final response, call `adv_subagent_report_submit` with `{ report: TRON_REPORT }`.
 - If any required packet anchor is missing, return a packet-defect failure in your final response. Do not infer identity fields heuristically.
+- If TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION are missing, continue with existing prompt scope, include a warning in `follow_ups`, and do not infer identity anchors.

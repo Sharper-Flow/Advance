@@ -1,7 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
-import { getSubagentReportPacketAnchors } from "./types";
+import {
+  getSubagentReportPacketAnchors,
+  SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
+} from "./types";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_DIR = join(REPO_ROOT, ".opencode/agents");
@@ -73,6 +76,11 @@ describe("optimized handoff agent contracts", () => {
       getSubagentReportPacketAnchors("adv-researcher"),
       "adv-researcher prompt",
     );
+    expectAnchors(
+      body,
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "adv-researcher prompt warn-first anchors",
+    );
   });
 
   test("adv-tron can submit strict change-scoped TRON_REPORTs without broader ADV mutations", () => {
@@ -97,6 +105,11 @@ describe("optimized handoff agent contracts", () => {
       getSubagentReportPacketAnchors("adv-tron"),
       "adv-tron prompt",
     );
+    expectAnchors(
+      body,
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "adv-tron prompt warn-first anchors",
+    );
   });
 });
 
@@ -108,6 +121,16 @@ describe("optimized handoff command packets", () => {
 
     expectAnchors(discover, anchors, "adv-discover researcher packet");
     expectAnchors(design, anchors, "adv-design researcher packet");
+    expectAnchors(
+      discover,
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "adv-discover researcher packet warn-first anchors",
+    );
+    expectAnchors(
+      design,
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "adv-design researcher packet warn-first anchors",
+    );
     expect(discover).toContain("RESEARCHER_REPORT");
     expect(design).toContain("RESEARCHER_REPORT");
   });
@@ -119,6 +142,11 @@ describe("optimized handoff command packets", () => {
       command,
       getSubagentReportPacketAnchors("adv-tron"),
       "adv-tron command packet",
+    );
+    expectAnchors(
+      command,
+      [...SUBAGENT_WARN_FIRST_PACKET_ANCHORS],
+      "adv-tron command packet warn-first anchors",
     );
     expect(command).toContain("TRON_REPORT");
   });

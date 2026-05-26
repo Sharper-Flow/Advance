@@ -101,6 +101,19 @@ WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: design
 SCOPE KEY: researcher:design-validation
 ATTEMPT: {attempt-number, starting at 1 for this researcher worker}
+TASK_SCOPE: validate the proposed design against agreement, specs, and external evidence
+IN_SCOPE:
+  - design.md, agreement objectives/AC/constraints/avoidances, relevant specs, official docs/examples
+OUT_OF_SCOPE:
+  - rewriting the design, adding unapproved scope, user-value tradeoff decisions
+DONE_WHEN:
+  - validator verdict and findings are supported by sources or explicit inconclusive notes
+STOP_WHEN:
+  - contract compromise, security/release blocker, or conflict requiring orchestrator decision
+VERIFICATION:
+  required_when_possible:
+    - cite spec/doc/source evidence for each caution or conflict
+  optional_additional_checks: true
 
 DESIGN UNDER REVIEW:
 {design.md content}
