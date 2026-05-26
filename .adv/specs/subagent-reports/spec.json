@@ -189,19 +189,31 @@
     {
       "id": "rq-subagentReports06",
       "title": "Strict report scope model",
-      "body": "Persisted reports MUST carry structural scope metadata. Task evidence reports use scope.kind task with task_id. Optimized handoff reports use scope.kind change with a structural scope_key. The schema MUST enforce agent/scope pairing: adv-engineer, adv-reviewer, and adv-designer reports are task-scoped; adv-researcher, adv-tron, and adv-scanner-bundle reports are change-scoped.",
+      "body": "Persisted reports MUST carry structural scope metadata. Task evidence reports use scope.kind task with task_id. Optimized handoff reports use scope.kind change with a structural scope_key. The schema MUST enforce agent/scope pairing: adv-engineer and adv-designer are task-scoped only; adv-reviewer is task-scoped for remediation and change-scoped for independent review and harden summaries; adv-researcher, adv-tron, and adv-scanner-bundle are change-scoped.",
       "priority": "must",
       "tags": ["schema", "scope", "structural-correctness"],
       "scenarios": [
         {
           "id": "rq-subagentReports06.1",
           "title": "Invalid agent scope pair rejected",
-          "given": ["A report pairs adv-researcher with scope.kind task or adv-engineer with scope.kind change"],
+          "given": ["A report pairs adv-researcher with scope.kind task, adv-engineer with scope.kind change, or adv-designer with scope.kind change"],
           "when": "adv_subagent_report_submit validates the payload",
           "then": [
             "The schema rejects the report as INVALID_REPORT",
             "No tool-layer heuristic repairs the scope",
-            "No workflow signal is fired"
+            "No workflow signal is fired",
+            "The only adv-reviewer change-scoped reports accepted are independent review or harden summaries"
+          ]
+        },
+        {
+          "id": "rq-subagentReports06.3",
+          "title": "Independent reviewer reports are change-scoped",
+          "given": ["ADV performs independent review or harden at the change level"],
+          "when": "An adv-reviewer report is submitted for acceptance review or release hardening",
+          "then": [
+            "The report uses scope.kind change with a structural scope_key",
+            "The report does not require task_id",
+            "Task-scoped adv-reviewer reports remain valid only for remediation tied to existing tasks"
           ]
         },
         {
@@ -306,6 +318,110 @@
             "The consumer recognizes persisted report evidence from both sources",
             "Existing adv-engineer and adv-reviewer report behavior stays backward-compatible",
             "No duplicate legacy structured_output is extracted for already-reported tasks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports10",
+      "title": "Legacy report default normalization on readback",
+      "body": "Persisted legacy task and sidecar sub-agent reports missing fields added after initial rollout MUST be deterministically normalized at readback, workflow seed, and projection boundaries before strict whole-change parsing. Missing task-scoped scope_drift defaults to null, and missing required_main_agent_actions defaults to an empty array. New adv_subagent_report_submit payload validation remains strict and MUST NOT accept those omissions as valid new ingest.",
+      "priority": "must",
+      "tags": ["legacy", "normalization", "readback", "zod"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports10.1",
+          "title": "Legacy missing report fields normalize safely",
+          "given": ["A persisted task or sidecar worker report lacks scope_drift or required_main_agent_actions"],
+          "when": "ADV loads, seeds, or projects the change state",
+          "then": [
+            "scope_drift is treated as null",
+            "required_main_agent_actions is treated as []",
+            "The normalized change can pass strict ChangeSchema parsing"
+          ]
+        },
+        {
+          "id": "rq-subagentReports10.2",
+          "title": "New malformed reports remain invalid",
+          "given": ["A new worker report submission omits scope_drift or required_main_agent_actions"],
+          "when": "adv_subagent_report_submit validates the payload",
+          "then": [
+            "The strict report schema rejects the payload as INVALID_REPORT",
+            "No compatibility normalizer runs on new ingest",
+            "No workflow signal is fired"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports11",
+      "title": "Independent review and harden structural anchors",
+      "body": "Independent adv-reviewer reports for acceptance review and release hardening MUST use a supported change-scoped structural anchor, never synthetic task IDs. Acceptance review uses scope.kind change with scope_key review:acceptance. Release hardening uses scope.kind change with scope_key harden:release. Remediation reviewer reports tied to a task remain task-scoped and MUST reference an existing ADV task ID.",
+      "priority": "must",
+      "tags": ["review", "harden", "scope", "anchors"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports11.1",
+          "title": "Acceptance reviewer report uses change scope",
+          "given": ["ADV runs independent acceptance review"],
+          "when": "The reviewer persists its report",
+          "then": [
+            "The report uses scope.kind change",
+            "The scope_key is review:acceptance",
+            "No synthetic task IDs are created or accepted for the independent review lane"
+          ]
+        },
+        {
+          "id": "rq-subagentReports11.2",
+          "title": "Harden reviewer report uses change scope",
+          "given": ["ADV runs release hardening"],
+          "when": "The reviewer persists its report",
+          "then": [
+            "The report uses scope.kind change",
+            "The scope_key is harden:release",
+            "Task-scoped reviewer reports remain reserved for remediation work tied to real tasks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports12",
+      "title": "Invalid task anchors return actionable diagnostics",
+      "body": "Task-scoped sub-agent report submissions that reference a task outside the change MUST fail before signaling with a typed INVALID_TASK_ANCHOR diagnostic. The response MUST identify changeId, taskId, agent, attempt, valid task anchors, and guidance explaining when to use task scope, independent reviewer change scope, or non-persisted scanner lanes.",
+      "priority": "must",
+      "tags": ["diagnostics", "task-anchor", "tooling"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports12.1",
+          "title": "Invalid task id is actionable",
+          "given": ["A task-scoped worker report references a missing task ID"],
+          "when": "adv_subagent_report_submit validates task anchoring",
+          "then": [
+            "The tool returns INVALID_TASK_ANCHOR",
+            "The response includes valid task IDs and titles for the change",
+            "The response explains independent review and harden reports must use the change-scoped reviewer variant",
+            "No workflow signal is fired"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-subagentReports13",
+      "title": "Structural scope in worker prompts",
+      "body": "New ADV worker prompts, packet examples, and command contracts MUST use structural `scope` objects. String scope remains compatibility-only for legacy persisted records and legacy callers until a future removal, but it MUST NOT be promoted in new examples. Task workers use scope.kind task with task_id. Independent reviewer packets use scope.kind change with scope_key review:acceptance or harden:release.",
+      "priority": "must",
+      "tags": ["prompts", "scope", "compatibility", "contracts"],
+      "scenarios": [
+        {
+          "id": "rq-subagentReports13.1",
+          "title": "New worker examples use structural scope",
+          "given": ["ADV prompt or command assets show a report payload example"],
+          "when": "The example includes report scope",
+          "then": [
+            "The example uses a structural scope object",
+            "Task examples include kind task and task_id",
+            "Independent review or harden examples include kind change and scope_key",
+            "String scope is described only as compatibility-only"
           ]
         }
       ]

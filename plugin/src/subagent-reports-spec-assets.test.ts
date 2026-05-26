@@ -36,6 +36,10 @@ describe("subagent reports spec assets", () => {
       "rq-subagentReports07",
       "rq-subagentReports08",
       "rq-subagentReports09",
+      "rq-subagentReports10",
+      "rq-subagentReports11",
+      "rq-subagentReports12",
+      "rq-subagentReports13",
     ]);
   });
 
@@ -101,6 +105,64 @@ describe("subagent reports spec assets", () => {
     expect(rq01!.body).toContain("adv-designer");
     expect(rq06!.body).toContain("adv-designer");
     expect(rq06!.body).toContain("task-scoped");
+  });
+
+  test("subagent-reports law pins reviewer change-scope and structural-scope compatibility", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const rq06 = spec.requirements.find(
+      (req) => req.id === "rq-subagentReports06",
+    );
+    const text = JSON.stringify(rq06);
+
+    expect(text).toContain("adv-reviewer");
+    expect(text).toContain("task-scoped for remediation");
+    expect(text).toContain("change-scoped for independent review and harden");
+    expect(text).toContain("adv-engineer");
+    expect(text).toContain("adv-designer");
+    expect(text).toContain("task-scoped only");
+    expect(text).toContain("adv-researcher");
+    expect(text).toContain("adv-tron");
+    expect(text).toContain("adv-scanner-bundle");
+    expect(text).toContain("change-scoped");
+  });
+
+  test("subagent-reports law defines report-contract drift requirements", () => {
+    const spec = SpecSchema.parse(readJson(SUBAGENT_REPORTS_SPEC));
+    const byId = new Map(spec.requirements.map((req) => [req.id, req]));
+
+    for (const id of [
+      "rq-subagentReports10",
+      "rq-subagentReports11",
+      "rq-subagentReports12",
+      "rq-subagentReports13",
+    ]) {
+      expect(byId.get(id), `${id} missing`).toBeDefined();
+    }
+
+    expect(JSON.stringify(byId.get("rq-subagentReports10"))).toContain(
+      "scope_drift",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports10"))).toContain(
+      "required_main_agent_actions",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports11"))).toContain(
+      "review:acceptance",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports11"))).toContain(
+      "harden:release",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports11"))).toContain(
+      "synthetic task IDs",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports12"))).toContain(
+      "INVALID_TASK_ANCHOR",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports13"))).toContain(
+      "structural `scope`",
+    );
+    expect(JSON.stringify(byId.get("rq-subagentReports13"))).toContain(
+      "compatibility-only",
+    );
   });
 
   test("subagent-reports law pins warn-first scope/done/stop/verification anchors", () => {
