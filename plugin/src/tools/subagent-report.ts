@@ -287,7 +287,7 @@ function verificationWarnings(
     .filter((value): value is string => Boolean(value?.trim()))
     .join("\n");
 
-  if (report.agent === "adv-engineer") {
+  if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
       if (!recorded.includes(entry.command)) {
         return [
@@ -530,7 +530,7 @@ export const subagentReportTools = {
       "Submit a typed, Zod-validated sub-agent report and persist it on the owning ADV change/task scope.",
     args: {
       report: ScopedSubagentReportSchema.describe(
-        "Typed sub-agent report payload. v1 supports adv-engineer, adv-reviewer, adv-researcher, adv-tron, and orchestrator-submitted adv-scanner-bundle reports.",
+        "Typed sub-agent report payload. v1 supports adv-engineer, adv-reviewer, adv-designer, adv-researcher, adv-tron, and orchestrator-submitted adv-scanner-bundle reports.",
       ),
       dryRun: z
         .boolean()

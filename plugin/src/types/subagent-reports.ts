@@ -15,6 +15,7 @@ export const SUBAGENT_REPORT_SCHEMA_VERSION = "1.0";
 export const SubagentAgentSchema = z.enum([
   "adv-engineer",
   "adv-reviewer",
+  "adv-designer",
   "adv-researcher",
   "adv-tron",
   "adv-scanner-bundle",
@@ -136,6 +137,58 @@ export const EngineerSubagentReportSchema =
         suggested_next_action: z.string().min(1),
       })
       .strict(),
+    consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
+  }).strict();
+
+export const DesignerDesignDimensionSchema = z.enum([
+  "pass",
+  "concern",
+  "n/a",
+]);
+
+export const DesignerDesignDimensionsSchema = z
+  .object({
+    component_correctness: DesignerDesignDimensionSchema,
+    semantic_html_a11y: DesignerDesignDimensionSchema,
+    responsive_behavior: DesignerDesignDimensionSchema,
+    visual_polish: DesignerDesignDimensionSchema,
+    site_design_consistency: DesignerDesignDimensionSchema,
+    finer_details: DesignerDesignDimensionSchema,
+    notes: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const DesignerNeighboringRecommendationSchema = z
+  .object({
+    file: z.string().min(1).optional(),
+    line: z.number().int().positive().optional(),
+    what: z.string().min(1),
+    why: z.string().min(1),
+  })
+  .strict();
+
+export const DesignerSubagentReportSchema =
+  TaskScopedBaseSubagentReportSchema.extend({
+    agent: z.literal("adv-designer"),
+    status: z.enum(["complete", "error"]),
+    files_touched: z.array(z.string().min(1)),
+    verification: z.array(SubagentVerificationEntrySchema).min(1),
+    decisions: z.array(SubagentDecisionSchema),
+    blockers: z.array(SubagentBlockerSchema),
+    scope_drift: EngineerScopeDriftSchema.nullable(),
+    follow_ups: z.array(z.string().min(1)),
+    required_main_agent_actions: z.array(z.string().min(1)),
+    related_scan: z.string().min(1),
+    context_update_for_adv: z
+      .object({
+        what_ads_needs_to_know: z.string().min(1),
+        suggested_next_action: z.string().min(1),
+      })
+      .strict(),
+    design_dimensions: DesignerDesignDimensionsSchema,
+    neighboring_recommendations: z.array(
+      DesignerNeighboringRecommendationSchema,
+    ),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
   }).strict();
 
@@ -269,11 +322,13 @@ export const ScannerBundleSubagentReportSchema =
 export const TaskScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   EngineerSubagentReportSchema,
   ReviewerSubagentReportSchema,
+  DesignerSubagentReportSchema,
 ]);
 
 export const ScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   EngineerSubagentReportSchema,
   ReviewerSubagentReportSchema,
+  DesignerSubagentReportSchema,
   ResearcherSubagentReportSchema,
   TronSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
@@ -345,6 +400,28 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     scope_drift: "worker_derived",
     risks: "worker_derived",
     required_main_agent_actions: "worker_derived",
+    consumer_warnings: "tool_enriched",
+  },
+  "adv-designer": {
+    schema_version: "worker_derived",
+    change_id: "packet_anchor",
+    task_id: "packet_anchor",
+    scope: "worker_derived",
+    attempt: "packet_anchor",
+    agent: "worker_derived",
+    status: "worker_derived",
+    files_touched: "worker_derived",
+    verification: "worker_derived",
+    decisions: "worker_derived",
+    blockers: "worker_derived",
+    scope_drift: "worker_derived",
+    follow_ups: "worker_derived",
+    required_main_agent_actions: "worker_derived",
+    related_scan: "worker_derived",
+    workdir_used: "packet_anchor",
+    context_update_for_adv: "worker_derived",
+    design_dimensions: "worker_derived",
+    neighboring_recommendations: "worker_derived",
     consumer_warnings: "tool_enriched",
   },
   "adv-researcher": {
@@ -431,6 +508,9 @@ export type EngineerSubagentReport = z.infer<
 >;
 export type ReviewerSubagentReport = z.infer<
   typeof ReviewerSubagentReportSchema
+>;
+export type DesignerSubagentReport = z.infer<
+  typeof DesignerSubagentReportSchema
 >;
 export type TaskScopedSubagentReport = z.infer<
   typeof TaskScopedSubagentReportSchema

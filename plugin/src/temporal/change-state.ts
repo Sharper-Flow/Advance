@@ -354,6 +354,7 @@ function blockerSummary(
 ): { summary: string; diagnosis: string } | null {
   switch (report.agent) {
     case "adv-engineer":
+    case "adv-designer":
       if (report.blockers.length === 0) return null;
       return {
         summary: report.blockers

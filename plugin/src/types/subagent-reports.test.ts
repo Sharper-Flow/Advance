@@ -3,6 +3,7 @@ import type { z } from "zod";
 
 import {
   ChangeReportScopeKeySchema,
+  DesignerSubagentReportSchema,
   EngineerSubagentReportSchema,
   getSubagentReportPacketAnchors,
   type PersistedSubagentReportAgent,
@@ -82,6 +83,56 @@ const reviewerReport = {
   risks: [],
   required_main_agent_actions: [],
   workdir_used: "/tmp/worktree",
+};
+
+const designerReport = {
+  schema_version: "1.0",
+  change_id: "addAdvDesigner",
+  task_id: "tk-design123",
+  scope: { kind: "task", task_id: "tk-design123" },
+  attempt: 1,
+  agent: "adv-designer",
+  status: "complete",
+  files_touched: ["src/components/Button.tsx"],
+  verification: [
+    {
+      command: "pnpm test -- src/components/Button.test.tsx",
+      exit_code: 0,
+      summary: "component tests pass",
+    },
+  ],
+  decisions: [
+    {
+      what: "Use semantic <button> with aria-label",
+      why: "Accessibility + design quality bar",
+    },
+  ],
+  blockers: [],
+  scope_drift: null,
+  follow_ups: [],
+  required_main_agent_actions: [],
+  related_scan: "none",
+  workdir_used: "/tmp/worktree",
+  context_update_for_adv: {
+    what_ads_needs_to_know: "Button component shipped",
+    suggested_next_action: "Run /adv-review",
+  },
+  design_dimensions: {
+    component_correctness: "pass",
+    semantic_html_a11y: "pass",
+    responsive_behavior: "pass",
+    visual_polish: "pass",
+    site_design_consistency: "pass",
+    finer_details: "pass",
+    notes: "Matches existing button family.",
+  },
+  neighboring_recommendations: [
+    {
+      file: "src/components/IconButton.tsx",
+      what: "Unstyled IconButton on same page lacks focus-visible ring",
+      why: "Adjacent UI inconsistency surfaced for HITL",
+    },
+  ],
 };
 
 const researcherReport = {
@@ -173,6 +224,7 @@ const reportSchemas: Array<{
 }> = [
   { agent: "adv-engineer", schema: EngineerSubagentReportSchema },
   { agent: "adv-reviewer", schema: ReviewerSubagentReportSchema },
+  { agent: "adv-designer", schema: DesignerSubagentReportSchema },
   { agent: "adv-researcher", schema: ResearcherSubagentReportSchema },
   { agent: "adv-tron", schema: TronSubagentReportSchema },
   { agent: "adv-scanner-bundle", schema: ScannerBundleSubagentReportSchema },
@@ -266,12 +318,19 @@ describe("Subagent report schemas", () => {
         scope: { kind: "change", scope_key: "researcher:wrong" },
       }),
     ).toThrow();
+    expect(() =>
+      ScopedSubagentReportSchema.parse({
+        ...designerReport,
+        scope: { kind: "change", scope_key: "researcher:wrong" },
+      }),
+    ).toThrow();
   });
 
   it("keeps optimized handoff agent literals in the supported surface", () => {
     expect(SubagentAgentSchema.options).toEqual([
       "adv-engineer",
       "adv-reviewer",
+      "adv-designer",
       "adv-researcher",
       "adv-tron",
       "adv-scanner-bundle",
@@ -320,6 +379,15 @@ describe("Subagent report schemas", () => {
 
     it("keeps engineer packet anchors aligned with task-scoped identity fields", () => {
       expect(getSubagentReportPacketAnchors("adv-engineer")).toEqual([
+        "ATTEMPT",
+        "CHANGE",
+        "TASK",
+        "WORKING DIRECTORY",
+      ]);
+    });
+
+    it("keeps designer packet anchors aligned with task-scoped identity fields", () => {
+      expect(getSubagentReportPacketAnchors("adv-designer")).toEqual([
         "ATTEMPT",
         "CHANGE",
         "TASK",
