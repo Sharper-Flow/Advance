@@ -136,6 +136,22 @@ When creating tasks, `/adv-prep` may set `metadata.delegation_hint` to signal ex
 
 If omitted, `/adv-apply` determines routing from `tdd_intent`, title heuristics, and risk signals. See `ADV_INSTRUCTIONS.md § Delegation Routing`.
 
+### Frontend Routing Metadata
+
+When creating tasks whose owned scope is frontend/view/component UI work, `/adv-prep` MUST set `metadata.frontend = "true"` to give `/adv-apply` a structural routing signal for `adv-designer` (the apply-phase frontend worker). When the task scope is not frontend, omit the key (or set `"false"`).
+
+Classification rule:
+
+- Set `metadata.frontend = "true"` when the task implements or modifies HTML/CSS/JS/TSX components, view/page templates, design tokens, layout, responsive behavior, accessibility, or visual polish.
+- Keep `metadata.frontend` unset (or `"false"`) for backend logic, storage, APIs, Temporal behavior, business rules, schemas, and infra tasks. `adv-engineer` owns these.
+- For mixed UI/backend work, **split into separate tasks** — a UI task with `metadata.frontend = "true"` and a backend task without. Use `blockedBy` to sequence them. Do not bundle both concerns in one task.
+
+`/adv-apply` reads `metadata.frontend` at Priority 1.5 in the delegation routing table (after `metadata.delegation_hint` Priority 1 explicit user override). See `.opencode/command/adv-apply.md § Delegation Routing` and `.opencode/agents/adv-designer.md` for the worker contract.
+
+× MUST NOT rely on title or path heuristics as the sole authority for frontend routing — set the metadata key structurally. Heuristics may assist discovery, never own correctness.
+
+× MUST NOT route review/harden work to `adv-designer` — `adv-reviewer` remains the review/harden owner. When review scope includes design/frontend work, the orchestrator supplies a frontend/design skill or checklist anchor to the reviewer packet (see `.opencode/command/adv-review.md` and `.opencode/command/adv-harden.md`).
+
 ### Touched-Scope Quality Ownership
 
 Task graph MUST include tasks covering touched-scope obligations:
