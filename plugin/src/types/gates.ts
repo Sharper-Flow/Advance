@@ -92,6 +92,14 @@ export const GateArtifactEvidenceSchema = z.object({
 
 export type GateArtifactEvidence = z.infer<typeof GateArtifactEvidenceSchema>;
 
+export const GateRecoveryAuditSchema = z.object({
+  reason: z.string(),
+  evidence: z.string(),
+  recovered_at: z.string(),
+});
+
+export type GateRecoveryAudit = z.infer<typeof GateRecoveryAuditSchema>;
+
 export const GateReadinessBlockerSchema = z.object({
   code: z.string(),
   gateId: GateIdSchema,
@@ -193,6 +201,8 @@ export const GateCompletionSchema = z.object({
     .optional(),
   /** Artifact evidence validated by the workflow before gate completion */
   artifact_evidence: GateArtifactEvidenceSchema.optional(),
+  /** Disk-projection recovery audit evidence, present only for recovery writes */
+  recovery_audit: GateRecoveryAuditSchema.optional(),
 });
 
 export type GateCompletion = z.infer<typeof GateCompletionSchema>;

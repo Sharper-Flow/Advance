@@ -708,6 +708,13 @@ export async function changeWorkflow(
   // archived/closed and replay fixtures no longer cover that migration path;
   // then replace the marker with wf.deprecatePatch before final removal.
   const DISCOVERY_CONTRACT_READINESS_PATCH = "discovery-contract-readiness-v1";
+  // Patch rationale: acceptance projection + executive-summary hash enforcement
+  // adds activity commands to the acceptance gate-completion path. Existing
+  // histories that already scheduled acceptance completion must replay the old
+  // artifact-inspection sequence; new histories record this patch marker before
+  // scheduling the new proof activities.
+  const ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH =
+    "acceptance-executive-summary-proof-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -758,7 +765,10 @@ export async function changeWorkflow(
     let artifactEvidence = readiness.evidence;
     const artifactKind = ARTIFACT_BACKED_GATES[payload.gateId];
     if (artifactKind && state.projectionChangesDir && !artifactEvidence) {
-      if (artifactKind === "acceptance") {
+      if (
+        artifactKind === "acceptance" &&
+        wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)
+      ) {
         const writeResult = await writeArtifactActivity({
           changesDir: state.projectionChangesDir,
           changeId: state.changeId,

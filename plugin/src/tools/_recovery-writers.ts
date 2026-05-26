@@ -113,7 +113,15 @@ export async function saveRecoveredGateCompletion(input: {
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const gates = (input.change.gates ?? {}) as Gates;
-  const updatedGates = { ...gates, [input.gateId]: input.completion } as Gates;
+  const auditedCompletion = {
+    ...input.completion,
+    recovery_audit: {
+      reason: input.authorization.reason,
+      evidence: input.authorization.evidence,
+      recovered_at: new Date().toISOString(),
+    },
+  } as Gates[keyof Gates];
+  const updatedGates = { ...gates, [input.gateId]: auditedCompletion } as Gates;
   const updated = { ...input.change, gates: updatedGates } as Change;
   await saveChange(input.store.paths.changes, updated);
   return updated;

@@ -428,7 +428,11 @@ async function completeGateViaRecovery(input: {
     status: "done",
     completed_at: completedAt,
     completed_by: input.completedBy,
-    approval_evidence: input.notes ?? priorApprovalEvidence,
+    approval_evidence:
+      input.gateId === "acceptance"
+        ? [input.notes, priorApprovalEvidence].filter(Boolean).join("; ") ||
+          undefined
+        : input.notes,
     artifact_evidence: artifactEvidence,
   } as Gates[GateId];
   const updatedGates: Gates = {
@@ -908,7 +912,7 @@ export const gateTools = {
         .string()
         .optional()
         .describe(
-          "Acceptance-only legacy/replay compatibility rationale. Used for explicit poisoned-history recovery; rejected for non-acceptance gates.",
+          "Legacy/replay compatibility rationale for poisoned-history gate recovery. Required for acceptance and release gate recovery; rejected for other gates.",
         ),
       recoveryReason: z
         .string()
@@ -926,7 +930,7 @@ export const gateTools = {
         .string()
         .optional()
         .describe(
-          "Required for acceptance gate recovery. Must cite the prior user acceptance approval evidence.",
+          "Required for acceptance gate recovery only. Not required for release gate recovery. Must cite the prior user acceptance approval evidence.",
         ),
       target_path: z
         .string()

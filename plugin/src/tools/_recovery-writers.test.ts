@@ -157,13 +157,25 @@ describe("saveRecoveredGateCompletion", () => {
 
     expect(updated.gates?.release?.status).toBe("done");
     expect(updated.gates?.release?.completed_by).toBe("user:jon");
+    expect(updated.gates?.release?.recovery_audit).toMatchObject({
+      reason: "completed_workflow_release_gate_recovery",
+      evidence: "WorkflowNotFoundError: workflow execution already completed",
+    });
+    expect(updated.gates?.release?.recovery_audit?.recovered_at).toMatch(
+      /^\d{4}-\d{2}-\d{2}T/,
+    );
     expect(saveCalls).toHaveLength(0);
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(mockedSaveChange).toHaveBeenCalledWith(
       "/tmp/test/.adv/changes",
       expect.objectContaining({
         gates: expect.objectContaining({
-          release: expect.objectContaining({ status: "done" }),
+          release: expect.objectContaining({
+            status: "done",
+            recovery_audit: expect.objectContaining({
+              reason: "completed_workflow_release_gate_recovery",
+            }),
+          }),
         }),
       }),
     );

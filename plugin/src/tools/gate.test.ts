@@ -233,7 +233,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           changeId: "test-change",
           gateId: "acceptance",
           completedBy: "agent",
-          notes: "Prior user acceptance approval: approve",
+          notes: "Recovered gate after poisoned workflow",
           compatibilityReason: "legacy replay lacks contract proof",
         },
         store,
@@ -294,7 +294,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           changeId: "test-change",
           gateId: "acceptance",
           completedBy: "agent",
-          notes: "Prior user acceptance approval: approve",
+          notes: "Recovered gate after poisoned workflow",
           compatibilityReason: "legacy replay lacks contract proof",
           recoveryReason: "acceptance gate recovery after poisoned workflow",
           recoveryEvidence:
@@ -311,7 +311,11 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(store.changes.save).toHaveBeenCalledWith(
         expect.objectContaining({
           gates: expect.objectContaining({
-            acceptance: expect.objectContaining({ status: "done" }),
+            acceptance: expect.objectContaining({
+              status: "done",
+              approval_evidence:
+                "Recovered gate after poisoned workflow; Prior user acceptance approval: approve",
+            }),
           }),
         }),
       );
