@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { SubagentConsumerWarningSchema } from "../types";
 import type {
+  ChangeScopedReviewerSubagentReport,
   Change,
   EngineerSubagentReport,
   ResearcherSubagentReport,
-  ReviewerSubagentReport,
   ScannerBundleSubagentReport,
 } from "../types";
 import type { Store } from "../storage/store-types";
@@ -83,7 +83,7 @@ function engineerReport(
     attempt: 1,
     agent: "adv-engineer",
     status: "complete",
-    scope: "Implement feature",
+    scope: { kind: "task", task_id: "tk-1" },
     workdir_used: "/repo",
     files_touched: ["src/a.ts"],
     verification: [{ command: "pnpm test", exit_code: 0, summary: "passed" }],
@@ -127,8 +127,10 @@ function researcherReport(
   };
 }
 
-function reviewerReport(overrides: Partial<ReviewerSubagentReport> = {}) {
-  return {
+function reviewerReport(
+  overrides: Partial<ChangeScopedReviewerSubagentReport> = {},
+): ChangeScopedReviewerSubagentReport {
+  const report: ChangeScopedReviewerSubagentReport = {
     schema_version: "1.0",
     change_id: "change-1",
     attempt: 1,
@@ -150,7 +152,8 @@ function reviewerReport(overrides: Partial<ReviewerSubagentReport> = {}) {
     risks: [],
     required_main_agent_actions: [],
     ...overrides,
-  } as unknown as ReviewerSubagentReport;
+  };
+  return report;
 }
 
 function scannerBundleReport(
@@ -258,7 +261,7 @@ describe("subagentReportTools", () => {
       expect.objectContaining({
         category: "subagent-followup",
         description: expect.stringContaining(
-          "change-1/Implement feature/adv-engineer/attempt-1/task-tk-1",
+          "change-1/task:tk-1/adv-engineer/attempt-1/task-tk-1",
         ),
         agendaPath: "/state/agenda.jsonl",
       }),

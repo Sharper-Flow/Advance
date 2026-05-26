@@ -229,6 +229,8 @@ export const TaskSchema = z
      * Typed, durable sub-agent reports submitted through
      * adv_subagent_report_submit. These replace ADV worker fenced-JSON report
      * extraction while preserving structured_output for legacy callers.
+     * Task records intentionally keep the task-scoped report schema; independent
+     * review/research/scanner sidecars persist on change.subagent_reports[].
      */
     subagent_reports: z.array(SubagentReportSchema).optional(),
   })

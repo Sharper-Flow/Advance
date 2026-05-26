@@ -249,6 +249,11 @@ async function recordSubmitFailure(input: {
   }
 }
 
+/**
+ * Return the durable task anchor only for task-scoped reports. Legacy string
+ * scopes can still pair with a `task_id`; change-scoped sidecars intentionally
+ * return undefined so they are stored outside task records.
+ */
 function reportTaskId(report: ScopedSubagentReport): string | undefined {
   if (typeof report.scope !== "string" && report.scope.kind === "task") {
     return report.scope.task_id;
@@ -282,6 +287,7 @@ function reportFollowUps(report: ScopedSubagentReport): string[] {
   return "follow_ups" in report ? report.follow_ups : [];
 }
 
+/** Build the human-readable source token used on report-created agenda items. */
 function reportSourceDescription(report: ScopedSubagentReport): string {
   const taskId = reportTaskId(report);
   const scopeId =

@@ -281,6 +281,7 @@ Use when spawning `adv-reviewer` for scoped review-style fixes:
 WORKING DIRECTORY: {workdir}
 CHANGE: {change-id} | {title} | gate: review
 TASK: {task-id} | {task-title} | source finding: {finding-id}
+# Advisory remediation instruction, not a strict packet-identity anchor.
 REPORT_SCOPE: { "kind": "task", "task_id": "{task-id}" }
 PHASE: review
 ATTEMPT: {attempt-number, starting at 1 for this remediation worker}

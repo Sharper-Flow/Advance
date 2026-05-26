@@ -409,6 +409,53 @@ describe("Change Operations", () => {
     expect(rewritten.gates.proposal.absorbed_completions).toBeUndefined();
   });
 
+  test("loadChange normalizes legacy task sub-agent reports before validation", async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+
+    raw.tasks[0].subagent_reports = [
+      {
+        schema_version: "1.0",
+        change_id: "addFeature",
+        task_id: raw.tasks[0].id,
+        attempt: 1,
+        agent: "adv-engineer",
+        status: "complete",
+        scope: "legacy string scope",
+        workdir_used: "/repo",
+        files_touched: ["src/example.ts"],
+        verification: [
+          { command: "pnpm test", exit_code: 0, summary: "passed" },
+        ],
+        decisions: [{ what: "Kept legacy report", why: "Readback compat" }],
+        blockers: [],
+        follow_ups: [],
+        related_scan: "No same-pattern issues",
+        context_update_for_adv: {
+          what_ads_needs_to_know: "Legacy report normalized",
+          suggested_next_action: "Continue",
+        },
+      },
+    ];
+
+    await writeFile(changePath, JSON.stringify(raw, null, 2));
+
+    const result = await loadChange(changesDir, "addFeature");
+
+    expect(result.success).toBe(true);
+    expect(result.data!.tasks[0]?.subagent_reports?.[0]).toMatchObject({
+      scope_drift: null,
+      required_main_agent_actions: [],
+    });
+
+    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
+    expect(rewritten.tasks[0].subagent_reports[0].scope_drift).toBeNull();
+    expect(
+      rewritten.tasks[0].subagent_reports[0].required_main_agent_actions,
+    ).toEqual([]);
+  });
+
   test("saveChange writes change to JSON", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const change = { ...SAMPLE_CHANGE, id: "newFeature" };

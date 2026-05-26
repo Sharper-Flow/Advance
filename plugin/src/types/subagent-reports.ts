@@ -248,6 +248,11 @@ const ReviewerReportFields = {
 export const ReviewerSubagentReportSchema =
   TaskScopedBaseSubagentReportSchema.extend(ReviewerReportFields).strict();
 
+/**
+ * Change-scoped reviewer report for independent acceptance/release summaries.
+ * Task-scoped `ReviewerSubagentReportSchema` remains the remediation-report
+ * shape; this variant uses `review:acceptance` or `harden:release` scope keys.
+ */
 export const ChangeScopedReviewerSubagentReportSchema =
   ChangeScopedBaseSubagentReportSchema.extend(ReviewerReportFields).strict();
 
@@ -328,18 +333,35 @@ export const TaskScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   DesignerSubagentReportSchema,
 ]);
 
-export const ScopedSubagentReportSchema = z.union([
-  EngineerSubagentReportSchema,
-  ReviewerSubagentReportSchema,
+/** Change-level report sidecars accepted by `adv_subagent_report_submit`. */
+export const ChangeScopedSubagentReportSchema = z.discriminatedUnion("agent", [
   ChangeScopedReviewerSubagentReportSchema,
-  DesignerSubagentReportSchema,
   ResearcherSubagentReportSchema,
   TronSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
 ]);
 
+/**
+ * Full report ingest schema: task-scoped worker reports plus change-scoped
+ * sidecar reports.
+ */
+export const ScopedSubagentReportSchema = z.union([
+  TaskScopedSubagentReportSchema,
+  ChangeScopedSubagentReportSchema,
+]);
+
+/**
+ * Backward-compatible alias for reports persisted on task records only.
+ * Change-scoped reports persist on `change.subagent_reports[]`; use
+ * `ScopedSubagentReportSchema` for the full ingest surface accepted by
+ * `adv_subagent_report_submit`.
+ */
 export const SupportedSubagentReportSchema = TaskScopedSubagentReportSchema;
 
+// Only these task-scoped agents existed before `scope_drift` and
+// `required_main_agent_actions` became required fields. Change-scoped agents
+// were introduced with the current strict shape and must not receive legacy
+// default-filling on ingest.
 const LEGACY_DEFAULT_NORMALIZED_REPORT_AGENTS = new Set<string>([
   "adv-engineer",
   "adv-reviewer",
@@ -405,13 +427,15 @@ export function normalizePersistedSubagentReportState(
 
   for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
     if (key === "subagent_reports" && Array.isArray(raw)) {
+      let reportsChanged = false;
       const nextReports = raw.map((report) => {
         const [normalizedReport, reportChanged] =
           normalizeLegacySubagentReportRow(report);
-        changed = changed || reportChanged;
+        reportsChanged = reportsChanged || reportChanged;
         return normalizedReport;
       });
-      out[key] = changed ? nextReports : raw;
+      out[key] = reportsChanged ? nextReports : raw;
+      changed = changed || reportsChanged;
       continue;
     }
 
@@ -606,6 +630,9 @@ export type DesignerSubagentReport = z.infer<
 export type TaskScopedSubagentReport = z.infer<
   typeof TaskScopedSubagentReportSchema
 >;
+export type ChangeScopedSubagentReport = z.infer<
+  typeof ChangeScopedSubagentReportSchema
+>;
 export type ResearcherSubagentReport = z.infer<
   typeof ResearcherSubagentReportSchema
 >;
@@ -618,5 +645,7 @@ export type SupportedSubagentReport = z.infer<
   typeof SupportedSubagentReportSchema
 >;
 
+/** @deprecated Use `TaskScopedSubagentReportSchema` or `ScopedSubagentReportSchema` explicitly. */
 export const SubagentReportSchema = SupportedSubagentReportSchema;
+/** @deprecated Use `TaskScopedSubagentReport` or `ScopedSubagentReport` explicitly. */
 export type SubagentReport = SupportedSubagentReport;
