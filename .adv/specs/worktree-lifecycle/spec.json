@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/anomalyco/oc-plugins/main/advance/plugin/schemas/spec.schema.json",
   "name": "worktree-lifecycle",
   "title": "Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation",
-  "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, and cleanup eligibility tracking.",
+  "purpose": "Capability: Branch-aware worktree registry with strict setup readiness, git-first workspace reconciliation, resume/materialization tool, main-checkout safety guard, cleanup eligibility tracking, and bounded cleanup.",
   "version": "1.4.0",
   "updated_at": "2026-05-23T00:00:00.000Z",
   "requirements": [
@@ -68,7 +68,9 @@
         {
           "id": "rq-worktreePoisonVisibility01.3",
           "title": "Visibility-source outage is explicit",
-          "given": ["Temporal service, workflow list, or getHandle is unavailable"],
+          "given": [
+            "Temporal service, workflow list, or getHandle is unavailable"
+          ],
           "when": "listWorktreesAcrossChanges runs",
           "then": [
             "The result has records: [] and unavailable: true",
@@ -317,7 +319,9 @@
         {
           "id": "rq-terminalCleanupLifecycle01.2",
           "title": "Manual cleanup can retry exhausted safe items",
-          "given": ["A safe terminal pending delete has exhausted automatic attempts"],
+          "given": [
+            "A safe terminal pending delete has exhausted automatic attempts"
+          ],
           "when": "Manual cleanup runs",
           "then": ["The safe pending delete is retried through the shared path"]
         }

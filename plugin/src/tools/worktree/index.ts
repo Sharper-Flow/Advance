@@ -3,8 +3,9 @@
 /**
  * ADV Worktree Tools
  *
- * Creates isolated git worktrees for AI development sessions with
- * seamless terminal spawning across macOS, Windows, and Linux.
+ * Creates isolated git worktrees for AI development sessions. Runtime support
+ * is Linux-first for process-CWD safety checks, with platform-specific graceful
+ * degradation documented in the focused helper modules.
  *
  * Inspired by opencode-worktree-session by Felix Anhalt
  * https://github.com/felixAnhalt/opencode-worktree-session
@@ -717,7 +718,7 @@ async function getDb(log: Logger): Promise<Database> {
       );
 
       if (attempt < DB_MAX_RETRIES) {
-        Bun.sleepSync(DB_RETRY_DELAY_MS);
+        await new Promise((resolve) => setTimeout(resolve, DB_RETRY_DELAY_MS));
       }
     }
   }
@@ -1550,7 +1551,11 @@ export async function advWorktreeDelete(
     | undefined;
   try {
     registryEntry = await getWorktreeRegistryEntry(branch, deps);
-  } catch {
+  } catch (error) {
+    appendDebugLog(
+      "worktree-delete",
+      `registry lookup failed for ${branch}: ${error instanceof Error ? error.message : String(error)}`,
+    );
     registryEntry = undefined;
   }
 
@@ -1590,6 +1595,9 @@ export async function advWorktreeDelete(
     return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
   }
   worktreePath = validatedWorktreePath;
+  if (!registryEntry && !(await pathExists(worktreePath))) {
+    return { ok: false, error: "WORKTREE_NOT_FOUND", branch };
+  }
 
   // 2. Branch integration check. Four cases:
   //
@@ -2058,7 +2066,7 @@ export interface AdvWorktreeCleanupDeps {
   dryRun?: boolean;
   store?: Store;
   warpDeps?: WarpDeps;
-  /** Automatic triggers use false; manual cleanup defaults to true. */
+  /** Automatic triggers use false; manual cleanup defaults to true to bypass retry cap only. */
   forceAttempts?: boolean;
   /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
   discover?: boolean;
@@ -2071,7 +2079,7 @@ export interface AdvWorktreeCleanupDeps {
 }
 
 export interface DrainPendingDeletesOptions {
-  /** Manual remediation triggers may ignore the automatic retry cap. */
+  /** Manual remediation triggers may ignore the automatic retry cap without forcing dirty deletion. */
   forceAttempts?: boolean;
   /** Preview pending-delete handling without mutating attempts or deleting. */
   dryRun?: boolean;
@@ -2087,6 +2095,11 @@ export interface PendingDeleteDrainResult {
   dryRun?: boolean;
 }
 
+/**
+ * Discover terminal/merged change worktrees that are eligible for the shared
+ * pending-delete queue. Discovery records candidates only; deletion remains
+ * owned by {@link drainPendingDeletes} and {@link advWorktreeDelete}.
+ */
 async function discoverTerminalCleanupCandidates(
   trigger: string,
   deps: AdvWorktreeDeleteDeps,
@@ -2166,6 +2179,12 @@ function classifyDeleteResultForPendingDelete(
   }
 }
 
+/**
+ * Drain queued pending deletes one item at a time. Each item is locally
+ * bounded, in-use worktrees are retained without consuming attempts, missing
+ * paths are cleared, and late successful deletes reconcile the queue after a
+ * timeout.
+ */
 export async function drainPendingDeletes(
   trigger: string,
   deps: AdvWorktreeDeleteDeps,
@@ -2225,7 +2244,7 @@ export async function drainPendingDeletes(
       options.cleanupItemTimeoutMs ?? DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS;
     const deletePromise = deleteFn(
       branch,
-      { force: options.forceAttempts },
+      { force: false },
       {
         ...deps,
         worktreePath,
@@ -2287,8 +2306,14 @@ export async function drainPendingDeletes(
   return { removed, retained, ...(options.dryRun ? { dryRun: true } : {}) };
 }
 
+/**
+ * Run the manual cleanup pipeline: discover newly eligible terminal worktrees,
+ * then drain queued pending deletes with per-item bounds. Manual cleanup may
+ * bypass the automatic retry cap, but dirty/unmerged/in-use safety gates remain
+ * enforced by {@link advWorktreeDelete}.
+ */
 export async function advWorktreeCleanup(
-  _reason: string,
+  reason: string,
   deps: AdvWorktreeCleanupDeps,
 ): Promise<PendingDeleteDrainResult> {
   const deleteDeps: AdvWorktreeDeleteDeps = {
@@ -2302,6 +2327,10 @@ export async function advWorktreeCleanup(
 
   if (!deps.dryRun && deps.discover !== false) {
     await discoverTerminalCleanupCandidates("worktree_cleanup", deleteDeps);
+  }
+
+  if (reason.trim()) {
+    appendDebugLog("worktree_cleanup", `retry requested: ${reason.trim()}`);
   }
 
   return drainPendingDeletes("worktree_cleanup", deleteDeps, {
@@ -2701,7 +2730,7 @@ export const WorktreePlugin: Plugin = async (ctx) => {
 
       worktree_cleanup: tool({
         description:
-          "Retry queued worktree deletions. Safe: skips worktrees still used as a process CWD and keeps them queued.",
+          "Retry queued worktree deletions. Safe: skips worktrees still used as a process CWD, preserves dirty/unmerged unsafe worktrees, and keeps retained items queued.",
         args: {
           reason: tool.schema
             .string()
@@ -2709,7 +2738,13 @@ export const WorktreePlugin: Plugin = async (ctx) => {
               "Brief explanation of why you are retrying queued cleanup",
             ),
         },
-        async execute() {
+        async execute(args) {
+          if (args.reason.trim()) {
+            appendDebugLog(
+              "worktree_cleanup",
+              `plugin cleanup requested: ${args.reason.trim()}`,
+            );
+          }
           const cleanup = await processPendingDeletes("worktree_cleanup", {
             forceAttempts: true,
           });

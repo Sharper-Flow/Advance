@@ -1,7 +1,7 @@
 # Worktree Lifecycle
 
-> **Version:** 1.3.0
-> **Updated:** 2026-05-22
+> **Version:** 1.4.0
+> **Updated:** 2026-05-23
 
 ## Purpose
 
@@ -417,20 +417,35 @@ Terminal cleanup processing must route through one shared cleanup path instead o
 
 **ID:** `rq-worktreeMutationGuard01` | **Priority:** **[MUST]**
 
-ADV mutating tools that advance gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. The proposal gate remains exempt so a change can be created before a worktree exists. For auto-managed changes, the guard MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.
+ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. For auto-managed changes, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.
 
 **Tags:** `worktree`, `safety`, `mutation-guard`
 
 #### Scenarios
 
-**Gate completion blocks from main checkout** (`rq-worktreeMutationGuard01.1`)
+**Metadata gate completion is allowed from main checkout** (`rq-worktreeMutationGuard01.1`)
 
 **Given:**
 
 - feature_flags.worktree_guard_enforce is true
 - The current session is in the main checkout
 
-**When:** adv_gate_complete is called for discovery, design, planning, execution, acceptance, or release
+**When:** adv_gate_complete is called for discovery or design
+
+**Then:**
+
+- The tool allows the metadata-only gate completion
+- No worktree materialization is required
+- Code and git mutation paths remain unaffected
+
+**Worktree-mutation gate completion blocks from main checkout** (`rq-worktreeMutationGuard01.1b`)
+
+**Given:**
+
+- feature_flags.worktree_guard_enforce is true
+- The current session is in the main checkout
+
+**When:** adv_gate_complete is called for planning, execution, acceptance, or release
 
 **Then:**
 
