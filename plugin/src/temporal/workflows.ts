@@ -771,11 +771,12 @@ export async function changeWorkflow(
         artifactKind === "acceptance" &&
         wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)
       ) {
+        const acceptanceContent = renderAcceptanceProjection(state);
         const writeResult = await writeArtifactActivity({
           changesDir: state.projectionChangesDir,
           changeId: state.changeId,
           kind: "acceptance",
-          content: renderAcceptanceProjection(state),
+          content: acceptanceContent,
         });
         if (!writeResult.ok) {
           markGateStuckForBlockers(payload, [
@@ -789,6 +790,18 @@ export async function changeWorkflow(
           ]);
           return;
         }
+        // T12 (removePositionalArtifactApi): populate state.documents.acceptance
+        // to match the just-written disk projection. Makes acceptance a
+        // first-class member of state.documents so readArtifact /
+        // archive-bundle materialization (KD-13) and consumer alignment
+        // (gate-readiness, archive-summary) see Temporal-backed content
+        // instead of empty. Disk projection retained per C12 (acceptance
+        // recovery path requires inspectArtifactActivity to verify disk
+        // contentHash).
+        state.documents = {
+          ...(state.documents ?? {}),
+          acceptance: acceptanceContent,
+        };
         const executiveSummary = await inspectArtifactActivity({
           changesDir: state.projectionChangesDir,
           changeId: state.changeId,
