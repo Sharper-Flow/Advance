@@ -1,5 +1,5 @@
 /**
- * Visibility-API-backed change enumeration (P2.4).
+ * Visibility-API-backed change enumeration (P2.4 / rq-visibilityProjectScope01).
  *
  * Replaces the legacy `listChangeDirs(legacy.paths.changes)` cold-start
  * path with a Temporal-native query against the visibility store.
@@ -21,10 +21,14 @@
  * as needed. This module wraps the iteration with project-scoped
  * filtering and an optional hard `limit` cap.
  *
- * Search-attribute strategy: ADV registers `AdvProjectId` and
- * `AdvChangeStatus` as custom search attributes (see `service.ts`
- * `registerAdvSearchAttributes`). The visibility query filters on these
- * to scope reads to one project + non-archived statuses by default.
+ * Search-attribute strategy: ADV registers `AdvAffectedProjects`
+ * (KeywordList) and `AdvChangeStatus` (Keyword) as custom search
+ * attributes (see `search-attributes.ts:ADV_SEARCH_ATTRIBUTES` and
+ * `service.ts:registerAdvSearchAttributes`). The visibility query filters
+ * on these to scope reads to one project + non-archived statuses by
+ * default. `AdvAffectedProjects` matches the backlog-claim Visibility
+ * scope (`visibility-claim-queries.ts`) so list/claim paths use the same
+ * registered attribute.
  */
 
 import type { ChangeStatus } from "../types";
@@ -80,8 +84,15 @@ export function buildVisibilityQuery(
   // contain quotes in practice, but the safety net guards against
   // visibility-query injection if someone ever runs the sweep against a
   // user-supplied label.
+  //
+  // rq-visibilityProjectScope01: filter on the registered
+  // `AdvAffectedProjects` KeywordList rather than the legacy
+  // `AdvProjectId` Keyword. KeywordList equality matches any element in
+  // the list, so a single registered attribute serves both single-project
+  // and multi-project change workflows. This converges list-change-workflows
+  // with visibility-claim-queries on the same registered attribute.
   const safeProjectId = projectId.replace(/"/g, '\\"');
-  parts.push(`AdvProjectId = "${safeProjectId}"`);
+  parts.push(`AdvAffectedProjects = "${safeProjectId}"`);
 
   // statuses=null is the explicit "all statuses" mode; statuses=undefined
   // falls back to DEFAULT_STATUSES; statuses=[] also disables (no rows).
