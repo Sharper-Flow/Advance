@@ -1,0 +1,1618 @@
+{
+  "id": "improveAdvLatency",
+  "title": "Improve ADV latency",
+  "status": "archived",
+  "created_at": "2026-05-24T05:12:49.380Z",
+  "tasks": [
+    {
+      "id": "tk-1fd639e966dd",
+      "title": "Audit session-debt status value and choose remove-or-confine path",
+      "type": "code",
+      "section": "Discovery/Design Audit",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-28T02:49:20.873Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C6",
+          "DONT3",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T02:54:27.571Z",
+      "verification": "Audit-only task; no file changes. Evidence: status.ts currently calls scanOpenCodeSessionDebt unconditionally in status assembly; status.test asserts health detail plus summary recommendation. Decision: confine OpenCode session-debt diagnostics to hygiene view only, not summary or health. Rationale: diagnostic has value for OpenCode DB/session archaeology, but user questioned summary value and it is not core Temporal/ADV health. Downstream status task must remove summary recommendation and update tests accordingly; detailed hygiene can retain it with freshness/degraded metadata if retained.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Audited `scanOpenCodeSessionDebt` and status integration. Current status code calls `scanOpenCodeSessionDebt()` unconditionally while building status output and pushes a doctor recommendation into summary recommendations. Current tests assert health detail plus summary recommendation. Selected remove/confine outcome: keep diagnostic value only in hygiene view (or explicit doctor tooling), not summary or health. Downstream lazy-status task must update provider plan/tests so summary does not call session-debt and health does not pay session-debt cost; hygiene may retain it with freshness/degraded metadata.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "5ad88f19281b5b65fc6765d7498f3efd21174ecc",
+      "completedAt": "2026-05-28T02:54:54.130Z",
+      "completed_at": "2026-05-28T02:54:54.130Z",
+      "notes": "Decision: confine OpenCode session-debt diagnostics to hygiene view only; remove from summary and health. It is useful for local OpenCode DB/session archaeology, but not summary-critical and not core health for normal ADV latency path.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-28T02:55:06.038Z"
+    },
+    {
+      "id": "tk-9afd36b14b54",
+      "title": "Implement lazy `adv_status` view plan and slim summary output with RED tests",
+      "type": "code",
+      "section": "Status Summary",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-28T02:49:38.229Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1fd639e966dd"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "C5",
+          "C6"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC11"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT3",
+          "DONT5"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T02:55:46.985Z",
+      "verification": "RED: `pnpm test -- src/tools/status.test.ts` failed with 3 expected failures for summary debt recommendation, summary detailed-provider invocation, and health session-debt exposure. GREEN: `pnpm test -- src/tools/status.test.ts` passed. Typecheck: `pnpm run typecheck` passed.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `buildStatusViewPlan(view)` and conditional provider execution in `plugin/src/tools/status.ts`. Summary now skips queue serviceability, search attributes, worktree cleanup/census, session debt, health snapshot, external hygiene, snapshot health, peer sessions, plugin runtime, and project metadata while preserving recent-change enrichment and required context snapshots. Summary formatted detail sections are blanked. Health no longer exposes session-debt; hygiene retains session-debt. Updated status tests to assert session-debt confinement, summary non-invocation of detailed providers, slim formatted sections, and adjusted search-attribute recommendation expectations. Verification: RED status tests failed before implementation; GREEN `pnpm test -- src/tools/status.test.ts` passed; `pnpm run typecheck` passed.",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "a11f7b14852512538a0efd62b4a785c70aaa72ce",
+      "completedAt": "2026-05-28T03:04:47.584Z",
+      "completed_at": "2026-05-28T03:04:47.584Z",
+      "notes": "Implemented planned `adv_status` execution so summary skips detailed providers; summary formatted detail sections are slimmed; OpenCode session-debt is confined to hygiene and removed from health/summary hot paths.",
+      "error_recovery": {
+        "last_error": "Initial GREEN attempt failed: retained cleanup count expected in health, live-only debt test still expected health session-debt, search-attribute recommendation test expected summary recommendation, and typecheck required queue serviceability nullable type.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "`pnpm test -- src/tools/status.test.ts` after RED tests failed with expected summary/session-debt assertions.",
+            "diagnosis": "RED tests correctly exposed existing eager detailed-provider behavior.",
+            "fix_tried": "Implemented status view plan and conditional providers.",
+            "strategy_label": "view-plan-implementation",
+            "outcome": "failed",
+            "attempted_at": "2026-05-28T03:01:03.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Post-implementation tests/typecheck failed due test expectations and nullable queue serviceability type.",
+            "diagnosis": "Health should keep worktree cleanup count but not session-debt; search-attribute recommendation belongs to health; fetchStatusQueueServiceability can return null.",
+            "fix_tried": "Set health worktreeCleanup true, updated tests to hygiene/session-debt and health search-attribute recommendation, allowed null queueServiceability.",
+            "strategy_label": "align-detailed-view-expectations",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-28T03:04:08.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-28T03:05:08.983Z"
+    },
+    {
+      "id": "tk-8651126b0d37",
+      "title": "Add always-on latency telemetry for tools, `adv_status` phases, and `adv_run_test` substeps",
+      "type": "code",
+      "section": "Telemetry",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-28T02:49:52.889Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "verifies": [
+          "AC8",
+          "AC11"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "C8",
+          "DONT1",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "verification": "RED metrics tests for new tool durations + recent phase ring failed before implementation; GREEN: `pnpm test -- src/utils/metrics.test.ts src/tools/test.test.ts src/tools/status.test.ts` pass; `pnpm test -- src/utils/safe-execute.test.ts` pass; `pnpm run typecheck` passes. Wired always-on `recordToolDuration` into `safeExecute`/`safeExecuteSimple`; added `recordPhaseDuration`/`withRecordedPhase`; status phases timed (`statusLoad`, `recentChangeEnrichment`, `worktreeCleanup`, `sessionDebtScan`, `healthSnapshot`, `snapshotHealth`, `formatOutput`, `recentChangeScopeFilter`, `migrationStatus`); `adv_run_test` substeps timed (`targetRouting`, `taskLookup`, `commandExecution`, `outputShaping`).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended `plugin/src/utils/metrics.ts` with `adv_tool_durations` (count/total/last/max/error_count per tool) and a bounded `recent_phase_durations` ring (cap 50) plus `recordToolDuration`, `recordPhaseDuration`, and `withRecordedPhase`. Wired always-on `recordToolDuration` into `safeExecute` and `safeExecuteSimple` for both success and error paths in `plugin/src/utils/safe-execute.ts`; kept `ADV_PROFILE` file logging as an opt-in extra. Wrapped expensive `adv_status` phases (statusLoad, migrationStatus, recentChangeScopeFilter, recentChangeEnrichment, worktreeCleanup, sessionDebtScan, healthSnapshot, snapshotHealth, formatOutput) in `withRecordedPhase`. Wrapped `adv_run_test` substeps (`targetRouting`, `taskLookup`, `commandExecution`, `outputShaping`) including success/error outcome for command execution. Added metrics tests for new duration/phase APIs; added status health-view test asserting `adv_status` phase names recorded; added `adv_run_test` substep telemetry tests for both success and non-zero exit.",
+      "filesTouched": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/metrics.test.ts",
+        "plugin/src/utils/metrics.ts",
+        "plugin/src/utils/safe-execute.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/status.test.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/metrics.test.ts",
+        "plugin/src/utils/metrics.ts",
+        "plugin/src/utils/safe-execute.ts"
+      ],
+      "checkpointSha": "f064ab524048484e4ae1a9483d7d0f99ddbea377",
+      "completedAt": "2026-05-28T03:23:16.648Z",
+      "completed_at": "2026-05-28T03:23:16.648Z",
+      "notes": "Telemetry surface added: always-on per-tool durations, status phase timings, adv_run_test substep timings.",
+      "error_recovery": {
+        "last_error": "typecheck failure: args.target_path narrowing lost inside async closure.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "src/tools/test.ts(221,17): Type 'string | undefined' is not assignable to type 'string'.",
+            "diagnosis": "Closure passed to withRecordedPhase loses the outer narrowing on `args.target_path`.",
+            "fix_tried": "Captured `args.target_path` into a local `const targetPath` before the closure.",
+            "strategy_label": "capture-narrowed-target",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-28T03:22:25.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-28T03:23:47.838Z"
+    },
+    {
+      "id": "tk-2126e275c4d4",
+      "title": "Profile and safely optimize `adv_run_test` hot path with compatibility matrix",
+      "type": "code",
+      "section": "adv_run_test",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-28T02:50:09.123Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8651126b0d37"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC11"
+        ],
+        "respects": [
+          "C3",
+          "C7",
+          "C8",
+          "DONT1",
+          "DONT2",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T03:24:06.738Z",
+      "verification": "Added shell-compatibility matrix tests for `adv_run_test` covering pipe/metacharacter semantics, task-missing short-circuit, SIGTERM timeout classification, max-buffer classification, non-zero exit semantics, and per-call fresh-execution. `pnpm test -- src/tools/test.test.ts` passes. No subprocess implementation change — exec retained per KD-8 because compatibility evidence (and design KD-8 default) requires preserved shell semantics and profiling did not reveal a safe wrapper-overhead win to justify a runner change at this time.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added a shell-compatibility test matrix in `plugin/src/tools/test.test.ts` covering: pipe/metacharacter execution through the shell (`printf | wc -l` → exit 0, output 3), task-missing short-circuit that prevents subprocess execution, SIGTERM-driven timeout classification (timedOut true, diagnostic prefix, timeoutMs surfaced), max-buffer classification on overflow (maxBufferExceeded true, diagnostic prefix), per-call fresh execution (no caching; two consecutive calls produce different outputs and both invoke task lookup), and non-zero exit reporting without false timeout/maxBuffer flags. Subprocess implementation retained per KD-8: `child_process.exec` keeps exact shell semantics for the existing `command: string` contract, and profiling did not reveal a safe wrapper-overhead win to justify a runner change. Telemetry substeps from the previous task (`targetRouting`, `taskLookup`, `commandExecution`, `outputShaping`) remain wired, including success/error outcome for `commandExecution`.",
+      "filesTouched": [
+        "plugin/src/tools/test.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/test.test.ts"
+      ],
+      "checkpointSha": "6c39dce8cf8912bc91ccb55c3bea03ac86dfd45c",
+      "completedAt": "2026-05-28T03:27:03.555Z",
+      "completed_at": "2026-05-28T03:27:03.555Z",
+      "notes": "Compatibility matrix verified; semantics preserved; substep telemetry exists. Subprocess implementation unchanged per KD-8.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-28T03:27:18.507Z"
+    },
+    {
+      "id": "tk-c0b608fbf656",
+      "title": "Align Temporal Visibility project-scope queries for summary-read completeness",
+      "type": "code",
+      "section": "Summary Read Model",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-28T02:50:22.429Z",
+      "deps": [],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5",
+          "AC7",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T03:27:39.020Z",
+      "verification": "Switched `list-change-workflows.buildVisibilityQuery` from unregistered `AdvProjectId` to registered `AdvAffectedProjects` (KeywordList equality matches single project membership). Updated tests assert the new attribute and explicitly reject `AdvProjectId`. Removed stale drift note from `visibility-claim-queries.ts`. `pnpm test -- src/temporal/list-change-workflows.test.ts src/temporal/visibility-claim-queries.test.ts` passes; `pnpm run typecheck` passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "`plugin/src/temporal/list-change-workflows.ts:buildVisibilityQuery` now scopes change-workflow enumeration by `AdvAffectedProjects` (registered KeywordList in `ADV_SEARCH_ATTRIBUTES`) instead of the unregistered `AdvProjectId` Keyword. KeywordList equality matches when the project ID is a member of the list, so the change preserves single-project and multi-project change workflows. `plugin/src/temporal/visibility-claim-queries.ts` already used `AdvAffectedProjects`; stale drift note removed. List-change-workflows unit tests updated to assert the new attribute and to reject `AdvProjectId`. Verification: targeted vitest run for list-change-workflows + visibility-claim-queries passes; `pnpm run typecheck` passes. KD-6: this is the \"converge on registered AdvAffectedProjects\" path; legacy `AdvProjectId` is left only in unused contract metadata (`contracts.ts:ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES`) and observability mapping references, neither of which drives Visibility queries.",
+      "filesTouched": [
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/list-change-workflows.test.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/temporal/visibility-claim-queries.ts"
+      ],
+      "checkpointSha": "b482be9661eeb315500bbc9f3e30cc00c21b9d25",
+      "completedAt": "2026-05-28T03:30:33.717Z",
+      "completed_at": "2026-05-28T03:30:33.717Z",
+      "notes": "Visibility list query converged on registered `AdvAffectedProjects` KeywordList, matching claim-coordination scope.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-28T03:30:49.063Z"
+    },
+    {
+      "id": "tk-54da4cc71d89",
+      "title": "Implement correctness-safe summary read model for default list/status paths",
+      "type": "code",
+      "section": "Summary Read Model",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-28T02:50:36.764Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-c0b608fbf656"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-9afd36b14b54"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC7",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T03:31:08.932Z",
+      "verification": "Added optional `Store.changes.listSummary` and Temporal-store implementation that serves memo/cache hits without per-change full hydration; falls back to `listResolvedChanges`/`getTemporalChange` for misses and uses the full path for archived/closed/content-filter callers. Wired `adv_change_list` to prefer `listSummary` when available. New `changes.test.ts` cases prove (a) memo-only candidates skip hydration entirely, (b) cache-served candidates skip hydration, and (c) archived/closed callers route through the authoritative `listResolvedChanges` path. `pnpm test -- src/tools/change.test.ts src/storage/store-temporal/changes.test.ts src/storage/store-temporal/index.test.ts` passes; `pnpm run typecheck` passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added optional `Store.changes.listSummary` to `plugin/src/storage/store-types.ts` with a documented surface that mirrors `list()` but reports `hydrationStats` so telemetry callers can observe memo/cache/hydration counts. Implemented in `plugin/src/storage/store-temporal/changes.ts`: when archived/closed inclusion or content-search filters are requested, the method defers to the authoritative `listResolvedChanges` path; otherwise it unions candidate IDs from `ChangeSummaryMemo`, Visibility (when `bundle.client.workflow.list` exists), and disk `listChangeDirs`, then resolves each id via cache → memo → `getTemporalChange` fallback. Default `adv_change_list` (`plugin/src/tools/change.ts`) prefers `listSummary` when present, preserving filter semantics and recency enrichment without changing the response shape. New `changes.test.ts` cases prove memo-only candidates skip hydration, cache-served candidates skip hydration, and archived/closed callers route through the authoritative `listResolvedChanges` path. Targeted vitest run for change tool + store-temporal modules and full typecheck pass.",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "a24fc013ceea1b4675fb7ccfc58735207a374a59",
+      "completedAt": "2026-05-28T03:38:50.482Z",
+      "completed_at": "2026-05-28T03:38:50.482Z",
+      "notes": "Added optional listSummary surface; default adv_change_list wired through it; tests prove memo/cache short-circuits + authoritative fallback for terminal/content filters.",
+      "error_recovery": {
+        "last_error": "test seeding for cache fallback initially required memo seed to surface the id",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "fromCache assertion failed because the diskOnlyChange id was never added to the candidate set after memo.invalidate.",
+            "diagnosis": "listSummary candidate set comes from memo/visibility/disk; pre-populating only changeCache without memo means the id never enters the loop.",
+            "fix_tried": "Kept the memo seed in place (it dictates the candidate set) and used it as the entry point while the changeCache short-circuit served the row.",
+            "strategy_label": "seed-memo-for-cache-path",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-28T03:37:29.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-28T03:39:10.182Z"
+    },
+    {
+      "id": "tk-5e1bc4360a0d",
+      "title": "Repair and document latency benchmark harness with status/list/show/test samples",
+      "type": "code",
+      "section": "Benchmark",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-28T02:50:50.404Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8651126b0d37"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2126e275c4d4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-54da4cc71d89"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC9",
+          "AC10"
+        ],
+        "verifies": [
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C8",
+          "DONT4"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T03:39:31.636Z",
+      "verification": "Benchmark harness rewritten as documented isolated substitute backed by `createDiskStore` (rq-advLatencyBench01) plus opt-in `--mode temporal` that intentionally refuses to fabricate a Temporal bundle. Smoke run completed: `pnpm exec tsx scripts/bench-adv-latency.ts --repo-root <worktree> --change-id improveAdvLatency --iterations 3 --warmup 1 --out reports/latency-disk-sample.md` produced summary ≈55ms vs health ≈113ms, confirming the lazy view plan's measurable win. New `docs/bench-adv-latency.md` documents command, fixture shape, output location, and the manual-only nature of the bench. `pnpm run typecheck` passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Rewrote `plugin/scripts/bench-adv-latency.ts` to default to a documented isolated substitute (`createDiskStore`) so the harness initializes under the Temporal-only `createStore` contract without a live worker. Added `--mode disk|temporal`, fixture metadata (mode, substitute, task id used, ADV_PROFILE), and timed samples for `adv_status view:\"summary\"`, `adv_status view:\"health\"`, `adv_change_list`, `adv_change_show`, `store.tasks.list` (disk fallback because `adv_task_list` requires Temporal), and `adv_run_test echo`/`true`. `--mode temporal` intentionally refuses to fabricate a TemporalClientBundle so results are never silently substituted. Added `docs/bench-adv-latency.md` documenting command, fixture shape, output location, and manual-only nature. Added `plugin/.gitignore` so `reports/` artifacts stay out of git. Sample run captured wins: summary ≈55ms vs health ≈113ms = ~2× from lazy view planning. Typecheck passes.",
+      "filesTouched": [
+        "docs/bench-adv-latency.md",
+        "plugin/.gitignore",
+        "plugin/scripts/bench-adv-latency.ts"
+      ],
+      "touched_files": [
+        "docs/bench-adv-latency.md",
+        "plugin/.gitignore",
+        "plugin/scripts/bench-adv-latency.ts"
+      ],
+      "checkpointSha": "231490bc2e9a42bbcf3bb8822dcd9ee9043aa976",
+      "completedAt": "2026-05-28T03:43:32.368Z",
+      "completed_at": "2026-05-28T03:43:32.368Z",
+      "notes": "Benchmark rebuilt; manual disk substitute + opt-in temporal mode; doc + sample report shape verified.",
+      "error_recovery": {
+        "last_error": "Initial bench tried to run adv_task_list which requires Temporal handle.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "adv_task_list throws `Temporal service not available` under the disk substitute.",
+            "diagnosis": "adv_task_list is a Temporal-required tool; the disk store has no workflow handle.",
+            "fix_tried": "Replaced adv_task_list with `store.tasks.list` for disk mode; reserved adv_task_list/show for the temporal-mode harness path.",
+            "strategy_label": "swap-tool-for-disk-store-call",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-28T03:42:00.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-28T03:43:51.169Z"
+    },
+    {
+      "id": "tk-18909a73a58f",
+      "title": "Add spec deltas and requirement citations for latency/read/test contracts",
+      "type": "code",
+      "section": "Specs",
+      "status": "done",
+      "priority": 7,
+      "created_at": "2026-05-28T02:51:04.798Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9afd36b14b54"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2126e275c4d4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-54da4cc71d89"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5e1bc4360a0d"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5",
+          "AC6",
+          "AC8",
+          "AC9"
+        ],
+        "verifies": [
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C7",
+          "C8",
+          "DONT1",
+          "DONT2",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T03:44:14.046Z",
+      "verification": "Added six new requirements to `.adv/specs/advance-meta` (version bumped to 1.12.0): rq-advStatusLazyView01, rq-changeSummaryReadModel01, rq-advLatencyTelemetry01, rq-advLatencyBench01, rq-visibilityProjectScope01, rq-advRunTestLatency01. JSON parses cleanly (`node -e JSON.parse(...)`). Added in-code citations referencing the new requirement IDs in `plugin/src/tools/status.ts`, `plugin/src/utils/metrics.ts`, `plugin/src/storage/store-types.ts`, `plugin/src/tools/test.ts`, `plugin/src/temporal/list-change-workflows.ts`, and `plugin/scripts/bench-adv-latency.ts`. `pnpm run typecheck` passes.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Extended `.adv/specs/advance-meta/spec.json` (version 1.11.0 → 1.12.0) with `rq-advStatusLazyView01`, `rq-changeSummaryReadModel01`, `rq-advLatencyTelemetry01`, `rq-advLatencyBench01`, `rq-visibilityProjectScope01`, and `rq-advRunTestLatency01`. Each requirement carries Given/When/Then scenarios anchored to the implementation surfaces (status view planning, listSummary contract, in-memory telemetry, manual bench harness, Visibility attribute, adv_run_test substep telemetry). Added in-code citations referencing the new IDs and version in `plugin/src/tools/status.ts:buildStatusViewPlan`, `plugin/src/utils/metrics.ts:recordToolDuration`, `plugin/src/storage/store-types.ts:listSummary`, `plugin/src/tools/test.ts`, `plugin/src/temporal/list-change-workflows.ts:buildVisibilityQuery`, and `plugin/scripts/bench-adv-latency.ts`. JSON validity verified via `node -e JSON.parse`; `pnpm run typecheck` passes.",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/scripts/bench-adv-latency.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/metrics.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-meta/spec.json",
+        "plugin/scripts/bench-adv-latency.ts",
+        "plugin/src/storage/store-types.ts",
+        "plugin/src/temporal/list-change-workflows.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/metrics.ts"
+      ],
+      "checkpointSha": "c9751602ebcb99871cdb486edaae02ef598f0d3f",
+      "completedAt": "2026-05-28T03:47:05.798Z",
+      "completed_at": "2026-05-28T03:47:05.798Z",
+      "notes": "Added six rq-* deltas to advance-meta (v1.12) and citation comments to implementing modules.",
+      "error_recovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "TRANSIENT",
+        "next_strategy": "",
+        "attempts": []
+      },
+      "updatedAt": "2026-05-28T03:47:21.681Z"
+    },
+    {
+      "id": "tk-656c112adf34",
+      "title": "Run contract-wide verification, structural CI, and manual latency benchmark evidence",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 8,
+      "created_at": "2026-05-28T02:51:25.919Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9afd36b14b54"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8651126b0d37"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2126e275c4d4"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c0b608fbf656"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-54da4cc71d89"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-5e1bc4360a0d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-18909a73a58f"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10",
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7",
+          "C8",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5",
+          "DONT6"
+        ],
+        "not_applicable_reason": ""
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T03:47:43.966Z",
+      "verification": "Global verification: `pnpm run check` passes (typecheck + lint + format) after fixing unused-var lint and prettier whitespace; `pnpm test` full suite passes; manual latency benchmark captured at plugin/reports/latency-disk-final.md (summary p50 ≈41.7ms vs health p50 ≈114.6ms = ~2.7× warm-default win). `adv_contract_review_matrix_set` recorded 25/25 rows (AC1-AC11 pass, C1-C8 respected, DONT1-DONT6 respected). `adv_change_validate strict:true` passes with only the expected NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Closed out the change-wide verification cycle: ran `pnpm run check` (typecheck + isolation + lockfile policy + lint + format:check) and `pnpm test` (full suite); both pass. Fixed an unused `ops` lint regression and reformatted touched files via `pnpm run format`. Captured manual latency evidence via the rewritten benchmark (`plugin/reports/latency-disk-final.md`, 8 iterations, warmup 2): `adv_status view:\"summary\"` p50 ≈41.7ms vs `view:\"health\"` p50 ≈114.6ms = ~2.7× faster warm-default read. Recorded a full contract review matrix (25 rows) via `adv_contract_review_matrix_set` — AC1-AC11 marked pass, C1-C8 respected, DONT1-DONT6 respected, each row carrying source/test/file evidence. Final `adv_change_validate strict:true` passes with only the documented NO_DELTAS warning (deltas live in the spec file, not the change.json deltas surface).",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/metrics.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/storage/store-temporal/changes.test.ts",
+        "plugin/src/storage/store-temporal/changes.ts",
+        "plugin/src/tools/status.ts",
+        "plugin/src/tools/test.test.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/utils/metrics.test.ts"
+      ],
+      "checkpointSha": "a6c1dee8e23a3763a74eace10f08352ac6fa454f",
+      "completedAt": "2026-05-28T03:51:16.744Z",
+      "completed_at": "2026-05-28T03:51:16.744Z",
+      "notes": "Repo check and full vitest pass; manual latency report captured; contract review matrix recorded with 25/25 rows passing.",
+      "error_recovery": {
+        "last_error": "pnpm run check failed once for an unused variable and once for prettier formatting after the listSummary tests/spec citation churn.",
+        "retry_count": 2,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "@typescript-eslint/no-unused-vars on src/storage/store-temporal/changes.test.ts line 354 'ops' assigned but never used.",
+            "diagnosis": "Duplicate createChangeOps block left over from earlier iteration on the fallback test.",
+            "fix_tried": "Removed the duplicate ops construction so only the seededCache-driven ops2 remains.",
+            "strategy_label": "remove-stale-block",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-28T03:48:30.000Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "Prettier format:check reported style issues in 5 files.",
+            "diagnosis": "morph_edit-driven inserts in metrics/status/test/changes did not match the repo prettier config exactly.",
+            "fix_tried": "Ran `pnpm run format` to apply the project prettier config.",
+            "strategy_label": "run-prettier",
+            "outcome": "succeeded",
+            "attempted_at": "2026-05-28T03:48:50.000Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-05-28T03:51:38.569Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "improveAdvLatency",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Opportunity scout — missed leverage points within approved improveAdvLatency scope",
+      "sources": [
+        {
+          "label": "Approved proposal artifact (improveAdvLatency)",
+          "locator": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/proposal.md",
+          "summary": "Confirms in-scope: lazy adv_status views, summary read model for list/status, latency telemetry, lightweight adv_change_show, spec deltas where required; out-of-scope: replacing Temporal, weakening validation/gate semantics."
+        },
+        {
+          "label": "Repo-improve prep evidence pack",
+          "locator": "docs/repo-improve-prep.md:35-97 and 144-156",
+          "summary": "Top severity-HIGH findings: full status output built unconditionally; status invokes advWorktreeCleanup on every call; list paths hydrate full changes after ID union; latency telemetry exists but `recordWallTimeMs` never called from production hook."
+        },
+        {
+          "label": "applyStatusView in tools/status.ts",
+          "locator": "plugin/src/tools/status.ts:911-1032 and 1093-1531",
+          "summary": "Comment at L913-916 explicitly states `The full output is built unconditionally` and `applyStatusView` is post-hoc projection. Lines 1093-1471 unconditionally fetch Temporal health, queue serviceability, search attributes, project config (incl. featureFlagSources), recent-change enrichment (per-change store.changes.get + proposal read + snapshot/ticker + dependency status + clarify checks + recency rec), advWorktreeCleanup, worktree census, OpenCode session debt scan, health snapshot, snapshot health, specs recount, peer sessions, plugin runtime, project metadata, then formatStatusOutput, before applyStatusView at 1531."
+        },
+        {
+          "label": "Status worktree-cleanup coupling",
+          "locator": "plugin/src/tools/status.ts:1274-1300",
+          "summary": "advWorktreeCleanup(\"status\", ...) runs on every adv_status call, including summary view. Wrapped in best-effort try/catch but still pays initWorktreeStateDb + getPendingDeletes I/O on the hot read path."
+        },
+        {
+          "label": "List read-path hydration",
+          "locator": "plugin/src/storage/store-temporal/index.ts:575-740",
+          "summary": "listResolvedChanges unions memo/visibility/disk(/archive) IDs then per-ID calls getTemporalChange (or disk fallback) in batches of 20 — full hydration, even when caller only needs summary fields."
+        },
+        {
+          "label": "ChangeSummaryMemo",
+          "locator": "plugin/src/storage/store-temporal-memo.ts:1-115 and store-temporal/index.ts:582-605",
+          "summary": "In-process Map<changeId, ChangeSummary> with id/title/status/gateProgress/taskCounts/lastActivityAt. Comment at L583-586 explicitly says memo is `used as a cache within per-change hydration, not as a completeness authority` — never serves a summary-list response on its own."
+        },
+        {
+          "label": "Visibility attribute drift",
+          "locator": "plugin/src/temporal/visibility-claim-queries.ts:11-15 and plugin/src/temporal/list-change-workflows.ts:24-27,83-84",
+          "summary": "buildVisibilityQuery filters on `AdvProjectId` (unregistered per local comment); backlog claim queries filter on the registered `AdvAffectedProjects`. Inconsistency acknowledged in code as pre-existing; risk of silent fallback to disk if registration drifts."
+        },
+        {
+          "label": "Latency telemetry gap",
+          "locator": "plugin/src/utils/metrics.ts:85 + plugin/src/utils/safe-execute.ts:380-449 + plugin/src/index.ts:819-867 + lgrep search for recordWallTimeMs",
+          "summary": "recordWallTimeMs defined and tested but NOT invoked outside tests — production tool.execute.after only calls recordAdvToolCall. ADV_PROFILE=1 records per-tool wall time to a file log via recordToolProfile, but no in-process per-tool or per-substep counters are surfaced to view:\"health\"."
+        },
+        {
+          "label": "Bench harness broken",
+          "locator": "plugin/scripts/bench-adv-latency.ts:44 vs plugin/src/storage/store.ts:8,37,46-49",
+          "summary": "bench-adv-latency calls createStore(repoRoot) without temporalBundle; store.ts requires temporalBundle since Temporal-only cutover. Bench cannot run today — performance budgets/regression coverage rely on this script."
+        },
+        {
+          "label": "Probe-cache LBP foundation",
+          "locator": "plugin/src/tools/probe-cache.ts:59-138",
+          "summary": "Existing lru-cache TTL+allowStale+allowStaleOnFetchAbort/Rejection wrapper used by Temporal/queue/search-attribute/worktree-census/snapshot probes. Drop-in pattern for any new cached substep added in this change."
+        },
+        {
+          "label": "advance-meta rq-statusProbeCache01",
+          "locator": "docs/specs/advance-meta.md:101-137",
+          "summary": "Mandates bounded cached probes for health/recovery, _freshness metadata, and that stale data must not authorize safety-critical mutations. Any new summary-index/cache must respect this."
+        },
+        {
+          "label": "Temporal Visibility/Search-Attributes docs",
+          "locator": "Context7 /temporalio/sdk-typescript — Search Attributes and Visibility in TypeScript",
+          "summary": "Confirms client.workflow.list({ query }) is the canonical filter-by-search-attribute API and client.workflow.count(query) returns a Count result. Validates Visibility-first list path and supports adding count() for cheap status size signals instead of hydrating."
+        }
+      ],
+      "architecture_assessment": "Approved scope targets four levers: (1) lazy view planning in adv_status, (2) summary-only read model for list/status defaults, (3) production-visible latency telemetry, (4) lightweight adv_change_show. Current implementation builds the full status payload before projection, runs worktree cleanup I/O on every status call, hydrates full Change objects on every list call, and never surfaces per-tool/per-substep wall-clock metrics in production. Probe-cache pattern, ChangeSummaryMemo, and Temporal Visibility APIs already exist as the foundation for the durable fix — most opportunities are wiring, not new infrastructure. Visibility attribute drift (AdvProjectId vs AdvAffectedProjects) is an adjacent correctness/perf risk explicitly in scope-relevant for the summary read model.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All five candidates are evidence-cited, contract-tied to the approved proposal, and respect Temporal/gate/archive safety. None require user-value tradeoffs; visibility attribute alignment surfaces to user only because it touches search-attribute registration."
+      },
+      "recommendation": "Adopt 5 ScoutCandidates inside discovery agenda. Auto-adopt SC-1 (lazy adv_status view planning) and SC-2 (defer worktree cleanup out of status hot path) — both are pure execution-plan refactors with strong existing safety rails and no user-visible contract change beyond what the approved proposal already authorizes. Surface SC-3 (promote ChangeSummaryMemo into a contract-bound summary read model for adv_change_list/adv_status defaults) to user — needs user confirmation on which default fields are compatibility-sensitive and may need a spec delta in advance-meta. Surface SC-4 (visibility attribute alignment: AdvProjectId → AdvAffectedProjects or register AdvProjectId) to user — touches search-attribute registration, has migration implications, but is on the critical path for a reliable Visibility-first summary model. Auto-adopt SC-5 (wire recordWallTimeMs + per-substep timing into tool.execute.after and view:\"health\") — telemetry-only, no behavior change. Repair bench-adv-latency.ts to unblock regression evidence (small fix, in scope).",
+      "follow_ups": [
+        "ScoutCandidate SC-1: id=lazy-status-view-plan, title=\"Make adv_status view-lazy via execution planning\", opportunity=\"Move from post-hoc applyStatusView projection to per-view execution plan — summary view computes only specs.count, recent IDs+titles+recency, recommendations, temporal_health_ok bit, worktree count; defers temporal queue serviceability, search-attribute probe, opencodeSessionDebt scan, healthSnapshot, snapshotHealth, externalStateHygiene, project_metadata, plugin_runtime, peerSessions, featureFlagSources, autoManagedCensus into health/hygiene views\", evidence=\"plugin/src/tools/status.ts:911-916 + 1093-1531 + docs/repo-improve-prep.md:35-40\", contract_tie=\"Proposal Success Criteria #1 (lazy summary view)\", payoff=\"Eliminates >10 substeps and >1 Temporal probe + project_metadata read + peer-session scan + plugin_runtime resolution from default summary; expected dominant gain on cold-start orientation calls\", risk=\"LOW — applyStatusView already proves the projection contract; need compatibility tests that summary view still includes all rq-advStatusView01 summary fields\", fate=\"adopt_now\", routing=\"discovery/design task list\"",
+        "ScoutCandidate SC-2: id=defer-status-worktree-cleanup, title=\"Move worktree cleanup discovery out of adv_status default path\", opportunity=\"Keep advWorktreeCleanup(\\\"status\\\", ...) + initWorktreeStateDb + getPendingDeletes only in view:\\\"hygiene\\\" or as explicit adv_worktree_cleanup invocation; cache terminalCleanupRetained via probe-cache TTL when summary needs the count\", evidence=\"plugin/src/tools/status.ts:1274-1300 + docs/repo-improve-prep.md:42-47\", contract_tie=\"Proposal Success Criteria #1 (lazy view), Out-of-Scope avoidance: 'Must not create hidden background mutations from read-only tools'\", payoff=\"Removes worktree-state DB open + cleanup retry I/O from every status call; eliminates a known amplifier when worktree state is large or poisoned\", risk=\"LOW — cleanup retry already best-effort and TTL-cacheable; existing adv_worktree_cleanup tool provides explicit recovery path\", fate=\"adopt_now\", routing=\"discovery/design task list\"",
+        "ScoutCandidate SC-3: id=summary-index-read-model, title=\"Promote ChangeSummaryMemo to a contract-bound summary read model for list/status defaults\", opportunity=\"Define a typed ChangeSummary projection (id, title, status, gateProgress, taskCounts, lastActivityAt, fast_follow_of, recency) populated by workflow signals + Visibility annotations and served directly to adv_change_list default + adv_status recent-change enrichment without per-change store.changes.get / proposal read / context snapshot. Full hydration only when caller passes status filter requiring detail, explicit include, or view:\\\"changes\\\".\", evidence=\"plugin/src/storage/store-temporal/index.ts:575-740, plugin/src/storage/store-temporal-memo.ts:1-115, plugin/src/tools/status.ts:1243-1272 (single-pass per-change enrichment with snapshot/proposal/dependency/clarify checks), plugin/src/tools/change.ts:1702 (adv_change_list)\", contract_tie=\"Proposal Success Criteria #2 (avoid per-change full hydration when summary satisfies contract); Constraint: stale summary data must not authorize gates/archive (advance-meta rq-statusProbeCache01)\", payoff=\"Removes O(N) full-Change hydration + O(N) proposal-file reads + O(N) snapshot builds + O(N) clarify-readiness runs from default list/status. Largest expected gain at >10 changes.\", risk=\"MEDIUM — requires correctness-safe invalidation tied to existing fireSignalAndRefresh discipline (rq-cacheRefresh01); needs compatibility audit of fields callers expect on default; may need an advance-meta spec delta to formally separate summary vs detail contract. User input needed on which default fields are non-negotiable vs movable behind include flags.\", fate=\"surface_to_user\", routing=\"discovery clarification (user-facing) + design proposal for summary contract\"",
+        "ScoutCandidate SC-4: id=visibility-attribute-alignment, title=\"Align project-scope Visibility attribute (AdvProjectId vs AdvAffectedProjects) for reliable Visibility-first reads\", opportunity=\"Pick one of: (a) register AdvProjectId as Keyword in ADV_SEARCH_ATTRIBUTES so listChangeWorkflowIds keeps its current query; or (b) migrate listChangeWorkflowIds to AdvAffectedProjects contains_any clause so it matches backlog-claim queries; remove inconsistent pre-existing comment.\", evidence=\"plugin/src/temporal/visibility-claim-queries.ts:11-15 (explicit local comment naming AdvProjectId as pre-existing inconsistency); plugin/src/temporal/list-change-workflows.ts:24-27, 83-84\", contract_tie=\"Indirect: the summary-index read model (SC-3) depends on Visibility being a structurally reliable enumeration source; misaligned attributes silently fall back to disk-listing, defeating the perf win. Proposal Failure Handling: 'Lazy view planning must fail closed for correctness-sensitive data'.\", payoff=\"Eliminates a class of silent slow-path fallbacks; reduces operator confusion ('why is list slow/offline?'); precondition for SC-3 paying off\", risk=\"MEDIUM — touches Temporal search-attribute registration / namespace metadata; needs migration plan and tests; user input warranted because choice (a) vs (b) has spec implications and rollout sequencing affects existing deployments\", fate=\"surface_to_user\", routing=\"discovery clarification (user-facing) — pick alignment direction before design lock\"",
+        "ScoutCandidate SC-5: id=production-latency-telemetry, title=\"Wire per-tool wall_time_ms and adv_status substep timings into production telemetry + repair bench harness\", opportunity=\"Three-part bundle: (1) call recordWallTimeMs from tool.execute.after with performance.now() delta around tool execution; (2) add a lightweight named-span helper in adv_status that records per-substep durations (e.g. status_load, recent_change_enrichment, temporal_health_probe, worktree_cleanup, snapshot_health) and surfaces them in view:\\\"health\\\" alongside existing counters from getMetrics(); (3) fix bench-adv-latency.ts to construct the required temporalBundle (or guard with ADV_DISABLE_TEMPORAL path) so regression budgets can run.\", evidence=\"plugin/src/utils/metrics.ts:85 + plugin/src/utils/safe-execute.ts:380-449 + plugin/src/index.ts:819-867 (recordWallTimeMs only referenced from tests); plugin/scripts/bench-adv-latency.ts:44 vs plugin/src/storage/store.ts:46-49 ('temporalBundle is required'); docs/repo-improve-prep.md:67-72\", contract_tie=\"Proposal Success Criteria #3 (per-tool duration_ms + named adv_status phase durations) and #4 (regression coverage / documented benchmark workflow)\", payoff=\"First-class diagnosis of slow tools/substeps; unblocks any future budget assertion; bench script becomes usable for before/after evidence on SC-1/SC-2/SC-3\", risk=\"LOW — telemetry-only; counters reset on plugin init (no persistence concerns); bench fix is local. Must respect ADV_PROFILE existing log path to avoid duplicate emission.\", fate=\"adopt_now\", routing=\"discovery/design task list\"",
+        "Warning: TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN packet anchors were present and used; no missing-anchor degradation applied."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveAdvLatency",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-leverage-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design leverage points for ADV latency improvement",
+      "sources": [
+        {
+          "label": "plugin/src/tools/status.ts §applyStatusView (lines 911-940)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/status.ts:914",
+          "summary": "Comment confirms full output is built unconditionally; applyStatusView is post-hoc projection — KD-1 thesis validated by current code."
+        },
+        {
+          "label": "plugin/src/tools/status.ts (lines 1283, 1307)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/status.ts:1283",
+          "summary": "Status executes advWorktreeCleanup('status') and scanOpenCodeSessionDebt() unconditionally for every adv_status call, even summary view."
+        },
+        {
+          "label": "plugin/src/utils/safe-execute.ts §recordToolProfile (lines 380-400)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/safe-execute.ts:380",
+          "summary": "Per-tool duration_ms is already captured via appendProfileLog when ADV_PROFILE=1. Gated, write-only to file, not in-memory ring."
+        },
+        {
+          "label": "plugin/src/storage/store-temporal-memo.ts §ChangeSummaryMemo",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal-memo.ts:65",
+          "summary": "Existing Map<changeId, ChangeSummary> with title/status/gateProgress/taskCounts/lastActivityAt — already invalidate-on-mutate. No new memo class needed."
+        },
+        {
+          "label": "plugin/src/storage/store-temporal/index.ts §emitChangeSummarySignal (lines 269-274)",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal/index.ts:269",
+          "summary": "emitChangeSummarySignal is a NO-OP since projectWorkflow retirement. Design KD references it as live mechanism — drift."
+        },
+        {
+          "label": "plugin/src/storage/store-temporal/index.ts §listResolvedChanges (lines 575-700)",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal/index.ts:575",
+          "summary": "Always unions memo+visibility+disk IDs then batched per-change getTemporalChange. Default-path summary callers still pay full hydration cost."
+        },
+        {
+          "label": "plugin/src/temporal/list-change-workflows.ts vs visibility-claim-queries.ts",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal/list-change-workflows.ts:84",
+          "summary": "Confirmed drift: list-change-workflows uses AdvProjectId; visibility-claim-queries uses AdvAffectedProjects. KD-6 valid prerequisite."
+        },
+        {
+          "label": "plugin/src/storage/store-temporal/changes.ts §list (lines 201-269)",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal/changes.ts:201",
+          "summary": "Returns summary-shaped rows (id, title, status, created_at, lastActivityAt, taskCount, completedTasks). Already a summary projection at API surface, but resolves full Change[] internally."
+        }
+      ],
+      "architecture_assessment": "Design is mostly correct. Five leverage points found: (1) Existing safeExecute profiling hook makes a separate AC6 timer wrapper unnecessary — convert ADV_PROFILE-gated file log to always-on in-memory ring + flag-gated file log; halves telemetry implementation. (2) ChangeSummaryMemo already exists with right shape; KD-4 'new listSummary method' should be 'memo-served list path on store.changes.list when no filter forces full hydration' — avoids new public surface. (3) emitChangeSummarySignal is already a no-op; KD-5 invalidation-via-existing-mutation-paths is fine, but design language should drop the dead signal reference. (4) advWorktreeCleanup('status') and scanOpenCodeSessionDebt are unconditional in adv_status — these are the dominant tax on summary view; KD-3 is right but should be 'remove from summary path entirely' not 'audit'. (5) Visibility attribute drift (KD-6) is real and must land BEFORE memo-served summary if memo cold-starts ever rely on visibility for hydration; otherwise non-blocking for KD-1/2/3.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No safety or contract blockers. All five candidates preserve specs/Temporal/cache/gates/archive/worktree correctness. Summary advisory-only constraint (KD-5) already met by changes.list shape."
+      },
+      "recommendation": "ScoutCandidate rows (≤5):\n\n1) id=SC-1 title='Reuse safeExecute profiling for telemetry' opportunity='Convert recordToolProfile from ADV_PROFILE-gated file-log to always-on in-memory ring buffer + optional file log; expose ring in adv_status view:health.' evidence='safe-execute.ts:380-400 + metrics.ts already in-memory singleton pattern' contract_tie='rq-advLatencyTelemetry01' payoff='Eliminates separate timer wrapper; one code path; production-visible without env flag' risk='LOW: bounded ring (e.g. last 200 entries), no hot-path allocation beyond what profiling already does' fate='AUTO-ADOPT' routing='execution'\n\n2) id=SC-2 title='Memo-served changes.list fast path' opportunity='When filter has no prefix/titleContains/timestamp/status-archived-or-closed, serve list from ChangeSummaryMemo.getAll() directly, skipping listResolvedChanges N hydrations.' evidence='changes.ts:201-269 returns summary shape; memo already holds all required fields (id,title,status,taskCounts,lastActivityAt via overlay)' contract_tie='rq-changeSummaryReadModel01' payoff='Replaces N per-change getTemporalChange with O(1) Map iteration on default warm path; no new public method' risk='LOW: full fallback when filter present; safety paths (gate, archive, claims) still use changes.get/full state' fate='AUTO-ADOPT' routing='execution'\n\n3) id=SC-3 title='Remove worktree-cleanup + session-debt from summary view' opportunity='Drop advWorktreeCleanup(\"status\") and scanOpenCodeSessionDebt() from adv_status summary plan; keep in hygiene/health only.' evidence='status.ts:1283 + 1307 unconditional; AC2 explicitly forbids; KD-3 says audit but evidence is clear' contract_tie='rq-advStatusLazyView01 (AC2)' payoff='Eliminates the two dominant non-Temporal taxes from default warm read; matches contract' risk='LOW: hygiene/health views still surface them; no consumer of summary depends on session_debt residues per current contract' fate='AUTO-ADOPT' routing='execution'\n\n4) id=SC-4 title='Drop dead emitChangeSummarySignal references from design' opportunity='Design KD-5/implementation-strategy step 5 cite emitChangeSummarySignal as a live invalidation mechanism; it is a no-op since projectWorkflow retired.' evidence='store-temporal/index.ts:269-274 is empty body with retirement comment' contract_tie='design-doc-correctness (no rq tie)' payoff='Prevents implementer from wiring against dead surface; saves a debugging cycle' risk='NONE: doc-only update' fate='SURFACE-TO-USER' routing='design'\n\n5) id=SC-5 title='Sequence KD-6 visibility-attribute alignment before memo fast path' opportunity='If SC-2 memo cold-start ever falls back to visibility for hydration on new sessions, AdvProjectId vs AdvAffectedProjects drift can silently omit changes. Land KD-6 register/migrate FIRST or pin memo fallback to disk scan only.' evidence='list-change-workflows.ts:84 uses AdvProjectId; visibility-claim-queries.ts:87 uses AdvAffectedProjects' contract_tie='rq-visibilityProjectScope01' payoff='Prevents silent summary miss on cold session; preserves correctness' risk='MEDIUM if not sequenced: cold-session summary may miss recent changes' fate='SURFACE-TO-USER (sequencing decision)' routing='planning'",
+      "follow_ups": [
+        "Confirm with user whether SC-3 should fully remove session-debt scan from summary path or keep behind an explicit opt-in flag (current contract says remove)",
+        "If SC-1 adopted, agree ring buffer size (recommend 200 recent invocations) and whether to keep ADV_PROFILE file-log path as opt-in extra"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveAdvLatency",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation for improveAdvLatency",
+      "sources": [
+        {
+          "label": "plugin/src/tools/status.ts applyStatusView (lines 907-979)",
+          "locator": "/home/jon/dev/advance/plugin/src/tools/status.ts",
+          "summary": "Current code confirms KD-1 premise: full output built unconditionally, view applied post-hoc. Source comment explicitly says 'The full output is built unconditionally.' Design's plan-before-execute is the structural fix."
+        },
+        {
+          "label": "plugin/src/storage/store-temporal-memo.ts ChangeSummaryMemo",
+          "locator": "/home/jon/dev/advance/plugin/src/storage/store-temporal-memo.ts",
+          "summary": "ChangeSummaryMemo already exists as in-process Map, invalidated on mutation signals, stale-safe by design. Supports KD-4 listSummary fast path without inventing new caching layer."
+        },
+        {
+          "label": "plugin/src/temporal/list-change-workflows.ts buildVisibilityQuery + plugin/src/temporal/visibility-claim-queries.ts header",
+          "locator": "/home/jon/dev/advance/plugin/src/temporal",
+          "summary": "Documented inconsistency: list-change-workflows.ts queries AdvProjectId; backlog-claim uses AdvAffectedProjects (registered KeywordList). Comment in visibility-claim-queries.ts explicitly flags the pre-existing inconsistency and logs it as agenda follow-up. KD-6 sequencing alignment is correct."
+        },
+        {
+          "label": "plugin/src/utils/safe-execute.ts recordToolProfile (lines 380-399)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/safe-execute.ts",
+          "summary": "safeExecute already computes duration_ms and writes profile log when ADV_PROFILE=1. Design's 'always record in-memory, gate disk write' is a minimal extension, not a new path. Consistent with KD-7 telemetry."
+        },
+        {
+          "label": "plugin/src/utils/metrics.ts AdvMetricsCounters (rq-advMetricsBaseline01)",
+          "locator": "/home/jon/dev/advance/plugin/src/utils/metrics.ts",
+          "summary": "Metrics singleton already counts adv_tool_calls and per-name breakdown. Extending with per-tool {count,total_ms,last_ms,max_ms} fits existing pattern. No new lifecycle invented."
+        },
+        {
+          "label": "spec advance-meta rq-statusProbeCache01",
+          "locator": "adv_spec://advance-meta#rq-statusProbeCache01",
+          "summary": "Existing spec: stale probe data must not authorize worker-lock reclaim, restart success, override, unlock, or archive. KD-5 (summary advisory only) and DONT2 (no cache as gate/archive/claim authority) are aligned with existing law."
+        },
+        {
+          "label": "spec chat-output-display rq-ctxsnap2, rq-ctxticker2.5",
+          "locator": "adv_spec://chat-output-display",
+          "summary": "adv_status MUST emit context snapshot (rq-ctxsnap2.4) and full-box for primary change + ticker for non-primary (rq-ctxticker2.5). Design must preserve these in summary view; slim summary cannot drop _contextSnapshot. Risk: design.md does not explicitly mention preserving _contextSnapshot in summary formatted output."
+        },
+        {
+          "label": "Temporal TypeScript SDK Visibility / search attributes",
+          "locator": "https://docs.temporal.io/develop/typescript/observability#search-attributes",
+          "summary": "client.workflow.list({ query }) with custom search attributes is the canonical Visibility pattern; pagination is iterator-based. Design's Visibility union approach matches official guidance."
+        },
+        {
+          "label": "lru-cache fetch / stale-on-error",
+          "locator": "https://github.com/isaacs/node-lru-cache#fetch",
+          "summary": "lru-cache.fetch() coalesces concurrent fetches and supports stale-on-rejection — exact behavior needed for the probe-cache pattern referenced in agreement LBP analysis."
+        }
+      ],
+      "architecture_assessment": "Design is structurally sound and grounded in the existing codebase. Two-plane read architecture (plan-before-execute + summary read model) is the by-the-book fix for the documented post-hoc projection waste in applyStatusView. ChangeSummaryMemo + Visibility + disk-ID union is the standard Temporal-native pattern; KD-6 correctly sequences Visibility search-attribute alignment (AdvProjectId vs AdvAffectedProjects — documented inconsistency in source) before relying on Visibility as a completeness authority. Telemetry extension is minimal — uses existing safeExecute timing and existing metrics singleton (rq-advMetricsBaseline01); no new lifecycle. Safety story is strong: KD-5 + DONT2 + AC6 keep summary/cache advisory-only and authoritative paths intact for gates/archive/claims/recovery, which aligns with existing law rq-statusProbeCache01. No spec-law conflicts found. Simpler alternatives were considered (e.g., pure cache TTL) and rejected because they would still execute detailed providers — only execution planning solves the lazy-provider acceptance criterion AC1.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Three cautions, all minor and addressable in planning rather than design rework: (1) chat-output-display spec rq-ctxsnap2.4 + rq-ctxticker2.5 require _contextSnapshot in adv_status output; design.md does not explicitly call out preserving _contextSnapshot when slimming summary formatted output. Recommend explicit note in design that summary view still emits _contextSnapshot per spec. (2) KD-3 session-debt 'audit during implementation' is loosely scoped — acceptance criterion AC3 requires the audit conclusion; recommend planning include a defined audit checkpoint with a binary remove/confine decision before Phase A ships. (3) KD-6 Visibility attribute alignment is correctly identified as a prerequisite but is broad — design should clarify whether AdvProjectId is migrated to AdvAffectedProjects or both are supported during transition, since this affects backlog-coordination spec rq-backlogCoord01..07 and an existing agenda follow-up."
+      },
+      "recommendation": "VALIDATED with caution. Design correctly addresses agreement objectives, respects all constraints (Temporal/Zod/gates preserved), and matches Temporal-native LBP. Before planning gate completion: (a) add a line to design.md explicitly preserving _contextSnapshot emission in summary view per chat-output-display spec; (b) commit KD-3 session-debt audit to a planning checkpoint with binary remove/confine outcome before Phase A code ships; (c) clarify KD-6 Visibility-attribute migration direction (rename AdvProjectId callers to AdvAffectedProjects, or dual-read during transition). No architectural rework required; cautions are scope/clarification not correctness defects.",
+      "follow_ups": [
+        "Cross-check with backlog-coordination spec rq-backlogCoord01..07 during planning to ensure Visibility-attribute alignment does not regress claim queries.",
+        "Confirm benchmark fixture under Temporal-only contract uses isolated namespace per docs/temporal-recovery.md.",
+        "During Phase D implementation, verify ChangeSummary shape (no sourceVersion, per existing PSW-retired test in store-temporal-memo.test.ts) remains stable when adding new summary fields."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "improveAdvLatency",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation-revised"
+      },
+      "agent": "adv-researcher",
+      "topic": "Revised design validation for improveAdvLatency",
+      "sources": [
+        {
+          "label": "Node.js child_process docs (Context7 /nodejs/node)",
+          "locator": "https://github.com/nodejs/node/blob/main/doc/api/child_process.md",
+          "summary": "child_process.exec(command, opts, cb) spawns shell, buffers stdout/stderr, supports timeout (sends killSignal default SIGTERM), maxBuffer (default 1MB; exceeding terminates child + truncates output), error.code = exit code, error.signal = terminating signal. execFile/spawn default shell:false. Confirms design KD-8 'exec-default, spawn only with proven shell preservation'."
+        },
+        {
+          "label": "Spec chat-output-display rq-ctxsnap2 / rq-ctxticker2.5",
+          "locator": ".adv/specs/chat-output-display.json",
+          "summary": "adv_status MUST emit full-box _contextSnapshot for primary active/draft/pending change and ticker for non-primary. Design KD-2 and Architecture point 1 explicitly preserve this in slim summary."
+        },
+        {
+          "label": "Spec backlog-coordination rq-backlogCoord01/05",
+          "locator": ".adv/specs/backlog-coordination.json",
+          "summary": "Backlog-claim Visibility queries use AdvAffectedProjects + AdvBacklogIssueNumber + AdvChangeStatus. Design KD-6 explicitly converges project-scoped filtering on registered AdvAffectedProjects matching this precedent; AdvProjectId remains transitional with explicit registration/documentation requirement."
+        },
+        {
+          "label": "Local code: plugin/src/tools/status.ts:applyStatusView (symbol)",
+          "locator": "plugin/src/tools/status.ts:function:applyStatusView (28012-32086)",
+          "summary": "Current post-hoc projection point. Design replaces with buildStatusViewPlan(view) as primary control. Refactor target exists as described."
+        },
+        {
+          "label": "Local code: plugin/src/utils/opencode-session-debt.ts:scanOpenCodeSessionDebt",
+          "locator": "plugin/src/utils/opencode-session-debt.ts:function:scanOpenCodeSessionDebt (6410-8631)",
+          "summary": "Session-debt provider exists; KD-3 binary remove/confine decision aligns with AC3 and DONT3."
+        },
+        {
+          "label": "Local code: plugin/src/storage/store-temporal-memo.ts:ChangeSummaryMemo",
+          "locator": "plugin/src/storage/store-temporal-memo.ts:class:ChangeSummaryMemo (1799-2817)",
+          "summary": "Summary memo class exists for KD-4/KD-5 reuse. KD-5 enforces advisory-only authority matching DONT2."
+        },
+        {
+          "label": "Local code: plugin/src/utils/safe-execute.ts:safeExecute",
+          "locator": "plugin/src/utils/safe-execute.ts:function:safeExecute (13293-14551)",
+          "summary": "Existing duration_ms timing infrastructure underpins telemetry plane (Phase B). Always-record proposal preserves ADV_PROFILE gating."
+        }
+      ],
+      "architecture_assessment": "Revised design is internally coherent and addresses all prior validator cautions. Three-plane separation (status plan / summary read model / adv_run_test) cleanly maps to acceptance criteria: AC1-AC3 → plane 1, AC4-AC5 → plane 2, AC6 → plane 3, AC8-AC10 → telemetry+benchmark, AC7+DONT2 → KD-5 advisory-only. Snapshot preservation (rq-ctxsnap2 / rq-ctxticker2.5) explicitly called out in Architecture point 1 and KD-2, closing the prior caution. Session-debt binary decision (KD-3) closes the prior ambiguity caution and aligns with AC3. Visibility direction (KD-6) is now explicit: dual-read transition, then converge on registered AdvAffectedProjects matching backlog-coordination precedent — closes the prior 'undeclared Visibility direction' caution. adv_run_test compatibility-first stance (KD-8) and exec-default rationale are corroborated by Node child_process docs (exec spawns shell, supports timeout/maxBuffer/killSignal; spawn defaults shell:false, so non-trivial to swap). Measurement-first + telemetry-first sequencing (Phases A→C with C2 telemetry preceding C3 subprocess changes) respects DONT6.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "VALIDATED. No conflicts found across the four validation dimensions. Minor follow-up notes (non-blocking): (a) KD-6 dual-read transition should land tests proving Visibility ID completeness before any summary fast path relies on Visibility-only ID set — design already states this; planning task should make it explicit; (b) KD-3 binary decision must occur before Phase A code lands (design states this); planning gate needs a task that records the remove/confine outcome with evidence; (c) Phase D benchmark repair should document whether bench harness lives under plugin/scripts/ (Temporal-only contract) — design says 'or documented isolated benchmark substitute', acceptable; (d) C7/DONT6 + KD-8 are fully consistent with Node docs — no exec→spawn drop-in unless tests prove shell-metachar/pipe/redirect/timeout/maxBuffer/exit-code parity; (e) Telemetry recording inside safeExecute must avoid creating new mutation paths from read tools (C5/DONT cluster) — adding in-memory counters with bounded windows is safe per existing pattern; (f) Acceptance evidence for AC8 should call out which per-tool stats schema is emitted in health view to keep CI structural-test surface deterministic."
+      },
+      "recommendation": "Verdict: VALIDATED. Approve design and proceed to planning. Planning should: (1) add explicit session-debt remove/confine decision task gated before Phase A; (2) sequence Phase A status refactor with RED tests asserting provider non-invocation, slim formatted output, AND required _contextSnapshot emission per rq-ctxsnap2/rq-ctxticker2.5; (3) sequence Phase B telemetry before Phase C subprocess profiling so adv_run_test substep numbers exist before any structural change; (4) keep Phase C compatibility-first — no exec→spawn swap without explicit tests covering shell metacharacters, pipelines, redirects, timeout+killSignal, maxBuffer truncation/termination, exit-code/error.signal classification; (5) for Phase E summary listing surface, add tests that gates/archive/recovery/claim/task-completion paths still call full hydration (KD-5/DONT2); (6) for Phase F Visibility convergence, add transition tests proving AdvAffectedProjects coverage before removing AdvProjectId reliance or explicitly register+document AdvProjectId.",
+      "follow_ups": [
+        "Planning task: session-debt binary decision (remove vs confine) recorded with evidence before Phase A.",
+        "Planning task: Phase A RED tests include _contextSnapshot preservation per rq-ctxsnap2 + rq-ctxticker2.5.",
+        "Planning task: adv_run_test compatibility test matrix (shell metachars, pipelines, redirects, timeout/killSignal, maxBuffer, exit-code/signal classification) before any subprocess strategy change.",
+        "Planning task: telemetry schema for per-tool duration stats nailed down for health view to keep structural CI deterministic.",
+        "Planning task: Visibility dual-read → AdvAffectedProjects convergence guarded by tests proving ID coverage."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-NkTOIz",
+      "type": "pattern",
+      "content": "For ADV status latency work, OpenCode session-debt diagnostics are valuable as local DB/session archaeology but should not be part of summary or normal health hot paths. Confine expensive session-debt scans to hygiene/explicit doctor surfaces with freshness/degraded metadata; summary should not call scanOpenCodeSessionDebt.",
+      "source_task": "tk-1fd639e966dd",
+      "recorded_at": "2026-05-28T02:55:18.255Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-24T05:16:15.586Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved proposal via inline Tier A approval: \"continue\". Problem statement confirmed; proposal persisted with scope, success criteria, constraints, failure handling, and discovery agenda.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/proposal.md",
+        "content_hash": "a8ad2b31bb1607b6ef6fccd16103a73ef01c7aeed3148ff96bfe11beba35f74f",
+        "non_whitespace_chars": 7967,
+        "checked_at": "2026-05-24T05:16:15.671Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-05-28T02:42:25.899Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "Discovery re-entered for user-requested adv_run_test hot-path scope. Proposal/agreement updated; revised acceptance criteria approved by user reply `approve`; contract re-minted from revised agreement.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/agreement.md",
+        "content_hash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "non_whitespace_chars": 5789,
+        "checked_at": "2026-05-28T02:42:25.951Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-28T02:48:24.843Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted for revised scope including adv_run_test hot path. Independent validator verdict: VALIDATED. Prior cautions resolved: _contextSnapshot preservation, session-debt binary decision, explicit Visibility direction.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/design.md",
+        "content_hash": "abbb08a8b5f7cda21c3a0366348f08d5dd724d59db5af571ef38b07e681e7432",
+        "non_whitespace_chars": 14666,
+        "checked_at": "2026-05-28T02:48:24.903Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-28T02:53:50.481Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved prep task graph with reply `approve`. Task graph includes 9 tasks covering AC1-AC11 with dependencies and contract refs; worktree /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/improveAdvLatency is active."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-28T03:52:01.473Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All 9 tasks complete; pnpm run check + full vitest suite pass; manual latency benchmark captured; contract review matrix recorded 25/25 (AC1-AC11 pass, all constraints respected, all avoidances respected); adv_change_validate strict passes (only expected NO_DELTAS warning)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-28T04:20:11.530Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent review verdict: READY (0 blocking findings, 2 nonblocking nits). CI: pnpm run check passes. Contract review matrix: 25/25. adv_change_validate strict: pass. Manual benchmark confirms ~2.7x summary-vs-health latency win. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/acceptance.md",
+        "content_hash": "0f64d803343d0ddcdb9e21d257e884752a9606ab986139ae38b2627df2f180e9",
+        "non_whitespace_chars": 6963,
+        "checked_at": "2026-05-28T04:20:11.643Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "User added `adv_run_test` latency optimization as additional warm-path scope after discovery approval, changing objectives/acceptance coverage before design completion.",
+      "scope_delta": "Include `adv_run_test` latency/throughput improvement investigation and design alongside warm default read tools, without weakening TDD evidence recording or test execution correctness.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-05-28T01:04:58.621Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "origin": {
+    "kind": "adhoc"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+      "approvedAt": "2026-05-28T02:42:07.652Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_status view:\"summary\"` does not invoke detailed-only health, hygiene, session-debt, snapshot-health, plugin-runtime, project-metadata, or worktree-cleanup providers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Summary formatted output is slim; health/worktree/session-debt details appear only in detailed views unless audit proves a summary-critical need.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Session-debt diagnostic is audited; remove it if low-value, or confine it to detailed diagnostics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Warm default reads are optimized first: `adv_status`, `adv_change_list`, and common phase-start reads.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Default list/status paths avoid per-change full hydration when summary data satisfies response contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`adv_run_test` hot path is profiled and improved where safe; tests prove task validation, timeout/max-buffer classification, output shaping, and exit-code semantics remain intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Summary/cache/test-tool optimizations never authorize gates, archive, worker-lock recovery, claims, task completion, or fabricated test evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Telemetry exposes per-tool `duration_ms`, named `adv_status` phase durations, and enough `adv_run_test` timing/substep attribution to diagnose overhead around command execution.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Benchmark harness works under current Temporal-only store contract and documents command, fixture, output.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "CI uses structural regression tests for lazy/provider non-invocation and no-unneeded hydration; manual Temporal benchmark supplies real latency evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Existing spec-law, Temporal cache-refresh, worktree safety, TDD evidence, and gate-completion tests do not regress.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not replace Temporal as durable execution/state backend.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not remove or weaken Zod validation or schema/boundary correctness for speed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not change gate semantics, approval rules, archive rules, task completion rules, or TDD evidence semantics except documented read/test-tool performance internals that preserve behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not let stale cached diagnostics authorize safety-critical mutations or decisions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Do not create hidden background mutations from read-only tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Detailed views/includes must remain able to surface diagnostic data that still has value.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "`adv_run_test` must not skip task validation, command execution, timeout enforcement, max-buffer enforcement, or output/error classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "Tests must respect repo conventions: commands from `plugin/`, Node/Vitest tests, Bun runtime gotchas.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not optimize by skipping validation, hiding diagnostics, or fabricating summary/test evidence fields.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not make `ChangeSummaryMemo` or any cache a gate/archive/claim/task-evidence authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not keep expensive summary work only because it is currently present in `formatted`; audit and justify each summary field.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add flaky wall-clock CI budgets as the primary regression guard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not perform broad unrelated status/WIP cleanup beyond latency-driven read/test-path changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not change exact shell-command semantics for `adv_run_test` unless design evidence proves the replacement preserves compatibility.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-28T03:50:52.740Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/status.test.ts: summary view does not invoke detailed-only providers; pnpm test passes."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/status.ts blanks detailed formatted sections in summary view; plugin/src/tools/status.test.ts asserts summary formatted sections are empty; pnpm test passes."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Session-debt confined to hygiene view; plugin/src/tools/status.test.ts 'confines OpenCode session debt to hygiene view' asserts confinement; summary recommendation removed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Default adv_change_list wired through listSummary (plugin/src/tools/change.ts); status summary skips detailed providers; manual benchmark shows summary ≈42ms vs health ≈115ms."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/storage/store-temporal/changes.test.ts 'serves memo-only candidates without per-change full hydration' passes; Visibility list query converged on AdvAffectedProjects in list-change-workflows.ts and visibility-claim-queries.ts."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/tools/test.test.ts shell-compatibility matrix (pipe semantics, timeout SIGTERM classification, max-buffer classification, non-zero exit, fresh execution) passes; substep telemetry recorded for adv_run_test."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "listSummary defers to authoritative path for archived/closed/content filters; adv_change_close/closeBatch + adv_gate_complete unchanged; adv_task_checkpoint still records evidence on done."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/src/utils/metrics.test.ts asserts recordToolDuration and recordPhaseDuration semantics; plugin/src/tools/status.test.ts 'records named adv_status phase durations' passes; plugin/src/tools/test.test.ts 'records adv_run_test substep telemetry phases' passes."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/scripts/bench-adv-latency.ts rewritten with disk substitute; smoke run captured at reports/latency-disk-final.md; docs/bench-adv-latency.md documents command/fixture/output."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "CI structural tests in plugin/src/tools/status.test.ts (provider non-invocation, slim formatted sections) and plugin/src/storage/store-temporal/changes.test.ts (no per-change hydration); manual Temporal benchmark via bench-adv-latency.ts mode=temporal documented."
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full `pnpm test` suite passes; pnpm run check passes; no spec-law/cache-refresh/worktree/TDD/gate test regressed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Temporal store backend unchanged; createStore still requires temporalBundle; visibility filter switched but stays on registered Temporal search attribute."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Zod schema removed; preflight/validator paths untouched."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Gate completion, archive, task checkpoint, TDD evidence semantics unchanged; adv_run_test contract preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "listSummary explicitly hands off to authoritative listResolvedChanges for archived/closed/content-filter callers; cached metrics expose data via read-only health view."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "advWorktreeCleanup removed from summary; no read-only tool mutates state. Bench writes only to its own XDG_DATA_HOME temp dir."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Detailed views still expose temporal_health, worker diagnostics, session debt, snapshot health, plugin runtime, project metadata, external state hygiene."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_run_test still validates taskId, runs exec with timeout/maxBuffer, classifies failures, and shapes output. Shell compatibility tests cover semantics."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All tests run via `pnpm test` from plugin/; Vitest-compatible imports; benchmark uses Node/Bun compatible APIs only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Validation untouched; diagnostics moved between views with explicit audit; no fabricated fields added."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "ChangeSummaryMemo remains advisory; authoritative paths used for terminal/safety-critical callers."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Summary plan documents per-field audit; session-debt removed from summary based on user-validated value; OpenCode debt retained only in hygiene."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "CI relies on structural tests (provider non-invocation, no-unneeded hydration, slim formatted sections); manual benchmark provides wall-clock evidence."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Only files in scope (status/test/change/metrics/visibility/store/specs) modified plus benchmark/docs additions; no unrelated WIP cleanup."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv_run_test still uses child_process.exec with original options; compatibility matrix tests cover preserved semantics."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_status view:\"summary\"` does not invoke detailed-only health, hygiene, session-debt, snapshot-health, plugin-runtime, project-metadata, or worktree-cleanup providers.",
+    "Summary formatted output is slim; health/worktree/session-debt details appear only in detailed views unless audit proves a summary-critical need.",
+    "Session-debt diagnostic is audited; remove it if low-value, or confine it to detailed diagnostics.",
+    "Warm default reads are optimized first: `adv_status`, `adv_change_list`, and common phase-start reads.",
+    "Default list/status paths avoid per-change full hydration when summary data satisfies response contract.",
+    "`adv_run_test` hot path is profiled and improved where safe; tests prove task validation, timeout/max-buffer classification, output shaping, and exit-code semantics remain intact.",
+    "Summary/cache/test-tool optimizations never authorize gates, archive, worker-lock recovery, claims, task completion, or fabricated test evidence.",
+    "Telemetry exposes per-tool `duration_ms`, named `adv_status` phase durations, and enough `adv_run_test` timing/substep attribution to diagnose overhead around command execution.",
+    "Benchmark harness works under current Temporal-only store contract and documents command, fixture, output.",
+    "CI uses structural regression tests for lazy/provider non-invocation and no-unneeded hydration; manual Temporal benchmark supplies real latency evidence.",
+    "Existing spec-law, Temporal cache-refresh, worktree safety, TDD evidence, and gate-completion tests do not regress."
+  ],
+  "documents": {},
+  "artifacts": {
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/proposal.md",
+      "updatedAt": "2026-05-28T01:06:00.462Z",
+      "contentHash": "5033aaad9aac67397364b1b1867e9fe834a6e0a123f6bdc2cdaa8ec0b0a7e59c"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/agreement.md",
+      "updatedAt": "2026-05-28T02:41:59.981Z",
+      "contentHash": "0e87bc854da21fa03d86a939e66cea397ecb660fbdb4cae7b187038645e43b47"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/design.md",
+      "updatedAt": "2026-05-28T02:48:12.056Z",
+      "contentHash": "abbb08a8b5f7cda21c3a0366348f08d5dd724d59db5af571ef38b07e681e7432"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/improveAdvLatency/executive-summary.md",
+      "updatedAt": "2026-05-28T04:19:11.357Z",
+      "contentHash": "b88c9c97a5c3646dfcd76a7eb9c6ae24395eb51250f2901815b7790f389d4c7f"
+    }
+  },
+  "lastSignalAt": "2026-05-28T04:20:11.530Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Success criteria are placeholder or empty. What measurable outcomes define done?",
+      "recorded_at": "2026-05-28T00:56:51.670Z"
+    },
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-05-28T00:56:51.670Z",
+      "resolved": true,
+      "resolved_at": "2026-05-28T02:42:13.300Z"
+    }
+  ]
+}

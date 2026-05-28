@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-NkTOIz",
+      "type": "pattern",
+      "content": "For ADV status latency work, OpenCode session-debt diagnostics are valuable as local DB/session archaeology but should not be part of summary or normal health hot paths. Confine expensive session-debt scans to hygiene/explicit doctor surfaces with freshness/degraded metadata; summary should not call scanOpenCodeSessionDebt.",
+      "source_task": "tk-1fd639e966dd",
+      "recorded_at": "2026-05-28T02:55:18.255Z"
+    }
+  ],
+  "count": 1
+}
