@@ -95,12 +95,14 @@ describe("createChangeOps", () => {
       paths: { changes: "/tmp/changes", root: "/tmp/project" },
       changes: {
         create: vi.fn().mockImplementation(async (...args: unknown[]) => {
-          const metadata = args[7] as
+          // After T20 atomic removal, legacy.changes.create receives
+          // (summary, options) — initialMetadata is on args[1].
+          const options = args[1] as
             | { initialMetadata?: { origin?: typeof origin } }
             | undefined;
           createdChange = {
             ...createdChange,
-            ...metadata?.initialMetadata,
+            ...options?.initialMetadata,
           };
           return { changeId: createdChange.id };
         }),
@@ -130,30 +132,19 @@ describe("createChangeOps", () => {
       dualWriteAfterMutation: vi.fn(),
     } as never);
 
-    await ops.create(
-      "Backlog feature 51",
-      "backlog-coordination",
-      "",
-      "",
-      "",
-      "",
-      undefined,
-      { initialMetadata: { origin } },
-    );
+    await ops.create("Backlog feature 51", {
+      capability: "backlog-coordination",
+      initialMetadata: { origin },
+    });
 
-    // Legacy positional empty-string args (""s) are normalized to undefined
-    // by normalizeCreateArgs before forwarding — see _artifact-args.ts.
-    // Existing legacy callers that passed "" as a no-op slot continue to
-    // work; the forwarded call uses undefined for clarity.
+    // Temporal store now calls legacy.changes.create with options-object
+    // shape — no artifact content forwarded; content flows via signals.
     expect(legacy.changes.create).toHaveBeenCalledWith(
       "Backlog feature 51",
-      "backlog-coordination",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      { initialMetadata: { origin } },
+      {
+        capability: "backlog-coordination",
+        initialMetadata: { origin },
+      },
     );
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(

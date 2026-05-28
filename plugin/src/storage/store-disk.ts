@@ -72,10 +72,6 @@ import {
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
-import {
-  normalizeCreateArgs,
-  normalizeUpdateArtifactsArgs,
-} from "./_artifact-args";
 
 /**
  * Disk-only `Store` implementation.
@@ -332,11 +328,9 @@ export async function createDiskStore(
         return loadChange(paths.changes, id);
       },
 
-      create: (async (summary: string, ...rest: unknown[]) => {
-        const { artifacts, initialMetadata } = normalizeCreateArgs([
-          summary,
-          ...rest,
-        ]);
+      create: async (summary, options) => {
+        const artifacts = options?.artifacts ?? {};
+        const initialMetadata = options?.initialMetadata;
 
         const baseId = generateChangeId(summary);
         const existing = await listChangeDirs(paths.changes);
@@ -392,17 +386,13 @@ export async function createDiskStore(
           executiveSummaryPath: scaffold.executiveSummaryPath,
           duplicateWarning,
         };
-      }) as Store["changes"]["create"],
+      },
 
       save: async (change: Change) => {
         await saveChange(paths.changes, change);
       },
 
-      updateArtifacts: (async (
-        changeId: string,
-        ...rest: unknown[]
-      ) => {
-        const artifacts = normalizeUpdateArtifactsArgs([changeId, ...rest]);
+      updateArtifacts: async (changeId, artifacts) => {
         const { id, candidates } = await resolveChangeId(
           paths.changes,
           changeId,
@@ -429,7 +419,7 @@ export async function createDiskStore(
           designPath: result.designPath,
           executiveSummaryPath: result.executiveSummaryPath,
         };
-      }) as Store["changes"]["updateArtifacts"],
+      },
 
       close: async (changeId, closure: ChangeClosure) => {
         const result = await loadChange(paths.changes, changeId);

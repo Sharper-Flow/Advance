@@ -25,10 +25,6 @@ import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
 import {
-  normalizeCreateArgs,
-  normalizeUpdateArtifactsArgs,
-} from "../_artifact-args";
-import {
   validateAggregateSize,
   validatePerArtifactSize,
 } from "../_artifact-size-validation";
@@ -131,13 +127,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
   } = deps;
 
   return {
-    create: (async (summary: string, ...rest: unknown[]) => {
-      // Normalize positional + options-object call shapes to a single
-      // options-object form. See `_artifact-args.ts`.
-      const { capability, artifacts, initialMetadata } = normalizeCreateArgs([
-        summary,
-        ...rest,
-      ]);
+    create: async (summary, options) => {
+      const capability = options?.capability;
+      const artifacts = options?.artifacts ?? {};
+      const initialMetadata = options?.initialMetadata;
 
       // Layer 1 size validation (KD-8 layer 1). Fails fast before any
       // disk write or signal fires. Layer 2 (signal-handler state-mutation
@@ -166,16 +159,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // that read disk. The scaffold is placeholder content, not user
       // content; once T20 deletes the positional API entirely, the
       // scaffold path itself can be removed.
-      const result = await legacy.changes.create(
-        summary,
-        capability,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        initialMetadata ? { initialMetadata } : undefined,
-      );
+      const result = await legacy.changes.create(summary, {
+        ...(capability !== undefined ? { capability } : {}),
+        ...(initialMetadata ? { initialMetadata } : {}),
+        // No artifacts passed — content flows via signals only.
+      });
       const created = await legacy.changes.get(result.changeId);
       if (!created.success || !created.data) {
         throw new Error(
@@ -305,7 +293,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
 
       return result;
-    }) as Store["changes"]["create"],
+    },
     save: async (change) => {
       // Invalidate Memo before save to prevent stale status from being
       // served by the fast path in listResolvedChanges. Without this,
@@ -619,10 +607,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
       };
     },
-    updateArtifacts: (async (changeId: string, ...rest: unknown[]) => {
-      // Normalize positional + options-object call shapes.
-      const artifacts = normalizeUpdateArtifactsArgs([changeId, ...rest]);
-
+    updateArtifacts: async (changeId, artifacts) => {
       // Layer 1 size validation (KD-8 layer 1). Fail fast before any disk
       // write or signal fires. Aggregate cap considers existing state.documents
       // when present so a sequence of updates can't push the total past the
@@ -707,7 +692,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       if (metadataPaths.executiveSummary)
         result.executiveSummaryPath = metadataPaths.executiveSummary;
       return result;
-    }) as Store["changes"]["updateArtifacts"],
+    },
 
     // rq-changeSummaryReadModel01: lightweight summary list for default
     // tool paths. Uses `ChangeSummaryMemo` and `changeCache` to avoid

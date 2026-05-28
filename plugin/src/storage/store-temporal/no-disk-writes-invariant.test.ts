@@ -28,24 +28,22 @@ const storeTemporalChangesPath = join(__dirname, "changes.ts");
 const storeTemporalSource = readFileSync(storeTemporalChangesPath, "utf-8");
 
 describe("AC8 invariant — no artifact-content disk writes from temporal store", () => {
-  it("create() passes undefined for all artifact content positional args to legacy.changes.create", () => {
-    // Find the `await legacy.changes.create(` call in create() and confirm
-    // arguments 3-7 (proposal..executiveSummary content) are `undefined`.
+  it("create() passes no artifacts to legacy.changes.create (post-T20)", () => {
+    // After T20 atomically removes the positional API, the temporal store's
+    // create() forwards only summary + options to legacy.changes.create with
+    // NO `artifacts` field in the options-object. Content flows via signals.
     const createCallMatch = storeTemporalSource.match(
-      /await legacy\.changes\.create\(\s*summary,\s*capability,\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),/,
+      /await legacy\.changes\.create\(\s*summary,\s*\{([^}]*)\}/,
     );
     expect(
       createCallMatch,
       "could not locate legacy.changes.create call in temporal store",
     ).not.toBeNull();
-
     if (!createCallMatch) return;
-    const [, p, ps, ag, d, es] = createCallMatch;
-    expect(p.trim()).toBe("undefined");
-    expect(ps.trim()).toBe("undefined");
-    expect(ag.trim()).toBe("undefined");
-    expect(d.trim()).toBe("undefined");
-    expect(es.trim()).toBe("undefined");
+    const optionsBody = createCallMatch[1];
+
+    // No `artifacts:` field in the options object — content flows via signals
+    expect(optionsBody).not.toMatch(/\bartifacts\s*:/);
   });
 
   it("updateArtifacts() does NOT call legacy.changes.updateArtifacts at all", () => {
@@ -53,8 +51,8 @@ describe("AC8 invariant — no artifact-content disk writes from temporal store"
     // signals only; the legacy.changes.updateArtifacts path is disk-bound
     // and forbidden per AC8.
     const updateArtifactsBlock = storeTemporalSource
-      .split("updateArtifacts: (async")[1]
-      ?.split("}) as Store[\"changes\"][\"updateArtifacts\"]")[0];
+      .split("updateArtifacts: async")[1]
+      ?.split(/^\s{4}\},/m)[0];
     expect(
       updateArtifactsBlock,
       "could not locate updateArtifacts impl block in temporal store",
