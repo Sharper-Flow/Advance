@@ -49,10 +49,8 @@ import {
   buildChangeContextSnapshot,
   buildChangeContextTicker,
 } from "../utils/context-snapshot";
-import {
-  loadProjectConfigWithDiagnostics,
-  loadProposalWithFallback,
-} from "../storage/json";
+import { loadProjectConfigWithDiagnostics } from "../storage/json";
+import { readArtifact } from "./change";
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getWorktreeCensus } from "../utils/worktree-census";
 import { getMetrics, withRecordedPhase } from "../utils/metrics";
@@ -599,11 +597,11 @@ async function enrichRecentChangeStatus(
   if (!changeResult.success || !changeResult.data) return;
 
   const gates = changeResult.data.gates ?? createDefaultGates();
-  const changeDir = join(store.paths.changes, changeId);
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
-    changeResult.data.title,
-  );
+  // Temporal-first proposal read per KD-6. Falls back to disk/archive via
+  // readArtifact; null result means no proposal content — use empty string
+  // for snapshot rendering (status output is read-only).
+  const proposalText =
+    (await readArtifact(store, changeId, "proposal")) ?? "";
 
   const snapshotInput = {
     change: changeResult.data,

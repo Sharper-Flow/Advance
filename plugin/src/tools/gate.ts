@@ -25,7 +25,8 @@ import {
 import { formatToolOutput } from "../utils/tool-output";
 import { runPrepReadinessChecks } from "../validator/prep-readiness";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
-import { loadChange, loadProposalWithFallback } from "../storage/json";
+import { loadChange } from "../storage/json";
+import { readArtifact } from "./change";
 import { buildChangeContextSnapshot } from "../utils/context-snapshot";
 import { COMMAND_MANIFEST } from "../manifest";
 import {
@@ -569,11 +570,10 @@ async function completeGateAndBuildResponse({
     },
   };
 
-  const changeDir = join(store.paths.changes, changeId);
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
-    change.title,
-  );
+  // Temporal-first proposal read per KD-6. Falls back to disk/archive via
+  // readArtifact; null result means no proposal content yet — pass empty
+  // string downstream (gate-completion success output, not validation).
+  const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
 
   return formatToolOutput({
     success: true,
@@ -658,11 +658,9 @@ async function handlePlanningGateCompletion({
   let clarifyPayload: Record<string, unknown> = {};
 
   if (clarifyMode !== "off") {
-    const changeDir = join(store.paths.changes, changeId);
-    const { content: proposalText } = await loadProposalWithFallback(
-      changeDir,
-      change.title,
-    );
+    // Temporal-first proposal read for clarify-readiness validator input.
+    const proposalText =
+      (await readArtifact(store, changeId, "proposal")) ?? "";
     const clarifyResult = runClarifyReadinessChecks(change, proposalText);
 
     if (clarifyResult.findings.length > 0) {

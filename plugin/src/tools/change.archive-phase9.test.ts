@@ -368,7 +368,11 @@ describe("adv_change_archive Phase 9 behavior", () => {
   });
 
   test("reconciles release gate from existing bundle without worktree", async () => {
-    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    // T10 (removePositionalArtifactApi): readArtifact in validation
+    // context now calls findArchiveBundle as fallback before the archive
+    // flow's own findArchiveBundle call. Set a stable default so both
+    // callers receive the same bundle path.
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     const store = createMockStore();
 
     const result = await changeTools.adv_change_archive.execute(
@@ -405,7 +409,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   });
 
   test("blocks no-worktree reconciliation when Phase 9 evidence is missing", async () => {
-    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
       pushed: false,
       reason: "origin/trunk is behind",
@@ -426,7 +430,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   });
 
   test("repairs release projection when workflow already completed", async () => {
-    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.workflow.handle.query.mockRejectedValue(
       Object.assign(new Error("workflow execution already completed"), {
         name: "WorkflowNotFoundError",
@@ -459,7 +463,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   });
 
   test("recovers release projection when workflow completes during confirmation poll", async () => {
-    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     let releaseGateQueries = 0;
     mocks.workflow.handle.query.mockImplementation(
       async (_query: unknown, gateId?: keyof Gates) => {

@@ -74,48 +74,6 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
 }
 
 /**
- * Read an artifact file from the active change directory, falling back to
- * the latest archive bundle when the active file is missing (archived
- * changes have their active dirs cleaned up). Returns `undefined` when
- * neither source has the file.
- *
- * **Deprecated** — kept only for transitional callsites that read raw
- * filenames. New callers should use `readArtifact(changeId, kind, store)`
- * which queries Temporal-first per KD-6.
- *
- * T10 (KD-7) migrates all callsites to the Temporal-first read path;
- * this helper is deleted once the sweep returns zero references.
- */
-async function readArtifactWithArchiveFallback(
-  changeDir: string,
-  archiveDir: string | undefined,
-  changeId: string,
-  filename: string,
-): Promise<string | undefined> {
-  // 1. Try active change directory first
-  try {
-    const text = await readFile(join(changeDir, filename), "utf-8");
-    if (text.trim().length > 0) return text;
-  } catch {
-    // File missing or unreadable — fall through
-  }
-
-  // 2. Fall back to latest archive bundle
-  if (!archiveDir) return undefined;
-  const bundleDir = await findArchiveBundle(archiveDir, changeId);
-  if (!bundleDir) return undefined;
-
-  try {
-    const text = await readFile(join(bundleDir, filename), "utf-8");
-    if (text.trim().length > 0) return text;
-  } catch {
-    // Archive artifact missing — return undefined
-  }
-
-  return undefined;
-}
-
-/**
  * Canonical kebab-case filename per `ArtifactKind`. Matches the filesystem
  * boundary map in `temporal/activities.ts`. Single source of truth for the
  * disk fallback paths in `readArtifact` / `readArtifacts` — kept in lockstep
@@ -179,6 +137,47 @@ export async function readArtifact(
   }
 
   return null;
+}
+
+/**
+ * Load proposal content with the legacy scaffold-fallback semantics layered
+ * over the new Temporal-first read path. Returns generated scaffold text
+ * when no proposal content is available from any source — matches the
+ * pre-migration `loadProposalWithFallback` contract that downstream callers
+ * (clarify-readiness checks, snapshot rendering, context fetching) rely on.
+ *
+ * T10 migration target — replaces direct `loadProposalWithFallback` calls.
+ */
+async function loadProposalForContext(
+  store: Store,
+  changeId: string,
+  changeTitle: string,
+): Promise<{ content: string; warning?: string }> {
+  const content = await readArtifact(store, changeId, "proposal");
+  if (content !== null) return { content };
+
+  // Scaffold fallback — mirrors storage/json.ts loadProposalWithFallback's
+  // scaffold so downstream consumers always receive some structural text.
+  const scaffold = `# ${changeTitle}
+
+## Intent
+
+<!-- Auto-generated scaffold: proposal.md was missing or empty. -->
+<!-- Update this file with the actual intent, scope, and success criteria. -->
+
+## Scope
+
+- (unknown — proposal.md not found)
+
+## Success Criteria
+
+- [ ] All tasks completed
+- [ ] All tests pass
+`;
+  return {
+    content: scaffold,
+    warning: `⚠️  proposal content not found in Temporal state.documents or disk for change ${changeId}. Using auto-generated scaffold. Run /adv-proposal to create a proper proposal.`,
+  };
 }
 
 /**
@@ -287,7 +286,6 @@ async function defaultClaimChecker(
 }
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import {
-  loadProposalWithFallback,
   fileExists,
   removeChangeDir,
   loadChange,
@@ -689,9 +687,9 @@ async function appendClarifyNeededForCreatedChange(
   const changeResult = await store.changes.get(changeId);
   if (!changeResult.success || !changeResult.data) return;
 
-  const changeDir = join(store.paths.changes, changeId);
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
+  const { content: proposalText } = await loadProposalForContext(
+    store,
+    changeId,
     changeResult.data.title,
   );
   const clarifyResult = runClarifyReadinessChecks(
@@ -1010,8 +1008,9 @@ async function loadValidationContext(
     }
   }
 
-  const { content: proposalText } = await loadProposalWithFallback(
-    changeDir,
+  const { content: proposalText } = await loadProposalForContext(
+    store,
+    changeId,
     changeTitle,
   );
 
@@ -1601,9 +1600,9 @@ async function buildReentryResult(
   // Build context snapshot showing the reset gate state
   let contextSnapshot: string | undefined;
   if (updatedChange.success && updatedChange.data) {
-    const changeDir = join(store.paths.changes, changeId);
-    const { content: proposalText } = await loadProposalWithFallback(
-      changeDir,
+    const { content: proposalText } = await loadProposalForContext(
+      store,
+      changeId,
       updatedChange.data.title,
     );
     contextSnapshot = buildChangeContextSnapshot({
@@ -2054,9 +2053,9 @@ export const changeTools = {
             return formatToolOutput({ error: `Change not found: ${changeId}` });
           }
           const change = result.data;
-          const changeDir = join(activeStore.paths.changes, changeId);
-          const { content: proposalText } = await loadProposalWithFallback(
-            changeDir,
+          const { content: proposalText } = await loadProposalForContext(
+            activeStore,
+            changeId,
             change.title,
           );
           const paged = paginate(change.tasks, {
@@ -2073,6 +2072,7 @@ export const changeTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
 
+          const changeDir = join(activeStore.paths.changes, changeId);
           const problemStatementPath = join(changeDir, "problem-statement.md");
           const problemStatementExists = await fileExists(problemStatementPath);
           output.problemStatementExists = problemStatementExists;
@@ -2207,53 +2207,33 @@ export const changeTools = {
             // requested to avoid unnecessary I/O. Falls back to the
             // latest archive bundle for archived changes.
             const archiveDir = activeStore.paths.archive;
-            if (include.proposal) {
-              try {
-                const { content } = await loadProposalWithFallback(
-                  changeDir,
-                  change.title,
-                  { archiveDir, changeId },
-                );
-                if (content) output._proposal = content;
-              } catch {
-                // File may not exist for changes without a proposal
-              }
-            }
-            if (include.problemStatement) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
+            // Batched multi-include read per C9 — single store.changes.get()
+            // query covers all requested kinds (KD-6 readArtifacts).
+            const requestedKinds: ArtifactKind[] = [];
+            if (include.proposal) requestedKinds.push("proposal");
+            if (include.problemStatement)
+              requestedKinds.push("problemStatement");
+            if (include.agreement) requestedKinds.push("agreement");
+            if (include.design) requestedKinds.push("design");
+            if (include.executiveSummary)
+              requestedKinds.push("executiveSummary");
+
+            if (requestedKinds.length > 0) {
+              const artifactContent = await readArtifacts(
+                store,
                 changeId,
-                "problem-statement.md",
+                requestedKinds,
               );
-              if (text) output._problemStatement = text;
-            }
-            if (include.agreement) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
-                changeId,
-                "agreement.md",
-              );
-              if (text) output._agreement = text;
-            }
-            if (include.design) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
-                changeId,
-                "design.md",
-              );
-              if (text) output._design = text;
-            }
-            if (include.executiveSummary) {
-              const text = await readArtifactWithArchiveFallback(
-                changeDir,
-                archiveDir,
-                changeId,
-                "executive-summary.md",
-              );
-              if (text) output._executiveSummary = text;
+              if (artifactContent.proposal !== undefined)
+                output._proposal = artifactContent.proposal;
+              if (artifactContent.problemStatement !== undefined)
+                output._problemStatement = artifactContent.problemStatement;
+              if (artifactContent.agreement !== undefined)
+                output._agreement = artifactContent.agreement;
+              if (artifactContent.design !== undefined)
+                output._design = artifactContent.design;
+              if (artifactContent.executiveSummary !== undefined)
+                output._executiveSummary = artifactContent.executiveSummary;
             }
           }
 
@@ -2571,9 +2551,9 @@ export const changeTools = {
 
       const createdChangeResult = await store.changes.get(result.changeId);
       if (createdChangeResult.success && createdChangeResult.data) {
-        const changeDir = join(store.paths.changes, result.changeId);
-        const { content: proposalText } = await loadProposalWithFallback(
-          changeDir,
+        const { content: proposalText } = await loadProposalForContext(
+          store,
+          result.changeId,
           createdChangeResult.data.title,
         );
         output._contextSnapshot = buildChangeContextSnapshot({
