@@ -8,12 +8,14 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import { removeChangeDir } from "../json";
+import { listChangeDirs, removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
 import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
+import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import type { ChangeSummary } from "../store-temporal-memo";
 
 const logger = createLogger("store-temporal-changes");
 
@@ -34,6 +36,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     listResolvedChanges,
     getTemporalWorkflowClient,
     dualWriteAfterMutation,
+    memo,
+    changeCache,
   } = deps;
 
   return {
@@ -535,6 +539,228 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         );
       }
       return result;
+    },
+
+    // rq-changeSummaryReadModel01: lightweight summary list for default
+    // tool paths. Uses `ChangeSummaryMemo` and `changeCache` to avoid
+    // per-change full hydration when summary data already satisfies the
+    // response contract; falls back to authoritative hydration for IDs
+    // that have no summary proof. Archive/closed callers still walk the
+    // full hydration path because terminal records require disk/archive
+    // reconciliation outside the memo.
+    listSummary: async (filter) => {
+      const wantsArchived =
+        filter?.includeArchived || filter?.status === "archived";
+      const wantsClosed =
+        filter?.includeClosed || filter?.status === "closed";
+      const wantsTerminal = Boolean(wantsArchived || wantsClosed);
+      const hasContentFilters = Boolean(
+        filter?.prefix ||
+          filter?.titleContains ||
+          filter?.createdBefore ||
+          filter?.lastActivityBefore,
+      );
+
+      // Compatibility envelope: when callers exercise paths whose
+      // correctness depends on full state (terminal-status sweeps, content
+      // filters that need created_at/lastActivityAt), defer to the full
+      // `list` projection. The hydrationStats field is still returned so
+      // telemetry callers can identify the fallback path.
+      if (wantsTerminal || hasContentFilters) {
+        const fallback = await listResolvedChanges({
+          includeArchived: wantsArchived,
+          includeClosed: wantsClosed,
+        });
+        let filtered = fallback;
+        if (filter?.status) {
+          filtered = filtered.filter((c) => c.status === filter.status);
+        }
+        if (!wantsArchived) {
+          filtered = filtered.filter((c) => c.status !== "archived");
+        }
+        if (!wantsClosed) {
+          filtered = filtered.filter((c) => c.status !== "closed");
+        }
+        if (hasContentFilters) {
+          const enriched = filtered.map((c) => ({
+            ...c,
+            lastActivityAt: computeLastActivity(c),
+          }));
+          filtered = filterChanges(enriched, {
+            prefix: filter?.prefix,
+            titleContains: filter?.titleContains,
+            createdBefore: filter?.createdBefore,
+            lastActivityBefore: filter?.lastActivityBefore,
+          });
+        }
+        filtered.sort((a, b) => {
+          const cmp = b.created_at.localeCompare(a.created_at);
+          return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+        });
+        return {
+          changes: filtered.map((change) => ({
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            created_at: change.created_at,
+            lastActivityAt: computeLastActivity(change),
+            taskCount: change.tasks.length,
+            completedTasks: change.tasks.filter((t) => t.status === "done")
+              .length,
+            fast_follow_of: change.fast_follow_of,
+          })),
+          hydrationStats: {
+            totalIds: filtered.length,
+            fromMemo: 0,
+            fromCache: 0,
+            fromHydration: filtered.length,
+          },
+        };
+      }
+
+      // Build candidate ID set from memo + Visibility + disk to avoid
+      // dropping orphan-on-disk changes the memo never observed. Memo
+      // is the warm-path source; Visibility/disk catch cold-start and
+      // orphan cases.
+      const memoSummaries = memo.getAll();
+      const memoIds = memoSummaries.map((s) => s.id);
+
+      const bundle = input.temporal as {
+        client?: { workflow?: { list?: unknown } };
+      };
+      let visibilityIds: string[] = [];
+      if (typeof bundle.client?.workflow?.list === "function") {
+        try {
+          visibilityIds = await listChangeWorkflowIds(
+            bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+            { projectId: input.projectId },
+          );
+        } catch (err) {
+          logger.warn(
+            `[listSummary] Visibility list failed; falling back to disk only: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      let diskIds: string[] = [];
+      try {
+        diskIds = await listChangeDirs(legacy.paths.changes);
+      } catch (err) {
+        logger.warn(
+          `[listSummary] Disk listChangeDirs failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      const changeIds = Array.from(
+        new Set([...memoIds, ...visibilityIds, ...diskIds]),
+      );
+
+      const memoIndex = new Map<string, ChangeSummary>();
+      for (const summary of memoSummaries) {
+        memoIndex.set(summary.id, summary);
+      }
+
+      let fromMemo = 0;
+      let fromCache = 0;
+      let fromHydration = 0;
+
+      type SummaryRow = {
+        id: string;
+        title: string;
+        status: Change["status"];
+        created_at: string;
+        lastActivityAt: string;
+        taskCount: number;
+        completedTasks: number;
+        fast_follow_of?: Change["fast_follow_of"];
+      };
+
+      const rows: SummaryRow[] = [];
+
+      for (const id of changeIds) {
+        const cached = changeCache.get(id);
+        if (cached) {
+          fromCache += 1;
+          rows.push({
+            id: cached.id,
+            title: cached.title,
+            status: cached.status,
+            created_at: cached.created_at,
+            lastActivityAt: computeLastActivity(cached),
+            taskCount: cached.tasks.length,
+            completedTasks: cached.tasks.filter((t) => t.status === "done")
+              .length,
+            fast_follow_of: cached.fast_follow_of,
+          });
+          continue;
+        }
+
+        const summary = memoIndex.get(id);
+        if (summary) {
+          fromMemo += 1;
+          rows.push({
+            id: summary.id,
+            title: summary.title,
+            status: summary.status,
+            created_at: summary.lastActivityAt,
+            lastActivityAt: summary.lastActivityAt,
+            taskCount: summary.taskCounts.total,
+            completedTasks: summary.taskCounts.done,
+            fast_follow_of: summary.fast_follow_of,
+          });
+          continue;
+        }
+
+        // Miss: hydrate one change via the authoritative orphan-tolerant
+        // path. Skip on hard failure rather than aborting the batch.
+        try {
+          const loaded = await getTemporalChange(id);
+          if (loaded.success && loaded.data) {
+            fromHydration += 1;
+            const change = loaded.data;
+            rows.push({
+              id: change.id,
+              title: change.title,
+              status: change.status,
+              created_at: change.created_at,
+              lastActivityAt: computeLastActivity(change),
+              taskCount: change.tasks.length,
+              completedTasks: change.tasks.filter((t) => t.status === "done")
+                .length,
+              fast_follow_of: change.fast_follow_of,
+            });
+          }
+        } catch (err) {
+          logger.debug(
+            `[listSummary] hydration miss for change ${id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      // Filter terminal statuses out of the warm path; they are not
+      // accessible through listSummary except via the wantsTerminal
+      // compatibility envelope above.
+      let filtered = rows.filter(
+        (r) => r.status !== "archived" && r.status !== "closed",
+      );
+      if (filter?.status) {
+        filtered = filtered.filter((r) => r.status === filter.status);
+      }
+
+      filtered.sort((a, b) => {
+        const cmp = b.created_at.localeCompare(a.created_at);
+        return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
+      });
+
+      return {
+        changes: filtered,
+        hydrationStats: {
+          totalIds: changeIds.length,
+          fromMemo,
+          fromCache,
+          fromHydration,
+        },
+      };
     },
   };
 }

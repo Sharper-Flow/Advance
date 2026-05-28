@@ -1699,11 +1699,24 @@ export const changeTools = {
       return withOptionalTargetPathStore(
         { store, target_path },
         async (activeStore, projectContext) => {
-          const result = await activeStore.changes.list({
-            status: status === "in-flight" ? undefined : status,
-            includeArchived,
-            includeClosed,
-          });
+          // rq-changeSummaryReadModel01: default warm path uses
+          // `changes.listSummary` when available so unchanged callers
+          // benefit from memo/cache short-circuits without forcing every
+          // candidate through full hydration. Falls back to the legacy
+          // `changes.list` when the store does not implement the optional
+          // summary surface (e.g. legacy/mock stores).
+          const summaryList = activeStore.changes.listSummary;
+          const result = summaryList
+            ? await summaryList({
+                status: status === "in-flight" ? undefined : status,
+                includeArchived,
+                includeClosed,
+              })
+            : await activeStore.changes.list({
+                status: status === "in-flight" ? undefined : status,
+                includeArchived,
+                includeClosed,
+              });
 
           // Enrich with last-activity data from the store-computed timestamp.
           const now = new Date();

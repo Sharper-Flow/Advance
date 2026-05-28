@@ -148,6 +148,45 @@ export interface Store {
      * blocked archive even though the workflow gate was already done.
      */
     refresh: (changeId: string) => Promise<void>;
+    /**
+     * rq-changeSummaryReadModel01: lightweight summary listing surface for
+     * default read paths (`adv_change_list`, `adv_status` warm path).
+     *
+     * Returns the same projection shape as `list({})` but skips per-change
+     * full hydration when an in-memory summary (`ChangeSummaryMemo`) or
+     * cached `Change` already covers the requested IDs. Misses fall back
+     * to authoritative full hydration via the same orphan-tolerant path as
+     * `get()`, so safety-critical callers (gates, archive, claims, task
+     * completion, recovery) MUST continue using `list({...})` / `get(...)`
+     * — never this method — when the response contract requires
+     * authoritative workflow state.
+     *
+     * Supports the same filter surface as `list` for compatibility with
+     * `adv_change_list` callers; archived/closed inclusion still walks the
+     * disk/archive fallback because terminal records are not memo-only.
+     *
+     * Returns `{ changes, hydrationStats? }` so telemetry callers can
+     * observe how many IDs were served from memo vs full hydration without
+     * subscribing to the global metrics ring.
+     */
+    listSummary?: (filter?: {
+      status?: string;
+      includeArchived?: boolean;
+      includeClosed?: boolean;
+      prefix?: string;
+      titleContains?: string;
+      createdBefore?: string;
+      lastActivityBefore?: string;
+    }) => Promise<
+      ChangeListResponse & {
+        hydrationStats?: {
+          totalIds: number;
+          fromMemo: number;
+          fromCache: number;
+          fromHydration: number;
+        };
+      }
+    >;
   };
 
   // Tasks
