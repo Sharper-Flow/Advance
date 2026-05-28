@@ -168,6 +168,94 @@ export async function writeArtifactActivity(
   }
 }
 
+// =============================================================================
+// T13 / KD-13 — materializeBundleArtifactsActivity
+//
+// Reads `state.documents` from the workflow at archive time and writes the
+// six markdown files into the bundle directory for the git commit. This is
+// the SOLE production point where artifact content touches disk (AC8).
+//
+// Bundle layout, filenames, and git commit semantics unchanged (C2) — the
+// activity writes each kind's content to its canonical kebab-case filename
+// in the bundle dir; everything else (manifest, etc.) is unchanged.
+// =============================================================================
+
+export interface MaterializeBundleArtifactsInput {
+  /** Absolute path to the bundle dir (`.adv/archive/{cid}-{ts}/`). */
+  bundleDir: string;
+  /** Workflow state.documents — kind→content map. Undefined kinds skipped. */
+  documents:
+    | Partial<Record<ArtifactKind, string | undefined>>
+    | undefined;
+}
+
+export interface MaterializeBundleArtifactsResult {
+  /** Kinds successfully written into the bundle. */
+  written: ArtifactKind[];
+  /** Kinds skipped because no content was available in state.documents. */
+  skipped: ArtifactKind[];
+  /** Per-kind error messages when a write failed for an otherwise-present kind. */
+  errors: Array<{ kind: ArtifactKind; error: string }>;
+}
+
+export async function materializeBundleArtifactsActivity(
+  input: MaterializeBundleArtifactsInput,
+): Promise<MaterializeBundleArtifactsResult> {
+  const written: ArtifactKind[] = [];
+  const skipped: ArtifactKind[] = [];
+  const errors: Array<{ kind: ArtifactKind; error: string }> = [];
+
+  // mkdir the bundle dir if it doesn't exist; activity is called as part of
+  // bundle materialization where the dir is expected to already be created
+  // by the archive workflow, but make it idempotent.
+  try {
+    await mkdir(input.bundleDir, { recursive: true });
+  } catch (err) {
+    return {
+      written,
+      skipped: ARTIFACT_KIND_ORDER.slice(),
+      errors: [
+        {
+          kind: "proposal" as ArtifactKind,
+          error: `Bundle dir mkdir failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        },
+      ],
+    };
+  }
+
+  for (const kind of ARTIFACT_KIND_ORDER) {
+    const content = input.documents?.[kind];
+    if (content === undefined || content === null || content === "") {
+      skipped.push(kind);
+      continue;
+    }
+    const filename = ARTIFACT_FILENAME[kind];
+    const path = join(input.bundleDir, filename);
+    try {
+      await atomicWriteFile(path, content);
+      written.push(kind);
+    } catch (err) {
+      errors.push({
+        kind,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { written, skipped, errors };
+}
+
+const ARTIFACT_KIND_ORDER: ReadonlyArray<ArtifactKind> = [
+  "proposal",
+  "problemStatement",
+  "agreement",
+  "design",
+  "executiveSummary",
+  "acceptance",
+];
+
 export interface ListSpecsInput {
   specsDir: string;
 }

@@ -9,6 +9,7 @@ import {
   listSpecsActivity,
   showSpecActivity,
   crossRepoArtifactActivity,
+  materializeBundleArtifactsActivity,
 } from "./activities";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 
@@ -445,6 +446,133 @@ describe("temporal activities", () => {
 
         expect(result.ok).toBe(false);
         expect(result.error).toMatch(/content/i);
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+  });
+
+  describe("materializeBundleArtifactsActivity (T13 / KD-13)", () => {
+    it("writes all six markdown files when state.documents is fully populated", async () => {
+      const dir = await createTempDir();
+      try {
+        const bundleDir = join(dir, "2026-05-28-test-change");
+        const result = await materializeBundleArtifactsActivity({
+          bundleDir,
+          documents: {
+            proposal: "# Proposal\n\nbody",
+            problemStatement: "# Problem\n\nbody",
+            agreement: "# Agreement\n\nbody",
+            design: "# Design\n\nbody",
+            executiveSummary: "# Executive Summary\n\nbody",
+            acceptance: "# Acceptance\n\nbody",
+          },
+        });
+
+        expect(result.written).toEqual([
+          "proposal",
+          "problemStatement",
+          "agreement",
+          "design",
+          "executiveSummary",
+          "acceptance",
+        ]);
+        expect(result.skipped).toEqual([]);
+        expect(result.errors).toEqual([]);
+
+        // Verify file contents on disk match input
+        expect(await readFile(join(bundleDir, "proposal.md"), "utf-8")).toBe(
+          "# Proposal\n\nbody",
+        );
+        expect(
+          await readFile(join(bundleDir, "problem-statement.md"), "utf-8"),
+        ).toBe("# Problem\n\nbody");
+        expect(await readFile(join(bundleDir, "agreement.md"), "utf-8")).toBe(
+          "# Agreement\n\nbody",
+        );
+        expect(await readFile(join(bundleDir, "design.md"), "utf-8")).toBe(
+          "# Design\n\nbody",
+        );
+        expect(
+          await readFile(join(bundleDir, "executive-summary.md"), "utf-8"),
+        ).toBe("# Executive Summary\n\nbody");
+        expect(await readFile(join(bundleDir, "acceptance.md"), "utf-8")).toBe(
+          "# Acceptance\n\nbody",
+        );
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("skips undefined/null/empty content kinds without erroring", async () => {
+      const dir = await createTempDir();
+      try {
+        const bundleDir = join(dir, "2026-05-28-partial-change");
+        const result = await materializeBundleArtifactsActivity({
+          bundleDir,
+          documents: {
+            proposal: "proposal text",
+            problemStatement: undefined,
+            agreement: "",
+            design: "design text",
+          },
+        });
+
+        expect(result.written).toEqual(["proposal", "design"]);
+        expect(result.skipped).toEqual([
+          "problemStatement",
+          "agreement",
+          "executiveSummary",
+          "acceptance",
+        ]);
+        expect(result.errors).toEqual([]);
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("creates bundle directory idempotently", async () => {
+      const dir = await createTempDir();
+      try {
+        const bundleDir = join(dir, "2026-05-28-new-bundle");
+        // Bundle dir does NOT exist yet — activity must create it.
+        const result = await materializeBundleArtifactsActivity({
+          bundleDir,
+          documents: { proposal: "p" },
+        });
+        expect(result.written).toEqual(["proposal"]);
+
+        // Re-run with new content — same dir, no errors.
+        const result2 = await materializeBundleArtifactsActivity({
+          bundleDir,
+          documents: { proposal: "p2" },
+        });
+        expect(result2.written).toEqual(["proposal"]);
+        expect(await readFile(join(bundleDir, "proposal.md"), "utf-8")).toBe(
+          "p2",
+        );
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    });
+
+    it("handles undefined documents (empty state)", async () => {
+      const dir = await createTempDir();
+      try {
+        const bundleDir = join(dir, "2026-05-28-empty");
+        const result = await materializeBundleArtifactsActivity({
+          bundleDir,
+          documents: undefined,
+        });
+        expect(result.written).toEqual([]);
+        expect(result.skipped).toEqual([
+          "proposal",
+          "problemStatement",
+          "agreement",
+          "design",
+          "executiveSummary",
+          "acceptance",
+        ]);
       } finally {
         await cleanupTempDir(dir);
       }
