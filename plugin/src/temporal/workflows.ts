@@ -40,6 +40,7 @@ import {
   applyProblemStatementUpdatedToState,
   applyProposalUpdatedToState,
   applyReflectionRecordedToState,
+  applySignalRejectionToState,
   applySubagentReportSubmittedToState,
   applyTaskAddedToState,
   applyTaskAssignedToState,
@@ -328,73 +329,6 @@ const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange,
 );
 // Update definitions removed — signal-only architecture (R1.1)
-/**
- * Wrap a workflow mutation handler so domain errors propagate as
- * `wf.ApplicationFailure` (non-retryable, surfaces as a clean client-side
- * rejection for update-style callers) instead of escaping as
- * `WorkflowWorkerUnhandledFailure` (which permanently wedges the
- * workflow).
- *
- * **Why this exists:** Temporal workflow handlers that throw a plain
- * `Error` can mark the workflow task as failed. The workflow then loops
- * trying to replay the same input, fails again, and becomes
- * permanently unqueryable. A single bad input could brick an entire change.
- *
- * `wf.ApplicationFailure` is the Temporal-native shape for "this mutation
- * failed for a domain reason". Update-style callers observe that as a clean
- * rejection. Signal callers are fire-and-forget, so this wrapper normalizes
- * failure shape only; signal handlers should still avoid throwing wherever a
- * local stuck/failed marker can preserve workflow queryability.
- *
- * Reliability rationale: this is defense-in-depth for update compatibility
- * and diagnostics. It does not replace explicit stuck-state handling in
- * signal-only mutation paths.
- *
- * Usage:
- * ```
- * wf.setHandler(mySignal, safeUpdateHandler("mySignal", (...args) => {
- *   return doSomethingThatMightThrow(args);
- * }));
- * ```
- */
-function safeUpdateHandler<Args extends unknown[], R>(
-  updateName: string,
-  handler: (...args: Args) => R,
-  // Signals ignore handler return values, while updates preserve them. The
-  // `any` return keeps this wrapper usable for both Temporal overloads during
-  // the signal migration without adding a duplicate error-normalization helper.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): (...args: Args) => any {
-  return (...args: Args) => {
-    try {
-      const result = handler(...args);
-      if (
-        result &&
-        typeof result === "object" &&
-        "then" in result &&
-        typeof result.then === "function"
-      ) {
-        return Promise.resolve(result).catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : String(err);
-          throw wf.ApplicationFailure.nonRetryable(
-            message,
-            `${updateName}_DOMAIN_ERROR`,
-          );
-        });
-      }
-      return result;
-    } catch (err) {
-      // Re-throw as ApplicationFailure (non-retryable) so update callers
-      // observe a clean domain failure. Signal callers do not observe returns;
-      // signal handlers should prefer local stuck-state handling before throw.
-      const message = err instanceof Error ? err.message : String(err);
-      throw wf.ApplicationFailure.nonRetryable(
-        message,
-        `${updateName}_DOMAIN_ERROR`,
-      );
-    }
-  };
-}
 
 function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
   taskCounts: {
@@ -704,16 +638,67 @@ export async function changeWorkflow(
     return true;
   };
 
+  const isTemporalSystemFailure = (err: unknown): boolean =>
+    err instanceof wf.CancelledFailure || err instanceof wf.TemporalFailure;
+
+  const signalAsync = <Payload>(
+    signalName: string,
+    handler: (payload: Payload) => void | Promise<void>,
+    options?: { projectAfter?: boolean },
+  ): ((payload: Payload) => void | Promise<void>) => {
+    const afterSuccess = (): void => {
+      upsertSignalSearchAttributes(signalName);
+      if (options?.projectAfter) scheduleChangeProjection(signalName);
+    };
+
+    const rejectSignal = (payload: Payload, err: unknown): void => {
+      if (isTemporalSystemFailure(err)) throw err;
+      applySignalRejectionToState(state, {
+        signalName,
+        error: err,
+        payload,
+        rejectedAt: workflowNow(),
+      });
+      const rejections = state.signal_rejections ?? [];
+      const latest = rejections[rejections.length - 1];
+      wf.log.warn("signal-rejected", {
+        signalName,
+        errorMessage: latest?.errorMessage ?? String(err),
+        errorClass: latest?.errorClass,
+        payloadDigest: latest?.payloadDigest,
+      });
+      upsertSignalSearchAttributes(`${signalName}Rejected`);
+      if (options?.projectAfter) scheduleChangeProjection(`${signalName}Rejected`);
+    };
+
+    return (payload: Payload) => {
+      try {
+        const result = handler(payload);
+        if (
+          result &&
+          typeof result === "object" &&
+          "then" in result &&
+          typeof result.then === "function"
+        ) {
+          return Promise.resolve(result)
+            .then(afterSuccess)
+            .catch((err: unknown) => rejectSignal(payload, err));
+        }
+        afterSuccess();
+      } catch (err) {
+        rejectSignal(payload, err);
+      }
+    };
+  };
+
   const signalMutation = <Payload>(
     signalName: string,
     handler: (payload: Payload) => ChangeWorkflowState,
     options?: { projectAfter?: boolean },
-  ): ((payload: Payload) => void) =>
-    safeUpdateHandler(signalName, (payload: Payload) => {
+  ): ((payload: Payload) => void | Promise<void>) =>
+    signalAsync(signalName, (payload: Payload) => {
       handler(payload);
-      upsertSignalSearchAttributes(signalName);
-      if (options?.projectAfter) scheduleChangeProjection(signalName);
-    });
+    }, options);
 
   const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
   // Patch rationale: discovery contract enforcement was added after legacy
@@ -1051,7 +1036,7 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     gateCompletedSignal,
-    safeUpdateHandler("gateCompleted", async (payload) => {
+    signalAsync("gateCompleted", async (payload) => {
       const previous = gateCompletionChain.catch(() => undefined);
       gateCompletionChain = previous.then(() =>
         completeGateWithReadiness(payload),
@@ -1123,7 +1108,7 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveRequestedSignal,
-    safeUpdateHandler("archiveRequested", async (payload) => {
+    signalAsync("archiveRequested", async (payload) => {
       const previousStatus = state.status;
       const previousTerminated = state.terminated;
       applyArchiveRequestedToState(state, payload);
@@ -1149,7 +1134,7 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     changeCancelledSignal,
-    safeUpdateHandler("changeCancelled", async (payload) => {
+    signalAsync("changeCancelled", async (payload) => {
       const previousStatus = state.status;
       const previousTerminated = state.terminated;
       const previousClosure = state.closure;
@@ -1198,7 +1183,7 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveChangeSignal,
-    safeUpdateHandler("archiveChange", () => {
+    signalAsync("archiveChange", () => {
       wf.log.info("op:start", {
         op: "archiveChangeSignal",
         changeId: state.changeId,
