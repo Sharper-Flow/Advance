@@ -45,11 +45,13 @@ import type {
 import { createDefaultGates, GATE_ORDER } from "../types";
 import { normalizePersistedSubagentReportState } from "../types";
 import { subagentReportKey } from "./contracts";
+import { describePayloadDigest } from "./digest";
 import type {
   ArtifactKind,
   ArtifactMetadata,
   ChangeWorkflowInput,
   ChangeWorkflowState,
+  SignalRejection,
 } from "./contracts";
 
 export interface UpdateTaskInput {
@@ -137,6 +139,12 @@ export function changeSeedStateFromChange(
     scope_worktrees: safeChange.scope_worktrees,
     seenReportIds: (safeChange as unknown as { seenReportIds?: string[] })
       .seenReportIds,
+    signal_rejections: (
+      safeChange as unknown as { signal_rejections?: SignalRejection[] }
+    ).signal_rejections,
+    signal_rejections_total: (
+      safeChange as unknown as { signal_rejections_total?: number }
+    ).signal_rejections_total,
   };
 }
 
@@ -165,6 +173,38 @@ export function changeToWorkflowState(input: {
 function setLastSignalAt(state: ChangeWorkflowState, at: string): void {
   if (state.lastSignalAt && state.lastSignalAt > at) return;
   state.lastSignalAt = at;
+}
+
+export const SIGNAL_REJECTION_RING_BUFFER_LIMIT = 20;
+
+export function applySignalRejectionToState(
+  state: ChangeWorkflowState,
+  input: {
+    signalName: string;
+    error: unknown;
+    payload: unknown;
+    rejectedAt: string;
+  },
+): ChangeWorkflowState {
+  const error = input.error;
+  const rejection: SignalRejection = {
+    signalName: input.signalName,
+    errorMessage: error instanceof Error ? error.message : String(error),
+    errorClass:
+      error instanceof Error && error.constructor?.name
+        ? error.constructor.name
+        : typeof error,
+    payloadDigest: describePayloadDigest(input.payload),
+    rejectedAt: input.rejectedAt,
+  };
+
+  const existing = state.signal_rejections ?? [];
+  state.signal_rejections = [...existing, rejection].slice(
+    -SIGNAL_REJECTION_RING_BUFFER_LIMIT,
+  );
+  state.signal_rejections_total = (state.signal_rejections_total ?? 0) + 1;
+  setLastSignalAt(state, input.rejectedAt);
+  return state;
 }
 
 function getMutableTask(state: ChangeWorkflowState, taskId: string): Task {

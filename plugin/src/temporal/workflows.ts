@@ -554,6 +554,12 @@ export async function changeWorkflow(
     if (input.seedState.scope_worktrees) {
       state.scope_worktrees = { ...input.seedState.scope_worktrees };
     }
+    if (input.seedState.signal_rejections) {
+      state.signal_rejections = [...input.seedState.signal_rejections];
+    }
+    if (typeof input.seedState.signal_rejections_total === "number") {
+      state.signal_rejections_total = input.seedState.signal_rejections_total;
+    }
   }
 
   wf.setHandler(changeBootstrapQuery, () => bootstrap);
@@ -1313,6 +1319,8 @@ export async function changeWorkflow(
       target_worktree_path: state.target_worktree_path,
       scope_worktrees: state.scope_worktrees,
       seenReportIds: state.seenReportIds,
+      signal_rejections: state.signal_rejections,
+      signal_rejections_total: state.signal_rejections_total,
     },
   };
   await wf.condition(wf.allHandlersFinished);

@@ -8,6 +8,7 @@ import type {
   FastFollowOf,
   Gates,
 } from "../types";
+import type { SignalPayloadDigest } from "./digest";
 
 export const ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX = "advance";
 export const DEFAULT_TEMPORAL_ADDRESS = "127.0.0.1:7233";
@@ -207,11 +208,21 @@ export interface ChangeWorkflowInput {
       | "target_worktree_path"
       | "scope_worktrees"
       | "seenReportIds"
+      | "signal_rejections"
+      | "signal_rejections_total"
     >
   >;
 }
 
 export type ChangeWorkflowBootstrapState = ChangeWorkflowInput;
+
+export interface SignalRejection {
+  signalName: string;
+  errorMessage: string;
+  errorClass: string;
+  payloadDigest: SignalPayloadDigest;
+  rejectedAt: string;
+}
 
 export interface ChangeWorkflowState extends ChangeWorkflowInput {
   id: string;
@@ -343,6 +354,14 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * cleanup relies on for deterministic per-repo deletion.
    */
   scope_worktrees?: Record<string, string>;
+
+  /**
+   * Bounded diagnostics for signal-handler programmer/domain errors that were
+   * rejected via state mutation instead of throwing and failing the workflow.
+   * Additive optional fields — replay-safe for histories predating ADR 0003.
+   */
+  signal_rejections?: SignalRejection[];
+  signal_rejections_total?: number;
 }
 
 /**
