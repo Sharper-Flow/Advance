@@ -164,6 +164,10 @@ const runCommand = async (
 // rq-ADVEXEC01: Canonical Apply Tool Path for Inline TDD
 // rq-ADVEXEC02: Apply Contract Regression Anchors
 // rq-ADVEXEC03: Runtime Enforcement for Inline-TDD Bash Workarounds
+// rq-advRunTestLatency01 (advance-meta v1.12): substep telemetry MUST be
+// recorded for targetRouting, taskLookup, commandExecution, and
+// outputShaping while preserving shell-command semantics, timeout/
+// maxBuffer classification, exit-code reporting, and output shaping.
 
 export const testTools = {
   adv_run_test: {

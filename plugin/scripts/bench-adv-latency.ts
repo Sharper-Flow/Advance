@@ -1,5 +1,5 @@
 /**
- * ADV latency benchmark (rq-advLatencyBench01).
+ * ADV latency benchmark (rq-advLatencyBench01, advance-meta v1.12).
  *
  * Default mode is a documented isolated substitute backed by the
  * Temporal-free `createDiskStore`, so the harness initializes under the

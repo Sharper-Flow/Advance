@@ -129,10 +129,10 @@ export function recordWallTimeMs(durationMs: number): void {
 
 /**
  * Record a per-tool duration sample for the always-on telemetry surface
- * (rq-advLatencyTelemetry01). Updates count/total/last/max plus an
- * error-counter when outcome === "error". Negative or non-finite durations
- * are ignored. Outcome is recorded for both success and error so error
- * paths still surface latency.
+ * (rq-advLatencyTelemetry01, advance-meta v1.12). Updates count/total/
+ * last/max plus an error-counter when outcome === "error". Negative or
+ * non-finite durations are ignored. Outcome is recorded for both success
+ * and error so error paths still surface latency.
  */
 export function recordToolDuration(
   toolName: string,

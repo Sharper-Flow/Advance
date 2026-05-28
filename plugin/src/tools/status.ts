@@ -861,8 +861,10 @@ interface StatusViewPlan {
   projectMetadata: boolean;
 }
 
-// rq-advStatusLazyView01: execute providers from the selected view plan
-// rather than computing every diagnostic and projecting after the fact.
+// rq-advStatusLazyView01 (advance-meta v1.12) — execute providers from
+// the selected view plan rather than computing every diagnostic and
+// projecting after the fact. Summary must skip detailed providers and
+// must keep `_contextSnapshot` emission unchanged.
 export function buildStatusViewPlan(view: AdvStatusView): StatusViewPlan {
   switch (view) {
     case "summary":

@@ -85,8 +85,8 @@ export function buildVisibilityQuery(
   // visibility-query injection if someone ever runs the sweep against a
   // user-supplied label.
   //
-  // rq-visibilityProjectScope01: filter on the registered
-  // `AdvAffectedProjects` KeywordList rather than the legacy
+  // rq-visibilityProjectScope01 (advance-meta v1.12): filter on the
+  // registered `AdvAffectedProjects` KeywordList rather than the legacy
   // `AdvProjectId` Keyword. KeywordList equality matches any element in
   // the list, so a single registered attribute serves both single-project
   // and multi-project change workflows. This converges list-change-workflows

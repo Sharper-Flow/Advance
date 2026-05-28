@@ -149,8 +149,9 @@ export interface Store {
      */
     refresh: (changeId: string) => Promise<void>;
     /**
-     * rq-changeSummaryReadModel01: lightweight summary listing surface for
-     * default read paths (`adv_change_list`, `adv_status` warm path).
+     * rq-changeSummaryReadModel01 (advance-meta v1.12): lightweight summary
+     * listing surface for default read paths (`adv_change_list`,
+     * `adv_status` warm path).
      *
      * Returns the same projection shape as `list({})` but skips per-change
      * full hydration when an in-memory summary (`ChangeSummaryMemo`) or

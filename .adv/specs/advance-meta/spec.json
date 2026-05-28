@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns \u2014 config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.11.0",
-  "updated_at": "2026-05-22T00:00:00.000Z",
+  "version": "1.12.0",
+  "updated_at": "2026-05-28T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -1505,6 +1505,180 @@
             "CRITICAL ambiguity ≥ 1 promotes health to MAJOR_DRIFT",
             "HIGH ambiguity > 3 (standard) or any HIGH (strict) promotes to DRIFT_DETECTED",
             "Ambiguity thresholds appear in the quality gate table with pass/fail status"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advStatusLazyView01",
+      "title": "adv_status lazy view planning",
+      "body": "`adv_status` MUST execute only the provider groups required by the selected `view`. `view: \"summary\"` MUST NOT invoke detailed-only providers (queue serviceability, search-attribute probe, worktree cleanup, worktree census, OpenCode session-debt scan, snapshot-health scan, plugin-runtime provenance, project-metadata read, external-state hygiene), and the formatted output for `view: \"summary\"` MUST NOT carry health/worktree/session-debt/peer detail sections. Detailed views remain free to invoke their providers. Required `_contextSnapshot` emission (chat-output-display `rq-ctxsnap2`, `rq-ctxticker2.5`) MUST be preserved across all views.",
+      "priority": "must",
+      "tags": ["adv_status", "latency"],
+      "scenarios": [
+        {
+          "id": "rq-advStatusLazyView01.1",
+          "title": "Summary skips detailed providers",
+          "given": ["adv_status is called with view: \"summary\""],
+          "when": "The tool builds output",
+          "then": [
+            "Detailed-only providers are not invoked",
+            "Formatted summary omits health/worktree/session-debt/peer detail sections",
+            "Required `_contextSnapshot` is still emitted per chat-output-display"
+          ]
+        },
+        {
+          "id": "rq-advStatusLazyView01.2",
+          "title": "Detailed views retain their providers",
+          "given": ["adv_status is called with view: \"health\" or view: \"hygiene\""],
+          "when": "The tool builds output",
+          "then": [
+            "The corresponding detailed providers run",
+            "The detailed payload exposes the required diagnostic fields"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-changeSummaryReadModel01",
+      "title": "Correctness-safe summary read model for default list/status",
+      "body": "Default `adv_change_list` and warm `adv_status` read paths MUST avoid per-change full hydration when summary data already satisfies the response contract. The Temporal store MUST expose a summary listing surface (`Store.changes.listSummary`) that serves rows from `ChangeSummaryMemo` or `changeCache` when available, hydrates only IDs missing summary proof, and falls back to the authoritative `listResolvedChanges`/`changes.get` path for archived/closed callers, content filters, and any path whose correctness requires full state. Summary/cache data MUST NOT authorize gates, archive, worker-lock recovery, claims, task completion, or contract evidence.",
+      "priority": "must",
+      "tags": ["adv_change_list", "adv_status", "latency", "cache"],
+      "scenarios": [
+        {
+          "id": "rq-changeSummaryReadModel01.1",
+          "title": "Memo-served warm list skips per-change hydration",
+          "given": ["ChangeSummaryMemo holds complete summaries for the requested IDs"],
+          "when": "Default adv_change_list is served via listSummary",
+          "then": [
+            "Per-change full hydration is not invoked for memo-served IDs",
+            "Response shape matches the legacy list projection",
+            "Hydration statistics report fromMemo > 0 and fromHydration === 0 for the warm-only case"
+          ]
+        },
+        {
+          "id": "rq-changeSummaryReadModel01.2",
+          "title": "Authoritative fallback for terminal or filtered callers",
+          "given": ["Caller requests archived/closed inclusion, prefix/title/created filters, or any path requiring full state"],
+          "when": "listSummary executes",
+          "then": [
+            "The authoritative listResolvedChanges path runs",
+            "Terminal status records are reconciled via disk/archive instead of memo",
+            "Summary/cache data does not authorize gate completion, archive, claim, recovery, or task completion"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advLatencyTelemetry01",
+      "title": "Always-on ADV latency telemetry",
+      "body": "ADV tool execution MUST record duration telemetry to an in-memory rollup surfaced via `adv_status view: \"health\"`. Per-tool aggregates MUST include count, total_ms, last_ms, max_ms, and error_count. Named phase/substep durations (e.g. `adv_status` providers, `adv_run_test` substeps) MUST be retained in a bounded recent-phase ring so operators can diagnose substep overhead without enabling `ADV_PROFILE` file logging. Error paths MUST preserve their error class and still record duration.",
+      "priority": "must",
+      "tags": ["telemetry", "metrics", "latency"],
+      "scenarios": [
+        {
+          "id": "rq-advLatencyTelemetry01.1",
+          "title": "Per-tool duration rollup is always recorded",
+          "given": ["safeExecute wraps an adv_* tool invocation"],
+          "when": "The tool succeeds or fails",
+          "then": [
+            "adv_tool_durations records count, total_ms, last_ms, max_ms for the tool name",
+            "Error outcomes additionally increment error_count without losing duration",
+            "wall_time_ms accumulates the measured duration"
+          ]
+        },
+        {
+          "id": "rq-advLatencyTelemetry01.2",
+          "title": "Named phase/substep ring surfaces in health view",
+          "given": ["adv_status and adv_run_test invoke withRecordedPhase for their named phases"],
+          "when": "adv_status view: \"health\" is read",
+          "then": [
+            "metrics.recent_phase_durations exposes the named samples bounded by RECENT_PHASE_BUFFER_LIMIT",
+            "Each sample carries tool, phase, duration_ms, outcome, and ISO timestamp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-advLatencyBench01",
+      "title": "Documented latency benchmark harness",
+      "body": "`plugin/scripts/bench-adv-latency.ts` MUST initialize under the Temporal-only store contract. Default mode (`--mode disk`) MUST use a documented isolated substitute backed by `createDiskStore` so the harness runs without a live Temporal worker; samples MUST include `adv_status view: \"summary\"`, `adv_status view: \"health\"`, `adv_change_list`, `adv_change_show`, a disk-store task list fallback, and `adv_run_test` echo/no-op. `--mode temporal` MUST refuse to fabricate a TemporalClientBundle so manual operators cannot silently confuse substitute and authoritative numbers. The bench MUST document command, fixture shape, and output location.",
+      "priority": "must",
+      "tags": ["benchmark", "latency"],
+      "scenarios": [
+        {
+          "id": "rq-advLatencyBench01.1",
+          "title": "Default disk substitute initializes and reports",
+          "given": ["No Temporal worker is running"],
+          "when": "Operator runs the bench in default mode against an existing change",
+          "then": [
+            "The harness initializes via createDiskStore",
+            "Markdown report includes metadata (mode, substitute, change id, iterations) and per-operation stats",
+            "Sample operations include both summary and health adv_status views"
+          ]
+        },
+        {
+          "id": "rq-advLatencyBench01.2",
+          "title": "Temporal mode refuses to silently substitute",
+          "given": ["Operator passes --mode temporal without providing a TemporalClientBundle"],
+          "when": "The bench attempts to build the store",
+          "then": ["The script exits non-zero with an explicit refusal message"]
+        }
+      ]
+    },
+    {
+      "id": "rq-visibilityProjectScope01",
+      "title": "Visibility project-scope query convergence",
+      "body": "Project-scope Visibility queries used by ADV listing paths MUST filter on a registered search attribute. `list-change-workflows.buildVisibilityQuery` and the backlog claim queries (`visibility-claim-queries`) MUST scope by the registered `AdvAffectedProjects` KeywordList so list/claim reads share one Visibility contract. Legacy unregistered attributes (e.g. `AdvProjectId`) MUST NOT drive Visibility filters unless explicitly registered and documented.",
+      "priority": "must",
+      "tags": ["temporal", "visibility", "search-attributes"],
+      "scenarios": [
+        {
+          "id": "rq-visibilityProjectScope01.1",
+          "title": "Change list query uses registered AdvAffectedProjects",
+          "given": ["buildVisibilityQuery is invoked with a project id"],
+          "when": "The query string is constructed",
+          "then": [
+            "The query filters on `AdvAffectedProjects = \"<projectId>\"`",
+            "The legacy unregistered `AdvProjectId` filter is not emitted"
+          ]
+        },
+        {
+          "id": "rq-visibilityProjectScope01.2",
+          "title": "Backlog claim queries share the registered attribute",
+          "given": ["visibility-claim-queries builds a claim-collision or bulk query"],
+          "when": "The query string is constructed",
+          "then": ["The query also filters on `AdvAffectedProjects` for the same project id"]
+        }
+      ]
+    },
+    {
+      "id": "rq-advRunTestLatency01",
+      "title": "adv_run_test hot-path latency preserves correctness",
+      "body": "`adv_run_test` latency improvements MUST preserve the existing tool contract: task validation, shell-command execution semantics, timeout/max-buffer classification, exit-code reporting, and output shaping. Every invocation MUST execute the supplied command fresh; the tool MUST NOT cache, skip, or fabricate command results. Telemetry MUST record duration for substeps `targetRouting`, `taskLookup`, `commandExecution`, and `outputShaping` so operators can diagnose hot-path overhead without changing the tool contract. Subprocess implementation changes are allowed only when compatibility tests cover shell metacharacters/pipelines/redirects, timeout/kill classification, max-buffer classification, stdout/stderr capture, non-zero exit reporting, and output shaping.",
+      "priority": "must",
+      "tags": ["adv_run_test", "latency", "tdd"],
+      "scenarios": [
+        {
+          "id": "rq-advRunTestLatency01.1",
+          "title": "Substep telemetry surfaces without altering contract",
+          "given": ["adv_run_test is invoked with a valid task and shell command"],
+          "when": "The tool completes successfully or with non-zero exit",
+          "then": [
+            "Recent phase samples include taskLookup, commandExecution, and outputShaping for tool adv_run_test",
+            "commandExecution outcome reflects the exit code (success on 0, error on non-zero)",
+            "Task validation, timeout, max-buffer, and output shaping classifications are unchanged"
+          ]
+        },
+        {
+          "id": "rq-advRunTestLatency01.2",
+          "title": "Per-call fresh execution",
+          "given": ["adv_run_test is invoked twice with the same task and command"],
+          "when": "Both invocations complete",
+          "then": [
+            "Each invocation runs the supplied command in a fresh subprocess",
+            "Task lookup runs on every call and is not served from a cache that bypasses validation"
           ]
         }
       ]
