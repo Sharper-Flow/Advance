@@ -38,6 +38,57 @@ This invariant is locked by `plugin/src/temporal/change-state.crash-recovery.tes
 
 The acceptance-gate recovery path (`gate.ts:344-414`, `_recovery-writers.ts`) is **separate from this content-signal recovery flow**. Poisoned-workflow recovery uses `inspectArtifactActivity` to read disk files when Temporal cannot accept signals at all (workflow stuck on a non-deterministic replay error, history truncation, etc.). That path retains disk dependency by design (C12) and is not part of the mid-batch-signal-failure recovery procedure above.
 
+## Stuck proposal/discovery/design gates after artifact disk writes were removed
+
+> Applies to the `fixGateArtifactReadiness` change (May 2026).
+
+`Store.changes.updateArtifacts(...)` no longer writes active `proposal.md`,
+`agreement.md`, or `design.md` files from the Temporal store path. The canonical
+artifact content for proposal/discovery/design gates is workflow state:
+
+- `state.documents[kind]` — artifact content
+- `state.artifacts[kind]` — optional path/hash metadata
+
+### Symptom
+
+A proposal, discovery, or design gate is stuck with `ARTIFACT_MISSING` even
+though `adv_change_show` displays the artifact content (for example, an
+agreement exists in workflow state but `agreement.md` is absent on disk). This
+was observed in PokeEdge/PokeEdge-web style sessions such as a stuck discovery
+gate for `fixSubDollarLabels`.
+
+### Recovery procedure
+
+1. Build and deploy the fixed Advance plugin:
+
+   ```bash
+   cd /home/jon/dev/advance/plugin && pnpm run build
+   cd /home/jon/dev/advance && ./scripts/deploy-local.sh --fix
+   ```
+
+2. Restart OpenCode in the affected project(s). A running session may report
+   `Plugin freshness: dist_ahead_of_process`; restart is required so the plugin
+   host loads the new `dist/` code.
+
+3. Re-enter the stuck gate from the affected project using ADV tools. For a
+   stuck discovery gate:
+
+   ```text
+   adv_change_reenter changeId: "<change-id>" fromGate: "discovery" reason: "Retry after state-backed artifact readiness fix"
+   ```
+
+4. Retry the normal gate completion. Do **not** create or edit `agreement.md`,
+   `proposal.md`, or `design.md` manually just to satisfy gate readiness. Disk
+   artifact files are not the source of truth for proposal/discovery/design on
+   the fixed path.
+
+### Interaction with per-project OpenCode wrappers
+
+The `addPerProjectOcWrapper` work in `~/toolbox` can improve project-specific
+XDG/process isolation and make restarts less ambiguous, but it does not repair
+the plugin bug by itself. The plugin fix and a fresh OpenCode process are still
+required.
+
 ## Worker model
 
 ### Decision (current — hybrid)
