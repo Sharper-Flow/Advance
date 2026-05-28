@@ -12,6 +12,10 @@ import { listChangeDirs, removeChangeDir } from "../json";
 import { filterChanges } from "../content-search";
 import { computeLastActivity } from "../store-types";
 import { runTemporal, getGuardedChangeHandle, type StoreDeps } from "./shared";
+import {
+  normalizeCreateArgs,
+  normalizeUpdateArtifactsArgs,
+} from "../_artifact-args";
 import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
@@ -41,25 +45,27 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
   } = deps;
 
   return {
-    create: async (
-      summary,
-      capability,
-      proposalContent,
-      problemStatementContent,
-      agreementContent,
-      designContent,
-      executiveSummaryContent,
-      options,
-    ) => {
+    create: (async (summary: string, ...rest: unknown[]) => {
+      // Normalize positional + options-object call shapes to a single
+      // options-object form. See `_artifact-args.ts`.
+      const { capability, artifacts, initialMetadata } = normalizeCreateArgs([
+        summary,
+        ...rest,
+      ]);
+
+      // Forward to disk store via its still-positional internal API.
+      // T15 (KD-10 phase 16) removes the legacy.changes.create artifact-
+      // content forwarding entirely once the temporal store fires content
+      // signals instead. For now, behavior is preserved.
       const result = await legacy.changes.create(
         summary,
         capability,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-        executiveSummaryContent,
-        options,
+        artifacts.proposal,
+        artifacts.problemStatement,
+        artifacts.agreement,
+        artifacts.design,
+        artifacts.executiveSummary,
+        initialMetadata ? { initialMetadata } : undefined,
       );
       const created = await legacy.changes.get(result.changeId);
       if (!created.success || !created.data) {
@@ -156,7 +162,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         worktree_auto_managed: true,
       });
       return result;
-    },
+    }) as Store["changes"]["create"],
     save: async (change) => {
       // Invalidate Memo before save to prevent stale status from being
       // served by the fast path in listResolvedChanges. Without this,
@@ -470,24 +476,19 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
       };
     },
-    updateArtifacts: async (
-      // NOSONAR: typescript:S3516 — Sonar flags this because both return paths
-      // hand back the `result` variable. The values are distinct (early-return
-      // failure vs. post-signal success); identical variable name is incidental.
-      changeId,
-      proposalContent,
-      problemStatementContent,
-      agreementContent,
-      designContent,
-      executiveSummaryContent,
-    ) => {
+    updateArtifacts: (async (changeId: string, ...rest: unknown[]) => {
+      // Normalize positional + options-object call shapes.
+      const artifacts = normalizeUpdateArtifactsArgs([changeId, ...rest]);
+
+      // Forward to disk store via still-positional internal API.
+      // T15 removes this call entirely once temporal-first writes land.
       const result = await legacy.changes.updateArtifacts(
         changeId,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-        executiveSummaryContent,
+        artifacts.proposal,
+        artifacts.problemStatement,
+        artifacts.agreement,
+        artifacts.design,
+        artifacts.executiveSummary,
       );
       if (!result.success) {
         return result;
@@ -506,18 +507,18 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           string | undefined,
         ]
       > = [
-        ["proposal", result.proposalPath, proposalContent],
+        ["proposal", result.proposalPath, artifacts.proposal],
         [
           "problemStatement",
           result.problemStatementPath,
-          problemStatementContent,
+          artifacts.problemStatement,
         ],
-        ["agreement", result.agreementPath, agreementContent],
-        ["design", result.designPath, designContent],
+        ["agreement", result.agreementPath, artifacts.agreement],
+        ["design", result.designPath, artifacts.design],
         [
           "executiveSummary",
           result.executiveSummaryPath,
-          executiveSummaryContent,
+          artifacts.executiveSummary,
         ],
       ];
       for (const [kind, path, content] of updates) {
@@ -539,7 +540,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         );
       }
       return result;
-    },
+    }) as Store["changes"]["updateArtifacts"],
 
     // rq-changeSummaryReadModel01: lightweight summary list for default
     // tool paths. Uses `ChangeSummaryMemo` and `changeCache` to avoid

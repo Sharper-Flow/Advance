@@ -7,6 +7,7 @@
 
 import { GATE_ORDER } from "../types";
 import type {
+  ArtifactPayload,
   Spec,
   Change,
   ChangeClosure,
@@ -44,6 +45,45 @@ export interface ChangeCreateInitialMetadata {
 
 export interface ChangeCreateOptions {
   initialMetadata?: ChangeCreateInitialMetadata;
+}
+
+/**
+ * Options-object input for `Store.changes.create()`. Replaces the positional
+ * 7-arg artifact API. Artifact content is carried in `artifacts` keyed by
+ * canonical `ArtifactKind`. Only defined fields are written; undefined fields
+ * are no-ops.
+ *
+ * `capability` and `initialMetadata` are folded in from the legacy positional
+ * shape. The positional signature remains alongside this options-object
+ * variant until T20 deletes it atomically (see removePositionalArtifactApi
+ * change plan KD-10 phase 17).
+ */
+export interface ChangeCreateOptionsBag {
+  capability?: string;
+  artifacts?: ArtifactPayload;
+  initialMetadata?: ChangeCreateInitialMetadata;
+}
+
+export interface ChangeCreateResult {
+  changeId: string;
+  path: string;
+  problemStatementPath?: string;
+  agreementPath?: string;
+  designPath?: string;
+  executiveSummaryPath?: string;
+  acceptancePath?: string;
+  duplicateWarning?: string;
+}
+
+export interface UpdateArtifactsResult {
+  success: boolean;
+  proposalPath?: string;
+  problemStatementPath?: string;
+  agreementPath?: string;
+  designPath?: string;
+  executiveSummaryPath?: string;
+  acceptancePath?: string;
+  error?: string;
 }
 
 // Inlined from former ./sqlite module (deleted in P2.7).
@@ -93,41 +133,65 @@ export interface Store {
       lastActivityBefore?: string;
     }) => Promise<ChangeListResponse>;
     get: (changeId: string) => Promise<LoadResult<Change | null>>;
-    create: (
-      summary: string,
-      capability?: string,
-      proposalContent?: string,
-      problemStatementContent?: string,
-      agreementContent?: string,
-      designContent?: string,
-      executiveSummaryContent?: string,
-      options?: ChangeCreateOptions,
-    ) => Promise<{
-      changeId: string;
-      path: string;
-      problemStatementPath?: string;
-      agreementPath?: string;
-      designPath?: string;
-      executiveSummaryPath?: string;
-      duplicateWarning?: string;
-    }>;
+    /**
+     * Create a new change. Two call shapes are accepted during the
+     * positional → options-object migration window:
+     *
+     *   - Options-object (preferred new shape):
+     *       store.changes.create("title", { artifacts: { proposal: "…" } })
+     *
+     *   - Legacy positional (deleted by T20 / KD-10 phase 17):
+     *       store.changes.create("title", "cap", "proposal", "ps", "ag", "design", "es", options)
+     *
+     * Implementations disambiguate by the runtime type of the second argument
+     * (string + remaining positional args = legacy; object or undefined +
+     * no further positional args = options-object). New callers MUST use the
+     * options-object shape. Tool-surface schemas (`adv_change_create`,
+     * `adv_change_update`) are unaffected — this is internal store API only.
+     */
+    create: {
+      (
+        summary: string,
+        options?: ChangeCreateOptionsBag,
+      ): Promise<ChangeCreateResult>;
+      (
+        summary: string,
+        capability?: string,
+        proposalContent?: string,
+        problemStatementContent?: string,
+        agreementContent?: string,
+        designContent?: string,
+        executiveSummaryContent?: string,
+        options?: ChangeCreateOptions,
+      ): Promise<ChangeCreateResult>;
+    };
     save: (change: Change) => Promise<void>;
-    updateArtifacts: (
-      changeId: string,
-      proposalContent?: string,
-      problemStatementContent?: string,
-      agreementContent?: string,
-      designContent?: string,
-      executiveSummaryContent?: string,
-    ) => Promise<{
-      success: boolean;
-      proposalPath?: string;
-      problemStatementPath?: string;
-      agreementPath?: string;
-      designPath?: string;
-      executiveSummaryPath?: string;
-      error?: string;
-    }>;
+    /**
+     * Update narrative artifact files for an existing change. Two call shapes
+     * are accepted during the positional → options-object migration window:
+     *
+     *   - Options-object (preferred new shape):
+     *       store.changes.updateArtifacts(id, { proposal: "…", design: "…" })
+     *
+     *   - Legacy positional (deleted by T20 / KD-10 phase 17):
+     *       store.changes.updateArtifacts(id, "p", "ps", "ag", "design", "es")
+     *
+     * Disambiguation by 2nd-arg runtime type (object vs string).
+     */
+    updateArtifacts: {
+      (
+        changeId: string,
+        artifacts: ArtifactPayload,
+      ): Promise<UpdateArtifactsResult>;
+      (
+        changeId: string,
+        proposalContent?: string,
+        problemStatementContent?: string,
+        agreementContent?: string,
+        designContent?: string,
+        executiveSummaryContent?: string,
+      ): Promise<UpdateArtifactsResult>;
+    };
     close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
     closeBatch: (
       changeIds: string[],

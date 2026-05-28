@@ -72,6 +72,10 @@ import {
 import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
+import {
+  normalizeCreateArgs,
+  normalizeUpdateArtifactsArgs,
+} from "./_artifact-args";
 
 /**
  * Disk-only `Store` implementation.
@@ -328,16 +332,12 @@ export async function createDiskStore(
         return loadChange(paths.changes, id);
       },
 
-      create: async (
-        summary: string,
-        _capability,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-        executiveSummaryContent,
-        options,
-      ) => {
+      create: (async (summary: string, ...rest: unknown[]) => {
+        const { artifacts, initialMetadata } = normalizeCreateArgs([
+          summary,
+          ...rest,
+        ]);
+
         const baseId = generateChangeId(summary);
         const existing = await listChangeDirs(paths.changes);
         let changeId = baseId;
@@ -359,11 +359,11 @@ export async function createDiskStore(
           paths.changes,
           changeId,
           summary,
-          proposalContent,
-          problemStatementContent,
-          agreementContent,
-          designContent,
-          executiveSummaryContent,
+          artifacts.proposal,
+          artifacts.problemStatement,
+          artifacts.agreement,
+          artifacts.design,
+          artifacts.executiveSummary,
         );
 
         const change: Change = {
@@ -375,14 +375,14 @@ export async function createDiskStore(
           created_at: new Date().toISOString(),
           tasks: [],
           deltas: {},
-          ...(options?.initialMetadata?.origin !== undefined
-            ? { origin: options.initialMetadata.origin }
+          ...(initialMetadata?.origin !== undefined
+            ? { origin: initialMetadata.origin }
             : {}),
-          ...(options?.initialMetadata?.fast_follow_of !== undefined
-            ? { fast_follow_of: options.initialMetadata.fast_follow_of }
+          ...(initialMetadata?.fast_follow_of !== undefined
+            ? { fast_follow_of: initialMetadata.fast_follow_of }
             : {}),
-          ...(options?.initialMetadata?.scope_repos !== undefined
-            ? { scope_repos: options.initialMetadata.scope_repos }
+          ...(initialMetadata?.scope_repos !== undefined
+            ? { scope_repos: initialMetadata.scope_repos }
             : {}),
         } as Change;
         await saveChange(paths.changes, change);
@@ -396,20 +396,17 @@ export async function createDiskStore(
           executiveSummaryPath: scaffold.executiveSummaryPath,
           duplicateWarning,
         };
-      },
+      }) as Store["changes"]["create"],
 
       save: async (change: Change) => {
         await saveChange(paths.changes, change);
       },
 
-      updateArtifacts: async (
-        changeId,
-        proposalContent,
-        problemStatementContent,
-        agreementContent,
-        designContent,
-        executiveSummaryContent,
+      updateArtifacts: (async (
+        changeId: string,
+        ...rest: unknown[]
       ) => {
+        const artifacts = normalizeUpdateArtifactsArgs([changeId, ...rest]);
         const { id, candidates } = await resolveChangeId(
           paths.changes,
           changeId,
@@ -427,11 +424,11 @@ export async function createDiskStore(
         const result = await updateChangeArtifacts(
           paths.changes,
           id,
-          proposalContent,
-          problemStatementContent,
-          agreementContent,
-          designContent,
-          executiveSummaryContent,
+          artifacts.proposal,
+          artifacts.problemStatement,
+          artifacts.agreement,
+          artifacts.design,
+          artifacts.executiveSummary,
         );
         if (result.error) {
           return { success: false, error: result.error };
@@ -444,7 +441,7 @@ export async function createDiskStore(
           designPath: result.designPath,
           executiveSummaryPath: result.executiveSummaryPath,
         };
-      },
+      }) as Store["changes"]["updateArtifacts"],
 
       close: async (changeId, closure: ChangeClosure) => {
         const result = await loadChange(paths.changes, changeId);
