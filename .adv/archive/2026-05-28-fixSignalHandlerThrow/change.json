@@ -1,0 +1,1076 @@
+{
+  "id": "fixSignalHandlerThrow",
+  "title": "Fix signal-handler throw antipattern",
+  "status": "archived",
+  "created_at": "2026-05-28T20:44:57.112Z",
+  "tasks": [
+    {
+      "id": "tk-7b4beb7aef15",
+      "title": "Prepare isolated worktree and baseline",
+      "type": "code",
+      "section": "Setup",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-28T20:58:57.364Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1"
+        ],
+        "not_applicable_reason": "Environment setup task; no logic-bearing code."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:08:04.625Z",
+      "verification": "Worktree materialized at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSignalHandlerThrow on branch change/fixSignalHandlerThrow from trunk f5283934460814dafbadc90701317ae9072f4a69; git status checked.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Materialized/reused branch change/fixSignalHandlerThrow at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSignalHandlerThrow from trunk f5283934460814dafbadc90701317ae9072f4a69. Verified git status clean and recorded checkpoint metadata.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "f5283934460814dafbadc90701317ae9072f4a69",
+      "completedAt": "2026-05-28T21:08:20.612Z",
+      "completed_at": "2026-05-28T21:08:20.612Z",
+      "notes": "Isolated worktree ready and clean.",
+      "updatedAt": "2026-05-28T21:08:25.557Z"
+    },
+    {
+      "id": "tk-1edb72b9c0f7",
+      "title": "RED tests for signal rejection behavior and structural wrapper guard",
+      "type": "code",
+      "section": "TDD",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-28T20:59:11.051Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7b4beb7aef15"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:08:41.588Z",
+      "verification": "RED evidence captured with `pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts --maxWorkers=4`: exit 1. Fails for expected reasons: structural guard detects `safeUpdateHandler`; rejection-state assertions fail because signal_rejections fields do not exist yet.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added AC6 runtime test for signal rejection persistence and post-rejection signal processing. Added AC7 structural test requiring all signal handlers to route through signalMutation/signalAsync and forbidding safeUpdateHandler. Captured RED evidence: `pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts --maxWorkers=4` exited 1; failure highlights existing safeUpdateHandler and missing rejection fields.",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflows.signal-handlers.test.ts"
+      ],
+      "checkpointSha": "33e6c8c7cbb060cbad65c4f855c51d79c846e41e",
+      "completedAt": "2026-05-28T21:10:26.023Z",
+      "completed_at": "2026-05-28T21:10:26.023Z",
+      "notes": "RED tests added and failing for expected reasons.",
+      "updatedAt": "2026-05-28T21:10:32.134Z"
+    },
+    {
+      "id": "tk-191f40961390",
+      "title": "Add workflow-safe digest and SignalRejection state helper",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-05-28T20:59:23.753Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-1edb72b9c0f7"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C6",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:10:37.124Z",
+      "verification": "`pnpm exec vitest run src/temporal/digest.test.ts src/temporal/change-state.signal-rejection.test.ts --maxWorkers=4` passed: 2 files, 5 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added workflow-safe `temporal/digest.ts` using stable sorted JSON + pure-JS FNV-1a; no node:* imports. Added `SignalPayloadDigest` tests for determinism/truncation. Added `SignalRejection`, optional `signal_rejections`, `signal_rejections_total` to ChangeWorkflowState and seed/continue-as-new preservation. Added `applySignalRejectionToState` with 20-entry FIFO buffer, cumulative counter, payload digest, error class/message, lastSignalAt update. Added state-helper tests. Targeted tests passed.",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.signal-rejection.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/digest.test.ts",
+        "plugin/src/temporal/digest.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.signal-rejection.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/digest.test.ts",
+        "plugin/src/temporal/digest.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "0cd4763d2f521c55c25200d40a7e75afcd936c3e",
+      "completedAt": "2026-05-28T21:13:11.592Z",
+      "completed_at": "2026-05-28T21:13:11.592Z",
+      "notes": "Digest helper, SignalRejection type/fields, and state helper implemented with tests.",
+      "updatedAt": "2026-05-28T21:13:17.133Z"
+    },
+    {
+      "id": "tk-a8d7918f7615",
+      "title": "Rewrite signal wrappers and migrate all signal handler call sites",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-05-28T20:59:38.230Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-191f40961390"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "verifies": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:16:23.474Z",
+      "verification": "`pnpm exec vitest run src/temporal/workflows.signal-handlers.test.ts src/temporal/digest.test.ts src/temporal/change-state.signal-rejection.test.ts --maxWorkers=4` passed: 3 files, 24 tests.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Removed `safeUpdateHandler` and all `ApplicationFailure.nonRetryable` throw-normalization from signal handlers. Added `signalAsync` wrapper that catches sync/async ordinary errors, propagates Temporal system failures, records `applySignalRejectionToState`, logs `signal-rejected`, updates search attributes, and returns normally. Rewrote `signalMutation` through `signalAsync`. Migrated the 4 former direct `safeUpdateHandler` call sites (`gateCompleted`, `archiveRequested`, `changeCancelled`, `archiveChange`) to `signalAsync`. Targeted tests passed and structural guard now forbids `safeUpdateHandler`.",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "f7296a064e4725afa0695549838700828ca9f24a",
+      "completedAt": "2026-05-28T21:16:32.082Z",
+      "completed_at": "2026-05-28T21:16:32.082Z",
+      "notes": "Signal wrappers migrated and tests green.",
+      "updatedAt": "2026-05-28T21:16:41.253Z"
+    },
+    {
+      "id": "tk-1c03b3e38688",
+      "title": "Add ADR 0003: signal handlers must not throw",
+      "type": "code",
+      "section": "Docs",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-05-28T20:59:38.270Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-191f40961390"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "AC1"
+        ],
+        "respects": [
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ],
+        "not_applicable_reason": "Documentation-only task; verification by review/test."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:17:02.332Z",
+      "verification": "`test -f docs/adr/0003-signal-handlers-must-not-throw.md` passed; ADR content includes Temporal exception docs, state-mutation rejection pattern, `pw-TPaAlADl`, canonical examples, node:crypto avoidance, and signal wrapper rules.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Added `docs/adr/0003-signal-handlers-must-not-throw.md`. ADR documents Temporal signal-handler exception semantics, ADV state-mutation rejection pattern, raw-payload/digest constraints, node:crypto workflow-bundle gotcha, Cancellation/TemporalFailure passthrough, consequences, and rejected alternatives. It cites Temporal docs and wisdom `pw-TPaAlADl`.",
+      "filesTouched": [
+        "docs/adr/0003-signal-handlers-must-not-throw.md"
+      ],
+      "touched_files": [
+        "docs/adr/0003-signal-handlers-must-not-throw.md"
+      ],
+      "checkpointSha": "ff382d493728904227b5c12e6c2d70cf01f23a97",
+      "completedAt": "2026-05-28T21:17:42.856Z",
+      "completed_at": "2026-05-28T21:17:42.856Z",
+      "notes": "ADR 0003 added.",
+      "updatedAt": "2026-05-28T21:17:50.789Z"
+    },
+    {
+      "id": "tk-268748b49648",
+      "title": "Run targeted Temporal, bundle-boundary, full tests, check, and build",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-05-28T20:59:53.524Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a8d7918f7615"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1c03b3e38688"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC8",
+          "AC9",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4",
+          "DONT5"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:18:01.604Z",
+      "verification": "Verification passed after remediation: targeted Temporal/bundle tests passed (4 files, 28 tests); replay determinism passed; deploy-local/overlay asset tests passed (87 tests); full `pnpm test` passed; `pnpm run check` passed (typecheck, isolation, lockfile, lint, format); `pnpm run build` passed. Also fixed stale deploy-local asset test expectation to match current primary-agent `adv_subagent_report_submit: true` allowlist.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Ran targeted Temporal/bundle tests, replay determinism, deploy-local/overlay asset tests, full `pnpm test`, `pnpm run check`, and `pnpm run build`. Fixed two verification blockers: (1) replay nondeterminism from duplicate search-attribute upsert/projection in migrated direct handlers by adding `afterSuccess:false` for handlers that already perform success side effects; (2) stale deploy-local asset test expectation from previous `adv_subagent_report_submit` allowlist change. Final verification: all pass.",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/temporal/digest.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/deploy-local.test.ts",
+        "plugin/src/temporal/digest.ts",
+        "plugin/src/temporal/workflows.signal-handlers.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "6c68f0971b7963d4a4a2f4afab9cb893819188ac",
+      "completedAt": "2026-05-28T21:29:04.343Z",
+      "completed_at": "2026-05-28T21:29:04.343Z",
+      "notes": "Full verification passed.",
+      "updatedAt": "2026-05-28T21:29:10.849Z"
+    },
+    {
+      "id": "tk-d2dbb08687a3",
+      "title": "Complete selected agenda follow-ups after implementation evidence",
+      "type": "code",
+      "section": "Follow-up cleanup",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-05-28T20:59:53.598Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a8d7918f7615"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1c03b3e38688"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C4",
+          "DONT5"
+        ],
+        "not_applicable_reason": "ADV agenda bookkeeping; verification is covered by implementation tasks."
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-28T21:29:21.944Z",
+      "verification": "Marked source agenda items ag-0k_M_4LL and ag-pxaVk4g6 complete with implementation evidence. No filesystem changes for this bookkeeping task.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Marked ag-0k_M_4LL and ag-pxaVk4g6 complete with evidence from fixSignalHandlerThrow implementation. Lower-priority non-selected follow-ups remain pending per user-selected scope.",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "6c68f0971b7963d4a4a2f4afab9cb893819188ac",
+      "completedAt": "2026-05-28T21:29:30.556Z",
+      "completed_at": "2026-05-28T21:29:30.556Z",
+      "notes": "Selected agenda items completed.",
+      "updatedAt": "2026-05-28T21:29:35.610Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSignalHandlerThrow",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:signal-throw-fix-design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate signal-handler throw → state-mutation rejection design (38 handlers, ChangeWorkflowState ring-buffer, signalMutation rewrite, async handling, replay safety)",
+      "sources": [
+        {
+          "label": "Temporal: Handling Signals, Queries & Updates — Exceptions in Signals",
+          "locator": "https://docs.temporal.io/handling-messages#exceptions",
+          "summary": "Authoritative confirmation: throwing ApplicationFailure in a signal handler fails the ENTIRE workflow; any other thrown exception causes WorkflowTaskFailure and the workflow gets stuck retrying the handler periodically until a code change. Direct evidence supporting the LBP of state-mutation rejection over throw."
+        },
+        {
+          "label": "Temporal: Workflow Definition — Deterministic constraints",
+          "locator": "https://docs.temporal.io/workflow-definition#deterministic-constraints",
+          "summary": "Lists which operations produce Commands (must not be reordered/added/removed without patching). Adding/removing data fields on workflow STATE objects is NOT in the list — state-shape evolution is replay-safe so long as no new Commands are emitted on the replay path."
+        },
+        {
+          "label": "Temporal TS: Versioning / Patching",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/versioning",
+          "summary": "Patching is required only when Command sequence changes (await on Command-producing APIs added/removed/reordered). An additive optional field on state with no new awaits or activity calls does not need a patch."
+        },
+        {
+          "label": "Temporal TS SDK PR #519 maintainer comment (mjameswh) on node:crypto in workflow bundle",
+          "locator": "https://github.com/temporalio/sdk-typescript/pull/519",
+          "summary": "Maintainer states crypto is on the known-problematic Node-builtin list because Webpack cannot bundle Node built-ins for the workflow sandbox AND it cannot be require()-d at runtime — even though hash-only crypto operations are themselves deterministic. Conclusion: do NOT import node:crypto inside workflow code; hashing must use a pure-JS implementation OR happen in an activity."
+        },
+        {
+          "label": "Temporal TS SDK issue #1390 — crypto.getRandomValues not supported",
+          "locator": "https://github.com/temporalio/sdk-typescript/issues/1390",
+          "summary": "Confirms by example that the Node crypto module is not available inside the workflow sandbox. Workaround for UUIDs is wf.uuid4(); for general crypto needs the operation belongs in an activity."
+        },
+        {
+          "label": "Temporal: Workflow Logic Requirements (TS sandbox patches Date/Math.random/timers)",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/basics",
+          "summary": "Confirms the TS sandbox auto-replaces Math.random, Date, setTimeout with deterministic versions. Pure functions (string ops, JSON.stringify, TextEncoder, WebCrypto subtle digest if available, manual SHA via pure-JS) over already-deterministic inputs are safe."
+        },
+        {
+          "label": "Temporal Safe Deployments — replay testing methodology",
+          "locator": "https://docs.temporal.io/develop/safe-deployments",
+          "summary": "Standard validation method for any workflow code change: capture pre-change histories and run them through Replayer with the new code. Required for shipping this 38-handler rewrite safely."
+        },
+        {
+          "label": "Repo: plugin/src/temporal/workflows.ts safeUpdateHandler (line 360)",
+          "locator": "plugin/src/temporal/workflows.ts:360-397",
+          "summary": "Current implementation already detects sync vs Promise return and wraps both in wf.ApplicationFailure.nonRetryable on error. The rewrite for signalMutation only needs to swap the throw branches for a call to applySignalRejectionToState and a normal return/resolve."
+        },
+        {
+          "label": "Repo: change-state.ts KD-8 Layer 2 size-guard (lines 170-316)",
+          "locator": "plugin/src/temporal/change-state.ts:170-316",
+          "summary": "Canonical in-repo precedent for state-mutation rejection: writes a structured rejection object onto state, updates lastSignalAt, returns state unchanged on the rejected axis. Uses TextEncoder + JSON.stringify (sandbox-safe) and explicitly cites the same Temporal exceptions doc as design rationale."
+        },
+        {
+          "label": "Repo: applyGateStuckToState (change-state.ts:761-774)",
+          "locator": "plugin/src/temporal/change-state.ts:761-774",
+          "summary": "Second canonical state-mutation-rejection precedent: marks a gate stuck rather than throwing when readiness blockers exist."
+        },
+        {
+          "label": "Repo: change-state.ts imports (lines 1-48, 192-196)",
+          "locator": "plugin/src/temporal/change-state.ts:1-48,192-196",
+          "summary": "Confirmation: change-state.ts is workflow-bundle-reachable and currently imports only types and pure helpers. No crypto/node built-in imports — adding one would violate the workflow-bundle-boundary test (workflow-bundle-boundary.test.ts) and the cited PR #519 constraint."
+        },
+        {
+          "label": "Repo: gateCompleted / archiveRequested / changeCancelled / archiveChange handlers",
+          "locator": "plugin/src/temporal/workflows.ts:1046-1224",
+          "summary": "Audited: gateCompleted serializes via gateCompletionChain and routes failures through markGateStuckForBlockers (state-mutation rejection). archiveRequested and changeCancelled explicitly snapshot previousStatus/previousTerminated/previousClosure and restore them on activity/projection failure (state-mutation rollback). archiveChange catches search-attribute upsert errors with try/catch + wf.log.warn. All four already match the LBP; the safeUpdateHandler wrapper still catches any UNEXPECTED throw and would propagate it as ApplicationFailure today — which (per cited Temporal docs) fails the workflow. After the signalMutation rewrite, these four should also have their safeUpdateHandler replaced (or augmented) so unexpected programmer errors are recorded as rejections instead of failing the workflow."
+        },
+        {
+          "label": "Repo: workflow-bundle-boundary.test.ts (defineUpdate guard)",
+          "locator": "plugin/src/temporal/workflow-bundle-boundary.test.ts:45-54",
+          "summary": "Existing test enforces the signal-driven-only invariant by banning wf.defineUpdate / defineUpdate in the workflow-reachable graph. The proposed new structural test (every wf.setHandler call site uses signalMutation or safeUpdateHandler) fits naturally alongside this and uses the same import-walker pattern."
+        }
+      ],
+      "architecture_assessment": "The proposed design is sound and aligns precisely with documented Temporal LBP for signal handlers (https://docs.temporal.io/handling-messages#exceptions) and with two pre-existing in-repo canonical patterns (applyGateStuckToState, KD-8 Layer 2 size-guard). It correctly recognises that the current safeUpdateHandler-via-signalMutation path violates the rule that throwing in signal handlers fails the workflow.\n\nValidated by question:\n\n1. REPLAY SAFETY of optional signal_rejections field — PASS. Adding a state-shape field is not in the documented Command list (https://docs.temporal.io/workflow-definition#deterministic-constraints); it does not produce new Commands on the replay path, so no patching is required. Older histories with no field replay to undefined; new reads of `state.signal_rejections ?? []` are safe. The wisdom anchor pw-TPaAlADl is unfindable via adv_wisdom_list query but the pattern is independently justified by the change-state.ts precedent and Temporal versioning docs.\n\n2. STRUCTURAL DIGEST DETERMINISM — CAUTION / DESIGN CHANGE NEEDED. The design says 'sorted JSON hash' but does not specify implementation. Per Temporal TS SDK PR #519 (https://github.com/temporalio/sdk-typescript/pull/519) and issue #1390, `node:crypto` is on the known-problematic list because Webpack cannot bundle Node built-ins into the workflow sandbox even though hash-only ops are themselves deterministic. workflows.ts currently has zero crypto imports; introducing `import { createHash } from 'crypto'` will break the workflow bundle build. Safe options, ranked simplest-first:\n   (a) Stringify-only: store `{ payload_digest: 'len:' + sortedJsonString.length, payload_sample: sortedJsonString.slice(0,256) }`. Sandbox-safe, no new deps, lossy but adequate for forensic 'which payload caused this'. RECOMMENDED for simplicity.\n   (b) Pure-JS FNV-1a or murmur3 in a new helper inside temporal/ (workflow-bundle-reachable). Deterministic, tiny code, no Node built-ins.\n   (c) Move digest computation to an activity. Adds a Command per rejection — increases history bloat and adds latency on the rejection path. NOT RECOMMENDED for a rejection-tracking buffer.\n   Do NOT use crypto.createHash or globalThis.crypto.subtle inside workflow code without first proving it survives the workflow bundle build + replay test.\n\n3. CATCH-ALL ERRORS — CAUTION. Catching all thrown errors in the signal handler is the documented LBP for not failing the workflow, BUT there is one important exception: Temporal's CancellationScope mechanism throws CancelledFailure during scope cancellation, and swallowing that can leave activities/timers in indeterminate state. Mitigation: re-throw CancelledFailure (and any TemporalFailure subclass) inside the catch. Reference: https://typescript.temporal.io/api/namespaces/workflow (CancellationScope / CancelledFailure). For application/programmer errors (TypeError, RangeError, plain Error) catch-and-record is correct.\n\n4. RING BUFFER BOUND 20 — PASS with note. Each rejection entry is small (signalName ~30 bytes, ISO timestamp ~24 bytes, digest sample ~256 bytes, error message ~200-1000 bytes typical → ~1-2 KB per entry, max ~40 KB ring). Well within Temporal's per-payload 2 MB and per-history 50 MB envelopes referenced in the existing change-state.ts size-cap comments. 20 is reasonable; consider exposing a monotonically-increasing `signal_rejections_total` counter alongside the ring so cardinality of evictions is observable (matches investment-report style metrics already present in workflows.ts).\n\n5. THE 4 DIRECT safeUpdateHandler CALL SITES (workflows.ts:1046-1224) — MIXED. Confirmed by reading the code: all four implement state-mutation rejection internally for the EXPECTED failure paths (snapshot/restore previousStatus, applyGateStuckToState on archive failure, try/catch around upsertSearchAttributes). HOWEVER all four are still wrapped by safeUpdateHandler, which converts any UNEXPECTED throw (e.g. TypeError in applyArchiveRequestedToState, an Error from a future refactor) into wf.ApplicationFailure.nonRetryable — which, per the cited Temporal doc, fails the workflow when thrown from a signal handler. Recommendation: convert these four to use a new `signalAsync` variant of signalMutation that supports `async (payload) => ...` and rejection capture, OR rewrite safeUpdateHandler so that when invoked from a signal-only context (no update caller) it routes through applySignalRejectionToState instead of throwing. Do NOT leave them on the unwrapped throw path.\n\n6. ASYNC SIGNAL HANDLERS — PASS. The existing safeUpdateHandler at workflows.ts:367-396 already detects Promise return via duck-typing (`'then' in result`) and catches via `.catch()`. The rewritten signalMutation should mirror this: detect Promise, attach `.catch(err => { applySignalRejectionToState(state, ...); return undefined; })`. Important: do NOT lose the promise — return it, so the workflow's gateCompletionChain-style serialization continues to work where used.\n\n7. CROSS-CHECK WITH ADV INVARIANTS — PASS.\n   - rq-changeWorkflowSignalOnly01 (no defineUpdate): unaffected; we're modifying signal handler bodies, not adding updates.\n   - workflow-bundle-boundary test: PASS so long as the digest implementation does NOT import node:crypto or other Node built-ins (see point 2).\n   - rq-temporalTsDeterminismDocs01: PASS; the proposed mutation is pure JS operating on already-deterministic inputs (signal payload, state ISO timestamps populated from caller-side wf.now()-equivalent if any; the design's `rejectedAt` parameter should be CALLER-PROVIDED to match the existing setLastSignalAt pattern, not computed in the handler).\n   - rq-cacheRefresh01: unaffected; tools still call fireSignalAndRefresh; new rejection state is read on next store.changes.get() like all other state.\n\n8. PRODUCTION RISK — MEDIUM-LOW with one specific failure mode to harden. Worst case: a bug in the rewritten signalMutation silently swallows a real domain error and the user observes 'signal accepted but state unchanged' with no UI surface. Mitigations:\n   (a) Wire signal_rejections into adv_status / adv_change_show so rejections are visible without inspecting raw state.\n   (b) wf.log.warn every recorded rejection with `{ signalName, errorMessage, changeId }` so Temporal Web UI / log scraping surfaces them.\n   (c) Add a metric counter (signal_rejections_total per workflow) for alerting.\n   (d) The new structural test (every setHandler uses signalMutation or signalAsync) MUST also assert no setHandler call site uses a bare arrow body; combine with an ESLint rule if practical.\n   (e) Ship behind the cited Temporal Safe Deployments replay-test methodology (https://docs.temporal.io/develop/safe-deployments): capture representative pre-change histories in CI and replay them against the new code in the existing workflow test harness.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          "Structural digest implementation: design does not specify how the SHA-256/structural hash is computed; node:crypto is incompatible with the TS workflow sandbox (workflow bundle cannot include Node built-ins per SDK PR #519 / issue #1390). Pick a sandbox-safe alternative (stringify-length+sample, or a pure-JS hash in a new helper inside temporal/) BEFORE implementation.",
+          "The 4 direct safeUpdateHandler call sites (gateCompleted, archiveRequested, changeCancelled, archiveChange) still propagate UNEXPECTED throws as ApplicationFailure, which per Temporal docs fails the workflow. Design item #4 says 'leave safeUpdateHandler unchanged' — that is incorrect for these sites. Either convert them to signalMutation/signalAsync, or rewrite safeUpdateHandler to route signal-context throws through applySignalRejectionToState.",
+          "CancelledFailure (and TemporalFailure subclasses) MUST be re-thrown from the catch, not converted to rejection records. Cancellation scopes depend on this for cleanup semantics; the design currently says 'catch ALL errors' without this carve-out."
+        ],
+        "notes": "Direction is correct and matches documented Temporal LBP plus two in-repo canonical precedents. The replay-safety of the additive optional state field is solid. The three blockers above are implementation-level corrections, not design rejections. With them resolved, the design ships safely."
+      },
+      "recommendation": "Proceed with the design after addressing three corrections:\n\n1. **Digest**: replace 'sorted JSON SHA-256' with sandbox-safe stringify-length + 256-char-sample tuple, OR import a pure-JS hash from a new temporal/digest.ts (no node:crypto). Add a workflow-bundle-boundary test assertion that crypto/node-builtins are not reachable from the digest helper.\n\n2. **safeUpdateHandler sites**: in the same change, convert gateCompleted / archiveRequested / changeCancelled / archiveChange to a new `signalAsync` helper (or rewrite safeUpdateHandler to detect signal context and reject-not-throw). Leaving them on the throw path partially defeats the change's purpose.\n\n3. **CancelledFailure passthrough**: in both signalMutation and signalAsync catches, `if (err instanceof wf.CancelledFailure || err instanceof wf.TemporalFailure) throw err;` before recording the rejection. Cite https://typescript.temporal.io/api/namespaces/workflow.\n\nAdditionally:\n- Expose `signal_rejections_total` counter alongside the ring buffer.\n- Surface rejections in adv_status / adv_change_show (UI visibility).\n- Wire wf.log.warn into applySignalRejectionToState for every recorded rejection.\n- Add the structural test enforcing every setHandler uses signalMutation/signalAsync/safeUpdateHandler (no bare bodies); model it on workflow-bundle-boundary.test.ts.\n- Validate via the documented Safe Deployments replay-test methodology against captured pre-change histories before merge.\n- ADR 0003 should explicitly cite https://docs.temporal.io/handling-messages#exceptions, https://docs.temporal.io/workflow-definition#deterministic-constraints, and SDK PR #519 to lock in the rationale.",
+      "follow_ups": [
+        "Confirm: does the TS workflow sandbox expose globalThis.crypto.subtle? If yes, subtle.digest('SHA-256', ...) returns a Promise which would force async handlers — not worth the complexity vs the stringify-sample approach.",
+        "Add fixture: capture a representative ChangeWorkflowState history pre-change and pin it as a replay-test fixture in plugin/src/temporal/__fixtures__/ for the Safe Deployments validation.",
+        "Audit task-layer mutation tools (_adapters.ts) to ensure adv_task_add/update/cancel surface the new rejection state to the caller (rq-cacheRefresh01 already ensures freshness; caller-side reporting needs explicit code).",
+        "wisdom pw-TPaAlADl was not findable via adv_wisdom_list query — verify it exists at project scope or re-promote after this change ships."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSignalHandlerThrow",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSignalHandlerThrow",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For Temporal signal handlers that already perform success side effects inside the handler (gate completion projection/search attributes, archive/cancel/archiveChange terminal flows), wrap with signalAsync(..., { afterSuccess: false }) to avoid duplicate commands while still recording ordinary-error signal rejections."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git diff --stat trunk...HEAD -- scoped files",
+          "pnpm --dir plugin test -- src/temporal/digest.test.ts src/temporal/change-state.signal-rejection.test.ts src/temporal/workflows.signal-handlers.test.ts src/temporal/workflow-bundle-boundary.test.ts src/temporal/__tests__/replay-determinism.test.ts src/deploy-local.test.ts",
+          "pnpm --dir plugin run check",
+          "pnpm --dir plugin run build"
+        ],
+        "results": "pass",
+        "evidence": "Reviewed scoped diff and files. Full test invocation completed with 249 test files / 3337 tests passed, including targeted Temporal signal handler, digest, rejection-state, bundle-boundary, replay determinism, and deploy-local coverage. check passed: typecheck, test isolation, lockfile policy, eslint, prettier. build passed: plugin and temporal worker/workflows bundles emitted successfully."
+      },
+      "scope_drift": null,
+      "risks": [
+        "ADR-mandated payloadDigest includes a bounded 256-character payload_sample for diagnostics; current contract accepts this, but future sensitive-payload work should consider redaction or sample removal if privacy requirements tighten."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with acceptance/release; no blocking or nonblocking review findings remain.",
+        "Optionally promote wisdom candidate about signalAsync afterSuccess:false rationale for direct handler success side effects."
+      ],
+      "consumer_warnings": []
+    }
+  ],
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-Vpz379",
+      "type": "gotcha",
+      "content": "Temporal workflow code cannot use `node:crypto` for diagnostic hashes even when the algorithm is deterministic; the worker bundle cannot include Node built-ins. Use pure-JS deterministic helpers under `plugin/src/temporal/` (e.g. sorted JSON + FNV-1a) and let workflow-bundle-boundary tests guard imports.",
+      "source_task": "tk-191f40961390",
+      "recorded_at": "2026-05-28T21:13:30.131Z"
+    },
+    {
+      "id": "ws-Z_SCC_",
+      "type": "pattern",
+      "content": "For Temporal signal wrappers, make the generic wrapper own state-mutation rejection for unexpected ordinary errors: catch sync + async handler failures, propagate Temporal system failures (`CancelledFailure`/`TemporalFailure`), record bounded rejection state, log structured warning, and return normally. Then enforce all `wf.setHandler(*Signal, ...)` call sites through `signalMutation`/`signalAsync` with a source-level structural test.",
+      "source_task": "tk-a8d7918f7615",
+      "recorded_at": "2026-05-28T21:16:48.862Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-28T20:45:31.004Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved proposal via chat reply: \"approve\". Proposal covers signal-handler throw antipattern fix: ADR 0003 + safeSignalHandler wrapper split + state.signal_rejections[] bounded buffer + mechanical conversion of 30+ call sites. LBP captured in wisdom pw-TPaAlADl becomes structural law.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/proposal.md",
+        "content_hash": "30586a76aee8a6cc550b0ab1d0155e1839292aa0aae5b76ef95e5827811640da",
+        "non_whitespace_chars": 4674,
+        "checked_at": "2026-05-28T20:45:31.043Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-05-28T20:49:47.796Z",
+      "completed_at": "2026-05-28T20:49:52.563Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved agreement via chat reply: \"approve\". Contract minted at standard rigor with 24 items (9 ACs + 6 constraints + 5 avoidances + 4 out-of-scope).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/agreement.md",
+        "content_hash": "26cd6c8f391b31e7b4180cb8c797704d8e4e4955ca8c105074edb8eb562c06ee",
+        "non_whitespace_chars": 6145,
+        "checked_at": "2026-05-28T20:49:52.598Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-28T20:58:36.519Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved validator-corrected design via chat reply: \"approve\". Contract amended and re-minted. Design incorporates adv-researcher CAUTION corrections: no node:crypto, propagate CancelledFailure/TemporalFailure, convert 4 direct safeUpdateHandler sites too, add signal_rejections_total and wf.log.warn, replay/bundle-boundary tests.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/design.md",
+        "content_hash": "e45eb6abdb1eebd25f597fd7eea72d5e055ad99d0af50e4c407fe70660012e02",
+        "non_whitespace_chars": 6618,
+        "checked_at": "2026-05-28T20:58:36.558Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-28T21:07:56.599Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly approved prep/task graph via chat reply: \"approve\". 7 tasks created with TDD intent and contract refs. Task graph: setup/worktree, RED tests, digest+state helper, wrapper migration, ADR, verification, agenda completion."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-28T21:29:51.182Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 planned tasks complete. TDD evidence captured (RED then GREEN). Verification passed: targeted Temporal/bundle tests, replay determinism, deploy-local/overlay asset tests, full pnpm test, pnpm run check, and pnpm run build. Worktree clean on change/fixSignalHandlerThrow."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-05-28T21:51:26.346Z",
+      "completed_by": "user",
+      "approval_evidence": "User explicitly accepted delivered work via chat reply: \"approve\". Acceptance evidence: contract review matrix has 24 rows, 0 failures; adv-reviewer acceptance review verdict READY with no findings; executive-summary.md persisted; verification passed (`pnpm test`, `pnpm run check`, `pnpm run build`, replay determinism, targeted Temporal/bundle tests).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/acceptance.md",
+        "content_hash": "b0ff1dc132cea833e788f47deb5fad803e72beec366904f8ebbec138493d8a64",
+        "non_whitespace_chars": 8158,
+        "checked_at": "2026-05-28T21:51:26.460Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "agenda:ag-0k_M_4LL+ag-pxaVk4g6"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+      "approvedAt": "2026-05-28T20:49:52.563Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1.** New ADR `docs/adr/0003-signal-handlers-must-not-throw.md` exists, cites the Temporal docs reference (https://docs.temporal.io/handling-messages#exceptions), documents the state-mutation rejection pattern, and references wisdom `pw-TPaAlADl` and existing canonical examples (`applyGateStuckToState`, Layer 2 size-guard).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2.** `ChangeWorkflowState` gains optional additive fields: `signal_rejections?: SignalRejection[]` (max 20 entries) and `signal_rejections_total?: number`. `SignalRejection` includes `{ signalName, errorMessage, errorClass, payloadDigest, rejectedAt }`. Fields are additive-only and Temporal replay-safe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3.** New helper `applySignalRejectionToState(state, { signalName, error, payload, rejectedAt })` exists in `change-state.ts`, computes a stable structural digest of the payload (not the raw payload), enforces the ring-buffer cap, increments `signal_rejections_total`, and updates `lastSignalAt`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4.** `signalMutation(...)` wrapper at `workflows.ts:701-710` no longer routes through `safeUpdateHandler`. Instead it delegates to `signalAsync(...)`, catches synchronous and Promise rejections from the apply function, calls `applySignalRejectionToState`, logs `wf.log.warn(\"signal-rejected\", ...)`, and returns/resolves normally. The wrapper never throws except for `wf.CancelledFailure` / `wf.TemporalFailure` passthrough.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5.** All 4 former direct `safeUpdateHandler` call sites (`gateCompleted`, `archiveRequested`, `changeCancelled`, `archiveChange`) are converted to `signalAsync(...)`. `safeUpdateHandler` is removed if unused. No active signal handler may use a throw-normalizing wrapper.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6.** A failing-first TDD test asserts: a signal whose apply function throws does NOT fail the workflow; `state.signal_rejections` contains exactly one entry naming the signal and error; `signal_rejections_total` increments; subsequent signals to the same workflow process normally; `getStateQuery` returns the rejection alongside normal state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7.** A structural test asserts every `wf.setHandler(*Signal, ...)` call site in `workflows.ts` goes through either `signalMutation(...)` or `signalAsync(...)` — no direct unwrapped `wf.setHandler(*Signal, handler)` form and no `safeUpdateHandler` signal wrapper are permitted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8.** `plugin/src/temporal/workflow-bundle-boundary.test.ts` and existing replay-safety tests still pass with no new boundary violations; the payload digest implementation imports no `node:*` modules and stays workflow-safe.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9.** `pnpm test` and `pnpm run check` pass clean. No spec-citation drift; no deploy-local drift.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1. Worktree isolation (P32).** All implementation work runs in worktree `change/fixSignalHandlerThrow`, not the trunk checkout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2. Replay safety.** `signal_rejections` and `signal_rejections_total` are additive-optional; histories predating the fields MUST replay cleanly. Payload digests use deterministic structural hashing (sorted JSON + pure-JS FNV-1a), not `Math.random()`, wall-clock timestamps inside the hash input, or `node:crypto`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3. Bounded buffer.** `signal_rejections` is capped at 20 entries with FIFO eviction so workflow state stays bounded. `signal_rejections_total` is an unbounded numeric counter only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4. No spec-law change required.** This is internal hardening; the workflow public signal names, gate semantics, and existing query contracts MUST remain compatible. Existing spec citations MUST NOT break.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5. TDD-first (P24).** Write the AC6 failing test before any production change. Verify it fails for the right reason (current behavior throws or lacks rejection capture), then implement, then verify it passes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6. Locality (P04).** Keep `applySignalRejectionToState` and `SignalRejection` type co-located with `applyGateStuckToState` in `change-state.ts` and `contracts.ts` respectively; keep digest helper under `temporal/` so bundle-boundary tests enforce workflow safety.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**A1.** Do NOT migrate signals to `wf.defineUpdate` as part of this change. The signal-only surface is enforced by `workflow-bundle-boundary.test.ts`; migrating to updates re-introduces a different antipattern (poisoned `WorkflowExecutionUpdateAccepted` history events).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**A2.** Do NOT keep any active signal handler on `safeUpdateHandler` or any wrapper that converts signal-handler errors into `ApplicationFailure.nonRetryable`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**A3.** Do NOT log raw payloads inside `signal_rejections`. Use a structural digest only. Raw payloads may contain large prose content (proposals, agreements, etc.) and would blow the workflow history budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**A4.** Do NOT swallow `wf.CancelledFailure` or `wf.TemporalFailure`. These Temporal-system errors must propagate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**A5.** No campsite-rule expansion into unrelated workflow refactors. Touched scope is the wrapper + the new fields + helper + digest + ADR + tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Migrating any signals to `wf.defineUpdate` (see A1).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Adding new user-facing tool fields for `signal_rejections` beyond what existing `getStateQuery` / `adv_change_show` already returns through state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Refactoring `applyGateStuckToState` or KD-8 Layer 2 size-guard (they already implement the LBP).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Worktree, agenda, subagent-report migration, or threshold-consolidation follow-ups.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-28T21:35:22.347Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "docs/adr/0003-signal-handlers-must-not-throw.md added; reviewer verdict READY; AC1 reviewed item-by-item.",
+          "notes": "ADR cites Temporal exception docs, state-mutation rejection, pw-TPaAlADl, and canonical examples."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm test passed; pnpm run check passed. contracts.ts defines SignalRejection plus optional signal_rejections and signal_rejections_total fields.",
+          "notes": "Fields additive optional."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.signal-rejection.test.ts passed; pnpm test passed. applySignalRejectionToState caps buffer, increments total, stores digest, updates lastSignalAt.",
+          "notes": "No raw payload retained."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflows.signal-handlers.test.ts passed; structural test and runtime rejection test cover signalMutation/signalAsync behavior. pnpm test/check/build passed.",
+          "notes": "CancelledFailure/TemporalFailure passthrough implemented."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflows.signal-handlers.test.ts structural guard passed; grep found no safeUpdateHandler/ApplicationFailure.nonRetryable in workflows.ts; reviewer READY.",
+          "notes": "4 direct sites migrated to signalAsync with afterSuccess:false."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "RED test added then GREEN: signal rejection test passed in workflows.signal-handlers.test.ts; full pnpm test passed.",
+          "notes": "Subsequent taskAddedSignal processed after rejected taskUpdatedSignal."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Structural test in workflows.signal-handlers.test.ts passed, requiring setHandler signal blocks to use signalMutation or signalAsync and forbidding safeUpdateHandler.",
+          "notes": "Locks regression."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted bundle/replay verification passed: workflow-bundle-boundary.test.ts and replay-determinism.test.ts; pnpm test passed.",
+          "notes": "Digest helper imports no node:*."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Final verification passed: pnpm test, pnpm run check, pnpm run build.",
+          "notes": "Also deploy-local/overlay asset tests passed after stale assertion alignment."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "All implementation ran in /home/jon/.local/share/opencode/worktree/.../change/fixSignalHandlerThrow on branch change/fixSignalHandlerThrow; git status clean.",
+          "notes": "No trunk checkout edits."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "replay-determinism.test.ts passed; digest.ts uses sorted JSON + pure-JS FNV-1a; no node:crypto import; fields optional in contracts.ts.",
+          "notes": "No patch marker required for additive optional state."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "change-state.signal-rejection.test.ts asserts 20-entry FIFO and cumulative total counter.",
+          "notes": "SIGNAL_REJECTION_RING_BUFFER_LIMIT = 20."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec deltas added; signal names/gate semantics unchanged; reviewer READY; full tests passed.",
+          "notes": "Internal hardening only."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "RED evidence captured before implementation: workflows.signal-handlers.test.ts exited 1 due to safeUpdateHandler/missing rejection fields; then GREEN tests passed.",
+          "notes": "TDD-first followed."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "SignalRejection type in contracts.ts, applySignalRejectionToState in change-state.ts, digest helper under temporal/; reviewer READY.",
+          "notes": "Locality preserved."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No wf.defineUpdate migration; workflows remains signal/query surface; workflow-bundle-boundary tests passed.",
+          "notes": "Signal-only invariant preserved."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Structural test forbids safeUpdateHandler; grep found no ApplicationFailure.nonRetryable in workflows.ts; tests passed.",
+          "notes": "No active throw-normalizing signal wrapper."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Digest/helper tests verify truncated sample; state-helper test asserts raw long payload not retained in signal_rejections.",
+          "notes": "Payload digest only."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "signalAsync checks err instanceof wf.CancelledFailure || wf.TemporalFailure and rethrows; reviewer READY.",
+          "notes": "Temporal-system errors propagate."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Touched scope limited to workflow wrapper/state/digest/tests, ADR, and stale asset-test expectation needed for full-suite verification.",
+          "notes": "No unrelated workflow refactor."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No signal-to-update migration performed.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No new user-facing tool fields added beyond existing workflow state query surface.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "applyGateStuckToState and KD-8 Layer 2 size guard were referenced but not refactored.",
+          "notes": "Out of scope respected."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Worktree extraction, agenda migration, subagent-report migration, threshold consolidation, and gate-readiness source bug are separate follow-ups; critical gate-readiness bug recorded as ag-mgupBeWk.",
+          "notes": "Out of scope respected."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1.** New ADR `docs/adr/0003-signal-handlers-must-not-throw.md` exists, cites the Temporal docs reference (https://docs.temporal.io/handling-messages#exceptions), documents the state-mutation rejection pattern, and references wisdom `pw-TPaAlADl` and existing canonical examples (`applyGateStuckToState`, Layer 2 size-guard).",
+    "**AC2.** `ChangeWorkflowState` gains optional additive fields: `signal_rejections?: SignalRejection[]` (max 20 entries) and `signal_rejections_total?: number`. `SignalRejection` includes `{ signalName, errorMessage, errorClass, payloadDigest, rejectedAt }`. Fields are additive-only and Temporal replay-safe.",
+    "**AC3.** New helper `applySignalRejectionToState(state, { signalName, error, payload, rejectedAt })` exists in `change-state.ts`, computes a stable structural digest of the payload (not the raw payload), enforces the ring-buffer cap, increments `signal_rejections_total`, and updates `lastSignalAt`.",
+    "**AC4.** `signalMutation(...)` wrapper at `workflows.ts:701-710` no longer routes through `safeUpdateHandler`. Instead it delegates to `signalAsync(...)`, catches synchronous and Promise rejections from the apply function, calls `applySignalRejectionToState`, logs `wf.log.warn(\"signal-rejected\", ...)`, and returns/resolves normally. The wrapper never throws except for `wf.CancelledFailure` / `wf.TemporalFailure` passthrough.",
+    "**AC5.** All 4 former direct `safeUpdateHandler` call sites (`gateCompleted`, `archiveRequested`, `changeCancelled`, `archiveChange`) are converted to `signalAsync(...)`. `safeUpdateHandler` is removed if unused. No active signal handler may use a throw-normalizing wrapper.",
+    "**AC6.** A failing-first TDD test asserts: a signal whose apply function throws does NOT fail the workflow; `state.signal_rejections` contains exactly one entry naming the signal and error; `signal_rejections_total` increments; subsequent signals to the same workflow process normally; `getStateQuery` returns the rejection alongside normal state.",
+    "**AC7.** A structural test asserts every `wf.setHandler(*Signal, ...)` call site in `workflows.ts` goes through either `signalMutation(...)` or `signalAsync(...)` — no direct unwrapped `wf.setHandler(*Signal, handler)` form and no `safeUpdateHandler` signal wrapper are permitted.",
+    "**AC8.** `plugin/src/temporal/workflow-bundle-boundary.test.ts` and existing replay-safety tests still pass with no new boundary violations; the payload digest implementation imports no `node:*` modules and stays workflow-safe.",
+    "**AC9.** `pnpm test` and `pnpm run check` pass clean. No spec-citation drift; no deploy-local drift."
+  ],
+  "documents": {},
+  "artifacts": {
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/agreement.md",
+      "updatedAt": "2026-05-28T20:58:26.249Z",
+      "contentHash": "c9d95ca71540c80f982b4e76e8296a299b6abc4c7d5d5a2036d44f4f20673b94"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/design.md",
+      "updatedAt": "2026-05-28T20:54:46.078Z",
+      "contentHash": "e45eb6abdb1eebd25f597fd7eea72d5e055ad99d0af50e4c407fe70660012e02"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixSignalHandlerThrow/executive-summary.md",
+      "updatedAt": "2026-05-28T21:35:32.964Z",
+      "contentHash": "a11753e9d54df5fa6df20f5ab096519ac3d9630ec383a8123de44ad7752fc65f"
+    }
+  },
+  "lastSignalAt": "2026-05-28T21:51:26.346Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true
+}
