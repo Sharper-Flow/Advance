@@ -790,10 +790,7 @@ export async function changeWorkflow(
           workflowNow(),
         );
         if (!stateArtifactReadiness.ready) {
-          markGateStuckForBlockers(
-            payload,
-            stateArtifactReadiness.blockers,
-          );
+          markGateStuckForBlockers(payload, stateArtifactReadiness.blockers);
           return;
         }
         artifactEvidence = stateArtifactReadiness.evidence;
@@ -802,89 +799,89 @@ export async function changeWorkflow(
           artifactKind === "acceptance" &&
           wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)
         ) {
-        const acceptanceContent = renderAcceptanceProjection(state);
-        const writeResult = await writeArtifactActivity({
-          changesDir: state.projectionChangesDir,
-          changeId: state.changeId,
-          kind: "acceptance",
-          content: acceptanceContent,
-        });
-        if (!writeResult.ok) {
-          markGateStuckForBlockers(payload, [
-            gateArtifactBlocker(payload, {
-              code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
-              artifactKind,
-              message: writeResult.error,
-              remediation:
-                "Fix acceptance projection generation before retrying gate completion.",
-            }),
-          ]);
-          return;
+          const acceptanceContent = renderAcceptanceProjection(state);
+          const writeResult = await writeArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "acceptance",
+            content: acceptanceContent,
+          });
+          if (!writeResult.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+                artifactKind,
+                message: writeResult.error,
+                remediation:
+                  "Fix acceptance projection generation before retrying gate completion.",
+              }),
+            ]);
+            return;
+          }
+          // T12 (removePositionalArtifactApi): populate state.documents.acceptance
+          // to match the just-written disk projection. Makes acceptance a
+          // first-class member of state.documents so readArtifact /
+          // archive-bundle materialization (KD-13) and consumer alignment
+          // (gate-readiness, archive-summary) see Temporal-backed content
+          // instead of empty. Disk projection retained per C12 (acceptance
+          // recovery path requires inspectArtifactActivity to verify disk
+          // contentHash).
+          state.documents = {
+            ...(state.documents ?? {}),
+            acceptance: acceptanceContent,
+          };
+          const executiveSummary = await inspectArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "executiveSummary",
+          });
+          if (!executiveSummary.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code:
+                  executiveSummary.code === "missing"
+                    ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
+                    : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE",
+                artifactKind,
+                message: executiveSummary.error,
+                remediation:
+                  "Persist a readable executive-summary.md and update workflow metadata before retrying acceptance.",
+              }),
+            ]);
+            return;
+          }
+          if (
+            executiveSummary.nonWhitespaceChars <
+            MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
+          ) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED",
+                artifactKind,
+                message: `executive-summary artifact has ${executiveSummary.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+                remediation:
+                  "Populate executive-summary.md with substantive acceptance evidence before retrying acceptance.",
+              }),
+            ]);
+            return;
+          }
+          if (
+            state.artifacts.executiveSummary?.contentHash !==
+            executiveSummary.contentHash
+          ) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+                artifactKind,
+                message:
+                  "executive-summary artifact contentHash does not match workflow metadata.",
+                remediation:
+                  "Re-persist executive-summary.md through the artifact update path so workflow metadata receives a fresh contentHash.",
+              }),
+            ]);
+            return;
+          }
         }
-        // T12 (removePositionalArtifactApi): populate state.documents.acceptance
-        // to match the just-written disk projection. Makes acceptance a
-        // first-class member of state.documents so readArtifact /
-        // archive-bundle materialization (KD-13) and consumer alignment
-        // (gate-readiness, archive-summary) see Temporal-backed content
-        // instead of empty. Disk projection retained per C12 (acceptance
-        // recovery path requires inspectArtifactActivity to verify disk
-        // contentHash).
-        state.documents = {
-          ...(state.documents ?? {}),
-          acceptance: acceptanceContent,
-        };
-        const executiveSummary = await inspectArtifactActivity({
-          changesDir: state.projectionChangesDir,
-          changeId: state.changeId,
-          kind: "executiveSummary",
-        });
-        if (!executiveSummary.ok) {
-          markGateStuckForBlockers(payload, [
-            gateArtifactBlocker(payload, {
-              code:
-                executiveSummary.code === "missing"
-                  ? "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING"
-                  : "ACCEPTANCE_EXECUTIVE_SUMMARY_UNREADABLE",
-              artifactKind,
-              message: executiveSummary.error,
-              remediation:
-                "Persist a readable executive-summary.md and update workflow metadata before retrying acceptance.",
-            }),
-          ]);
-          return;
-        }
-        if (
-          executiveSummary.nonWhitespaceChars <
-          MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
-        ) {
-          markGateStuckForBlockers(payload, [
-            gateArtifactBlocker(payload, {
-              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED",
-              artifactKind,
-              message: `executive-summary artifact has ${executiveSummary.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
-              remediation:
-                "Populate executive-summary.md with substantive acceptance evidence before retrying acceptance.",
-            }),
-          ]);
-          return;
-        }
-        if (
-          state.artifacts.executiveSummary?.contentHash !==
-          executiveSummary.contentHash
-        ) {
-          markGateStuckForBlockers(payload, [
-            gateArtifactBlocker(payload, {
-              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
-              artifactKind,
-              message:
-                "executive-summary artifact contentHash does not match workflow metadata.",
-              remediation:
-                "Re-persist executive-summary.md through the artifact update path so workflow metadata receives a fresh contentHash.",
-            }),
-          ]);
-          return;
-        }
-      }
         const artifact = await inspectArtifactActivity({
           changesDir: state.projectionChangesDir,
           changeId: state.changeId,

@@ -695,11 +695,7 @@ describe("changeWorkflow signal handlers", () => {
 
           await expect(
             readFile(
-              join(
-                changesDir,
-                "state-agreement-discovery",
-                "agreement.md",
-              ),
+              join(changesDir, "state-agreement-discovery", "agreement.md"),
               "utf8",
             ),
           ).rejects.toMatchObject({ code: "ENOENT" });
@@ -714,11 +710,7 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.discovery.status).toBe("done");
           expect(state.gates.discovery.artifact_evidence).toMatchObject({
             kind: "agreement",
-            path: join(
-              changesDir,
-              "state-agreement-discovery",
-              "agreement.md",
-            ),
+            path: join(changesDir, "state-agreement-discovery", "agreement.md"),
             content_hash: createHash("sha256")
               .update(agreementContent)
               .digest("hex"),
