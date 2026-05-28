@@ -59,6 +59,15 @@ jobs:
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
+      - name: Install Bun
+        # opencode-session-debt.test.ts shells out to `bun` to seed a bun:sqlite
+        # database under the OpenCode debt-doctor scenario. Without bun on PATH
+        # the test fails with `spawnSync bun ENOENT`. Bun is OpenCode's runtime;
+        # keeping it on the CI runner mirrors the production environment.
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Test
         run: pnpm test
         working-directory: plugin

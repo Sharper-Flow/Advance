@@ -1,3 +1,60 @@
+## 2026-05-28 (v1.0.0)
+
+First 1.x release. ADV graduates from 0.12.x with a coherent architectural milestone: artifact content lives in Temporal workflow state, gate readiness validates state (not disk), signal handlers no longer fail workflows on ordinary errors, and sub-agent contracts are structurally enforced.
+
+### Breaking
+
+- **Positional artifact API removed.** `Store.changes.create()` and `Store.changes.updateArtifacts()` now take a typed `ArtifactPayload` options object. Zero positional callers remain (verified by grep sweep). External plugin code using the positional form must migrate.
+- **`ArtifactKind` unified.** Single canonical definition in `types/artifacts.ts` with compile-time invariant lock (`keyof ArtifactPayload === ArtifactKind`). Duplicate definitions removed from `temporal/contracts.ts` and `temporal/activities.ts`.
+- **Temporal `state.documents` is now the source of truth for artifact content.** Production reads query Temporal first with archive-bundle fallback. Disk artifact files become a derived view materialized only when building the archive bundle.
+
+### Added
+
+- `adv-designer` apply-phase, write-only, typed-persisted sub-agent for frontend/component implementation; routes from `metadata.frontend == "true"` at `/adv-prep` time into `/adv-apply` Priority 1.5 delegation.
+- `skills/adv-frontend-review/SKILL.md` — canonical 6-dimension frontend/design review methodology, referenced as Primary from `/adv-review` and `/adv-harden` reviewer packets.
+- Strict scoped report schemas for `adv-researcher`, `adv-tron`, and orchestrator-submitted `adv-scanner-bundle` reports (typed handoff).
+- `signal_rejections` bounded ring buffer + `signal_rejections_total` counter on `ChangeWorkflowState`; signal handlers record ordinary errors as state without failing the workflow.
+- ADR 0003: signal handlers must not throw ordinary errors (state-mutation rejection pattern).
+- `stateBackedArtifactEvidence` helper in `temporal/gate-readiness.ts` — proposal/discovery/design gate readiness validates Temporal `state.documents` instead of requiring active disk files.
+- Stuck proposal/discovery/design gate recovery guidance: deploy → restart OpenCode → re-enter gate, no manual disk artifact writes.
+- `STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH` Temporal patch marker for replay-safe command-sequence change.
+- OpenCode debt repair extended to stale `running`/`pending` tool parts (backup-gated, schema-compatible, conservative around live work).
+- `adv_status view:"summary"` and a summary-read path for `adv_change_list` that avoids per-change full hydration when memo/cache satisfies the response.
+- `adv_run_test` always-on substep telemetry for overhead diagnosis.
+
+### Fixed
+
+- Acceptance evidence recovery: `executive-summary.md` is acceptance proof with workflow metadata + SHA-256 content hash; `acceptance.md` generated from typed contract review state at gate completion; missing/stale/failing/not-visible proof blocks acceptance with deterministic readiness errors.
+- Audited completed/poisoned workflow recovery for executive-summary metadata, contract review matrix, and acceptance gate completion (requires precise evidence + rationale + prior approval).
+- `scripts/deploy-local.sh --fix` only creates a backup when an actual patch will run, auto-prunes to 3 most recent backups, and fails loud on JSONC drift with exact diff + restore command.
+- Sub-agent report durable readback and acceptance/release reviewer reporting restored without weakening new-report validation; legacy persisted reports normalized at read/Temporal boundaries.
+- Bounded worktree cleanup so stuck Temporal/workflow notification or queued-delete work does not hang ADV cleanup flows.
+- Pre-existing tool drift; `removePositionalArtifactApi` follow-ups captured as durable agenda + wisdom.
+- `signalMutation` wrapper at `workflows.ts` no longer routes through `safeUpdateHandler`; converted to `signalAsync` and catches sync + Promise rejections without throwing (except `wf.CancelledFailure` / `wf.TemporalFailure` passthrough).
+
+### Changed
+
+- Sub-agent contracts make scope, completion, stop conditions, verification, report transport, and scanner-lane boundaries explicit and structurally test-backed.
+- All 4 former direct `safeUpdateHandler` signal call sites (`gateCompleted`, `archiveRequested`, `changeCancelled`, `archiveChange`) converted to `signalAsync`; structural test forbids unwrapped `wf.setHandler(*Signal, ...)`.
+- Workflow-safe deterministic payload digest helpers (sorted JSON + pure-JS FNV-1a); no `node:*` imports in workflow bundle.
+- Acceptance branch in workflow gate completion left intact; only proposal/discovery/design switch to state-backed evidence on the patched path. Legacy histories still replay correctly.
+
+### Change Highlights
+
+- **fixGateArtifactReadiness**: state-backed proposal/discovery/design gate readiness
+- **fixSignalHandlerThrow**: ADR 0003 + state-mutation rejection pattern for signals
+- **fixToolDriftCaptureFollowUps**: drift cleanup + agenda/wisdom captures
+- **removePositionalArtifactApi**: typed `ArtifactPayload`, unified `ArtifactKind`, Temporal-first artifact content
+- **improveAdvLatency**: faster `adv_status` summary path + summary-read `adv_change_list` + `adv_run_test` telemetry
+- **fixWorktreeCleanup**: bounded cleanup, no hang on stuck Temporal notification
+- **fixSubagentReportContracts**: durable readback + acceptance/release reviewer reporting
+- **fixAcceptanceEvidenceRecovery**: executive-summary as acceptance proof + audited recovery paths
+- **addFrontendReviewSkill**: canonical 6-dimension review methodology wired into review/harden
+- **fixDeployBackups**: backup-on-patch, prune-to-3, fail-loud JSONC drift
+- **addAdvDesigner**: apply-phase frontend sub-agent + structural routing
+- **improveSubAgentContracts**: explicit, test-backed scope/completion/verification/transport boundaries
+- **fixOpencodeDebt**: stale `running`/`pending` tool part repair
+
 ## 2026-05-23 (v0.11.14)
 
 ### Fixed
