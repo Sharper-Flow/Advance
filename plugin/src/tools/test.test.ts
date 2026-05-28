@@ -73,6 +73,53 @@ describe("test tools — simplified adv_run_test", () => {
     expect(parsed.command).toBe("echo test output");
   });
 
+  test("records adv_run_test substep telemetry phases", async () => {
+    const { resetMetrics, getMetrics } = await import("../utils/metrics");
+    resetMetrics();
+    const store = createMockStore();
+
+    await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "echo telemetry sample",
+      },
+      store,
+      "/tmp",
+    );
+
+    const phases = getMetrics().recent_phase_durations.filter(
+      (p) => p.tool === "adv_run_test",
+    );
+    const names = new Set(phases.map((p) => p.phase));
+    expect(names.has("taskLookup")).toBe(true);
+    expect(names.has("commandExecution")).toBe(true);
+    expect(names.has("outputShaping")).toBe(true);
+    for (const p of phases) {
+      expect(p.duration_ms).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  test("records failure outcome for command execution substep on non-zero exit", async () => {
+    const { resetMetrics, getMetrics } = await import("../utils/metrics");
+    resetMetrics();
+    const store = createMockStore();
+
+    await testTools.adv_run_test.execute(
+      {
+        taskId: "tk-abc",
+        command: "exit 2",
+      },
+      store,
+      "/tmp",
+    );
+
+    const commandPhase = getMetrics()
+      .recent_phase_durations.filter((p) => p.tool === "adv_run_test")
+      .find((p) => p.phase === "commandExecution");
+    expect(commandPhase).toBeDefined();
+    expect(commandPhase?.outcome).toBe("error");
+  });
+
   test("returns error output when command fails", async () => {
     const store = createMockStore();
 

@@ -17,6 +17,7 @@
 import { ZodError } from "zod";
 import { formatToolOutput } from "./tool-output";
 import { appendProfileLog } from "./debug-log";
+import { recordToolDuration } from "./metrics";
 
 /**
  * Optional enrichment context. All fields are additive — no existing
@@ -381,6 +382,21 @@ function isProfilingEnabled(): boolean {
   return process.env.ADV_PROFILE === "1";
 }
 
+/**
+ * rq-advLatencyTelemetry01: always-on in-memory per-tool duration
+ * recording for safeExecute-wrapped tools. Keeps `ADV_PROFILE` file
+ * logging as an opt-in extra so existing profile workflows are not
+ * altered.
+ */
+function recordToolTelemetry(
+  tool: string,
+  startedAt: number,
+  outcome: "success" | "error",
+): void {
+  const durationMs = Number((performance.now() - startedAt).toFixed(3));
+  recordToolDuration(tool, durationMs, outcome);
+}
+
 function recordToolProfile(
   tool: string,
   startedAt: number,
@@ -417,7 +433,7 @@ export function safeExecute<TArgs, TContext>(
   const timeoutMs = options?.timeoutMs ?? DEFAULT_TOOL_TIMEOUT_MS;
   return async (args: TArgs, context: TContext): Promise<string> => {
     const profiling = isProfilingEnabled();
-    const startedAt = profiling ? performance.now() : 0;
+    const startedAt = performance.now();
     try {
       const result = await raceWithTimeout(
         fn(args, context),
@@ -425,6 +441,7 @@ export function safeExecute<TArgs, TContext>(
         timeoutMs,
       );
       const output = applyOutputBudget(result);
+      recordToolTelemetry(toolName, startedAt, "success");
       if (profiling) {
         recordToolProfile(
           toolName,
@@ -437,6 +454,7 @@ export function safeExecute<TArgs, TContext>(
       return output;
     } catch (error) {
       const extra = contextExtractor ? contextExtractor(args) : undefined;
+      recordToolTelemetry(toolName, startedAt, "error");
       if (profiling) {
         recordToolProfile(
           toolName,
@@ -472,7 +490,7 @@ export function safeExecuteSimple<TArgs, TExtra>(
     extraPath?: unknown,
   ): Promise<string> => {
     const profiling = isProfilingEnabled();
-    const startedAt = profiling ? performance.now() : 0;
+    const startedAt = performance.now();
     try {
       const result = await raceWithTimeout(
         fn(args, extra),
@@ -480,6 +498,7 @@ export function safeExecuteSimple<TArgs, TExtra>(
         timeoutMs,
       );
       const output = applyOutputBudget(result);
+      recordToolTelemetry(toolName, startedAt, "success");
       if (profiling) {
         const derivedExtra: ErrorContext = {};
         if (typeof extra === "string") {
@@ -512,6 +531,7 @@ export function safeExecuteSimple<TArgs, TExtra>(
         ...derivedExtra,
         ...(provided ?? {}),
       };
+      recordToolTelemetry(toolName, startedAt, "error");
       if (profiling) {
         recordToolProfile(
           toolName,

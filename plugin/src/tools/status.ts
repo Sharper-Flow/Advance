@@ -55,7 +55,7 @@ import {
 } from "../storage/json";
 import { readProjectMetadata } from "../storage/project-metadata";
 import { getWorktreeCensus } from "../utils/worktree-census";
-import { getMetrics } from "../utils/metrics";
+import { getMetrics, withRecordedPhase } from "../utils/metrics";
 import { scanOpenCodeSessionDebt } from "../utils/opencode-session-debt";
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
 import { z } from "zod";
@@ -1120,11 +1120,16 @@ export const statusTools = {
         { store, target_path },
         async (activeStore, projectContext) => {
           const plan = buildStatusViewPlan(view);
-          const { status, bootstrapDiagnostic } =
-            await loadStatusWithBootstrapRetry(activeStore);
+          const { status, bootstrapDiagnostic } = await withRecordedPhase(
+            "adv_status",
+            "statusLoad",
+            () => loadStatusWithBootstrapRetry(activeStore),
+          );
           const migrationStatus =
             view === "health" || view === "hygiene"
-              ? await loadMigrationStatus(activeStore)
+              ? await withRecordedPhase("adv_status", "migrationStatus", () =>
+                  loadMigrationStatus(activeStore),
+                )
               : null;
 
           const projectId = activeStore.paths.external
@@ -1269,10 +1274,15 @@ export const statusTools = {
           }
 
           if (plan.recentEnrichment) {
-            const recentChanges = await filterRecentChangesForProductScope(
-              status.changes.recent ?? [],
-              activeStore,
-              scope,
+            const recentChanges = await withRecordedPhase(
+              "adv_status",
+              "recentChangeScopeFilter",
+              () =>
+                filterRecentChangesForProductScope(
+                  status.changes.recent ?? [],
+                  activeStore,
+                  scope,
+                ),
             );
             status.changes.recent = recentChanges;
             const features = activeStore.config?.features as
@@ -1280,22 +1290,28 @@ export const statusTools = {
               | undefined;
             const clarifyMode = features?.clarify_enforcement ?? "advisory";
 
-            let primaryAssigned = false;
-            for (const rc of recentChanges) {
-              const isPrimary =
-                !primaryAssigned &&
-                (rc.status === "active" ||
-                  rc.status === "draft" ||
-                  rc.status === "pending");
-              if (isPrimary) primaryAssigned = true;
-              await enrichRecentChangeStatus(
-                rc,
-                status,
-                activeStore,
-                clarifyMode,
-                isPrimary,
-              );
-            }
+            await withRecordedPhase(
+              "adv_status",
+              "recentChangeEnrichment",
+              async () => {
+                let primaryAssigned = false;
+                for (const rc of recentChanges) {
+                  const isPrimary =
+                    !primaryAssigned &&
+                    (rc.status === "active" ||
+                      rc.status === "draft" ||
+                      rc.status === "pending");
+                  if (isPrimary) primaryAssigned = true;
+                  await enrichRecentChangeStatus(
+                    rc,
+                    status,
+                    activeStore,
+                    clarifyMode,
+                    isPrimary,
+                  );
+                }
+              },
+            );
           }
 
           let terminalCleanupRetained: PendingDeleteSummary = {
@@ -1303,28 +1319,30 @@ export const statusTools = {
             classes: {},
           };
           if (plan.worktreeCleanup) {
-            try {
-              const worktreeAccess = await initWorktreeStateDb(
-                activeStore.paths.root,
-              );
-              await advWorktreeCleanup("status", {
-                projectRoot: activeStore.paths.root,
-                database: worktreeAccess,
-                log: {
-                  debug: () => undefined,
-                  info: () => undefined,
-                  warn: () => undefined,
-                  error: () => undefined,
-                },
-                store: activeStore,
-                forceAttempts: false,
-              });
-              terminalCleanupRetained = summarizePendingDeletes(
-                await getPendingDeletes(worktreeAccess),
-              );
-            } catch {
-              // Status cleanup discovery is best-effort; status itself must remain available.
-            }
+            await withRecordedPhase("adv_status", "worktreeCleanup", async () => {
+              try {
+                const worktreeAccess = await initWorktreeStateDb(
+                  activeStore.paths.root,
+                );
+                await advWorktreeCleanup("status", {
+                  projectRoot: activeStore.paths.root,
+                  database: worktreeAccess,
+                  log: {
+                    debug: () => undefined,
+                    info: () => undefined,
+                    warn: () => undefined,
+                    error: () => undefined,
+                  },
+                  store: activeStore,
+                  forceAttempts: false,
+                });
+                terminalCleanupRetained = summarizePendingDeletes(
+                  await getPendingDeletes(worktreeAccess),
+                );
+              } catch {
+                // Status cleanup discovery is best-effort; status itself must remain available.
+              }
+            });
           }
 
           let worktreeCensus: WorktreeCensusSnapshot | undefined;
@@ -1347,7 +1365,11 @@ export const statusTools = {
             idleToolPart: number;
           } | null = null;
           if (plan.sessionDebt) {
-            opencodeSessionDebt = await scanOpenCodeSessionDebt();
+            opencodeSessionDebt = await withRecordedPhase(
+              "adv_status",
+              "sessionDebtScan",
+              () => scanOpenCodeSessionDebt(),
+            );
             opencodeDebtCounts = opencodeSessionDebt.available
               ? {
                   orphanGhost:
@@ -1397,7 +1419,11 @@ export const statusTools = {
 
           let healthSnapshot: HealthSnapshot | undefined;
           if (plan.healthSnapshot) {
-            healthSnapshot = await computeHealthSnapshot(activeStore);
+            healthSnapshot = await withRecordedPhase(
+              "adv_status",
+              "healthSnapshot",
+              () => computeHealthSnapshot(activeStore),
+            );
             if (healthSnapshot.closed_to_active_ratio > 5) {
               const ratio = healthSnapshot.closed_to_active_ratio;
               status.recommendations.push(
@@ -1412,8 +1438,11 @@ export const statusTools = {
 
           let snapshotHealth: SnapshotHealthSnapshot | undefined;
           if (plan.snapshotHealth) {
-            const snapshotHealthProbe =
-              await fetchStatusSnapshotHealth(projectId);
+            const snapshotHealthProbe = await withRecordedPhase(
+              "adv_status",
+              "snapshotHealth",
+              () => fetchStatusSnapshotHealth(projectId),
+            );
             snapshotHealth = snapshotHealthProbe.value;
             probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
           }
@@ -1455,7 +1484,11 @@ export const statusTools = {
             ? await getPluginRuntimeInfo()
             : undefined;
 
-          const formatted = formatStatusOutput({
+          const formatted = await withRecordedPhase(
+            "adv_status",
+            "formatOutput",
+            async () =>
+              formatStatusOutput({
             specCount: status.specs.count,
             requirementCount,
             activeChanges: status.changes.recent.map((c) => ({
@@ -1520,7 +1553,8 @@ export const statusTools = {
                   info: snapshotHealth.summary.info,
                 }
               : undefined,
-          });
+          }),
+          );
           if (view === "summary") {
             formatted.healthSection = "";
             formatted.worktreeSection = "";

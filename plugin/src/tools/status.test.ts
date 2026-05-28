@@ -1200,6 +1200,33 @@ Vague in-flight work.
         expect(typeof parsed.metrics.subagent_spawns).toBe("number");
         expect(typeof parsed.metrics.wall_time_ms).toBe("number");
         expect(parsed.metrics.adv_tool_call_count_by_name).toBeDefined();
+        expect(parsed.metrics.adv_tool_durations).toBeDefined();
+        expect(Array.isArray(parsed.metrics.recent_phase_durations)).toBe(true);
+      });
+
+      test("health view records named adv_status phase durations", async () => {
+        const { resetMetrics } = await import("../utils/metrics");
+        resetMetrics();
+        await statusTools.adv_status.execute({ view: "health" }, store);
+        const result = await statusTools.adv_status.execute(
+          { view: "health" },
+          store,
+        );
+        const parsed = parseToolOutput(result);
+        const phases = parsed.metrics.recent_phase_durations as Array<{
+          tool: string;
+          phase: string;
+          duration_ms: number;
+        }>;
+        const statusPhases = phases.filter((p) => p.tool === "adv_status");
+        const phaseNames = new Set(statusPhases.map((p) => p.phase));
+        expect(phaseNames.has("statusLoad")).toBe(true);
+        expect(phaseNames.has("recentChangeEnrichment")).toBe(true);
+        expect(phaseNames.has("formatOutput")).toBe(true);
+        for (const p of statusPhases) {
+          expect(typeof p.duration_ms).toBe("number");
+          expect(p.duration_ms).toBeGreaterThanOrEqual(0);
+        }
       });
 
       test("summary view does NOT expose metrics counters", async () => {

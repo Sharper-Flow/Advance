@@ -3,6 +3,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import type { Store } from "../storage/store";
 import { formatToolOutput } from "../utils/tool-output";
+import { recordPhaseDuration, withRecordedPhase } from "../utils/metrics";
 import {
   appendTargetProjectContextOutput,
   withTargetPathStore,
@@ -210,27 +211,37 @@ export const testTools = {
       bounds?: ExecBounds,
     ): Promise<string> => {
       if (args.target_path) {
-        return withTargetPathStore(
-          {
-            currentProjectPath: store.paths.root,
-            target_path: args.target_path,
-            stateRequirement: "temporal-required",
-            target_confirmed: args.target_confirmed,
-            confirmationEvidence: args.confirmationEvidence,
-          },
-          async ({ context, store: targetStore }): Promise<string> => {
-            const output: string = await testTools.adv_run_test.execute(
-              { ...args, target_path: undefined },
-              targetStore,
-              args.workdir ?? context.root,
-              bounds,
-            );
-            return appendTargetProjectContextOutput(output, context);
-          },
+        const targetPath = args.target_path;
+        return withRecordedPhase(
+          "adv_run_test",
+          "targetRouting",
+          async () =>
+            withTargetPathStore(
+              {
+                currentProjectPath: store.paths.root,
+                target_path: targetPath,
+                stateRequirement: "temporal-required",
+                target_confirmed: args.target_confirmed,
+                confirmationEvidence: args.confirmationEvidence,
+              },
+              async ({ context, store: targetStore }): Promise<string> => {
+                const output: string = await testTools.adv_run_test.execute(
+                  { ...args, target_path: undefined },
+                  targetStore,
+                  args.workdir ?? context.root,
+                  bounds,
+                );
+                return appendTargetProjectContextOutput(output, context);
+              },
+            ),
         );
       }
 
-      const task = await store.tasks.get(args.taskId);
+      const task = await withRecordedPhase(
+        "adv_run_test",
+        "taskLookup",
+        async () => store.tasks.get(args.taskId),
+      );
       if (!task) {
         return formatToolOutput({ error: `Task not found: ${args.taskId}` });
       }
@@ -246,8 +257,15 @@ export const testTools = {
         maxBuffer: bounds?.maxBuffer ?? DEFAULT_TEST_MAX_BUFFER,
       };
 
+      const commandStartedAt = performance.now();
       const { stdout, stderr, exitCode, timedOut, maxBufferExceeded } =
         await runCommand(args.command, cwd, effective);
+      recordPhaseDuration({
+        tool: "adv_run_test",
+        phase: "commandExecution",
+        durationMs: performance.now() - commandStartedAt,
+        outcome: exitCode === 0 ? "success" : "error",
+      });
 
       let rawOutput = `${stdout}\n${stderr}`.trim();
       if (timedOut) {
@@ -266,7 +284,11 @@ export const testTools = {
           .join("\n");
       }
 
-      const truncatedOutput = shapeCommandOutput(rawOutput, exitCode);
+      const truncatedOutput = await withRecordedPhase(
+        "adv_run_test",
+        "outputShaping",
+        async () => shapeCommandOutput(rawOutput, exitCode),
+      );
 
       return formatToolOutput({
         success: true,
