@@ -359,11 +359,7 @@ export async function createDiskStore(
           paths.changes,
           changeId,
           summary,
-          artifacts.proposal,
-          artifacts.problemStatement,
-          artifacts.agreement,
-          artifacts.design,
-          artifacts.executiveSummary,
+          artifacts,
         );
 
         const change: Change = {
@@ -421,15 +417,7 @@ export async function createDiskStore(
             error: `Change not found: "${changeId}".${hint}`,
           };
         }
-        const result = await updateChangeArtifacts(
-          paths.changes,
-          id,
-          artifacts.proposal,
-          artifacts.problemStatement,
-          artifacts.agreement,
-          artifacts.design,
-          artifacts.executiveSummary,
-        );
+        const result = await updateChangeArtifacts(paths.changes, id, artifacts);
         if (result.error) {
           return { success: false, error: result.error };
         }

@@ -666,7 +666,7 @@ describe("createChangeScaffold", () => {
       changesDir,
       "customProposal",
       "Ignored Title",
-      customProposal,
+      { proposal: customProposal },
     );
 
     const content = await readFile(result.proposalPath, "utf-8");
@@ -681,9 +681,11 @@ describe("createChangeScaffold", () => {
         changesDir,
         "blankScaffold",
         "Blank Scaffold",
-        "# Valid proposal",
-        "   ",
-        "Valid agreement",
+        {
+          proposal: "# Valid proposal",
+          problemStatement: "   ",
+          agreement: "Valid agreement",
+        },
       ),
     ).rejects.toThrow(
       "Blank artifact fields are not allowed: problemStatement. Omit fields you do not intend to change.",
@@ -705,8 +707,7 @@ describe("createChangeScaffold", () => {
       changesDir,
       "withProblemStatement",
       "Test Problem Statement",
-      undefined,
-      problemStatement,
+      { problemStatement },
     );
 
     expect(result.problemStatementPath).toContain("problem-statement.md");
@@ -756,8 +757,7 @@ describe("updateChangeArtifacts", () => {
     const result = await updateChangeArtifacts(
       changesDir,
       "testChange",
-      newProposal,
-      newProblemStatement,
+      { proposal: newProposal, problemStatement: newProblemStatement },
     );
 
     expect(result.proposalPath).toContain("proposal.md");
@@ -775,8 +775,10 @@ describe("updateChangeArtifacts", () => {
     const result = await updateChangeArtifacts(
       changesDir,
       "nonExistentChange",
-      "proposal content",
-      "problem statement content",
+      {
+        proposal: "proposal content",
+        problemStatement: "problem statement content",
+      },
     );
 
     expect(result.error).toBeDefined();
@@ -802,8 +804,10 @@ describe("updateChangeArtifacts", () => {
     await updateChangeArtifacts(
       changesDir,
       "preserveJson",
-      "# New proposal",
-      "New problem statement",
+      {
+        proposal: "# New proposal",
+        problemStatement: "New problem statement",
+      },
     );
 
     // change.json must be untouched
@@ -817,14 +821,16 @@ describe("updateChangeArtifacts", () => {
       changesDir,
       "proposalOnly",
       "Proposal Only",
-      "# Original proposal",
-      "Original problem statement",
+      {
+        proposal: "# Original proposal",
+        problemStatement: "Original problem statement",
+      },
     );
 
     const result = await updateChangeArtifacts(
       changesDir,
       "proposalOnly",
-      "# Updated proposal only",
+      { proposal: "# Updated proposal only" },
     );
 
     expect(result.proposalPath).toContain("proposal.md");
@@ -846,15 +852,16 @@ describe("updateChangeArtifacts", () => {
       changesDir,
       "psOnly",
       "PS Only",
-      "# Original proposal",
-      "Original problem statement",
+      {
+        proposal: "# Original proposal",
+        problemStatement: "Original problem statement",
+      },
     );
 
     const result = await updateChangeArtifacts(
       changesDir,
       "psOnly",
-      undefined,
-      "Updated problem statement only",
+      { problemStatement: "Updated problem statement only" },
     );
 
     expect(result.proposalPath).toBeUndefined();
@@ -876,19 +883,21 @@ describe("updateChangeArtifacts", () => {
       changesDir,
       "rejectBlank",
       "Reject Blank",
-      "# Original proposal",
-      "Original problem statement",
-      "Original agreement",
-      "Original design",
+      {
+        proposal: "# Original proposal",
+        problemStatement: "Original problem statement",
+        agreement: "Original agreement",
+        design: "Original design",
+      },
     );
 
     const result = await updateChangeArtifacts(
       changesDir,
       "rejectBlank",
-      "# Updated proposal",
-      undefined,
-      undefined,
-      "   ",
+      {
+        proposal: "# Updated proposal",
+        design: "   ",
+      },
     );
 
     expect(result.error).toContain("Blank artifact fields are not allowed");
@@ -907,7 +916,7 @@ describe("updateChangeArtifacts", () => {
     const changesDir = join(tempDir, "changes");
     await createChangeScaffold(changesDir, "noop", "Noop");
 
-    const result = await updateChangeArtifacts(changesDir, "noop");
+    const result = await updateChangeArtifacts(changesDir, "noop", {});
 
     expect(result.proposalPath).toBeUndefined();
     expect(result.problemStatementPath).toBeUndefined();
@@ -920,15 +929,19 @@ describe("updateChangeArtifacts", () => {
       changesDir,
       "overwriteTest",
       "Overwrite Test",
-      "# Original proposal content",
-      "Original problem statement",
+      {
+        proposal: "# Original proposal content",
+        problemStatement: "Original problem statement",
+      },
     );
 
     const result = await updateChangeArtifacts(
       changesDir,
       "overwriteTest",
-      "# Completely new proposal",
-      "Completely new problem statement",
+      {
+        proposal: "# Completely new proposal",
+        problemStatement: "Completely new problem statement",
+      },
     );
 
     const proposalContent = await readFile(result.proposalPath!, "utf-8");
@@ -1070,9 +1083,7 @@ describe("createChangeScaffold with agreement and design", () => {
       changesDir,
       "testAgreement",
       "Test Agreement",
-      undefined,
-      undefined,
-      "# Agreement\n\nObjectives here.",
+      { agreement: "# Agreement\n\nObjectives here." },
     );
     expect(result.agreementPath).toContain("agreement.md");
     const content = await readFile(result.agreementPath!, "utf-8");
@@ -1085,10 +1096,7 @@ describe("createChangeScaffold with agreement and design", () => {
       changesDir,
       "testDesign",
       "Test Design",
-      undefined,
-      undefined,
-      undefined,
-      "# Design\n\nArchitecture overview.",
+      { design: "# Design\n\nArchitecture overview." },
     );
     expect(result.designPath).toContain("design.md");
     const content = await readFile(result.designPath!, "utf-8");
@@ -1116,11 +1124,10 @@ describe("createChangeScaffold with agreement and design", () => {
       changesDir,
       "testExecSummary",
       "Test Exec Summary",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      "# Executive Summary\n\n## Outcome\nThe change landed well.",
+      {
+        executiveSummary:
+          "# Executive Summary\n\n## Outcome\nThe change landed well.",
+      },
     );
     expect(result.executiveSummaryPath).toContain("executive-summary.md");
     const content = await readFile(result.executiveSummaryPath!, "utf-8");
@@ -1161,10 +1168,10 @@ describe("updateChangeArtifacts with agreement and design", () => {
     const result = await updateChangeArtifacts(
       changesDir,
       "updateTest",
-      undefined,
-      undefined,
-      "# Updated Agreement",
-      "# Updated Design",
+      {
+        agreement: "# Updated Agreement",
+        design: "# Updated Design",
+      },
     );
     expect(result.agreementPath).toContain("agreement.md");
     expect(result.designPath).toContain("design.md");
@@ -1182,9 +1189,7 @@ describe("updateChangeArtifacts with agreement and design", () => {
     const result = await updateChangeArtifacts(
       changesDir,
       "agOnly",
-      undefined,
-      undefined,
-      "# Agreement Only Content",
+      { agreement: "# Agreement Only Content" },
     );
     expect(result.agreementPath).toContain("agreement.md");
     expect(result.designPath).toBeUndefined();
@@ -1200,11 +1205,10 @@ describe("updateChangeArtifacts with agreement and design", () => {
     const result = await updateChangeArtifacts(
       changesDir,
       "execSummaryTest",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      "# Executive Summary\n\n## Outcome\nApproved with 0 findings.",
+      {
+        executiveSummary:
+          "# Executive Summary\n\n## Outcome\nApproved with 0 findings.",
+      },
     );
 
     expect(result.executiveSummaryPath).toContain("executive-summary.md");
@@ -1219,11 +1223,11 @@ describe("updateChangeArtifacts with agreement and design", () => {
     const result = await updateChangeArtifacts(
       changesDir,
       "mixedUpdate",
-      "# Updated Proposal",
-      undefined,
-      "# Updated Agreement",
-      undefined,
-      "# Updated Executive Summary",
+      {
+        proposal: "# Updated Proposal",
+        agreement: "# Updated Agreement",
+        executiveSummary: "# Updated Executive Summary",
+      },
     );
 
     expect(result.proposalPath).toContain("proposal.md");

@@ -505,14 +505,9 @@ describe("createChangeOps", () => {
       dualWriteAfterMutation: vi.fn(),
     } as never);
 
-    await ops.updateArtifacts(
-      "summaryChange",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      "# Executive Summary",
-    );
+    await ops.updateArtifacts("summaryChange", {
+      executiveSummary: "# Executive Summary",
+    });
 
     expect(signalMock).toHaveBeenCalledWith(
       expect.anything(),

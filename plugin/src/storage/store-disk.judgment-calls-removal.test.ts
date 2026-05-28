@@ -51,14 +51,10 @@ describe("store-disk — judgment_calls removal", () => {
     const dir = await makeTempProject();
     const store = await createDiskStore(dir);
 
-    const result = await store.changes.create(
-      "Test Change",
-      "test-capability",
-      "# Proposal\n",
-      undefined,
-      undefined,
-      undefined,
-    );
+    const result = await store.changes.create("Test Change", {
+      capability: "test-capability",
+      artifacts: { proposal: "# Proposal\n" },
+    });
     expect(result.changeId).toBeTruthy();
 
     const loaded = await store.changes.get(result.changeId);
@@ -75,16 +71,11 @@ describe("store-disk — judgment_calls removal", () => {
     const store = await createDiskStore(dir);
     const origin = { kind: "roadmap" as const, issue_number: 51 };
 
-    const result = await store.changes.create(
-      "Seed Origin",
-      "backlog-coordination",
-      "# Proposal\n",
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      { initialMetadata: { origin } },
-    );
+    const result = await store.changes.create("Seed Origin", {
+      capability: "backlog-coordination",
+      artifacts: { proposal: "# Proposal\n" },
+      initialMetadata: { origin },
+    });
 
     const loaded = await store.changes.get(result.changeId);
 
