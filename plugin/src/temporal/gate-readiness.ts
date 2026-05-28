@@ -19,6 +19,8 @@ export const ARTIFACT_BACKED_GATES: Partial<Record<GateId, GateArtifactKind>> =
 
 export const gateArtifactEvidenceSchema = GateArtifactEvidenceSchema;
 
+export const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
+
 export interface GateReadinessOptions {
   compatibilityReason?: string;
   enforceDiscoveryContract?: boolean;
@@ -86,6 +88,61 @@ function artifactStoreBlocker(
     remediation:
       "Provide a workflow artifact store or use an explicit compatibility rationale for replay/migration fixtures.",
   });
+}
+
+function nonWhitespaceCount(text: string): number {
+  return text.replace(/\s/g, "").length;
+}
+
+export function stateBackedArtifactEvidence(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+  artifactKind: GateArtifactKind,
+  checkedAt: string,
+): GateReadinessResult {
+  const content = state.documents?.[artifactKind];
+  if (typeof content !== "string" || content.trim().length === 0) {
+    return {
+      ready: false,
+      blockers: [
+        makeBlocker({
+          code: "ARTIFACT_MISSING",
+          gateId,
+          artifactKind,
+          message: `${artifactKind} artifact is missing from workflow state.`,
+          remediation:
+            "Persist the required artifact through the Temporal artifact update path before retrying gate completion.",
+        }),
+      ],
+    };
+  }
+
+  const nonWhitespaceChars = nonWhitespaceCount(content);
+  if (nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS) {
+    return {
+      ready: false,
+      blockers: [
+        makeBlocker({
+          code: "ARTIFACT_UNDERSIZED",
+          gateId,
+          artifactKind,
+          message: `${artifactKind} artifact has ${nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+          remediation:
+            "Populate the required artifact with substantive gate evidence before retrying gate completion.",
+        }),
+      ],
+    };
+  }
+
+  const metadata = state.artifacts[artifactKind];
+  const evidence: GateArtifactEvidence = {
+    kind: artifactKind,
+    ...(metadata?.path ? { path: metadata.path } : {}),
+    ...(metadata?.contentHash ? { content_hash: metadata.contentHash } : {}),
+    non_whitespace_chars: nonWhitespaceChars,
+    checked_at: checkedAt,
+  };
+  return { ready: true, blockers: [], evidence };
 }
 
 function agreementExists(state: ChangeWorkflowState): boolean {
@@ -249,7 +306,7 @@ export function evaluateGateReadiness(
     evidence = compatibilityEvidence(artifactKind, options.compatibilityReason);
   }
 
-  if (artifactKind && !state.projectionChangesDir) {
+  if (artifactKind === "acceptance" && !state.projectionChangesDir) {
     if (options.compatibilityReason) {
       evidence = compatibilityEvidence(
         artifactKind,
