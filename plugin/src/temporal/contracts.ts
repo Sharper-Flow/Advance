@@ -135,6 +135,27 @@ export interface ArtifactMetadata {
   path: string;
   updatedAt: string;
   contentHash?: string;
+  /**
+   * Recorded when a content signal was rejected by Layer 2 size-guard
+   * (signal handler) per KD-8. State-mutation rejection — the workflow
+   * continues and `state.documents[kind]` is unchanged, but the rejection
+   * is observable via this metadata field for the tool layer to surface.
+   */
+  rejection?: {
+    reason: "ARTIFACT_OVERSIZED" | "AGGREGATE_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+  /**
+   * Recorded when a content signal triggered the soft-cap warning but was
+   * still applied. Informational; does not block writes.
+   */
+  sizeWarning?: {
+    size: number;
+    soft_cap: number;
+    at: string;
+  };
 }
 
 export interface ChangeWorkflowInput {

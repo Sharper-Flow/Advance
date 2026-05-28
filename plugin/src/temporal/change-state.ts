@@ -171,64 +171,251 @@ function getMutableTask(state: ChangeWorkflowState, taskId: string): Task {
   return getTaskOrThrow(state, taskId);
 }
 
+// =============================================================================
+// Layer 2 size-guard (KD-8) — state-mutation rejection
+//
+// Temporal docs (https://docs.temporal.io/handling-messages#exceptions)
+// confirm throwing in a signal handler fails the ENTIRE workflow. ADV's
+// canonical pattern (applyGateStuckToState at workflows.ts:722-732, 1098) is
+// state-mutation rejection: record the rejection in state, leave the target
+// state field unchanged, return state. Workflow continues; tool layer can
+// observe the rejection via the next query.
+//
+// Layer 1 (tool/store layer) pre-checks size before any signal fires; Layer 2
+// is the structural defense in case Layer 1 is bypassed (test fixtures,
+// recovery flows, future code paths).
+//
+// Cap constants live in `types/artifacts.ts` (validated against Temporal
+// 2 MB per-payload limit by the design-validation researcher).
+// =============================================================================
+
+import {
+  AGGREGATE_HARD_CAP,
+  ARTIFACT_HARD_CAP,
+  ARTIFACT_SOFT_CAP,
+} from "../types";
+
+const utf8 = new TextEncoder();
+function byteLength(content: string): number {
+  return utf8.encode(content).length;
+}
+
+/**
+ * Size-guard check for a single content signal. Returns:
+ *   - `{ ok: true, warning? }` — content within hard cap; apply allowed.
+ *     `warning` is set when soft cap exceeded (informational).
+ *   - `{ ok: false, rejection }` — content exceeds hard cap; signal must
+ *     NOT mutate `state.documents`. Caller records `rejection` on
+ *     `state.artifacts[kind]`.
+ */
+function checkPerArtifactSize(
+  kind: ArtifactKind,
+  text: string,
+  at: string,
+): {
+  ok: boolean;
+  size: number;
+  warning?: { size: number; soft_cap: number; at: string };
+  rejection?: {
+    reason: "ARTIFACT_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+} {
+  const size = byteLength(text);
+  if (size > ARTIFACT_HARD_CAP) {
+    return {
+      ok: false,
+      size,
+      rejection: {
+        reason: "ARTIFACT_OVERSIZED",
+        attempted_size: size,
+        cap: ARTIFACT_HARD_CAP,
+        rejected_at: at,
+      },
+    };
+  }
+  if (size > ARTIFACT_SOFT_CAP) {
+    return {
+      ok: true,
+      size,
+      warning: { size, soft_cap: ARTIFACT_SOFT_CAP, at },
+    };
+  }
+  return { ok: true, size };
+}
+
+/**
+ * Aggregate-cap check projecting the proposed content onto the existing
+ * `state.documents`. Returns whether applying this content would push the
+ * total over `AGGREGATE_HARD_CAP`.
+ */
+function checkAggregateSize(
+  state: ChangeWorkflowState,
+  kind: ArtifactKind,
+  text: string,
+  at: string,
+): {
+  ok: boolean;
+  totalBytes: number;
+  rejection?: {
+    reason: "AGGREGATE_OVERSIZED";
+    attempted_size: number;
+    cap: number;
+    rejected_at: string;
+  };
+} {
+  const projected: Record<string, string> = {
+    ...(state.documents ?? {}),
+    [kind]: text,
+  } as Record<string, string>;
+  const totalBytes = byteLength(JSON.stringify(projected));
+  if (totalBytes > AGGREGATE_HARD_CAP) {
+    return {
+      ok: false,
+      totalBytes,
+      rejection: {
+        reason: "AGGREGATE_OVERSIZED",
+        attempted_size: totalBytes,
+        cap: AGGREGATE_HARD_CAP,
+        rejected_at: at,
+      },
+    };
+  }
+  return { ok: true, totalBytes };
+}
+
+/**
+ * Apply size-guard checks and either:
+ *   - Reject (Layer 2 state-mutation rejection): record rejection in
+ *     `state.artifacts[kind]`, leave `state.documents[kind]` unchanged.
+ *   - Apply: mutate `state.documents[kind]`, record soft-cap warning on
+ *     `state.artifacts[kind]` if applicable.
+ *
+ * Shared helper used by all 6 content-signal reducers.
+ */
+function applyContentWithSizeGuard(
+  state: ChangeWorkflowState,
+  kind: ArtifactKind,
+  text: string,
+  at: string,
+): ChangeWorkflowState {
+  // Per-artifact hard cap check
+  const perCheck = checkPerArtifactSize(kind, text, at);
+  if (!perCheck.ok && perCheck.rejection) {
+    state.artifacts = {
+      ...state.artifacts,
+      [kind]: {
+        ...(state.artifacts[kind] ?? { path: "", updatedAt: at }),
+        rejection: perCheck.rejection,
+      },
+    };
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // Aggregate cap check (projects this content onto existing documents)
+  const aggCheck = checkAggregateSize(state, kind, text, at);
+  if (!aggCheck.ok && aggCheck.rejection) {
+    state.artifacts = {
+      ...state.artifacts,
+      [kind]: {
+        ...(state.artifacts[kind] ?? { path: "", updatedAt: at }),
+        rejection: aggCheck.rejection,
+      },
+    };
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // Caps passed — apply content. Clear any prior rejection; record warning
+  // if soft cap exceeded.
+  const existingArtifact = state.artifacts[kind] ?? {
+    path: "",
+    updatedAt: at,
+  };
+  const nextArtifact = {
+    ...existingArtifact,
+    rejection: undefined,
+    sizeWarning: perCheck.warning,
+  };
+  state.documents = { ...(state.documents ?? {}), [kind]: text };
+  state.artifacts = { ...state.artifacts, [kind]: nextArtifact };
+  setLastSignalAt(state, at);
+  return state;
+}
+
 export function applyProposalUpdatedToState(
   state: ChangeWorkflowState,
   payload: ProposalUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), proposal: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "proposal",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyProblemStatementUpdatedToState(
   state: ChangeWorkflowState,
   payload: ProblemStatementUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = {
-    ...(state.documents ?? {}),
-    problemStatement: payload.text,
-  };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "problemStatement",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyAgreementUpdatedToState(
   state: ChangeWorkflowState,
   payload: AgreementUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), agreement: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "agreement",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyDesignUpdatedToState(
   state: ChangeWorkflowState,
   payload: DesignUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), design: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "design",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyExecutiveSummaryUpdatedToState(
   state: ChangeWorkflowState,
   payload: ExecutiveSummaryUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = {
-    ...(state.documents ?? {}),
-    executiveSummary: payload.text,
-  };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "executiveSummary",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyAcceptanceUpdatedToState(
   state: ChangeWorkflowState,
   payload: AcceptanceUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  state.documents = { ...(state.documents ?? {}), acceptance: payload.text };
-  setLastSignalAt(state, payload.updatedAt);
-  return state;
+  return applyContentWithSizeGuard(
+    state,
+    "acceptance",
+    payload.text,
+    payload.updatedAt,
+  );
 }
 
 export function applyAcceptanceCriteriaSetToState(
