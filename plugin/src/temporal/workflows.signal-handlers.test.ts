@@ -188,6 +188,32 @@ async function waitForGateStatus(
   return await queryState(handle);
 }
 
+function extractSetHandlerBlocks(source: string): string[] {
+  const blocks: string[] = [];
+  let searchIndex = 0;
+  while (searchIndex < source.length) {
+    const start = source.indexOf("wf.setHandler(", searchIndex);
+    if (start === -1) break;
+
+    let depth = 0;
+    let end = start;
+    for (; end < source.length; end++) {
+      const char = source[end];
+      if (char === "(") depth++;
+      if (char === ")") {
+        depth--;
+        if (depth === 0) {
+          blocks.push(source.slice(start, end + 1));
+          break;
+        }
+      }
+    }
+    searchIndex = end + 1;
+  }
+
+  return blocks;
+}
+
 describe("changeWorkflow signal handlers", () => {
   it("applies document, task, gate, wisdom, worktree, and conformance signals to workflow state", async () => {
     await withSignalWorker("state-mutations", async (handle) => {
@@ -858,6 +884,55 @@ describe("changeWorkflow signal handlers", () => {
       expect(task!.subagent_reports![0].attempt).toBe(1);
     });
   }, 30_000);
+
+  it("records signal rejections instead of failing workflow when a signal apply path throws", async () => {
+    await withSignalWorker("signal-rejection", async (handle) => {
+      await handle.signal(taskUpdatedSignal, {
+        taskId: "tk-missing",
+        partial: { title: "should be rejected" },
+        updatedAt: "2026-05-05T00:00:01.000Z",
+      });
+
+      await handle.signal(taskAddedSignal, {
+        task: makeTask("tk-after-rejection", "after rejection"),
+        addedAt: "2026-05-05T00:00:02.000Z",
+      });
+
+      const state = await queryState(handle);
+      const signalRejections = (state as any).signal_rejections ?? [];
+
+      expect(signalRejections).toHaveLength(1);
+      expect((state as any).signal_rejections_total).toBe(1);
+      expect(signalRejections[0]).toMatchObject({
+        signalName: "taskUpdated",
+        errorClass: "Error",
+      });
+      expect(signalRejections[0].errorMessage).toContain("tk-missing");
+      expect(signalRejections[0].payloadDigest).toEqual(
+        expect.objectContaining({
+          payload_size: expect.any(Number),
+          payload_sample: expect.any(String),
+          payload_fnv1a: expect.any(String),
+        }),
+      );
+      expect(state.tasks.map((task) => task.id)).toContain(
+        "tk-after-rejection",
+      );
+    });
+  }, 30_000);
+
+  it("routes every signal handler through a signal-safe wrapper", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+    const signalHandlerBlocks = extractSetHandlerBlocks(source).filter((block) =>
+      /wf\.setHandler\(\s*\w+Signal,/.test(block),
+    );
+
+    expect(signalHandlerBlocks.length).toBeGreaterThan(0);
+    expect(source).not.toContain("safeUpdateHandler");
+    for (const block of signalHandlerBlocks) {
+      expect(block).toMatch(/,\s*(signalMutation|signalAsync)\(/);
+    }
+  });
 
   it("deduplicates repeated sub-agent report submissions by task agent and attempt", async () => {
     await withSignalWorker("subagent-report-dedupe", async (handle) => {
