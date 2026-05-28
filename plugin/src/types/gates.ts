@@ -72,6 +72,16 @@ export const GateIdSchema = z.enum(GATE_IDS);
 
 export type GateId = z.infer<typeof GateIdSchema>;
 
+// Gate-backing artifact kinds — a subset of the canonical `ArtifactKind`
+// defined in `types/artifacts.ts`. Only these four are gate-backed
+// (proposal/agreement/design/acceptance); `problemStatement` and
+// `executiveSummary` are not gate-backing artifacts.
+//
+// The Zod schema is kept narrow (4 values) for gate-evidence validation,
+// but the TS type is derived from the canonical union via `Extract` so
+// drift between gate-subset and canonical kinds is impossible.
+import type { ArtifactKind } from "./artifacts";
+
 export const GateArtifactKindSchema = z.enum([
   "proposal",
   "agreement",
@@ -79,7 +89,23 @@ export const GateArtifactKindSchema = z.enum([
   "acceptance",
 ]);
 
-export type GateArtifactKind = z.infer<typeof GateArtifactKindSchema>;
+export type GateArtifactKind = Extract<
+  ArtifactKind,
+  "proposal" | "agreement" | "design" | "acceptance"
+>;
+
+// Compile-time sanity: schema runtime values must match the derived type
+// exhaustively. If a new gate-backed kind is added to either side without
+// the other, `_gateArtifactKindCheck` fails to compile.
+type _GateArtifactKindCheck = GateArtifactKind extends z.infer<
+  typeof GateArtifactKindSchema
+>
+  ? z.infer<typeof GateArtifactKindSchema> extends GateArtifactKind
+    ? true
+    : never
+  : never;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _gateArtifactKindCheck: _GateArtifactKindCheck = true;
 
 export const GateArtifactEvidenceSchema = z.object({
   kind: GateArtifactKindSchema,

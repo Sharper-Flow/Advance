@@ -84,21 +84,17 @@ interface ChangeProjectionActivities {
   inspectArtifactActivity(input: {
     changesDir: string;
     changeId: string;
-    kind:
-      | "proposal"
-      | "agreement"
-      | "design"
-      | "acceptance"
-      | "executive-summary";
+    kind: Extract<
+      import("../types").ArtifactKind,
+      "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary"
+    >;
   }): Promise<
     | {
         ok: true;
-        kind:
-          | "proposal"
-          | "agreement"
-          | "design"
-          | "acceptance"
-          | "executive-summary";
+        kind: Extract<
+          import("../types").ArtifactKind,
+          "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary"
+        >;
         path: string;
         contentHash: string;
         nonWhitespaceChars: number;
@@ -106,12 +102,10 @@ interface ChangeProjectionActivities {
       }
     | {
         ok: false;
-        kind:
-          | "proposal"
-          | "agreement"
-          | "design"
-          | "acceptance"
-          | "executive-summary";
+        kind: Extract<
+          import("../types").ArtifactKind,
+          "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary"
+        >;
         path: string;
         code: "missing" | "unreadable";
         error: string;
@@ -790,7 +784,7 @@ export async function changeWorkflow(
         const executiveSummary = await inspectArtifactActivity({
           changesDir: state.projectionChangesDir,
           changeId: state.changeId,
-          kind: "executive-summary",
+          kind: "executiveSummary",
         });
         if (!executiveSummary.ok) {
           markGateStuckForBlockers(payload, [

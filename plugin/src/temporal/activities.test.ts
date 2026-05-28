@@ -71,11 +71,11 @@ describe("temporal activities", () => {
 
         for (const [kind, expected] of [
           ["proposal", "P"],
-          ["problem-statement", "PS"],
+          ["problemStatement", "PS"],
           ["agreement", "A"],
           ["design", "D"],
           ["acceptance", "ACCEPT"],
-          ["executive-summary", "ES"],
+          ["executiveSummary", "ES"],
         ] as const) {
           const result = await readArtifactActivity({
             changesDir,
@@ -244,11 +244,11 @@ describe("temporal activities", () => {
         const result = await inspectArtifactActivity({
           changesDir,
           changeId: "myChange",
-          kind: "executive-summary",
+          kind: "executiveSummary",
         });
 
         expect(result.ok).toBe(true);
-        expect(result.kind).toBe("executive-summary");
+        expect(result.kind).toBe("executiveSummary");
         expect(result.path).toMatch(/executive-summary\.md$/);
         expect(result.contentHash).toMatch(/^[a-f0-9]{64}$/);
         expect(result.nonWhitespaceChars).toBeGreaterThan(0);

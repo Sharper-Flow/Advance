@@ -123,12 +123,11 @@ export interface ChangeSummaryPayload {
   touched_files?: string[];
 }
 
-export type ArtifactKind =
-  | "proposal"
-  | "problemStatement"
-  | "agreement"
-  | "design"
-  | "executiveSummary";
+// Re-export canonical ArtifactKind from the single source of truth in
+// `types/artifacts.ts`. The local positional-style ArtifactKind union that
+// previously lived here is deleted; existing callers continue to import
+// `ArtifactKind` from this module via the re-export, preserving call sites.
+export type { ArtifactKind } from "../types/artifacts";
 
 export interface ArtifactMetadata {
   path: string;
@@ -208,6 +207,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
     design?: ArtifactMetadata;
     agreement?: ArtifactMetadata;
     executiveSummary?: ArtifactMetadata;
+    acceptance?: ArtifactMetadata;
   };
   /** Same-project fast-follow lineage (optional) */
   fast_follow_of?: FastFollowOf;

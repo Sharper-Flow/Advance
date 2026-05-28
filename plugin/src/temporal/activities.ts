@@ -36,24 +36,21 @@ import { execGit } from "../utils/git";
 /**
  * Per-change artifact kinds. Stored as `{kind}.md` next to `change.json`.
  *
- * Kept in lockstep with the artifact set in `createChangeScaffold` /
- * `updateChangeArtifacts` (storage/json.ts).
+ * Canonical source: `plugin/src/types/artifacts.ts`. Kept in lockstep with
+ * the artifact set in `createChangeScaffold` / `updateChangeArtifacts`
+ * (`storage/json.ts`). Naming standard: camelCase at the type/signal layer;
+ * kebab-case appears ONLY as the filesystem filename in `ARTIFACT_FILENAME`.
  */
-export type ArtifactKind =
-  | "proposal"
-  | "problem-statement"
-  | "agreement"
-  | "design"
-  | "acceptance"
-  | "executive-summary";
+export type { ArtifactKind } from "../types/artifacts";
+import type { ArtifactKind } from "../types/artifacts";
 
 const ARTIFACT_FILENAME: Record<ArtifactKind, string> = {
   proposal: "proposal.md",
-  "problem-statement": "problem-statement.md",
+  problemStatement: "problem-statement.md",
   agreement: "agreement.md",
   design: "design.md",
   acceptance: "acceptance.md",
-  "executive-summary": "executive-summary.md",
+  executiveSummary: "executive-summary.md",
 };
 
 export interface ReadArtifactInput {

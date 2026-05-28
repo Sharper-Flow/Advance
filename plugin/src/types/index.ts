@@ -24,6 +24,20 @@
  */
 
 // =============================================================================
+// Artifacts (canonical ArtifactKind + ArtifactPayload + size caps)
+// =============================================================================
+export {
+  ArtifactKindSchema,
+  type ArtifactKind,
+  ArtifactPayloadSchema,
+  type ArtifactPayload,
+  ARTIFACT_SOFT_CAP,
+  ARTIFACT_HARD_CAP,
+  AGGREGATE_SOFT_CAP,
+  AGGREGATE_HARD_CAP,
+} from "./artifacts";
+
+// =============================================================================
 // Specs
 // =============================================================================
 export {

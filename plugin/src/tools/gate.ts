@@ -369,7 +369,7 @@ async function completeGateViaRecovery(input: {
     const executiveSummary = await inspectArtifactActivity({
       changesDir: input.store.paths.changes,
       changeId: input.changeId,
-      kind: "executive-summary",
+      kind: "executiveSummary",
     });
     if (
       !executiveSummary.ok ||
