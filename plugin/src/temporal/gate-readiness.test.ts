@@ -4,6 +4,7 @@ import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
   gateArtifactEvidenceSchema,
+  stateBackedArtifactEvidence,
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
 
@@ -82,6 +83,99 @@ describe("gate readiness", () => {
     });
   });
 
+  it("builds artifact evidence from workflow state content and metadata", () => {
+    const result = stateBackedArtifactEvidence(
+      makeState({
+        documents: {
+          agreement:
+            "# Agreement\n\nThis agreement has enough substantive content.",
+        },
+        artifacts: {
+          agreement: {
+            path: "/tmp/changes/change-1/agreement.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+          },
+        },
+      }),
+      "discovery",
+      "agreement",
+      "2026-05-20T00:01:00.000Z",
+    );
+
+    expect(result.ready).toBe(true);
+    expect(result.evidence).toEqual({
+      kind: "agreement",
+      path: "/tmp/changes/change-1/agreement.md",
+      content_hash: "a".repeat(64),
+      non_whitespace_chars: expect.any(Number),
+      checked_at: "2026-05-20T00:01:00.000Z",
+    });
+  });
+
+  it("omits content_hash when workflow metadata lacks hash", () => {
+    const result = stateBackedArtifactEvidence(
+      makeState({
+        documents: {
+          design: "# Design\n\nDesign content is present and long enough.",
+        },
+        artifacts: {
+          design: {
+            path: "/tmp/changes/change-1/design.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+          },
+        },
+      }),
+      "design",
+      "design",
+      "2026-05-20T00:01:00.000Z",
+    );
+
+    expect(result.ready).toBe(true);
+    expect(result.evidence).toMatchObject({
+      kind: "design",
+      path: "/tmp/changes/change-1/design.md",
+      non_whitespace_chars: expect.any(Number),
+    });
+    expect(result.evidence).not.toHaveProperty("content_hash");
+  });
+
+  it("blocks missing workflow state artifact content", () => {
+    const result = stateBackedArtifactEvidence(
+      makeState(),
+      "discovery",
+      "agreement",
+      "2026-05-20T00:01:00.000Z",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ARTIFACT_MISSING",
+        gateId: "discovery",
+        artifactKind: "agreement",
+      }),
+    );
+  });
+
+  it("blocks undersized workflow state artifact content", () => {
+    const result = stateBackedArtifactEvidence(
+      makeState({ documents: { proposal: "tiny" } }),
+      "proposal",
+      "proposal",
+      "2026-05-20T00:01:00.000Z",
+    );
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "ARTIFACT_UNDERSIZED",
+        gateId: "proposal",
+        artifactKind: "proposal",
+      }),
+    );
+  });
+
   it("reports prior incomplete gate blockers", () => {
     const result = evaluateGateReadiness(makeState(), "design");
 
@@ -95,21 +189,49 @@ describe("gate readiness", () => {
     );
   });
 
-  it("reports missing artifact store blocker for artifact-backed gates", () => {
+  it("does not require artifact store for state-backed proposal discovery or design gates", () => {
     const gates = createDefaultGates();
     gates.proposal.status = "done";
     gates.discovery.status = "done";
     const result = evaluateGateReadiness(
-      makeState({ gates, projectionChangesDir: undefined }),
+      makeState({
+        gates,
+        projectionChangesDir: undefined,
+        documents: {
+          design: "# Design\n\nState-backed design content is enough.",
+        },
+      }),
       "design",
+    );
+
+    expect(result.blockers).not.toContainEqual(
+      expect.objectContaining({ code: "ARTIFACT_STORE_UNAVAILABLE" }),
+    );
+  });
+
+  it("still requires artifact store for acceptance", () => {
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: undefined,
+        contract: passingContract(),
+        artifacts: {
+          executiveSummary: {
+            path: "/tmp/changes/change-1/executive-summary.md",
+            updatedAt: "2026-05-20T00:00:00.000Z",
+            contentHash: "a".repeat(64),
+          },
+        },
+      }),
+      "acceptance",
     );
 
     expect(result.ready).toBe(false);
     expect(result.blockers).toContainEqual(
       expect.objectContaining({
         code: "ARTIFACT_STORE_UNAVAILABLE",
-        gateId: "design",
-        artifactKind: "design",
+        gateId: "acceptance",
+        artifactKind: "acceptance",
       }),
     );
   });

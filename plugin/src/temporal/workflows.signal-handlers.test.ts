@@ -43,6 +43,7 @@ import {
   taskCompletedSignal,
   taskRemovedSignal,
   taskUpdatedSignal,
+  updateArtifactMetadataSignal,
   wisdomAddedSignal,
   worktreeCreatedSignal,
   worktreeDeletedSignal,
@@ -615,6 +616,97 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.proposal.status).toBe("done");
           expect(state.gates.proposal.artifact_evidence).toMatchObject({
             kind: "proposal",
+            non_whitespace_chars: expect.any(Number),
+          });
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  it("completes discovery from workflow-state agreement without disk agreement file", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const agreementContent =
+        "# Agreement\n\nThis agreement exists only in Temporal workflow state.";
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      const input = {
+        ...makeChangeInput("state-agreement-discovery"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("state-agreement-discovery").seedState,
+          gates,
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "state-agreement-discovery",
+        input,
+        async (handle) => {
+          await handle.signal(agreementUpdatedSignal, {
+            text: agreementContent,
+            updatedAt: "2026-05-05T00:00:01.000Z",
+          });
+          await handle.signal(updateArtifactMetadataSignal, {
+            kind: "agreement",
+            metadata: {
+              path: join(
+                changesDir,
+                "state-agreement-discovery",
+                "agreement.md",
+              ),
+              updatedAt: "2026-05-05T00:00:01.000Z",
+              contentHash: createHash("sha256")
+                .update(agreementContent)
+                .digest("hex"),
+            },
+          });
+          await handle.signal(contractSetSignal, {
+            contract: {
+              version: 1,
+              rigor: "standard",
+              source: {
+                artifact: "agreement",
+                approvedAt: "2026-05-05T00:00:01.000Z",
+              },
+              items: [],
+              amendments: [],
+            },
+            updatedAt: "2026-05-05T00:00:01.000Z",
+          });
+
+          await expect(
+            readFile(
+              join(
+                changesDir,
+                "state-agreement-discovery",
+                "agreement.md",
+              ),
+              "utf8",
+            ),
+          ).rejects.toMatchObject({ code: "ENOENT" });
+
+          await handle.signal(gateCompletedSignal, {
+            gateId: "discovery",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:00:02.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "discovery", "done");
+          expect(state.gates.discovery.status).toBe("done");
+          expect(state.gates.discovery.artifact_evidence).toMatchObject({
+            kind: "agreement",
+            path: join(
+              changesDir,
+              "state-agreement-discovery",
+              "agreement.md",
+            ),
+            content_hash: createHash("sha256")
+              .update(agreementContent)
+              .digest("hex"),
             non_whitespace_chars: expect.any(Number),
           });
         },
