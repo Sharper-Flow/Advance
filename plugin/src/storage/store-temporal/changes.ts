@@ -155,18 +155,25 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
       validateAggregateSize(artifacts);
 
-      // Forward to disk store via its still-positional internal API.
-      // T15 (KD-10 phase 16) removes the legacy.changes.create artifact-
-      // content forwarding entirely once the temporal store fires content
-      // signals instead. For now, behavior is preserved.
+      // T15 / AC8: no artifact-content disk writes from the temporal store
+      // production path. Forward only the non-artifact scaffolding
+      // (change.json + dir + default proposal.md placeholder) to legacy
+      // disk store; user-supplied artifact content flows exclusively
+      // through content signals → state.documents.
+      //
+      // Note: createChangeScaffold still writes a default proposal.md
+      // SCAFFOLD on disk to maintain backward compat for legacy callers
+      // that read disk. The scaffold is placeholder content, not user
+      // content; once T20 deletes the positional API entirely, the
+      // scaffold path itself can be removed.
       const result = await legacy.changes.create(
         summary,
         capability,
-        artifacts.proposal,
-        artifacts.problemStatement,
-        artifacts.agreement,
-        artifacts.design,
-        artifacts.executiveSummary,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
         initialMetadata ? { initialMetadata } : undefined,
       );
       const created = await legacy.changes.get(result.changeId);
@@ -646,18 +653,24 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
       validateAggregateSize(artifacts, existingDocuments);
 
-      // Forward to disk store via still-positional internal API.
-      // T15 removes this call entirely once temporal-first writes land.
-      const result = await legacy.changes.updateArtifacts(
-        changeId,
-        artifacts.proposal,
-        artifacts.problemStatement,
-        artifacts.agreement,
-        artifacts.design,
-        artifacts.executiveSummary,
-      );
-      if (!result.success) {
-        return result;
+      // T15 / AC8: no artifact-content disk writes from the temporal store
+      // production path. Compute the canonical kebab-case paths inline so
+      // updateArtifactMetadataSignal can still carry path + contentHash;
+      // do NOT call legacy.changes.updateArtifacts (which would write
+      // artifact .md files to disk).
+      const changeDir = `${legacy.paths.changes}/${changeId}`;
+      const ARTIFACT_FILENAME: Record<keyof ArtifactPayload, string> = {
+        proposal: "proposal.md",
+        problemStatement: "problem-statement.md",
+        agreement: "agreement.md",
+        design: "design.md",
+        executiveSummary: "executive-summary.md",
+        acceptance: "acceptance.md",
+      };
+      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
+      for (const kind of Object.keys(ARTIFACT_FILENAME) as ArtifactKind[]) {
+        if (artifacts[kind] === undefined) continue;
+        metadataPaths[kind] = `${changeDir}/${ARTIFACT_FILENAME[kind]}`;
       }
 
       // KD-3 + KD-4: sequential await fan-out of content signals. Each
@@ -665,18 +678,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // state.documents[kind]) followed by updateArtifactMetadataSignal
       // (populating state.artifacts[kind].contentHash). Order matches
       // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
-      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
-      if (result.proposalPath) metadataPaths.proposal = result.proposalPath;
-      if (result.problemStatementPath)
-        metadataPaths.problemStatement = result.problemStatementPath;
-      if (result.agreementPath) metadataPaths.agreement = result.agreementPath;
-      if (result.designPath) metadataPaths.design = result.designPath;
-      if (result.executiveSummaryPath)
-        metadataPaths.executiveSummary = result.executiveSummaryPath;
-      // acceptancePath is not yet plumbed through createChangeScaffold/
-      // updateChangeArtifacts; the gate.ts acceptance write path (T12)
-      // surfaces it through a different code path until T15+T20 unify.
-
       await runTemporal(async () => {
         const handle = await getGuardedChangeHandle(input, changeId);
         await fireContentSignalsSequentially(
@@ -687,6 +688,24 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         );
       });
 
+      // Compose result shape matching the legacy contract — paths for
+      // the kinds that were actually written via the signal path.
+      const result: {
+        success: true;
+        proposalPath?: string;
+        problemStatementPath?: string;
+        agreementPath?: string;
+        designPath?: string;
+        executiveSummaryPath?: string;
+      } = { success: true };
+      if (metadataPaths.proposal) result.proposalPath = metadataPaths.proposal;
+      if (metadataPaths.problemStatement)
+        result.problemStatementPath = metadataPaths.problemStatement;
+      if (metadataPaths.agreement)
+        result.agreementPath = metadataPaths.agreement;
+      if (metadataPaths.design) result.designPath = metadataPaths.design;
+      if (metadataPaths.executiveSummary)
+        result.executiveSummaryPath = metadataPaths.executiveSummary;
       return result;
     }) as Store["changes"]["updateArtifacts"],
 
