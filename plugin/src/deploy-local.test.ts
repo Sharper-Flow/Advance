@@ -269,14 +269,14 @@ describe("deploy-local.sh", () => {
       ).toEqual([]);
     });
 
-    test("tool drift validation exempts leaf-only report submit from primary agents", () => {
+    test("tool drift validation permits report-submit on primary agents", () => {
       const advAgent = readFileSync(ADV_AGENT_PATH, "utf8");
       const advAtcAgent = readFileSync(ADV_ATC_AGENT_PATH, "utf8");
 
       expect(advAgent).toContain("mode: primary");
       expect(advAtcAgent).toContain("mode: primary");
-      expect(advAgent).not.toContain("  adv_subagent_report_submit:");
-      expect(advAtcAgent).not.toContain("  adv_subagent_report_submit:");
+      expect(advAgent).toContain("  adv_subagent_report_submit: true");
+      expect(advAtcAgent).toContain("  adv_subagent_report_submit: true");
 
       expect(content).toContain("LEAF_ONLY_TOOLS");
       expect(content).toContain('"adv_subagent_report_submit"');

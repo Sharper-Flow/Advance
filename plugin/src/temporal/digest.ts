@@ -42,7 +42,9 @@ function stableJson(value: unknown, inArray = false): string | undefined {
     .sort()
     .map((key) => {
       const rendered = stableJson(record[key], false);
-      return rendered === undefined ? undefined : `${JSON.stringify(key)}:${rendered}`;
+      return rendered === undefined
+        ? undefined
+        : `${JSON.stringify(key)}:${rendered}`;
     })
     .filter((entry): entry is string => typeof entry === "string");
   return `{${entries.join(",")}}`;

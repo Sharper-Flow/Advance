@@ -923,8 +923,8 @@ describe("changeWorkflow signal handlers", () => {
 
   it("routes every signal handler through a signal-safe wrapper", () => {
     const source = readFileSync(workflowsPath, "utf8");
-    const signalHandlerBlocks = extractSetHandlerBlocks(source).filter((block) =>
-      /wf\.setHandler\(\s*\w+Signal,/.test(block),
+    const signalHandlerBlocks = extractSetHandlerBlocks(source).filter(
+      (block) => /wf\.setHandler\(\s*\w+Signal,/.test(block),
     );
 
     expect(signalHandlerBlocks.length).toBeGreaterThan(0);

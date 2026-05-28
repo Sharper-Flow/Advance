@@ -641,22 +641,23 @@ export async function changeWorkflow(
   const isTemporalSystemFailure = (err: unknown): boolean =>
     err instanceof wf.CancelledFailure || err instanceof wf.TemporalFailure;
 
-  const signalAsync = <Payload>(
+  const signalAsync = <Args extends unknown[]>(
     signalName: string,
-    handler: (payload: Payload) => void | Promise<void>,
-    options?: { projectAfter?: boolean },
-  ): ((payload: Payload) => void | Promise<void>) => {
+    handler: (...args: Args) => void | Promise<void>,
+    options?: { projectAfter?: boolean; afterSuccess?: boolean },
+  ): ((...args: Args) => void | Promise<void>) => {
     const afterSuccess = (): void => {
+      if (options?.afterSuccess === false) return;
       upsertSignalSearchAttributes(signalName);
       if (options?.projectAfter) scheduleChangeProjection(signalName);
     };
 
-    const rejectSignal = (payload: Payload, err: unknown): void => {
+    const rejectSignal = (args: Args, err: unknown): void => {
       if (isTemporalSystemFailure(err)) throw err;
       applySignalRejectionToState(state, {
         signalName,
         error: err,
-        payload,
+        payload: args.length === 1 ? args[0] : args,
         rejectedAt: workflowNow(),
       });
       const rejections = state.signal_rejections ?? [];
@@ -668,12 +669,13 @@ export async function changeWorkflow(
         payloadDigest: latest?.payloadDigest,
       });
       upsertSignalSearchAttributes(`${signalName}Rejected`);
-      if (options?.projectAfter) scheduleChangeProjection(`${signalName}Rejected`);
+      if (options?.projectAfter)
+        scheduleChangeProjection(`${signalName}Rejected`);
     };
 
-    return (payload: Payload) => {
+    return (...args: Args) => {
       try {
-        const result = handler(payload);
+        const result = handler(...args);
         if (
           result &&
           typeof result === "object" &&
@@ -682,11 +684,11 @@ export async function changeWorkflow(
         ) {
           return Promise.resolve(result)
             .then(afterSuccess)
-            .catch((err: unknown) => rejectSignal(payload, err));
+            .catch((err: unknown) => rejectSignal(args, err));
         }
         afterSuccess();
       } catch (err) {
-        rejectSignal(payload, err);
+        rejectSignal(args, err);
       }
     };
   };
@@ -696,9 +698,13 @@ export async function changeWorkflow(
     handler: (payload: Payload) => ChangeWorkflowState,
     options?: { projectAfter?: boolean },
   ): ((payload: Payload) => void | Promise<void>) =>
-    signalAsync(signalName, (payload: Payload) => {
-      handler(payload);
-    }, options);
+    signalAsync(
+      signalName,
+      (payload: Payload) => {
+        handler(payload);
+      },
+      options,
+    );
 
   const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
   // Patch rationale: discovery contract enforcement was added after legacy
@@ -1036,15 +1042,19 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     gateCompletedSignal,
-    signalAsync("gateCompleted", async (payload) => {
-      const previous = gateCompletionChain.catch(() => undefined);
-      gateCompletionChain = previous.then(() =>
-        completeGateWithReadiness(payload),
-      );
-      await gateCompletionChain;
-      upsertSignalSearchAttributes("gateCompleted");
-      scheduleChangeProjection("gateCompleted");
-    }),
+    signalAsync(
+      "gateCompleted",
+      async (payload) => {
+        const previous = gateCompletionChain.catch(() => undefined);
+        gateCompletionChain = previous.then(() =>
+          completeGateWithReadiness(payload),
+        );
+        await gateCompletionChain;
+        upsertSignalSearchAttributes("gateCompleted");
+        scheduleChangeProjection("gateCompleted");
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     gateReenteredSignal,
@@ -1108,51 +1118,61 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveRequestedSignal,
-    signalAsync("archiveRequested", async (payload) => {
-      const previousStatus = state.status;
-      const previousTerminated = state.terminated;
-      applyArchiveRequestedToState(state, payload);
-      upsertSignalSearchAttributes("archiveRequested");
-      const archived = await runArchiveActivity(payload);
-      const projected = archived
-        ? await projectChangeState("archiveRequested")
-        : false;
-      if (!projected || !archived) {
-        state.status = previousStatus;
-        if (typeof previousTerminated === "undefined") delete state.terminated;
-        else state.terminated = previousTerminated;
-        applyGateStuckToState(state, {
-          gateId: "release",
-          reason: archived
-            ? "Projection write failed before archive completion"
-            : "Archive activity failed before workflow completion",
-          triggeredAt: payload.requestedAt,
-        });
-        upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
-      }
-    }),
+    signalAsync(
+      "archiveRequested",
+      async (payload) => {
+        const previousStatus = state.status;
+        const previousTerminated = state.terminated;
+        applyArchiveRequestedToState(state, payload);
+        upsertSignalSearchAttributes("archiveRequested");
+        const archived = await runArchiveActivity(payload);
+        const projected = archived
+          ? await projectChangeState("archiveRequested")
+          : false;
+        if (!projected || !archived) {
+          state.status = previousStatus;
+          if (typeof previousTerminated === "undefined")
+            delete state.terminated;
+          else state.terminated = previousTerminated;
+          applyGateStuckToState(state, {
+            gateId: "release",
+            reason: archived
+              ? "Projection write failed before archive completion"
+              : "Archive activity failed before workflow completion",
+            triggeredAt: payload.requestedAt,
+          });
+          upsertSignalSearchAttributes("archiveRequestedProjectionFailure");
+        }
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     changeCancelledSignal,
-    signalAsync("changeCancelled", async (payload) => {
-      const previousStatus = state.status;
-      const previousTerminated = state.terminated;
-      const previousClosure = state.closure;
-      applyChangeCancelledToState(state, payload);
-      upsertSignalSearchAttributes("changeCancelled");
-      const archived = await runCancelArchiveActivity(payload);
-      const projected = archived
-        ? await projectChangeState("changeCancelled")
-        : false;
-      if (!projected || !archived) {
-        state.status = previousStatus;
-        if (typeof previousTerminated === "undefined") delete state.terminated;
-        else state.terminated = previousTerminated;
-        if (typeof previousClosure === "undefined") delete state.closure;
-        else state.closure = previousClosure;
-        upsertSignalSearchAttributes("changeCancelledProjectionFailure");
-      }
-    }),
+    signalAsync(
+      "changeCancelled",
+      async (payload) => {
+        const previousStatus = state.status;
+        const previousTerminated = state.terminated;
+        const previousClosure = state.closure;
+        applyChangeCancelledToState(state, payload);
+        upsertSignalSearchAttributes("changeCancelled");
+        const archived = await runCancelArchiveActivity(payload);
+        const projected = archived
+          ? await projectChangeState("changeCancelled")
+          : false;
+        if (!projected || !archived) {
+          state.status = previousStatus;
+          if (typeof previousTerminated === "undefined")
+            delete state.terminated;
+          else state.terminated = previousTerminated;
+          if (typeof previousClosure === "undefined") delete state.closure;
+          else state.closure = previousClosure;
+          upsertSignalSearchAttributes("changeCancelledProjectionFailure");
+        }
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     updateArtifactMetadataSignal,
@@ -1183,32 +1203,36 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     archiveChangeSignal,
-    signalAsync("archiveChange", () => {
-      wf.log.info("op:start", {
-        op: "archiveChangeSignal",
-        changeId: state.changeId,
-        title: state.title?.slice(0, 80),
-      });
-      archiveChangeInChangeState(state);
-      if (input.searchAttributesEnabled !== false) {
-        try {
-          wf.upsertSearchAttributes({
-            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
-          });
-        } catch (saErr) {
-          wf.log.warn("search-attribute-upsert-failed", {
-            op: "archiveChangeSignal",
-            changeId: state.changeId,
-            error: saErr instanceof Error ? saErr.message : String(saErr),
-          });
+    signalAsync(
+      "archiveChange",
+      () => {
+        wf.log.info("op:start", {
+          op: "archiveChangeSignal",
+          changeId: state.changeId,
+          title: state.title?.slice(0, 80),
+        });
+        archiveChangeInChangeState(state);
+        if (input.searchAttributesEnabled !== false) {
+          try {
+            wf.upsertSearchAttributes({
+              [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["archived"],
+            });
+          } catch (saErr) {
+            wf.log.warn("search-attribute-upsert-failed", {
+              op: "archiveChangeSignal",
+              changeId: state.changeId,
+              error: saErr instanceof Error ? saErr.message : String(saErr),
+            });
+          }
         }
-      }
-      wf.log.info("op:end", {
-        op: "archiveChangeSignal",
-        changeId: state.changeId,
-      });
-      upsertSignalSearchAttributes("archiveChange");
-    }),
+        wf.log.info("op:end", {
+          op: "archiveChangeSignal",
+          changeId: state.changeId,
+        });
+        upsertSignalSearchAttributes("archiveChange");
+      },
+      { afterSuccess: false },
+    ),
   );
   wf.setHandler(
     closeChangeSignal,
