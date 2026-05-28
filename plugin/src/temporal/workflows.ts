@@ -5,7 +5,9 @@ import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
   evaluateGateReadiness,
+  MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS,
   renderAcceptanceProjection,
+  stateBackedArtifactEvidence,
 } from "./gate-readiness";
 import {
   ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES,
@@ -706,7 +708,6 @@ export async function changeWorkflow(
       options,
     );
 
-  const MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS = 20;
   // Patch rationale: discovery contract enforcement was added after legacy
   // discovery gate histories already scheduled artifact inspection. During
   // replay, histories without this marker must take the old no-contract-blocker
@@ -722,6 +723,12 @@ export async function changeWorkflow(
   // scheduling the new proof activities.
   const ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH =
     "acceptance-executive-summary-proof-v1";
+  // Patch rationale: proposal/discovery/design artifact content moved to
+  // workflow state.documents while legacy histories may have already scheduled
+  // inspectArtifactActivity. New attempts use state-backed evidence; old
+  // histories replay the legacy disk-read command sequence.
+  const STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH =
+    "state-backed-gate-artifact-proof-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -771,11 +778,30 @@ export async function changeWorkflow(
 
     let artifactEvidence = readiness.evidence;
     const artifactKind = ARTIFACT_BACKED_GATES[payload.gateId];
-    if (artifactKind && state.projectionChangesDir && !artifactEvidence) {
+    if (artifactKind && !artifactEvidence) {
       if (
-        artifactKind === "acceptance" &&
-        wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)
+        artifactKind !== "acceptance" &&
+        wf.patched(STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH)
       ) {
+        const stateArtifactReadiness = stateBackedArtifactEvidence(
+          state,
+          payload.gateId,
+          artifactKind,
+          workflowNow(),
+        );
+        if (!stateArtifactReadiness.ready) {
+          markGateStuckForBlockers(
+            payload,
+            stateArtifactReadiness.blockers,
+          );
+          return;
+        }
+        artifactEvidence = stateArtifactReadiness.evidence;
+      } else if (state.projectionChangesDir) {
+        if (
+          artifactKind === "acceptance" &&
+          wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)
+        ) {
         const acceptanceContent = renderAcceptanceProjection(state);
         const writeResult = await writeArtifactActivity({
           changesDir: state.projectionChangesDir,
@@ -859,47 +885,48 @@ export async function changeWorkflow(
           return;
         }
       }
-      const artifact = await inspectArtifactActivity({
-        changesDir: state.projectionChangesDir,
-        changeId: state.changeId,
-        kind: artifactKind,
-      });
-      if (!artifact.ok) {
-        markGateStuckForBlockers(payload, [
-          gateArtifactBlocker(payload, {
-            code:
-              artifact.code === "missing"
-                ? "ARTIFACT_MISSING"
-                : "ARTIFACT_UNREADABLE",
-            artifactKind,
-            message: artifact.error,
-            remediation:
-              "Create or repair the required gate artifact before retrying gate completion.",
-          }),
-        ]);
-        return;
+        const artifact = await inspectArtifactActivity({
+          changesDir: state.projectionChangesDir,
+          changeId: state.changeId,
+          kind: artifactKind,
+        });
+        if (!artifact.ok) {
+          markGateStuckForBlockers(payload, [
+            gateArtifactBlocker(payload, {
+              code:
+                artifact.code === "missing"
+                  ? "ARTIFACT_MISSING"
+                  : "ARTIFACT_UNREADABLE",
+              artifactKind,
+              message: artifact.error,
+              remediation:
+                "Create or repair the required gate artifact before retrying gate completion.",
+            }),
+          ]);
+          return;
+        }
+        if (
+          artifact.nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
+        ) {
+          markGateStuckForBlockers(payload, [
+            gateArtifactBlocker(payload, {
+              code: "ARTIFACT_UNDERSIZED",
+              artifactKind,
+              message: `${artifact.kind} artifact has ${artifact.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+              remediation:
+                "Populate the required artifact with substantive gate evidence before retrying gate completion.",
+            }),
+          ]);
+          return;
+        }
+        artifactEvidence = {
+          kind: artifactKind,
+          path: artifact.path,
+          content_hash: artifact.contentHash,
+          non_whitespace_chars: artifact.nonWhitespaceChars,
+          checked_at: artifact.checkedAt,
+        };
       }
-      if (
-        artifact.nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS
-      ) {
-        markGateStuckForBlockers(payload, [
-          gateArtifactBlocker(payload, {
-            code: "ARTIFACT_UNDERSIZED",
-            artifactKind,
-            message: `${artifact.kind} artifact has ${artifact.nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
-            remediation:
-              "Populate the required artifact with substantive gate evidence before retrying gate completion.",
-          }),
-        ]);
-        return;
-      }
-      artifactEvidence = {
-        kind: artifactKind,
-        path: artifact.path,
-        content_hash: artifact.contentHash,
-        non_whitespace_chars: artifact.nonWhitespaceChars,
-        checked_at: artifact.checkedAt,
-      };
     }
 
     applyGateCompletedToState(state, {

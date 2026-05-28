@@ -587,16 +587,12 @@ describe("changeWorkflow signal handlers", () => {
     }
   }, 30_000);
 
-  it("records artifact evidence when required artifact passes deterministic checks", async () => {
+  it("records artifact evidence when required artifact exists in workflow state", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "valid-artifact");
-      await mkdir(changeDir, { recursive: true });
-      await writeFile(
-        join(changeDir, "proposal.md"),
-        "# Proposal\n\nThis artifact has enough durable gate evidence.",
-      );
+      const proposalContent =
+        "# Proposal\n\nThis artifact has enough durable gate evidence.";
       const input = {
         ...makeChangeInput("valid-artifact"),
         projectionChangesDir: changesDir,
@@ -606,6 +602,21 @@ describe("changeWorkflow signal handlers", () => {
         "valid-artifact",
         input,
         async (handle) => {
+          await handle.signal(proposalUpdatedSignal, {
+            text: proposalContent,
+            updatedBy: "tester",
+            updatedAt: "2026-05-05T00:00:00.500Z",
+          });
+          await handle.signal(updateArtifactMetadataSignal, {
+            kind: "proposal",
+            metadata: {
+              path: join(changesDir, "valid-artifact", "proposal.md"),
+              updatedAt: "2026-05-05T00:00:00.500Z",
+              contentHash: createHash("sha256")
+                .update(proposalContent)
+                .digest("hex"),
+            },
+          });
           await handle.signal(gateCompletedSignal, {
             gateId: "proposal",
             completedBy: "tester",
@@ -616,6 +627,10 @@ describe("changeWorkflow signal handlers", () => {
           expect(state.gates.proposal.status).toBe("done");
           expect(state.gates.proposal.artifact_evidence).toMatchObject({
             kind: "proposal",
+            path: join(changesDir, "valid-artifact", "proposal.md"),
+            content_hash: createHash("sha256")
+              .update(proposalContent)
+              .digest("hex"),
             non_whitespace_chars: expect.any(Number),
           });
         },
