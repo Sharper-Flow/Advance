@@ -1,9 +1,21 @@
 import type { Store } from "../store-types";
-import type { ChangeClosure, BulkCloseResult, Change } from "../../types";
+import type {
+  ArtifactKind,
+  ArtifactPayload,
+  ChangeClosure,
+  BulkCloseResult,
+  Change,
+} from "../../types";
 import { createHash } from "crypto";
 import {
+  acceptanceUpdatedSignal,
+  agreementUpdatedSignal,
   archiveChangeSignal,
   closeChangeSignal,
+  designUpdatedSignal,
+  executiveSummaryUpdatedSignal,
+  problemStatementUpdatedSignal,
+  proposalUpdatedSignal,
   updateArtifactMetadataSignal,
   changeStateQuery,
 } from "../../temporal/messages";
@@ -16,6 +28,10 @@ import {
   normalizeCreateArgs,
   normalizeUpdateArtifactsArgs,
 } from "../_artifact-args";
+import {
+  validateAggregateSize,
+  validatePerArtifactSize,
+} from "../_artifact-size-validation";
 import { createLogger } from "../../utils/debug-log";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
@@ -25,6 +41,76 @@ const logger = createLogger("store-temporal-changes");
 
 function computeContentHash(content: string): string {
   return createHash("sha256").update(content).digest("hex");
+}
+
+/**
+ * Deterministic order for content signal fan-out within a single
+ * `create()` or `updateArtifacts()` call. Workflow histories diff cleanly
+ * across runs only if the order is fixed. Locked by C5; verified by the
+ * signal invariant test (T19).
+ *
+ * Tool layer MUST `await` each signal acknowledgement before firing the
+ * next; concurrent firing (`Promise.all`) is forbidden because TS SDK
+ * preserves only server-acceptance order within an activation.
+ */
+const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
+  kind: ArtifactKind;
+  signal:
+    | typeof proposalUpdatedSignal
+    | typeof problemStatementUpdatedSignal
+    | typeof agreementUpdatedSignal
+    | typeof designUpdatedSignal
+    | typeof executiveSummaryUpdatedSignal
+    | typeof acceptanceUpdatedSignal;
+}> = [
+  { kind: "proposal", signal: proposalUpdatedSignal },
+  { kind: "problemStatement", signal: problemStatementUpdatedSignal },
+  { kind: "agreement", signal: agreementUpdatedSignal },
+  { kind: "design", signal: designUpdatedSignal },
+  { kind: "executiveSummary", signal: executiveSummaryUpdatedSignal },
+  { kind: "acceptance", signal: acceptanceUpdatedSignal },
+];
+
+/**
+ * Fire one content signal per defined field in `artifacts`, in deterministic
+ * order (proposal → problemStatement → agreement → design → executiveSummary
+ * → acceptance). Each call awaits server acknowledgement before the next.
+ * Undefined fields fire no signal (no-op).
+ *
+ * The corresponding `updateArtifactMetadataSignal` fires AFTER each content
+ * signal so `state.artifacts.{kind}.contentHash` stays consistent with
+ * `state.documents.{kind}`.
+ */
+async function fireContentSignalsSequentially(
+  handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
+  changeId: string,
+  artifacts: ArtifactPayload,
+  metadataPaths: Partial<Record<ArtifactKind, string>>,
+): Promise<void> {
+  const updatedAt = new Date().toISOString();
+  for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
+    const content = artifacts[kind];
+    if (content === undefined) continue;
+    // Content signal — populates state.documents[kind]
+    await handle.signal(signal, { text: content, updatedAt });
+
+    // Metadata signal — populates state.artifacts[kind] with contentHash.
+    // Fires AFTER the content signal so the hash reflects the just-written
+    // content. metadataPaths[kind] is supplied by the disk store when the
+    // artifact file was also written (transition window before T15 removes
+    // disk writes from this path).
+    const path = metadataPaths[kind];
+    if (path) {
+      await handle.signal(updateArtifactMetadataSignal, {
+        kind,
+        metadata: {
+          path,
+          updatedAt,
+          contentHash: computeContentHash(content),
+        },
+      });
+    }
+  }
 }
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
@@ -52,6 +138,22 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         summary,
         ...rest,
       ]);
+
+      // Layer 1 size validation (KD-8 layer 1). Fails fast before any
+      // disk write or signal fires. Layer 2 (signal-handler state-mutation
+      // rejection) in T8 enforces structurally inside the workflow.
+      for (const kind of [
+        "proposal",
+        "problemStatement",
+        "agreement",
+        "design",
+        "executiveSummary",
+        "acceptance",
+      ] as const) {
+        const content = artifacts[kind];
+        if (content !== undefined) validatePerArtifactSize(kind, content);
+      }
+      validateAggregateSize(artifacts);
 
       // Forward to disk store via its still-positional internal API.
       // T15 (KD-10 phase 16) removes the legacy.changes.create artifact-
@@ -161,6 +263,40 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         // workflow query round-trip.
         worktree_auto_managed: true,
       });
+
+      // KD-3 + KD-4: sequential await fan-out of content signals so the
+      // workflow's state.documents becomes the source of truth for artifact
+      // content. Order is deterministic; each await blocks until server
+      // acknowledgement of the prior signal. Undefined fields fire no
+      // signal (no-op). The metadata-update signal fires AFTER each content
+      // signal to keep state.artifacts[kind].contentHash consistent.
+      //
+      // Only fires for actually-defined fields; transitional behavior keeps
+      // disk writes via legacy.changes.create above until T15 removes them.
+      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
+      if (result.path) metadataPaths.proposal = result.path;
+      if (result.problemStatementPath)
+        metadataPaths.problemStatement = result.problemStatementPath;
+      if (result.agreementPath) metadataPaths.agreement = result.agreementPath;
+      if (result.designPath) metadataPaths.design = result.designPath;
+      if (result.executiveSummaryPath)
+        metadataPaths.executiveSummary = result.executiveSummaryPath;
+      // Acceptance is not currently scaffolded by createChangeScaffold;
+      // when added via updateArtifacts/gate.ts, the metadata signal fires
+      // there.
+
+      if (Object.values(artifacts).some((v) => v !== undefined)) {
+        await runTemporal(async () => {
+          const handle = await getGuardedChangeHandle(input, created.data!.id);
+          await fireContentSignalsSequentially(
+            handle,
+            created.data!.id,
+            artifacts,
+            metadataPaths,
+          );
+        });
+      }
+
       return result;
     }) as Store["changes"]["create"],
     save: async (change) => {
@@ -480,6 +616,36 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // Normalize positional + options-object call shapes.
       const artifacts = normalizeUpdateArtifactsArgs([changeId, ...rest]);
 
+      // Layer 1 size validation (KD-8 layer 1). Fail fast before any disk
+      // write or signal fires. Aggregate cap considers existing state.documents
+      // when present so a sequence of updates can't push the total past the
+      // 1.8 MB continueAsNew ceiling.
+      for (const kind of [
+        "proposal",
+        "problemStatement",
+        "agreement",
+        "design",
+        "executiveSummary",
+        "acceptance",
+      ] as const) {
+        const content = artifacts[kind];
+        if (content !== undefined) validatePerArtifactSize(kind, content);
+      }
+      // Best-effort existing state lookup for aggregate cap projection;
+      // skip if state not yet available (workflow not running, etc.).
+      let existingDocuments: Partial<Record<ArtifactKind, string | undefined>> =
+        {};
+      try {
+        const snapshot = await getTemporalChange(changeId);
+        existingDocuments = (snapshot as unknown as { documents?: typeof existingDocuments })
+          .documents ?? {};
+      } catch {
+        // Snapshot may be unavailable for in-flight workflows or test
+        // fixtures; aggregate cap then computes against the proposed payload
+        // alone, which is a conservative undercount but safe.
+      }
+      validateAggregateSize(artifacts, existingDocuments);
+
       // Forward to disk store via still-positional internal API.
       // T15 removes this call entirely once temporal-first writes land.
       const result = await legacy.changes.updateArtifacts(
@@ -494,51 +660,33 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         return result;
       }
 
-      const updates: Array<
-        [
-          (
-            | "proposal"
-            | "problemStatement"
-            | "agreement"
-            | "design"
-            | "executiveSummary"
-          ),
-          string | undefined,
-          string | undefined,
-        ]
-      > = [
-        ["proposal", result.proposalPath, artifacts.proposal],
-        [
-          "problemStatement",
-          result.problemStatementPath,
-          artifacts.problemStatement,
-        ],
-        ["agreement", result.agreementPath, artifacts.agreement],
-        ["design", result.designPath, artifacts.design],
-        [
-          "executiveSummary",
-          result.executiveSummaryPath,
-          artifacts.executiveSummary,
-        ],
-      ];
-      for (const [kind, path, content] of updates) {
-        if (!path) continue;
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).signal(
-            updateArtifactMetadataSignal,
-            {
-              kind,
-              metadata: {
-                path,
-                updatedAt: new Date().toISOString(),
-                ...(content === undefined
-                  ? {}
-                  : { contentHash: computeContentHash(content) }),
-              },
-            },
-          ),
+      // KD-3 + KD-4: sequential await fan-out of content signals. Each
+      // defined field on `artifacts` fires its content signal (populating
+      // state.documents[kind]) followed by updateArtifactMetadataSignal
+      // (populating state.artifacts[kind].contentHash). Order matches
+      // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
+      const metadataPaths: Partial<Record<ArtifactKind, string>> = {};
+      if (result.proposalPath) metadataPaths.proposal = result.proposalPath;
+      if (result.problemStatementPath)
+        metadataPaths.problemStatement = result.problemStatementPath;
+      if (result.agreementPath) metadataPaths.agreement = result.agreementPath;
+      if (result.designPath) metadataPaths.design = result.designPath;
+      if (result.executiveSummaryPath)
+        metadataPaths.executiveSummary = result.executiveSummaryPath;
+      // acceptancePath is not yet plumbed through createChangeScaffold/
+      // updateChangeArtifacts; the gate.ts acceptance write path (T12)
+      // surfaces it through a different code path until T15+T20 unify.
+
+      await runTemporal(async () => {
+        const handle = await getGuardedChangeHandle(input, changeId);
+        await fireContentSignalsSequentially(
+          handle,
+          changeId,
+          artifacts,
+          metadataPaths,
         );
-      }
+      });
+
       return result;
     }) as Store["changes"]["updateArtifacts"],
 

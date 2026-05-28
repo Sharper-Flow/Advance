@@ -141,13 +141,17 @@ describe("createChangeOps", () => {
       { initialMetadata: { origin } },
     );
 
+    // Legacy positional empty-string args (""s) are normalized to undefined
+    // by normalizeCreateArgs before forwarding — see _artifact-args.ts.
+    // Existing legacy callers that passed "" as a no-op slot continue to
+    // work; the forwarded call uses undefined for clarity.
     expect(legacy.changes.create).toHaveBeenCalledWith(
       "Backlog feature 51",
       "backlog-coordination",
-      "",
-      "",
-      "",
-      "",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       undefined,
       { initialMetadata: { origin } },
     );

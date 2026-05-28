@@ -54,7 +54,13 @@ export function normalizeCreateArgs(args: unknown[]): NormalizedCreateArgs {
     };
   }
 
-  // Legacy positional call
+  // Legacy positional call.
+  //
+  // Empty-string content args are a legacy idiom meaning "this slot is unused"
+  // (used by test fixtures and some pre-migration call sites). They are
+  // normalized to `undefined` here so they do not fire a content signal in
+  // the new code path. The options-object shape preserves explicit empty
+  // strings because the new API does not have this idiom.
   const [
     ,
     capability,
@@ -76,11 +82,14 @@ export function normalizeCreateArgs(args: unknown[]): NormalizedCreateArgs {
   ];
 
   const artifacts: ArtifactPayload = {};
-  if (proposal !== undefined) artifacts.proposal = proposal;
-  if (problemStatement !== undefined) artifacts.problemStatement = problemStatement;
-  if (agreement !== undefined) artifacts.agreement = agreement;
-  if (design !== undefined) artifacts.design = design;
-  if (executiveSummary !== undefined) artifacts.executiveSummary = executiveSummary;
+  if (proposal !== undefined && proposal !== "") artifacts.proposal = proposal;
+  if (problemStatement !== undefined && problemStatement !== "")
+    artifacts.problemStatement = problemStatement;
+  if (agreement !== undefined && agreement !== "")
+    artifacts.agreement = agreement;
+  if (design !== undefined && design !== "") artifacts.design = design;
+  if (executiveSummary !== undefined && executiveSummary !== "")
+    artifacts.executiveSummary = executiveSummary;
 
   return {
     capability: capability as string | undefined,
@@ -103,6 +112,7 @@ export function normalizeUpdateArtifactsArgs(args: unknown[]): ArtifactPayload {
     return { ...(second as ArtifactPayload) };
   }
 
+  // Empty-string legacy idiom — treat as unused slot (see normalizeCreateArgs).
   const [
     ,
     proposal,
@@ -120,10 +130,12 @@ export function normalizeUpdateArtifactsArgs(args: unknown[]): ArtifactPayload {
   ];
 
   const out: ArtifactPayload = {};
-  if (proposal !== undefined) out.proposal = proposal;
-  if (problemStatement !== undefined) out.problemStatement = problemStatement;
-  if (agreement !== undefined) out.agreement = agreement;
-  if (design !== undefined) out.design = design;
-  if (executiveSummary !== undefined) out.executiveSummary = executiveSummary;
+  if (proposal !== undefined && proposal !== "") out.proposal = proposal;
+  if (problemStatement !== undefined && problemStatement !== "")
+    out.problemStatement = problemStatement;
+  if (agreement !== undefined && agreement !== "") out.agreement = agreement;
+  if (design !== undefined && design !== "") out.design = design;
+  if (executiveSummary !== undefined && executiveSummary !== "")
+    out.executiveSummary = executiveSummary;
   return out;
 }
