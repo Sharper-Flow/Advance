@@ -51,6 +51,17 @@ export type DesignUpdatedSignalPayload = z.infer<
   typeof DesignUpdatedSignalPayloadSchema
 >;
 
+export const ExecutiveSummaryUpdatedSignalPayloadSchema =
+  DocumentUpdateBaseSchema;
+export type ExecutiveSummaryUpdatedSignalPayload = z.infer<
+  typeof ExecutiveSummaryUpdatedSignalPayloadSchema
+>;
+
+export const AcceptanceUpdatedSignalPayloadSchema = DocumentUpdateBaseSchema;
+export type AcceptanceUpdatedSignalPayload = z.infer<
+  typeof AcceptanceUpdatedSignalPayloadSchema
+>;
+
 export const AcceptanceCriteriaSetSignalPayloadSchema = z.object({
   criteria: z.array(z.string()),
   setBy: z.string().optional(),

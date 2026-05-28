@@ -5,6 +5,7 @@ import type {
   Cancellation,
   Change,
   ChangeCancelledSignalPayload,
+  AcceptanceUpdatedSignalPayload,
   ChangeClosure,
   ContractAmendedSignalPayload,
   ContractReviewMatrixSetSignalPayload,
@@ -14,6 +15,7 @@ import type {
   ConformanceVerdictSignalPayload,
   DesignUpdatedSignalPayload,
   ErrorRecovery,
+  ExecutiveSummaryUpdatedSignalPayload,
   GateId,
   GateAwaitingApprovalSignalPayload,
   GateCompletedSignalPayload,
@@ -204,6 +206,27 @@ export function applyDesignUpdatedToState(
   payload: DesignUpdatedSignalPayload,
 ): ChangeWorkflowState {
   state.documents = { ...(state.documents ?? {}), design: payload.text };
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyExecutiveSummaryUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: ExecutiveSummaryUpdatedSignalPayload,
+): ChangeWorkflowState {
+  state.documents = {
+    ...(state.documents ?? {}),
+    executiveSummary: payload.text,
+  };
+  setLastSignalAt(state, payload.updatedAt);
+  return state;
+}
+
+export function applyAcceptanceUpdatedToState(
+  state: ChangeWorkflowState,
+  payload: AcceptanceUpdatedSignalPayload,
+): ChangeWorkflowState {
+  state.documents = { ...(state.documents ?? {}), acceptance: payload.text };
   setLastSignalAt(state, payload.updatedAt);
   return state;
 }

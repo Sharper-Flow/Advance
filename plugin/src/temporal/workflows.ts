@@ -29,7 +29,9 @@ import {
   applyContractAmendedToState,
   applyContractReviewMatrixSetToState,
   applyContractSetToState,
+  applyAcceptanceUpdatedToState,
   applyDesignUpdatedToState,
+  applyExecutiveSummaryUpdatedToState,
   applyGateAwaitingApprovalToState,
   applyGateCompletedToState,
   applyGateInProgressToState,
@@ -213,6 +215,12 @@ const agreementUpdatedSignal = wf.defineSignal<
 const designUpdatedSignal = wf.defineSignal<
   [import("../types").DesignUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated);
+const executiveSummaryUpdatedSignal = wf.defineSignal<
+  [import("../types").ExecutiveSummaryUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.executiveSummaryUpdated);
+const acceptanceUpdatedSignal = wf.defineSignal<
+  [import("../types").AcceptanceUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceUpdated);
 const acceptanceCriteriaSetSignal = wf.defineSignal<
   [import("../types").AcceptanceCriteriaSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);
@@ -906,6 +914,18 @@ export async function changeWorkflow(
     designUpdatedSignal,
     signalMutation("designUpdated", (payload) =>
       applyDesignUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    executiveSummaryUpdatedSignal,
+    signalMutation("executiveSummaryUpdated", (payload) =>
+      applyExecutiveSummaryUpdatedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    acceptanceUpdatedSignal,
+    signalMutation("acceptanceUpdated", (payload) =>
+      applyAcceptanceUpdatedToState(state, payload),
     ),
   );
   wf.setHandler(

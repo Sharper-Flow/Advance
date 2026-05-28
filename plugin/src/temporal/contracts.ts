@@ -48,6 +48,8 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   problemStatementUpdated: "adv.change.problemStatementUpdated",
   agreementUpdated: "adv.change.agreementUpdated",
   designUpdated: "adv.change.designUpdated",
+  executiveSummaryUpdated: "adv.change.executiveSummaryUpdated",
+  acceptanceUpdated: "adv.change.acceptanceUpdated",
   acceptanceCriteriaSet: "adv.change.acceptanceCriteriaSet",
   contractSet: "adv.change.contractSet",
   contractAmended: "adv.change.contractAmended",

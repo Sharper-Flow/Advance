@@ -14,6 +14,7 @@ import { createDefaultGates } from "../types";
 import type { ChangeWorkflowInput, ChangeWorkflowState } from "./contracts";
 import {
   acceptanceCriteriaSetSignal,
+  acceptanceUpdatedSignal,
   agreementUpdatedSignal,
   archiveRequestedSignal,
   changeCancelledSignal,
@@ -24,6 +25,7 @@ import {
   contractReviewMatrixSetSignal,
   contractSetSignal,
   designUpdatedSignal,
+  executiveSummaryUpdatedSignal,
   gateAwaitingApprovalSignal,
   gateCompletedSignal,
   gateInProgressSignal,
@@ -206,6 +208,14 @@ describe("changeWorkflow signal handlers", () => {
         text: "design text",
         updatedAt: "2026-05-05T00:00:04.000Z",
       });
+      await handle.signal(executiveSummaryUpdatedSignal, {
+        text: "exec summary text",
+        updatedAt: "2026-05-05T00:00:04.500Z",
+      });
+      await handle.signal(acceptanceUpdatedSignal, {
+        text: "acceptance text",
+        updatedAt: "2026-05-05T00:00:04.750Z",
+      });
       await handle.signal(acceptanceCriteriaSetSignal, {
         criteria: ["SC1", "SC2"],
         setBy: "tester",
@@ -386,6 +396,8 @@ describe("changeWorkflow signal handlers", () => {
         problemStatement: "problem text",
         agreement: "agreement text",
         design: "design text",
+        executiveSummary: "exec summary text",
+        acceptance: "acceptance text",
       });
       expect(state.acceptanceCriteria).toEqual([
         "Contract state is persisted.",

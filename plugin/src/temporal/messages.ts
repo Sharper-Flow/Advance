@@ -19,6 +19,7 @@ import * as wf from "@temporalio/workflow";
 
 import type {
   AcceptanceCriteriaSetSignalPayload,
+  AcceptanceUpdatedSignalPayload,
   AgreementUpdatedSignalPayload,
   ArchiveRequestedSignalPayload,
   ChangeCancelledSignalPayload,
@@ -29,6 +30,7 @@ import type {
   ContractReviewMatrixSetSignalPayload,
   ContractSetSignalPayload,
   DesignUpdatedSignalPayload,
+  ExecutiveSummaryUpdatedSignalPayload,
   GateAwaitingApprovalSignalPayload,
   GateCompletedSignalPayload,
   GateInProgressSignalPayload,
@@ -130,6 +132,12 @@ export const agreementUpdatedSignal = wf.defineSignal<
 export const designUpdatedSignal = wf.defineSignal<
   [DesignUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.designUpdated);
+export const executiveSummaryUpdatedSignal = wf.defineSignal<
+  [ExecutiveSummaryUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.executiveSummaryUpdated);
+export const acceptanceUpdatedSignal = wf.defineSignal<
+  [AcceptanceUpdatedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceUpdated);
 export const acceptanceCriteriaSetSignal = wf.defineSignal<
   [AcceptanceCriteriaSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.acceptanceCriteriaSet);

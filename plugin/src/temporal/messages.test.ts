@@ -13,6 +13,7 @@ import {
 import * as messages from "./messages";
 import {
   AcceptanceCriteriaSetSignalPayloadSchema,
+  AcceptanceUpdatedSignalPayloadSchema,
   AgreementUpdatedSignalPayloadSchema,
   ArchiveRequestedSignalPayloadSchema,
   ChangeCancelledSignalPayloadSchema,
@@ -23,6 +24,7 @@ import {
   ContractReviewMatrixSetSignalPayloadSchema,
   ContractSetSignalPayloadSchema,
   DesignUpdatedSignalPayloadSchema,
+  ExecutiveSummaryUpdatedSignalPayloadSchema,
   GateAwaitingApprovalSignalPayloadSchema,
   GateCompletedSignalPayloadSchema,
   GateInProgressSignalPayloadSchema,
@@ -51,6 +53,8 @@ const designSignalKeys = [
   "problemStatementUpdated",
   "agreementUpdated",
   "designUpdated",
+  "executiveSummaryUpdated",
+  "acceptanceUpdated",
   "acceptanceCriteriaSet",
   "contractSet",
   "contractAmended",
@@ -93,11 +97,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 35 signal surface", () => {
+  it("defines the 37 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(35);
+    expect(surfacedKeys).toHaveLength(37);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -145,6 +149,14 @@ describe("change workflow message contract", () => {
         { text: "a", updatedAt: timestamp },
       ],
       [DesignUpdatedSignalPayloadSchema, { text: "d", updatedAt: timestamp }],
+      [
+        ExecutiveSummaryUpdatedSignalPayloadSchema,
+        { text: "exec", updatedAt: timestamp },
+      ],
+      [
+        AcceptanceUpdatedSignalPayloadSchema,
+        { text: "accept", updatedAt: timestamp },
+      ],
       [
         AcceptanceCriteriaSetSignalPayloadSchema,
         { criteria: ["c"], setAt: timestamp },
