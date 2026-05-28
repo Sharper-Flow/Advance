@@ -218,11 +218,29 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
   terminated?: boolean;
   acceptanceCriteria?: string[];
   contract?: ChangeContract;
+  /**
+   * Authoritative artifact content for the change, keyed by canonical
+   * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
+   * design/executiveSummary/acceptance markdown content; disk-resident
+   * `.md` files are a derived view materialized only when building the
+   * archive bundle.
+   *
+   * Naming standard: camelCase keys mirror `ArtifactKind` and `ArtifactPayload`
+   * (`types/artifacts.ts`). Kebab-case appears only at the filesystem boundary
+   * in `ARTIFACT_FILENAME` (`temporal/activities.ts`).
+   *
+   * Additive optional fields — Temporal replay-safe per safe-deployments
+   * contract (https://docs.temporal.io/develop/safe-deployments). Histories
+   * predating this extension replay cleanly with `executiveSummary` and
+   * `acceptance` undefined.
+   */
   documents?: {
     proposal?: string;
     problemStatement?: string;
     agreement?: string;
     design?: string;
+    executiveSummary?: string;
+    acceptance?: string;
   };
   reflections?: unknown[];
   worktrees?: Record<
