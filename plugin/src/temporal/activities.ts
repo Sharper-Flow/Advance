@@ -184,9 +184,7 @@ export interface MaterializeBundleArtifactsInput {
   /** Absolute path to the bundle dir (`.adv/archive/{cid}-{ts}/`). */
   bundleDir: string;
   /** Workflow state.documents — kind→content map. Undefined kinds skipped. */
-  documents:
-    | Partial<Record<ArtifactKind, string | undefined>>
-    | undefined;
+  documents: Partial<Record<ArtifactKind, string | undefined>> | undefined;
 }
 
 export interface MaterializeBundleArtifactsResult {

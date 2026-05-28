@@ -61,15 +61,14 @@ export type ArtifactPayload = z.infer<typeof ArtifactPayloadSchema>;
 // the `_check` assignment fails to compile.
 // =============================================================================
 
-type _PayloadKeysMatchArtifactKind =
-  keyof ArtifactPayload extends ArtifactKind
-    ? ArtifactKind extends keyof ArtifactPayload
-      ? true
-      : never
-    : never;
+type _PayloadKeysMatchArtifactKind = keyof ArtifactPayload extends ArtifactKind
+  ? ArtifactKind extends keyof ArtifactPayload
+    ? true
+    : never
+  : never;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _check: _PayloadKeysMatchArtifactKind = true;
+void _check;
 
 // =============================================================================
 // Size caps

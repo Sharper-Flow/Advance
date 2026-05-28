@@ -600,8 +600,7 @@ async function enrichRecentChangeStatus(
   // Temporal-first proposal read per KD-6. Falls back to disk/archive via
   // readArtifact; null result means no proposal content — use empty string
   // for snapshot rendering (status output is read-only).
-  const proposalText =
-    (await readArtifact(store, changeId, "proposal")) ?? "";
+  const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
 
   const snapshotInput = {
     change: changeResult.data,

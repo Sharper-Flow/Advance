@@ -629,8 +629,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         {};
       try {
         const snapshot = await getTemporalChange(changeId);
-        existingDocuments = (snapshot as unknown as { documents?: typeof existingDocuments })
-          .documents ?? {};
+        existingDocuments =
+          (snapshot as unknown as { documents?: typeof existingDocuments })
+            .documents ?? {};
       } catch {
         // Snapshot may be unavailable for in-flight workflows or test
         // fixtures; aggregate cap then computes against the proposed payload

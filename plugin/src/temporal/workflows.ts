@@ -95,7 +95,11 @@ interface ChangeProjectionActivities {
         ok: true;
         kind: Extract<
           import("../types").ArtifactKind,
-          "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary"
+          | "proposal"
+          | "agreement"
+          | "design"
+          | "acceptance"
+          | "executiveSummary"
         >;
         path: string;
         contentHash: string;
@@ -106,7 +110,11 @@ interface ChangeProjectionActivities {
         ok: false;
         kind: Extract<
           import("../types").ArtifactKind,
-          "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary"
+          | "proposal"
+          | "agreement"
+          | "design"
+          | "acceptance"
+          | "executiveSummary"
         >;
         path: string;
         code: "missing" | "unreadable";

@@ -74,7 +74,8 @@ export function validateAggregateSize(
   for (const kind of allKinds) {
     const proposedValue = proposed[kind];
     const existingValue = existingDocuments?.[kind];
-    const finalValue = proposedValue !== undefined ? proposedValue : existingValue;
+    const finalValue =
+      proposedValue !== undefined ? proposedValue : existingValue;
     if (typeof finalValue === "string") projected[kind] = finalValue;
   }
 

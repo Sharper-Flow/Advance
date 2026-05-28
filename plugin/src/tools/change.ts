@@ -285,11 +285,7 @@ async function defaultClaimChecker(
   return results.map((r) => ({ changeId: r.changeId, status: "active" }));
 }
 import { runClarifyReadinessChecks } from "../validator/clarify-readiness";
-import {
-  fileExists,
-  removeChangeDir,
-  loadChange,
-} from "../storage/json";
+import { fileExists, removeChangeDir, loadChange } from "../storage/json";
 import {
   archiveChange,
   findArchiveBundle,
@@ -801,7 +797,9 @@ async function createCrossProjectFollowUp({
     const result = await targetStore.changes.create(summary, {
       capability,
       artifacts: {
-        ...(enrichedProposal !== undefined ? { proposal: enrichedProposal } : {}),
+        ...(enrichedProposal !== undefined
+          ? { proposal: enrichedProposal }
+          : {}),
         ...(problemStatement !== undefined ? { problemStatement } : {}),
         ...(agreement !== undefined ? { agreement } : {}),
         ...(design !== undefined ? { design } : {}),
@@ -987,7 +985,6 @@ async function loadValidationContext(
   proposalText: string;
   changedSpecFiles: string[] | null | undefined;
 }> {
-  const changeDir = join(store.paths.changes, changeId);
   const specList = await store.specs.list();
   const specs: Spec[] = [];
   for (const specInfo of specList.specs) {
@@ -2207,7 +2204,6 @@ export const changeTools = {
             // from the change directory. Only reads when explicitly
             // requested to avoid unnecessary I/O. Falls back to the
             // latest archive bundle for archived changes.
-            const archiveDir = activeStore.paths.archive;
             // Batched multi-include read per C9 — single store.changes.get()
             // query covers all requested kinds (KD-6 readArtifacts).
             const requestedKinds: ArtifactKind[] = [];

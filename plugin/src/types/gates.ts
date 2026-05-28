@@ -97,15 +97,14 @@ export type GateArtifactKind = Extract<
 // Compile-time sanity: schema runtime values must match the derived type
 // exhaustively. If a new gate-backed kind is added to either side without
 // the other, `_gateArtifactKindCheck` fails to compile.
-type _GateArtifactKindCheck = GateArtifactKind extends z.infer<
-  typeof GateArtifactKindSchema
->
-  ? z.infer<typeof GateArtifactKindSchema> extends GateArtifactKind
-    ? true
-    : never
-  : never;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _GateArtifactKindCheck =
+  GateArtifactKind extends z.infer<typeof GateArtifactKindSchema>
+    ? z.infer<typeof GateArtifactKindSchema> extends GateArtifactKind
+      ? true
+      : never
+    : never;
 const _gateArtifactKindCheck: _GateArtifactKindCheck = true;
+void _gateArtifactKindCheck;
 
 export const GateArtifactEvidenceSchema = z.object({
   kind: GateArtifactKindSchema,

@@ -153,5 +153,5 @@ describe("size cap constants", () => {
 // Compile-time anchor — referencing the type ensures it exists and is exported.
 // If the type is missing, tsc fails here.
 const _typeAnchor: ArtifactKind = "proposal";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _payloadAnchor: ArtifactPayload = { proposal: _typeAnchor };
+void _payloadAnchor;

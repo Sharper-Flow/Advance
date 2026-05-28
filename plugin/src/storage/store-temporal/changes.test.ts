@@ -139,13 +139,10 @@ describe("createChangeOps", () => {
 
     // Temporal store now calls legacy.changes.create with options-object
     // shape — no artifact content forwarded; content flows via signals.
-    expect(legacy.changes.create).toHaveBeenCalledWith(
-      "Backlog feature 51",
-      {
-        capability: "backlog-coordination",
-        initialMetadata: { origin },
-      },
-    );
+    expect(legacy.changes.create).toHaveBeenCalledWith("Backlog feature 51", {
+      capability: "backlog-coordination",
+      initialMetadata: { origin },
+    });
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
       workflowClient,

@@ -101,8 +101,7 @@ describe("AC6 — ArtifactPayload signal invariant", () => {
 
     const contentSignals = signals.filter(
       (s) =>
-        s.signalName.endsWith("Updated") &&
-        !s.signalName.includes("Metadata"),
+        s.signalName.endsWith("Updated") && !s.signalName.includes("Metadata"),
     );
     expect(contentSignals).toHaveLength(0);
   });

@@ -51,36 +51,20 @@ describe("Layer 2 size-guard — single-artifact hard cap", () => {
   const validText = "small content";
 
   it.each([
-    [
-      "proposal",
-      applyProposalUpdatedToState,
-      "proposal" as const,
-    ],
+    ["proposal", applyProposalUpdatedToState, "proposal" as const],
     [
       "problemStatement",
       applyProblemStatementUpdatedToState,
       "problemStatement" as const,
     ],
-    [
-      "agreement",
-      applyAgreementUpdatedToState,
-      "agreement" as const,
-    ],
-    [
-      "design",
-      applyDesignUpdatedToState,
-      "design" as const,
-    ],
+    ["agreement", applyAgreementUpdatedToState, "agreement" as const],
+    ["design", applyDesignUpdatedToState, "design" as const],
     [
       "executiveSummary",
       applyExecutiveSummaryUpdatedToState,
       "executiveSummary" as const,
     ],
-    [
-      "acceptance",
-      applyAcceptanceUpdatedToState,
-      "acceptance" as const,
-    ],
+    ["acceptance", applyAcceptanceUpdatedToState, "acceptance" as const],
   ])(
     "rejects oversized %s without throwing; state.documents.%s unchanged",
     (_name, reducer, kind) => {
@@ -104,9 +88,7 @@ describe("Layer 2 size-guard — single-artifact hard cap", () => {
       expect(artifact?.rejection?.reason).toBe("ARTIFACT_OVERSIZED");
       expect(artifact?.rejection?.attempted_size).toBe(oversizedText.length);
       expect(artifact?.rejection?.cap).toBe(ARTIFACT_HARD_CAP);
-      expect(artifact?.rejection?.rejected_at).toBe(
-        "2026-05-28T00:00:01.000Z",
-      );
+      expect(artifact?.rejection?.rejected_at).toBe("2026-05-28T00:00:01.000Z");
 
       // state.lastSignalAt updated (signal was handled, just rejected)
       expect(state.lastSignalAt).toBe("2026-05-28T00:00:01.000Z");

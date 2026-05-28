@@ -5,7 +5,6 @@
  */
 
 import { z } from "zod";
-import { join } from "path";
 import type { Store } from "../storage/store";
 import {
   type GateId,

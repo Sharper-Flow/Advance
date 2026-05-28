@@ -94,10 +94,7 @@ describe("readArtifact — Temporal-first read path", () => {
       const bundleDir = join(archiveDir, "2026-05-28-test-change");
       await mkdir(bundleDir, { recursive: true });
       await writeFile(join(bundleDir, "change.json"), "{}");
-      await writeFile(
-        join(bundleDir, "executive-summary.md"),
-        "from archive",
-      );
+      await writeFile(join(bundleDir, "executive-summary.md"), "from archive");
 
       const store = buildMockStore({ changesDir, rootDir: dir });
 
