@@ -611,11 +611,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.proposalPath).toContain("proposal.md");
       expect(store.changes.updateArtifacts).toHaveBeenCalledWith(
         "test-change",
-        "# Valid proposal update",
-        undefined,
-        undefined,
-        undefined,
-        undefined,
+        { proposal: "# Valid proposal update" },
       );
     });
 
@@ -723,24 +719,17 @@ describe("change tools — signal-driven lifecycle", () => {
         issue_number: 12,
         source_artifact: "ag-12",
       });
-      expect(store.changes.create).toHaveBeenCalledWith(
-        "Create origin seed",
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        {
-          initialMetadata: {
-            origin: {
-              kind: "triage",
-              issue_number: 12,
-              source_artifact: "ag-12",
-            },
+      expect(store.changes.create).toHaveBeenCalledWith("Create origin seed", {
+        capability: undefined,
+        artifacts: {},
+        initialMetadata: {
+          origin: {
+            kind: "triage",
+            issue_number: 12,
+            source_artifact: "ag-12",
           },
         },
-      );
+      });
       expect(store.changes.save).not.toHaveBeenCalledWith(
         expect.objectContaining({
           origin: expect.anything(),

@@ -798,15 +798,16 @@ async function createCrossProjectFollowUp({
   }
 
   try {
-    const result = await targetStore.changes.create(
-      summary,
+    const result = await targetStore.changes.create(summary, {
       capability,
-      enrichedProposal,
-      problemStatement,
-      agreement,
-      design,
-      executiveSummary,
-    );
+      artifacts: {
+        ...(enrichedProposal !== undefined ? { proposal: enrichedProposal } : {}),
+        ...(problemStatement !== undefined ? { problemStatement } : {}),
+        ...(agreement !== undefined ? { agreement } : {}),
+        ...(design !== undefined ? { design } : {}),
+        ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+      },
+    });
     const changeResult = await targetStore.changes.get(result.changeId);
     if (changeResult.success && changeResult.data) {
       changeResult.data.cross_project_origin = origin;
@@ -2517,16 +2518,19 @@ export const changeTools = {
       // rq-backlogCoord08: seed creation metadata before workflow start so
       // origin/search attributes are authoritative Temporal state, not a late
       // disk-only patch.
-      const result = await store.changes.create(
-        summary,
+      const result = await store.changes.create(summary, {
         capability,
-        proposal,
-        problemStatement,
-        agreement,
-        design,
-        executiveSummary,
-        createOptions,
-      );
+        artifacts: {
+          ...(proposal !== undefined ? { proposal } : {}),
+          ...(problemStatement !== undefined ? { problemStatement } : {}),
+          ...(agreement !== undefined ? { agreement } : {}),
+          ...(design !== undefined ? { design } : {}),
+          ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+        },
+        ...(createOptions?.initialMetadata
+          ? { initialMetadata: createOptions.initialMetadata }
+          : {}),
+      });
 
       const output: Record<string, unknown> = { ...result };
 
@@ -2790,14 +2794,13 @@ export const changeTools = {
 
         let result;
         try {
-          result = await activeStore.changes.updateArtifacts(
-            changeId,
-            proposal,
-            problemStatement,
-            agreement,
-            design,
-            executiveSummary,
-          );
+          result = await activeStore.changes.updateArtifacts(changeId, {
+            ...(proposal !== undefined ? { proposal } : {}),
+            ...(problemStatement !== undefined ? { problemStatement } : {}),
+            ...(agreement !== undefined ? { agreement } : {}),
+            ...(design !== undefined ? { design } : {}),
+            ...(executiveSummary !== undefined ? { executiveSummary } : {}),
+          });
         } catch (error) {
           if (
             recoveryMode !== "poisoned_history" ||
