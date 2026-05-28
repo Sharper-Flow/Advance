@@ -32,6 +32,7 @@ import {
   ChangeRepoScopeSchema,
   type GateId,
   type GateCompletion,
+  type ArtifactKind,
   type Gates,
   type Change,
   type ChangeRepoScope,
@@ -77,6 +78,13 @@ function subagentReportReadbackKey(report: ScopedSubagentReport): string {
  * the latest archive bundle when the active file is missing (archived
  * changes have their active dirs cleaned up). Returns `undefined` when
  * neither source has the file.
+ *
+ * **Deprecated** — kept only for transitional callsites that read raw
+ * filenames. New callers should use `readArtifact(changeId, kind, store)`
+ * which queries Temporal-first per KD-6.
+ *
+ * T10 (KD-7) migrates all callsites to the Temporal-first read path;
+ * this helper is deleted once the sweep returns zero references.
  */
 async function readArtifactWithArchiveFallback(
   changeDir: string,
@@ -105,6 +113,137 @@ async function readArtifactWithArchiveFallback(
   }
 
   return undefined;
+}
+
+/**
+ * Canonical kebab-case filename per `ArtifactKind`. Matches the filesystem
+ * boundary map in `temporal/activities.ts`. Single source of truth for the
+ * disk fallback paths in `readArtifact` / `readArtifacts` — kept in lockstep
+ * with the activities module.
+ */
+const ARTIFACT_KIND_FILENAME: Record<ArtifactKind, string> = {
+  proposal: "proposal.md",
+  problemStatement: "problem-statement.md",
+  agreement: "agreement.md",
+  design: "design.md",
+  executiveSummary: "executive-summary.md",
+  acceptance: "acceptance.md",
+};
+
+/**
+ * Read a single artifact content by canonical kind. Temporal-first per
+ * KD-6: queries `state.documents[kind]` via `store.changes.get()` (which
+ * uses `mapTemporalChangeStateToChange` to surface documents). Falls back
+ * to disk-active-dir, then archive bundle.
+ *
+ * Returns `null` when content is unavailable from any source (e.g. an
+ * in-flight pre-migration change whose `state.documents` is empty and
+ * disk file is also empty).
+ */
+export async function readArtifact(
+  store: Store,
+  changeId: string,
+  kind: ArtifactKind,
+): Promise<string | null> {
+  // 1. Temporal-first — query workflow state.documents.
+  try {
+    const result = await store.changes.get(changeId);
+    if (result.success && result.data) {
+      const content = result.data.documents?.[kind];
+      if (typeof content === "string" && content.length > 0) return content;
+    }
+  } catch {
+    // Workflow may be unavailable; fall through to disk.
+  }
+
+  // 2. Disk active directory.
+  const changeDir = join(store.paths.changes, changeId);
+  const filename = ARTIFACT_KIND_FILENAME[kind];
+  try {
+    const text = await readFile(join(changeDir, filename), "utf-8");
+    if (text.trim().length > 0) return text;
+  } catch {
+    // File missing — fall through.
+  }
+
+  // 3. Archive bundle fallback.
+  const archiveDir = join(store.paths.root, ".adv", "archive");
+  const bundleDir = await findArchiveBundle(archiveDir, changeId);
+  if (bundleDir) {
+    try {
+      const text = await readFile(join(bundleDir, filename), "utf-8");
+      if (text.trim().length > 0) return text;
+    } catch {
+      // Bundle file missing — return null.
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Batched multi-artifact read. Per C9 (read latency), issues exactly ONE
+ * workflow query and extracts the requested kinds in memory. Disk and
+ * archive-bundle fallbacks are per-kind in case the workflow lacks content
+ * for some kinds (pre-migration change, partial hydration).
+ *
+ * Returns a partial record keyed by requested kind; missing kinds are
+ * absent from the returned object.
+ */
+export async function readArtifacts(
+  store: Store,
+  changeId: string,
+  kinds: ArtifactKind[],
+): Promise<Partial<Record<ArtifactKind, string>>> {
+  const result: Partial<Record<ArtifactKind, string>> = {};
+
+  // 1. Temporal-first — single store.changes.get() call covers all kinds.
+  let temporalDocuments: Partial<Record<ArtifactKind, string>> | undefined;
+  try {
+    const changeResult = await store.changes.get(changeId);
+    if (changeResult.success && changeResult.data) {
+      temporalDocuments = changeResult.data.documents as
+        | Partial<Record<ArtifactKind, string>>
+        | undefined;
+    }
+  } catch {
+    // Workflow may be unavailable; per-kind disk fallback follows.
+  }
+
+  // 2. Per-kind: prefer Temporal, fall back to disk/archive.
+  for (const kind of kinds) {
+    const temporalContent = temporalDocuments?.[kind];
+    if (typeof temporalContent === "string" && temporalContent.length > 0) {
+      result[kind] = temporalContent;
+      continue;
+    }
+
+    // Disk fallback per kind.
+    const changeDir = join(store.paths.changes, changeId);
+    const filename = ARTIFACT_KIND_FILENAME[kind];
+    try {
+      const text = await readFile(join(changeDir, filename), "utf-8");
+      if (text.trim().length > 0) {
+        result[kind] = text;
+        continue;
+      }
+    } catch {
+      // Fall through to archive bundle.
+    }
+
+    const archiveDir = join(store.paths.root, ".adv", "archive");
+    const bundleDir = await findArchiveBundle(archiveDir, changeId);
+    if (bundleDir) {
+      try {
+        const text = await readFile(join(bundleDir, filename), "utf-8");
+        if (text.trim().length > 0) result[kind] = text;
+      } catch {
+        // Skip missing artifact.
+      }
+    }
+  }
+
+  return result;
 }
 
 /**

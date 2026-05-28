@@ -492,13 +492,23 @@ export const ChangeSchema = z
     contract: ChangeContractSchema.optional(),
     /** Legacy acceptance criteria projection derived from contract items. */
     acceptanceCriteria: z.array(z.string()).optional(),
-    /** Workflow document cache used to re-seed contract proof after recovery. */
+    /**
+     * Workflow document content — authoritative source for the six change
+     * artifacts (proposal, problemStatement, agreement, design,
+     * executiveSummary, acceptance). Populated by content signals into
+     * `state.documents`. Used by `readArtifact` for Temporal-first reads and
+     * by `materializeBundleArtifactsActivity` for archive bundle writes.
+     *
+     * Additive optional fields — Temporal replay-safe.
+     */
     documents: z
       .object({
         proposal: z.string().optional(),
         problemStatement: z.string().optional(),
         agreement: z.string().optional(),
         design: z.string().optional(),
+        executiveSummary: z.string().optional(),
+        acceptance: z.string().optional(),
       })
       .optional(),
     /** Artifact metadata projection used during workflow re-seed. */
