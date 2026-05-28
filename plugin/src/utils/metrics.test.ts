@@ -209,7 +209,9 @@ describe("recordPhaseDuration", () => {
     }
     const samples = getMetrics().recent_phase_durations;
     expect(samples).toHaveLength(RECENT_PHASE_BUFFER_LIMIT);
-    expect(samples[0].phase).toBe(`phase_${overflow - RECENT_PHASE_BUFFER_LIMIT}`);
+    expect(samples[0].phase).toBe(
+      `phase_${overflow - RECENT_PHASE_BUFFER_LIMIT}`,
+    );
     expect(samples[samples.length - 1].phase).toBe(`phase_${overflow - 1}`);
   });
 });

@@ -1173,12 +1173,11 @@ export const statusTools = {
             | null
             | undefined;
           if (plan.queueServiceability && temporalHealth) {
-            const queueServiceabilityProbe = await fetchStatusQueueServiceability(
-              {
+            const queueServiceabilityProbe =
+              await fetchStatusQueueServiceability({
                 projectId,
                 health: temporalHealth,
-              },
-            );
+              });
             queueServiceability = queueServiceabilityProbe.value;
             probeFreshness.queue_serviceability =
               queueServiceabilityProbe.freshness;
@@ -1244,7 +1243,9 @@ export const statusTools = {
                 configResult.type === "not_found"
                   ? "⚠️  Config warning"
                   : "❌ Config error";
-              status.recommendations.unshift(`${prefix}: ${configResult.error}`);
+              status.recommendations.unshift(
+                `${prefix}: ${configResult.error}`,
+              );
             } else {
               rawFeatures = configResult.data.features as
                 | Record<string, unknown>
@@ -1321,36 +1322,42 @@ export const statusTools = {
             classes: {},
           };
           if (plan.worktreeCleanup) {
-            await withRecordedPhase("adv_status", "worktreeCleanup", async () => {
-              try {
-                const worktreeAccess = await initWorktreeStateDb(
-                  activeStore.paths.root,
-                );
-                await advWorktreeCleanup("status", {
-                  projectRoot: activeStore.paths.root,
-                  database: worktreeAccess,
-                  log: {
-                    debug: () => undefined,
-                    info: () => undefined,
-                    warn: () => undefined,
-                    error: () => undefined,
-                  },
-                  store: activeStore,
-                  forceAttempts: false,
-                });
-                terminalCleanupRetained = summarizePendingDeletes(
-                  await getPendingDeletes(worktreeAccess),
-                );
-              } catch {
-                // Status cleanup discovery is best-effort; status itself must remain available.
-              }
-            });
+            await withRecordedPhase(
+              "adv_status",
+              "worktreeCleanup",
+              async () => {
+                try {
+                  const worktreeAccess = await initWorktreeStateDb(
+                    activeStore.paths.root,
+                  );
+                  await advWorktreeCleanup("status", {
+                    projectRoot: activeStore.paths.root,
+                    database: worktreeAccess,
+                    log: {
+                      debug: () => undefined,
+                      info: () => undefined,
+                      warn: () => undefined,
+                      error: () => undefined,
+                    },
+                    store: activeStore,
+                    forceAttempts: false,
+                  });
+                  terminalCleanupRetained = summarizePendingDeletes(
+                    await getPendingDeletes(worktreeAccess),
+                  );
+                } catch {
+                  // Status cleanup discovery is best-effort; status itself must remain available.
+                }
+              },
+            );
           }
 
           let worktreeCensus: WorktreeCensusSnapshot | undefined;
           if (plan.worktreeCensus) {
             const worktreeCensusProbe =
-              await statusWorktreeCensusProbeCache.fetch(activeStore.paths.root);
+              await statusWorktreeCensusProbeCache.fetch(
+                activeStore.paths.root,
+              );
             worktreeCensus = worktreeCensusProbe.value;
             probeFreshness.worktree_census = worktreeCensusProbe.freshness;
           }
@@ -1491,71 +1498,74 @@ export const statusTools = {
             "formatOutput",
             async () =>
               formatStatusOutput({
-            specCount: status.specs.count,
-            requirementCount,
-            activeChanges: status.changes.recent.map((c) => ({
-              id: c.id,
-              title: c.title,
-              minutesSinceActivity: c.minutesSinceActivity,
-              parent_change_id: c.parent_change_id,
-            })),
-            archivedCount: status.changes.byStatus.archived ?? 0,
-            recommendations: status.recommendations,
-            temporalAlive: !!temporalHealth?.server_alive,
-            temporalHealth: temporalHealth
-              ? {
-                  worker_alive: temporalHealth.worker_alive ?? false,
-                  worker_process_alive:
-                    temporalHealth.worker_process_alive ?? false,
-                  worker_lock: temporalHealth.worker_lock ?? null,
-                  last_worker_run_error:
-                    temporalHealth.last_worker_run_error ?? null,
-                }
-              : undefined,
-            temporalQueueServiceability:
-              queueServiceability?.serviceability ?? null,
-            pluginRuntime: pluginRuntimeInfo
-              ? {
-                  source_dist_freshness:
-                    pluginRuntimeInfo.source_dist_freshness,
-                  recovery_hint: pluginRuntimeInfo.recovery_hint,
-                }
-              : undefined,
-            worktreeCensus: worktreeCensus
-              ? {
-                  total: worktreeCensus.total,
-                  stale: worktreeCensus.stale,
-                }
-              : undefined,
-            terminalCleanupRetained,
-            peerSessions,
-            opencodeSessionDebt:
-              opencodeSessionDebt && opencodeSessionDebt.available
-                ? {
-                    available: true,
-                    orphanGhostCount: opencodeDebtCounts?.orphanGhost ?? 0,
-                    liveInFlightCount: opencodeDebtCounts?.liveInFlight ?? 0,
-                    idleActiveSessionCount:
-                      opencodeDebtCounts?.idleActiveSession ?? 0,
-                    repairableToolPartCount:
-                      opencodeDebtCounts?.repairableToolPart ?? 0,
-                    liveToolPartCount: opencodeDebtCounts?.liveToolPart ?? 0,
-                    idleToolPartCount: opencodeDebtCounts?.idleToolPart ?? 0,
-                  }
-                : opencodeSessionDebt
+                specCount: status.specs.count,
+                requirementCount,
+                activeChanges: status.changes.recent.map((c) => ({
+                  id: c.id,
+                  title: c.title,
+                  minutesSinceActivity: c.minutesSinceActivity,
+                  parent_change_id: c.parent_change_id,
+                })),
+                archivedCount: status.changes.byStatus.archived ?? 0,
+                recommendations: status.recommendations,
+                temporalAlive: !!temporalHealth?.server_alive,
+                temporalHealth: temporalHealth
                   ? {
-                      available: false,
-                      reason: opencodeSessionDebt.reason,
+                      worker_alive: temporalHealth.worker_alive ?? false,
+                      worker_process_alive:
+                        temporalHealth.worker_process_alive ?? false,
+                      worker_lock: temporalHealth.worker_lock ?? null,
+                      last_worker_run_error:
+                        temporalHealth.last_worker_run_error ?? null,
                     }
                   : undefined,
-            snapshotHealth: snapshotHealth
-              ? {
-                  critical: snapshotHealth.summary.critical,
-                  warnings: snapshotHealth.summary.warnings,
-                  info: snapshotHealth.summary.info,
-                }
-              : undefined,
-          }),
+                temporalQueueServiceability:
+                  queueServiceability?.serviceability ?? null,
+                pluginRuntime: pluginRuntimeInfo
+                  ? {
+                      source_dist_freshness:
+                        pluginRuntimeInfo.source_dist_freshness,
+                      recovery_hint: pluginRuntimeInfo.recovery_hint,
+                    }
+                  : undefined,
+                worktreeCensus: worktreeCensus
+                  ? {
+                      total: worktreeCensus.total,
+                      stale: worktreeCensus.stale,
+                    }
+                  : undefined,
+                terminalCleanupRetained,
+                peerSessions,
+                opencodeSessionDebt:
+                  opencodeSessionDebt && opencodeSessionDebt.available
+                    ? {
+                        available: true,
+                        orphanGhostCount: opencodeDebtCounts?.orphanGhost ?? 0,
+                        liveInFlightCount:
+                          opencodeDebtCounts?.liveInFlight ?? 0,
+                        idleActiveSessionCount:
+                          opencodeDebtCounts?.idleActiveSession ?? 0,
+                        repairableToolPartCount:
+                          opencodeDebtCounts?.repairableToolPart ?? 0,
+                        liveToolPartCount:
+                          opencodeDebtCounts?.liveToolPart ?? 0,
+                        idleToolPartCount:
+                          opencodeDebtCounts?.idleToolPart ?? 0,
+                      }
+                    : opencodeSessionDebt
+                      ? {
+                          available: false,
+                          reason: opencodeSessionDebt.reason,
+                        }
+                      : undefined,
+                snapshotHealth: snapshotHealth
+                  ? {
+                      critical: snapshotHealth.summary.critical,
+                      warnings: snapshotHealth.summary.warnings,
+                      info: snapshotHealth.summary.info,
+                    }
+                  : undefined,
+              }),
           );
           if (view === "summary") {
             formatted.healthSection = "";

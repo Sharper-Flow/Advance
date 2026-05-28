@@ -551,14 +551,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     listSummary: async (filter) => {
       const wantsArchived =
         filter?.includeArchived || filter?.status === "archived";
-      const wantsClosed =
-        filter?.includeClosed || filter?.status === "closed";
+      const wantsClosed = filter?.includeClosed || filter?.status === "closed";
       const wantsTerminal = Boolean(wantsArchived || wantsClosed);
       const hasContentFilters = Boolean(
         filter?.prefix ||
-          filter?.titleContains ||
-          filter?.createdBefore ||
-          filter?.lastActivityBefore,
+        filter?.titleContains ||
+        filter?.createdBefore ||
+        filter?.lastActivityBefore,
       );
 
       // Compatibility envelope: when callers exercise paths whose

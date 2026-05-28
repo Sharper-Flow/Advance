@@ -216,28 +216,25 @@ export const testTools = {
     ): Promise<string> => {
       if (args.target_path) {
         const targetPath = args.target_path;
-        return withRecordedPhase(
-          "adv_run_test",
-          "targetRouting",
-          async () =>
-            withTargetPathStore(
-              {
-                currentProjectPath: store.paths.root,
-                target_path: targetPath,
-                stateRequirement: "temporal-required",
-                target_confirmed: args.target_confirmed,
-                confirmationEvidence: args.confirmationEvidence,
-              },
-              async ({ context, store: targetStore }): Promise<string> => {
-                const output: string = await testTools.adv_run_test.execute(
-                  { ...args, target_path: undefined },
-                  targetStore,
-                  args.workdir ?? context.root,
-                  bounds,
-                );
-                return appendTargetProjectContextOutput(output, context);
-              },
-            ),
+        return withRecordedPhase("adv_run_test", "targetRouting", async () =>
+          withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path: targetPath,
+              stateRequirement: "temporal-required",
+              target_confirmed: args.target_confirmed,
+              confirmationEvidence: args.confirmationEvidence,
+            },
+            async ({ context, store: targetStore }): Promise<string> => {
+              const output: string = await testTools.adv_run_test.execute(
+                { ...args, target_path: undefined },
+                targetStore,
+                args.workdir ?? context.root,
+                bounds,
+              );
+              return appendTargetProjectContextOutput(output, context);
+            },
+          ),
         );
       }
 

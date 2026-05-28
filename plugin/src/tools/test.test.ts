@@ -293,8 +293,7 @@ describe("test tools — simplified adv_run_test", () => {
       const result = await testTools.adv_run_test.execute(
         {
           taskId: "tk-abc",
-          command:
-            "node -e \"console.log('x'.repeat(2048))\"",
+          command: "node -e \"console.log('x'.repeat(2048))\"",
         },
         store,
         "/tmp",

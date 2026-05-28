@@ -351,32 +351,6 @@ describe("createChangeOps", () => {
       };
       const workflowClient = { workflow: { getHandle: vi.fn() } };
 
-      const ops = createChangeOps({
-        input: {
-          legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-fallback",
-        },
-        legacy,
-        invalidateChange: vi.fn(),
-        updateOverlay: vi.fn(),
-        emitChangeSummarySignal: vi.fn(),
-        indexTasksFromState: vi.fn(),
-        setCachedChange: vi.fn(),
-        getTemporalChange,
-        listResolvedChanges: vi.fn(),
-        getTemporalWorkflowClient: () => workflowClient,
-        dualWriteAfterMutation: vi.fn(),
-        memo,
-        changeCache: new Map(),
-      } as never);
-
-      // Patch listChangeDirs by mocking the json module isn't trivial here;
-      // instead drive the candidate set via a memo seed for a known id and
-      // a cache entry to surface the disk-only id via overlap on changeCache.
-      // Here we just inject the disk-only id by pre-populating the memo with
-      // its id but no value — simulated via direct memo invalidate after set
-      // then ensure hydration path covers it.
       // Seed memo so the candidate ID enters the listSummary set; the
       // cache short-circuit serves it before any hydration call fires.
       memo.set("diskOnlyChange", {
