@@ -387,7 +387,10 @@ describe("ensureWorktreeForMutation — existing-worktree ALLOW (marker-independ
   it("GFD-7: without a seam, probes via worktreeExistsForChange using the resumeRuntime database (target namespace)", async () => {
     worktreeExistsForChangeSpy.mockReset();
     worktreeExistsForChangeSpy.mockResolvedValue(true);
-    const targetAccess = { projectDir: "/target/repo", projectId: "target-pid" };
+    const targetAccess = {
+      projectDir: "/target/repo",
+      projectId: "target-pid",
+    };
     const result = await ensureWorktreeForMutation({
       change: legacyChange({ worktree_auto_managed: false }),
       cwd: "/repo/main",
