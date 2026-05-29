@@ -1333,4 +1333,29 @@ describe("changeWorkflow signal handlers", () => {
       expect(workflows).toContain(`${key}: state.${key}`);
     }
   });
+
+  // AC3 (completeStateBackedGate): replay determinism. The new state-backed
+  // acceptance patch marker MUST be checked BEFORE the legacy acceptance
+  // disk-inspect patch marker. New histories record STATE_BACKED_ACCEPTANCE_
+  // PROOF_PATCH and take the state-backed branch; old histories (without the
+  // new marker) fall through to the legacy ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_
+  // PATCH disk-inspect branch, so their committed command sequence still
+  // replays deterministically. Ordering inversion would poison old-history
+  // replay, so this structural guard protects the patch-ordering invariant.
+  it("checks state-backed acceptance patch before the legacy disk-inspect patch (AC3)", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+
+    const stateBackedIdx = source.indexOf(
+      "wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)",
+    );
+    const legacyIdx = source.indexOf(
+      "wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)",
+    );
+
+    expect(stateBackedIdx).toBeGreaterThan(-1);
+    expect(legacyIdx).toBeGreaterThan(-1);
+    // State-backed branch must appear (and be evaluated) before the legacy
+    // disk-inspect branch in the gate-completion if/else chain.
+    expect(stateBackedIdx).toBeLessThan(legacyIdx);
+  });
 });
