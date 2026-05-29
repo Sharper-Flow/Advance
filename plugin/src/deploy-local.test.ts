@@ -724,13 +724,35 @@ describe("deploy-local.sh", () => {
       expect(guard).toBeDefined();
       expect(guard?.body).toContain("main checkout");
       expect(guard?.body).toContain("proposal gate");
+      // Existing-worktree exception: guarded mutations from main are ALLOWED
+      // when a setup-ready ADV worktree already exists, marker-independent.
+      expect(guard?.body).toContain("setup-ready");
+      expect(guard?.body).toContain("worktree_auto_managed");
       expect(guard?.scenarios?.map((s) => s.id)).toEqual(
         expect.arrayContaining([
           "rq-worktreeMutationGuard01.1",
+          "rq-worktreeMutationGuard01.1b",
           "rq-worktreeMutationGuard01.2",
           "rq-worktreeMutationGuard01.3",
+          "rq-worktreeMutationGuard01.4",
         ]),
       );
+      // 01.1b/01.2 now block only when NO setup-ready worktree exists.
+      const blockGate = guard?.scenarios?.find(
+        (s) => s.id === "rq-worktreeMutationGuard01.1b",
+      );
+      expect(blockGate?.given.join("\n")).toContain("no setup-ready worktree");
+      const blockTask = guard?.scenarios?.find(
+        (s) => s.id === "rq-worktreeMutationGuard01.2",
+      );
+      expect(blockTask?.given.join("\n")).toContain("no setup-ready worktree");
+      // 01.4 positive scenario: existing setup-ready worktree → ALLOW.
+      const allowScenario = guard?.scenarios?.find(
+        (s) => s.id === "rq-worktreeMutationGuard01.4",
+      );
+      expect(allowScenario).toBeDefined();
+      expect(allowScenario?.then.join("\n")).toContain("ALLOW");
+      expect(allowScenario?.then.join("\n")).toContain("setup_failed");
     });
 
     test("advance-meta spec captures worktree-reuse preflight requirement", () => {

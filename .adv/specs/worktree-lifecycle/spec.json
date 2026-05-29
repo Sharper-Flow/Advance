@@ -326,7 +326,7 @@
     {
       "id": "rq-worktreeMutationGuard01",
       "title": "Machine-Enforced ADV Worktree Mutation Guard",
-      "body": "ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. For auto-managed changes, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
+      "body": "ADV mutating tools that advance working-tree-impacting gates or change task execution state must structurally block execution from the main checkout when feature_flags.worktree_guard_enforce is true (default per rq-autoManageAdvWorktrees AC2) OR when the per-change `worktree_auto_managed` marker is true (regardless of global flag). Mutations from an ADV worktree remain allowed. Gate completion isolation is classified by working-tree impact: the proposal gate, discovery gate, and design gate are metadata-only gate completions and remain allowed from the main checkout; planning, execution, acceptance, and release are worktree-mutation gates and remain guarded. EXISTING-WORKTREE EXCEPTION: when a setup-ready ADV worktree already exists for the change, guarded gate/task state-transition mutations from the main checkout are ALLOWED (the signal proceeds, no BLOCK), regardless of the per-change `worktree_auto_managed` marker (true, false, or undefined). Existing-worktree detection is the structural authority — read from the durable change-workflow `worktrees` map, never from heuristic/string-matched filesystem paths — and the marker is a fast-path hint only. A worktree counts as setup-ready ONLY when its record satisfies all of: status is neither `deleted` nor `setup_failed`, `setupReady === true`, and `path` is present; a `setup_failed` or `setupReady:false` record does NOT qualify. The BLOCK applies only when NO setup-ready worktree exists. This exception is scoped strictly to durable Temporal state-transition mutations that do not depend on `process.cwd()`; file-write isolation (task checkpoint and file edits) is unchanged and still requires an explicit worktree workdir. On probe error or Temporal-unavailable, the guard MUST NOT ALLOW on unknown existence — it falls back to the marker-based behavior. For auto-managed changes with no existing setup-ready worktree, guarded gate/task mutations MUST attempt to materialize the worktree via `advWorktreeResume` before BLOCKing, and surface the resulting path via `expectedWorktreePath` so the agent can re-run from the correct workdir. The guard must return WorktreeIsolationViolation with main checkout path and remediation instead of relying on agent-only instructions. Explicit `worktree_guard_enforce: false` preserves legacy permissive behavior for non-auto-managed changes.",
       "priority": "must",
       "tags": ["worktree", "safety", "mutation-guard"],
       "scenarios": [
@@ -346,10 +346,11 @@
         },
         {
           "id": "rq-worktreeMutationGuard01.1b",
-          "title": "Worktree-mutation gate completion blocks from main checkout",
+          "title": "Worktree-mutation gate completion blocks from main checkout when no setup-ready worktree exists",
           "given": [
             "feature_flags.worktree_guard_enforce is true",
-            "The current session is in the main checkout"
+            "The current session is in the main checkout",
+            "There is no setup-ready worktree for the change"
           ],
           "when": "adv_gate_complete is called for planning, execution, acceptance, or release",
           "then": [
@@ -360,10 +361,11 @@
         },
         {
           "id": "rq-worktreeMutationGuard01.2",
-          "title": "Task execution mutations block from main checkout",
+          "title": "Task execution mutations block from main checkout when no setup-ready worktree exists",
           "given": [
             "feature_flags.worktree_guard_enforce is true",
-            "The current session is in the main checkout"
+            "The current session is in the main checkout",
+            "There is no setup-ready worktree for the change"
           ],
           "when": "adv_task_add or adv_task_update with in_progress, done, or cancelled status is called",
           "then": [
@@ -383,6 +385,24 @@
             "The proposal gate completion remains allowed so a worktree can be created after proposal",
             "Explicit-false behavior preserves legacy mutation flow for non-auto-managed changes",
             "The guard remains additive and does not alter read-only tools"
+          ]
+        },
+        {
+          "id": "rq-worktreeMutationGuard01.4",
+          "title": "Mutation from main is allowed when a setup-ready worktree exists",
+          "given": [
+            "feature_flags.worktree_guard_enforce is true",
+            "The current session is in the main checkout",
+            "A materialized, setupReady ADV worktree already exists for the change",
+            "The per-change worktree_auto_managed marker may be true, false, or undefined"
+          ],
+          "when": "adv_gate_complete for a worktree-mutation gate, or adv_task_update with a status transition, is called",
+          "then": [
+            "The tool returns decision ALLOW and the state-transition signal is sent",
+            "The ALLOW holds regardless of the worktree_auto_managed marker value",
+            "A worktree record with status setup_failed or setupReady false does NOT qualify and still blocks",
+            "Existing-worktree detection reads the durable change-workflow worktrees map, not heuristic filesystem paths",
+            "On probe error or Temporal-unavailable the guard does not ALLOW and falls back to marker-based behavior"
           ]
         }
       ]
