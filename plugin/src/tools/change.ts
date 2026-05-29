@@ -1926,7 +1926,7 @@ export const changeTools = {
       "context snapshot at top-level (matches mutation-tool convention); " +
       "include.readyTasks returns the unblocked ready queue (top-N " +
       "by priority then created_at; default 10, max 50). " +
-      "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary " +
+      "include.proposal / include.problemStatement / include.agreement / include.design / include.executiveSummary / include.acceptance " +
       "return the raw markdown content for each artifact (GH #21). " +
       "Defaults are unchanged when include is omitted.",
     args: {
@@ -2001,6 +2001,12 @@ export const changeTools = {
             .describe(
               "When true, attaches raw executive-summary.md content as `_executiveSummary`.",
             ),
+          acceptance: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true, attaches raw acceptance.md content as `_acceptance`.",
+            ),
           subagentReports: z
             .boolean()
             .optional()
@@ -2035,6 +2041,7 @@ export const changeTools = {
           agreement?: boolean;
           design?: boolean;
           executiveSummary?: boolean;
+          acceptance?: boolean;
           subagentReports?: boolean;
         };
       },
@@ -2214,6 +2221,7 @@ export const changeTools = {
             if (include.design) requestedKinds.push("design");
             if (include.executiveSummary)
               requestedKinds.push("executiveSummary");
+            if (include.acceptance) requestedKinds.push("acceptance");
 
             if (requestedKinds.length > 0) {
               const artifactContent = await readArtifacts(
@@ -2231,6 +2239,8 @@ export const changeTools = {
                 output._design = artifactContent.design;
               if (artifactContent.executiveSummary !== undefined)
                 output._executiveSummary = artifactContent.executiveSummary;
+              if (artifactContent.acceptance !== undefined)
+                output._acceptance = artifactContent.acceptance;
             }
           }
 

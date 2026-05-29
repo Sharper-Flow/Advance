@@ -462,6 +462,72 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
+    test("returns _acceptance content when include.acceptance is set and file exists", async () => {
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-acceptance-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      const acceptanceContent =
+        "# Acceptance\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC-1 | success_criterion | pass | verified |\n";
+      await writeFile(
+        pathJoin(changeDir, "acceptance.md"),
+        acceptanceContent,
+        "utf-8",
+      );
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { acceptance: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._acceptance).toBe(acceptanceContent);
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
+    test("omits _acceptance when include.acceptance is set but file is missing", async () => {
+      const { mkdtemp, mkdir, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(
+        pathJoin(tmpdir(), "adv-acceptance-missing-"),
+      );
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+      // Intentionally do NOT create acceptance.md
+      try {
+        const store = createMockStore();
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { acceptance: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed._acceptance).toBeUndefined();
+      } finally {
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("returns artifact content from archive for all simple include flags", async () => {
       const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");

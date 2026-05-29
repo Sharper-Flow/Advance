@@ -503,6 +503,26 @@ describe("gate readiness", () => {
     expect(result.ready).toBe(true);
   });
 
+  it("allows acceptance when executive summary content exists in state.documents but metadata is missing (signal delivery resilience)", () => {
+    const result = evaluateGateReadiness(
+      makeState({
+        gates: acceptanceReadyGates(),
+        projectionChangesDir: "/tmp/changes",
+        contract: passingContract(),
+        // No state.artifacts.executiveSummary — metadata signal not yet processed
+        documents: {
+          executiveSummary:
+            "# Executive Summary\n\nApproved with full contract review.",
+        },
+      }),
+      "acceptance",
+    );
+
+    // Should NOT block — content exists in state.documents, metadata will
+    // be synthesized or derived by stateBackedAcceptanceProof
+    expect(result.ready).toBe(true);
+  });
+
   it("parses backward-compatible gate artifact evidence", () => {
     expect(
       gateArtifactEvidenceSchema.parse({
