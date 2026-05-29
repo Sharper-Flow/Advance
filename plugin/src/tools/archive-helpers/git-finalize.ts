@@ -26,6 +26,56 @@ export interface GitFinalizeDeps {
   requireCleanWorktree?: boolean;
 }
 
+export interface DeleteChangeBranchResult {
+  localDeleted: boolean;
+  remoteDeleted: boolean;
+  error?: string;
+}
+
+/**
+ * Delete the local and remote change/{changeId} branches after a successful
+ * archive finalization. Must be called from the main checkout AFTER the
+ * worktree has been removed (git refuses to delete a checked-out branch).
+ *
+ * Local deletion uses `git branch -d` (safe — refuses if not fully merged).
+ * Remote deletion is best-effort; failure is recorded but does not block.
+ */
+export function deleteChangeBranch(
+  mainCheckout: string,
+  changeId: string,
+  deps: GitFinalizeDeps = {},
+): DeleteChangeBranchResult {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const branchName = `change/${changeId}`;
+
+  // Delete local branch (safe — only works if fully merged)
+  const localResult = runGit(mainCheckout, ["branch", "-d", branchName]);
+  if (localResult.status !== 0) {
+    return {
+      localDeleted: false,
+      remoteDeleted: false,
+      error: `Local branch deletion failed: ${redactGitOutput(localResult.stderr).trim()}`,
+    };
+  }
+
+  // Delete remote branch (best-effort)
+  const remoteResult = runGit(mainCheckout, [
+    "push",
+    "origin",
+    "--delete",
+    branchName,
+  ]);
+  if (remoteResult.status !== 0) {
+    return {
+      localDeleted: true,
+      remoteDeleted: false,
+      error: `Remote branch deletion failed: ${redactGitOutput(remoteResult.stderr).trim()}`,
+    };
+  }
+
+  return { localDeleted: true, remoteDeleted: true };
+}
+
 const DEFAULT_GIT_TIMEOUT_MS = 30000;
 
 const CREDENTIAL_PATTERNS = [

@@ -326,6 +326,7 @@ import {
 import {
   detectDefaultBranch,
   detectArchiveMode,
+  deleteChangeBranch,
   finalizeRelease,
   validateChangeWorktree,
   verifyChangeBranchReachable,
@@ -3594,8 +3595,8 @@ export const changeTools = {
       let releaseGateCompletion:
         | Extract<ArchiveReleaseGateResult, { ok: true }>
         | undefined;
+      const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
       if (!dryRun && archiveResult.success && phase9 !== "skip") {
-        const { archiveMode, autoPush } = detectArchiveMode(store.config ?? {});
         finalization = worktreePath
           ? await finalizeRelease({
               changeId,
@@ -3831,6 +3832,35 @@ export const changeTools = {
           archiveResult.errors.push(
             `Worktree cleanup warning: failed to run archive cleanup discovery: ${err instanceof Error ? err.message : String(err)}`,
           );
+        }
+
+        // Branch cleanup — delete change/{changeId} from local + remote.
+        // Only in direct/merge mode; PR-mode branches must survive for PR creation.
+        // Runs after worktree removal (can't delete a checked-out branch).
+        if (
+          finalization?.status === "shipped" &&
+          finalization.mainCheckout &&
+          archiveMode === "direct"
+        ) {
+          try {
+            const branchResult = deleteChangeBranch(
+              finalization.mainCheckout,
+              change.id,
+            );
+            if (!branchResult.localDeleted && branchResult.error) {
+              archiveResult.errors.push(
+                `Branch cleanup warning: ${branchResult.error}`,
+              );
+            } else if (branchResult.localDeleted && !branchResult.remoteDeleted && branchResult.error) {
+              archiveResult.errors.push(
+                `Branch cleanup warning (remote): ${branchResult.error}`,
+              );
+            }
+          } catch (err) {
+            archiveResult.errors.push(
+              `Branch cleanup warning: ${err instanceof Error ? err.message : String(err)}`,
+            );
+          }
         }
       }
 
