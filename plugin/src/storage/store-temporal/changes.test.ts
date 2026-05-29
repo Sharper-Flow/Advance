@@ -510,4 +510,60 @@ describe("createChangeOps", () => {
       }),
     );
   });
+
+  /**
+   * AC9 (completeStateBackedGate) — updateArtifacts MUST invalidate the
+   * change cache after firing content signals, matching save/close/
+   * refresh/bulk-close. Without this, a store.changes.get() immediately
+   * following adv_change_update returns stale cached state.documents /
+   * state.artifacts content — the confirmed root cause of the
+   * stale-contract symptom (re-mint required after adv_change_update).
+   *
+   * RED before the fix: updateArtifacts (changes.ts) fires the content
+   * signal fan-out but never calls invalidateChange(changeId) before
+   * returning, so this assertion fails.
+   */
+  test("invalidates change cache after updateArtifacts (AC9)", async () => {
+    const signalMock = vi.fn().mockResolvedValue(undefined);
+    const invalidateChangeMock = vi.fn();
+    const legacy = {
+      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      changes: {
+        get: vi.fn().mockResolvedValue({
+          success: true,
+          data: { id: "cacheChange", adv_project_id: "pid-cache" },
+        }),
+        updateArtifacts: vi.fn().mockResolvedValue({
+          success: true,
+          executiveSummaryPath: "/tmp/changes/cacheChange/executive-summary.md",
+        }),
+      },
+    };
+    const workflowClient = {
+      workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
+    };
+    const ops = createChangeOps({
+      input: {
+        legacy,
+        temporal: { client: workflowClient },
+        projectId: "pid-cache",
+      },
+      legacy,
+      invalidateChange: invalidateChangeMock,
+      updateOverlay: vi.fn(),
+      emitChangeSummarySignal: vi.fn(),
+      indexTasksFromState: vi.fn(),
+      setCachedChange: vi.fn(),
+      getTemporalChange: vi.fn(),
+      listResolvedChanges: vi.fn(),
+      getTemporalWorkflowClient: () => workflowClient,
+      dualWriteAfterMutation: vi.fn(),
+    } as never);
+
+    await ops.updateArtifacts("cacheChange", {
+      executiveSummary: "# Executive Summary",
+    });
+
+    expect(invalidateChangeMock).toHaveBeenCalledWith("cacheChange");
+  });
 });
