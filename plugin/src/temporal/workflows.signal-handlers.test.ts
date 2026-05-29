@@ -848,6 +848,112 @@ describe("changeWorkflow signal handlers", () => {
     }
   }, 30_000);
 
+  // AC1/AC5 (completeStateBackedGate): acceptance completes from
+  // state.documents.executiveSummary + state.artifacts.executiveSummary
+  // metadata WITHOUT any pre-existing disk file. The Temporal-only store no
+  // longer writes artifact .md files (no-disk-writes-invariant), so the legacy
+  // disk inspectArtifactActivity path leaves the acceptance gate stuck with
+  // ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING. The state-backed branch reads the
+  // proof from workflow state, completes acceptance, and (AC7) materializes
+  // executive-summary.md to disk for archive-bundle inclusion.
+  //
+  // RED before the fix: gate goes "stuck" because no disk file exists.
+  it("completes acceptance state-backed with no pre-existing disk file (AC1, AC5, AC7)", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-no-disk");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nState-backed acceptance proof — no disk file written before approval.";
+      // Intentionally create the change dir but DO NOT write
+      // executive-summary.md — proof comes only from workflow state.
+      await mkdir(changeDir, { recursive: true });
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-no-disk"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-no-disk").seedState,
+          gates,
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "State-backed acceptance is enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "acceptance-no-disk",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "done");
+          expect(state.gates.acceptance.status).toBe("done");
+          expect(state.gates.acceptance.artifact_evidence).toMatchObject({
+            kind: "acceptance",
+          });
+          // AC7: executive-summary.md materialized to disk for the archive
+          // bundle even though no disk file existed before approval.
+          await expect(
+            readFile(join(changeDir, "executive-summary.md"), "utf-8"),
+          ).resolves.toContain("State-backed acceptance proof");
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
   it("blocks acceptance when executive-summary metadata hash is stale", async () => {
     const dir = await createTempDir();
     try {
