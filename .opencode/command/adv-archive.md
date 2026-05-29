@@ -224,6 +224,8 @@ the human-facing explanation of that runtime contract.
 
 > **Completion bar:** Do not say "archived", "shipped", or "done" after only the archive bundle commit or a partial `adv_change_archive` result. The archive workflow owns finalization through default-branch merge, local deploy (when `scripts/deploy-local.sh` exists), release-gate recording, push or explicit local-only report, reachability verification, reflection, and clean working tree status. If any finalization step is skipped, failed, or unverified, the terminal report MUST say `Merged locally.` or `Blocked`, not `Shipped.`
 
+> **Ordering invariant (rq-releaseFinalization01 AC1):** Release gate completion MUST happen BEFORE archive status transition. The structural sequence is: Phase 9 evidence → release gate signal → durable proof verification → `change.status = "archived"` → source cleanup. If release gate confirmation or durable proof fails, the change stays active for retry. Archive retry with an existing bundle reconciles release metadata without re-running the full archive write.
+
 ### Step 1: Stage and Commit (in the worktree, on change branch)
 
 The runtime helper stages `.adv/` archive/spec artifacts and commits them on the **change branch in the worktree** with `Archive {change-id}: apply spec deltas and bundle`. Human orchestration may stage additional docs before archive, but runtime finalization only owns the `.adv/` archive/spec bundle. If commit fails → stop.
