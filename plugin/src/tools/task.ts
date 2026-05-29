@@ -649,10 +649,15 @@ export const taskTools = {
           status: args.status,
           change: changeForGuard,
           role: args.target_path ? "target" : "current",
-          autoManageDeps:
-            changeForGuard?.worktree_auto_managed === true
-              ? await buildWorktreeAutoManageDeps(activeStore)
-              : undefined,
+          // Build deps whenever a change is known — not only for auto_managed
+          // changes — so the existing-worktree ALLOW probe
+          // (rq-worktreeMutationGuard01.4) is reachable for non-auto-managed
+          // (block_only) changes. Guarded-status gating still applies inside
+          // evaluateTaskUpdateWorktreeIsolation, and the broadening is
+          // low-regression (resumeRuntime-only deps; no attachment signals).
+          autoManageDeps: changeForGuard
+            ? await buildWorktreeAutoManageDeps(activeStore)
+            : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
@@ -1008,10 +1013,13 @@ export const taskTools = {
           }),
           change: changeForGuard,
           role: args.target_path ? "target" : "current",
-          autoManageDeps:
-            changeForGuard?.worktree_auto_managed === true
-              ? await buildWorktreeAutoManageDeps(activeStore)
-              : undefined,
+          // Broaden deps so the existing-worktree ALLOW probe is reachable for
+          // non-auto-managed changes (rq-worktreeMutationGuard01.4). task_add is
+          // a pure signal (no file write); an existing setup-ready worktree
+          // makes blocking from main pointless. Low-regression (resumeRuntime-only).
+          autoManageDeps: changeForGuard
+            ? await buildWorktreeAutoManageDeps(activeStore)
+            : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({

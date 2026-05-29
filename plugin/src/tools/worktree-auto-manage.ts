@@ -41,7 +41,11 @@ import {
   type AdvWorktreeCreateDeps,
   type AdvWorktreeResumeResult,
 } from "./worktree";
-import { initStateDb } from "./worktree/state";
+import {
+  initStateDb,
+  worktreeExistsForChange,
+  type WorktreeStateAccess,
+} from "./worktree/state";
 
 // ---------------------------------------------------------------------------
 // Activation evaluation
@@ -133,6 +137,15 @@ export interface EnsureWorktreeForMutationDeps {
   lookupExistingPath?: (
     changeId: string,
   ) => Promise<string | undefined> | string | undefined;
+  /**
+   * Test seam for the existing-worktree probe (rq-worktreeMutationGuard01.4).
+   * Production callers omit this; the probe reads the durable change-workflow
+   * `worktrees` map via `worktreeExistsForChange` using the resumeRuntime
+   * database (target-correct for cross-project mutations, GFD-7). Returns
+   * `true` only when a setup-ready worktree exists for the change. The probe
+   * is read-only and side-effect-free — it MUST NOT materialize a worktree.
+   */
+  worktreeExists?: (changeId: string) => Promise<boolean> | boolean;
   onWarning?: (message: string) => void;
 }
 
@@ -225,6 +238,29 @@ export async function ensureWorktreeForMutation(
     return { decision: "ALLOW" };
   }
 
+  // Existing-worktree exception (rq-worktreeMutationGuard01.4, AC11-13).
+  //
+  // When a setup-ready ADV worktree already exists for the change, ALLOW the
+  // state-transition mutation from main regardless of the worktree_auto_managed
+  // marker. Existing-worktree detection over the durable change-workflow
+  // `worktrees` map is the structural authority (P33); the marker is only a
+  // fast-path hint. MCP tool callers cannot relocate process.cwd() mid-session,
+  // so BLOCKing a durable signal when isolation already exists serves no purpose.
+  // This is scoped strictly to state-transition signals; file-write isolation
+  // (task checkpoint / edits) is untouched.
+  //
+  // Placed BEFORE the block_only branch so non-auto-managed (block_only) changes
+  // with an existing worktree ALLOW, and before auto_manage create logic to
+  // short-circuit a redundant resume. On probe error / Temporal-unavailable the
+  // probe returns false (never ALLOW on unknown existence) and we fall through
+  // to the marker-based behavior below.
+  if (change) {
+    const exists = await resolveWorktreeExists(deps, change.id);
+    if (exists) {
+      return { decision: "ALLOW" };
+    }
+  }
+
   // block_only mode: emit the legacy WorktreeIsolationViolation surface.
   // checkWorktreeIsolation re-derives the session context internally, but
   // we already have it — pass it through to avoid the double-call.
@@ -284,6 +320,44 @@ export async function ensureWorktreeForMutation(
 
   // Map advWorktreeResume failure variants to AC6 errorClass + code.
   return mapResumeFailure(result, ctx.mainCheckoutPath ?? cwd);
+}
+
+/**
+ * Resolve whether a setup-ready ADV worktree exists for `changeId`.
+ *
+ * Prefers the `worktreeExists` test seam. Production callers omit the seam and
+ * we read the durable change-workflow `worktrees` map via `worktreeExistsForChange`
+ * using the resumeRuntime database — which `buildWorktreeAutoManageDeps(activeStore)`
+ * derives from the active/target store, so the probe queries the correct project
+ * namespace for cross-project (`target_path`) mutations (GFD-7).
+ *
+ * Returns false on any error or when the database is unavailable — never assert a
+ * worktree on unknown existence (the guard must not ALLOW on probe failure).
+ */
+async function resolveWorktreeExists(
+  deps: EnsureWorktreeForMutationDeps | undefined,
+  changeId: string,
+): Promise<boolean> {
+  if (deps?.worktreeExists) {
+    try {
+      return await Promise.resolve(deps.worktreeExists(changeId));
+    } catch (err) {
+      deps.onWarning?.(
+        `worktree-auto-manage: worktreeExists seam threw for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return false;
+    }
+  }
+  const access: WorktreeStateAccess | undefined = deps?.resumeRuntime?.database;
+  if (!access) return false;
+  try {
+    return await worktreeExistsForChange(access, changeId);
+  } catch (err) {
+    deps?.onWarning?.(
+      `worktree-auto-manage: worktree existence probe threw for ${changeId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return false;
+  }
 }
 
 async function fireAttachment(

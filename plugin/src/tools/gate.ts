@@ -900,11 +900,18 @@ export const gateTools = {
             target_path,
           }),
           change,
-          autoManageDeps:
-            change.worktree_auto_managed === true &&
-            isWorktreeMutationGate(gateId)
-              ? await buildWorktreeAutoManageDeps(activeStore)
-              : undefined,
+          // Build the auto-manage deps bundle whenever this is a worktree-mutation
+          // gate with a known change — not only for auto_managed changes — so the
+          // existing-worktree ALLOW probe (rq-worktreeMutationGuard01.4) is
+          // reachable for non-auto-managed (block_only) changes too. This
+          // broadening is low-regression: buildWorktreeAutoManageDeps wires only
+          // resumeRuntime (no onAttached/lookupExistingPath), so fireAttachment
+          // stays a no-op and no new attachment signals fire. For target_path,
+          // deps derive from the target activeStore, so the probe queries the
+          // target namespace (GFD-7).
+          autoManageDeps: isWorktreeMutationGate(gateId)
+            ? await buildWorktreeAutoManageDeps(activeStore)
+            : undefined,
         });
         if (isolation.decision === "BLOCK") {
           return formatToolOutput({
