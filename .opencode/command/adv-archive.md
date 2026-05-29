@@ -220,7 +220,7 @@ the shared runtime contract used by direct tool paths. When this slash-command p
 shared helper owns the structural git finalization. The markdown below remains
 the human-facing explanation of that runtime contract.
 
-> **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch or not clean, the invariant check (Step 4.4) hard-blocks and asks user — ADV does not "fix" main's state on user's behalf.
+> **Invariant: main checkout stays on the default branch.** ADV NEVER runs `git checkout` or `git switch` on any worktree (or on the main checkout) during archive. Trunk is updated in place via `git -C "$MAIN" merge --ff-only`. The agent MUST resolve `$MAIN` once at the start of Phase 9 (Step 3) and use it for all default-branch operations (fetch, merge, push, verify, hook detection) through Step 7. If main is not on the default branch, the readiness check (Step 4.4) hard-blocks and asks user. If main is on the default branch but dirty, ADV commits pre-existing changes as an auditable checkpoint and continues — ADV does not create new change-owned work on main.
 
 > **Completion bar:** Do not say "archived", "shipped", or "done" after only the archive bundle commit or a partial `adv_change_archive` result. The archive workflow owns finalization through default-branch merge, local deploy (when `scripts/deploy-local.sh` exists), release-gate recording, push or explicit local-only report, reachability verification, reflection, and clean working tree status. If any finalization step is skipped, failed, or unverified, the terminal report MUST say `Merged locally.` or `Blocked`, not `Shipped.`
 
@@ -258,15 +258,24 @@ This resolves to the absolute path of the main checkout root from any workdir (w
 - If fetch fails and a PR/publish path is required → stop and ask user before proceeding
 - If no remote is configured or local-only archive is intended → continue with local `{default-branch}`
 
-#### Step 4.4: Main Checkout Invariant Check (HARD GATE)
+#### Step 4.4: Main Checkout Readiness Check
 
-Before any merge attempt, verify the main checkout is in a state ADV can safely fast-forward into:
+Before any merge attempt, verify the main checkout is in a state ADV can safely operate on:
 
 1. `git -C "$MAIN" branch --show-current` → MUST equal `{default-branch}`. If not → **STOP**. Report the actual branch. Tell user: "Main checkout at `$MAIN` is on branch `<actual>`, expected `{default-branch}`. ADV will not switch branches. Restore main to `{default-branch}` (commit or stash any work in `$MAIN`, then `git -C "$MAIN" switch {default-branch}`) and retry."
-2. `git -C "$MAIN" status --porcelain` → MUST be empty. If not → **STOP**. List the dirty files. Tell user: "Main checkout at `$MAIN` has uncommitted changes. ADV will not merge over a dirty tree. Commit or stash them in `$MAIN` and retry."
-3. Both pass → proceed to Step 4.5.
+2. Verify git identity: `git -C "$MAIN" var GIT_COMMITTER_IDENT` → MUST succeed. If not → **STOP** with `MISSING_GIT_IDENTITY`. Tell user: "Git committer identity is not configured. Set `user.name` and `user.email` in `$MAIN` and retry."
+3. Detect in-progress git state: check for `MERGE_HEAD`, `REBASE_HEAD`/`.git/rebase-merge`, `CHERRY_PICK_HEAD`, `REVERT_HEAD` in `$MAIN`. If any detected → **STOP** with `MAIN_IN_PROGRESS_STATE`. Tell user: "Main checkout at `$MAIN` is in an active `<operation>` state. ADV will not commit over in-progress git operations. Resolve the `<operation>` state and retry."
+4. If main is dirty (non-ignored changes present):
+   - ADV commits all non-ignored tracked and untracked changes: `git -C "$MAIN" add -A && git -C "$MAIN" commit -m "chore(adv-archive): checkpoint main before archiving {change-id}"`.
+   - Record the checkpoint commit SHA on the finalization outcome.
+   - If the commit fails → **STOP** with `MAIN_CHECKPOINT_FAILED` and the underlying git error.
+   - Report the checkpoint SHA in the terminal output.
+   - Continue to Step 4.5 without user interruption.
+5. If main is clean → proceed to Step 4.5.
 
-× ADV MUST NOT attempt to switch main's branch, stash main's working tree, or otherwise mutate main's state on user's behalf. This is a stop-and-ask gate.
+> The checkpoint is an auditable record of pre-existing main state, not permission to bypass worktree isolation. Archive bundle and spec artifacts are authored in the change worktree and merged normally. ADV does not create new change-owned work on main.
+
+× ADV MUST NOT attempt to switch main's branch, stash main's working tree, abort an in-progress operation, or otherwise rewrite main's state on user's behalf. Only the checkpoint commit (step 4) creates a new commit, and only when main is on the correct branch with clean git identity and no in-progress state.
 
 #### Step 4.5: Choose Integration Path
 

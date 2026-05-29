@@ -280,10 +280,10 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(
       /MAIN="\$\(dirname "\$\(git rev-parse --path-format=absolute --git-common-dir\)"\)"/,
     );
-    // Hard gate before any merge
-    expect(content).toMatch(/Step 4\.4: Main Checkout Invariant Check/);
+    // Readiness check before any merge
+    expect(content).toMatch(/Step 4\.4: Main Checkout Readiness Check/);
     expect(content).toMatch(/git -C "\$MAIN" branch --show-current/);
-    expect(content).toMatch(/git -C "\$MAIN" status --porcelain/);
+    expect(content).toMatch(/git -C "\$MAIN" var GIT_COMMITTER_IDENT/);
     // Invariant statement at top of Phase 9
     expect(content).toMatch(
       /Invariant: main checkout stays on the default branch/i,

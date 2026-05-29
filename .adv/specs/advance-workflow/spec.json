@@ -463,6 +463,41 @@
             "The change branch must be pushed or otherwise made available for PR workflow",
             "The archive reports the PR-mode handoff instead of claiming a local default-branch merge"
           ]
+        },
+        {
+          "id": "rq-releaseFinalization01.7",
+          "title": "Dirty default-branch main checkpoints before merge",
+          "given": [
+            "Main checkout is on the resolved default branch",
+            "Main checkout has non-ignored uncommitted changes (tracked or untracked)",
+            "Main checkout is not in an active merge, rebase, cherry-pick, or revert state",
+            "Git committer identity is resolvable via `git var GIT_COMMITTER_IDENT`"
+          ],
+          "when": "Phase 9 Git Finalization detects a dirty main checkout",
+          "then": [
+            "ADV commits all non-ignored tracked and untracked changes with an auditable checkpoint commit message referencing the change ID",
+            "The checkpoint commit SHA is recorded on GitFinalizeOutcome.mainCheckpointCommitSha",
+            "The checkpoint SHA is surfaced in the archive terminal report",
+            "Finalization continues to remote freshness, merge, and push without user interruption",
+            "The checkpoint does not create new change-owned work on main; archive bundle/spec artifacts remain authored in the change worktree"
+          ]
+        },
+        {
+          "id": "rq-releaseFinalization01.8",
+          "title": "Unsafe main states block before checkpoint",
+          "given": [
+            "Phase 9 is evaluating the main checkout for merge readiness"
+          ],
+          "when": "Any of the following unsafe states is detected",
+          "then": [
+            "Wrong main branch: archive blocks with diagnostics showing actual vs expected branch; does not switch branches",
+            "Missing git identity: archive blocks with MISSING_GIT_IDENTITY and instructs user to configure `user.name` and `user.email`",
+            "Active merge/rebase/cherry-pick/revert: archive blocks with MAIN_IN_PROGRESS_STATE and lists the detected in-progress operation",
+            "Checkpoint commit failure: archive blocks with MAIN_CHECKPOINT_FAILED and the underlying git error",
+            "Merge conflict during merge-back: archive blocks with existing conflict reporting and does not delete the worktree",
+            "Required push failure: archive reports local-only result with explicit reason",
+            "Unverifiable release evidence: archive blocks per rq-releaseProjectionDurability01"
+          ]
         }
       ],
       "meta": {
