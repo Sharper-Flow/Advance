@@ -551,10 +551,11 @@ describe.skipIf(!isLinux)(
     });
 
     it("resume blocks setup_failed registry records", async () => {
-      // getWorktreeRecord is now a stub returning null after projectWorkflow
-      // retirement. advWorktreeResume falls through to advWorktreeCreate.
-      // Provide a valid base so create succeeds (we verify the setup-failed
-      // block elsewhere via integration tests).
+      // getWorktreeRecord is revived (Phase G) but this test's getService mock
+      // returns no state, so the lookup yields null and advWorktreeResume falls
+      // through to advWorktreeCreate. The setup_failed block via a real record is
+      // covered by state-record-probe.test.ts (worktreeExistsForChange) and the
+      // guard-isolation suites. Provide a valid base so create succeeds.
       const deps = createMockDeps(repoRoot);
       deps.resolveDefaultBranch = async () => "main";
       deps.detectStaleBasis = async () => ({ stale: false });
@@ -565,7 +566,7 @@ describe.skipIf(!isLinux)(
         deps,
       );
 
-      // Falls through to create because getWorktreeRecord returns null.
+      // Falls through to create because getWorktreeRecord returns null here.
       expect(result.ok).toBe(true);
     });
 

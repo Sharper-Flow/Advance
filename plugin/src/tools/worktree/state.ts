@@ -812,11 +812,86 @@ export async function getSessionRecord(
   return null;
 }
 
+/**
+ * Read a single worktree record for `branch` from the durable change-workflow
+ * `worktrees` map. This is the structural authority for "does a worktree exist
+ * for this change" used by the worktree-isolation guard (rq-worktreeMutationGuard01)
+ * and by `advWorktreeResume`'s reuse path — never heuristic filesystem inference (P33).
+ *
+ * Returns the `Worktree` (including `status`, `path`, `materialized`, `setupReady`,
+ * `setupFailureReason`) or `null` when the branch is not a change branch, the
+ * Temporal service is unavailable, the workflow query fails, or no record exists.
+ * On unavailability it returns `null` (callers treat unknown existence as
+ * "no worktree" and fall back to their own safety posture).
+ */
 export async function getWorktreeRecord(
-  _access: WorktreeStateAccess,
-  _branch: string,
+  access: WorktreeStateAccess,
+  branch: string,
 ): Promise<Worktree | null> {
-  return null;
+  const changeId = inferChangeIdFromBranch(branch);
+  if (!changeId) return null;
+
+  const bundle = getService();
+  if (!bundle) return null;
+  const client = bundle.client as {
+    workflow?: {
+      getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
+    };
+  };
+  const getHandle = client.workflow?.getHandle;
+  if (!getHandle) return null;
+
+  const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
+  let state: ChangeWorkflowState | undefined;
+  try {
+    const handle = getHandle(workflowId);
+    state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
+  } catch {
+    // Unknown existence (poisoned/unreachable workflow): do not assert a worktree.
+    return null;
+  }
+  if (!state || typeof state !== "object") return null;
+
+  const record = (state.worktrees ?? {})[branch] as WorktreeRecord | undefined;
+  if (!record) return null;
+
+  const worktree = _recordToWorktree(record);
+  worktree.branch = branch;
+  worktree.changeId = state.changeId ?? changeId;
+  if (typeof record.materialized === "boolean") {
+    worktree.materialized = record.materialized;
+  }
+  return worktree;
+}
+
+/**
+ * Read-only, side-effect-free probe: does a *setup-ready* ADV worktree exist for
+ * `changeId`? Used by the worktree-isolation guard to ALLOW state-transition
+ * mutations from main when isolation already exists (rq-worktreeMutationGuard01.4).
+ *
+ * Setup-ready predicate (GFD-2): status is neither `deleted` nor `setup_failed`,
+ * `setupReady === true`, and `path` is present. A `setup_failed`/`setupReady:false`
+ * record does NOT qualify. Returns `false` on any unavailability — never ALLOW on
+ * unknown existence.
+ */
+export async function worktreeExistsForChange(
+  access: WorktreeStateAccess,
+  changeId: string,
+): Promise<boolean> {
+  const branch = `${CHANGE_BRANCH_PREFIX}${changeId}`;
+  let record: Worktree | null;
+  try {
+    record = await getWorktreeRecord(access, branch);
+  } catch {
+    return false;
+  }
+  if (!record) return false;
+  return (
+    record.status !== "deleted" &&
+    record.status !== "setup_failed" &&
+    record.setupReady === true &&
+    !!record.path
+  );
 }
 
 export async function getWorktreePath(
