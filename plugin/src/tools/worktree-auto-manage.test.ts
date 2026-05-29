@@ -15,6 +15,18 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+// GFD-7: spy on the real worktree-existence probe so we can assert the guard
+// passes the resumeRuntime database (target-correct for cross-project mutations)
+// when no test seam is supplied. Other state exports are preserved.
+const worktreeExistsForChangeSpy = vi.hoisted(() => vi.fn());
+vi.mock("./worktree/state", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./worktree/state")>();
+  return {
+    ...actual,
+    worktreeExistsForChange: worktreeExistsForChangeSpy,
+  };
+});
+
 import {
   buildWorktreeAutoManageDeps,
   ensureWorktreeForMutation,
@@ -247,6 +259,170 @@ describe("ensureWorktreeForMutation — block_only mode", () => {
     // block_only mode MUST NOT carry the auto-create-specific fields
     expect(result.code).toBeUndefined();
     expect(result.expectedWorktreePath).toBeUndefined();
+  });
+});
+
+// ===========================================================================
+// ensureWorktreeForMutation — existing-worktree ALLOW exception
+// (rq-worktreeMutationGuard01.4, AC11-13 / Phase I)
+// ===========================================================================
+
+describe("ensureWorktreeForMutation — existing-worktree ALLOW (marker-independent)", () => {
+  it("ALLOW from main for a block_only change (marker false) when a setup-ready worktree exists", async () => {
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: true },
+      deps: {
+        getSessionContext: () => mainCtx,
+        worktreeExists: () => true,
+      },
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+
+  it("ALLOW from main for a change with undefined marker (pre-existing-change repro) when worktree exists", async () => {
+    // The exact fixArchiveReleaseOrdering repro: marker undefined → block_only,
+    // but an existing setup-ready worktree must ALLOW the state-transition.
+    const change = legacyChange();
+    delete (change as { worktree_auto_managed?: boolean })
+      .worktree_auto_managed;
+    const result = await ensureWorktreeForMutation({
+      change,
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: true },
+      deps: {
+        getSessionContext: () => mainCtx,
+        worktreeExists: () => true,
+      },
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+
+  it("ALLOW from main for an auto_manage change when worktree exists (no redundant resume)", async () => {
+    const resume = vi.fn();
+    const result = await ensureWorktreeForMutation({
+      change: autoManagedChange(),
+      cwd: "/repo/main",
+      deps: {
+        getSessionContext: () => mainCtx,
+        worktreeExists: () => true,
+        resume,
+        resumeRuntime: fakeRuntime,
+      },
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+    // Existing-worktree short-circuit runs before auto_manage create logic.
+    expect(resume).not.toHaveBeenCalled();
+  });
+
+  it("still BLOCKs a block_only change from main when NO setup-ready worktree exists", async () => {
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: true },
+      deps: {
+        getSessionContext: () => mainCtx,
+        worktreeExists: () => false,
+      },
+    });
+    expect(result).toMatchObject({
+      decision: "BLOCK",
+      errorClass: "WorktreeIsolationViolation",
+    });
+  });
+
+  it("does NOT ALLOW when the probe throws (never ALLOW on unknown existence)", async () => {
+    const warnings: string[] = [];
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: true },
+      deps: {
+        getSessionContext: () => mainCtx,
+        worktreeExists: () => {
+          throw new Error("temporal unavailable");
+        },
+        onWarning: (m) => warnings.push(m),
+      },
+    });
+    // Falls through to block_only BLOCK; never ALLOW on probe failure.
+    expect(result).toMatchObject({ decision: "BLOCK" });
+    expect(warnings.join("\n")).toContain("worktreeExists seam threw");
+  });
+
+  it("ALLOW is scoped to main checkout only (worktree cwd already ALLOWs earlier)", async () => {
+    // From a worktree cwd the isMainCheckout short-circuit ALLOWs before the
+    // probe runs — assert the probe is not even consulted.
+    const worktreeExists = vi.fn(() => false);
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/wt/legacyChange",
+      features: { worktree_guard_enforce: true },
+      deps: {
+        getSessionContext: () => worktreeCtx,
+        worktreeExists,
+      },
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+    expect(worktreeExists).not.toHaveBeenCalled();
+  });
+
+  it("ALLOW takes precedence over off mode is moot, but off still ALLOWs without probing", async () => {
+    const worktreeExists = vi.fn(() => false);
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: false },
+      deps: {
+        getSessionContext: () => mainCtx,
+        worktreeExists,
+      },
+    });
+    // off short-circuits ALLOW before main-checkout resolution and the probe.
+    expect(result).toEqual({ decision: "ALLOW" });
+    expect(worktreeExists).not.toHaveBeenCalled();
+  });
+
+  it("GFD-7: without a seam, probes via worktreeExistsForChange using the resumeRuntime database (target namespace)", async () => {
+    worktreeExistsForChangeSpy.mockReset();
+    worktreeExistsForChangeSpy.mockResolvedValue(true);
+    const targetAccess = { projectDir: "/target/repo", projectId: "target-pid" };
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: true },
+      role: "target",
+      deps: {
+        getSessionContext: () => mainCtx,
+        resumeRuntime: {
+          projectRoot: "/target/repo",
+          database: targetAccess,
+          log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+        } as never,
+      },
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+    // The probe queried the TARGET project's worktree namespace, not the host.
+    expect(worktreeExistsForChangeSpy).toHaveBeenCalledWith(
+      targetAccess,
+      "legacyChange",
+    );
+  });
+
+  it("GFD-7: returns false (does not ALLOW) when resumeRuntime database is absent", async () => {
+    worktreeExistsForChangeSpy.mockReset();
+    const result = await ensureWorktreeForMutation({
+      change: legacyChange({ worktree_auto_managed: false }),
+      cwd: "/repo/main",
+      features: { worktree_guard_enforce: true },
+      deps: {
+        getSessionContext: () => mainCtx,
+        // no resumeRuntime → no database → probe cannot run → BLOCK preserved
+      },
+    });
+    expect(result).toMatchObject({ decision: "BLOCK" });
+    expect(worktreeExistsForChangeSpy).not.toHaveBeenCalled();
   });
 });
 

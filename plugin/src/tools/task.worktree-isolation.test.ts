@@ -420,3 +420,62 @@ describe("evaluateTask*WorktreeIsolation (AC4 D1/D2 role propagation)", () => {
     expect(attachments[0]).toMatchObject({ role: "current" });
   });
 });
+
+describe("task isolation — existing-worktree ALLOW (rq-worktreeMutationGuard01.4)", () => {
+  function deps(worktreeExists: () => boolean) {
+    return {
+      getSessionContext: mainCtx,
+      worktreeExists,
+      resumeRuntime: fakeRuntime,
+    };
+  }
+
+  test("task_update status transition ALLOWs from main for block_only change when worktree exists", async () => {
+    const result = await evaluateTaskUpdateWorktreeIsolation({
+      features: { worktree_guard_enforce: true },
+      cwd: "/repo/main",
+      status: "done",
+      change: legacyChange(),
+      autoManageDeps: deps(() => true),
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+
+  test("task_update status transition still BLOCKs from main when no worktree exists", async () => {
+    const result = await evaluateTaskUpdateWorktreeIsolation({
+      features: { worktree_guard_enforce: true },
+      cwd: "/repo/main",
+      status: "done",
+      change: legacyChange(),
+      autoManageDeps: deps(() => false),
+    });
+    expect(result).toMatchObject({
+      decision: "BLOCK",
+      errorClass: "WorktreeIsolationViolation",
+    });
+  });
+
+  test("task_add ALLOWs from main for block_only change when worktree exists", async () => {
+    const result = await evaluateTaskAddWorktreeIsolation({
+      features: { worktree_guard_enforce: true },
+      cwd: "/repo/main",
+      change: legacyChange(),
+      autoManageDeps: deps(() => true),
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+
+  test("file-write isolation unaffected: a non-guarded status (in_progress→pending revert) is unchanged", async () => {
+    // pending is not a worktree-guarded status; the guard ALLOWs regardless of
+    // worktree existence. Asserts the existing-worktree exception does not alter
+    // the guarded-status set (file-write isolation path stays as-is, AC12).
+    const result = await evaluateTaskUpdateWorktreeIsolation({
+      features: { worktree_guard_enforce: true },
+      cwd: "/repo/main",
+      status: "pending",
+      change: legacyChange(),
+      autoManageDeps: deps(() => false),
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+});

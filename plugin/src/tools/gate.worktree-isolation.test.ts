@@ -217,3 +217,44 @@ describe("evaluateGateWorktreeIsolation (auto_manage mode, AC5)", () => {
     expect(result).toEqual({ decision: "ALLOW" });
   });
 });
+
+describe("evaluateGateWorktreeIsolation — existing-worktree ALLOW (rq-worktreeMutationGuard01.4)", () => {
+  function deps(worktreeExists: () => boolean) {
+    return {
+      getSessionContext: mainCtx,
+      worktreeExists,
+      resumeRuntime: {
+        projectRoot: "/repo/main",
+        database: { projectDir: "/repo/main", projectId: "proj-1" },
+        log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+      } as never,
+    };
+  }
+
+  test("ALLOWs a worktree-mutation gate from main for a block_only change when a setup-ready worktree exists", async () => {
+    const result = await evaluateGateWorktreeIsolation({
+      gateId: "execution",
+      features: { worktree_guard_enforce: true },
+      cwd: "/repo/main",
+      change: legacyChange(),
+      getSessionContext: mainCtx,
+      autoManageDeps: deps(() => true),
+    });
+    expect(result).toEqual({ decision: "ALLOW" });
+  });
+
+  test("still BLOCKs a worktree-mutation gate from main when NO setup-ready worktree exists", async () => {
+    const result = await evaluateGateWorktreeIsolation({
+      gateId: "execution",
+      features: { worktree_guard_enforce: true },
+      cwd: "/repo/main",
+      change: legacyChange(),
+      getSessionContext: mainCtx,
+      autoManageDeps: deps(() => false),
+    });
+    expect(result).toMatchObject({
+      decision: "BLOCK",
+      errorClass: "WorktreeIsolationViolation",
+    });
+  });
+});
