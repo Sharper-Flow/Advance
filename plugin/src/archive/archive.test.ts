@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import type { Change } from "../types";
 import {
   archiveChange,
+  createInRepoArchive,
   generateContractTraceability,
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
@@ -320,5 +321,60 @@ describe("contract archive traceability", () => {
     expect(result.success).toBe(false);
     expect(result.errors.join("\n")).toContain("ff-only preflight failed");
     expect(existsSync(join(root, "archive"))).toBe(false);
+  });
+
+  // completeStateBackedGate AC4 + AC7: createInRepoArchive copies sibling
+  // files from the source change directory (readdir-based copy). The
+  // state-backed acceptance branch materializes executive-summary.md to that
+  // directory at acceptance time, so a no-prior-disk change still produces a
+  // bundle containing executive-summary.md. Legacy changes that already have
+  // on-disk acceptance.md + executive-summary.md archive cleanly via the same
+  // copy path.
+  describe("executive-summary archive-bundle materialization (AC4, AC7)", () => {
+    test("includes executive-summary.md and acceptance.md from the source change dir in the bundle", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const sourceChangeDir = join(root, "changes", "state-backed-archive");
+      await mkdir(sourceChangeDir, { recursive: true });
+      // These files are written by the state-backed acceptance branch at
+      // acceptance time (AC7) and by the legacy disk path for older changes
+      // (AC4); from the archive's perspective the source is identical.
+      await writeFile(
+        join(sourceChangeDir, "executive-summary.md"),
+        "# Executive Summary\n\nState-backed acceptance proof materialized to disk.",
+      );
+      await writeFile(
+        join(sourceChangeDir, "acceptance.md"),
+        "# Acceptance\n\nContract review proof.",
+      );
+
+      const archivePath = await createInRepoArchive(
+        changeWithContract({ id: "state-backed-archive", status: "active" }),
+        archiveDir,
+        sourceChangeDir,
+      );
+
+      expect(existsSync(join(archivePath, "executive-summary.md"))).toBe(true);
+      await expect(
+        readFile(join(archivePath, "executive-summary.md"), "utf-8"),
+      ).resolves.toContain("State-backed acceptance proof materialized");
+      expect(existsSync(join(archivePath, "acceptance.md"))).toBe(true);
+      // change.json is never copied as a sibling (it is written from state).
+      expect(existsSync(join(archivePath, "change.json"))).toBe(true);
+    });
+
+    test("archives cleanly when the source change dir is absent (legacy/no-disk safe)", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+
+      // No sourceChangeDir → readdir copy is a no-op; archive still succeeds.
+      const archivePath = await createInRepoArchive(
+        changeWithContract({ id: "no-source-dir", status: "active" }),
+        archiveDir,
+      );
+
+      expect(existsSync(join(archivePath, "change.json"))).toBe(true);
+      expect(existsSync(join(archivePath, "ARCHIVE_SUMMARY.md"))).toBe(true);
+    });
   });
 });
