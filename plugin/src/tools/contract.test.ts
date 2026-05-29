@@ -272,9 +272,7 @@ describe("contractTools", () => {
     expect(output.itemCount).toBe(3);
     const payload = fireSignalAndRefresh.mock.calls[0][4];
     expect(payload.contract.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "AC2" }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ id: "AC2" })]),
     );
   });
 

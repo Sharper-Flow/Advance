@@ -132,7 +132,12 @@ interface ChangeProjectionActivities {
     // executiveSummary added for state-backed acceptance materialization
     // (completeStateBackedGate AC7): the executive-summary.md disk file is
     // written at acceptance time so createArchive includes it in the bundle.
-    kind: "proposal" | "agreement" | "design" | "acceptance" | "executiveSummary";
+    kind:
+      | "proposal"
+      | "agreement"
+      | "design"
+      | "acceptance"
+      | "executiveSummary";
     content: string;
   }): Promise<
     { ok: true; path: string } | { ok: false; error: string; path?: undefined }
