@@ -1014,8 +1014,11 @@ function getArchiveGatePreflightError(
   return null;
 }
 
-const ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS = 40;
-const ARCHIVE_RELEASE_GATE_POLL_DELAY_MS = 25;
+// rq-releaseFinalization01: release gate confirmation must be durable.
+// Temporal signal processing + projection can take several seconds under load.
+// 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
+const ARCHIVE_RELEASE_GATE_POLL_ATTEMPTS = 60;
+const ARCHIVE_RELEASE_GATE_POLL_DELAY_MS = 500;
 
 const archiveDelay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -3297,8 +3300,12 @@ export const changeTools = {
         });
       }
 
-      // Phase 9 finalization BEFORE retiring the active change.
-      // If finalization fails, the change stays active so it can be retried.
+      // rq-releaseFinalization01 AC1: Phase 9 finalization and release gate
+      // completion MUST happen BEFORE archive status transition (change.status =
+      // "archived" + store.changes.save). This ordering guarantee ensures that
+      // release evidence is durable before the change workflow is retired.
+      // If finalization or release gate completion fails, the change stays
+      // active so it can be retried.
       let finalization: GitFinalizeOutcome | undefined;
       let releaseGateCompletion:
         | Extract<ArchiveReleaseGateResult, { ok: true }>
@@ -3398,6 +3405,10 @@ export const changeTools = {
         };
       }
 
+      // rq-releaseFinalization01 AC1: Archive status transition happens AFTER
+      // release gate completion and durable proof verification. This is the
+      // structural ordering guarantee: release evidence → release gate → durable
+      // proof → archive status → cleanup. Changing this order breaks AC1.
       // Update change status in store (unless dry run)
       if (!dryRun && archiveResult.success) {
         const statusAlreadyArchived = change.status === "archived";

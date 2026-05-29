@@ -580,4 +580,69 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
+
+  // rq-releaseFinalization01 AC1: release gate completion must happen BEFORE
+  // archive status transition. This test verifies the structural ordering
+  // guarantee: signal fires before save, even when the release gate poll
+  // requires multiple attempts (simulating Temporal processing latency).
+  test("completes release gate before archive status even with delayed gate confirmation", async () => {
+    let queryCount = 0;
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          queryCount++;
+          // Simulate Temporal processing delay: first query returns pending,
+          // second query returns done (signal was processed).
+          if (queryCount === 1) {
+            return { status: "pending" };
+          }
+          return mocks.workflow.gates.release;
+        }
+        return gateId ? mocks.workflow.gates[gateId] : mocks.workflow.gates;
+      },
+    );
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
+    // Release gate signal must fire before archive status save
+    expect(mocks.workflow.handle.signal).toHaveBeenCalledBefore(
+      store.changes.save as ReturnType<typeof vi.fn>,
+    );
+    // Finalization must also fire before archive status save
+    expect(mocks.finalizeRelease).toHaveBeenCalledBefore(
+      store.changes.save as ReturnType<typeof vi.fn>,
+    );
+  });
+
+  // rq-releaseProjectionDurability01 AC2: release completion is recorded only
+  // after structural Phase 9 evidence exists. When the durable proof check
+  // fails (store-backed gate still shows pending), archive must NOT proceed
+  // to status transition.
+  test("blocks archive status transition when durable release proof fails after signal", async () => {
+    // Signal succeeds, but the store-backed gate read returns pending
+    // (simulating a race where the projection hasn't landed yet).
+    const store = createMockStore({ durableReleasePending: true });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.requirement).toBe("rq-releaseProjectionDurability01");
+    expect(parsed.error).toContain("durable release gate proof");
+    // Archive status must NOT be saved when proof fails
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
 });

@@ -70,8 +70,11 @@ import { changeToWorkflowState } from "../temporal/change-state";
 import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import { workflowHasPoisonedRecoveryEvidence } from "./recovery-probe";
 
-const GATE_COMPLETION_POLL_ATTEMPTS = 40;
-const GATE_COMPLETION_POLL_DELAY_MS = 25;
+// rq-releaseFinalization01: gate completion confirmation must be durable.
+// Temporal signal processing + projection can take several seconds under load.
+// 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
+const GATE_COMPLETION_POLL_ATTEMPTS = 60;
+const GATE_COMPLETION_POLL_DELAY_MS = 500;
 
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
