@@ -1055,6 +1055,9 @@ function buildReleaseCompletionEvidence(
     finalization.mergeCommitSha
       ? `mergeCommitSha=${finalization.mergeCommitSha}`
       : null,
+    finalization.mainCheckpointCommitSha
+      ? `mainCheckpointCommitSha=${finalization.mainCheckpointCommitSha}`
+      : null,
     finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
   ].filter(Boolean);
   return `Phase 9 finalization ${finalization.status}; ${details.join("; ")}`;

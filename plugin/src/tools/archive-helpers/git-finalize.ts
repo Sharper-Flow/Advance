@@ -9,6 +9,9 @@ export interface GitFinalizeOutcome {
   mainCheckout: string;
   defaultBranch: string;
   mergeCommitSha?: string;
+  /** SHA of the dirty-main checkpoint commit, set when ADV committed pre-existing
+   *  main checkout changes before merge (rq-releaseFinalization01.7). */
+  mainCheckpointCommitSha?: string;
   pushStatus: "pushed" | "skipped" | "failed" | "not_attempted";
   pushFailureReason?: string;
   prBranch?: string;
@@ -201,6 +204,123 @@ export function verifyMainInvariants(
   }
 
   return { ok: true, branch, dirtyFiles: [] };
+}
+
+// --- Dirty-main checkpoint helpers (rq-releaseFinalization01.7/.8) ---
+
+export function verifyGitIdentity(
+  mainCheckout: string,
+  deps: GitFinalizeDeps = {},
+): { ok: true; ident: string } | { ok: false; message: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const result = runGit(mainCheckout, ["var", "GIT_COMMITTER_IDENT"]);
+  if (result.status !== 0 || !result.stdout.trim()) {
+    return {
+      ok: false,
+      message:
+        "Git committer identity is not configured. Set user.name and user.email in the main checkout and retry.",
+    };
+  }
+  return { ok: true, ident: result.stdout.trim() };
+}
+
+export type InProgressState =
+  | "merging"
+  | "rebasing"
+  | "cherry-picking"
+  | "reverting";
+
+export function detectMainInProgressState(
+  mainCheckout: string,
+  deps: GitFinalizeDeps = {},
+): { inProgress: false } | { inProgress: true; state: InProgressState } {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  // MERGE_HEAD
+  const mergeHead = runGit(mainCheckout, [
+    "rev-parse",
+    "--verify",
+    "MERGE_HEAD",
+  ]);
+  if (mergeHead.status === 0) {
+    return { inProgress: true, state: "merging" };
+  }
+
+  // REBASE_HEAD or .git/rebase-merge
+  const rebaseHead = runGit(mainCheckout, [
+    "rev-parse",
+    "--verify",
+    "REBASE_HEAD",
+  ]);
+  if (rebaseHead.status === 0) {
+    return { inProgress: true, state: "rebasing" };
+  }
+
+  // CHERRY_PICK_HEAD
+  const cherryPick = runGit(mainCheckout, [
+    "rev-parse",
+    "--verify",
+    "CHERRY_PICK_HEAD",
+  ]);
+  if (cherryPick.status === 0) {
+    return { inProgress: true, state: "cherry-picking" };
+  }
+
+  // REVERT_HEAD
+  const revertHead = runGit(mainCheckout, [
+    "rev-parse",
+    "--verify",
+    "REVERT_HEAD",
+  ]);
+  if (revertHead.status === 0) {
+    return { inProgress: true, state: "reverting" };
+  }
+
+  return { inProgress: false };
+}
+
+export function commitDirtyMainCheckpoint(
+  mainCheckout: string,
+  changeId: string,
+  deps: GitFinalizeDeps = {},
+): { committed: boolean; commitSha?: string; error?: string } {
+  const runGit = deps.runGit ?? defaultRunGit;
+
+  const status = runGit(mainCheckout, ["status", "--porcelain"]);
+  if (status.status !== 0) {
+    return {
+      committed: false,
+      error: `git status failed: ${status.stderr}`,
+    };
+  }
+  const changes = splitLines(status.stdout);
+  if (changes.length === 0) {
+    return { committed: false };
+  }
+
+  // Stage all non-ignored changes (tracked + untracked)
+  const add = runGit(mainCheckout, ["add", "-A"]);
+  if (add.status !== 0) {
+    return {
+      committed: false,
+      error: `git add -A failed: ${add.stderr}`,
+    };
+  }
+
+  const commit = runGit(mainCheckout, [
+    "commit",
+    "-m",
+    `chore(adv-archive): checkpoint main before archiving ${changeId}`,
+  ]);
+  if (commit.status !== 0) {
+    return {
+      committed: false,
+      error: `git commit failed: ${commit.stderr}`,
+    };
+  }
+
+  const sha = runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps);
+  return { committed: true, commitSha: sha };
 }
 
 export function verifyChangeBranchReachable(
@@ -755,19 +875,78 @@ export async function finalizeRelease(
     };
   }
 
-  const invariants = verifyMainInvariants(mainCheckout, defaultBranch, deps);
-  if (!invariants.ok) {
+  // rq-releaseFinalization01.7/.8: Readiness check replaces old invariant gate.
+  // Wrong branch still blocks; dirty default-branch main is checkpointed and
+  // continues; unsafe states block with diagnostics.
+  const branch = runGitOrThrow(
+    mainCheckout,
+    ["branch", "--show-current"],
+    deps,
+  );
+  if (branch !== defaultBranch) {
     return {
       status: "blocked",
       mainCheckout,
       defaultBranch,
       pushStatus: "not_attempted",
       blocked: {
-        reason: invariants.code,
-        remediation: `${invariants.message}. rq-releaseFinalization01 requires a clean ${defaultBranch} checkout before archive finalization.`,
-        details: invariants.dirtyFiles,
+        reason: "MAIN_BRANCH_MISMATCH",
+        remediation: `Main checkout is on ${branch}, expected ${defaultBranch}. ADV will not switch branches. Restore main to ${defaultBranch} and retry. rq-releaseFinalization01 requires the correct branch.`,
       },
     };
+  }
+
+  // Verify git identity before any checkpoint commit attempt
+  const identity = verifyGitIdentity(mainCheckout, deps);
+  if (!identity.ok) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "MISSING_GIT_IDENTITY",
+        remediation: `${identity.message} rq-releaseFinalization01.8 requires a configured git identity for checkpoint.`,
+      },
+    };
+  }
+
+  // Detect in-progress git operations (rq-releaseFinalization01.8)
+  const inProgress = detectMainInProgressState(mainCheckout, deps);
+  if (inProgress.inProgress) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "MAIN_IN_PROGRESS_STATE",
+        remediation: `Main checkout is in an active ${inProgress.state} state. ADV will not commit over in-progress git operations. Resolve the ${inProgress.state} state and retry. rq-releaseFinalization01.8.`,
+      },
+    };
+  }
+
+  // Dirty-main checkpoint (rq-releaseFinalization01.7)
+  let mainCheckpointCommitSha: string | undefined;
+  const checkpoint = commitDirtyMainCheckpoint(
+    mainCheckout,
+    ctx.changeId,
+    deps,
+  );
+  if (checkpoint.error) {
+    return {
+      status: "blocked",
+      mainCheckout,
+      defaultBranch,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "MAIN_CHECKPOINT_FAILED",
+        remediation: `Dirty-main checkpoint failed: ${checkpoint.error}. rq-releaseFinalization01.8 blocks on checkpoint failure.`,
+      },
+    };
+  }
+  if (checkpoint.committed) {
+    mainCheckpointCommitSha = checkpoint.commitSha;
   }
 
   const beforeMergeReachability = verifyChangeBranchReachable(
@@ -828,6 +1007,7 @@ export async function finalizeRelease(
       mainCheckout,
       defaultBranch,
       mergeCommitSha,
+      mainCheckpointCommitSha,
       pushStatus: "pushed",
     };
   }
@@ -837,6 +1017,7 @@ export async function finalizeRelease(
     mainCheckout,
     defaultBranch,
     mergeCommitSha,
+    mainCheckpointCommitSha,
     pushStatus: push.status,
     pushFailureReason: push.reason,
     blocked: {

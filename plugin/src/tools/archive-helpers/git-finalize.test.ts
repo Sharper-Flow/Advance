@@ -396,7 +396,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("finalizeRelease blocks dirty trunk before merge and reports rq-releaseFinalization01 remediation", async () => {
+  it("finalizeRelease checkpoints dirty trunk and continues (rq-releaseFinalization01.7)", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -411,15 +411,21 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
+    // Dirty main on default branch is now checkpointed instead of blocking.
+    // After checkpoint, merge proceeds and push is skipped (no remote).
     expect(result).toMatchObject({
       status: "blocked",
       defaultBranch: "trunk",
-      pushStatus: "not_attempted",
+      pushStatus: "skipped",
+      mainCheckpointCommitSha: expect.any(String),
       blocked: {
-        reason: "DIRTY_MAIN_CHECKOUT",
+        reason: "DEFAULT_BRANCH_PUSH_SKIPPED",
         remediation: expect.stringContaining("rq-releaseFinalization01"),
       },
     });
+    // Verify the checkpoint commit actually happened on main
+    const checkpointSha = (result as any).mainCheckpointCommitSha;
+    expect(checkpointSha).toBeTruthy();
   });
 
   it("finalizeRelease commits archive artifacts before merge", async () => {
