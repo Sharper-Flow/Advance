@@ -22,7 +22,7 @@ export interface RunGitResult {
 }
 
 export interface GitFinalizeDeps {
-  runGit?: (cwd: string, args: string[]) => RunGitResult;
+  runGit?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
   requireCleanWorktree?: boolean;
 }
 
@@ -78,6 +78,16 @@ export function deleteChangeBranch(
 
 const DEFAULT_GIT_TIMEOUT_MS = 30000;
 
+// Push can trigger arbitrarily heavy client-side pre-push hooks in consumer
+// repos (e.g. a full pre-push CI: lint + typecheck + test + production build
+// can run several minutes). Give push a separate, generous, env-overridable
+// budget so archive finalization does not spuriously report
+// DEFAULT_BRANCH_PUSH_FAILED on a push that would otherwise succeed.
+const DEFAULT_GIT_PUSH_TIMEOUT_MS = (() => {
+  const env = Number(process.env.ADV_GIT_PUSH_TIMEOUT_MS);
+  return Number.isFinite(env) && env > 0 ? env : 300000;
+})();
+
 const CREDENTIAL_PATTERNS = [
   /https?:\/\/[^:]+:[^@]+@/gi,
   /token\s*[=:]\s*\S+/gi,
@@ -98,11 +108,15 @@ export function redactGitOutput(output: string): string {
   return result;
 }
 
-function defaultRunGit(cwd: string, args: string[]): RunGitResult {
+function defaultRunGit(
+  cwd: string,
+  args: string[],
+  timeoutMs: number = DEFAULT_GIT_TIMEOUT_MS,
+): RunGitResult {
   const result = spawnSyncGit(args, {
     cwd,
     encoding: "utf8",
-    timeout: DEFAULT_GIT_TIMEOUT_MS,
+    timeout: timeoutMs,
     env: {
       ...process.env,
       // git-binary helper already sets GIT_TERMINAL_PROMPT=0 and scrubs
@@ -120,7 +134,7 @@ function defaultRunGit(cwd: string, args: string[]): RunGitResult {
     status: timedOut ? 124 : result.status,
     stdout: redactGitOutput(stdout ?? ""),
     stderr: timedOut
-      ? `git ${args.join(" ")} timed out after ${DEFAULT_GIT_TIMEOUT_MS}ms`
+      ? `git ${args.join(" ")} timed out after ${timeoutMs}ms`
       : redactGitOutput(stderr ?? ""),
   };
 }
@@ -404,11 +418,11 @@ export function pushToOrigin(
   if (!options.autoPush)
     return { status: "skipped", reason: "auto_push disabled" };
 
-  const push = (options.runGit ?? defaultRunGit)(mainCheckout, [
-    "push",
-    "origin",
-    defaultBranch,
-  ]);
+  const push = (options.runGit ?? defaultRunGit)(
+    mainCheckout,
+    ["push", "origin", defaultBranch],
+    DEFAULT_GIT_PUSH_TIMEOUT_MS,
+  );
   if (push.status === 0) {
     return { status: "pushed", output: push.stdout || push.stderr };
   }
@@ -436,11 +450,11 @@ export function pushChangeBranch(
     return { status: "skipped", reason: "auto_push disabled" };
 
   const branch = `change/${changeId}`;
-  const push = (options.runGit ?? defaultRunGit)(workdir, [
-    "push",
-    "origin",
-    branch,
-  ]);
+  const push = (options.runGit ?? defaultRunGit)(
+    workdir,
+    ["push", "origin", branch],
+    DEFAULT_GIT_PUSH_TIMEOUT_MS,
+  );
   if (push.status === 0) {
     return { status: "pushed", output: push.stdout || push.stderr };
   }
