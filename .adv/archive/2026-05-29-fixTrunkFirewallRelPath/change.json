@@ -1,0 +1,561 @@
+{
+  "id": "fixTrunkFirewallRelPath",
+  "title": "Fix trunk firewall rel-path blocking",
+  "status": "archived",
+  "created_at": "2026-05-29T00:24:20.232Z",
+  "tasks": [
+    {
+      "id": "tk-5f30b082e48c",
+      "title": "Implement worktree-path-aware resolution base for trunk-write-firewall",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-05-29T00:30:34.420Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT3",
+          "DONT4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ]
+      },
+      "notes": "Added AC4 verification: implementation must not touch bash handling — verified by existing integration tests asserting bash behavior unchanged.",
+      "updatedAt": "2026-05-29T00:31:10.503Z",
+      "assignedTo": "agent",
+      "started_at": "2026-05-29T00:34:06.638Z",
+      "verification": "Integration tests: 30/30 pass (2 new + 28 existing). Typecheck: clean. Lint: clean. Fix: 3 imports + ~15 lines in tool.execute.before hook.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts",
+        "plugin/src/integration.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/index.ts",
+        "plugin/src/integration.test.ts"
+      ],
+      "checkpointSha": "88129be8f8e353b8d8baa695c3ab9d1eb9a8da74",
+      "completedAt": "2026-05-29T00:46:14.498Z",
+      "completed_at": "2026-05-29T00:46:14.498Z"
+    },
+    {
+      "id": "tk-d2719b28d412",
+      "title": "Promote investigation tests to permanent regression coverage",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-05-29T00:30:50.613Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-5f30b082e48c"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ]
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-05-29T00:47:50.816Z",
+      "notes": "Investigation test matrix coverage is now provided by the expanded integration.test.ts (30 tests including the 2 new REL-path tests plus the existing 28 firewall tests). The investigation test in the fixArchiveReleaseOrdering worktree tested the pre-fix behavior matrix which is now fully covered by the combined integration tests. Promoting a separate file would be redundant.",
+      "updatedAt": "2026-05-29T00:48:31.866Z",
+      "verification": "23-case regression test file promoted to plugin/src/tools/trunk-write-firewall.regression.test.ts. All 23 tests pass.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/trunk-write-firewall.regression.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/trunk-write-firewall.regression.test.ts"
+      ],
+      "checkpointSha": "23cea4965de0fe500232feea3002e461404e68b0",
+      "completedAt": "2026-05-29T00:49:29.361Z",
+      "completed_at": "2026-05-29T00:49:29.361Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixTrunkFirewallRelPath",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixTrunkFirewallRelPath",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-nit-1",
+          "label": "nit",
+          "file": "plugin/src/index.ts",
+          "line": 68,
+          "what": "Import `from \"fs\"` is inconsistent with `from \"node:path\"` at line 15",
+          "why": "Adjacent imports use the `node:` prefix; aligning to `node:fs` would be marginally more consistent. Repo convention is mixed, so not a blocker."
+        },
+        {
+          "id": "review-suggestion-1",
+          "label": "suggestion",
+          "file": "plugin/src/index.ts",
+          "line": 693,
+          "what": "`existsSync(worktreeDir)` runs synchronously on every write/edit/morph_edit tool call with a relative path on main checkout",
+          "why": "Sub-millisecond syscall, no perf concern. If the worktree is torn down mid-session, the next call correctly falls back to trunk (BLOCK) — the safe failure mode. Worth noting only if worktree teardown becomes a hot path."
+        },
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/trunk-write-firewall.regression.test.ts",
+          "line": 1,
+          "what": "23-case behavior matrix using `test.each` over FILE_TOOL_CASES × session-location × path-type is exactly the right shape for this regression class",
+          "why": "Locks in the contract surface (write/edit/morph_edit × abs/rel × session=trunk/worktree, plus bash cases) so future changes can't silently regress one cell. Excellent test design."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "When a tool.execute.before hook needs to derive a per-change path (worktree base, snapshot dir, etc.), cache the per-change-invariant prefix at plugin init (e.g. `cachedWorktreeBase = getWorktreeBase(resolvedProjectId)`) and join the change-specific suffix per call. Avoids re-resolving projectId on every tool call and keeps the hot-path branch small. See fixTrunkFirewallRelPath plugin/src/index.ts:367-369 and 684-699."
+        },
+        {
+          "type": "convention",
+          "content": "Investigation tests that characterize a behavior matrix should be promoted to *.regression.test.ts in the relevant src/ subfolder once the fix lands, not deleted. fixTrunkFirewallRelPath promoted its 23-case investigation matrix to plugin/src/tools/trunk-write-firewall.regression.test.ts so the same cells run on every CI build."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm vitest run src/integration.test.ts src/tools/trunk-write-firewall.regression.test.ts",
+          "pnpm test (full suite)",
+          "pnpm run check (typecheck + lint + format:check)"
+        ],
+        "results": "pass",
+        "evidence": "Target files: 53 tests passed (30 integration + 23 regression). Full suite: 3368 passed across 250 files. `pnpm run check` clean (tsc --noEmit, eslint src/, prettier --check src/)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "TOCTOU between existsSync(worktreeDir) and the actual tool invocation is benign — stale-cache fallback resolves to trunk and BLOCKs (safe failure mode). Follow-up note only if worktree teardown during active session ever becomes common."
+      ],
+      "required_main_agent_actions": [
+        "Record AC1-AC6 acceptance evidence (each AC has both implementation code references and passing test references; full suite green).",
+        "Complete acceptance gate — no blockers, no constraint violations.",
+        "Optional: address review-nit-1 (`from \"fs\"` → `from \"node:fs\"`) before archive if alignment desired; not required."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-05-29T00:24:46.796Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed intent: fix rel-path false-positive blocking in trunk-write-firewall. Investigation test proves the bug is in path resolution, not firewall logic.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/proposal.md",
+        "content_hash": "5481e15382b562d958823608985b5d05b4202f4878be3db9db089b3cb800cbe3",
+        "non_whitespace_chars": 1882,
+        "checked_at": "2026-05-29T00:24:20.249Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-05-29T00:27:14.984Z",
+      "completed_at": "2026-05-29T00:27:33.404Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery confirmed: root cause is normalizeToolTargetPath using session directory (trunk) for relative paths. Fix location: index.ts tool.execute.before hook. Contract minted with 14 items.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/agreement.md",
+        "content_hash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "non_whitespace_chars": 1719,
+        "checked_at": "2026-05-29T00:24:20.250Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-05-29T00:27:39.569Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design: resolve relative paths against active change worktree when session is on main checkout. Structural fix in index.ts tool.execute.before hook. No firewall logic changes.",
+      "artifact_evidence": {
+        "kind": "design",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/design.md",
+        "content_hash": "5584c89457b6c2450ba4c87e3d61c83b94a60085802c1e00179100070d1b9430",
+        "non_whitespace_chars": 2556,
+        "checked_at": "2026-05-29T00:24:20.251Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-05-29T00:33:50.813Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved via Tier A whitelist. 2-task plan: implement worktree-path resolution + promote regression tests."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-05-29T00:52:52.297Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both tasks complete. Implementation: worktree-path-aware resolution base in tool.execute.before hook. Tests: 30 integration tests + 23 regression tests all pass. Full check (typecheck + lint + format) clean."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-05-29T02:51:09.221Z",
+      "completed_at": "2026-05-29T02:54:19.018Z",
+      "completed_by": "agent",
+      "approval_evidence": "Retry: file on disk hash verified as 2a509126... matching workflow metadata. Cache may have been stale on previous attempt.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/acceptance.md",
+        "content_hash": "7529e2d4553d83b4ff686ab2129bdd9538559c81e15372c6f7132a1804477830",
+        "non_whitespace_chars": 2790,
+        "checked_at": "2026-05-29T02:54:19.186Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+      "approvedAt": "2026-05-29T00:27:22.867Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**REL-path ALLOW when worktree exists**: When `state.activeChange.id` is set, the session `directory` is the main checkout, and a registered git worktree at `change/{changeId}` exists under the ADV worktree base path, relative file paths in `write`/`edit`/`morph_edit` resolve against the worktree path instead of the session directory, and the firewall correctly ALLOWs them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**REL-path BLOCK when no worktree**: When no worktree exists for the active change, relative paths continue to resolve against session directory (trunk) and are BLOCKED as before.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**ABS-path semantics unchanged**: Absolute paths to trunk are BLOCKED; absolute paths to worktrees are ALLOWED — regardless of active change state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**Bash unchanged**: Bash path resolution already uses `workdir` correctly — no changes needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**Regression tests pass**: Investigation test matrix (23 cases) passes as permanent coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**Existing integration tests pass**: No regressions in existing firewall tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Fix scope: `plugin/src/index.ts` `tool.execute.before` hook only (~15 lines changed).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No changes to `trunk-write-firewall.ts` (firewall logic is correct).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No changes to bash path handling (already works).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No new dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make the path resolution \"smart\" (guessing agent intent from file content, etc.).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not add a `workdir` parameter to `write`/`edit`/`morph_edit` (OpenCode SDK change, out of scope).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change firewall semantics for absolute paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not touch the `worktree_isolation_guard` or `worktree_auto_manage` modules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-05-29T02:44:19.317Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "integration.test.ts:REL path allowed when active change has worktree — resolves against worktree, firewall ALLOWs"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "integration.test.ts:REL path blocked when no worktree exists — falls back to session dir, firewall BLOCKs"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "!isAbsolute(targetPath) guard ensures ABS paths skip worktree resolution; test verifies ABS to trunk still BLOCKED"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "git diff shows zero changes to bash-related code; 3366 existing tests pass"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "trunk-write-firewall.regression.test.ts: 23-case behavior matrix, all pass"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full suite: 3366 tests pass, 0 regressions"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only plugin/src/index.ts changed — 3 files total diff confirms"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk-write-firewall.ts: zero changes"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No bash-related files in diff"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new imports from external packages — join, existsSync, getWorktreeBase all existing"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Pure structural check: rel path + isMainCheckout + changeId + existsSync — no content/intent parsing"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No workdir/workdir parameter added to any tool"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "!isAbsolute guard means ABS paths always use session directory — firewall semantics unchanged"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to worktree_isolation_guard or worktree_auto_manage modules"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**REL-path ALLOW when worktree exists**: When `state.activeChange.id` is set, the session `directory` is the main checkout, and a registered git worktree at `change/{changeId}` exists under the ADV worktree base path, relative file paths in `write`/`edit`/`morph_edit` resolve against the worktree path instead of the session directory, and the firewall correctly ALLOWs them.",
+    "**REL-path BLOCK when no worktree**: When no worktree exists for the active change, relative paths continue to resolve against session directory (trunk) and are BLOCKED as before.",
+    "**ABS-path semantics unchanged**: Absolute paths to trunk are BLOCKED; absolute paths to worktrees are ALLOWED — regardless of active change state.",
+    "**Bash unchanged**: Bash path resolution already uses `workdir` correctly — no changes needed.",
+    "**Regression tests pass**: Investigation test matrix (23 cases) passes as permanent coverage.",
+    "**Existing integration tests pass**: No regressions in existing firewall tests."
+  ],
+  "documents": {
+    "proposal": "# Fix trunk-write-firewall relative-path false-positive blocking\n\n## Problem\n\nWhen an OpenCode session is launched from trunk (the default), relative file paths in `write`/`edit`/`morph_edit` tool calls resolve against the session `directory` (trunk), not the agent's intended ADV worktree. The trunk-write-firewall correctly classifies these resolved paths as trunk writes and BLOCKs them — even though the agent's working context is a registered worktree on a change branch.\n\nThis forces agents to either:\n- Use absolute worktree paths for every file operation (fragile, verbose)\n- Fail mid-workflow with confusing \"Trunk write firewall\" errors on fair-usage writes\n\nThe firewall design is correct. The path resolution layer above it silently misclassifies well-intentioned worktree writes.\n\n## Root Cause\n\n`plugin/src/index.ts:86-90` — `normalizeToolTargetPath(targetPath, directory)` resolves relative paths against the session-bound `directory` (trunk when not warped). The firewall then sees an absolute trunk path and correctly blocks it.\n\n## Proposed Fix\n\nWhen the session is on trunk and the active change has a registered ADV worktree:\n1. Detect the \"active worktree\" from the plugin's `state.activeChange.id` + `adv_worktree_resume`-derived worktree path.\n2. Before passing `targetPath` to `checkTrunkWrite`, re-resolve relative paths against the active worktree path instead of the session directory.\n3. If no active worktree exists, fall back to current behavior (resolve against session directory → block if trunk).\n\nThis preserves the firewall's blocking semantics for actual trunk writes while removing the false-positive path resolution for worktree-intended writes.\n\n## Scope\n\n- `plugin/src/index.ts` — `tool.execute.before` hook path resolution logic\n- `plugin/src/tools/trunk-write-firewall.ts` — no changes (firewall logic is correct)\n- `plugin/src/integration.test.ts` — add regression tests from investigation\n- Investigation test promoted to permanent regression coverage\n\n## Out of Scope\n\n- Bash `workdir` handling (already works correctly)\n- OpenCode SDK changes to make `write`/`edit` workdir-aware\n- Changing the firewall's blocking semantics or allowlist\n",
+    "problemStatement": "The trunk-write-firewall blocks `write`/`edit`/`morph_edit` tool calls that use relative paths when the OpenCode session is launched from trunk (the default), even when a registered ADV worktree exists and the agent intends to write to that worktree. Relative paths resolve against the session `directory` (trunk), not the agent's intended worktree, causing false-positive BLOCKs that force agents to use absolute paths or fail mid-workflow. This is a fair-usage ergonomics bug — the firewall design is correct (block trunk writes, allow worktree writes) but the path resolution layer above it silently misclassifies well-intentioned worktree writes as trunk writes.",
+    "agreement": "# Agreement: Fix trunk-write-firewall relative-path blocking\n\n## Objectives\n\n1. Agents using relative file paths in `write`/`edit`/`morph_edit` are not falsely blocked by the trunk-write-firewall when a registered ADV worktree exists for the active change.\n2. Absolute paths to trunk remain blocked (firewall semantics unchanged).\n3. No false-negatives — trunk writes must never slip through.\n\n## Acceptance Criteria\n\n1. **REL-path ALLOW when worktree exists**: When `state.activeChange.id` is set, the session `directory` is the main checkout, and a registered git worktree at `change/{changeId}` exists under the ADV worktree base path, relative file paths in `write`/`edit`/`morph_edit` resolve against the worktree path instead of the session directory, and the firewall correctly ALLOWs them.\n2. **REL-path BLOCK when no worktree**: When no worktree exists for the active change, relative paths continue to resolve against session directory (trunk) and are BLOCKED as before.\n3. **ABS-path semantics unchanged**: Absolute paths to trunk are BLOCKED; absolute paths to worktrees are ALLOWED — regardless of active change state.\n4. **Bash unchanged**: Bash path resolution already uses `workdir` correctly — no changes needed.\n5. **Regression tests pass**: Investigation test matrix (23 cases) passes as permanent coverage.\n6. **Existing integration tests pass**: No regressions in existing firewall tests.\n\n## Constraints\n\n- Fix scope: `plugin/src/index.ts` `tool.execute.before` hook only (~15 lines changed).\n- No changes to `trunk-write-firewall.ts` (firewall logic is correct).\n- No changes to bash path handling (already works).\n- No new dependencies.\n\n## Avoidances\n\n- Do not make the path resolution \"smart\" (guessing agent intent from file content, etc.).\n- Do not add a `workdir` parameter to `write`/`edit`/`morph_edit` (OpenCode SDK change, out of scope).\n- Do not change firewall semantics for absolute paths.\n- Do not touch the `worktree_isolation_guard` or `worktree_auto_manage` modules.\n",
+    "design": "# Design: Fix trunk-write-firewall relative-path blocking\n\n## Architecture\n\nThe fix is a single-function change in `plugin/src/index.ts` at the `tool.execute.before` hook. When:\n1. The firewall is enforced\n2. The tool is `write`/`edit`/`morph_edit`\n3. The target path is relative (not absolute)\n4. `state.activeChange.id` is set\n5. The session `directory` is the main checkout (`isMainCheckout`)\n\nThen resolve the relative path against the ADV worktree path for the active change (`change/{changeId}` under `getWorktreeBase(projectId)`) instead of the session `directory`.\n\n## Implementation Strategy\n\n### Step 1: Derive the active worktree path\n\nIn the `tool.execute.before` hook, when the conditions above are met, compute:\n```\nconst worktreePath = join(getWorktreeBase(projectId), `change/${changeId}`);\n```\n\nVerify the path exists as a directory (sync `existsSync`) before using it. If it doesn't exist, fall back to current behavior (resolve against session directory → block if trunk).\n\n### Step 2: Use worktree path as resolution base\n\nReplace:\n```ts\nnormalizeToolTargetPath(targetPath, directory)\n```\nwith:\n```ts\nnormalizeToolTargetPath(targetPath, resolutionBase)\n```\nwhere `resolutionBase` is the worktree path when the conditions match, or `directory` otherwise.\n\n### Step 3: Cache the worktree path\n\nThe worktree path computation is cheap (path join + existsSync) but called on every `write`/`edit`/`morph_edit` invocation. Cache it in plugin state for the session lifecycle.\n\n## LBP Decision\n\n**Chosen: derive from active change + project ID.** This is structural (path join from known constants), not heuristic. The `change/{changeId}` convention is the ADV worktree branch naming convention used everywhere in the codebase. No filesystem walking, no git commands, no guessing.\n\n**Rejected alternatives:**\n- Parse `git worktree list` for the change branch — async, slow, over-engineered.\n- Use Temporal visibility search attributes — requires live Temporal connection, too heavy for a path resolution helper.\n- Add a `workdir` parameter to `write`/`edit`/`morph_edit` — OpenCode SDK change, out of scope.\n\n## Files Changed\n\n| File | Change |\n|---|---|\n| `plugin/src/index.ts` | Add worktree-path-aware resolution base in `tool.execute.before` (~20 lines) |\n| `plugin/src/integration.test.ts` | Add 6 regression tests from investigation matrix |\n| `plugin/src/tools/trunk-write-firewall.investigation.test.ts` | Promote to permanent location at `plugin/src/tools/trunk-write-firewall.regression.test.ts` |\n\n## Risk Assessment\n\n- **False-negative risk**: An agent could write to a worktree when no worktree \"should\" exist. Mitigated by `existsSync` check — if the worktree was cleaned up, fall back to blocking.\n- **Multi-worktree ambiguity**: If multiple worktrees exist, the active change ID disambiguates. This matches the ADV convention.\n- **Performance**: One `existsSync` per `write`/`edit`/`morph_edit` call when active change is set. Negligible.\n",
+    "executiveSummary": "Fixed trunk-write-firewall false-positive blocking relative file paths when an active ADV change has a registered worktree but the OpenCode session runs from trunk. Root cause: normalizeToolTargetPath resolved relative paths against session directory (trunk). Fix: resolve against worktree path when session is on main checkout and active change worktree exists. Three files changed. All 3366 tests pass.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-05-29T02:44:19.317Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **REL-path ALLOW when worktree exists**: When `state.activeChange.id` is set, the session `directory` is the main checkout, and a registered git worktree at `change/{changeId}` exists under the ADV worktree base path, relative file paths in `write`/`edit`/`morph_edit` resolve against the worktree path instead of the session directory, and the firewall correctly ALLOWs them. | pass | integration.test.ts:REL path allowed when active change has worktree — resolves against worktree, firewall ALLOWs |\n| AC2 | acceptance_criterion | **REL-path BLOCK when no worktree**: When no worktree exists for the active change, relative paths continue to resolve against session directory (trunk) and are BLOCKED as before. | pass | integration.test.ts:REL path blocked when no worktree exists — falls back to session dir, firewall BLOCKs |\n| AC3 | acceptance_criterion | **ABS-path semantics unchanged**: Absolute paths to trunk are BLOCKED; absolute paths to worktrees are ALLOWED — regardless of active change state. | pass | !isAbsolute(targetPath) guard ensures ABS paths skip worktree resolution; test verifies ABS to trunk still BLOCKED |\n| AC4 | acceptance_criterion | **Bash unchanged**: Bash path resolution already uses `workdir` correctly — no changes needed. | pass | git diff shows zero changes to bash-related code; 3366 existing tests pass |\n| AC5 | acceptance_criterion | **Regression tests pass**: Investigation test matrix (23 cases) passes as permanent coverage. | pass | trunk-write-firewall.regression.test.ts: 23-case behavior matrix, all pass |\n| AC6 | acceptance_criterion | **Existing integration tests pass**: No regressions in existing firewall tests. | pass | Full suite: 3366 tests pass, 0 regressions |\n| C1 | constraint | Fix scope: `plugin/src/index.ts` `tool.execute.before` hook only (~15 lines changed). | respected | Only plugin/src/index.ts changed — 3 files total diff confirms |\n| C2 | constraint | No changes to `trunk-write-firewall.ts` (firewall logic is correct). | respected | git diff trunk-write-firewall.ts: zero changes |\n| C3 | constraint | No changes to bash path handling (already works). | respected | No bash-related files in diff |\n| C4 | constraint | No new dependencies. | respected | No new imports from external packages — join, existsSync, getWorktreeBase all existing |\n| DONT1 | avoidance | Do not make the path resolution \"smart\" (guessing agent intent from file content, etc.). | respected | Pure structural check: rel path + isMainCheckout + changeId + existsSync — no content/intent parsing |\n| DONT2 | avoidance | Do not add a `workdir` parameter to `write`/`edit`/`morph_edit` (OpenCode SDK change, out of scope). | respected | No workdir/workdir parameter added to any tool |\n| DONT3 | avoidance | Do not change firewall semantics for absolute paths. | respected | !isAbsolute guard means ABS paths always use session directory — firewall semantics unchanged |\n| DONT4 | avoidance | Do not touch the `worktree_isolation_guard` or `worktree_auto_manage` modules. | respected | No changes to worktree_isolation_guard or worktree_auto_manage modules |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "path": "",
+      "updatedAt": "2026-05-29T00:24:20.261Z"
+    },
+    "proposal": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/proposal.md",
+      "updatedAt": "2026-05-29T00:24:37.281Z",
+      "contentHash": "5481e15382b562d958823608985b5d05b4202f4878be3db9db089b3cb800cbe3"
+    },
+    "agreement": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/agreement.md",
+      "updatedAt": "2026-05-29T00:26:42.910Z",
+      "contentHash": "d18968fafa1d19bdee31abcfc05ec833fe19a59fa26947455fb13624a75aea77"
+    },
+    "design": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/design.md",
+      "updatedAt": "2026-05-29T00:27:06.306Z",
+      "contentHash": "5584c89457b6c2450ba4c87e3d61c83b94a60085802c1e00179100070d1b9430"
+    },
+    "executiveSummary": {
+      "path": "/home/jon/.local/share/opencode/plugins/advance/bdf259aa162ae192af5b18899ccdc653b085528d/changes/fixTrunkFirewallRelPath/executive-summary.md",
+      "updatedAt": "2026-05-29T02:49:03.828Z",
+      "contentHash": "2a5091263823c205b144361344547d2c52756567c726ffc36f684e96847f568e"
+    }
+  },
+  "lastSignalAt": "2026-05-29T02:54:19.018Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_SUCCESS_CRITERIA",
+      "severity": "warning",
+      "message": "Proposal has no Success Criteria section. How will we know this change is done?",
+      "recorded_at": "2026-05-29T00:28:52.892Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}
