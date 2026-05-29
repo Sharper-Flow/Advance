@@ -887,9 +887,8 @@ describe("Trunk Write Firewall: tool.execute.before interception", () => {
     const { execSync } = await import("child_process");
     const { mkdirSync } = await import("fs");
     const { join } = await import("path");
-    const { getWorktreeBase, getProjectId } = await import(
-      "./utils/project-id"
-    );
+    const { getWorktreeBase, getProjectId } =
+      await import("./utils/project-id");
 
     await initGitRepo();
     await enableWorktreeGuard();

@@ -319,12 +319,11 @@ const advancePluginImpl: Plugin = async (input) => {
     `Plugin init: dir=${directory}, worktree=${worktree}, isWorktree=${isWorktree}, isMainCheckout=${isMainCheckout}, mainCheckoutPath=${gitSession.mainCheckoutPath ?? "unknown"}`,
   );
 
-  const { effectiveDir, externalRoot, projectId: resolvedProjectId } =
-    await resolveProjectContext(
-      directory,
-      project,
-      worktree,
-    );
+  const {
+    effectiveDir,
+    externalRoot,
+    projectId: resolvedProjectId,
+  } = await resolveProjectContext(directory, project, worktree);
   // P2.7: legacy migration removed — disk-only store reads/writes the same
   // on-disk paths. No migration step needed.
 
