@@ -645,4 +645,48 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // Archive status must NOT be saved when proof fails
     expect(store.changes.save).not.toHaveBeenCalled();
   });
+
+  // rq-releaseFinalization01 AC3: archive retry reconciles stale release
+  // metadata after completed workflow without manual worktree recreation.
+  // When the change is already archived and the release gate is pending,
+  // a retry with an existing bundle should complete the release gate and
+  // succeed without re-running the full archive write.
+  test("reconciles pending release gate on retry with existing bundle and completed workflow", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    // Simulate completed workflow: query throws WorkflowNotFoundError
+    mocks.workflow.handle.query.mockRejectedValue(
+      Object.assign(new Error("workflow execution already completed"), {
+        name: "WorkflowNotFoundError",
+      }),
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed._recoveryMutation).toBe(true);
+    // Release gate should be recovered via disk projection
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+        completion: expect.objectContaining({
+          status: "done",
+          completed_by: "adv-archive",
+        }),
+      }),
+    );
+    // Archive bundle should NOT be re-written
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    // Finalization should verify evidence from main (no worktree needed)
+    expect(mocks.verifyChangeBranchReachable).toHaveBeenCalled();
+    // Status should remain archived (no redundant save)
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
 });
