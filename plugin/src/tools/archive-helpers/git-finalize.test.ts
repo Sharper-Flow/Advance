@@ -24,6 +24,9 @@ import {
   verifyChangeBranchReachable,
   verifyDefaultBranchPushed,
   verifyMainInvariants,
+  verifyGitIdentity,
+  detectMainInProgressState,
+  commitDirtyMainCheckpoint,
   redactGitOutput,
   validateChangeWorktree,
   commitArchiveArtifacts,
@@ -632,6 +635,207 @@ describe("git-finalize helpers", () => {
       "***REDACTED***",
     );
     expect(redactGitOutput("normal output")).toBe("normal output");
+  });
+
+  // --- rq-releaseFinalization01.7/.8 regression coverage ---
+
+  describe("verifyGitIdentity", () => {
+    it("succeeds when git identity is configured", async () => {
+      const repo = join(tempRoot, "identity-ok");
+      await mkdir(repo);
+      await initRepo(repo);
+
+      const result = verifyGitIdentity(repo);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.ident).toContain("ADV Test");
+      }
+    });
+
+    it("fails when git identity is missing", async () => {
+      const repo = join(tempRoot, "identity-missing");
+      await mkdir(repo);
+      git(repo, ["init", "-q", "-b", "trunk"]);
+      // Deliberately do NOT configure user.name/user.email
+      // Use a mock runGit to simulate missing identity
+      const result = verifyGitIdentity(repo, {
+        runGit: () => ({
+          status: 128,
+          stdout: "",
+          stderr: "fatal: EINVAL: invalid argument",
+        }),
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.message).toContain("identity");
+      }
+    });
+  });
+
+  describe("detectMainInProgressState", () => {
+    it("returns no in-progress state for clean repo", async () => {
+      const repo = join(tempRoot, "clean-state");
+      await mkdir(repo);
+      await initRepo(repo);
+
+      const result = detectMainInProgressState(repo);
+      expect(result.inProgress).toBe(false);
+    });
+  });
+
+  describe("commitDirtyMainCheckpoint", () => {
+    it("commits tracked dirty files", async () => {
+      const repo = join(tempRoot, "dirty-tracked");
+      await mkdir(repo);
+      await initRepo(repo);
+      await writeFile(join(repo, "existing.txt"), "original\n");
+      git(repo, ["add", "existing.txt"]);
+      git(repo, ["commit", "-m", "initial"]);
+
+      // Modify tracked file
+      await writeFile(join(repo, "existing.txt"), "modified\n");
+
+      const result = commitDirtyMainCheckpoint(repo, "test-change");
+      expect(result.committed).toBe(true);
+      expect(result.commitSha).toBeTruthy();
+
+      // Verify the file is committed
+      const status = git(repo, ["status", "--porcelain"]);
+      expect(status).toBe("");
+    });
+
+    it("commits untracked non-ignored files", async () => {
+      const repo = join(tempRoot, "dirty-untracked");
+      await mkdir(repo);
+      await initRepo(repo);
+      await writeFile(join(repo, "new-file.txt"), "new content\n");
+
+      const result = commitDirtyMainCheckpoint(repo, "test-change");
+      expect(result.committed).toBe(true);
+      expect(result.commitSha).toBeTruthy();
+
+      // Verify the untracked file is now committed
+      const status = git(repo, ["status", "--porcelain"]);
+      expect(status).toBe("");
+    });
+
+    it("returns committed:false for clean repo", async () => {
+      const repo = join(tempRoot, "dirty-clean");
+      await mkdir(repo);
+      await initRepo(repo);
+
+      const result = commitDirtyMainCheckpoint(repo, "test-change");
+      expect(result.committed).toBe(false);
+    });
+
+    it("returns error when git add fails", async () => {
+      const result = commitDirtyMainCheckpoint(
+        "/nonexistent/path",
+        "test-change",
+        {
+          runGit: (_cwd: string, args: string[]) => {
+            if (args[0] === "status") {
+              return {
+                status: 0,
+                stdout: "M file.txt\n",
+                stderr: "",
+              };
+            }
+            if (args[0] === "add") {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "error: add failed",
+              };
+            }
+            return { status: 0, stdout: "", stderr: "" };
+          },
+        },
+      );
+      expect(result.committed).toBe(false);
+      expect(result.error).toContain("git add -A failed");
+    });
+
+    it("returns error when git commit fails", async () => {
+      const result = commitDirtyMainCheckpoint(
+        "/tmp/no-matter",
+        "test-change",
+        {
+          runGit: (_cwd: string, args: string[]) => {
+            if (args[0] === "status") {
+              return {
+                status: 0,
+                stdout: "M file.txt\n",
+                stderr: "",
+              };
+            }
+            if (args[0] === "add") {
+              return { status: 0, stdout: "", stderr: "" };
+            }
+            if (args[0] === "commit") {
+              return {
+                status: 1,
+                stdout: "",
+                stderr: "error: commit failed",
+              };
+            }
+            return { status: 0, stdout: "", stderr: "" };
+          },
+        },
+      );
+      expect(result.committed).toBe(false);
+      expect(result.error).toContain("git commit failed");
+    });
+  });
+
+  it("finalizeRelease blocks wrong branch (rq-releaseFinalization01.8)", async () => {
+    const main = join(tempRoot, "wrong-branch");
+    const worktree = join(tempRoot, "wrong-branch-wt");
+    await mkdir(main);
+    await initRepo(main);
+    // Switch main to a non-default branch
+    git(main, ["checkout", "-b", "feature/other"]);
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "direct",
+      autoPush: false,
+    });
+
+    expect(result).toMatchObject({
+      status: "blocked",
+      blocked: {
+        reason: "MAIN_BRANCH_MISMATCH",
+        remediation: expect.stringContaining("feature/other"),
+      },
+    });
+  });
+
+  it("finalizeRelease includes mainCheckpointCommitSha in shipped result", async () => {
+    const main = join(tempRoot, "checkpoint-shipped");
+    const worktree = join(tempRoot, "checkpoint-shipped-wt");
+    await mkdir(main);
+    await initRepo(main);
+    // Make main dirty
+    await writeFile(join(main, "dirty.txt"), "dirty content\n");
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+
+    // Add remote so push is attempted (will be skipped since no actual remote)
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "direct",
+      autoPush: false,
+    });
+
+    // Push is skipped (no remote), but checkpoint should have happened
+    expect(result).toMatchObject({
+      status: "blocked",
+      pushStatus: "skipped",
+      mainCheckpointCommitSha: expect.any(String),
+    });
   });
 });
 
