@@ -777,6 +777,11 @@ describe("changeWorkflow signal handlers", () => {
         seedState: {
           ...makeChangeInput("acceptance-projection").seedState,
           gates,
+          // State-backed acceptance (completeStateBackedGate): proof comes
+          // from state.documents.executiveSummary, not the disk file.
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
           artifacts: {
             executiveSummary: {
               path: join(changeDir, "executive-summary.md"),
@@ -954,16 +959,19 @@ describe("changeWorkflow signal handlers", () => {
     }
   }, 30_000);
 
-  it("blocks acceptance when executive-summary metadata hash is stale", async () => {
+  // completeStateBackedGate: on the canonical state-backed acceptance path,
+  // proof comes from state.documents.executiveSummary (not a disk-hash
+  // comparison). The legacy disk-hash-stale blocker no longer fires for new
+  // histories — the stale-contract class is prevented structurally by cache
+  // invalidation (AC9) + sequential content/metadata signal ordering. The
+  // meaningful state-backed block is: acceptance metadata present but the
+  // executive-summary CONTENT is missing from workflow state.
+  it("blocks acceptance when executive-summary content is missing from state", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "acceptance-stale-summary");
+      const changeDir = join(changesDir, "acceptance-missing-state-content");
       await mkdir(changeDir, { recursive: true });
-      await writeFile(
-        join(changeDir, "executive-summary.md"),
-        "# Executive Summary\n\nActual proof differs from metadata.",
-      );
       const gates = createDefaultGates();
       gates.proposal.status = "done";
       gates.discovery.status = "done";
@@ -971,11 +979,13 @@ describe("changeWorkflow signal handlers", () => {
       gates.planning.status = "done";
       gates.execution.status = "done";
       const input = {
-        ...makeChangeInput("acceptance-stale-summary"),
+        ...makeChangeInput("acceptance-missing-state-content"),
         projectionChangesDir: changesDir,
         seedState: {
-          ...makeChangeInput("acceptance-stale-summary").seedState,
+          ...makeChangeInput("acceptance-missing-state-content").seedState,
           gates,
+          // Metadata present (passes L1 acceptanceContractBlockers) but
+          // state.documents.executiveSummary deliberately absent.
           artifacts: {
             executiveSummary: {
               path: join(changeDir, "executive-summary.md"),
@@ -1019,7 +1029,7 @@ describe("changeWorkflow signal handlers", () => {
       };
 
       await withArtifactSignalWorker(
-        "acceptance-stale-summary",
+        "acceptance-missing-state-content",
         input,
         async (handle) => {
           await handle.signal(gateCompletedSignal, {
@@ -1030,11 +1040,11 @@ describe("changeWorkflow signal handlers", () => {
 
           const state = await waitForGateStatus(handle, "acceptance", "stuck");
           expect(state.gates.acceptance.stuck_reason).toContain(
-            "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+            "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
           );
           expect(state.gates.acceptance.readiness_blockers).toContainEqual(
             expect.objectContaining({
-              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
             }),
           );
         },

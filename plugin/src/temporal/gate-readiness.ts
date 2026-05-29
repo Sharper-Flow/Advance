@@ -145,6 +145,78 @@ export function stateBackedArtifactEvidence(
   return { ready: true, blockers: [], evidence };
 }
 
+/**
+ * State-backed acceptance proof (completeStateBackedGate, AC1/AC2).
+ *
+ * Derives acceptance gate evidence from workflow state WITHOUT inspecting
+ * disk. The executive-summary proof is the gating artifact for acceptance:
+ * its content lives in `state.documents.executiveSummary` and its
+ * server-computed metadata (path + contentHash) lives in
+ * `state.artifacts.executiveSummary`. The L1 readiness check
+ * (`acceptanceContractBlockers`) already verifies the metadata is present and
+ * the contract review matrix passes; this function additionally validates the
+ * in-state executive-summary CONTENT (presence + minimum size) and emits
+ * acceptance evidence keyed to the executive-summary metadata.
+ *
+ * The contentHash is NOT recomputed here — recomputation would require a
+ * non-deterministic hashing primitive inside the workflow bundle. The metadata
+ * contentHash and state.documents.executiveSummary are consistent by
+ * construction: `updateArtifacts` fires the content signal and the
+ * metadata signal (hash computed from the same content) sequentially. The
+ * disk-inspecting hash re-verification is reserved for the poisoned-history
+ * recovery path in gate.ts (C2/C4), which writes the disk file at recovery
+ * time before inspecting it.
+ */
+export function stateBackedAcceptanceProof(
+  state: ChangeWorkflowState,
+  checkedAt: string,
+): GateReadinessResult {
+  const content = state.documents?.executiveSummary;
+  if (typeof content !== "string" || content.trim().length === 0) {
+    return {
+      ready: false,
+      blockers: [
+        makeBlocker({
+          code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
+          gateId: "acceptance",
+          artifactKind: "acceptance",
+          message:
+            "Acceptance requires executive-summary content in workflow state.",
+          remediation:
+            "Persist executive-summary content through the Temporal artifact update path before retrying acceptance.",
+        }),
+      ],
+    };
+  }
+
+  const nonWhitespaceChars = nonWhitespaceCount(content);
+  if (nonWhitespaceChars < MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS) {
+    return {
+      ready: false,
+      blockers: [
+        makeBlocker({
+          code: "ACCEPTANCE_EXECUTIVE_SUMMARY_UNDERSIZED",
+          gateId: "acceptance",
+          artifactKind: "acceptance",
+          message: `executive-summary artifact has ${nonWhitespaceChars} non-whitespace characters; minimum is ${MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS}.`,
+          remediation:
+            "Populate executive-summary with substantive acceptance evidence before retrying acceptance.",
+        }),
+      ],
+    };
+  }
+
+  const metadata = state.artifacts.executiveSummary;
+  const evidence: GateArtifactEvidence = {
+    kind: "acceptance",
+    ...(metadata?.path ? { path: metadata.path } : {}),
+    ...(metadata?.contentHash ? { content_hash: metadata.contentHash } : {}),
+    non_whitespace_chars: nonWhitespaceChars,
+    checked_at: checkedAt,
+  };
+  return { ready: true, blockers: [], evidence };
+}
+
 function agreementExists(state: ChangeWorkflowState): boolean {
   if (state.documents?.agreement?.trim()) return true;
   return Boolean(state.artifacts.agreement ?? state.artifacts.discovery);
