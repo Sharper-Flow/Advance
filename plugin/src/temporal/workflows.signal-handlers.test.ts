@@ -777,6 +777,11 @@ describe("changeWorkflow signal handlers", () => {
         seedState: {
           ...makeChangeInput("acceptance-projection").seedState,
           gates,
+          // State-backed acceptance (completeStateBackedGate): proof comes
+          // from state.documents.executiveSummary, not the disk file.
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
           artifacts: {
             executiveSummary: {
               path: join(changeDir, "executive-summary.md"),
@@ -848,16 +853,26 @@ describe("changeWorkflow signal handlers", () => {
     }
   }, 30_000);
 
-  it("blocks acceptance when executive-summary metadata hash is stale", async () => {
+  // AC1/AC5 (completeStateBackedGate): acceptance completes from
+  // state.documents.executiveSummary + state.artifacts.executiveSummary
+  // metadata WITHOUT any pre-existing disk file. The Temporal-only store no
+  // longer writes artifact .md files (no-disk-writes-invariant), so the legacy
+  // disk inspectArtifactActivity path leaves the acceptance gate stuck with
+  // ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING. The state-backed branch reads the
+  // proof from workflow state, completes acceptance, and (AC7) materializes
+  // executive-summary.md to disk for archive-bundle inclusion.
+  //
+  // RED before the fix: gate goes "stuck" because no disk file exists.
+  it("completes acceptance state-backed with no pre-existing disk file (AC1, AC5, AC7)", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "acceptance-stale-summary");
+      const changeDir = join(changesDir, "acceptance-no-disk");
+      const executiveSummaryContent =
+        "# Executive Summary\n\nState-backed acceptance proof — no disk file written before approval.";
+      // Intentionally create the change dir but DO NOT write
+      // executive-summary.md — proof comes only from workflow state.
       await mkdir(changeDir, { recursive: true });
-      await writeFile(
-        join(changeDir, "executive-summary.md"),
-        "# Executive Summary\n\nActual proof differs from metadata.",
-      );
       const gates = createDefaultGates();
       gates.proposal.status = "done";
       gates.discovery.status = "done";
@@ -865,11 +880,112 @@ describe("changeWorkflow signal handlers", () => {
       gates.planning.status = "done";
       gates.execution.status = "done";
       const input = {
-        ...makeChangeInput("acceptance-stale-summary"),
+        ...makeChangeInput("acceptance-no-disk"),
         projectionChangesDir: changesDir,
         seedState: {
-          ...makeChangeInput("acceptance-stale-summary").seedState,
+          ...makeChangeInput("acceptance-no-disk").seedState,
           gates,
+          documents: {
+            executiveSummary: executiveSummaryContent,
+          },
+          artifacts: {
+            executiveSummary: {
+              path: join(changeDir, "executive-summary.md"),
+              updatedAt: "2026-05-05T00:01:30.000Z",
+              contentHash: createHash("sha256")
+                .update(executiveSummaryContent)
+                .digest("hex"),
+            },
+          },
+          contract: {
+            version: 1 as const,
+            rigor: "standard" as const,
+            source: {
+              artifact: "agreement" as const,
+              approvedAt: "2026-05-05T00:00:00.000Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion" as const,
+                text: "State-backed acceptance is enforced.",
+                sourceArtifact: "agreement" as const,
+                verificationRequired: true,
+                evidencePolicy: "test" as const,
+                status: "approved" as const,
+              },
+            ],
+            reviewMatrix: {
+              reviewedAt: "2026-05-05T00:01:00.000Z",
+              rows: [
+                {
+                  contractId: "AC1",
+                  kind: "acceptance_criterion" as const,
+                  status: "pass" as const,
+                  evidencePolicy: "test" as const,
+                  evidence: "workflow tests pass",
+                },
+              ],
+            },
+            amendments: [],
+          },
+        },
+      };
+
+      await withArtifactSignalWorker(
+        "acceptance-no-disk",
+        input,
+        async (handle) => {
+          await handle.signal(gateCompletedSignal, {
+            gateId: "acceptance",
+            completedBy: "tester",
+            completedAt: "2026-05-05T00:02:00.000Z",
+          });
+
+          const state = await waitForGateStatus(handle, "acceptance", "done");
+          expect(state.gates.acceptance.status).toBe("done");
+          expect(state.gates.acceptance.artifact_evidence).toMatchObject({
+            kind: "acceptance",
+          });
+          // AC7: executive-summary.md materialized to disk for the archive
+          // bundle even though no disk file existed before approval.
+          await expect(
+            readFile(join(changeDir, "executive-summary.md"), "utf-8"),
+          ).resolves.toContain("State-backed acceptance proof");
+        },
+      );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
+
+  // completeStateBackedGate: on the canonical state-backed acceptance path,
+  // proof comes from state.documents.executiveSummary (not a disk-hash
+  // comparison). The legacy disk-hash-stale blocker no longer fires for new
+  // histories — the stale-contract class is prevented structurally by cache
+  // invalidation (AC9) + sequential content/metadata signal ordering. The
+  // meaningful state-backed block is: acceptance metadata present but the
+  // executive-summary CONTENT is missing from workflow state.
+  it("blocks acceptance when executive-summary content is missing from state", async () => {
+    const dir = await createTempDir();
+    try {
+      const changesDir = join(dir, "changes");
+      const changeDir = join(changesDir, "acceptance-missing-state-content");
+      await mkdir(changeDir, { recursive: true });
+      const gates = createDefaultGates();
+      gates.proposal.status = "done";
+      gates.discovery.status = "done";
+      gates.design.status = "done";
+      gates.planning.status = "done";
+      gates.execution.status = "done";
+      const input = {
+        ...makeChangeInput("acceptance-missing-state-content"),
+        projectionChangesDir: changesDir,
+        seedState: {
+          ...makeChangeInput("acceptance-missing-state-content").seedState,
+          gates,
+          // Metadata present (passes L1 acceptanceContractBlockers) but
+          // state.documents.executiveSummary deliberately absent.
           artifacts: {
             executiveSummary: {
               path: join(changeDir, "executive-summary.md"),
@@ -913,7 +1029,7 @@ describe("changeWorkflow signal handlers", () => {
       };
 
       await withArtifactSignalWorker(
-        "acceptance-stale-summary",
+        "acceptance-missing-state-content",
         input,
         async (handle) => {
           await handle.signal(gateCompletedSignal, {
@@ -924,11 +1040,11 @@ describe("changeWorkflow signal handlers", () => {
 
           const state = await waitForGateStatus(handle, "acceptance", "stuck");
           expect(state.gates.acceptance.stuck_reason).toContain(
-            "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+            "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
           );
           expect(state.gates.acceptance.readiness_blockers).toContainEqual(
             expect.objectContaining({
-              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_HASH_STALE",
+              code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING",
             }),
           );
         },
@@ -1216,5 +1332,30 @@ describe("changeWorkflow signal handlers", () => {
     for (const key of seedStateKeys) {
       expect(workflows).toContain(`${key}: state.${key}`);
     }
+  });
+
+  // AC3 (completeStateBackedGate): replay determinism. The new state-backed
+  // acceptance patch marker MUST be checked BEFORE the legacy acceptance
+  // disk-inspect patch marker. New histories record STATE_BACKED_ACCEPTANCE_
+  // PROOF_PATCH and take the state-backed branch; old histories (without the
+  // new marker) fall through to the legacy ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_
+  // PATCH disk-inspect branch, so their committed command sequence still
+  // replays deterministically. Ordering inversion would poison old-history
+  // replay, so this structural guard protects the patch-ordering invariant.
+  it("checks state-backed acceptance patch before the legacy disk-inspect patch (AC3)", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+
+    const stateBackedIdx = source.indexOf(
+      "wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)",
+    );
+    const legacyIdx = source.indexOf(
+      "wf.patched(ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH)",
+    );
+
+    expect(stateBackedIdx).toBeGreaterThan(-1);
+    expect(legacyIdx).toBeGreaterThan(-1);
+    // State-backed branch must appear (and be evaluated) before the legacy
+    // disk-inspect branch in the gate-completion if/else chain.
+    expect(stateBackedIdx).toBeLessThan(legacyIdx);
   });
 });

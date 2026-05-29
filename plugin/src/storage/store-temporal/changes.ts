@@ -692,6 +692,15 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       if (metadataPaths.design) result.designPath = metadataPaths.design;
       if (metadataPaths.executiveSummary)
         result.executiveSummaryPath = metadataPaths.executiveSummary;
+
+      // AC9 (completeStateBackedGate): invalidate the change cache after the
+      // content-signal fan-out, matching save/close/refresh/bulk-close. Without
+      // this, a store.changes.get(changeId) immediately following
+      // adv_change_update returns stale cached state.documents/state.artifacts
+      // content — the confirmed root cause of the stale-contract symptom (a
+      // re-mint was required after adv_change_update because changeCache held
+      // pre-update content).
+      invalidateChange(changeId);
       return result;
     },
 

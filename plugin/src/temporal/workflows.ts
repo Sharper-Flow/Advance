@@ -7,6 +7,7 @@ import {
   evaluateGateReadiness,
   MIN_GATE_ARTIFACT_NON_WHITESPACE_CHARS,
   renderAcceptanceProjection,
+  stateBackedAcceptanceProof,
   stateBackedArtifactEvidence,
 } from "./gate-readiness";
 import {
@@ -128,7 +129,15 @@ interface ChangeProjectionActivities {
   writeArtifactActivity(input: {
     changesDir: string;
     changeId: string;
-    kind: "proposal" | "agreement" | "design" | "acceptance";
+    // executiveSummary added for state-backed acceptance materialization
+    // (completeStateBackedGate AC7): the executive-summary.md disk file is
+    // written at acceptance time so createArchive includes it in the bundle.
+    kind:
+      | "proposal"
+      | "agreement"
+      | "design"
+      | "acceptance"
+      | "executiveSummary";
     content: string;
   }): Promise<
     { ok: true; path: string } | { ok: false; error: string; path?: undefined }
@@ -729,6 +738,20 @@ export async function changeWorkflow(
   // histories replay the legacy disk-read command sequence.
   const STATE_BACKED_GATE_ARTIFACT_PROOF_PATCH =
     "state-backed-gate-artifact-proof-v1";
+  // Patch rationale (completeStateBackedGate, AC3): acceptance gate proof moved
+  // from disk inspectArtifactActivity to workflow state.documents.executiveSummary
+  // + state.artifacts.executiveSummary metadata. The Temporal-only store no
+  // longer writes artifact .md files (no-disk-writes-invariant), so the legacy
+  // ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH disk-read path leaves acceptance
+  // stuck. New histories take the state-backed branch (and materialize
+  // executive-summary.md to disk for the archive bundle via writeArtifactActivity
+  // per AC7); old histories that already scheduled the disk inspect sequence
+  // replay the legacy command sequence under the prior marker.
+  // Deprecation plan: keep until pre-migration acceptance histories are
+  // archived/closed and replay fixtures no longer cover the disk-inspect path;
+  // then replace with wf.deprecatePatch before final removal.
+  const STATE_BACKED_ACCEPTANCE_PROOF_PATCH =
+    "state-backed-acceptance-proof-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -794,6 +817,76 @@ export async function changeWorkflow(
           return;
         }
         artifactEvidence = stateArtifactReadiness.evidence;
+      } else if (
+        artifactKind === "acceptance" &&
+        wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH)
+      ) {
+        // State-backed acceptance (completeStateBackedGate AC1/AC2/AC7).
+        // Proof comes from workflow state, NOT disk inspection. The L1
+        // readiness check (acceptanceContractBlockers) already verified that
+        // state.artifacts.executiveSummary.{path,contentHash} are present and
+        // the contract review matrix passes; here we validate the
+        // state.documents.executiveSummary CONTENT (size + hash) and derive
+        // the acceptance evidence from state. The recovery path in gate.ts
+        // (poisoned_history) is untouched and still inspects disk per C2/C4.
+        const stateProof = stateBackedAcceptanceProof(state, workflowNow());
+        if (!stateProof.ready) {
+          markGateStuckForBlockers(payload, stateProof.blockers);
+          return;
+        }
+        const acceptanceContent = renderAcceptanceProjection(state);
+        // T12: populate state.documents.acceptance to match the projection so
+        // readArtifact / archive-bundle materialization see Temporal content.
+        state.documents = {
+          ...(state.documents ?? {}),
+          acceptance: acceptanceContent,
+        };
+        // AC7: materialize executive-summary.md AND acceptance.md to disk so
+        // createArchive/createInRepoArchive (readdir-based copy) include them
+        // in the bundle. The Temporal-only store does not write artifact files
+        // on the production update path, so this is the single materialization
+        // point. Only attempted when a projection dir is configured; pure
+        // state-only environments (unit fixtures without projectionChangesDir)
+        // still complete acceptance from state proof.
+        if (state.projectionChangesDir) {
+          const esWrite = await writeArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "executiveSummary",
+            content: state.documents.executiveSummary ?? "",
+          });
+          if (!esWrite.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_EXECUTIVE_SUMMARY_MATERIALIZE_FAILED",
+                artifactKind,
+                message: esWrite.error,
+                remediation:
+                  "Fix executive-summary materialization before retrying acceptance.",
+              }),
+            ]);
+            return;
+          }
+          const acceptanceWrite = await writeArtifactActivity({
+            changesDir: state.projectionChangesDir,
+            changeId: state.changeId,
+            kind: "acceptance",
+            content: acceptanceContent,
+          });
+          if (!acceptanceWrite.ok) {
+            markGateStuckForBlockers(payload, [
+              gateArtifactBlocker(payload, {
+                code: "ACCEPTANCE_PROJECTION_WRITE_FAILED",
+                artifactKind,
+                message: acceptanceWrite.error,
+                remediation:
+                  "Fix acceptance projection generation before retrying gate completion.",
+              }),
+            ]);
+            return;
+          }
+        }
+        artifactEvidence = stateProof.evidence;
       } else if (state.projectionChangesDir) {
         if (
           artifactKind === "acceptance" &&

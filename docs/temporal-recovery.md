@@ -38,9 +38,12 @@ This invariant is locked by `plugin/src/temporal/change-state.crash-recovery.tes
 
 The acceptance-gate recovery path (`gate.ts:344-414`, `_recovery-writers.ts`) is **separate from this content-signal recovery flow**. Poisoned-workflow recovery uses `inspectArtifactActivity` to read disk files when Temporal cannot accept signals at all (workflow stuck on a non-deterministic replay error, history truncation, etc.). That path retains disk dependency by design (C12) and is not part of the mid-batch-signal-failure recovery procedure above.
 
-## Stuck proposal/discovery/design gates after artifact disk writes were removed
+> **State-backed acceptance (completeStateBackedGate, May 2026).** The acceptance gate's **non-recovery** completion path is now fully state-backed, matching proposal/discovery/design. Under the `STATE_BACKED_ACCEPTANCE_PROOF_PATCH` workflow patch marker, acceptance proof is read from `state.documents.executiveSummary` + `state.artifacts.executiveSummary.{path,contentHash}` — no disk `inspectArtifactActivity`. At acceptance time the workflow materializes `executive-summary.md` and `acceptance.md` to the active change dir via `writeArtifactActivity` so the readdir-based archive bundle (`createInRepoArchive`) includes them (AC7). The legacy `ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH` disk-inspect branch is retained only for replay of pre-migration histories; new histories never take it. The poisoned-history **recovery** path described above is unchanged and still inspects disk per C12 — the two paths coexist exactly as the production-vs-recovery split for the other gates.
 
-> Applies to the `fixGateArtifactReadiness` change (May 2026).
+## Stuck proposal/discovery/design/acceptance gates after artifact disk writes were removed
+
+> Applies to the `fixGateArtifactReadiness` change (May 2026); the acceptance
+> gate joined the state-backed model in `completeStateBackedGate` (May 2026).
 
 `Store.changes.updateArtifacts(...)` no longer writes active `proposal.md`,
 `agreement.md`, or `design.md` files from the Temporal store path. The canonical
@@ -51,11 +54,14 @@ artifact content for proposal/discovery/design gates is workflow state:
 
 ### Symptom
 
-A proposal, discovery, or design gate is stuck with `ARTIFACT_MISSING` even
-though `adv_change_show` displays the artifact content (for example, an
-agreement exists in workflow state but `agreement.md` is absent on disk). This
-was observed in PokeEdge/PokeEdge-web style sessions such as a stuck discovery
-gate for `fixSubDollarLabels`.
+A proposal, discovery, design, or acceptance gate is stuck with
+`ARTIFACT_MISSING` (acceptance reports `ACCEPTANCE_EXECUTIVE_SUMMARY_MISSING`)
+even though `adv_change_show` displays the artifact content (for example, an
+agreement exists in workflow state but `agreement.md` is absent on disk, or the
+executive summary exists in `state.documents.executiveSummary` but
+`executive-summary.md` is absent on disk). This was observed in
+PokeEdge/PokeEdge-web style sessions such as a stuck discovery gate for
+`fixSubDollarLabels`.
 
 ### Recovery procedure
 
@@ -78,9 +84,11 @@ gate for `fixSubDollarLabels`.
    ```
 
 4. Retry the normal gate completion. Do **not** create or edit `agreement.md`,
-   `proposal.md`, or `design.md` manually just to satisfy gate readiness. Disk
-   artifact files are not the source of truth for proposal/discovery/design on
-   the fixed path.
+   `proposal.md`, `design.md`, or `executive-summary.md` manually just to
+   satisfy gate readiness. Disk artifact files are not the source of truth for
+   proposal/discovery/design/acceptance on the fixed path — the workflow
+   materializes `executive-summary.md`/`acceptance.md` to disk itself at
+   acceptance time for the archive bundle.
 
 ### Interaction with per-project OpenCode wrappers
 

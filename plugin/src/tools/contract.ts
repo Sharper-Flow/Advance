@@ -1,7 +1,6 @@
-import { readFile } from "fs/promises";
-import { join } from "path";
 import { z } from "zod";
 import type { Store } from "../storage/store";
+import { readArtifact } from "./change";
 import { saveChange } from "../storage/json";
 import {
   ContractEvidencePolicySchema,
@@ -90,19 +89,17 @@ function assertSafeChangeId(changeId: string): void {
 
 async function readAgreement(store: Store, change: Change): Promise<string> {
   assertSafeChangeId(change.id);
-  const cached = change.documents?.agreement;
-  try {
-    const text = await readFile(
-      join(store.paths.changes, change.id, "agreement.md"),
-      "utf-8",
-    );
-    if (text.trim()) return text;
-    if (cached?.trim()) return cached;
-    throw new Error(`Agreement artifact is empty: ${change.id}`);
-  } catch (error) {
-    if (cached?.trim()) return cached;
-    throw error;
-  }
+  // AC8 (completeStateBackedGate): Temporal-first ordering, matching the
+  // canonical readArtifact (tools/change.ts): state.documents.agreement →
+  // disk active dir → archive bundle. Previously this reader was disk-first,
+  // the lone outlier among artifact readers; in the Temporal-canonical
+  // architecture state.documents is the source of truth and disk is the legacy
+  // fallback. readArtifact already encodes the full fallback chain, so we
+  // delegate to it. change.ts does not import from contract.ts, so this is a
+  // one-directional dependency with no import cycle.
+  const content = await readArtifact(store, change.id, "agreement");
+  if (content?.trim()) return content;
+  throw new Error(`Agreement artifact is empty: ${change.id}`);
 }
 
 function contractApprovedAt(input: {
